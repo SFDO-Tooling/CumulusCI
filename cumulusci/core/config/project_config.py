@@ -203,7 +203,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 self.logger.info(
                     "CUMULUSCI_REPO_URL found, using its value as the repo url, owner, and name"
                 )
-            url_info = self._split_repo_url(repo_url)  # FIXME: refactor
+            url_info = {}
+            url_info["name"], url_info["owner"] = split_repo_url(repo_url)
+            url_info["url"] = repo_url
             info.update(url_info)
 
     def _override_repo_env_var(self, repo_env_var, local_var, info):

@@ -900,46 +900,6 @@ class TestBaseProjectConfig(unittest.TestCase):
             ],
         )
 
-    def test_process_github_dependency__cannot_find_repo(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        github = self._make_github()
-        github.repositories["CumulusCI-Test-Dep"] = None
-        config.get_github_api = mock.Mock(return_value=github)
-
-        with self.assertRaises(DependencyResolutionError):
-            config.process_github_dependency(
-                {"github": "https://github.com/SFDO-Tooling/CumulusCI-Test-Dep.git"}
-            )
-
-    def test_process_github_dependency_cannot_find_latest(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        github = self._make_github()
-        github.repositories["CumulusCI-Test-Dep"]._releases = []
-        config.get_github_api = mock.Mock(return_value=github)
-
-        with self.assertRaises(DependencyResolutionError):
-            config.process_github_dependency(
-                {"github": "https://github.com/SFDO-Tooling/CumulusCI-Test-Dep.git"}
-            )
-
-    def test_process_github_dependency_tag_not_found(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        config.get_github_api = mock.Mock(return_value=self._make_github())
-
-        with self.assertRaises(DependencyResolutionError):
-            config.process_github_dependency(
-                {
-                    "github": "https://github.com/SFDO-Tooling/CumulusCI-Test-Dep.git",
-                    "tag": "bogus",
-                }
-            )
-
     @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
     def test_find_matching_2gp_release(self, get_version_id):
         universal_config = UniversalConfig()
@@ -1095,30 +1055,6 @@ class TestBaseProjectConfig(unittest.TestCase):
             repo, {"github": "https://github.com/Test/Test"}, match_release_branch=True
         ) == ("04t000000000000", "commit_sha")
 
-    def test_get_ref_for_dependency_falls_back_from_2gp_to_1gp(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        github = self._make_github()
-        config.get_github_api = mock.Mock(return_value=github)
-        config.project__git__prefix_feature = "feature/"
-        config.find_matching_2gp_release = mock.Mock(return_value=(None, None))
-        config.find_latest_release = mock.Mock()
-        config.repo_info["branch"] = "feature/230"
-
-        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
-
-        print(
-            config.get_ref_for_dependency(
-                repo,
-                {"github": "https://github.com/Test/Test"},
-                match_release_branch=True,
-            )
-        )
-        assert config.get_ref_for_dependency(
-            repo, {"github": "https://github.com/Test/Test"}, match_release_branch=True
-        ) == (repo.latest_release(), "tag_sha")
-
     def test_get_task__included_source(self):
         universal_config = UniversalConfig()
         with temporary_dir() as d:
@@ -1239,23 +1175,6 @@ class TestBaseProjectConfig(unittest.TestCase):
         os.remove(git_config_file)
         actual_line = project_config.git_config_remote_origin_url()
         assert actual_line is None  # no config file present
-
-    def test_split_repo_url(self):
-        name = "Cumulusci"
-        owner = "SFDO-Tooling"
-        project_config = BaseProjectConfig(UniversalConfig())
-
-        https_url = f"https://github.com/{owner}/{name}.git"
-        info = project_config._split_repo_url(https_url)
-        assert info["name"] == name
-        assert info["owner"] == owner
-        assert info["url"] == https_url
-
-        ssh_url = f"git@github.com:{owner}/{name}.git"
-        info = project_config._split_repo_url(ssh_url)
-        assert info["name"] == name
-        assert info["owner"] == owner
-        assert info["url"] == ssh_url
 
     def test_default_package_path(self):
         config = BaseProjectConfig(UniversalConfig())

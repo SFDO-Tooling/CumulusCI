@@ -312,10 +312,42 @@ class TestUnmanagedDependency:
         )
 
     def test_get_unmanaged(self):
-        pass
+        org = mock.Mock()
+        org.installed_packages = {"foo": "1.0"}
+        assert (
+            UnmanagedDependency(
+                zip_url="http://foo.com", unmanaged=True
+            )._get_unmanaged(org)
+            is True
+        )
+        assert (
+            UnmanagedDependency(
+                zip_url="http://foo.com", namespace_inject="foo"
+            )._get_unmanaged(org)
+            is False
+        )
+        assert (
+            UnmanagedDependency(
+                zip_url="http://foo.com", namespace_inject="bar"
+            )._get_unmanaged(org)
+            is True
+        )
 
     def test_name(self):
-        pass
+        assert (
+            str(UnmanagedDependency(zip_url="http://foo.com", subfolder="bar"))
+            == "Dependency: http://foo.com /bar"
+        )
+        assert (
+            str(
+                UnmanagedDependency(
+                    github="https://github.com/Test/TestRepo",
+                    subfolder="bar",
+                    ref="aaaaaaaa",
+                )
+            )
+            == "Dependency: https://github.com/Test/TestRepo /bar @aaaaaaaa"
+        )
 
 
 class TestParseDependency:

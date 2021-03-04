@@ -19,7 +19,7 @@ class UpdateDependencies(BaseSalesforceTask):
             "description": "List of dependencies to update. Defaults to project__dependencies. "
             "Each dependency is a dict with either 'github' set to a github repository URL "
             "or 'namespace' set to a Salesforce package namespace. "
-            "Github dependencies may include 'tag' to install a particular git ref. "
+            "GitHub dependencies may include 'tag' to install a particular git ref. "
             "Package dependencies may include 'version' to install a particular version."
         },
         "ignore_dependencies": {
@@ -47,7 +47,7 @@ class UpdateDependencies(BaseSalesforceTask):
             "a matching release branch on the dependency."
         },
         "resolution_strategy": {
-            "description": "The name of a sequence of resolution_strategy (from projectdependency_resolutions) to apply to dynamic dependencies."
+            "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies."
         },
     }
 

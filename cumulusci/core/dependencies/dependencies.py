@@ -1,5 +1,5 @@
 from collections import namedtuple
-from re import L
+from cumulusci.core.config.BaseConfig import BaseConfig
 from cumulusci.utils.yaml.model_parser import CCIModel
 import io
 import logging
@@ -156,13 +156,35 @@ class GitHubRepoMixin:
         repo = context.get_github_repo(self.github)
         if repo is None:
             raise DependencyResolutionError(
-                f"Github repository {self.github} not found or not authorized."
+                f"GitHub repository {self.github} not found or not authorized."
             )
 
         return repo
 
 
-class GitHubDynamicDependency(GitHubRepoMixin, DynamicDependency):
+class GitHubPackageDataMixin:
+    def _get_project_config(self, repo: Repository, ref: str) -> BaseConfig:
+        contents = repo.file_contents("cumulusci.yml", ref=ref)
+        return BaseConfig(cci_safe_load(io.StringIO(contents.decoded.decode("utf-8"))))
+
+    def _get_package_data(
+        self, repo: Repository, ref: str
+    ) -> Tuple[str, Optional[str]]:
+        config = self._get_project_config(repo, ref)
+
+        namespace = config.project__package__namespace
+        package_name = (
+            config.project__package__name_managed
+            or config.project__package__name
+            or "Package"
+        )
+
+        return package_name, namespace
+
+
+class GitHubDynamicDependency(
+    GitHubRepoMixin, GitHubPackageDataMixin, DynamicDependency
+):
     github: Optional[AnyUrl]
 
     repo_owner: Optional[str]  # Deprecate - use full URL
@@ -171,7 +193,7 @@ class GitHubDynamicDependency(GitHubRepoMixin, DynamicDependency):
     unmanaged: bool = False
     subfolder: Optional[str]
     namespace_inject: Optional[str]
-    namespace_strip: Optional[str]  # FIXME: Should this be deprecated?
+    namespace_strip: Optional[str]
 
     tag: Optional[str]
     ref: Optional[str]
@@ -249,7 +271,7 @@ class GitHubDynamicDependency(GitHubRepoMixin, DynamicDependency):
         return unpackaged
 
     def flatten(self, context: BaseProjectConfig) -> List[Dependency]:
-        if not self.is_resolved:
+        if not self.is_resolved or not self.ref:
             raise DependencyResolutionError(
                 f"Dependency {self.github} is not resolved and cannot be flattened."
             )
@@ -259,21 +281,13 @@ class GitHubDynamicDependency(GitHubRepoMixin, DynamicDependency):
         context.logger.info(f"Collecting dependencies from Github repo {self.github}")
         repo = self.get_repo(context)
 
-        # Get the cumulusci.yml file
-        contents = repo.file_contents("cumulusci.yml", ref=self.ref)
-        cumulusci_yml = cci_safe_load(io.StringIO(contents.decoded.decode("utf-8")))
-
-        # Get the namespace from the cumulusci.yml if set
-        # FIXME: this logic is duplicative with some in resolvers.
-        # Can we unify?
-        package_config = cumulusci_yml.get("project", {}).get("package", {})
-        namespace = package_config.get("namespace")
+        package_config = self._get_project_config(repo, self.ref)
+        namespace = package_config.project__package__namespace
 
         # Parse upstream dependencies from the repo's cumulusci.yml
         # These may be unresolved or unflattened; if so, `get_static_dependencies()`
         # will manage them.
-        project = cumulusci_yml.get("project", {})
-        dependencies = project.get("dependencies")
+        dependencies = package_config.project__dependencies
         if dependencies:
             deps.extend([parse_dependency(d) for d in dependencies])
             if None in deps:
@@ -282,7 +296,7 @@ class GitHubDynamicDependency(GitHubRepoMixin, DynamicDependency):
                 )
 
         # Check for unmanaged flag on a namespaced package
-        managed = namespace and not self.unmanaged
+        managed = bool(namespace and not self.unmanaged)
 
         # Look for subfolders under unpackaged/pre
         # unpackaged/pre is always deployed unmanaged, no namespace manipulation.
@@ -415,10 +429,10 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
     # and
     ref: Optional[str]
 
-    unmanaged: Optional[bool]  # ??
+    unmanaged: Optional[bool]
     subfolder: Optional[str]
     namespace_inject: Optional[str]
-    namespace_strip: Optional[str]  # FIXME: Should this be deprecated?
+    namespace_strip: Optional[str]
 
     @pydantic.root_validator
     def validate(cls, values):
@@ -531,25 +545,6 @@ def parse_dependency(dep_dict: dict) -> Optional[Dependency]:
 
 
 ## Resolvers
-
-
-class GitHubPackageDataMixin:
-    def _get_package_data(
-        self, repo: Repository, ref: str
-    ) -> Tuple[str, Optional[str]]:
-        contents = repo.file_contents("cumulusci.yml", ref=ref)
-        cumulusci_yml = cci_safe_load(io.StringIO(contents.decoded.decode("utf-8")))
-
-        # Get the namespace from the cumulusci.yml if set
-        package_config = cumulusci_yml.get("project", {}).get("package", {})
-        namespace = package_config.get("namespace")
-        package_name = (
-            package_config.get("name_managed")
-            or package_config.get("name")
-            or "Package"
-        )
-
-        return package_name, namespace
 
 
 class GitHubTagResolver(GitHubPackageDataMixin, Resolver):

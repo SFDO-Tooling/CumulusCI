@@ -1,4 +1,5 @@
 from collections import namedtuple
+from cumulusci.utils.yaml.model_parser import CCIModel
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.metadata import ApiDeploy
@@ -7,8 +8,7 @@ from cumulusci.core.config.project_config import BaseProjectConfig
 from typing import Optional, cast
 import functools
 import logging
-import pydantic
-
+from enum import Enum
 from simple_salesforce.api import SFType
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
@@ -19,11 +19,25 @@ from cumulusci.utils.waiting import poll, retry
 logger = logging.getLogger(__name__)
 
 
-class ManagedPackageInstallOptions(pydantic.BaseModel):
+class SecurityType(str, Enum):
+    # The values specified by the Tooling API are confusing, and PUSH is not documented.
+    # We rename here for a little bit of clarity.
+    FULL = "FULL"  # All profiles
+    CUSTOM = "CUSTOM"  # Custom profiles
+    ADMIN = "NONE"  # System Administrator only
+    PUSH = "PUSH"  # No profiles
+
+
+class NameConflictResolution(str, Enum):
+    BLOCK = "Block"
+    RENAME = "RenameMetadata"
+
+
+class ManagedPackageInstallOptions(CCIModel):
     activate_remote_site_settings: bool = True
-    name_conflict_resolution: str = "Block"
+    name_conflict_resolution: NameConflictResolution = NameConflictResolution.BLOCK
     password: Optional[str]
-    security_type: str = "FULL"
+    security_type: SecurityType = SecurityType.FULL
 
 
 DEFAULT_PACKAGE_RETRY_OPTIONS = {
@@ -31,6 +45,14 @@ DEFAULT_PACKAGE_RETRY_OPTIONS = {
     "retry_interval": 5,
     "retry_interval_add": 30,
 }
+
+RETRY_PACKAGE_ERRORS = [
+    "This package is not yet available",
+    "InstalledPackage version number",
+    "The requested package doesn't yet exist or has been deleted",
+    "unable to obtain exclusive access to this record",
+    "invalid cross reference id",
+]
 
 
 def _wait_for_package_install(tooling, request):
@@ -78,12 +100,10 @@ def _install_package_version(
     poll(functools.partial(_wait_for_package_install, tooling, request))
 
 
-def _should_retry_package_install(err: Exception) -> bool:
-    if isinstance(
-        err, SalesforceMalformedRequest
-    ) and "invalid cross reference id" in str(err):
-        return True
-    return False
+def _should_retry_package_install(e: Exception) -> bool:
+    return isinstance(e, SalesforceMalformedRequest) and any(
+        err in str(e) for err in RETRY_PACKAGE_ERRORS
+    )
 
 
 def _install_1gp_package_version(
@@ -117,11 +137,8 @@ def _install_1gp_package_version(
 
 
 def _should_retry_1gp_package_install(e: Exception) -> bool:
-    return isinstance(e, MetadataApiError) and (
-        "This package is not yet available" in str(e)
-        or "InstalledPackage version number" in str(e)
-        or "The requested package doesn't yet exist or has been deleted" in str(e)
-        or "unable to obtain exclusive access to this record" in str(e)
+    return isinstance(e, MetadataApiError) and any(
+        err in str(e) for err in RETRY_PACKAGE_ERRORS
     )
 
 
