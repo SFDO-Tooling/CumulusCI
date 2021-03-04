@@ -30,9 +30,8 @@ Changes:
 - We released a `new suite of documentation for CumulusCI <https://cumulusci.readthedocs.io/en/latest/>`_.
 - CumulusCI now caches org describe data in a local database to provide significant performance gains, especially in ``generate_dataset_mapping``.
 - The ``cci org browser`` command now has a ``--path`` option to open a specific page and a ``--url-only`` option to output the login URL without spawning a browser.
-- We improved CumulusCI's behavior when loading Record Type data from Snowfakery to avoid showing a warning to the user.
 - We improved messaging about errors while loading ``cumulusci.yml``.
-
+- CumulusCI now uses Snowfakery 1.6 (see its `release notes <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.6>`_).
 
 3.29.0 (2021-02-18)
 -------------------
