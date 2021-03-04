@@ -2,6 +2,37 @@
 History
 =======
 
+3.30.0 (2021-03-04)
+-------------------
+
+Critical changes:
+
+- We are planning to remove functionality in CumulusCI's dependency management in a future release. 
+  - The ``update_dependencies`` task will no longer support uninstalling managed packages in a persistent org as part of the dependency installation process. 
+  - The ``allow_newer`` option on ``update_dependencies`` will be removed and always be True.
+  - The ``project__dependencies`` section in ``cumulusci.yml`` will no longer support nested dependencies specified like this ::
+  
+  dependencies:
+    - namespace: "test"
+      version: "1.0"
+      dependencies:
+        - namespace: "parent"
+          version: "2.2"
+
+  
+  All dependencies should be listed in install order. 
+  
+  - We recommend reformatting nested dependencies and discontinuing use of ``allow_newer`` and package uninstalls now to prepare for these future changes. 
+
+Changes:
+
+- We released a new suite of documentation for CumulusCI, available at cumulusci.readthedocs.io.
+- CumulusCI now caches org describe data in a local database to provide significant performance gains, especially in ``generate_dataset_mapping``.
+- The ``cci org browser`` command now has a ``--path`` option to open a specific page and a ``--url-only`` option to output the login URL without spawning a browser.
+- We improved CumulusCI's behavior when loading Record Type data from Snowfakery to avoid showing a warning to the user.
+- We improved messaging about errors while loading ``cumulusci.yml``.
+
+
 3.29.0 (2021-02-18)
 -------------------
 
