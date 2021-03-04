@@ -25,14 +25,14 @@ class Command(BaseTask):
 
         **Example Task to Run Command:**
 
-        ..code-block:: yaml
+        .. code-block:: yaml
 
             hello_world:
                 description: Says hello world
                 class_path: cumulusci.tasks.command.Command
                 options:
-                command: echo 'Hello World!'
-    """
+                    command: echo 'Hello World!'
+"""
 
     task_options = {
         "command": {"description": "The command to execute", "required": True},

@@ -26,6 +26,7 @@ def recursive_list_files(d="."):
 
 
 class DummyTask(BaseTask):
+    task_docs = "Some task docs."
     task_options = {"color": {"description": "It's a color!", "required": True}}
 
     def _run_task(self):
