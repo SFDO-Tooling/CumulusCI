@@ -36,6 +36,24 @@ def test_jwt_session(encode):
         jwt_session("client_id", "server_key", "username")
 
 
+@mock.patch("time.sleep", time.sleep)  # undo mock from conftest
+def start_httpd_thread(tester_class):
+    # create CaptureSalesforceOAuth instance
+    o = tester_class._create_oauth()
+
+    # call OAuth object on another thread - this spawns local httpd
+    t = threading.Thread(target=o.__call__)
+    t.start()
+    while t.is_alive():
+        if o.httpd:
+            break
+        print("waiting for o.httpd")
+        time.sleep(0.01)
+
+    assert o.httpd, "HTTPD did not start. Perhaps port 8080 cannot be accessed."
+    return o, t
+
+
 class TestSalesforceOAuth(unittest.TestCase):
     def _create_oauth(self):
         return SalesforceOAuth2(
@@ -86,7 +104,6 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         self.auth_site = "https://login.salesforce.com"
 
     @responses.activate
-    @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
     def test_oauth_flow_simple(self):
 
         # mock response to URL validation
@@ -115,18 +132,8 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
             json=expected_response,
         )
 
-        # create CaptureSalesforceOAuth instance
-        o = self._create_oauth()
-
         # call OAuth object on another thread - this spawns local httpd
-        t = threading.Thread(target=o.__call__)
-        t.start()
-        while True:
-            if o.httpd:
-                break
-            print("waiting for o.httpd")
-            time.sleep(0.01)
-
+        o, t = start_httpd_thread(self)
         # simulate callback from browser
         response = urllib.request.urlopen(self.callback_url + "?code=123")
 
@@ -137,7 +144,6 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         self.assertEqual(o.response.json(), expected_response)
         self.assertIn(b"Congratulations", response.read())
 
-    @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
     @responses.activate
     def test_oauth_flow_error_from_auth(self):
 
@@ -167,17 +173,8 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
             json=expected_response,
         )
 
-        # create CaptureSalesforceOAuth instance
-        o = self._create_oauth()
-
         # call OAuth object on another thread - this spawns local httpd
-        t = threading.Thread(target=o.__call__)
-        t.start()
-        while True:
-            if o.httpd:
-                break
-            print("waiting for o.httpd")
-            time.sleep(0.01)
+        o, t = start_httpd_thread(self)
 
         # simulate callback from browser
         with self.assertRaises(urllib.error.HTTPError):
@@ -188,7 +185,6 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         # wait for thread to complete
         t.join()
 
-    @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
     @responses.activate
     def test_oauth_flow_error_from_token(self):
 
@@ -206,17 +202,8 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
             status=http.client.FORBIDDEN,
         )
 
-        # create CaptureSalesforceOAuth instance
-        o = self._create_oauth()
-
         # call OAuth object on another thread - this spawns local httpd
-        t = threading.Thread(target=o.__call__)
-        t.start()
-        while True:
-            if o.httpd:
-                break
-            print("waiting for o.httpd")
-            time.sleep(0.01)
+        o, t = start_httpd_thread(self)
 
         # simulate callback from browser
         with self.assertRaises(urllib.error.HTTPError):
