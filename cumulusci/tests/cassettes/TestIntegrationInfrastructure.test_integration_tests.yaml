@@ -5,7 +5,7 @@ interactions:
       Request-Headers:
       - Elided
     method: GET
-    uri: https://orgname.salesforce.com/services/data/v50.0/sobjects/Organization/ORGID
+    uri: https://orgname.my.salesforce.com/services/data/v50.0/sobjects/Organization/ORGID
   response:
     body:
       string: "{\n  \"attributes\" : {\n    \"type\" : \"Organization\",\n    \"url\"
@@ -58,7 +58,7 @@ interactions:
       Request-Headers:
       - Elided
     method: POST
-    uri: https://orgname.salesforce.com/services/Soap/m/50.0/ORGID
+    uri: https://orgname.my.salesforce.com/services/Soap/m/50.0/ORGID
   response:
     body:
       string: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
@@ -80,7 +80,7 @@ interactions:
       Request-Headers:
       - Elided
     method: POST
-    uri: https://orgname.salesforce.com/services/Soap/m/50.0/ORGID
+    uri: https://orgname.my.salesforce.com/services/Soap/m/50.0/ORGID
   response:
     body:
       string: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
@@ -102,7 +102,7 @@ interactions:
       Request-Headers:
       - Elided
     method: POST
-    uri: https://orgname.salesforce.com/services/Soap/m/50.0/ORGID
+    uri: https://orgname.my.salesforce.com/services/Soap/m/50.0/ORGID
   response:
     body:
       string: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"

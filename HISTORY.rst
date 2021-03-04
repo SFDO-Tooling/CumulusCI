@@ -2,6 +2,69 @@
 History
 =======
 
+3.30.0 (2021-03-04)
+-------------------
+
+Critical changes:
+
+- We are planning to remove functionality in CumulusCI's dependency management in a future release. 
+
+  - The ``update_dependencies`` task will no longer support uninstalling managed packages in a persistent org as part of the dependency installation process. 
+  - The ``allow_newer`` option on ``update_dependencies`` will be removed and always be True.
+  - The ``project__dependencies`` section in ``cumulusci.yml`` will no longer support nested dependencies specified like this ::
+  
+      dependencies:
+        - namespace: "test"
+          version: "1.0"
+          dependencies:
+            - namespace: "parent"
+              version: "2.2"
+
+  
+  All dependencies should be listed in install order. 
+  
+  We recommend reformatting nested dependencies and discontinuing use of ``allow_newer`` and package uninstalls now to prepare for these future changes. 
+
+Changes:
+
+- We released a `new suite of documentation for CumulusCI <https://cumulusci.readthedocs.io/en/latest/>`_.
+- CumulusCI now caches org describe data in a local database to provide significant performance gains, especially in ``generate_dataset_mapping``.
+- The ``cci org browser`` command now has a ``--path`` option to open a specific page and a ``--url-only`` option to output the login URL without spawning a browser.
+- We improved messaging about errors while loading ``cumulusci.yml``.
+- CumulusCI now uses Snowfakery 1.6 (see its `release notes <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.6>`__).
+
+3.29.0 (2021-02-18)
+-------------------
+
+Changes:
+
+- The message shown at the end of running a flow now includes the org name. #2390, thanks @Julian88Tex
+
+- Added new preflight check tasks:
+
+  - ``get_existing_record_types`` checks for existing Record Types. #2371, thanks @ClayTomerlin
+  - ``get_assigned_permission_sets`` checks the current user's Permission Set Assignments. #2386
+
+- The ``generate_package_xml`` task now supports the Muting Permission Set metadata type. #2382
+
+- The ``uninstall_packaged_incremental`` and ``uninstall_packaged`` tasks now support a ``dry_run`` option, which outputs the destructiveChanges package manifest to the log instead of executing it. #2393
+
+- Robot Framework:
+
+  - The ``Run Task`` keyword now uses the correct project config when running a task from a different source project. #2391
+  - The SalesforceLibrary has a new keyword, ``Scroll Element Into View``, which is more reliable on Firefox than the keyword of the same name in SeleniumLibrary. #2391
+
+Issues closed:
+
+- Fixed very slow ``cci org connect`` on Safari. #2373
+
+- Added a workaround for decode errors that sometimes happen while processing cci logs on Windows. #2392
+
+- If there's an error while doing JWT authentication to an org, we now log the full response from the server. #2384
+
+- Robot Framework: Improved stability of the ``ObjectManagerPageObject``. #2391
+
+
 3.28.0 (2021-02-04)
 -------------------
 

@@ -15,7 +15,7 @@ import requests
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import get_batch_iterator
+from cumulusci.tasks.bulkdata.utils import iterate_in_chunks
 
 
 class DataOperationType(Enum):
@@ -447,7 +447,7 @@ class RestApiDmlOperation(BaseDmlOperation):
             DataOperationType.DELETE: "DELETE",
         }[self.operation]
 
-        for chunk in get_batch_iterator(
+        for chunk in iterate_in_chunks(
             self.api_options.get("batch_size", 200), records
         ):
             if self.operation is DataOperationType.DELETE:

@@ -279,6 +279,7 @@ ${login url}=  Login URL  alias=dadvisor
                   
                 </td>
                 <td class="kwdoc"><p>Runs a named CumulusCI task for the current project with optional support for overriding task options via kwargs.</p>
+<p>Note: task_name can be prefixed with the name of another project, just the same as when running the task from the command line. The other project needs to have been defined in the 'sources' section of cumulusci.yml.</p>
 <p>Examples:</p>
 <table border="1">
 <tr>
@@ -298,6 +299,12 @@ ${login url}=  Login URL  alias=dadvisor
 <td>deploy</td>
 <td>path=path/to/some/metadata</td>
 <td>Run deploy with custom path</td>
+</tr>
+<tr>
+<td>Run task</td>
+<td>npsp:deploy_rd2_config</td>
+<td></td>
+<td>Run the deploy_rd2_config task from the NPSP project</td>
 </tr>
 </table></td>
               </tr>
@@ -1302,6 +1309,20 @@ Should be equal as numbers ${result}  204
 </pre></td>
               </tr>
               
+              <tr class="kwrow" id="Salesforce.Scroll Element Into View">
+                <td class="kwname">
+                  Scroll Element Into View
+                </td>
+                <td class="kwargs">
+                  
+                  <i>locator</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Scroll the element identified by 'locator'</p>
+<p>This is a replacement for the keyword of the same name in SeleniumLibrary. The SeleniumLibrary implementation uses an unreliable method on Firefox. This keyword uses a more reliable technique.</p>
+<p>For more info see <a href="https://stackoverflow.com/a/52045231/7432">https://stackoverflow.com/a/52045231/7432</a></p></td>
+              </tr>
+              
               <tr class="kwrow" id="Salesforce.Select App Launcher App">
                 <td class="kwname">
                   Select App Launcher App
@@ -2219,7 +2240,7 @@ Populate form
       
     </div>
     <div class="footer">
-      Generated on Tuesday January 12, 04:27 PM - cumulusci v3.26.0
+      Generated on Friday February 26, 07:51 AM - cumulusci v3.29.0
     </div>
   </body>
 </html>

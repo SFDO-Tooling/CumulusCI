@@ -2,6 +2,8 @@
 Metadata ETL
 ============
 
+
+
 Introduction to Metadata ETL
 ----------------------------
 
@@ -15,15 +17,15 @@ that extend other managed packages or that perform complex setup operations
 during installations, such as through MetaDeploy. By using Metadata ETL
 tasks, projects can often avoid storing and deploying unpackaged metadata
 by instead extracting metadata from the target org, making changes, and
-then re-deploying. This mode of configuration is lower-risk and lower-
-maintenance than storing extensive unpackaged metadata, which may
-become out of sync or entail more destructive deployment operations.
+then re-deploying. This mode of configuration is lower-risk and lower-maintenance 
+than storing extensive unpackaged metadata, which may
+become out-of-sync, incur accidental feature dependencies, or entail more destructive deployment operations.
 
 A primary example use case for Metadata ETL is deployment of Standard Value Sets.
 Standard Value Sets, which define the picklist values available on standard fields
 like ``Opportunity.StageName``, are not packageable, and as such must be part of an
-application's unpackaged metadata. They're critical to many applications: Business
-Processes, for example, will fail to deploy if the requisite values are not available.
+application's unpackaged metadata. They're critical to many applications: a Business
+Process, for example, will fail to deploy if the Stage values it includes are not available.
 And lastly, they come with a serious danger for deployment into subscriber orgs:
 deploying Standard Value Sets is an overwrite operation, so all existing values in the
 target org that aren't part of the deployment are deactivated. This means that it's
@@ -31,55 +33,54 @@ neither safe nor maintainable to store static Standard Value Set metadata in a p
 and deploy it.
 
 These three facets - non-packageability, application requirements, and deployment safety -
-all militate for a Metadata ETL approach. Rather than attempting to deploy static metadata
+all support a Metadata ETL approach. Rather than attempting to deploy static metadata
 stored in the repository, the product's automation should *extract* the Standard Value Set 
 metadata from the org, *transform* it to include the desired values (as well as all existing
 customization), and *load* the transformed metadata back into the org. CumulusCI now ships
 with a task, ``add_standard_value_set_entries``, that makes it easy to do just this:
 
-  .. code-block:: yaml
+.. code-block:: yaml
 
-    add_standard_value_set_entries:
-        options:
-            entries:
-                - fullName: "New_Value"
-                  label: "New Value"
-                  closed: False
-            api_names:
-                - CaseStatus
+  add_standard_value_set_entries:
+      options:
+          entries:
+              - fullName: "New_Value"
+                label: "New Value"
+                closed: False
+          api_names:
+              - CaseStatus
 
 This task would retrieve the existing ``Case.Status`` picklist value set from the org,
 add the ``New_Value`` entry to it, and redeploy the modified metadata - ensuring that
 the application's needs are met with a safe, minimal intervention in the target org.
 
+
+
 Standard Metadata ETL Tasks
 ---------------------------
 
-CumulusCI includes several out-of-the-box Metadata ETL tasks:
+CumulusCI includes several Metadata ETL tasks in its standard library.
+For information about all of the available tasks, see ``cci org list`` for tasks in the group Metadata Transformations.
 
- - ``activate_flow`` activates Flows (or Processes).
- - ``add_page_layout_related_lists`` adds Related Lists, with given fields, to Page Layouts.
- - ``add_permission_set_perms`` adds FLS and Apex class access entries to Permission Sets.
- - ``add_picklist_entries`` adds picklist entries to a custom picklist field.
- - ``add_standard_value_set_entries`` adds entries to a Standard Value Set.
- - ``assign_compact_layout`` assigns a Compact Layout to a given sObject.
- - ``set_duplicate_rule_status`` activates and deactivates Duplicate Rules.
- - ``set_field_help_text`` sets the Help Text of a given field (a non-push-upgradeable attribute).
- - ``set_organization_wide_defaults`` sets the Org-Wide Defaults for one or more sObjects,
-   and waits until sharing recalculation completes before proceeding.
+Most Metadata ETL tasks accept the option ``api_names``, which specifies the developer names of the specific metadata components which should be included in the operation.
+In most cases, more than one entity may be transformed in a single operation.
+Each task performs a single Metadata API retrieve and a single atomic deployment.
+Please note, however, that the extract-transform-load operation as a whole is *not* atomic; it is not safe to run Metadata ETL tasks in parallel or to mutate metadata by other means during the run of a Metadata ETL task.
 
-Most Metadata ETL tasks accept the option ``api_names``, which specifies the scope of the operation.
-In most cases, more than one entity may be transformed in a single operation. Each task is a single
-atomic Metadata API deployment operation. Consult the Task Reference or use the ``cci task info``
-command for more information on the usage of each task.
+Consult the Task Reference or use the ``cci task info`` command for more information on the usage of each task.
 
-More Metadata ETL tasks are being added regularly, and the Metadata ETL framework
-makes it easy to add more tasks.
+The Metadata ETL framework makes it easy to add more tasks.
+For information about implementing Metadata ETL tasks, see TODO: link to section in Python customization.
+
+
 
 Namespace Injection
 -------------------
 
-All out-of-the-box Metadata ETL tasks can handle namespace tokens in API names and in values used for transforming metadata. The ``%%%NAMESPACE%%%`` token will be replaced with the project's namespace if the project's primary package is installed as a managed package; otherwise it will be removed. The ``%%%NAMESPACED_ORG%%%`` token will be replaced with the project's namespace if the task is running against a namespaced org with that namespace; otherwise it will be removed.
+All out-of-the-box Metadata ETL tasks accept a Boolean ``managed`` option. If ``True``, CumulusCI
+will replace the token ``%%%NAMESPACE%%%`` in API names and in values used for transforming metadata
+with the project's namespace; if ``False``, the token will simply be removed. See :ref:`Namespace Injection` for more information.
+
 
 
 Implementation of Metadata ETL Tasks
@@ -109,47 +110,49 @@ processed appropriately).
 The ``SetDuplicateRuleStatus`` class is a simple example of implementing a 
 ``MetadataSingleEntityTransformTask`` subclass, presented here with additional comments:
 
-  .. code-block:: python
+.. code-block:: python
 
-    from typing import Optional
+  from typing import Optional
 
-    from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
-    from cumulusci.utils.xml.metadata_tree import MetadataElement
-    from cumulusci.core.utils import process_bool_arg
+  from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
+  from cumulusci.utils.xml.metadata_tree import MetadataElement
+  from cumulusci.core.utils import process_bool_arg
 
 
-    class SetDuplicateRuleStatus(MetadataSingleEntityTransformTask):
-        # Subclasses *must* define `entity`
-        entity = "DuplicateRule"
+  class SetDuplicateRuleStatus(MetadataSingleEntityTransformTask):
+      # Subclasses *must* define `entity`
+      entity = "DuplicateRule"
 
-        # Most subclasses include the base class's options via
-        # **MetadataSingleEntityTransformTask.task_options. Further
-        # options may be added for this specific task. The base class
-        # options include in particular the standard `api_names` option,
-        # which base class functionality requires.
-        task_options = {
-            "active": {
-                "description": "Boolean value, set the Duplicate Rule to either active or inactive",
-                "required": True,
-            },
-            **MetadataSingleEntityTransformTask.task_options,
-        }
+      # Most subclasses include the base class's options via
+      # **MetadataSingleEntityTransformTask.task_options. Further
+      # options may be added for this specific task. The base class
+      # options include in particular the standard `api_names` option,
+      # which base class functionality requires.
+      task_options = {
+          "active": {
+              "description": "Boolean value, set the Duplicate Rule to either active or inactive",
+              "required": True,
+          },
+          **MetadataSingleEntityTransformTask.task_options,
+      }
 
-        # The `_transform_entity()` method must be overriden.
-        def _transform_entity(
-            self, metadata: MetadataElement, api_name: str
-        ) -> Optional[MetadataElement]:
-            # This method modifies the supplied `MetadataElement`, using methods
-            # from CumulusCI's metadata_tree module, to match the desired configuration.
-            status = "true" if process_bool_arg(self.options["active"]) else "false"
-            metadata.find("isActive").text = status
+      # The `_transform_entity()` method must be overriden.
+      def _transform_entity(
+          self, metadata: MetadataElement, api_name: str
+      ) -> Optional[MetadataElement]:
+          # This method modifies the supplied `MetadataElement`, using methods
+          # from CumulusCI's metadata_tree module, to match the desired configuration.
+          status = "true" if process_bool_arg(self.options["active"]) else "false"
+          metadata.find("isActive").text = status
 
-            # Always return the modified `MetadataElement` if deployment is desired.
-            # To not deploy this element, return `None`.
-            return metadata
+          # Always return the modified `MetadataElement` if deployment is desired.
+          # To not deploy this element, return `None`.
+          return metadata
+
+
 
 Advanced Metadata ETL Base Classes
-++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Most Metadata ETL tasks subclass ``MetadataSingleEntityTransformTask``. However, the
 framework also includes classes that provide more flexibility for complex metadata
@@ -176,17 +179,19 @@ API names. (The base class will generate a corresponding ``package.xml``). Subcl
 also implement ``_transform()``, as with ``BaseMetadataETLTask``.
 
 ``UpdateFirstAttributeTextTask`` is a base class and generic concrete task that makes it easy to
-perform a specific, common transformation: setting the value of a the first instance of a specific 
+perform a specific, common transformation: setting the value of the first instance of a specific 
 top-level tag in a given metadata entity. Subclasses (or tasks defined in ``cumulusci.yml``)
 must define the ``entity``, targeted ``attribute``, and desired ``value`` to set. Example:
 
-  .. code-block:: yaml
+.. code-block:: yaml
 
-   assign_account_compact_layout:
-     description: "Assigns the Fancy Compact Layout as Account's Compact Layout."
-     class_path: cumulusci.tasks.metadata_etl.UpdateFirstAttributeTextTask
-     options:
-         entity: CustomObject
-         api_names: Account
-         attribute: compactLayoutAssignment
-         value: "%%%NAMESPACE%%%Fancy_Account_Compact_Layout"
+  assign_account_compact_layout:
+    description: "Assigns the Fancy Compact Layout as Account's Compact Layout."
+    class_path: cumulusci.tasks.metadata_etl.UpdateFirstAttributeTextTask
+    options:
+        managed: False
+        namespace_inject: $project_config.project__package__namespace
+        entity: CustomObject
+        api_names: Account
+        attribute: compactLayoutAssignment
+        value: "%%%NAMESPACE%%%Fancy_Account_Compact_Layout"

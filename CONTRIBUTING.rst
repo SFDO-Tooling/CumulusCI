@@ -3,6 +3,7 @@ Contributing
 ============
 
 Contributions are welcome, and they are greatly appreciated! Every little bit helps, and credit will always be given.
+If you are a new contributor, don't forget to add yourself to the `AUTHORS.rst` file in your pull request (either GitHub username, or first/last name). 
 
 You can contribute in many ways:
 
@@ -71,14 +72,14 @@ Ready to contribute? Here's how to set up CumulusCI for local development.
     $ pytest
 
 7. Your new code should also have meaningful tests. One way to double check that
-   your tests cover everything is to ensure that your new code has test code coverage:
+   your tests cover everything is to ensure that your new code has test code coverage::
 
    $ make coverage
 
-8. Push your changes to GitHub and submit a pull request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to main.
+8. Push your changes to GitHub and submit a Pull Request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to main.
 
 Note that we enable typeguard with pytest so if you add type declarations to your 
-code, those declarations will be treated as runtime assertions in your python
+code, those declarations will be treated as runtime assertions in your Python
 tests.
 
 Pull Request Guidelines
@@ -90,7 +91,7 @@ Before you submit a pull request, check that it meets these guidelines:
 * New classes, functions, etc have docstrings.
 * New code has comments.
 * Code style and file structure is similar to the rest of the project.
-* You have run the `black` code formatter.
+* You have run the ``black`` code formatter.
 
 Releasing CumulusCI
 -------------------
@@ -112,7 +113,7 @@ After a couple minutes, check for the new release's appearance at `PyPI <https:/
 Next, head to the tag that was autocreated in the GitHub repository and edit it. Populate the version number and paste in the changelog notes from ``HISTORY.rst``. Note that some formatting, such as reStructuredText links, need to be converted to Markdown. Publish the release.
 
 .. note::
-    If pandoc is installed on macOS, you can run ``pbpaste | pandoc -f rst -t gfm | pbcopy`` to convert from RST to Github Flavored Markdown.
+    If pandoc is installed on macOS, you can run ``pbpaste | pandoc -f rst -t gfm | pbcopy`` to convert from RST to GitHub Flavored Markdown.
 
 You can then create a pull request to update the `Homebrew Tap`_ by running this locally (note, it's important to do this as soon as possible after the release is published on PyPI, because PyPI is the source CumulusCI checks to see if a new version is available)::
 
@@ -178,3 +179,19 @@ still be quite slow compared to normal unit tests. Nevertheless, if you are chan
 these tests, you should run them periodically.
 
 Do not commit the files ("large_cassettes/\*.yml") to the repository.
+
+Randomized tests
+~~~~~~~~~~~~~~~~
+
+Tests should be executable in any order. You can run this command
+a few times to verify if they are:
+
+    pytest --random-order
+
+It will output something like this:
+
+    Using --random-order-bucket=module
+    Using --random-order-seed=986925
+
+Using those two parameters on the command line, you can
+replicate a particular run later.
