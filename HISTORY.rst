@@ -8,16 +8,17 @@ History
 Critical changes:
 
 - We are planning to remove functionality in CumulusCI's dependency management in a future release. 
+
   - The ``update_dependencies`` task will no longer support uninstalling managed packages in a persistent org as part of the dependency installation process. 
   - The ``allow_newer`` option on ``update_dependencies`` will be removed and always be True.
   - The ``project__dependencies`` section in ``cumulusci.yml`` will no longer support nested dependencies specified like this ::
   
-  dependencies:
-    - namespace: "test"
-      version: "1.0"
       dependencies:
-        - namespace: "parent"
-          version: "2.2"
+        - namespace: "test"
+          version: "1.0"
+          dependencies:
+            - namespace: "parent"
+              version: "2.2"
 
   
   All dependencies should be listed in install order. 
