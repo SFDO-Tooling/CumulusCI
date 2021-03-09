@@ -104,6 +104,7 @@ class TestRobot(unittest.TestCase):
         mock_subprocess_run.return_value = mock.Mock(returncode=0)
         task = create_task(Robot, {"suites": "tests", "processes": "2"})
         task()
+        outputdir = str(Path(".").resolve())
         expected_cmd = [
             sys.executable,
             "-m",
@@ -116,7 +117,7 @@ class TestRobot(unittest.TestCase):
             "--variable",
             "org:test",
             "--outputdir",
-            ".",
+            outputdir,
             "--tagstatexclude",
             "cci_metric_elapsed_time",
             "--tagstatexclude",
@@ -134,10 +135,11 @@ class TestRobot(unittest.TestCase):
         task = create_task(Robot, {"suites": "tests", "process": 0})
         task()
         mock_subprocess_run.assert_not_called()
+        outputdir = str(Path(".").resolve())
         mock_robot_run.assert_called_once_with(
             "tests",
             listener=[],
-            outputdir=".",
+            outputdir=outputdir,
             variable=["org:test"],
             tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
         )
@@ -148,11 +150,12 @@ class TestRobot(unittest.TestCase):
         mock_robot_run.return_value = 0
         task = create_task(Robot, {"suites": "tests,more_tests", "process": 0})
         task()
+        outputdir = str(Path(".").resolve())
         mock_robot_run.assert_called_once_with(
             "tests",
             "more_tests",
             listener=[],
-            outputdir=".",
+            outputdir=outputdir,
             variable=["org:test"],
             tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
         )
@@ -172,10 +175,11 @@ class TestRobot(unittest.TestCase):
         )
         assert type(task.options["options"]["tagstatexclude"]) == list
         task()
+        outputdir = str(Path(".").resolve())
         mock_robot_run.assert_called_once_with(
             "test",
             listener=[],
-            outputdir=".",
+            outputdir=outputdir,
             variable=["org:test"],
             tagstatexclude=["this", "that", "cci_metric_elapsed_time", "cci_metric"],
         )
@@ -293,7 +297,9 @@ class TestRobot(unittest.TestCase):
         )
         self.assertNotIn("dummy1", sys.path)
         self.assertNotIn("dummy2", sys.path)
-        self.assertEquals(".", task.return_values["robot_outputdir"])
+        self.assertEquals(
+            Path(".").resolve(), Path(task.return_values["robot_outputdir"]).resolve()
+        )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch(
@@ -350,7 +356,10 @@ def test_outputdir_return_value(mock_run, tmpdir):
     )
     mock_run.return_value = 0
     task()
-    assert test_dir == task.return_values["robot_outputdir"]
+    assert (
+        Path(test_dir).resolve()
+        == Path(task.return_values["robot_outputdir"]).resolve()
+    )
 
 
 class TestRobotTestDoc(unittest.TestCase):
