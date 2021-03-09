@@ -356,10 +356,9 @@ def test_outputdir_return_value(mock_run, tmpdir):
     )
     mock_run.return_value = 0
     task()
-    assert (
-        Path(test_dir).resolve()
-        == Path(task.return_values["robot_outputdir"]).resolve()
-    )
+    assert (Path.cwd() / test_dir).resolve() == Path(
+        task.return_values["robot_outputdir"]
+    ).resolve()
 
 
 class TestRobotTestDoc(unittest.TestCase):
