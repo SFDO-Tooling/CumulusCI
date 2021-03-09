@@ -654,7 +654,7 @@ def project_init(runtime):
     template = env.get_template("scratch_def.json")
     for org_name, properties in org_dict.items():
         org_path = Path("orgs/" + org_name)
-        if not org_path.is_file():  # need path object
+        if not org_path.is_file():
             org_path.write_text(
                 template.render(
                     package_name=context["package_name"],
