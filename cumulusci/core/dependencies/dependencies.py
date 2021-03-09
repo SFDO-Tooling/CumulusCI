@@ -99,6 +99,11 @@ class StaticDependency(Dependency, abc.ABC):
     def is_flattened(self):
         return True
 
+    @property
+    @abc.abstractmethod
+    def name(self):
+        pass
+
 
 class DynamicDependency(Dependency, abc.ABC):
     managed_dependency: Optional[StaticDependency]
@@ -199,11 +204,6 @@ class GitHubDynamicDependency(
     ref: Optional[str]
 
     skip: List[str] = []
-
-    # UI options
-    name: Optional[
-        str
-    ]  # It's previously legal to specify this in YAML, but unclear if used.
 
     @property
     def is_resolved(self):
@@ -365,10 +365,6 @@ class ManagedPackageDependency(StaticDependency):
     def package(self):
         return self.package_name or self.namespace or "Unknown Package"
 
-    @property
-    def step_name(self):
-        return str(self)
-
     @pydantic.root_validator
     def validate(cls, values):
         assert (values.get("namespace") and values.get("version")) or values.get(
@@ -412,8 +408,12 @@ class ManagedPackageDependency(StaticDependency):
                 retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
             )
 
+    @property
+    def name(self):
+        return f"Install {self.package} {self.version or self.package_version_id}"
+
     def __str__(self):
-        return f"Dependency: {self.package} version {self.package_version_id or self.version}"
+        return self.name
 
 
 class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
@@ -521,13 +521,20 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
 
         return self.unmanaged
 
-    def __str__(self):
+    @property
+    def name(self):
         subfolder = f"/{self.subfolder}" if self.subfolder else ""
 
         if self.github:
-            return f"Dependency: {self.github} {subfolder} @{self.ref}"
+            if subfolder:
+                return f"Deploy {self.repo_name}{subfolder}"
+            else:
+                return f"Deploy {self.repo_name}"
         else:
-            return f"Dependency: {self.zip_url} {subfolder}"
+            return f"Deploy {self.zip_url} {subfolder}"
+
+    def __str__(self):
+        return self.name
 
 
 def parse_dependency(dep_dict: dict) -> Optional[Dependency]:

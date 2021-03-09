@@ -1,5 +1,5 @@
 from cumulusci.salesforce_api.package_install import ManagedPackageInstallOptions
-from cumulusci.tasks.salesforce import BaseSalesforceTask
+from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.core.dependencies.dependencies import (
     DependencyResolutionStrategy,
     ManagedPackageDependency,
@@ -35,9 +35,7 @@ class UpdateDependencies(BaseSalesforceTask):
             "This option is only supported for scratch orgs, "
             "to avoid installing a package that can't be upgraded in persistent orgs."
         },
-        "allow_newer": {
-            "description": "If the org already has a newer release, use it. Defaults to True."
-        },
+        "allow_newer": {"description": "Deprecated. This option has no effect."},
         "security_type": {
             "description": "Which users to install packages for (FULL = all users, NONE = admins only)"
         },
@@ -53,14 +51,14 @@ class UpdateDependencies(BaseSalesforceTask):
 
     def _init_options(self, kwargs):
         super(UpdateDependencies, self)._init_options(kwargs)
-        self.options["dependencies"] = [
+        self.dependencies = [
             parse_dependency(d)
             for d in (
                 self.options.get("dependencies")
                 or self.project_config.project__dependencies
             )
         ]
-        if None in self.options["dependencies"]:
+        if None in self.dependencies:
             raise TaskOptionsError("Unable to parse dependencies")
 
         self.options["security_type"] = self.options.get("security_type", "FULL")
@@ -70,7 +68,7 @@ class UpdateDependencies(BaseSalesforceTask):
             )
 
         if "allow_uninstalls" in self.options or "allow_newer" in self.options:
-            self.options.warn(
+            self.logger.warning(
                 "The allow_uninstalls and allow_newer options for update_dependencies are no longer supported. "
                 "CumulusCI will not attempt to uninstall packages and newer versions are always allowed."
             )
@@ -84,6 +82,8 @@ class UpdateDependencies(BaseSalesforceTask):
                     "An invalid dependency was specified for ignore_dependencies."
                 )
 
+        # TODO: default strategy to preproduction if include_beta is True
+        # Log warning.
         self.resolution_strategy = get_resolver_stack(
             self.project_config, self.options.get("resolution_strategy") or "production"
         )
@@ -97,13 +97,6 @@ class UpdateDependencies(BaseSalesforceTask):
             if "include_beta" in self.options and not process_bool_arg(
                 self.options.get("include_beta", False)
             ):
-                self.resolution_strategy.remove(
-                    DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
-                )
-            elif not self.org_config.scratch:
-                self.logger.warning(
-                    "Target org is a persistent org; removing the Beta resolver."
-                )
                 self.resolution_strategy.remove(
                     DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
                 )
@@ -121,7 +114,7 @@ class UpdateDependencies(BaseSalesforceTask):
             self.options.get("prefer_2gp_from_release_branch", False)
         ):
             self.resolution_strategy = [
-                r for r in self.resolvers if r not in resolvers_2gp
+                r for r in self.resolution_strategy if r not in resolvers_2gp
             ]
 
         unsafe_prod_resolvers = [
@@ -135,18 +128,16 @@ class UpdateDependencies(BaseSalesforceTask):
                 "Target org is a persistent org; removing Beta resolvers. Consider selecting the `production` resolver stack."
             )
             self.resolution_strategy = [
-                r
-                for r in self.resolution_strategy
-                if r not in unsafe_prod_resolution_strategy
+                r for r in self.resolution_strategy if r not in unsafe_prod_resolvers
             ]
 
         if (
             "prefer_2gp_from_release_branch" in self.options
             or "include_beta" in self.options
         ):
-            self.logger.warn(
+            self.logger.warning(
                 "The include_beta and prefer_2gp_from_release_branch options "
-                "for update_dependencies are deprecated. Use resolver stacks instead."
+                "for update_dependencies are deprecated. Use resolution strategies instead."
             )
 
         self.install_options = ManagedPackageInstallOptions(
@@ -154,13 +145,13 @@ class UpdateDependencies(BaseSalesforceTask):
         )
 
     def _run_task(self):
-        if not self.options["dependencies"]:
+        if not self.dependencies:
             self.logger.info("Project has no dependencies, doing nothing")
             return
 
         self.logger.info("Resolving dependencies...")
         dependencies = get_static_dependencies(
-            self.options["dependencies"],
+            self.dependencies,
             self.resolution_strategy,
             self.project_config,
             ignore_deps=self.options.get("ignore_dependencies"),
@@ -180,11 +171,10 @@ class UpdateDependencies(BaseSalesforceTask):
             if dependency.version and "Beta" in dependency.version:
                 version_string = dependency.version.split(" ")[0]
                 beta = dependency.version.split(" ")[-1].strip(")")
-                version = f"{version_string}.{beta}"
+                version = f"{version_string}b{beta}"
             else:
-                version = (
-                    dependency.version
-                )  # TODO: abstract out a version-parsing routine.
+                version = dependency.version
+
             if (
                 dependency.package_version_id
                 and dependency.package_version_id
@@ -192,7 +182,7 @@ class UpdateDependencies(BaseSalesforceTask):
             ) or (
                 not self.org_config.has_minimum_package_version(
                     dependency.namespace,
-                    version,  # FIXME: This is not working for betas
+                    version,
                 )
             ):
                 dependency.install(
@@ -205,30 +195,30 @@ class UpdateDependencies(BaseSalesforceTask):
         else:
             dependency.install(self.project_config, self.org_config)
 
-    def freeze(self, step):  # FIXME: reimplement
+    def freeze(self, step):
         ui_options = self.task_config.config.get("ui_options", {})
-        dependencies = self.project_config.get_static_dependencies(
-            self.options["dependencies"],
-            include_beta=self.options["include_beta"],
+        dependencies = get_static_dependencies(
+            self.dependencies,
+            self.resolution_strategy,
+            self.project_config,
             ignore_deps=self.options.get("ignore_dependencies"),
         )
+
         steps = []
-        for i, dependency in enumerate(self._flatten(dependencies), start=1):
-            name = dependency.pop("name", None)
-            if "namespace" in dependency:
+        for i, dependency in enumerate(dependencies, start=1):
+            if isinstance(dependency, ManagedPackageDependency):
                 kind = "managed"
-                name = name or "Install {} {}".format(
-                    dependency["namespace"], dependency["version"]
-                )
             else:
                 kind = "metadata"
-                name = name or "Deploy {}".format(dependency["subfolder"])
+
             task_config = {
                 "options": self.options.copy(),
                 "checks": self.task_config.checks or [],
             }
-            task_config["options"]["dependencies"] = [dependency]
-            ui_step = {"name": name, "kind": kind, "is_required": True}
+            task_config["options"]["dependencies"] = [
+                dependency.dict(exclude_none=True)
+            ]
+            ui_step = {"name": dependency.name, "kind": kind, "is_required": True}
             ui_step.update(ui_options.get(i, {}))
             ui_step.update(
                 {
