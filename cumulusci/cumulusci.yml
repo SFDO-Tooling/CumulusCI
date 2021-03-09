@@ -299,6 +299,8 @@ tasks:
         options:
             release_prefix: $project_config.project__git__prefix_release
     generate_and_load_from_yaml:
+        description: Generate and load data from a Snowfakery recipe
+        group: Data Generation
         class_path: cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml
         group: Data Operations
     get_installed_packages:
@@ -701,6 +703,13 @@ tasks:
         class_path: cumulusci.tasks.vlocity.vlocity.VlocityDeployTask
         description: "Executes the `vlocity packDeploy` command against an org"
         group: OmniStudio
+
+    generate_snowfakery_recipe:
+        class_path: cumulusci.tasks.bulkdata.generate_snowfakery_recipe.GenerateSnowfakeryRecipeYaml
+        description: Generate a rough Snowfakery recipe based on the org's schema
+        group: Data Generation
+
+
 flows:
     ci_beta:
         group: Continuous Integration
