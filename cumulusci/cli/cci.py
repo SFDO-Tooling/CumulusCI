@@ -15,8 +15,9 @@ import traceback
 import runpy
 import webbrowser
 import contextlib
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from urllib.parse import urlencode
 
 import click
 import github3
@@ -913,12 +914,33 @@ def orgname_option_or_argument(*, required):
     help="Opens a browser window and logs into the org using the stored OAuth credentials",
 )
 @orgname_option_or_argument(required=False)
+@click.option(
+    "-p",
+    "--path",
+    required=False,
+    help="Navigate to the specified page after logging in.",
+)
+@click.option(
+    "-r",
+    "--url-only",
+    is_flag=True,
+    help="Display the target URL, but don't open a browser.",
+)
 @pass_runtime(require_project=False, require_keychain=True)
-def org_browser(runtime, org_name):
+def org_browser(runtime, org_name, path, url_only):
     org_name, org_config = runtime.get_org(org_name)
     org_config.refresh_oauth_token(runtime.keychain)
 
-    webbrowser.open(org_config.start_url)
+    target = org_config.start_url
+    if path:
+        ret_url = urlencode({"retURL": path})
+        target = f"{target}&{ret_url}"
+
+    if url_only:
+        click.echo(target)
+    else:
+        webbrowser.open(target)
+
     # Save the org config in case it was modified
     org_config.save()
 
@@ -1101,7 +1123,7 @@ def org_info(runtime, org_name, print_json):
     org_config.save()
 
 
-@org.command(name="list", help="Lists the connected orgs for the current project")
+@org.command(name="list", help="Lists all orgs in scope for the current project")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @pass_runtime(require_project=False, require_keychain=True)
 def org_list(runtime, plain):
@@ -1589,7 +1611,9 @@ class RunTaskCommand(click.MultiCommand):
             finally:
                 RUNTIME.alert(f"Task complete: {task_name}")
 
-        return click.Command(task_name, params=params, callback=run_task)
+        cmd = click.Command(task_name, params=params, callback=run_task)
+        cmd.help = task_config.description
+        return cmd
 
     def format_help(self, ctx, formatter):
         """Custom help for `cci task run`"""

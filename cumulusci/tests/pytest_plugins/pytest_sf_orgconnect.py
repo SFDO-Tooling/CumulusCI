@@ -4,6 +4,7 @@ import os.path
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.core.config import TaskConfig
+from cumulusci.tests.util import unmock_env
 
 
 def pytest_addoption(parser, pluginmanager):
@@ -33,7 +34,7 @@ def project_config(runtime):
 
 
 @pytest.fixture(scope="session")
-def org_config(request, runtime, fallback_orgconfig):
+def org_config(request, fallback_org_config):
     """Get an org config with an active access token.
 
     Specify the org name using the --org option when running pytest.
@@ -41,16 +42,19 @@ def org_config(request, runtime, fallback_orgconfig):
     """
     org_name = sf_pytest_orgname(request)
     if org_name:
-        org_name, org_config = runtime.get_org(org_name)
-        assert org_config.scratch, "You should only run tests against scratch orgs."
-        org_config.refresh_oauth_token(runtime.keychain)
+        with unmock_env():  # restore real homedir
+            runtime = CliRuntime()
+            runtime.keychain._load_orgs()
+            org_name, org_config = runtime.get_org(org_name)
+            assert org_config.scratch, "You should only run tests against scratch orgs."
+            org_config.refresh_oauth_token(runtime.keychain)
     else:
-        # fallback_orgconfig can be defined in "conftest" based
+        # fallback_org_config can be defined in "conftest" based
         # on the needs of the test suite. For example, for
         # fast running test suites it might return a hardcoded
         # org and for integration test suites it might return
         # a specific default org or throw an exception.
-        return fallback_orgconfig()
+        return fallback_org_config()
 
     return org_config
 
@@ -86,6 +90,10 @@ def pytest_configure(config):
         "markers",
         "integration_test(): an integration test that should only be executed when requested",
     )
+    config.addinivalue_line(
+        "markers",
+        "no_vcr(): an integration test that should not attempt to store VCR cassettes",
+    )
 
 
 def pytest_runtest_setup(item):
@@ -95,6 +103,9 @@ def pytest_runtest_setup(item):
             "--accelerate-integration-tests"
         ) and not item.config.getoption("--org"):
             pytest.skip("test requires --org or --accelerate-integration-tests")
+        no_vcr = any(item.iter_markers(name="no_vcr"))
+        if no_vcr and item.config.getoption("--accelerate-integration-tests"):
+            pytest.skip("test cannot be accelerated. " "It is not compatible with VCR.")
 
 
 @pytest.fixture(scope="module")
