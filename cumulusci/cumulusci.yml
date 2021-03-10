@@ -522,6 +522,11 @@ tasks:
         description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
         class_path: cumulusci.tasks.salesforce.ProfileGrantAllAccess
         group: Salesforce Metadata
+    update_data:
+        name: Update Data
+        description: TODO
+        class_path: cumulusci.tasks.bulkdata.update_data.UpdateData
+        group: Data Operations
     update_dependencies:
         description: Installs all dependencies in project__dependencies into the target org
         class_path: cumulusci.tasks.salesforce.UpdateDependencies
