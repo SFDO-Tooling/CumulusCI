@@ -441,7 +441,7 @@ tasks:
             revert_path: src.orig
         group: Salesforce Metadata
     robot:
-        description: Runs a Robot Framework test from a .robot file and set robot_outputdir return value to the directory with the robot assets
+        description: Runs a Robot Framework test from a .robot file
         class_path: cumulusci.tasks.robotframework.Robot
         options:
             suites: tests
