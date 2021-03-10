@@ -312,6 +312,27 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
                 self.project_config, flow_config, name="self_referential_flow"
             )
 
+    def test_init_multiple_flow_calls(self):
+        """It's OK if a flow is called multiple times if not recursive"""
+
+        self.project_config.config["flows"] = {
+            "flow_one": {
+                "description": "A flow that runs inside another flow",
+                "steps": {1: {"task": "pass_name"}},
+            },
+            "flow_two": {
+                "description": "A flow that calls another flow",
+                "steps": {
+                    1: {"flow": "flow_one"},
+                    2: {"task": "pass_name"},
+                    3: {"flow": "flow_one"},
+                },
+            },
+        }
+        flow_config = self.project_config.get_flow("flow_two")
+        with self.assertRaises(FlowInfiniteLoopError):
+            FlowCoordinator(self.project_config, flow_config, name="flow_two")
+
     def test_from_steps(self):
         steps = [StepSpec("1", "test", {}, _TaskReturnsStuff, None)]
         flow = FlowCoordinator.from_steps(self.project_config, steps)
