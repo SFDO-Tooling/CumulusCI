@@ -445,6 +445,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "SkipValidation": skip_validation,
             "Tag": f"hash:{package_hash}",
             "VersionInfo": version_info,
+            "CalculateCodeCoverage": not skip_validation,
         }
         self.logger.info(
             f"Requesting creation of package version {version_number.format()} "
