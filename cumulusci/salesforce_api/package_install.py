@@ -34,7 +34,7 @@ class NameConflictResolution(str, Enum):
 
 
 class ManagedPackageInstallOptions(CCIModel):
-    activate_remote_site_settings: bool = True
+    activate_remote_site_settings: Optional[bool] = True
     name_conflict_resolution: NameConflictResolution = NameConflictResolution.BLOCK
     password: Optional[str]
     security_type: SecurityType = SecurityType.FULL

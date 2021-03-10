@@ -1,3 +1,4 @@
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.dependencies.dependencies import ManagedPackageInstallOptions
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.core.utils import process_bool_arg
@@ -6,6 +7,7 @@ from cumulusci.salesforce_api.package_install import (
     install_package_version,
     DEFAULT_PACKAGE_RETRY_OPTIONS,
 )
+from pydantic import ValidationError
 
 
 class InstallPackageVersion(BaseSalesforceApiTask):
@@ -73,7 +75,10 @@ class InstallPackageVersion(BaseSalesforceApiTask):
                 "retry_interval_add"
             ]
 
-        # TODO: Should this be centralized somewhere in the `resolutions` module, along with the same code in sources?
+        # TODO: This should be centralized somewhere in the `dependencies` module,
+        # along with the same code working with `sources`.
+        # We're not using resolution strategies here - we could be,
+        # and this task could be a thin layer on top of update_dependencies.
         if version == "latest":
             self.options["version"] = self.project_config.get_latest_version()
         elif version == "latest_beta":
@@ -81,13 +86,16 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         elif version == "previous":
             self.options["version"] = self.project_config.get_previous_version()
 
-        self.install_options = ManagedPackageInstallOptions(
-            activate_remove_site_settings=process_bool_arg(
-                self.options.get("activateRSS") or False
-            ),
-            password=self.options.get("password"),
-            security_type=self.options.get("security_type", "FULL"),
-        )
+        try:
+            self.install_options = ManagedPackageInstallOptions(
+                activate_remote_site_settings=process_bool_arg(
+                    self.options.get("activateRSS") or False
+                ),
+                password=self.options.get("password"),
+                security_type=self.options.get("security_type") or "FULL",
+            )
+        except ValidationError as e:
+            raise TaskOptionsError(f"Invalid options: {e}")
 
     def _run_task(self):
         version = self.options["version"]
@@ -119,11 +127,11 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         name = options.pop("name")
         task_config = {"options": options, "checks": self.task_config.checks or []}
         ui_step = {
-            "name": "Install {} {}".format(name, options["version"]),
+            "name": f"Install {name} {options['version']}",
             "kind": "managed",
             "is_required": True,
         }
-        ui_step.update(step.task_config.get("ui_options", {}))
+        ui_step.update(step.task_config.config.get("ui_options", {}))
         ui_step.update(
             {
                 "path": step.path,

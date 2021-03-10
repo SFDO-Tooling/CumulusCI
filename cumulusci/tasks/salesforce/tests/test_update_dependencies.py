@@ -339,7 +339,7 @@ def test_freeze(get_static_dependencies):
     )
     step = StepSpec(1, "test_task", task.task_config, None, task.project_config)
     steps = task.freeze(step)
-    print(steps)
+
     assert [
         {
             "is_required": True,

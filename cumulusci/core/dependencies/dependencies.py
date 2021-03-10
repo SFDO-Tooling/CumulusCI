@@ -347,6 +347,7 @@ class GitHubDynamicDependency(
         return f"Dependency: {self.github}"
 
 
+# TODO: allow the user to specify ManagedPackageInstallOptions.
 class ManagedPackageDependency(StaticDependency):
     namespace: Optional[str]
     version: Optional[str]
