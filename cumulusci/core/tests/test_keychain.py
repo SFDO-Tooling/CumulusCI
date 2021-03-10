@@ -219,6 +219,7 @@ class TestBaseProjectKeychain(ProjectKeychainTestMixin):
         keychain.create_scratch_org("test", "dev", days=3)
         org_config = keychain.set_org.call_args[0][0]
         self.assertEqual(3, org_config.days)
+        self.assertEqual(False, org_config.noancestors)
 
     @mock.patch("cumulusci.core.keychain.base_project_keychain.cleanup_org_cache_dirs")
     def test_remove_org(self, cleanup_org_cache_dirs):
