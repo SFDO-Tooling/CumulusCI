@@ -190,17 +190,9 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
             "Id"
         ]
 
-        if not package2_version_id:
-            raise CumulusCIException(
-                f"Package2Version not found for SubscriberPackageVersionId: {spv_id}"
-            )
-
-        Package2Version = self._get_tooling_object("Package2Version")
-
-        # TODO: Do we want to check if the package is already promoted?
-
         self.logger.info("")
         self.logger.info(f"Promoting package: {self._get_package_name(spv_id)}")
+        Package2Version = self._get_tooling_object("Package2Version")
         Package2Version.update(package2_version_id, {"IsReleased": True})
         self.logger.info("Package promoted!")
 
@@ -215,6 +207,7 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
         )
 
     def _query_SubscriberPackageVersion(self, id: str) -> dict:
+        """Queries for a SubscriberPackageVersion record with the given Id"""
         return self._query_tooling(
             ["Id", "Dependencies", "ReleaseState", "SubscriberPackageId"],
             "SubscriberPackageVersion",
