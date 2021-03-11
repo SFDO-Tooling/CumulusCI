@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from cumulusci.core.dependencies.dependencies import ManagedPackageDependency
 from distutils.version import StrictVersion
 import json
 import os
@@ -552,20 +553,6 @@ class TestBaseProjectConfig(unittest.TestCase):
         config = BaseProjectConfig(UniversalConfig())
         with self.assertRaises(KeychainNotFound):
             config._check_keychain()
-
-    def test_pretty_dependencies(self):
-        dep = {
-            "namespace": "npsp",
-            "version": "3",
-            "boolean": False,
-            "dependencies": [{"repo_name": "TestRepo", "dependencies": []}],
-        }
-        config = BaseProjectConfig(UniversalConfig())
-        result = "\n".join(config.pretty_dependencies([dep]))
-        self.assertEqual(
-            """  - dependencies: \n    \n      - repo_name: TestRepo\n    namespace: npsp\n    version: 3""",
-            result,
-        )
 
     def test_get_task__included_source(self):
         universal_config = UniversalConfig()
@@ -1562,19 +1549,15 @@ class TestOrgConfig(unittest.TestCase):
             "dep@1.0": [VersionInfo("04t000000000001AAA", "1.0")]
         }
         result = config.resolve_04t_dependencies(
-            [{"namespace": "dep", "version": "1.0", "dependencies": []}]
+            [ManagedPackageDependency(namespace="dep", version="1.0")]
         )
-        assert result == [
-            {
-                "namespace": "dep",
-                "version": "1.0",
-                "version_id": "04t000000000001AAA",
-                "dependencies": [],
-            }
-        ]
+        print(result)
+        assert result == [ManagedPackageDependency(version_id="04t000000000001AAA")]
 
     def test_resolve_04t_dependencies__not_installed(self):
         config = OrgConfig({}, "test")
         config._installed_packages = {}
         with pytest.raises(DependencyResolutionError):
-            config.resolve_04t_dependencies([{"namespace": "dep", "version": "1.0"}])
+            config.resolve_04t_dependencies(
+                [ManagedPackageDependency(namespace="dep", version="1.0")]
+            )

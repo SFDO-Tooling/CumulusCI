@@ -204,7 +204,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                     "CUMULUSCI_REPO_URL found, using its value as the repo url, owner, and name"
                 )
             url_info = {}
-            url_info["name"], url_info["owner"] = split_repo_url(repo_url)
+            url_info["owner"], url_info["name"] = split_repo_url(repo_url)
             url_info["url"] = repo_url
             info.update(url_info)
 
