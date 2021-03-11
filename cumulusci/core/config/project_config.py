@@ -243,11 +243,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             self.logger.warning(f"  {key}: {info[key]}")
         self.logger.info("")
 
-    def _split_repo_url(self, url):
-        # TODO: deprecate this method
-
-        return split_repo_url(url)
-
     def git_config_remote_origin_url(self):
         """Returns the url under the [remote origin]
         section of the .git/config file. Returns None
@@ -360,11 +355,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return get_github_api_for_repo(
             self.keychain, owner or self.repo_owner, repo or self.repo_name
         )
-
-    def get_github_repo(self, url):
-        owner, name = split_repo_url(url)
-
-        return self.get_github_api(owner, name).repository(owner, name)
 
     def _get_repo(self):
         repo = self.get_github_api(self.repo_owner, self.repo_name).repository(
@@ -495,10 +485,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def get_repo_from_url(self, url):
         owner, name = split_repo_url(url)
-        gh = self.get_github_api(owner, name)
-        repo = gh.repository(owner, name)
 
-        return repo
+        return self.get_github_api(owner, name).repository(owner, name)
 
     def get_task(self, name):
         """Get a TaskConfig by task name
