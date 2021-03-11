@@ -110,9 +110,8 @@ class Robot(BaseSalesforceTask):
             if option in self.options:
                 options[option] = self.options[option]
         options["variable"] = self.options.get("vars") or []
-        options["outputdir"] = os.path.relpath(
-            os.path.join(self.working_path, options.get("outputdir", ".")), os.getcwd()
-        )
+        output_dir = Path(self.working_path) / options.get("outputdir", ".")
+        options["outputdir"] = str(output_dir.resolve())
 
         options["tagstatexclude"] = options.get(
             "tagstatexclude", []
