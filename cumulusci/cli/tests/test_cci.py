@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from cumulusci.core.dependencies.dependencies import ManagedPackageDependency
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
@@ -755,15 +756,34 @@ Environment Info: Rossian / x68_46
             with self.assertRaises(NotInProject):
                 run_click_command(cci.project_info, runtime=runtime)
 
-    def test_project_dependencies(self):
+    @mock.patch("cumulusci.cli.cci.get_static_dependencies")
+    @mock.patch("cumulusci.cli.cci.get_resolver_stack")
+    def test_project_dependencies(self, get_resolver_stack, get_static_dependencies):
         out = []
         runtime = mock.Mock()
-        runtime.project_config.pretty_dependencies.return_value = ["test:"]
+        runtime.project_config.project__dependencies = [
+            {"namespace": "npe01", "version": "3.16"},
+            {"namespace": "npsp", "version": "3.193"},
+        ]
+        get_static_dependencies.return_value = [
+            ManagedPackageDependency(namespace="npe01", version="3.16"),
+            ManagedPackageDependency(namespace="npsp", version="3.193"),
+        ]
 
         with mock.patch("click.echo", out.append):
-            run_click_command(cci.project_dependencies, runtime=runtime)
+            run_click_command(
+                cci.project_dependencies,
+                runtime=runtime,
+                resolution_strategy="production",
+            )
 
-        self.assertEqual("test:", "".join(out))
+        self.assertEqual(
+            out,
+            [
+                str(ManagedPackageDependency(namespace="npe01", version="3.16")),
+                str(ManagedPackageDependency(namespace="npsp", version="3.193")),
+            ],
+        )
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_service_list(self, cli_tbl):
