@@ -23,10 +23,11 @@ from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
 
 
 class Robot(BaseSalesforceTask):
-    task_docs = """Runs Robot test cases using a browser, if
+    task_docs = """
+    Runs Robot test cases using a browser, if
     necessary and stores its results in a directory. The
     path to the directory can be retrieved from the
-    `robot_outputdir` return variable."""
+    ``robot_outputdir`` return variable."""
 
     task_options = {
         "suites": {
