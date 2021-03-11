@@ -196,6 +196,23 @@ def test_run_task_gets_static_dependencies_and_installs():
     )
 
 
+def test_run_task_exits_no_dependencies():
+    task = create_task(
+        UpdateDependencies,
+        {
+            "dependencies": [],
+            "resolution_strategy": "production",
+            "ignore_dependencies": [{"github": "https://github.com/Test/TestRepo"}],
+            "security_type": "PUSH",
+        },
+    )
+
+    task._install_dependency = mock.Mock()
+    task()
+
+    task._install_dependency.assert_not_called()
+
+
 @mock.patch("cumulusci.core.dependencies.dependencies.install_1gp_package_version")
 def test_install_dependency_installs_managed_package(install_1gp_package_version):
     task = create_task(
