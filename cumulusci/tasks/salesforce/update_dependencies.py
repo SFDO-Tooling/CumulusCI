@@ -3,7 +3,7 @@ from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.core.dependencies.dependencies import (
     DependencyResolutionStrategy,
     ManagedPackageDependency,
-    parse_dependency,
+    parse_dependencies,
     get_resolver_stack,
     get_static_dependencies,
 )
@@ -51,15 +51,10 @@ class UpdateDependencies(BaseSalesforceTask):
 
     def _init_options(self, kwargs):
         super(UpdateDependencies, self)._init_options(kwargs)
-        self.dependencies = [
-            parse_dependency(d)
-            for d in (
-                self.options.get("dependencies")
-                or self.project_config.project__dependencies
-            )
-        ]
-        if None in self.dependencies:
-            raise TaskOptionsError("Unable to parse dependencies")
+        self.dependencies = parse_dependencies(
+            self.options.get("dependencies")
+            or self.project_config.project__dependencies
+        )
 
         self.options["security_type"] = self.options.get("security_type", "FULL")
         if self.options["security_type"] not in ("FULL", "NONE", "PUSH"):

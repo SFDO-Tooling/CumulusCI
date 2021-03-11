@@ -11,6 +11,13 @@ import zipfile
 from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
+from cumulusci.core.dependencies.dependencies import (
+    ManagedPackageDependency,
+    UnmanagedDependency,
+    get_resolver_stack,
+    get_static_dependencies,
+    parse_dependencies,
+)
 from cumulusci.core.exceptions import DependencyLookupError, ServiceNotConfigured
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import PackageUploadFailure
@@ -170,6 +177,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         },
         "static_resource_path": {
             "description": "The path where decompressed static resources are stored. Any subdirectories found will be zipped and added to the staticresources directory of the build."
+        },
+        "resolution_strategy": {
+            "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies."
         },
     }
 
@@ -486,13 +496,22 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
     def _get_dependencies(self):
         """Resolve dependencies into SubscriberPackageVersionIds (04t prefix)"""
-        dependencies = self.project_config.get_static_dependencies()
+        dependencies = get_static_dependencies(
+            parse_dependencies(self.project_config.project__dependencies),
+            get_resolver_stack(
+                self.project_config,
+                self.options.get("resolution_strategy") or "production",
+            ),
+            self.project_config,
+        )
 
         # If any dependencies are expressed as a 1gp namespace + version,
         # we need to convert those to 04t package version ids,
         # for which we need an org with the packages installed.
         if self._has_1gp_namespace_dependency(dependencies):
-            dependencies = self.org_config.resolve_04t_dependencies(dependencies)
+            dependencies = self.org_config.resolve_04t_dependencies(
+                dependencies
+            )  # TODO: Move this method into dependencies module
 
         # Convert dependencies to correct format for Package2VersionCreateRequest
         dependencies = self._convert_project_dependencies(dependencies)
@@ -505,49 +524,39 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     def _has_1gp_namespace_dependency(self, project_dependencies):
         """Returns true if any dependencies are specified using a namespace rather than 04t"""
         for dependency in project_dependencies:
-            if "namespace" in dependency:
+            if (
+                isinstance(dependency, ManagedPackageDependency)
+                and dependency.namespace
+            ):
                 return True
-            if "dependencies" in dependency:
-                if self._has_1gp_namespace_dependency(dependency["dependencies"]):
-                    return True
+
         return False
 
     def _convert_project_dependencies(self, dependencies):
         """Convert dependencies into the format expected by Package2VersionCreateRequest.
 
-        For dependencies expressed as a github repo subfolder, build an unlocked package from that.
+        For dependencies expressed as a GitHub repo subfolder, build an unlocked package from that.
         """
         new_dependencies = []
         for dependency in dependencies:
-            if dependency.get("dependencies"):
-                new_dependencies.extend(
-                    self._convert_project_dependencies(dependency["dependencies"])
-                )
-
             new_dependency = {}
-            if dependency.get("version_id"):
-                name = (
-                    f"{dependency['namespace']}@{dependency['version']} "
-                    if "namespace" in dependency
-                    else ""
-                )
+            if (
+                isinstance(dependency, ManagedPackageDependency)
+                and dependency.package_version_id
+            ):
                 self.logger.info(
-                    f"Adding dependency {name} with id {dependency['version_id']}"
+                    f"Adding dependency {dependency.package_name} with id {dependency.package_version_id}"
                 )
-                new_dependency["subscriberPackageVersionId"] = dependency["version_id"]
+                new_dependency[
+                    "subscriberPackageVersionId"
+                ] = dependency.package_version_id
 
-            elif dependency.get("repo_name"):
+            elif isinstance(dependency, UnmanagedDependency) and dependency.repo_name:
+                # TODO: We do not support zip_url unmanaged dependencies
                 version_id = self._create_unlocked_package_from_github(
                     dependency, new_dependencies
                 )
-                self.logger.info(
-                    "Adding dependency {}/{} {} with id {}".format(
-                        dependency["repo_owner"],
-                        dependency["repo_name"],
-                        dependency["subfolder"],
-                        version_id,
-                    )
-                )
+                self.logger.info(f"Adding dependency {dependency} with id {version_id}")
                 new_dependency["subscriberPackageVersionId"] = version_id
 
             else:
@@ -584,21 +593,28 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
     def _create_unlocked_package_from_github(self, dependency, dependencies):
         gh_for_repo = self.project_config.get_github_api(
-            dependency["repo_owner"], dependency["repo_name"]
+            dependency.repo_owner, dependency.repo_name
         )
         zip_src = download_extract_github(
             gh_for_repo,
-            dependency["repo_owner"],
-            dependency["repo_name"],
-            dependency["subfolder"],
-            ref=dependency.get("ref"),
+            dependency.repo_owner,
+            dependency.repo_name,
+            dependency.subfolder,
+            ref=dependency.ref,
         )
+        options = {}
+        if dependency.namespace_inject:
+            options["namespace_inject"] = dependency.namespace_inject
+        if dependency.namespace_strip:
+            options["namespace_strip"] = dependency.namespace_strip
+        if dependency.unmanaged:
+            options["unmanaged"] = dependency.unmanaged
         package_zip_builder = MetadataPackageZipBuilder.from_zipfile(
-            zip_src, options=dependency, logger=self.logger
+            zip_src, options=options, logger=self.logger
         )
 
         package_config = PackageConfig(
-            package_name="{repo_owner}/{repo_name} {subfolder}".format(**dependency),
+            package_name=f"{dependency.repo_owner}/{dependency.repo_name} {dependency.subfolder}",
             version_name="Auto",
             package_type="Unlocked",
             # Ideally we'd do this without a namespace,

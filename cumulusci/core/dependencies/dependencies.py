@@ -12,7 +12,7 @@ from pydantic.networks import AnyUrl
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.exceptions import DependencyResolutionError
+from cumulusci.core.exceptions import DependencyResolutionError, DependencyParseError
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
@@ -536,6 +536,14 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
 
     def __str__(self):
         return self.name
+
+
+def parse_dependencies(deps: List[dict]) -> List[Dependency]:
+    parsed_deps = [parse_dependency(d) for d in deps]
+    if None in parsed_deps:
+        raise DependencyParseError("Unable to parse dependencies")
+
+    return parsed_deps
 
 
 def parse_dependency(dep_dict: dict) -> Optional[Dependency]:
