@@ -146,7 +146,7 @@ def test_freeze():
         },
         project_config=project_config,
     )
-    step = StepSpec(1, "test_task", task.task_config, None, task.project_config)
+    step = StepSpec(1, "test_task", task.task_config.config, None, task.project_config)
     steps = task.freeze(step)
 
     assert steps == [
@@ -162,6 +162,7 @@ def test_freeze():
                 "options": {
                     "version": "1.0",
                     "namespace": "ns",
+                    "security_type": "FULL",
                 },
                 "checks": [],
             },

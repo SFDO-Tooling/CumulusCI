@@ -538,8 +538,8 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
         return self.name
 
 
-def parse_dependencies(deps: List[dict]) -> List[Dependency]:
-    parsed_deps = [parse_dependency(d) for d in deps]
+def parse_dependencies(deps: Optional[List[dict]]) -> List[Dependency]:
+    parsed_deps = [parse_dependency(d) for d in deps or []]
     if None in parsed_deps:
         raise DependencyParseError("Unable to parse dependencies")
 

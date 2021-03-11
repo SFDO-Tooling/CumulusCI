@@ -11,7 +11,7 @@ from unittest import mock
 import zipfile
 import pytest
 import pydantic
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import TaskOptionsError, DependencyParseError
 from cumulusci.core.flowrunner import StepSpec
 from cumulusci.tasks.salesforce.update_dependencies import UpdateDependencies
 from cumulusci.tests.util import create_project_config
@@ -50,7 +50,7 @@ def test_init_options_base():
 
 
 def test_init_options_error_bad_dependencies():
-    with pytest.raises(TaskOptionsError):
+    with pytest.raises(DependencyParseError):
         create_task(
             UpdateDependencies,
             {
@@ -92,7 +92,7 @@ def test_init_options_error_bad_ignore_dependencies():
                 "dependencies": [
                     {
                         "namespace": "ns",
-                        "version_id": "1.0",
+                        "version": "1.0",
                     }
                 ],
                 "ignore_dependencies": [{"foo": "bar"}],

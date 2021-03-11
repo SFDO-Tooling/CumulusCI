@@ -179,7 +179,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "description": "The path where decompressed static resources are stored. Any subdirectories found will be zipped and added to the staticresources directory of the build."
         },
         "resolution_strategy": {
-            "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies."
+            "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies. Defaults to 'production'."
         },
     }
 

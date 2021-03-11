@@ -86,13 +86,15 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         elif version == "previous":
             self.options["version"] = self.project_config.get_previous_version()
 
+        # Ensure that this option is frozen in case the defaults ever change.
+        self.options["security_type"] = self.options.get("security_type") or "FULL"
         try:
             self.install_options = ManagedPackageInstallOptions(
                 activate_remote_site_settings=process_bool_arg(
                     self.options.get("activateRSS") or False
                 ),
                 password=self.options.get("password"),
-                security_type=self.options.get("security_type") or "FULL",
+                security_type=self.options["security_type"],
             )
         except ValidationError as e:
             raise TaskOptionsError(f"Invalid options: {e}")
@@ -131,7 +133,7 @@ class InstallPackageVersion(BaseSalesforceApiTask):
             "kind": "managed",
             "is_required": True,
         }
-        ui_step.update(step.task_config.config.get("ui_options", {}))
+        ui_step.update(step.task_config.get("ui_options", {}))
         ui_step.update(
             {
                 "path": step.path,

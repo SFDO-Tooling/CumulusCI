@@ -116,8 +116,11 @@ class UpdateDependencies(BaseSalesforceTask):
             *resolvers_2gp,
             DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG,
         ]
-        if not self.org_config.scratch and any(
-            r in self.resolution_strategy for r in unsafe_prod_resolvers
+        # FIXME: This should probably take place in run_task, since when we freeze we won't have an org config.
+        if (
+            self.org_config
+            and not self.org_config.scratch
+            and any(r in self.resolution_strategy for r in unsafe_prod_resolvers)
         ):
             self.logger.warning(
                 "Target org is a persistent org; removing Beta resolvers. Consider selecting the `production` resolver stack."

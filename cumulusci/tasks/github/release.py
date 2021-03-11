@@ -1,3 +1,8 @@
+from cumulusci.core.dependencies.dependencies import (
+    get_resolver_stack,
+    get_static_dependencies,
+    parse_dependencies,
+)
 import json
 import time
 from datetime import datetime
@@ -25,6 +30,9 @@ class CreateRelease(BaseGithubTask):
                 "Override the commit used to create the release. "
                 "Defaults to the current local HEAD commit"
             )
+        },
+        "resolution_strategy": {
+            "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies. Defaults to 'production'."
         },
     }
 
@@ -59,11 +67,19 @@ class CreateRelease(BaseGithubTask):
 
         # Build tag message
         message = self.options.get("message", "Release of version {}".format(version))
-        dependencies = self.project_config.get_static_dependencies(
-            self.options.get("dependencies")
-            or self.project_config.project__dependencies
+        dependencies = get_static_dependencies(
+            parse_dependencies(
+                self.options.get("dependencies")
+                or self.project_config.project__dependencies
+            ),
+            get_resolver_stack(
+                self.project_config,
+                self.options.get("resolution_strategy") or "production",
+            ),
+            self.project_config,
         )
         if dependencies:
+            dependencies = [d.dict(exclude_none=True) for d in dependencies]
             message += "\n\ndependencies: {}".format(json.dumps(dependencies, indent=4))
 
         try:

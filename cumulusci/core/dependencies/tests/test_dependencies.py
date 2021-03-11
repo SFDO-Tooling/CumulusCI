@@ -221,7 +221,7 @@ class TestManagedPackageDependency:
     def test_name(self):
         assert (
             str(ManagedPackageDependency(namespace="foo", version="1.0"))
-            == "Dependency: foo version 1.0"
+            == "Install foo 1.0"
         )
 
     def test_package_name(self):
@@ -336,17 +336,7 @@ class TestUnmanagedDependency:
     def test_name(self):
         assert (
             str(UnmanagedDependency(zip_url="http://foo.com", subfolder="bar"))
-            == "Dependency: http://foo.com /bar"
-        )
-        assert (
-            str(
-                UnmanagedDependency(
-                    github="https://github.com/Test/TestRepo",
-                    subfolder="bar",
-                    ref="aaaaaaaa",
-                )
-            )
-            == "Dependency: https://github.com/Test/TestRepo /bar @aaaaaaaa"
+            == "Deploy http://foo.com /bar"
         )
 
 

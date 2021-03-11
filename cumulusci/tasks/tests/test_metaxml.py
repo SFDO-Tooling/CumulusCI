@@ -49,7 +49,6 @@ class TestUpdateDependencies(unittest.TestCase):
     @mock.patch("cumulusci.tasks.metaxml.get_static_dependencies")
     @mock.patch("cumulusci.tasks.metaxml.get_resolver_stack")
     def test_run_task(self, get_resolver_stack, get_static_dependencies):
-        get_resolver_stack = mock.Mock()
         get_static_dependencies.return_value = [
             ManagedPackageDependency(namespace="npe01", version="1.1"),
             ManagedPackageDependency(namespace="npsp", version="3.0"),
