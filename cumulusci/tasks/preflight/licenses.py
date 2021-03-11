@@ -23,3 +23,15 @@ class GetAvailablePermissionSetLicenses(BaseSalesforceApiTask):
         ]
         licenses = "\n".join(self.return_values)
         self.logger.info(f"Found permission set licenses:\n{licenses}")
+
+
+class GetAvailablePermissionSets(BaseSalesforceApiTask):
+    def _run_task(self):
+        self.return_values = [
+            result["Name"]
+            for result in self.sf.query("SELECT Name FROM PermissionSet")[
+                "records"
+            ]
+        ]
+        permsets = "\n".join(self.return_values)
+        self.logger.info(f"Found Permission Sets:\n{permsets}")
