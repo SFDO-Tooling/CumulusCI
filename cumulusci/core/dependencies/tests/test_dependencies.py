@@ -118,13 +118,13 @@ class TestGithubRepoMixin:
 
         result = gh.get_repo(context)
 
-        assert result == context.get_github_repo.return_value
+        assert result == context.get_repo_from_url.return_value
 
     def test_mixin_failure(self):
         gh = GitHubRepoMixin()
         gh.github = "test"
         context = mock.Mock()
-        context.get_github_repo.return_value = None
+        context.get_repo_from_url.return_value = None
 
         with pytest.raises(DependencyResolutionError):
             gh.get_repo(context)
@@ -308,7 +308,7 @@ class TestUnmanagedDependency:
         # All the common logic is tested above in test_install__zip_url()
 
         download_mock.assert_called_once_with(
-            context.get_github_repo.return_value, None, ref=d.ref
+            context.get_repo_from_url.return_value, None, ref=d.ref
         )
 
     def test_get_unmanaged(self):

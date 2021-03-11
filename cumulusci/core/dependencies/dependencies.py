@@ -158,7 +158,7 @@ class Resolver(abc.ABC):
 
 class GitHubRepoMixin:
     def get_repo(self, context: BaseProjectConfig) -> Repository:
-        repo = context.get_github_repo(self.github)
+        repo = context.get_repo_from_url(self.github)
         if repo is None:
             raise DependencyResolutionError(
                 f"GitHub repository {self.github} not found or not authorized."
@@ -700,7 +700,7 @@ class GitHubReleaseBranch2GPResolver(
     ) -> Tuple[Optional[str], Optional[ManagedPackageDependency]]:
 
         release_id = self.get_release_id(context)
-        repo = context.get_github_repo(dep.github)
+        repo = context.get_repo_from_url(dep.github)
         if not repo:
             raise DependencyResolutionError(
                 f"Unable to access GitHub repository for {dep.github}"
@@ -766,7 +766,7 @@ class GitHubReleaseBranchExactMatch2GPResolver(
     ) -> Tuple[Optional[str], Optional[ManagedPackageDependency]]:
         release_id = self.get_release_id(context)
 
-        repo = context.get_github_repo(dep.github)
+        repo = context.get_repo_from_url(dep.github)
         if not repo:
             raise DependencyResolutionError(f"Unable to access repository {dep.github}")
 
