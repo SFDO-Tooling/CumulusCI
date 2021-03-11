@@ -1,3 +1,9 @@
+from cumulusci.core.dependencies.dependencies import (
+    ManagedPackageDependency,
+    get_resolver_stack,
+    get_static_dependencies,
+    parse_dependencies,
+)
 import fileinput
 import os
 import re
@@ -57,19 +63,27 @@ class UpdateDependencies(MetaXmlBaseTask):
 
     def _init_task(self):
         self.dependencies = []
-        dependencies = self.project_config.get_static_dependencies()
+        dependencies = get_static_dependencies(
+            parse_dependencies(self.project_config.project__dependencies),
+            get_resolver_stack(
+                self.project_config,
+                "production",
+            ),
+            self.project_config,
+        )
         self._process_dependencies(dependencies)
 
     def _process_dependencies(self, dependencies):
+        print(dependencies)
         for dependency in dependencies:
-            if "dependencies" in dependency:
-                self._process_dependencies(dependency["dependencies"])
-            if "namespace" in dependency:
-                self.dependencies.append(
-                    (dependency["namespace"], str(dependency["version"]))
-                )
+            if (
+                isinstance(dependency, ManagedPackageDependency)
+                and dependency.namespace
+            ):
+                self.dependencies.append((dependency.namespace, dependency.version))
 
     def _process_xml(self, root):
+        print(self.dependencies)
         changed = False
         xmlns = re.search("({.+}).+", root.tag).group(1)
         for namespace, version in self.dependencies:
