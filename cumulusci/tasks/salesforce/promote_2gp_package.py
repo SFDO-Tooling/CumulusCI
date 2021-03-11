@@ -1,11 +1,9 @@
 from typing import List, Dict
 
+from cumulusci.core.config.util import get_devhub_config
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
-from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.core.sfdx import get_default_devhub_username
-from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class Promote2gpPackageVersion(BaseSalesforceApiTask):
@@ -15,6 +13,8 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
     a 2GP package. Once "promoted" a package is considered to be "released".
     Hence "promotion" of a package is just an update to the Package2Version.IsReleased
     field.
+
+    The abbreviation `spv` in variable names is shorthand for "SubscriberPackageVersion".
     """
 
     task_docs = """Use this command to promote a Second Generation managed package.
@@ -25,46 +25,33 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
             "description": "The 04t Id for the package to be promoted.",
             "required": True,
         },
-        "auto-promote": {
+        "auto_promote": {
             "description": "If unpromoted versions of dependent 2GP packages are found, then they are automatically promoted. Defaults to False.",
             "required": False,
         },
     }
 
-    def _init_options(self, kwargs):
+    def _init_options(self, kwargs) -> None:
         super()._init_options(kwargs)
 
         if "version_id" not in self.options:
-            raise TaskOptionsError("Task option `version_id` is required.")
+            raise TaskOptionsError("Task option `version-id` is required.")
 
         version_id = self.options["version_id"]
         if not isinstance(version_id, str) or not version_id.startswith("04t"):
             raise TaskOptionsError(
-                "Task option `version_id` must be a valid SubscriberPackageVersion (04t) Id."
+                "Task option `version-id` must be a valid SubscriberPackageVersion (04t) Id."
             )
 
-    def _init_task(self):
-        # TODO: Refactor into utils
-        self.devhub_config = self._init_devhub()
+    def _init_task(self) -> None:
         self.tooling = get_simple_salesforce_connection(
             self.project_config,
-            self.devhub_config,
+            get_devhub_config(self.project_config),
             api_version=self.api_version,
             base_url="tooling",
         )
 
-    def _init_devhub(self):
-        # TODO: Refactor into utils as this is used by CreatePackageVersion
-        # Determine the devhub username for this project
-        try:
-            devhub_service = self.project_config.keychain.get_service("devhub")
-        except ServiceNotConfigured:
-            devhub_username = get_default_devhub_username()
-        else:
-            devhub_username = devhub_service.username
-        return SfdxOrgConfig({"username": devhub_username}, "devhub")
-
-    def _run_task(self):
+    def _run_task(self) -> None:
         dependency_04t_ids = self._get_dependency_04t_ids(self.options["version_id"])
 
         one_gp_deps = self._filter_1gp_deps(dependency_04t_ids)
@@ -76,7 +63,7 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
                     f"    Package Name: {dep['name']:20} ReleaseState: {dep['releaseState']}"
                 )
 
-        unpromoted_2gp_dependencies = self._get_unpromoted_2gp_dependencies(
+        unpromoted_2gp_dependencies = self._filter_unpromoted_2gp_dependencies(
             dependency_04t_ids
         )
         if unpromoted_2gp_dependencies and self.options.get("auto_promote", False):
@@ -113,8 +100,11 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
         dependencies = [d["subscriberPackageVersionId"] for d in dependencies["ids"]]
         return dependencies
 
-    def _filter_1gp_deps(self, spv_ids: List[str]):
+    def _filter_1gp_deps(self, spv_ids: List[str]) -> List[Dict[str, str]]:
         """
+        Given a list of SubscriberPackageVersion Ids, return information pertaining
+        to those that correspond to a 1GP pacakge.
+
         @param dependency_ids: list of SubscriberPackageVersionIds (04t) to filter against
         @return: list of dicts that correspond to 1GP dependency packages. Each dict
         has the keys: "name" and "releaseState".
@@ -125,34 +115,21 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
         ]
         dep_info = []
         for dep_id in one_gp_04t_ids:
-            dep_name = self._get_package_name(dep_id)
             release_state = self._query_SubscriberPackageVersion(dep_id)["ReleaseState"]
-            dep_info.append({"name": dep_name, "releaseState": release_state})
+            dep_info.append(
+                {"name": self._get_package_name(dep_id), "releaseState": release_state}
+            )
 
         return dep_info
 
-    def _get_package_name(self, spv_id: str):
-        """
-        @param spv_id: the SubscriberPackageVersionId to find the corresponding name for.
-        @returns: str of the package's name
-        """
-        subscriber_package = self._query_SubscriberPackageVersion(spv_id)
-        sp_id = subscriber_package["SubscriberPackageId"]
-        subscriber_package = self._query_tooling(
-            ["Id", "Name"],
-            "SubscriberPackage",
-            f"Id='{sp_id}'",
-            return_one=True,
-            raise_error=True,
-        )
-
-        return subscriber_package["Name"]
-
-    def _get_unpromoted_2gp_dependencies(
+    def _filter_unpromoted_2gp_dependencies(
         self, spv_ids: List[str]
     ) -> List[Dict[str, str]]:
         """
-        @param spv_ids: list of SubscriberPackageVersionIds (04t) to check
+        Given a list of SubscriberPackageVersion Ids, return information pertaining
+        to those that correspond to an unpromoted 2GP package.
+
+        @param spv_ids: list of SubscriberPackageVersionIds (04t) to filter
         @return: a list of 2GP dependency packages. Each dependency is a dict
         with keys: 'name' and 'version_id'.
         """
@@ -171,6 +148,23 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
 
         return dep_info
 
+    def _get_package_name(self, spv_id: str) -> str:
+        """
+        @param spv_id: the SubscriberPackageVersionId to find the corresponding name for.
+        @returns: str of the package's name
+        """
+        subscriber_package = self._query_SubscriberPackageVersion(spv_id)
+        sp_id = subscriber_package["SubscriberPackageId"]
+        subscriber_package = self._query_tooling(
+            ["Id", "Name"],
+            "SubscriberPackage",
+            f"Id='{sp_id}'",
+            return_one=True,
+            raise_error=True,
+        )
+
+        return subscriber_package["Name"]
+
     def _is_package_version_promoted(self, spv_id: str) -> bool:
         """
         @param: spv_id: the SubscriberPackageVersionId to check
@@ -183,6 +177,8 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
 
     def _promote_2gp_package(self, spv_id: str) -> None:
         """
+        Promote a 2GP package associated with the given SubscriberPackageVersionId
+
         @param spv_id: the SubscriberPackageVersionId to promote
         @return: None
         """
