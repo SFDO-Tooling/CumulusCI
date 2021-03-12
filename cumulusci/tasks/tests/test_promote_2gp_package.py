@@ -73,10 +73,7 @@ class TestPromote2gpPackageVersion:
     def test_run_task__invalid_version_id(
         self, project_config, devhub_config, org_config
     ):
-        with pytest.raises(
-            TaskOptionsError,
-            match="Task option `version_id` must be a valid SubscriberPackageVersionId (04t) Id.",
-        ):
+        with pytest.raises(TaskOptionsError):
             Promote2gpPackageVersion(
                 project_config,
                 TaskConfig({"options": {"version_id": "0Ho000000000000"}}),

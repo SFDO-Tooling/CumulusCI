@@ -46,7 +46,7 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
         version_id = self.options["version_id"]
         if not isinstance(version_id, str) or not version_id.startswith("04t"):
             raise TaskOptionsError(
-                "Task option `version_id` must be a valid SubscriberPackageVersionId (04t) Id."
+                "Task option `version_id` must be a valid SubscriberPackageVersion (04t) Id"
             )
 
     def _init_task(self) -> None:
