@@ -1,23 +1,30 @@
-from cumulusci.core.config import project_config
+from github3.exceptions import NotFoundError
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
     ManagedPackageInstallOptions,
 )
-from cumulusci.core.exceptions import DependencyResolutionError
+from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
 from typing import Optional, Tuple
+from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.dependencies import (
     DependencyResolutionStrategy,
+    GitHubBetaReleaseTagResolver,
     GitHubDynamicDependency,
     GitHubPackageDataMixin,
+    GitHubReleaseTagResolver,
     GitHubRepoMixin,
+    GitHubTagResolver,
     ManagedPackageDependency,
     Resolver,
     StaticDependency,
     DynamicDependency,
     UnmanagedDependency,
+    get_resolver,
+    get_resolver_stack,
     parse_dependency,
 )
+from cumulusci.utils.git import split_repo_url
 
 from unittest import mock
 import pytest
@@ -387,16 +394,215 @@ project:
         assert m._get_package_data(repo, "aaaaaaaa") == ("Package", "foo")
 
 
+from cumulusci.core.tests.test_config import (
+    DummyContents,
+    DummyRelease,
+    DummyRepository,
+    DummyGithub,
+)
+
+
+@pytest.fixture
+def github():
+    CUMULUSCI_TEST_REPO = DummyRepository(
+        "SFDO-Tooling",
+        "CumulusCI-Test",
+        {
+            "cumulusci.yml": DummyContents(
+                b"""
+    project:
+        name: CumulusCI-Test
+        package:
+            name: CumulusCI-Test
+            namespace: ccitest
+        git:
+            repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test
+        dependencies:
+            - github: https://github.com/SFDO-Tooling/CumulusCI-Test-Dep
+    """
+            ),
+            "unpackaged/pre": {"pre": {}, "skip": {}},
+            "src": {"src": ""},
+            "unpackaged/post": {"post": {}, "skip": {}},
+        },
+    )
+
+    # This repo contains both beta and managed releases.
+    RELEASES_REPO = DummyRepository(
+        "SFDO-Tooling",
+        "CumulusCI-Test-Dep",
+        {
+            "cumulusci.yml": DummyContents(
+                b"""
+    project:
+        name: CumulusCI-Test-Dep
+        package:
+            name: CumulusCI-Test-Dep
+            namespace: ccitestdep
+        git:
+            repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test-Dep
+    """
+            ),
+            "unpackaged/pre": {},
+            "src": {},
+            "unpackaged/post": {},
+        },
+        [
+            DummyRelease("beta/2.1_Beta_1", "2.1 Beta 1"),
+            DummyRelease("release/2.0", "2.0"),
+            DummyRelease("release/1.0", "1.0"),
+        ],
+    )
+
+    CUMULUSCI_REPO = DummyRepository(
+        "SFDO-Tooling",
+        "CumulusCI",
+        {},
+        [
+            DummyRelease("release/1.1", "1.1"),
+            DummyRelease("beta-wrongprefix", "wrong"),
+            DummyRelease("release/1.0", "1.0"),
+            DummyRelease("beta/1.0-Beta_2", "1.0 (Beta 2)"),
+            DummyRelease("beta/1.0-Beta_1", "1.0 (Beta 1)"),
+        ],
+    )
+
+    # This repo contains a release, but no namespace
+    UNMANAGED_REPO = DummyRepository(
+        "SFDO-Tooling",
+        "UnmanagedRepo",
+        {
+            "cumulusci.yml": DummyContents(
+                b"""
+    project:
+        name: CumulusCI-Test
+        package:
+            name: CumulusCI-Test
+    """
+            ),
+            "unpackaged/pre": {"pre": {}, "skip": {}},
+            "src": {"src": ""},
+            "unpackaged/post": {"post": {}, "skip": {}},
+        },
+        [
+            DummyRelease("release/1.0", "1.0"),
+        ],
+    )
+
+    return DummyGithub(
+        {
+            "UnmanagedRepo": UNMANAGED_REPO,
+            "CumulusCI": CUMULUSCI_REPO,
+            "CumulusCI-Test": CUMULUSCI_TEST_REPO,
+            "ReleasesRepo": RELEASES_REPO,
+        }
+    )
+
+
+@pytest.fixture
+def project_config(github):
+    pc = mock.Mock()
+    # Using a wrapping Mock keeps Typeguard happy.
+
+    def get_repo_from_url(url):
+        return mock.Mock(wraps=github.repository(*split_repo_url(url)))
+
+    pc.get_repo_from_url = get_repo_from_url
+
+    return pc
+
+
 class TestGitHubTagResolver:
-    pass
+    def test_github_tag_resolver(self, project_config):
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/ReleasesRepo",
+            tag="release/1.0",  # Not the most recent release
+        )
+        resolver = GitHubTagResolver()
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (
+            "tag_sha",
+            ManagedPackageDependency(
+                namespace="ccitestdep", version="1.0", package_name="CumulusCI-Test-Dep"
+            ),
+        )
+
+    def test_github_tag_resolver__unmanaged(self, project_config):
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/ReleasesRepo",
+            tag="release/2.0",
+            unmanaged=True,
+        )
+        resolver = GitHubTagResolver()
+
+        assert resolver.resolve(dep, project_config) == (
+            "tag_sha",
+            None,
+        )
+
+    def test_exception_no_managed_release(self, project_config):
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/UnmanagedRepo",  # This repo has no namespace
+            tag="release/1.0",
+            unmanaged=False,
+        )
+        resolver = GitHubTagResolver()
+
+        with pytest.raises(DependencyResolutionError) as e:
+            resolver.resolve(dep, project_config)
+        assert "does not identify a managed release" in str(e.value)
+
+    def test_can_resolve_negative(self, project_config):
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/ReleasesRepo"
+        )
+        resolver = GitHubTagResolver()
+
+        assert not resolver.can_resolve(dep, project_config)
+
+    def test_exception_no_tag_found(self, project_config):
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/ReleasesRepo",
+            tag="release/3.0",
+        )
+        resolver = GitHubTagResolver()
+
+        with pytest.raises(DependencyResolutionError) as e:
+            resolver.resolve(dep, project_config)
+        assert "No release found for tag" in str(e.value)
 
 
 class TestGitHubReleaseTagResolver:
-    def test_release_tag(self):
-        pass
+    def test_github_release_tag_resolver(self, project_config):
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/ReleasesRepo"
+        )
+        resolver = GitHubReleaseTagResolver()
 
-    def test_beta_release_tag(self):
-        pass
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (
+            "tag_sha",
+            ManagedPackageDependency(
+                namespace="ccitestdep", version="2.0", package_name="CumulusCI-Test-Dep"
+            ),
+        )
+
+    def test_beta_release_tag(self, project_config):
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/ReleasesRepo"
+        )
+        resolver = GitHubBetaReleaseTagResolver()
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (
+            "tag_sha",
+            ManagedPackageDependency(
+                namespace="ccitestdep",
+                version="2.1 Beta 1",
+                package_name="CumulusCI-Test-Dep",
+            ),
+        )
 
 
 class TestGitHubUnmanagedHeadResolver:
@@ -416,7 +622,40 @@ class TestGitHubReleaseBranchExactMatch2GPResolver:
 
 
 class TestResolverAccess:
-    pass
+    def test_get_resolver(self):
+        assert isinstance(
+            get_resolver(
+                DependencyResolutionStrategy.STRATEGY_STATIC_TAG_REFERENCE,
+                GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/Test"),
+            ),
+            GitHubTagResolver,
+        )
+
+    def test_get_resolver_stack__indirect(self):
+        pc = BaseProjectConfig(UniversalConfig())
+
+        strategy = get_resolver_stack(pc, "production")
+        assert DependencyResolutionStrategy.STRATEGY_RELEASE_TAG in strategy
+        assert DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG not in strategy
+
+    def test_get_resolver_stack__customized_indirect(self):
+        pc = BaseProjectConfig(UniversalConfig())
+
+        pc.project__dependency_resolutions["preproduction"] = "include_beta"
+        strategy = get_resolver_stack(pc, "preproduction")
+        assert DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG in strategy
+
+    def test_get_resolver_stack__direct(self):
+        pc = BaseProjectConfig(UniversalConfig())
+
+        strategy = get_resolver_stack(pc, "exact_2gp")
+        assert DependencyResolutionStrategy.STRATEGY_2GP_RELEASE_BRANCH in strategy
+
+    def test_get_resolver_stack__fail(self):
+        pc = BaseProjectConfig(UniversalConfig())
+
+        with pytest.raises(CumulusCIException):
+            get_resolver_stack(pc, "bogus")
 
 
 class TestStaticDependencyResolution:

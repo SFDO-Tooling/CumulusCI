@@ -322,3 +322,6 @@ class TestPackageUpload:
             f"{major_version}.{minor_version}.{patch_version} (Beta {build_number})"
             == task.version_number
         )
+
+    def test_set_dependencies_with_deps(self):
+        raise NotImplementedError  # Need to cover line 190, check the dict conversion.

@@ -100,3 +100,7 @@ def test_install_package_version__not_propagated(caplog):
     )
     assert "Retrying" in caplog.text
     assert "Success" in caplog.text
+
+
+def test_install_1gp_package_version():
+    raise NotImplementedError

@@ -602,13 +602,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             dependency.subfolder,
             ref=dependency.ref,
         )
-        options = {}
-        if dependency.namespace_inject:
-            options["namespace_inject"] = dependency.namespace_inject
-        if dependency.namespace_strip:
-            options["namespace_strip"] = dependency.namespace_strip
-        if dependency.unmanaged:
-            options["unmanaged"] = dependency.unmanaged
+        keys = ["namespace_inject", "namespace_strip", "unmanaged"]
+        dep_opts = dependency.dict(exclude_none=True)
+        options = {k: dep_opts[k] for k in keys if k in dep_opts}
         package_zip_builder = MetadataPackageZipBuilder.from_zipfile(
             zip_src, options=options, logger=self.logger
         )

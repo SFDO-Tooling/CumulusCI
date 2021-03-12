@@ -576,7 +576,7 @@ class GitHubTagResolver(GitHubPackageDataMixin, Resolver):
             # Find the github release corresponding to this tag.
             repo = dep.get_repo(context)
             release = repo.release_from_tag(dep.tag)
-            ref = repo.ref(f"tags/{release.tag_name}").object.sha
+            ref = repo.tag(repo.ref(f"tags/{release.tag_name}").object.sha).object.sha
             package_name, namespace = self._get_package_data(repo, ref)
 
             if not dep.unmanaged and not namespace:
@@ -586,7 +586,7 @@ class GitHubTagResolver(GitHubPackageDataMixin, Resolver):
 
             if not dep.unmanaged:
                 return (
-                    repo.tag(ref).object.sha,
+                    ref,
                     ManagedPackageDependency(
                         namespace=namespace,
                         version=release.name,
@@ -594,7 +594,7 @@ class GitHubTagResolver(GitHubPackageDataMixin, Resolver):
                     ),
                 )
             else:
-                return repo.tag(ref).object.sha, None
+                return ref, None
         except NotFoundError:
             raise DependencyResolutionError(f"No release found for tag {dep.tag}")
 
@@ -634,7 +634,7 @@ class GitHubUnmanagedHeadResolver(Resolver):
     name = "GitHub Unmanaged Resolver"
 
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
-        return isinstance(dep, GitHubDynamicDependency) and dep.tag is not None
+        return isinstance(dep, GitHubDynamicDependency)
 
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
@@ -717,7 +717,7 @@ class GitHubReleaseBranch2GPResolver(
         # We will check at least the release branch corresponding to our release id.
         # We may be configured to check backwards on release branches.
         release_branch = None
-        for i in range(0, self.branch_depth + 1):
+        for i in range(0, self.branch_depth):
             try:
                 remote_matching_branch = construct_release_branch_name(
                     remote_branch_prefix, str(release_id - i)
@@ -854,8 +854,8 @@ def get_static_dependencies(
     context: BaseProjectConfig,
     ignore_deps: List[dict] = None,
 ):
-    """Resolves the project -> dependencies section of cumulusci.yml
-    to convert dynamic github dependencies into static dependencies
+    """Resolves the project__dependencies section of cumulusci.yml
+    to convert dynamic GitHub dependencies into static dependencies
     by inspecting the referenced repositories.
 
     Keyword arguments:

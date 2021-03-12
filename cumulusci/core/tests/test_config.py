@@ -408,6 +408,9 @@ class TestBaseProjectConfig(unittest.TestCase):
 
             self.assertIsNotNone(config.repo_commit)
 
+    def test_get_repo_from_url(self):
+        raise NotImplementedError
+
     def test_get_latest_tag(self):
         config = BaseProjectConfig(
             UniversalConfig(),
