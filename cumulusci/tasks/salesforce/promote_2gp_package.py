@@ -1,5 +1,4 @@
 from typing import List, Dict, Optional
-
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.config.util import get_devhub_config
