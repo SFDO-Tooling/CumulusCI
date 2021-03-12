@@ -26,13 +26,12 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
 
     task_options = {
         "version_id": {
-            "description": "The 04t Id for the package to be promoted.",
+            "description": "The SubscriberPackageVersion (04t) Id for the target package.",
             "required": True,
         },
         "auto_promote": {
             "description": (
-                "If unpromoted versions of dependent 2GP packages are found, "
-                "then they are automatically promoted. Defaults to False."
+                "Automatically promote any unpromoted versions of dependency 2GP packages that are detected."
             ),
             "required": False,
         },

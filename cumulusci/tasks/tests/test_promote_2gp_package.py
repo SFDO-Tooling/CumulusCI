@@ -1,12 +1,12 @@
-from cumulusci.tasks.salesforce.promote_2gp_package import Promote2gpPackageVersion
 import pytest
 import responses
 from unittest import mock
 
-from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.config import TaskConfig, BaseProjectConfig
 from cumulusci.core.config import UniversalConfig
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.tasks.salesforce.promote_2gp_package import Promote2gpPackageVersion
 
 
 @pytest.fixture
@@ -344,6 +344,17 @@ class TestPromote2gpPackageVersion:
             return_value=devhub_config,
         ):
             task()
+
+    @responses.activate
+    def test_query_Package2Version__malformed_request(self, task):
+        responses.add(
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json=[{"message": "Object type 'Package2' is not supported"}],
+            status=400,
+        )
+        with pytest.raises(TaskOptionsError):
+            task._query_Package2Version("04t000000000000")
 
     @responses.activate
     def test_query_one_tooling(self, task):
