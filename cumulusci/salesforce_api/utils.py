@@ -1,8 +1,10 @@
 import simple_salesforce
-from cumulusci import __version__
-from cumulusci.core.exceptions import ServiceNotConfigured, ServiceNotValid
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+
+from cumulusci import __version__
+from cumulusci.core.exceptions import ServiceNotConfigured, ServiceNotValid
+
 
 CALL_OPTS_HEADER_KEY = "Sforce-Call-Options"
 
