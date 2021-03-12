@@ -249,6 +249,7 @@ class CumulusCI(object):
         # add newline so first line of task output is not appended
         # to the current line
         logger.console("\n")
+        task.logger = logger
         task()
         return task.return_values
 
