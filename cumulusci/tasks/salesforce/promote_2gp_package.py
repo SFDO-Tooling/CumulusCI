@@ -1,5 +1,7 @@
 from typing import List, Dict, Optional
 
+from simple_salesforce.exceptions import SalesforceMalformedRequest
+
 from cumulusci.core.config.util import get_devhub_config
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
@@ -62,10 +64,10 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
 
         one_gp_deps = self._filter_1gp_deps(dependency_spv_ids)
         if one_gp_deps:
-            self.logger.warn("This package has the following 1GP dependencies:")
-            self.logger.warn("")
+            self.logger.warning("This package has the following 1GP dependencies:")
+            self.logger.warning("")
             for dep in one_gp_deps:
-                self.logger.warn(
+                self.logger.warning(
                     f"    Package Name: {dep['name']:20} ReleaseState: {dep['releaseState']}"
                 )
 
@@ -199,12 +201,20 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
         self, spv_id: str, raise_error: bool = False
     ) -> Optional[Dict]:
         """Queries for a Package2Version record with the given SubscriberPackageVersionId"""
-        return self._query_one_tooling(
-            ["Id", "IsReleased"],
-            "Package2Version",
-            where_clause=f"SubscriberPackageVersionId='{spv_id}'",
-            raise_error=raise_error,
-        )
+        try:
+            return self._query_one_tooling(
+                ["Id", "IsReleased"],
+                "Package2Version",
+                where_clause=f"SubscriberPackageVersionId='{spv_id}'",
+                raise_error=raise_error,
+            )
+        except SalesforceMalformedRequest as e:
+            if "Object type 'Package2' is not supported" in e.content[0]["message"]:
+                raise TaskOptionsError(
+                    "This org does not have a Dev Hub with 2nd-generation packaging enabled. "
+                    "Make sure you are using the correct org and/or check the Dev Hub settings in Setup."
+                )
+            raise  # pragma: no cover
 
     def _query_SubscriberPackageVersion(self, id: str) -> Optional[Dict]:
         """Queries for a SubscriberPackageVersion record with the given Id"""
