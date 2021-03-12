@@ -12,8 +12,8 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
 
     The terms "promoted" and "released" are the same in the context of
     a 2GP package. Once "promoted" a package is considered to be "released".
-    Hence "promotion" of a package is just an update to the Package2Version.IsReleased
-    field.
+    Hence, the "promotion" of a package is just an update to the
+    Package2Version.IsReleased field.
 
     The abbreviation `spv` in variable names is shorthand for "SubscriberPackageVersion".
     """
@@ -41,12 +41,12 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
         super()._init_options(kwargs)
 
         if "version_id" not in self.options:
-            raise TaskOptionsError("Task option `version-id` is required.")
+            raise TaskOptionsError("Task option `version_id` is required.")
 
         version_id = self.options["version_id"]
         if not isinstance(version_id, str) or not version_id.startswith("04t"):
             raise TaskOptionsError(
-                "Task option `version-id` must be a valid SubscriberPackageVersion (04t) Id."
+                "Task option `version_id` must be a valid SubscriberPackageVersionId (04t) Id."
             )
 
     def _init_task(self) -> None:
