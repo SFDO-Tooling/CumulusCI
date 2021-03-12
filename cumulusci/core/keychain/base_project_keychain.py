@@ -94,7 +94,6 @@ class BaseProjectKeychain(BaseConfig):
         scratch_config["set_password"] = bool(set_password)
         scratch_config["scratch"] = True
         scratch_config.setdefault("namespaced", False)
-        scratch_config.setdefault("noancestors", False)
         scratch_config["config_name"] = config_name
         scratch_config[
             "sfdx_alias"

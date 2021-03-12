@@ -3,8 +3,6 @@ import json
 import os
 import re
 
-import sarge
-
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
 from cumulusci.core.config import SfdxOrgConfig
@@ -59,40 +57,14 @@ class ScratchOrgConfig(SfdxOrgConfig):
         if not self.scratch_org_type:
             self.config["scratch_org_type"] = "workspace"
 
-        # If the scratch org definition itself contains an `adminEmail` entry,
-        # we don't want to override it from our own configuration, which may
-        # simply come from the user's Git config.
-
-        with open(self.config_file, "r") as org_def:
-            org_def_data = json.load(org_def)
-            org_def_has_email = "adminEmail" in org_def_data
-
-        devhub = self._choose_devhub()
-        instance = self.instance or os.environ.get("SFDX_SIGNUP_INSTANCE")
-        options = {
-            "config_file": self.config_file,
-            "devhub": f" --targetdevhubusername {devhub}" if devhub else "",
-            "namespaced": " -n" if not self.namespaced else "",
-            "noancestors": " --noancestors" if self.noancestors else "",
-            "days": f" --durationdays {self.days}" if self.days else "",
-            "wait": " -w 120",
-            "alias": sarge.shell_format(' -a "{0!s}"', self.sfdx_alias)
-            if self.sfdx_alias
-            else "",
-            "email": sarge.shell_format(' adminEmail="{0!s}"', self.email_address)
-            if self.email_address and not org_def_has_email
-            else "",
-            "default": " -s" if self.default else "",
-            "instance": f" instance={instance}" if instance else "",
-            "extraargs": os.environ.get("SFDX_ORG_CREATE_ARGS", ""),
-        }
-
-        # This feels a little dirty, but the use cases for extra args would mostly
-        # work best with env vars
-        command = "force:org:create -f {config_file}{devhub}{namespaced}{noancestors}{days}{alias}{default}{wait}{email}{instance} {extraargs}".format(
-            **options
+        args = self._build_org_create_args()
+        extra_args = os.environ.get("SFDX_ORG_CREATE_ARGS", "")
+        p = sfdx(
+            f"force:org:create {extra_args}",
+            args=args,
+            username=None,
+            log_note="Creating scratch org",
         )
-        p = sfdx(command, username=None, log_note="Creating scratch org")
 
         stderr = [line.strip() for line in p.stderr_text]
         stdout = [line.strip() for line in p.stdout_text]
@@ -125,6 +97,31 @@ class ScratchOrgConfig(SfdxOrgConfig):
 
         # Flag that this org has been created
         self.config["created"] = True
+
+    def _build_org_create_args(self):
+        args = ["-f", self.config_file, "-w", "120"]
+        devhub = self._choose_devhub()
+        if devhub:
+            args += ["--targetdevhubusername", devhub]
+        if not self.namespaced:
+            args += ["-n"]
+        if self.noancestors:
+            args += ["--noancestors"]
+        if self.days:
+            args += ["--durationdays", str(self.days)]
+        if self.sfdx_alias:
+            args += ["-a", self.sfdx_alias]
+        with open(self.config_file, "r") as org_def:
+            org_def_data = json.load(org_def)
+            org_def_has_email = "adminEmail" in org_def_data
+        if self.email_address and not org_def_has_email:
+            args += [f"adminEmail={self.email_address}"]
+        if self.default:
+            args += ["-s"]
+        instance = self.instance or os.environ.get("SFDX_SIGNUP_INSTANCE")
+        if instance:
+            args += [f"instance={instance}"]
+        return args
 
     def _choose_devhub(self):
         """Determine which devhub to specify when calling sfdx, if any."""
