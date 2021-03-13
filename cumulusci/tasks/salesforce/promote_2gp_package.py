@@ -133,7 +133,7 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
         Otherwise, log which dependencies need promoting.
 
         @param dependencies: list of dependencies to process
-        @return: a should_exit indicator to tell _run_taks() whether or not to exit
+        @return: a should_exit indicator to tell _run_task() whether or not to exit
         """
         two_gp_deps = self._filter_two_gp_deps(dependencies)
         unpromoted_two_gp_deps = self._filter_unpromoted_two_gp_deps(dependencies)
