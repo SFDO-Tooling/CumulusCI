@@ -26,6 +26,14 @@ from cumulusci.core.exceptions import ServiceNotConfigured
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
 
+@pytest.fixture
+def scratch_def_file():
+    with temporary_dir():
+        with open("tmp.json", "w") as f:
+            f.write("{}")
+        yield
+
+
 @mock.patch("pathlib.Path.home")
 class TestUniversalConfig(unittest.TestCase):
     def setUp(self):
@@ -582,40 +590,6 @@ class TestScratchOrgConfig(unittest.TestCase):
         self.assertTrue(config.config["created"])
         self.assertEqual(config.scratch_org_type, "workspace")
 
-        # Validate the SFDX command generated uses the email address provided.
-        self.assertIn("test@example.com", Command.call_args[0][0])
-
-    def test_create_org_uses_org_def_email(self, Command):
-        out = b"Successfully created scratch org: ORG_ID, username: USERNAME"
-        Command.return_value = p = mock.Mock(
-            stdout=io.BytesIO(out), stderr=io.BytesIO(b""), returncode=0
-        )
-
-        config = ScratchOrgConfig(
-            {
-                "config_file": "tmp.json",
-                "set_password": True,
-                "email_address": "test@example.com",
-            },
-            "test",
-        )
-        config.generate_password = mock.Mock()
-        with temporary_dir():
-            with open("tmp.json", "w") as f:
-                f.write('{"adminEmail": "other_test@example.com"}')
-
-            config.create_org()
-
-        p.run.assert_called_once()
-        self.assertEqual(config.config["org_id"], "ORG_ID")
-        self.assertEqual(config.config["username"], "USERNAME")
-        self.assertIn("date_created", config.config)
-        config.generate_password.assert_called_once()
-        self.assertTrue(config.config["created"])
-        self.assertEqual(config.scratch_org_type, "workspace")
-
-        self.assertNotIn("test@example.com", Command.call_args[0][0])
-
     def test_create_org_no_config_file(self, Command):
         config = ScratchOrgConfig({}, "test")
         with pytest.raises(ScratchOrgException, match="missing a config_file"):
@@ -763,3 +737,57 @@ class TestScratchOrgConfig(unittest.TestCase):
         config = ScratchOrgConfig({}, "test", mock_keychain)
 
         assert config._choose_devhub() is None
+
+
+class TestScratchOrgConfigPytest:
+    def test_build_org_create_args(self, scratch_def_file):
+        mock_keychain = mock.Mock()
+        mock_keychain.get_service.return_value = ServiceConfig(
+            {"username": "fake@fake.devhub"}
+        )
+        config = ScratchOrgConfig(
+            {
+                "config_file": "tmp.json",
+                "email_address": "test@example.com",
+                "noancestors": True,
+                "sfdx_alias": "project__org",
+                "default": True,
+                "instance": "NA01",
+            },
+            "test",
+            mock_keychain,
+        )
+        args = config._build_org_create_args()
+        assert args == [
+            "-f",
+            "tmp.json",
+            "-w",
+            "120",
+            "--targetdevhubusername",
+            "fake@fake.devhub",
+            "-n",
+            "--noancestors",
+            "--durationdays",
+            "1",
+            "-a",
+            "project__org",
+            "adminEmail=test@example.com",
+            "-s",
+            "instance=NA01",
+        ]
+
+    def test_build_org_create_args__email_in_scratch_def(self):
+        config = ScratchOrgConfig(
+            {
+                "config_file": "tmp.json",
+                "set_password": True,
+                "email_address": "test@example.com",
+            },
+            "test",
+        )
+        with temporary_dir():
+            with open("tmp.json", "w") as f:
+                f.write('{"adminEmail": "other_test@example.com"}')
+            args = config._build_org_create_args()
+
+        assert "adminEmail=test@example.com" not in args

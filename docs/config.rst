@@ -423,10 +423,10 @@ Or even create a new flow that uses a flow from NPSP:
     flows:
         install_npsp:
             steps:
-            1:
-                flow: npsp:install_prod
-            2:
-                flow: dev_org
+                1:
+                    flow: npsp:install_prod
+                2:
+                    flow: dev_org
 
 This flow uses NPSP's ``install_prod`` flow to install NPSP as a managed package, and then run this project's own ``dev_org`` flow.
 
