@@ -141,11 +141,13 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
         self.logger.info(f"number of 2GP dependencies: {len(two_gp_deps)}")
         self.logger.info(f"Unpromoted 2gp dependencies: {len(unpromoted_two_gp_deps)}")
 
-        should_exit = True
+        should_exit = False
         if unpromoted_two_gp_deps and self.options.get("auto_promote", False):
             [self._promote_2gp_package(d["version_id"]) for d in unpromoted_two_gp_deps]
-            should_exit = False
         elif unpromoted_two_gp_deps:
+            # we only exit if unpromoted 2GP deps are present
+            # and we aren't auto-promoting
+            should_exit = True
             self.logger.error("")
             self.logger.error(
                 "This package depends on other packages that have not yet been promoted. "
@@ -161,6 +163,7 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
                 self.logger.error(f"   Package Name: {dep['name']}")
                 self.logger.error(f"   SubscriberPackageVersionId: {dep['version_id']}")
                 self.logger.error("")
+
         return should_exit
 
     def _get_dependency_spv_ids(self, spv_id: str) -> List[str]:
