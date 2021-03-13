@@ -58,9 +58,64 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
         )
 
     def _run_task(self) -> None:
-        dependency_spv_ids = self._get_dependency_spv_ids(self.options["version_id"])
+        """Orchestrate the task"""
+        dependencies = self._get_dependency_info(self.options["version_id"])
 
-        one_gp_deps = self._filter_1gp_deps(dependency_spv_ids)
+        self._process_one_gp_deps(dependencies)
+        should_exit = self._process_two_gp_deps(dependencies)
+
+        if should_exit:
+            return
+
+        self._promote_2gp_package(self.options["version_id"])
+
+    def _get_dependency_info(self, spv_id: str) -> Optional[Dict]:
+        """
+        Given a SubscriberPackageVersionId (04t) return a list of dictionaries
+        pertaining the all dependency packages. The dictionaries have the following shape:
+
+        {
+            "is_2gp": (bool) whether or not this dependency is a 2GP package
+            "is_promoted": whether or not this package is already promoted (only present if is_2gp is True)
+            "name": (str) The name of the package
+            "release_state": (str) the packages release state
+            "version_id": (str) the SubscriberPackageVersionId (04t) of the dependency
+        }
+        """
+        dependency_spv_ids = self._get_dependency_spv_ids()
+
+        dependencies = []
+        for spv_id in dependency_spv_ids:
+            package_2_version = self._query_Package2Version(spv_id)
+            subscriber_package_version = self._query_SubscriberPackageVersion(spv_id)
+            subscriber_package = self._query_SubscriberPackage(
+                subscriber_package_version["SubscriberPackageId"]
+            )
+            info = {
+                "name": subscriber_package["Name"],
+                "release_state": subscriber_package_version["ReleaseState"],
+                "version_id": spv_id,
+            }
+            if package_2_version:
+                info["is_2gp"] = True
+                info["is_promoted"] = package_2_version["IsReleased"]
+            else:
+                # It's a 1GP dependency if no Package2Version record is present
+                info["is_2gp"] = False
+                info["is_promoted"] = None
+
+            dependencies.append(info)
+
+        self.logger.info(f"Total dependencies found: {len(dependency_spv_ids)}")
+
+        return dependencies
+
+    def _process_one_gp_deps(self, dependencies: List[Dict]) -> None:
+        """
+        Log any 1GP dependecies that are present. This will be nice
+        to know so that
+        """
+        one_gp_deps = [d for d in dependencies if not d["is_2gp"]]
         if one_gp_deps:
             self.logger.warning("This package has the following 1GP dependencies:")
             self.logger.warning("")
@@ -69,13 +124,22 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
                     f"    Package Name: {dep['name']:20} ReleaseState: {dep['releaseState']}"
                 )
 
-        unpromoted_2gp_dependencies = self._filter_unpromoted_2gp_dependencies(
-            dependency_spv_ids
-        )
-        if unpromoted_2gp_dependencies and self.options.get("auto_promote", False):
-            for dep in unpromoted_2gp_dependencies:
-                self._promote_2gp_package(dep["version_id"])
-        elif unpromoted_2gp_dependencies:
+    def _process_two_gp_deps(self, dependencies: List[Dict]) -> bool:
+        """
+        If we're auto-promoting then auto-promote, and tell _run_task to keep going.
+        If not, log which dependencies need promoting and tell _run_task to exit.
+        """
+        two_gp_deps = self._filter_two_gp_deps(dependencies)
+        unpromoted_two_gp_deps = self._filter_unpromoted_two_gp_deps(dependencies)
+
+        self.logger.info(f"number of 2GP dependencies: {len(two_gp_deps)}")
+        self.logger.info(f"Unpromoted 2gp dependencies: {len(unpromoted_two_gp_deps)}")
+
+        should_exit = True
+        if unpromoted_two_gp_deps and self.options.get("auto_promote", False):
+            [self._promote_2gp_package(d["version_id"]) for d in unpromoted_two_gp_deps]
+            should_exit = False
+        elif unpromoted_two_gp_deps:
             self.logger.error("")
             self.logger.error(
                 "This package depends on other packages that have not yet been promoted. "
@@ -87,13 +151,11 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
                 "(Use `--auto-promote True` to automatically promote these dependencies):"
             )
             self.logger.error("")
-            for dep in unpromoted_2gp_dependencies:
+            for dep in unpromoted_two_gp_deps:
                 self.logger.error(f"   Package Name: {dep['name']}")
                 self.logger.error(f"   SubscriberPackageVersionId: {dep['version_id']}")
                 self.logger.error("")
-            return
-
-        self._promote_2gp_package(self.options["version_id"])
+        return should_exit
 
     def _get_dependency_spv_ids(self, spv_id: str) -> List[str]:
         """
@@ -105,64 +167,6 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
         dependencies = subscriber_package_version["Dependencies"] or {"ids": []}
         dependencies = [d["subscriberPackageVersionId"] for d in dependencies["ids"]]
         return dependencies
-
-    def _filter_1gp_deps(self, spv_ids: List[str]) -> Optional[List[Dict]]:
-        """
-        Given a list of SubscriberPackageVersion Ids, return information pertaining
-        to those that correspond to a 1GP pacakge.
-
-        @param dependency_ids: list of SubscriberPackageVersionIds (04t) to filter against
-        @return: list of dicts that correspond to 1GP dependency packages. Each dict
-        has the keys: "name" and "releaseState".
-        """
-        # Any 04t without a Package2Version is a 1GP package
-        one_gp_spv_ids = [
-            spv_id for spv_id in spv_ids if not self._query_Package2Version(spv_id)
-        ]
-        dep_info = []
-        for dep_id in one_gp_spv_ids:
-            release_state = self._query_SubscriberPackageVersion(dep_id)["ReleaseState"]
-            dep_info.append(
-                {"name": self._get_package_name(dep_id), "releaseState": release_state}
-            )
-
-        return dep_info
-
-    def _filter_unpromoted_2gp_dependencies(
-        self, spv_ids: List[str]
-    ) -> List[Dict[str, str]]:
-        """
-        Given a list of SubscriberPackageVersion Ids, return information pertaining
-        to those that correspond to an unpromoted 2GP package.
-
-        @param spv_ids: list of SubscriberPackageVersionIds (04t) to filter
-        @return: a list of 2GP dependency packages. Each dependency is a dict
-        with keys: 'name' and 'version_id'.
-        """
-        unpromoted = []
-        for spv_id in spv_ids:
-            promoted = self._is_package_version_promoted(spv_id)
-            if promoted is None:  # 1GP dependency
-                continue
-            elif not promoted:
-                unpromoted.append(spv_id)
-
-        dep_info = []
-        for dep_id in unpromoted:
-            dep_name = self._get_package_name(dep_id)
-            dep_info.append({"name": dep_name, "version_id": dep_id})
-
-        return dep_info
-
-    def _is_package_version_promoted(self, spv_id: str) -> Optional[bool]:
-        """
-        @param: spv_id: the SubscriberPackageVersionId to check
-        @return: returns the value for Package2Version.IsReleased if found, None otherwise.
-        """
-        package2_version = self._query_Package2Version(spv_id)
-        if not package2_version:  # This is a 1GP dependency
-            return None
-        return package2_version["IsReleased"]
 
     def _promote_2gp_package(self, spv_id: str) -> None:
         """
@@ -178,22 +182,6 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
         Package2Version = self._get_tooling_object("Package2Version")
         Package2Version.update(package2_version["Id"], {"IsReleased": True})
         self.logger.info("Package promoted!")
-
-    def _get_package_name(self, spv_id: str) -> str:
-        """
-        @param spv_id: the SubscriberPackageVersionId to find the corresponding name for.
-        @returns: str of the package's name
-        """
-        subscriber_package = self._query_SubscriberPackageVersion(spv_id)
-        sp_id = subscriber_package["SubscriberPackageId"]
-        subscriber_package = self._query_one_tooling(
-            ["Id", "Name"],
-            "SubscriberPackage",
-            where_clause=f"Id='{sp_id}'",
-            raise_error=True,
-        )
-
-        return subscriber_package["Name"]
 
     def _query_Package2Version(
         self, spv_id: str, raise_error: bool = False
@@ -214,12 +202,21 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
                 )
             raise  # pragma: no cover
 
-    def _query_SubscriberPackageVersion(self, id: str) -> Optional[Dict]:
+    def _query_SubscriberPackage(self, sp_id: str) -> Optional[Dict]:
+        """Queries for a SubscriberPackage with the given SubscriberPackageId"""
+        return self._query_one_tooling(
+            ["Id", "Name"],
+            "SubscriberPackage",
+            where_clause=f"Id='{sp_id}'",
+            raise_error=True,
+        )
+
+    def _query_SubscriberPackageVersion(self, spv_id: str) -> Optional[Dict]:
         """Queries for a SubscriberPackageVersion record with the given Id"""
         return self._query_one_tooling(
             ["Id", "Dependencies", "ReleaseState", "SubscriberPackageId"],
             "SubscriberPackageVersion",
-            where_clause=f"Id='{id}'",
+            where_clause=f"Id='{spv_id}'",
             raise_error=True,
         )
 
@@ -231,8 +228,8 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
         raise_error=False,
     ) -> Optional[Dict]:
         """
-        Queries the Tooling API and returns a single sObject (or None)
-        See docstring for _query_tooling() for param info.
+        Queries the Tooling API and returns a _single_ sObject (or None).
+        See docstring of _query_tooling() for param info.
         """
         records = self._query_tooling(
             fields, obj_name, where_clause=where_clause, raise_error=raise_error
@@ -270,3 +267,15 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
             return None
 
         return res["records"]
+
+    def _filter_one_gp_deps(self, dependencies: List[Dict]) -> List[Dict]:
+        """Return only 1GP dependencies"""
+        return [d for d in dependencies if not d["is_2gp"]]
+
+    def _filter_two_gp_deps(self, dependencies: List[Dict]) -> List[Dict]:
+        """Return only 2GP dependencies"""
+        return [d for d in dependencies if d["is_2gp"]]
+
+    def _filter_unpromoted_two_gp_deps(self, dependencies: List[Dict]) -> List[Dict]:
+        """Return only 2GP dependencies that are not yet promoted"""
+        return [d for d in dependencies if d["is_2gp"] and not d["IsReleased"]]
