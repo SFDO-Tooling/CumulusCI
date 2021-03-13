@@ -112,6 +112,16 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
 
         return dependencies
 
+    def _get_dependency_spv_ids(self, spv_id: str) -> List[str]:
+        """
+        @param spv_id: SubscriberPackageVersionId to fetch dependencies for
+        @return: list of SubscriberPackageVersionIds (04t) of dependency packages
+        """
+        subscriber_package_version = self._query_SubscriberPackageVersion(spv_id)
+        dependencies = subscriber_package_version["Dependencies"] or {"ids": []}
+        dependencies = [d["subscriberPackageVersionId"] for d in dependencies["ids"]]
+        return dependencies
+
     def _process_one_gp_deps(self, dependencies: List[Dict]) -> None:
         """
         Log any 1GP dependecies that are present.
@@ -165,16 +175,6 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
                 self.logger.error("")
 
         return should_exit
-
-    def _get_dependency_spv_ids(self, spv_id: str) -> List[str]:
-        """
-        @param spv_id: SubscriberPackageVersionId to fetch dependencies for
-        @return: list of SubscriberPackageVersionIds (04t) of dependency packages
-        """
-        subscriber_package_version = self._query_SubscriberPackageVersion(spv_id)
-        dependencies = subscriber_package_version["Dependencies"] or {"ids": []}
-        dependencies = [d["subscriberPackageVersionId"] for d in dependencies["ids"]]
-        return dependencies
 
     def _promote_2gp_package(self, spv_id: str) -> None:
         """
