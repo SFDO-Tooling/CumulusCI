@@ -198,7 +198,7 @@ class Promote2gpPackageVersion(BaseSalesforceApiTask):
 
     def _promote_2gp_package(self, package_info: Dict) -> None:
         """
-        Promote a 2GP dependency package associated with the given SubscriberPackageVersionId
+        Promote the 2GP package associated with the given SubscriberPackageVersionId
 
         @param spv_id: the SubscriberPackageVersionId to promote
         """
