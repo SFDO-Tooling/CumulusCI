@@ -157,7 +157,17 @@ class TestPromote2gpPackageVersion:
 
     @responses.activate
     def test_run_task(self, task, devhub_config):
-        self._mock_dependencies(2, 1, 1)
+        # 20 dependencies, 10 are 2GP, 5 of those are not yet promoted
+        self._mock_dependencies(20, 10, 5)
+        with mock.patch(
+            "cumulusci.tasks.salesforce.promote_2gp_package.get_devhub_config",
+            return_value=devhub_config,
+        ):
+            task()
+
+    @responses.activate
+    def test_run_task__no_dependencies(self, task, devhub_config):
+        self._mock_dependencies(0, 0, 0)
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_2gp_package.get_devhub_config",
             return_value=devhub_config,
@@ -167,6 +177,16 @@ class TestPromote2gpPackageVersion:
     @responses.activate
     def test_run_task__auto_promote(self, task, devhub_config):
         self._mock_dependencies(2, 1, 1)
+        with mock.patch(
+            "cumulusci.tasks.salesforce.promote_2gp_package.get_devhub_config",
+            return_value=devhub_config,
+        ):
+            task.options["auto_promote"] = True
+            task()
+
+    @responses.activate
+    def test_run_task__all_deps_promoted(self, task, devhub_config):
+        self._mock_dependencies(4, 4, 4)
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_2gp_package.get_devhub_config",
             return_value=devhub_config,
