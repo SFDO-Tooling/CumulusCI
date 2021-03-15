@@ -1,5 +1,5 @@
 cumulusci:
-    keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
+  keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 tasks:
     activate_flow:
         group: Metadata Transformations
@@ -612,477 +612,477 @@ tasks:
             restore: True
 
 flows:
-    ci_beta:
-        group: Continuous Integration
-        description: Install the latest beta version and runs apex tests from the managed package
-        steps:
-            1:
-                flow: install_beta
-            2:
-                task: run_tests
+  ci_beta:
+    group: Continuous Integration
+    description: Install the latest beta version and runs apex tests from the managed package
+    steps:
+      1:
+        flow: install_beta
+      2:
+        task: run_tests
 
-    ci_feature:
-        group: Continuous Integration
-        description: Prepare an unmanaged metadata test org and run Apex tests. Intended for use against feature branch commits.
-        steps:
-            0.5:
-                task: github_parent_pr_notes
-                options:
-                    branch_name: $project_config.repo_branch
-                    build_notes_label: "Build Change Notes"
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                flow: deploy_unmanaged
-            3:
-                flow: config_apextest
-            4:
-                task: run_tests
-            5:
-                task: github_automerge_feature
-                when: project_config.repo_branch and project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
+  ci_feature:
+    group: Continuous Integration
+    description: Prepare an unmanaged metadata test org and run Apex tests. Intended for use against feature branch commits.
+    steps:
+      0.5:
+        task: github_parent_pr_notes
+        options:
+          branch_name: $project_config.repo_branch
+          build_notes_label: "Build Change Notes"
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        flow: deploy_unmanaged
+      3:
+        flow: config_apextest
+      4:
+        task: run_tests
+      5:
+        task: github_automerge_feature
+        when: project_config.repo_branch and project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
 
-    ci_feature_beta_deps:
-        group: Continuous Integration
-        description: This flow is deprecated. Please use ci_feature instead.
-        steps:
-            0.5:
-                task: github_parent_pr_notes
-                options:
-                    branch_name: $project_config.repo_branch
-                    build_notes_label: "Build Change Notes"
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                flow: deploy_unmanaged
-            3:
-                flow: config_apextest
-            4:
-                task: run_tests
-            5:
-                task: github_automerge_feature
-                when: project_config.repo_branch and project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
+  ci_feature_beta_deps:
+    group: Continuous Integration
+    description: This flow is deprecated. Please use ci_feature instead.
+    steps:
+      0.5:
+        task: github_parent_pr_notes
+        options:
+          branch_name: $project_config.repo_branch
+          build_notes_label: "Build Change Notes"
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        flow: deploy_unmanaged
+      3:
+        flow: config_apextest
+      4:
+        task: run_tests
+      5:
+        task: github_automerge_feature
+        when: project_config.repo_branch and project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
 
-    ci_feature_2gp:
-        group: Continuous Integration
-        description: Install as a managed 2gp package and run Apex tests. Intended for use after build_feature_test_package.
-        steps:
-            1:
-                flow: install_2gp_commit
-            2:
-                flow: config_apextest
-            3:
-                task: run_tests
+  ci_feature_2gp:
+    group: Continuous Integration
+    description: Install as a managed 2gp package and run Apex tests. Intended for use after build_feature_test_package.
+    steps:
+      1:
+        flow: install_2gp_commit
+      2:
+        flow: config_apextest
+      3:
+        task: run_tests
 
-    ci_master:
-        group: Continuous Integration
-        description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: False
-            2:
-                flow: deploy_packaging
-            3:
-                flow: config_packaging
+  ci_master:
+    group: Continuous Integration
+    description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: False
+      2:
+        flow: deploy_packaging
+      3:
+        flow: config_packaging
 
-    ci_release:
-        group: Continuous Integration
-        description: Install a production release version and runs tests from the managed package
-        steps:
-            1:
-                flow: install_prod
-            2:
-                task: run_tests
+  ci_release:
+    group: Continuous Integration
+    description: Install a production release version and runs tests from the managed package
+    steps:
+      1:
+        flow: install_prod
+      2:
+        task: run_tests
 
-    config_apextest:
-        group: Post-Install Configuration
-        description: Configure an org to run apex tests after package metadata is deployed
-        steps:
-            1:
-                task: deploy_post
-            2:
-                task: update_admin_profile
+  config_apextest:
+    group: Post-Install Configuration
+    description: Configure an org to run apex tests after package metadata is deployed
+    steps:
+      1:
+        task: deploy_post
+      2:
+        task: update_admin_profile
 
-    config_dev:
-        group: Post-Install Configuration
-        description: Configure an org for use as a dev org after package metadata is deployed
-        steps:
-            1:
-                task: deploy_post
-            2:
-                task: update_admin_profile
+  config_dev:
+    group: Post-Install Configuration
+    description: Configure an org for use as a dev org after package metadata is deployed
+    steps:
+      1:
+        task: deploy_post
+      2:
+        task: update_admin_profile
 
-    config_managed:
-        group: Post-Install Configuration
-        description: Configure an org for use after the managed package has been installed.
-        steps:
-            1:
-                task: deploy_post
-            2:
-                task: update_admin_profile
+  config_managed:
+    group: Post-Install Configuration
+    description: Configure an org for use after the managed package has been installed.
+    steps:
+      1:
+        task: deploy_post
+      2:
+        task: update_admin_profile
 
-    config_packaging:
-        group: Post-Install Configuration
-        description: Configure packaging org for upload after package metadata is deployed
-        steps:
-            1:
-                task: update_admin_profile
+  config_packaging:
+    group: Post-Install Configuration
+    description: Configure packaging org for upload after package metadata is deployed
+    steps:
+      1:
+        task: update_admin_profile
 
-    config_qa:
-        group: Post-Install Configuration
-        description: Configure an org for use as a QA org after package metadata is deployed
-        steps:
-            1:
-                task: deploy_post
-            2:
-                task: update_admin_profile
+  config_qa:
+    group: Post-Install Configuration
+    description: Configure an org for use as a QA org after package metadata is deployed
+    steps:
+      1:
+        task: deploy_post
+      2:
+        task: update_admin_profile
 
-    config_regression:
-        group: Post-Install Configuration
-        description: Configure an org for QA regression after the package is installed
-        steps:
-            1:
-                flow: config_managed
+  config_regression:
+    group: Post-Install Configuration
+    description: Configure an org for QA regression after the package is installed
+    steps:
+      1:
+        flow: config_managed
 
-    dependencies:
-        group: Dependency Management
-        description: Deploy dependencies to prepare the org environment for the package metadata
-        steps:
-            1:
-                task: update_dependencies
-            2:
-                task: deploy_pre
+  dependencies:
+    group: Dependency Management
+    description: Deploy dependencies to prepare the org environment for the package metadata
+    steps:
+      1:
+        task: update_dependencies
+      2:
+        task: deploy_pre
 
-    beta_dependencies:
-        group: Dependency Management
-        description: "This flow is deprecated. Please use the `dependencies` flow and set the `include_beta` option on the first task, `update_dependencies`. Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata"
-        steps:
-            1:
-                task: update_dependencies
-                options:
-                    include_beta: True
-            2:
-                task: deploy_pre
+  beta_dependencies:
+    group: Dependency Management
+    description: "This flow is deprecated. Please use the `dependencies` flow and set the `include_beta` option on the first task, `update_dependencies`. Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata"
+    steps:
+      1:
+        task: update_dependencies
+        options:
+          include_beta: True
+      2:
+        task: deploy_pre
 
-    deploy_unmanaged:
-        group: Deployment
-        description: Deploy the unmanaged metadata from the package
-        steps:
-            0:
-                task: dx_convert_from
-                when: project_config.project__source_format == "sfdx" and not org_config.scratch
-            1:
-                task: unschedule_apex
-            2:
-                task: update_package_xml
-                when: project_config.project__source_format != "sfdx" or not org_config.scratch
-            3:
-                task: deploy
-                when: project_config.project__source_format != "sfdx" or not org_config.scratch
-            3.1:
-                task: deploy
-                options:
-                    path: force-app
-                when: project_config.project__source_format == "sfdx" and org_config.scratch
-            4:
-                task: uninstall_packaged_incremental
-                when: project_config.project__source_format != "sfdx" or not org_config.scratch
-            5:
-                task: snapshot_changes
+  deploy_unmanaged:
+    group: Deployment
+    description: Deploy the unmanaged metadata from the package
+    steps:
+      0:
+        task: dx_convert_from
+        when: project_config.project__source_format == "sfdx" and not org_config.scratch
+      1:
+        task: unschedule_apex
+      2:
+        task: update_package_xml
+        when: project_config.project__source_format != "sfdx" or not org_config.scratch
+      3:
+        task: deploy
+        when: project_config.project__source_format != "sfdx" or not org_config.scratch
+      3.1:
+        task: deploy
+        options:
+          path: force-app
+        when: project_config.project__source_format == "sfdx" and org_config.scratch
+      4:
+        task: uninstall_packaged_incremental
+        when: project_config.project__source_format != "sfdx" or not org_config.scratch
+      5:
+        task: snapshot_changes
 
-    deploy_unmanaged_ee:
-        group: Deployment
-        description: Deploy the unmanaged metadata from the package to an Enterprise Edition org
-        steps:
-            0:
-                task: dx_convert_from
-                when: project_config.project__source_format == "sfdx"
-            1:
-                task: unschedule_apex
-            2:
-                task: update_package_xml
-            3:
-                task: create_unmanaged_ee_src
-            4:
-                task: deploy
-            5:
-                task: revert_unmanaged_ee_src
-            6:
-                task: uninstall_packaged_incremental
-                options:
-                    purge_on_delete: False
+  deploy_unmanaged_ee:
+    group: Deployment
+    description: Deploy the unmanaged metadata from the package to an Enterprise Edition org
+    steps:
+      0:
+        task: dx_convert_from
+        when: project_config.project__source_format == "sfdx"
+      1:
+        task: unschedule_apex
+      2:
+        task: update_package_xml
+      3:
+        task: create_unmanaged_ee_src
+      4:
+        task: deploy
+      5:
+        task: revert_unmanaged_ee_src
+      6:
+        task: uninstall_packaged_incremental
+        options:
+          purge_on_delete: False
 
-    deploy_packaging:
-        group: Deployment
-        description: Process and deploy the package metadata to the packaging org
-        steps:
-            0:
-                task: dx_convert_from
-                when: project_config.project__source_format == "sfdx"
-            1:
-                task: unschedule_apex
-            2:
-                task: create_managed_src
-            3:
-                task: update_package_xml
-                options:
-                    managed: True
-            4:
-                task: deploy
-            5:
-                task: revert_managed_src
-            6:
-                task: uninstall_packaged_incremental
+  deploy_packaging:
+    group: Deployment
+    description: Process and deploy the package metadata to the packaging org
+    steps:
+      0:
+        task: dx_convert_from
+        when: project_config.project__source_format == "sfdx"
+      1:
+        task: unschedule_apex
+      2:
+        task: create_managed_src
+      3:
+        task: update_package_xml
+        options:
+          managed: True
+      4:
+        task: deploy
+      5:
+        task: revert_managed_src
+      6:
+        task: uninstall_packaged_incremental
 
-    dev_org:
-        group: Org Setup
-        description: Set up an org as a development environment for unmanaged metadata
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                flow: deploy_unmanaged
-            3:
-                flow: config_dev
-            4:
-                task: snapshot_changes
+  dev_org:
+    group: Org Setup
+    description: Set up an org as a development environment for unmanaged metadata
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        flow: deploy_unmanaged
+      3:
+        flow: config_dev
+      4:
+        task: snapshot_changes
 
-    dev_org_beta_deps:
-        group: Org Setup
-        description: This flow is deprecated. Please use dev_org instead.
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                flow: deploy_unmanaged
-            3:
-                flow: config_dev
+  dev_org_beta_deps:
+    group: Org Setup
+    description: This flow is deprecated. Please use dev_org instead.
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        flow: deploy_unmanaged
+      3:
+        flow: config_dev
 
-    dev_org_namespaced:
-        group: Org Setup
-        description: Set up a namespaced scratch org as a development environment for unmanaged metadata
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                flow: deploy_unmanaged
-            3:
-                flow: config_dev
-            4:
-                task: snapshot_changes
+  dev_org_namespaced:
+    group: Org Setup
+    description: Set up a namespaced scratch org as a development environment for unmanaged metadata
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        flow: deploy_unmanaged
+      3:
+        flow: config_dev
+      4:
+        task: snapshot_changes
 
-    qa_org:
-        group: Org Setup
-        description: Set up an org as a QA environment for unmanaged metadata
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                flow: deploy_unmanaged
-            3:
-                flow: config_qa
-            4:
-                task: snapshot_changes
+  qa_org:
+    group: Org Setup
+    description: Set up an org as a QA environment for unmanaged metadata
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        flow: deploy_unmanaged
+      3:
+        flow: config_qa
+      4:
+        task: snapshot_changes
 
-    qa_org_2gp:
-        group: Org Setup
-        description: Set up an org as a QA environment using a second-generation package
-        steps:
-            1:
-                flow: install_2gp_commit
-            2:
-                flow: config_qa
-            3:
-                task: snapshot_changes
+  qa_org_2gp:
+    group: Org Setup
+    description: Set up an org as a QA environment using a second-generation package
+    steps:
+      1:
+        flow: install_2gp_commit
+      2:
+        flow: config_qa
+      3:
+        task: snapshot_changes
 
-    regression_org:
-        group: Org Setup
-        description: Simulates an org that has been upgraded from the latest release of to the current beta and its dependencies, but deploys any unmanaged metadata from the current beta.
-        steps:
-            1:
-                flow: install_regression
-            2:
-                flow: config_regression
-            3:
-                task: snapshot_changes
+  regression_org:
+    group: Org Setup
+    description: Simulates an org that has been upgraded from the latest release of to the current beta and its dependencies, but deploys any unmanaged metadata from the current beta.
+    steps:
+      1:
+        flow: install_regression
+      2:
+        flow: config_regression
+      3:
+        task: snapshot_changes
 
-    uninstall_managed:
-        group: Install / Uninstall
-        description: Uninstall the installed managed version of the package.  Run this before install_beta or install_prod if a version is already installed in the target org.
-        steps:
-            1:
-                task: uninstall_post
-            2:
-                task: uninstall_managed
+  uninstall_managed:
+    group: Install / Uninstall
+    description: Uninstall the installed managed version of the package.  Run this before install_beta or install_prod if a version is already installed in the target org.
+    steps:
+      1:
+        task: uninstall_post
+      2:
+        task: uninstall_managed
 
-    install_2gp_commit:
-        group: Install / Uninstall
-        description: Install the 2GP package for the current commit
-        steps:
-            1:
-                task: github_package_data
-                options:
-                    context: $project_config.project__git__2gp_context
-            2:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-                        dependencies: ^^github_package_data.dependencies
-                        prefer_2gp_from_release_branch: True
-            3:
-                task: install_managed
-                options:
-                    version: ^^github_package_data.version_id
+  install_2gp_commit:
+    group: Install / Uninstall
+    description: Install the 2GP package for the current commit
+    steps:
+      1:
+        task: github_package_data
+        options:
+          context: $project_config.project__git__2gp_context
+      2:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+            dependencies: ^^github_package_data.dependencies
+            prefer_2gp_from_release_branch: True
+      3:
+        task: install_managed
+        options:
+          version: ^^github_package_data.version_id
 
-    install_beta:
-        group: Org Setup
-        description: Install and configure the latest beta version
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                task: install_managed_beta
-            3:
-                flow: config_managed
-            4:
-                task: snapshot_changes
+  install_beta:
+    group: Org Setup
+    description: Install and configure the latest beta version
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        task: install_managed_beta
+      3:
+        flow: config_managed
+      4:
+        task: snapshot_changes
 
-    install_prod:
-        group: Org Setup
-        description: Install and configure the latest production version
-        steps:
-            1:
-                flow: dependencies
-            2:
-                task: install_managed
-            3:
-                flow: config_managed
-            4:
-                task: snapshot_changes
+  install_prod:
+    group: Org Setup
+    description: Install and configure the latest production version
+    steps:
+      1:
+        flow: dependencies
+      2:
+        task: install_managed
+      3:
+        flow: config_managed
+      4:
+        task: snapshot_changes
 
-    install_prod_no_config:
-        group: Install / Uninstall
-        description: Install but do not configure the latest production version
-        steps:
-            1:
-                flow: dependencies
-            2:
-                task: install_managed
-            3:
-                task: deploy_post
+  install_prod_no_config:
+    group: Install / Uninstall
+    description: Install but do not configure the latest production version
+    steps:
+      1:
+        flow: dependencies
+      2:
+        task: install_managed
+      3:
+        task: deploy_post
 
-    install_regression:
-        group: Install / Uninstall
-        description: Install the latest beta dependencies and upgrade to the latest beta version from the most recent production version
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                task: install_managed
-            3:
-                task: install_managed_beta
+  install_regression:
+    group: Install / Uninstall
+    description: Install the latest beta dependencies and upgrade to the latest beta version from the most recent production version
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        task: install_managed
+      3:
+        task: install_managed_beta
 
-    release_beta:
-        group: Release Operations
-        description: Upload and release a beta version of the metadata currently in packaging
-        steps:
-            1:
-                task: upload_beta
-                options:
-                    name: Automated beta release
-            2:
-                task: github_release
-                options:
-                    version: ^^upload_beta.version_number
-                    version_id: ^^upload_beta.version_id
-                    dependencies: ^^upload_beta.dependencies
-            3:
-                task: github_release_notes
-                ignore_failure: True  # Attempt to generate release notes but don't fail build
-                options:
-                    link_pr: True
-                    publish: True
-                    tag: ^^github_release.tag_name
-                    include_empty: True
-                    version_id: ^^upload_beta.version_id
-            4:
-                task: github_automerge_main
+  release_beta:
+    group: Release Operations
+    description: Upload and release a beta version of the metadata currently in packaging
+    steps:
+      1:
+        task: upload_beta
+        options:
+          name: Automated beta release
+      2:
+        task: github_release
+        options:
+          version: ^^upload_beta.version_number
+          version_id: ^^upload_beta.version_id
+          dependencies: ^^upload_beta.dependencies
+      3:
+        task: github_release_notes
+        ignore_failure: True # Attempt to generate release notes but don't fail build
+        options:
+          link_pr: True
+          publish: True
+          tag: ^^github_release.tag_name
+          include_empty: True
+          version_id: ^^upload_beta.version_id
+      4:
+        task: github_automerge_main
 
-    release_production:
-        group: Release Operations
-        description: Upload and release a production version of the metadata currently in packaging
-        steps:
-            1:
-                task: upload_production
-            2:
-                task: github_release
-                options:
-                    version: ^^upload_production.version_number
-                    version_id: ^^upload_production.version_id
-                    dependencies: ^^upload_production.dependencies
-            3:
-                task: github_release_notes
-                ignore_failure: True  # Attempt to generate release notes but don't fail build
-                options:
-                    publish: True
-                    tag: ^^github_release.tag_name
-                    version_id: ^^upload_production.version_id
+  release_production:
+    group: Release Operations
+    description: Upload and release a production version of the metadata currently in packaging
+    steps:
+      1:
+        task: upload_production
+      2:
+        task: github_release
+        options:
+          version: ^^upload_production.version_number
+          version_id: ^^upload_production.version_id
+          dependencies: ^^upload_production.dependencies
+      3:
+        task: github_release_notes
+        ignore_failure: True # Attempt to generate release notes but don't fail build
+        options:
+          publish: True
+          tag: ^^github_release.tag_name
+          version_id: ^^upload_production.version_id
 
-    build_feature_test_package:
-        group: Release Operations
-        description: Create a 2gp managed package version
-        steps:
-            1:
-                task: update_package_xml
-                when: project_config.project__source_format != "sfdx"
-            2:
-                task: create_package_version
-                options:
-                    package_type: Managed
-                    package_name: $project_config.project__package__name Managed Feature Test
-                    version_base: latest_github_release
-                    version_type: minor
-                    skip_validation: True
+  build_feature_test_package:
+    group: Release Operations
+    description: Create a 2gp managed package version
+    steps:
+      1:
+        task: update_package_xml
+        when: project_config.project__source_format != "sfdx"
+      2:
+        task: create_package_version
+        options:
+          package_type: Managed
+          package_name: $project_config.project__package__name Managed Feature Test
+          version_base: latest_github_release
+          version_type: minor
+          skip_validation: True
 
-    unmanaged_ee:
-        group: Deployment
-        description: Deploy the unmanaged package metadata and all dependencies to the target EE org
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        purge_on_delete: False
-            2:
-                flow: deploy_unmanaged_ee
+  unmanaged_ee:
+    group: Deployment
+    description: Deploy the unmanaged package metadata and all dependencies to the target EE org
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            purge_on_delete: False
+      2:
+        flow: deploy_unmanaged_ee
 
 services:
   connected_app:
@@ -1160,57 +1160,57 @@ services:
         required: True
 
 project:
+  name:
+  package:
     name:
-    package:
-        name:
-        name_managed:
-        namespace:
-        install_class:
-        uninstall_class:
-        api_version: '50.0'
-    git:
-        default_branch: master
-        prefix_feature: feature/
-        prefix_beta: beta/
-        prefix_release: release/
-        push_prefix_sandbox: 'Sandbox orgs: '
-        push_prefix_production: 'Production orgs: '
-        2gp_context: "Build Feature Test Package"
-        release_notes:
-            parsers:
-                1:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
-                    title: Critical Changes
-                2:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
-                    title: Changes
-                3:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubIssuesParser
-                    title: Issues Closed
-                4:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
-                    title: New Metadata
-                5:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
-                    title: Deleted Metadata
-                6:
-                    class_path: cumulusci.tasks.release_notes.parser.InstallLinkParser
-                    title: Installation Info
-    test:
-        name_match: '%_TEST%'
-    dependencies:
+    name_managed:
+    namespace:
+    install_class:
+    uninstall_class:
+    api_version: "50.0"
+  git:
+    default_branch: master
+    prefix_feature: feature/
+    prefix_beta: beta/
+    prefix_release: release/
+    push_prefix_sandbox: "Sandbox orgs: "
+    push_prefix_production: "Production orgs: "
+    2gp_context: "Build Feature Test Package"
+    release_notes:
+      parsers:
+        1:
+          class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+          title: Critical Changes
+        2:
+          class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+          title: Changes
+        3:
+          class_path: cumulusci.tasks.release_notes.parser.GithubIssuesParser
+          title: Issues Closed
+        4:
+          class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+          title: New Metadata
+        5:
+          class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+          title: Deleted Metadata
+        6:
+          class_path: cumulusci.tasks.release_notes.parser.InstallLinkParser
+          title: Installation Info
+  test:
+    name_match: "%_TEST%"
+  dependencies:
 
 orgs:
-    scratch:
-        dev:
-            config_file: orgs/dev.json
-            days: 7
-        qa:
-            config_file: orgs/dev.json
-            days: 7
-        feature:
-            config_file: orgs/feature.json
-        beta:
-            config_file: orgs/beta.json
-        release:
-            config_file: orgs/release.json
+  scratch:
+    dev:
+      config_file: orgs/dev.json
+      days: 7
+    qa:
+      config_file: orgs/dev.json
+      days: 7
+    feature:
+      config_file: orgs/feature.json
+    beta:
+      config_file: orgs/beta.json
+    release:
+      config_file: orgs/release.json
