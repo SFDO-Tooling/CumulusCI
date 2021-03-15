@@ -1,3 +1,4 @@
+import logging
 import pytest
 import responses
 from unittest import mock
@@ -41,24 +42,98 @@ def task(project_config, devhub_config, org_config):
 class TestPromote2gpPackageVersion:
     devhub_base_url = "https://devhub.my.salesforce.com/services/data/v50.0"
 
-    def mock_get_package_name_api_calls(self, sp_id: str, name: str) -> None:
-        """Mock calls needed for _get_package_name()"""
-        responses.add(
+    def _mock_dependencies(
+        self, total_deps: int, num_2gp: int, num_unpromoted: int
+    ) -> None:
+        """
+        Mock all API calls to represent the dependencies requested in params
+
+        @param total_deps: total number of dependencies to mock
+        @param num_2gp: number of 2GP dependencies (all others will be 1GP)
+        @param num_unpromoted: of the num_2gp packages, how many are not yet promoted
+        """
+        spv_ids = [
+            {"subscriberPackageVersionId": f"04t00000000000{i + 1}"}
+            for i in range(total_deps)
+        ]
+        responses.add(  # query to find dependency packages
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
-                "records": [{"SubscriberPackageId": sp_id}],
+                "records": [{"Dependencies": {"ids": spv_ids}}],
             },
         )
-        responses.add(
+        # mock 1GP dependencies
+        for i in range(total_deps - num_2gp):
+            self._mock_dependency(i + 1, is_two_gp=False)
+
+        # mock unpromoted 2GP dependencies
+        for i in range(num_unpromoted):
+            self._mock_dependency(i + 1, is_two_gp=True)
+
+        # mock promoted 2GP dependencies
+        for i in range(num_2gp - num_unpromoted):
+            self._mock_dependency(i + 1, is_two_gp=True, is_promoted=True)
+
+        responses.add(  # query for main package's Package2Version
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
             json={
                 "size": 1,
-                "records": [{"Name": name}],
+                "records": [{"Id": "main_package", "IsReleased": False}],
             },
         )
+        responses.add(
+            "PATCH",
+            f"{self.devhub_base_url}/tooling/sobjects/Package2Version/main_package",
+        )
+
+    def _mock_dependency(
+        self, dependency_num: int, is_two_gp: bool = False, is_promoted: bool = False
+    ) -> None:
+        """Mock the API calls for a single dependency"""
+        responses.add(  # query for SubscriberPackageVersion
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={
+                "size": 1,
+                "records": [
+                    {
+                        "SubscriberPackageId": str(dependency_num),
+                        "ReleaseState": "Released" if is_promoted else "Beta",
+                    }
+                ],
+            },
+        )
+        responses.add(  # query for SubscriberPackage
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={
+                "size": 1,
+                "records": [{"Name": f"Dependency_Package_{dependency_num}"}],
+            },
+        )
+
+        one_gp_json = {
+            "size": 0,
+            "records": [],
+        }
+        two_gp_json = {
+            "size": 1,
+            "records": [{"Id": f"dep_{dependency_num}", "IsReleased": False}],
+        }
+        responses.add(  # query for Package2Version
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json=(two_gp_json if is_two_gp else one_gp_json),
+        )
+
+        if is_two_gp:
+            responses.add(
+                "PATCH",
+                f"{self.devhub_base_url}/tooling/sobjects/Package2Version/dep_{dependency_num}",
+            )
 
     def test_run_task__no_version_id(self, project_config, devhub_config, org_config):
         with pytest.raises(
@@ -82,84 +157,7 @@ class TestPromote2gpPackageVersion:
 
     @responses.activate
     def test_run_task(self, task, devhub_config):
-        # _get_dependency_spv_ids()
-        responses.add(  # query to find dependency packages
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [
-                    {
-                        "Dependencies": {
-                            "ids": [
-                                {"subscriberPackageVersionId": "04t000000000001"},
-                                {"subscriberPackageVersionId": "04t000000000002"},
-                            ]
-                        }
-                    }
-                ],
-            },
-        )
-        # _filter_1gp_deps()
-        responses.add(  # query for first dependency Package2Version
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [{"Id": "dep1", "IsReleased": False}],
-            },
-        )
-        responses.add(  # query for second dependency Package2Version
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 0,
-                "records": [],
-            },
-        )
-        responses.add(  # query for second dep spv releaseState
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [{"ReleaseState": "Beta"}],
-            },
-        )
-        # _filter_1gp_deps() --> _get_package_name()
-        self.mock_get_package_name_api_calls("000000000000002", "Dependency 2")
-        # _filter_unpromoted_2gp_dependencies() --> _is_package_version_promoted()
-        responses.add(  # query for Package2Version for dependency 1
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [{"IsReleased": True}],
-            },
-        )
-        responses.add(  # query for Package2Version for dependency 2
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 0,
-                "records": [],
-            },
-        )
-        # _promote_2gp_package()
-        responses.add(  # query for Package2Version to get Id
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [{"Id": "000000000000000"}],
-            },
-        )
-        # _promote_2gp_package() --> _get_package_name()
-        self.mock_get_package_name_api_calls("04t000000000000", "Main Package")
-        responses.add(  # promote Package2Version
-            "PATCH",
-            f"{self.devhub_base_url}/tooling/sobjects/Package2Version/000000000000000",
-        )
-
+        self._mock_dependencies(2, 1, 1)
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_2gp_package.get_devhub_config",
             return_value=devhub_config,
@@ -167,183 +165,50 @@ class TestPromote2gpPackageVersion:
             task()
 
     @responses.activate
-    def test_run_task__unpromoted_dependencies(self, task, devhub_config):
-        # _get_dependency_spv_ids()
-        responses.add(  # query to find dependency packages
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [
-                    {
-                        "Dependencies": {
-                            "ids": [
-                                {"subscriberPackageVersionId": "04t000000000001"},
-                                {"subscriberPackageVersionId": "04t000000000002"},
-                            ]
-                        }
-                    }
-                ],
-            },
-        )
-        # _filter_1gp_deps()
-        responses.add(  # query for first dependency Package2Version
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [{"Id": "dep1", "IsReleased": False}],
-            },
-        )
-        responses.add(  # query for second dependency Package2Version
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 0,
-                "records": [],
-            },
-        )
-        responses.add(  # query for second dep spv releaseState
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [{"ReleaseState": "Beta"}],
-            },
-        )
-        # _filter_1gp_deps() --> _get_package_name()
-        self.mock_get_package_name_api_calls("000000000000002", "Dependency 2")
-        # _filter_unpromoted_2gp_dependencies() --> _is_package_version_promoted()
-        responses.add(  # query for Package2Version for dependency 1
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [{"IsReleased": False}],
-            },
-        )
-        responses.add(  # query for Package2Version for dependency 2
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 0,
-                "records": [],
-            },
-        )
-        # _filter_unpromoted_2gp_dependencies() --> _get_package_name()
-        self.mock_get_package_name_api_calls("000000000000001", "Dependency 1")
-
+    def test_run_task__auto_promote(self, task, devhub_config):
+        self._mock_dependencies(2, 1, 1)
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_2gp_package.get_devhub_config",
             return_value=devhub_config,
         ):
+            task.options["auto_promote"] = True
             task()
 
-    @responses.activate
-    def test_run_task__autopromote_dependencies(self, task, devhub_config):
-        task.options["auto_promote"] = True
+    def test_process_one_gp_dependencies(self, task, caplog):
+        """Ensure proper logging output"""
+        dependencies = [
+            {"is_2gp": False, "name": "Dependency 1", "release_state": "Beta"},
+            {"is_2gp": True, "name": "Dependency 2", "release_state": "Beta"},
+        ]
+        task._process_one_gp_deps(dependencies)
+        assert (
+            "This package has the following 1GP dependencies:"
+            == caplog.records[0].message
+        )
+        assert "Package Name: Dependency 1 " in caplog.records[2].message
+        assert "ReleaseState: Beta" in caplog.records[2].message
 
-        # _get_dependency_spv_ids()
-        responses.add(  # query to find dependency packages
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [
-                    {
-                        "Dependencies": {
-                            "ids": [
-                                {"subscriberPackageVersionId": "04t000000000001"},
-                                {"subscriberPackageVersionId": "04t000000000002"},
-                            ]
-                        }
-                    }
-                ],
+    def test_process_two_gp_dependencies(self, task, caplog):
+        """Ensure proper logging output"""
+        dependencies = [
+            {"is_2gp": False, "name": "Dependency 1", "release_state": "Beta"},
+            {
+                "is_2gp": True,
+                "name": "Dependency 2",
+                "release_state": "Beta",
+                "is_promoted": False,
+                "version_id": "04t000000000002",
             },
+        ]
+        with caplog.at_level(logging.INFO):
+            task._process_two_gp_deps(dependencies)
+        assert "Total 2GP dependencies: 1" == caplog.records[0].message
+        assert "Unpromoted 2GP dependencies: 1" == caplog.records[1].message
+        assert (
+            "This package depends on other packages that have not yet been promoted."
+            == caplog.records[3].message
         )
-        # _filter_1gp_deps()
-        responses.add(  # query for first dependency Package2Version
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [{"Id": "dep1", "IsReleased": False}],
-            },
-        )
-        responses.add(  # query for second dependency Package2Version
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 0,
-                "records": [],
-            },
-        )
-        responses.add(  # query for second dep spv releaseState
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [{"ReleaseState": "Beta"}],
-            },
-        )
-        # _filter_1gp_deps() --> _get_package_name()
-        self.mock_get_package_name_api_calls("000000000000002", "Dependency 2")
-        # _filter_unpromoted_2gp_dependencies() --> _is_package_version_promoted()
-        responses.add(  # query for Package2Version for dependency 1
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [{"IsReleased": False}],
-            },
-        )
-        responses.add(  # query for Package2Version for dependency 2
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 0,
-                "records": [],
-            },
-        )
-        # _filter_unpromoted_2gp_dependencies() --> _get_package_name()
-        self.mock_get_package_name_api_calls("000000000000001", "Dependency 1")
-
-        # _promote_2gp_package (for Dependency 1)
-        responses.add(  # query for Package2Version to get Id
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [{"Id": "000000000000001"}],
-            },
-        )
-        # _promote_2gp_package() --> _get_package_name()
-        self.mock_get_package_name_api_calls("04t000000000001", "Dependency 1")
-        responses.add(  # promote Package2Version (Dependency 1)
-            "PATCH",
-            f"{self.devhub_base_url}/tooling/sobjects/Package2Version/000000000000001",
-        )
-        # _promote_2gp_package (for Main Package)
-        responses.add(  # query for Package2Version to get Id
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [{"Id": "000000000000000"}],
-            },
-        )
-        # _promote_2gp_package() --> _get_package_name()
-        self.mock_get_package_name_api_calls("04t000000000000", "Main Package")
-        responses.add(  # promote Package2Version (Dependency 1)
-            "PATCH",
-            f"{self.devhub_base_url}/tooling/sobjects/Package2Version/000000000000000",
-        )
-
-        with mock.patch(
-            "cumulusci.tasks.salesforce.promote_2gp_package.get_devhub_config",
-            return_value=devhub_config,
-        ):
-            task()
+        assert "Package Name: Dependency 2" in caplog.records[7].message
 
     @responses.activate
     def test_query_Package2Version__malformed_request(self, task):
