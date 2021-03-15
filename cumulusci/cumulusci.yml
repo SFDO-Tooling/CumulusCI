@@ -256,6 +256,10 @@ tasks:
         description: Retrieves a list of the names of any permission sets assigned to the running user.
         class_path: cumulusci.tasks.preflight.permsets.GetPermissionSetAssignments
         group: Salesforce Preflight Checks
+    get_available_permission_set_licenses:
+        description: Retrieves a list of the currently available Permission Set definition keys
+        class_path: cumulusci.tasks.preflight.licenses.GetAvailablePermissionSets
+        group: Salesforce Preflight Checks
     get_existing_record_types:
         description: "Retrieves all Record Types in the org as a dict, with sObject names as keys and lists of Developer Names as values."
         class_path: cumulusci.tasks.preflight.recordtypes.CheckSObjectRecordTypes
