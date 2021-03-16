@@ -136,10 +136,12 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         one_gp_deps = self._filter_one_gp_deps(dependencies)
         if one_gp_deps:
             self.logger.warning("This package has the following 1GP dependencies:")
-            self.logger.warning("")
             for dep in one_gp_deps:
+                self.logger.warning("")
+                self.logger.warning(f"    Package Name: {dep['name']}")
+                self.logger.warning(f"    Release State: {dep['release_state']}")
                 self.logger.warning(
-                    f"    Package Name: {dep['name']:20} ReleaseState: {dep['release_state']}"
+                    f"    SubscriberPackageVersionId: {dep['version_id']}"
                 )
 
     def _process_two_gp_deps(self, dependencies: List[Dict]) -> bool:
