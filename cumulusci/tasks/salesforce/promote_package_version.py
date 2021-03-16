@@ -162,7 +162,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
                 self._promote_package_version(d)
         elif unpromoted_two_gp_deps:
             # we only want _run_task() to exit if unpromoted
-            # 2GP deps are presentand we aren't auto-promoting
+            # 2GP deps are present and we aren't auto-promoting
             should_exit = True
             self.logger.error("")
             self.logger.error(
