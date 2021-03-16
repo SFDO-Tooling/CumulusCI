@@ -69,7 +69,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
             return
 
         target_package_info = self._get_target_package_info(version_id)
-        self._promote_2gp_package(target_package_info)
+        self._promote_package_version(target_package_info)
 
     def _get_dependency_info(self, spv_id: str) -> Optional[List[Dict]]:
         """
@@ -158,7 +158,8 @@ class PromotePackageVersion(BaseSalesforceApiTask):
 
         should_exit = False
         if unpromoted_two_gp_deps and self.options.get("promote_dependencies", False):
-            [self._promote_2gp_package(d) for d in unpromoted_two_gp_deps]
+            for d in unpromoted_two_gp_deps:
+                self._promote_package_version(d)
         elif unpromoted_two_gp_deps:
             # we only want _run_task() to exit if unpromoted
             # 2GP deps are presentand we aren't auto-promoting
@@ -196,7 +197,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
             "Package2VersionId": package_2_version["Id"],
         }
 
-    def _promote_2gp_package(self, package_info: Dict) -> None:
+    def _promote_package_version(self, package_info: Dict) -> None:
         """
         Promote the 2GP package associated with the given SubscriberPackageVersionId
 
