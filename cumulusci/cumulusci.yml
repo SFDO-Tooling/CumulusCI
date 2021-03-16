@@ -344,9 +344,9 @@ tasks:
         description: Apply org settings from a scratch org definition file or dict
         class_path: cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
         group: Salesforce DX
-    promote_2gp_package:
+    promote_package_version:
         description: Promote a 2gp package so that it can be installed in a production org
-        class_path: cumulusci.tasks.salesforce.promote_2gp_package.Promote2gpPackageVersion
+        class_path: cumulusci.tasks.salesforce.promote_2gp_package.PromotePackageVersion
         group: Release Operations
     publish_community:
         description: Publishes a Community in the target org using the Connect API

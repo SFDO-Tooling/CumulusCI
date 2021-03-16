@@ -7,7 +7,7 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
-class Promote2gpPackageVersion(BaseSalesforceApiTask):
+class PromotePackageVersion(BaseSalesforceApiTask):
     """
     Promote a 2GP Package version from a Beta to a Production release.
 
