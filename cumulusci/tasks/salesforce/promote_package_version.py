@@ -287,7 +287,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         if where_clause:
             query += f" WHERE {where_clause}"
 
-        res = self.tooling.query(query)
+        res = self.tooling.query_all(query)
 
         if not res["records"] or res["size"] == 0:
             if raise_error:
