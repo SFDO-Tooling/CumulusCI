@@ -29,7 +29,7 @@ class GetAvailablePermissionSets(BaseSalesforceApiTask):
     def _run_task(self):
         self.return_values = [
             result["Name"]
-            for result in self.sf.query("SELECT Name FROM PermissionSet")[
+            for result in self.sf.query_all("SELECT Name FROM PermissionSet")[
                 "records"
             ]
         ]

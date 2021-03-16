@@ -257,7 +257,7 @@ tasks:
         class_path: cumulusci.tasks.preflight.permsets.GetPermissionSetAssignments
         group: Salesforce Preflight Checks
     get_available_permission_sets:
-        description: Retrieves a list of the currently available Permission Set definition keys
+        description: Retrieves a list of the currently available Permission Sets
         class_path: cumulusci.tasks.preflight.licenses.GetAvailablePermissionSets
         group: Salesforce Preflight Checks
     get_existing_record_types:
