@@ -83,7 +83,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
             "is_promoted": whether or not this package is already promoted (only present if is_2gp is True)
             "Package2VersionId": The Id from the corresponding Package2Version record
             "name": (str) The name of the package
-            "release_state": (str) the packages release state
+            "release_state": (str) the package's release state
             "version_id": (str) the SubscriberPackageVersionId (04t) of the dependency
         }
         """
