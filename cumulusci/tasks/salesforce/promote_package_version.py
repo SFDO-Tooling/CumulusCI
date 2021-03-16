@@ -29,7 +29,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
             "description": "The SubscriberPackageVersion (04t) Id for the target package.",
             "required": True,
         },
-        "auto_promote": {
+        "promote_dependencies": {
             "description": (
                 "Automatically promote any unpromoted versions of dependency 2GP packages that are detected."
             ),
@@ -157,7 +157,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         self.logger.info(f"Unpromoted 2GP dependencies: {len(unpromoted_two_gp_deps)}")
 
         should_exit = False
-        if unpromoted_two_gp_deps and self.options.get("auto_promote", False):
+        if unpromoted_two_gp_deps and self.options.get("promote_dependencies", False):
             [self._promote_2gp_package(d) for d in unpromoted_two_gp_deps]
         elif unpromoted_two_gp_deps:
             # we only want _run_task() to exit if unpromoted

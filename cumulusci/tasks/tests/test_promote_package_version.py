@@ -7,7 +7,7 @@ from cumulusci.core.config import TaskConfig, BaseProjectConfig
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.tasks.salesforce.promote_2gp_package import Promote2gpPackageVersion
+from cumulusci.tasks.salesforce.promote_package_version import PromotePackageVersion
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def project_config():
 
 @pytest.fixture
 def task(project_config, devhub_config, org_config):
-    task = Promote2gpPackageVersion(
+    task = PromotePackageVersion(
         project_config,
         TaskConfig(
             {
@@ -32,14 +32,14 @@ def task(project_config, devhub_config, org_config):
         org_config,
     )
     with mock.patch(
-        "cumulusci.tasks.salesforce.promote_2gp_package.get_devhub_config",
+        "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
         return_value=devhub_config,
     ):
         task._init_task()
     return task
 
 
-class TestPromote2gpPackageVersion:
+class TestPromotePackageVersion:
     devhub_base_url = "https://devhub.my.salesforce.com/services/data/v50.0"
 
     def _mock_dependencies(
@@ -139,7 +139,7 @@ class TestPromote2gpPackageVersion:
         with pytest.raises(
             TaskOptionsError, match="Task option `version_id` is required."
         ):
-            Promote2gpPackageVersion(
+            PromotePackageVersion(
                 project_config,
                 TaskConfig({"options": {}}),
                 org_config,
@@ -149,7 +149,7 @@ class TestPromote2gpPackageVersion:
         self, project_config, devhub_config, org_config
     ):
         with pytest.raises(TaskOptionsError):
-            Promote2gpPackageVersion(
+            PromotePackageVersion(
                 project_config,
                 TaskConfig({"options": {"version_id": "0Ho000000000000"}}),
                 org_config,
@@ -160,7 +160,7 @@ class TestPromote2gpPackageVersion:
         # 20 dependencies, 10 are 2GP, 5 of those are not yet promoted
         self._mock_dependencies(20, 10, 5)
         with mock.patch(
-            "cumulusci.tasks.salesforce.promote_2gp_package.get_devhub_config",
+            "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
         ):
             task()
@@ -169,26 +169,26 @@ class TestPromote2gpPackageVersion:
     def test_run_task__no_dependencies(self, task, devhub_config):
         self._mock_dependencies(0, 0, 0)
         with mock.patch(
-            "cumulusci.tasks.salesforce.promote_2gp_package.get_devhub_config",
+            "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
         ):
             task()
 
     @responses.activate
-    def test_run_task__auto_promote(self, task, devhub_config):
+    def test_run_task__promote_dependencies(self, task, devhub_config):
         self._mock_dependencies(2, 1, 1)
         with mock.patch(
-            "cumulusci.tasks.salesforce.promote_2gp_package.get_devhub_config",
+            "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
         ):
-            task.options["auto_promote"] = True
+            task.options["promote_dependencies"] = True
             task()
 
     @responses.activate
     def test_run_task__all_deps_promoted(self, task, devhub_config):
         self._mock_dependencies(4, 4, 4)
         with mock.patch(
-            "cumulusci.tasks.salesforce.promote_2gp_package.get_devhub_config",
+            "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
         ):
             task.options["auto_promote"] = True
