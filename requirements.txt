@@ -6,13 +6,13 @@ click==7.1.2
 coloredlogs==15.0
 cryptography==3.3.2
 docutils==0.16
-Faker==6.5.0
+Faker==6.6.0
 fs==2.4.12
 github3.py==2.0.0
 humanfriendly==9.1
 jinja2==2.11.3
 jwcrypto==0.8
-keyring==22.3.0
+keyring==23.0.0
 lxml==4.6.2
 MarkupSafe==1.1.1
 pycparser==2.20
