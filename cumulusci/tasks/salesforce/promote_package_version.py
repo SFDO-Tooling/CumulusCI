@@ -19,7 +19,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
     The abbreviation `spv` in variable names is shorthand for "SubscriberPackageVersion".
     """
 
-    task_docs = """Promote a Second Generation managed package.
+    task_docs = """Promote a Second Generation package (managed or unlocked).
     Lists any 1GP dependencies that are detected, as well as,
     any dependency packages that have not benn promoted.
     Once promoted, 2GP package can be installed into production orgs."""
