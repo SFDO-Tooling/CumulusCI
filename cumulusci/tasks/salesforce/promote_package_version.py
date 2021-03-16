@@ -20,9 +20,9 @@ class PromotePackageVersion(BaseSalesforceApiTask):
     """
 
     task_docs = """Promote a Second Generation package (managed or unlocked).
-    Lists any 1GP dependencies that are detected, as well as,
-    any dependency packages that have not benn promoted.
-    Once promoted, 2GP package can be installed into production orgs."""
+    Lists any 1GP dependencies that are detected, as well as
+    any dependency packages that have not been promoted.
+    Once promoted, the 2GP package can be installed into production orgs."""
 
     task_options = {
         "version_id": {
