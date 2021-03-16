@@ -49,7 +49,7 @@ class TestLicensePreflights(unittest.TestCase):
         task = create_task(GetAvailablePermissionSets, {})
         task._init_api = Mock()
 
-        task._init_api.return_value.query.return_value = {
+        task._init_api.return_value.query_all.return_value = {
             "totalSize": 2,
             "records": [
                 {"Name": "TEST1"},
@@ -58,7 +58,7 @@ class TestLicensePreflights(unittest.TestCase):
         }
         task()
 
-        task._init_api.return_value.query.assert_called_once_with(
+        task._init_api.return_value.query_all.assert_called_once_with(
             "SELECT Name FROM PermissionSet"
         )
         assert task.return_values == ["TEST1", "TEST2"]
