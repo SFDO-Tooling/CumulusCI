@@ -11,6 +11,7 @@ def devhub_config():
         "devhub",
     )
     org_config.refresh_oauth_token = mock.Mock()
+
     return org_config
 
 

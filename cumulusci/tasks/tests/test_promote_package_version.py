@@ -62,6 +62,7 @@ class TestPromotePackageVersion:
             json={
                 "size": 1,
                 "records": [{"Dependencies": {"ids": spv_ids}}],
+                "done": True,
             },
         )
         # mock 1GP dependencies
@@ -82,6 +83,7 @@ class TestPromotePackageVersion:
             json={
                 "size": 1,
                 "records": [{"Id": "main_package", "IsReleased": False}],
+                "done": True,
             },
         )
         responses.add(
@@ -104,6 +106,7 @@ class TestPromotePackageVersion:
                         "ReleaseState": "Released" if is_promoted else "Beta",
                     }
                 ],
+                "done": True,
             },
         )
         responses.add(  # query for SubscriberPackage
@@ -112,16 +115,15 @@ class TestPromotePackageVersion:
             json={
                 "size": 1,
                 "records": [{"Name": f"Dependency_Package_{dependency_num}"}],
+                "done": True,
             },
         )
 
-        one_gp_json = {
-            "size": 0,
-            "records": [],
-        }
+        one_gp_json = {"size": 0, "records": [], "done": True}
         two_gp_json = {
             "size": 1,
             "records": [{"Id": f"dep_{dependency_num}", "IsReleased": False}],
+            "done": True,
         }
         responses.add(  # query for Package2Version
             "GET",
@@ -197,16 +199,29 @@ class TestPromotePackageVersion:
     def test_process_one_gp_dependencies(self, task, caplog):
         """Ensure proper logging output"""
         dependencies = [
-            {"is_2gp": False, "name": "Dependency 1", "release_state": "Beta"},
-            {"is_2gp": True, "name": "Dependency 2", "release_state": "Beta"},
+            {
+                "is_2gp": False,
+                "name": "Dependency 1",
+                "release_state": "Beta",
+                "version_id": "04t000000000001",
+            },
+            {
+                "is_2gp": True,
+                "name": "Dependency 2",
+                "release_state": "Beta",
+                "version_id": "04t000000000002",
+            },
         ]
         task._process_one_gp_deps(dependencies)
         assert (
             "This package has the following 1GP dependencies:"
             == caplog.records[0].message
         )
-        assert "Package Name: Dependency 1 " in caplog.records[2].message
-        assert "ReleaseState: Beta" in caplog.records[2].message
+        assert "Package Name: Dependency 1" in caplog.records[2].message
+        assert "Release State: Beta" in caplog.records[3].message
+        assert (
+            "SubscriberPackageVersionId: 04t000000000001" in caplog.records[4].message
+        )
 
     def test_process_two_gp_dependencies(self, task, caplog):
         """Ensure proper logging output"""
@@ -246,7 +261,11 @@ class TestPromotePackageVersion:
         responses.add(
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
-            json={"size": 2, "records": [{"name": "Thing_1"}, {"name": "Thing_2"}]},
+            json={
+                "size": 2,
+                "records": [{"name": "Thing_1"}, {"name": "Thing_2"}],
+                "done": True,
+            },
         )
         obj = task._query_one_tooling(["name"], "sObjectName")
         assert not isinstance(obj, list)
@@ -256,7 +275,7 @@ class TestPromotePackageVersion:
         responses.add(
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
-            json={"size": 0, "records": []},
+            json={"size": 0, "records": [], "done": True},
         )
         result = task._query_tooling(["Id", "name"], "sObjectName")
         assert result is None
@@ -266,7 +285,11 @@ class TestPromotePackageVersion:
         responses.add(
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
-            json={"size": 2, "records": [{"name": "Thing_1"}, {"name": "Thing_2"}]},
+            json={
+                "size": 2,
+                "records": [{"name": "Thing_1"}, {"name": "Thing_2"}],
+                "done": True,
+            },
         )
         result = task._query_tooling(["Id", "name"], "sObjectName")
         assert isinstance(result, list)
@@ -277,7 +300,7 @@ class TestPromotePackageVersion:
         responses.add(
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
-            json={"size": 0, "records": []},
+            json={"size": 0, "records": [], "done": True},
         )
         with pytest.raises(
             CumulusCIException,

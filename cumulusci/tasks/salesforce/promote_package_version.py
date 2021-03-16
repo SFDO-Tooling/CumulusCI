@@ -197,6 +197,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         return {
             "name": self.project_config.project__name,
             "Package2VersionId": package_2_version["Id"],
+            "version_id": spv_id,
         }
 
     def _promote_package_version(self, package_info: Dict) -> None:
@@ -293,7 +294,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
 
         res = self.tooling.query_all(query)
 
-        if not res["records"] or res["size"] == 0:
+        if not res["records"] or res["totalSize"] == 0:
             if raise_error:
                 raise CumulusCIException(f"No records returned for query: {query}")
             return None
