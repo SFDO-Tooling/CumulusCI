@@ -6,7 +6,7 @@ from cumulusci.core.sfdx import get_default_devhub_username
 
 def get_devhub_config(project_config: BaseProjectConfig) -> SfdxOrgConfig:
     """
-    @param project_config: project configuration that has a configured devhub service
+    @param project_config: a base project configuration
     @return: an SfdxOrgConfig tied to the devHub
     """
     try:
