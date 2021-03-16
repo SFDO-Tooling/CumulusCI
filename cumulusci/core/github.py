@@ -212,3 +212,18 @@ def find_repo_feature_prefix(repo: Repository) -> str:
         .get("git", {})
         .get("prefix_feature", "feature/")
     )
+
+
+def find_repo_2gp_context(repo: Repository) -> str:
+    contents = repo.file_contents(
+        "cumulusci.yml",
+        ref=repo.branch(repo.default_branch).commit.sha,
+    )
+    head_cumulusci_yml = cci_safe_load(io.StringIO(contents.decoded.decode("utf-8")))
+    return (
+        head_cumulusci_yml.get("project", {})
+        .get("git", {})
+        .get(
+            "2gp_context", "Build Feature Test Package"
+        )  # TODO: source default from our `cumulusci.yml`
+    )

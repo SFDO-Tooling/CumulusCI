@@ -323,5 +323,3 @@ class TestPackageUpload:
             == task.version_number
         )
 
-    def test_set_dependencies_with_deps(self):
-        raise NotImplementedError  # Need to cover line 190, check the dict conversion.

@@ -110,17 +110,19 @@ class DummyResponse(object):
         self.status_code = status_code
 
 
-class DummyRepository(object):
+class DummyRepository(mock.Mock):
     default_branch = "main"
     _api = "http://"
 
-    def __init__(self, owner, name, contents, releases=None):
+    def __init__(self, owner, name, contents, releases=None, commits=None):
+        super().__init__()
         self.owner = owner
         self.name = name
         self.html_url = f"https://github.com/{owner}/{name}"
         self.clone_url = self.html_url
         self._contents = contents
         self._releases = releases or []
+        self._commits = commits or []
 
     def file_contents(self, path, **kw):
         try:
@@ -169,7 +171,11 @@ class DummyRepository(object):
         ref.object.sha = "ref_sha"
         return ref
 
-    default_branch = "main"
+    def commit(self, c):
+        if c in self._commits:
+            return self._commits[c]
+
+        raise NotFoundError(DummyResponse("", 404))
 
 
 class DummyRelease(object):
@@ -407,9 +413,6 @@ class TestBaseProjectConfig(unittest.TestCase):
                 )
 
             self.assertIsNotNone(config.repo_commit)
-
-    def test_get_repo_from_url(self):
-        raise NotImplementedError
 
     def test_get_latest_tag(self):
         config = BaseProjectConfig(

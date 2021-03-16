@@ -28,6 +28,7 @@ import abc
 
 from cumulusci.core.github import (
     find_latest_release,
+    find_repo_2gp_context,
     find_repo_feature_prefix,
     get_version_id_from_commit,
 )
@@ -643,23 +644,6 @@ class GitHubUnmanagedHeadResolver(Resolver):
         return (repo.branch(repo.default_branch).commit.sha, None)
 
 
-def _locate_2gp_package_id(remote_repo, release_branch, context_2gp):
-    version_id = None
-    count = 0
-    commit = release_branch.commit
-    while version_id is None and count < 5:
-        version_id = get_version_id_from_commit(remote_repo, commit.sha, context_2gp)
-        if version_id:
-            break
-        count += 1
-        if commit.parents:
-            commit = remote_repo.commit(commit.parents[0]["sha"])
-        else:
-            break
-
-    return version_id, commit
-
-
 class GitHubReleaseBranchMixin:
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
         return self.is_valid_repo_context(context) and isinstance(
@@ -688,6 +672,24 @@ class GitHubReleaseBranchMixin:
             )
         )
 
+    def locate_2gp_package_id(self, remote_repo, release_branch, context_2gp):
+        version_id = None
+        count = 0
+        commit = release_branch.commit
+        while version_id is None and count < 5:
+            version_id = get_version_id_from_commit(
+                remote_repo, commit.sha, context_2gp
+            )
+            if version_id:
+                break
+            count += 1
+            if commit.parents:
+                commit = remote_repo.commit(commit.parents[0]["sha"])
+            else:
+                break
+
+        return version_id, commit
+
 
 class GitHubReleaseBranch2GPResolver(
     GitHubPackageDataMixin, GitHubReleaseBranchMixin, Resolver
@@ -708,9 +710,10 @@ class GitHubReleaseBranch2GPResolver(
 
         try:
             remote_branch_prefix = find_repo_feature_prefix(repo)
+            remote_2gp_context = find_repo_2gp_context(repo)
         except Exception:
             context.logger.info(
-                f"Could not find feature branch prefix for {repo.clone_url}. Unable to resolve 2GP packages."
+                f"Could not find feature branch prefix or 2GP context for {repo.clone_url}. Unable to resolve 2GP packages."
             )
             return (None, None)
 
@@ -728,10 +731,10 @@ class GitHubReleaseBranch2GPResolver(
                 pass
 
         if release_branch:
-            version_id, commit = _locate_2gp_package_id(
+            version_id, commit = self.locate_2gp_package_id(
                 repo,
                 release_branch,
-                context.project__git__2gp_context,  # TODO: we are assuming the projects use the same 2GP context
+                remote_2gp_context,
             )
 
             if version_id:
@@ -772,9 +775,10 @@ class GitHubReleaseBranchExactMatch2GPResolver(
 
         try:
             remote_branch_prefix = find_repo_feature_prefix(repo)
+            remote_2gp_context = find_repo_2gp_context(repo)
         except Exception:
             context.logger.info(
-                f"Could not find feature branch prefix for {repo.clone_url}. Unable to resolve 2GP packages."
+                f"Could not find feature branch prefix or 2GP context for {repo.clone_url}. Unable to resolve 2GP packages."
             )
             return (None, None)
 
@@ -788,10 +792,10 @@ class GitHubReleaseBranchExactMatch2GPResolver(
             context.logger.info(f"Exact-match branch not found for {repo.clone_url}.")
             return (None, None)
 
-        version_id, commit = _locate_2gp_package_id(
+        version_id, commit = self.locate_2gp_package_id(
             repo,
             release_branch,
-            context.project__git__2gp_context,
+            remote_2gp_context,
         )
 
         if version_id:
