@@ -204,7 +204,9 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         @param spv_id: the SubscriberPackageVersionId to promote
         """
         self.logger.info("")
-        self.logger.info(f"Promoting package: {package_info['name']}")
+        self.logger.info(
+            f"Promoting package: {package_info['name']} ({package_info['version_id']})"
+        )
 
         Package2Version = self._get_tooling_object("Package2Version")
         Package2Version.update(package_info["Package2VersionId"], {"IsReleased": True})
