@@ -68,7 +68,7 @@ To promote dependencies automatically use ``--promote_dependencies True``.
 
     $ cci task run promote_package_version --version_id 04t000000000000 --promote_dependencies True
 
-Alternatively, you can use ``sfdx force:package:version:promote`` command to promote a 2GP package.
+Alternatively, you can use the ``sfdx force:package:version:promote`` command to promote a 2GP package.
 
 
 Install the Unlocked Package
@@ -105,4 +105,3 @@ To install unlocked packages in an org that doesn't use CumulusCI, use one of th
 
 * `Install via the Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_cli.htm>`_
 * `Install via an Installation URL <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_ui.htm>`_
-
