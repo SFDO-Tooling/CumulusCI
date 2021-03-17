@@ -73,7 +73,7 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
 
     def _get_parent_ids_by_name(
         self, sobject_type: str, record_names: List[str]
-    ) -> Dict[str, str]:
+    ):
         """
         Returns a Dict: Name --> ID of records with Name in record_names for
         sObject_type.   Dict value are None for all record_names that do not
@@ -89,7 +89,7 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
             parent_ids_by_name[record["Name"]] = record["Id"]
         return parent_ids_by_name
 
-    def _process_parent(self, sobject_type: str, record_names: List[str]) -> None:
+    def _process_parent(self, sobject_type, record_names) -> None:
         """
         For a specific sobject_type and record_names, queries all Salesforce IDs
         corresponding to records of SObjectType sobject_type with Name in
@@ -110,7 +110,7 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
             self._create_network_member_group(sobject_type, parent_name, parent_id)
 
     def _create_network_member_group(
-        self, sobject_type: str, parent_name: str, parent_id: str
+        self, sobject_type, parent_name, parent_id
     ) -> None:
         """
         Processes and logs creating a NetworkMemberGroup for a specific parent.
