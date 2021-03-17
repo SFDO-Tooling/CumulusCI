@@ -37,6 +37,14 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         },
     }
 
+    # We do use a Salesforce org, but it's the dev hub obtained using get_devhub_config,
+    # so the user does not need to specify an org on the CLI
+    salesforce_task = False
+
+    # Since self.org_config is unused, don't try to refresh its token
+    def _update_credentials(self):
+        pass
+
     def _init_options(self, kwargs) -> None:
         super()._init_options(kwargs)
 
