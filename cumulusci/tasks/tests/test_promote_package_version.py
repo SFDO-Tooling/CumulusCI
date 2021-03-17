@@ -203,13 +203,11 @@ class TestPromotePackageVersion:
                 "is_2gp": False,
                 "name": "Dependency 1",
                 "release_state": "Beta",
-                "version_id": "04t000000000001",
             },
             {
                 "is_2gp": True,
                 "name": "Dependency 2",
                 "release_state": "Beta",
-                "version_id": "04t000000000002",
             },
         ]
         task._process_one_gp_deps(dependencies)
@@ -219,9 +217,6 @@ class TestPromotePackageVersion:
         )
         assert "Package Name: Dependency 1" in caplog.records[2].message
         assert "Release State: Beta" in caplog.records[3].message
-        assert (
-            "SubscriberPackageVersionId: 04t000000000001" in caplog.records[4].message
-        )
 
     def test_process_two_gp_dependencies(self, task, caplog):
         """Ensure proper logging output"""
