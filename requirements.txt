@@ -38,6 +38,6 @@ SQLAlchemy==1.3.23
 terminaltables==3.1.0
 typing-extensions==3.7.4.3
 uritemplate==3.0.1
-urllib3==1.26.3
+urllib3==1.26.4
 xmltodict==0.12.0
 robotframework-lint==1.1
