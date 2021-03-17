@@ -48,11 +48,12 @@ class PromotePackageVersion(BaseSalesforceApiTask):
     def _init_options(self, kwargs) -> None:
         super()._init_options(kwargs)
 
-        if "version_id" not in self.options:
-            raise TaskOptionsError("Task option `version_id` is required.")
-
         version_id = self.options["version_id"]
-        if not isinstance(version_id, str) or not version_id.startswith("04t"):
+        if (
+            version_id
+            and not isinstance(version_id, str)
+            or not version_id.startswith("04t")
+        ):
             raise TaskOptionsError(
                 "Task option `version_id` must be a valid SubscriberPackageVersion (04t) Id"
             )
