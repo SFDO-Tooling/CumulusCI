@@ -98,6 +98,14 @@ class ProjectKeychainTestMixin(unittest.TestCase):
             keychain.get_service("github").config, self.services["github"].config
         )
 
+    def test_set_service_private(self, project=False):
+        alias = "ziggy"
+        keychain = self.keychain_class(self.project_config, self.key)
+        keychain.services = {"github": {}}
+        keychain._set_service("github", alias, self.services["github"], project)
+        assert alias in keychain.services["github"].keys()
+        # assert keychain.services["github"][alias] == self.services["github"].config
+
     def test_set_and_get_org(self, global_org=False):
         keychain = self.keychain_class(self.project_config, self.key)
         self.org_config.global_org = global_org
