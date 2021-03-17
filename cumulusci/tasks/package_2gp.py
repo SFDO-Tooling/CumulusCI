@@ -540,14 +540,12 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             new_dependency = {}
             if (
                 isinstance(dependency, ManagedPackageDependency)
-                and dependency.package_version_id
+                and dependency.version_id
             ):
                 self.logger.info(
-                    f"Adding dependency {dependency.package_name} with id {dependency.package_version_id}"
+                    f"Adding dependency {dependency.package_name} with id {dependency.version_id}"
                 )
-                new_dependency[
-                    "subscriberPackageVersionId"
-                ] = dependency.package_version_id
+                new_dependency["subscriberPackageVersionId"] = dependency.version_id
 
             elif isinstance(dependency, UnmanagedDependency) and dependency.repo_name:
                 # TODO: We do not support zip_url unmanaged dependencies
