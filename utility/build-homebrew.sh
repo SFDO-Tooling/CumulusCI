@@ -36,7 +36,7 @@ class Cumulusci < Formula
   sha256 $PACKAGE_SHA
   head "https://github.com/SFDO-Tooling/CumulusCI.git"
 
-  depends_on "python@3.8"
+  depends_on "python@3.9"
 
   def install
     xy = Language::Python.major_minor_version "python3"
@@ -48,7 +48,7 @@ $(cat "$REQS_FILE")
 REQS
 
     File.write("requirements.txt", reqs)
-    system "python3", "-m", "pip", "install", "-r", "requirements.txt", "--require-hashes", "--no-deps", "--prefix", libexec
+    system "python3", "-m", "pip", "install", "-r", "requirements.txt", "--require-hashes", "--no-deps", "--ignore-installed", "--prefix", libexec
 
     bin.install Dir["#{libexec}/bin/cci"]
     bin.install Dir["#{libexec}/bin/snowfakery"]
