@@ -179,7 +179,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
                 "The following packages must be promoted before this one."
             )
             self.logger.error(
-                "(Use `--auto-promote True` to automatically promote these dependencies):"
+                "(Use `--promote-dependencies True` to automatically promote these dependencies):"
             )
             self.logger.error("")
             for dep in unpromoted_two_gp_deps:
