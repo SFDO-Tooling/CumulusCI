@@ -140,9 +140,6 @@ class PromotePackageVersion(BaseSalesforceApiTask):
                 self.logger.warning("")
                 self.logger.warning(f"    Package Name: {dep['name']}")
                 self.logger.warning(f"    Release State: {dep['release_state']}")
-                self.logger.warning(
-                    f"    SubscriberPackageVersionId: {dep['version_id']}"
-                )
 
     def _process_two_gp_deps(self, dependencies: List[Dict]) -> bool:
         """
