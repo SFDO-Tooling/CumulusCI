@@ -5,7 +5,7 @@ coverage[toml]==5.5
 coveralls==3.0.1
 flake8==3.8.4
 furo==2021.2.28b28
-pip-tools==5.5.0
+pip-tools==6.0.1
 pre-commit==2.11.1
 pytest==6.2.2
 pytest-random-order==1.0.4
