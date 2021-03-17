@@ -77,20 +77,28 @@ class UpdateDependencies(BaseSalesforceTask):
                     "An invalid dependency was specified for ignore_dependencies."
                 )
 
-        # TODO: default strategy to preproduction if include_beta is True
-        # Log warning.
+        # Backwards-compatibility: if include_beta is set and True,
+        # use the include_beta resolution strategy.
+        default = "production"
+        if "include_beta" in self.options and process_bool_arg(
+            self.options["include_beta"]
+        ):
+            default = "include_beta"
+
         self.resolution_strategy = get_resolver_stack(
-            self.project_config, self.options.get("resolution_strategy") or "production"
+            self.project_config, self.options.get("resolution_strategy") or default
         )
 
-        # Be backwards-compatible: if `include_beta` is set and False,
+        # Backwards-compatibility: if `include_beta` is set and False,
         # remove the `latest_beta` resolver from the stack.
+        # Note: this applies even if the resolution strategy is set
+        # to a beta-y strategy.
         if (
             DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
             in self.resolution_strategy
         ):
             if "include_beta" in self.options and not process_bool_arg(
-                self.options.get("include_beta", False)
+                self.options["include_beta"]
             ):
                 self.resolution_strategy.remove(
                     DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
@@ -106,7 +114,7 @@ class UpdateDependencies(BaseSalesforceTask):
         ]
 
         if "prefer_2gp_from_release_branch" in self.options and not process_bool_arg(
-            self.options.get("prefer_2gp_from_release_branch", False)
+            self.options["prefer_2gp_from_release_branch"]
         ):
             self.resolution_strategy = [
                 r for r in self.resolution_strategy if r not in resolvers_2gp
@@ -174,9 +182,8 @@ class UpdateDependencies(BaseSalesforceTask):
                 version = dependency.version
 
             if (
-                dependency.package_version_id
-                and dependency.package_version_id
-                not in self.org_config.installed_packages
+                dependency.version_id
+                and dependency.version_id not in self.org_config.installed_packages
             ) or (
                 not self.org_config.has_minimum_package_version(
                     dependency.namespace,

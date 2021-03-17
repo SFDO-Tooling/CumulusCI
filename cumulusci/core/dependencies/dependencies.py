@@ -315,7 +315,7 @@ class GitHubDynamicDependency(
                     UnmanagedDependency(
                         github=self.github,
                         ref=self.ref,
-                        subfolder="src",  # TODO: support SFDX format unmanaged deps.
+                        subfolder="src",
                         unmanaged=self.unmanaged,
                         managed=False,
                         namespace=None,
@@ -348,11 +348,10 @@ class GitHubDynamicDependency(
         return f"Dependency: {self.github}"
 
 
-# TODO: allow the user to specify ManagedPackageInstallOptions.
 class ManagedPackageDependency(StaticDependency):
     namespace: Optional[str]
     version: Optional[str]
-    package_version_id: Optional[str] = pydantic.Field(alias="version_id")
+    version_id: Optional[str]
     package_name: Optional[str]
 
     @property
@@ -370,12 +369,12 @@ class ManagedPackageDependency(StaticDependency):
     @pydantic.root_validator
     def validate(cls, values):
         assert (values.get("namespace") and values.get("version")) or values.get(
-            "package_version_id"
+            "version_id"
         ), "Must specify `namespace` and `version`, or `version_id`"
 
         assert None in [
             values.get("namespace"),
-            values.get("package_version_id"),
+            values.get("version_id"),
         ], "Must not specify `namespace`/`version` and `version_id`"
         return values
 
@@ -400,19 +399,19 @@ class ManagedPackageDependency(StaticDependency):
                 options,
                 retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
             )
-        elif self.package_version_id:
-            context.logger.info(f"Installing {self.package_version_id}")
+        elif self.version_id:
+            context.logger.info(f"Installing {self.version_id}")
             install_package_version(
                 context,
                 org,
-                self.package_version_id,
+                self.version_id,
                 options,
                 retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
             )
 
     @property
     def name(self):
-        return f"Install {self.package} {self.version or self.package_version_id}"
+        return f"Install {self.package} {self.version or self.version_id}"
 
     def __str__(self):
         return self.name

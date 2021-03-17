@@ -452,7 +452,7 @@ class TestManagedPackageDependency:
         install_package_version.assert_called_once_with(
             context,
             org,
-            m.package_version_id,
+            m.version_id,
             ManagedPackageInstallOptions(),
             retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
         )
@@ -470,7 +470,7 @@ class TestManagedPackageDependency:
         install_package_version.assert_called_once_with(
             context,
             org,
-            m.package_version_id,
+            m.version_id,
             opts,
             retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
         )

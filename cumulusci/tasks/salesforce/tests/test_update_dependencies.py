@@ -100,6 +100,30 @@ def test_init_options_error_bad_ignore_dependencies():
         )
 
 
+def test_init_options_uses_include_beta_strategy_for_include_beta_true():
+    org_config = mock.Mock()
+    org_config.scratch = True
+
+    task = create_task(
+        UpdateDependencies,
+        {
+            "dependencies": [
+                {
+                    "namespace": "ns",
+                    "version": "1.0",
+                }
+            ],
+            "include_beta": True,
+        },
+        org_config=org_config,
+    )
+
+    assert (
+        DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
+        in task.resolution_strategy
+    )
+
+
 def test_init_options_removes_beta_resolver_for_include_beta_false():
     task = create_task(
         UpdateDependencies,

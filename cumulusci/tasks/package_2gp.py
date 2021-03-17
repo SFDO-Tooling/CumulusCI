@@ -509,9 +509,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         # we need to convert those to 04t package version ids,
         # for which we need an org with the packages installed.
         if self._has_1gp_namespace_dependency(dependencies):
-            dependencies = self.org_config.resolve_04t_dependencies(
-                dependencies
-            )  # TODO: Move this method into dependencies module
+            dependencies = self.org_config.resolve_04t_dependencies(dependencies)
 
         # Convert dependencies to correct format for Package2VersionCreateRequest
         dependencies = self._convert_project_dependencies(dependencies)

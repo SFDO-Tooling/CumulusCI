@@ -414,6 +414,22 @@ class TestBaseProjectConfig(unittest.TestCase):
 
             self.assertIsNotNone(config.repo_commit)
 
+    def test_get_repo_from_url(self):
+        config = BaseProjectConfig(
+            UniversalConfig(),
+            {},
+        )
+
+        config.get_github_api = mock.Mock()
+
+        assert config.get_repo_from_url("https://github.com/Test/TestRepo") == (
+            config.get_github_api.return_value.repository.return_value
+        )
+        config.get_github_api.assert_called_once_with("Test", "TestRepo")
+        config.get_github_api.return_value.repository.assert_called_once_with(
+            "Test", "TestRepo"
+        )
+
     def test_get_latest_tag(self):
         config = BaseProjectConfig(
             UniversalConfig(),

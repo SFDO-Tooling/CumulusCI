@@ -322,4 +322,3 @@ class TestPackageUpload:
             f"{major_version}.{minor_version}.{patch_version} (Beta {build_number})"
             == task.version_number
         )
-
