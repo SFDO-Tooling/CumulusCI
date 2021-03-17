@@ -350,7 +350,7 @@ tasks:
         group: Salesforce DX
     promote_package_version:
         description: Promote a 2gp package so that it can be installed in a production org
-        class_path: cumulusci.tasks.salesforce.promote_2gp_package.PromotePackageVersion
+        class_path: cumulusci.tasks.salesforce.promote_package_version.PromotePackageVersion
         group: Release Operations
     publish_community:
         description: Publishes a Community in the target org using the Connect API
