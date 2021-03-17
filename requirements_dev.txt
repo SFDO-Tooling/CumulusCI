@@ -14,7 +14,7 @@ responses==0.12.1
 Sphinx==3.5.2
 testfixtures==6.17.1
 tox==3.23.0
-twine==3.3.0
+twine==3.4.1
 typeguard==2.10.0
 vcrpy==4.1.1
 wheel==0.36.2
