@@ -1,4 +1,3 @@
-
 import unittest
 from unittest.mock import Mock, call
 from cumulusci.tasks.salesforce.tests.util import create_task
@@ -94,7 +93,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         self.assertEqual(expected, actual)
 
         task.sf.query.assert_called_once_with(
-            f"SELECT ParentId FROM NetworkMemberGroup WHERE NetworkId = '{network_id}'" 
+            f"SELECT ParentId FROM NetworkMemberGroup WHERE NetworkId = '{network_id}'"
         )
 
     def test_get_parent_ids_by_name(self):
@@ -136,6 +135,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
                 "','".join(record_names),
             )
         )
+
     def test_get_parent_ids_by_label(self):
         network_name = "network_name"
         sobject_type = "PermissionSet"

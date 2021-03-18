@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import SalesforceException, CumulusCIException
 from cumulusci.core.utils import process_list_arg
@@ -45,8 +45,8 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
         Raises a SalesforceException if no Network is found.
         """
 
-        networks = self.sf.query(format_soql
-            (f"SELECT Id FROM Network WHERE Name = '{network_name}' LIMIT 1")
+        networks = self.sf.query(
+            format_soql(f"SELECT Id FROM Network WHERE Name = '{network_name}' LIMIT 1")
         )
 
         if not networks["records"]:
@@ -60,7 +60,7 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
 
     def _get_network_member_group_parent_ids(self, network_id) -> set:
         """
-        Collect existing NetworkMemberGroup Parent IDs (associated Profile or Permission Set ID).  
+        Collect existing NetworkMemberGroup Parent IDs (associated Profile or Permission Set ID).
         An excpetion is thrown trying to create a NetworkMemberGroup for a parent who already has a
         record.
         """
@@ -72,16 +72,14 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
             network_member_group_parent_ids.add(record["ParentId"])
         return network_member_group_parent_ids
 
-    def _get_parent_ids_by_name(
-        self, sobject_type: str, record_names: List[str]
-    ):
+    def _get_parent_ids_by_name(self, sobject_type: str, record_names: List[str]):
         """
         Returns a Dict: Name --> ID of records with Name in record_names for
         sObject_type.   Dict value are None for all record_names that do not
         have corresponding records.
-        """        
+        """
         parent_ids_by_name = dict((name, None) for name in record_names)
-        
+
         if sobject_type == "PermissionSet":
             field_key = "Label"
         else:
@@ -89,12 +87,15 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
 
         for record in self.sf.query(
             "SELECT Id, {} FROM {} WHERE {} IN ('{}')".format(
-                field_key, sobject_type, field_key, "','".join(record_names),
+                field_key,
+                sobject_type,
+                field_key,
+                "','".join(record_names),
             )
-        )["records"]:           
+        )["records"]:
             record_name = record[field_key]
             parent_ids_by_name[record_name] = record["Id"]
-            
+
         return parent_ids_by_name
 
     def _process_parent(self, sobject_type, record_names) -> None:
@@ -136,7 +137,7 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
             raise CumulusCIException(
                 f'No {sobject_type} record found with Name "{parent_name}"'
             )
-        # If the Profile/Permission set already exists for a NetworkMemberGroup - 
+        # If the Profile/Permission set already exists for a NetworkMemberGroup -
         if parent_id in self._parent_ids:
             self.logger.warn(f'        Already exists for "{parent_name}"')
         else:

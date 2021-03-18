@@ -1,1088 +1,1092 @@
 cumulusci:
-    keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
+  keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 tasks:
-    activate_flow:
-        group: Metadata Transformations
-        description: Activates Flows identified by a given list of Developer Names
-        class_path: cumulusci.tasks.salesforce.activate_flow.ActivateFlow
-    add_page_layout_related_lists:
-        group: Metadata Transformations
-        description: Adds specified Related List to one or more Page Layouts.
-        class_path: cumulusci.tasks.metadata_etl.AddRelatedLists
-        options:
-            namespace_inject: $project_config.project__package__namespace
-    add_standard_value_set_entries:
-        group: Metadata Transformations
-        description: Adds specified picklist entries to a Standard Value Set.
-        class_path: cumulusci.tasks.metadata_etl.AddValueSetEntries
-        options:
-            namespace_inject: $project_config.project__package__namespace
-    add_picklist_entries:
-        group: Metadata Transformations
-        description: Adds specified picklist entries to a custom picklist field.
-        class_path: cumulusci.tasks.metadata_etl.picklists.AddPicklistEntries
-        options:
-            namespace_inject: $project_config.project__package__namespace
-    add_fields_to_field_set:
-        group: Metadata Transformations
-        description: Adds specified fields to a given field set.
-        class_path: cumulusci.tasks.metadata_etl.field_sets.AddFieldsToFieldSet
-    add_permission_set_perms:
-        group: Metadata Transformations
-        description: Adds specified Apex class access and Field-Level Security to a Permission Set.
-        class_path: cumulusci.tasks.metadata_etl.AddPermissionSetPermissions
-        options:
-            namespace_inject: $project_config.project__package__namespace
-    assign_compact_layout:
-        group: Metadata Transformations
-        description: "Assigns the Compact Layout specified in the 'value' option to the Custom Objects in 'api_names' option."
-        class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
-        options:
-            namespace_inject: $project_config.project__package__namespace
-            metadata_type: CustomObject
-            tag: compactLayoutAssignment
-    assign_permission_sets:
-        group: Salesforce Users
-        description: "Assigns specified Permission Sets to the current user, if not already assigned."
-        class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
-    assign_permission_set_groups:
-        group: Salesforce Users
-        description: "Assigns specified Permission Set Groups to the current user, if not already assigned."
-        class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSetGroups
-    assign_permission_set_licenses:
-        group: Salesforce Users
-        description: "Assigns specified Permission Set Licenses to the current user, if not already assigned."
-        class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSetLicenses
-    batch_apex_wait:
-        description: Waits on a batch apex or queueable apex job to finish.
-        class_path: cumulusci.tasks.apex.batch.BatchApexWait
-        group: Salesforce
-    check_my_domain_active:
-        description: Runs as a preflight check to determine whether My Domain is active.
-        class_path: cumulusci.tasks.preflight.settings.CheckMyDomainActive
-        group: Salesforce Preflight Checks
-    check_sobjects_available:
-        description: Runs as a preflight check to determine whether specific sObjects are available.
-        class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
-        group: Salesforce Preflight Checks
-    check_sobject_permissions:
-        description: Runs as a preflight check to determine whether specific sObjects are permissioned as desired (options are required).
-        class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectPerms
-        group: Salesforce Preflight Checks
-    check_advanced_currency_management:
-        description: Runs as a preflight check to determine whether Advanced Currency Management is active (True result means the feature is active).
-        class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectPerms
-        group: Salesforce Preflight Checks
-        options:
-            permissions:
-                DatedConversionRate:
-                    createable: True
-    check_org_wide_defaults:
-        description: Runs as a preflight check to validate Organization-Wide Defaults.
-        class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectOWDs
-        group: Salesforce Preflight Checks
-    check_org_settings_value:
-        description: Runs as a preflight check to validate organization settings.
-        class_path: cumulusci.tasks.preflight.settings.CheckSettingsValue
-        group: Salesforce Preflight Checks
-    check_chatter_enabled:
-        description: Runs as a preflight check to validate Chatter is enabled.
-        class_path: cumulusci.tasks.preflight.settings.CheckSettingsValue
-        group: Salesforce Preflight Checks
-        options:
-            settings_type: ChatterSettings
-            settings_field: IsChatterEnabled
-            value: True
-    check_enhanced_notes_enabled:
-        description: Preflight check to validate that Enhanced Notes are enabled.
-        group: Salesforce Preflight Checks
-        class_path: cumulusci.tasks.preflight.settings.CheckSettingsValue
-        options:
-            settings_type: EnhancedNotesSettings
-            settings_field: IsEnhancedNotesEnabled
-            value: True
-    custom_settings_value_wait:
-        description: Waits for a specific field value on the specified custom settings object and field
-        class_path: cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
-        group: Salesforce
-    command:
-        description: Run an arbitrary command
-        class_path: cumulusci.tasks.command.Command
-        group: Utilities
-    composite_request:
-        description: Execute a series of REST API requests in a single call
-        class_path: cumulusci.tasks.salesforce.composite.CompositeApi
-        group: Data Operations
-    connected_app:
-        description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
-        class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
-        group: Setup
-        options:
-            label: CumulusCI
-            connect: True
-            overwrite: False
-    create_community:
-        description: Creates a Community in the target org using the Connect API
-        class_path: cumulusci.tasks.salesforce.CreateCommunity
-        group: Salesforce Communities
-    insert_record:
-        description: Inserts a record of any sObject using the REST API
-        class_path: cumulusci.tasks.salesforce.insert_record.InsertRecord
-        group: Data Operations
-    create_package:
-        description: Creates a package in the target org with the default package name for the project
-        class_path: cumulusci.tasks.salesforce.CreatePackage
-        group: Salesforce Packages
-    create_package_version:
-        description: Uploads a 2nd-generation package (2GP) version
-        class_path: cumulusci.tasks.package_2gp.CreatePackageVersion
-        group: Salesforce Packages
-    create_managed_src:
-        description: Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
-        class_path: cumulusci.tasks.metadata.managed_src.CreateManagedSrc
-        options:
-            path: src
-            revert_path: src.orig
-        group: Salesforce Metadata
-    create_permission_set:
-        group: Metadata Transformations
-        description: Creates a Permission Set with specified User Permissions and assigns it to the running user.
-        class_path: cumulusci.tasks.salesforce.create_permission_sets.CreatePermissionSet
-    create_bulk_data_permission_set:
-        group: Data Operations
-        description: "Creates a Permission Set with the Hard Delete and Set Audit Fields user permissions. NOTE: the org setting to allow Set Audit Fields must be turned on."
-        class_path: cumulusci.tasks.salesforce.create_permission_sets.CreatePermissionSet
-        options:
-            api_name: CumulusCI_Bulk_Data
-            label: CumulusCI Bulk Data
-            user_permissions:
-                - PermissionsBulkApiHardDelete
-                - PermissionsCreateAuditFields
-    create_unmanaged_ee_src:
-        description: Modifies the src directory for unmanaged deployment to an EE org
-        class_path: cumulusci.tasks.metadata.ee_src.CreateUnmanagedEESrc
-        options:
-            path: src
-            revert_path: src.orig
-        group: Salesforce Metadata
-    delete_data:
-        description: Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
-        class_path: cumulusci.tasks.bulkdata.DeleteData
-        group: Data Operations
-    deploy:
-        description: Deploys the src directory of the repository to the org
-        class_path: cumulusci.tasks.salesforce.Deploy
-        options:
-            path: src
-        group: Salesforce Metadata
-    deploy_pre:
-        description: Deploys all metadata bundles under unpackaged/pre/
-        class_path: cumulusci.tasks.salesforce.DeployBundles
-        options:
-            path: unpackaged/pre
-        group: Salesforce Metadata
-    deploy_post:
-        description: Deploys all metadata bundles under unpackaged/post/
-        class_path: cumulusci.tasks.salesforce.DeployBundles
-        options:
-            path: unpackaged/post
-        group: Salesforce Metadata
-    deploy_qa_config:
-        description: Deploys configuration for QA.
-        class_path: cumulusci.tasks.salesforce.Deploy
-        options:
-            path: unpackaged/config/qa
-        group: Salesforce Metadata
-    dx:
-        description: Execute an arbitrary Salesforce DX command against an org. Use the 'command' option to specify the command, such as 'force:package:install'
-        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
-        group: Salesforce DX
-    dx_convert_to:
-        description: Converts src directory metadata format into sfdx format under force-app
-        class_path: cumulusci.tasks.sfdx.SFDXBaseTask
-        options:
-            command: 'force:mdapi:convert -r src'
-        group: Salesforce DX
-    dx_convert_from:
-        description: Converts force-app directory in sfdx format into metadata format under src
-        class_path: cumulusci.tasks.sfdx.SFDXBaseTask
-        options:
-            command: 'force:source:convert -d src'
-        group: Salesforce DX
-    dx_pull:
-        description: Uses sfdx to pull from a scratch org into the force-app directory
-        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
-        options:
-            command: 'force:source:pull'
-        group: Salesforce DX
-    dx_push:
-        description: Uses sfdx to push the force-app directory metadata into a scratch org
-        class_path: cumulusci.tasks.sfdx.SFDXOrgTask
-        options:
-            command: 'force:source:push'
-        group: Salesforce DX
-    ensure_record_types:
-        description: Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
-        class_path: cumulusci.tasks.salesforce.EnsureRecordTypes
-        options:
-            record_type_label: Default
-            record_type_developer_name: Default
-        group: 'Salesforce Metadata'
-    execute_anon:
-        description: Execute anonymous apex via the tooling api.
-        class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
-        group: Salesforce
-    generate_data_dictionary:
-        description: Create a data dictionary for the project in CSV format.
-        class_path: cumulusci.tasks.datadictionary.GenerateDataDictionary
-        options:
-            release_prefix: $project_config.project__git__prefix_release
-    generate_and_load_from_yaml:
-        class_path: cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml
-        group: Data Operations
-    get_installed_packages:
-        description: Retrieves a list of the currently installed managed package namespaces and their versions
-        class_path: cumulusci.tasks.preflight.packages.GetInstalledPackages
-        group: Salesforce Preflight Checks
-    get_available_licenses:
-        description: Retrieves a list of the currently available license definition keys
-        class_path: cumulusci.tasks.preflight.licenses.GetAvailableLicenses
-        group: Salesforce Preflight Checks
-    get_available_permission_set_licenses:
-        description: Retrieves a list of the currently available Permission Set License definition keys
-        class_path: cumulusci.tasks.preflight.licenses.GetAvailablePermissionSetLicenses
-        group: Salesforce Preflight Checks
-    get_assigned_permission_sets:
-        description: Retrieves a list of the names of any permission sets assigned to the running user.
-        class_path: cumulusci.tasks.preflight.permsets.GetPermissionSetAssignments
-        group: Salesforce Preflight Checks
-    get_available_permission_sets:
-        description: Retrieves a list of the currently available Permission Sets
-        class_path: cumulusci.tasks.preflight.licenses.GetAvailablePermissionSets
-        group: Salesforce Preflight Checks
-    get_existing_record_types:
-        description: "Retrieves all Record Types in the org as a dict, with sObject names as keys and lists of Developer Names as values."
-        class_path: cumulusci.tasks.preflight.recordtypes.CheckSObjectRecordTypes
-        group: Salesforce Preflight Checks
-    github_parent_pr_notes:
-        description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
-        class_path: cumulusci.tasks.release_notes.task.ParentPullRequestNotes
-        group: GitHub
-    github_clone_tag:
-        description: Clones a github tag under a new name.
-        class_path: cumulusci.tasks.github.CloneTag
-        group: GitHub
-    github_automerge_main:
-        description: Merges the latest commit on the main branch into all open feature branches
-        class_path: cumulusci.tasks.github.MergeBranch
-        group: GitHub
-    github_automerge_feature:
-        description: Merges the latest commit on a source branch to all child branches.
-        class_path: cumulusci.tasks.github.MergeBranch
-        options:
-            source_branch: $project_config.repo_branch
-        group: GitHub
-    github_copy_subtree:
-        description: Copies one or more subtrees from the project repository for a given release to a target repository, with the option to include release notes.
-        class_path: cumulusci.tasks.github.publish.PublishSubtree
-        group: GitHub
-    github_package_data:
-        description: Look up 2gp package dependencies for a version id recorded in a commit status.
-        class_path: cumulusci.tasks.github.commit_status.GetPackageDataFromCommitStatus
-        group: GitHub
-    github_pull_requests:
-        description: Lists open pull requests in project Github repository
-        class_path: cumulusci.tasks.github.PullRequests
-        group: GitHub
-    github_release:
-        description: Creates a Github release for a given managed package version number
-        class_path: cumulusci.tasks.github.CreateRelease
-        group: GitHub
-    github_release_notes:
-        description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
-        class_path: cumulusci.tasks.release_notes.task.GithubReleaseNotes
-        group: GitHub
-    github_release_report:
-        description: Parses GitHub release notes to report various info
-        class_path: cumulusci.tasks.github.ReleaseReport
-        group: GitHub
-    install_managed:
-        description: Install the latest managed production release
-        class_path: cumulusci.tasks.salesforce.InstallPackageVersion
-        options:
-            version: latest
-            activateRSS: True
-        group: Salesforce Packages
-    install_managed_beta:
-        description: Installs the latest managed beta release
-        class_path: cumulusci.tasks.salesforce.InstallPackageVersion
-        options:
-            version: latest_beta
-            activateRSS: True
-        group: Salesforce Packages
-    list_communities:
-        description: Lists Communities for the current org using the Connect API.
-        class_path: cumulusci.tasks.salesforce.ListCommunities
-        group: Salesforce Communities
-    list_community_templates:
-        description: Prints the Community Templates available to the current org
-        class_path: cumulusci.tasks.salesforce.ListCommunityTemplates
-        group: Salesforce Communities
-    list_metadata_types:
-        description: Prints the metadata types in a project
-        class_path: cumulusci.tasks.util.ListMetadataTypes
-        group: Salesforce Metadata
-    meta_xml_apiversion:
-        description: Set the API version in ``*meta.xml`` files
-        class_path: cumulusci.tasks.metaxml.UpdateApi
-        group: Salesforce Metadata
-    meta_xml_dependencies:
-        description: Set the version for dependent packages
-        class_path: cumulusci.tasks.metaxml.UpdateDependencies
-        group: Salesforce Metadata
-    metadeploy_publish:
-        description: Publish a release to the MetaDeploy web installer
-        class_path: cumulusci.tasks.metadeploy.Publish
-        group: Release Operations
-    org_settings:
-        description: Apply org settings from a scratch org definition file or dict
-        class_path: cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
-        group: Salesforce DX
-    publish_community:
-        description: Publishes a Community in the target org using the Connect API
-        class_path: cumulusci.tasks.salesforce.PublishCommunity
-        group: Salesforce Communities
-    push_all:
-        description: Schedules a push upgrade of a package version to all subscribers
-        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
-        group: Push Upgrades
-    push_list:
-        description: Schedules a push upgrade of a package version to all orgs listed in the specified file
-        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
-        group: Push Upgrades
-    push_qa:
-        description: Schedules a push upgrade of a package version to all orgs listed in push/orgs_qa.txt
-        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
-        options:
-            orgs: push/orgs_qa.txt
-        group: Push Upgrades
-    push_sandbox:
-        description: Schedules a push upgrade of a package version to all subscribers
-        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
-        options:
-            subscriber_where: "OrgType = 'Sandbox'"
-        group: Push Upgrades
-    push_trial:
-        description: Schedules a push upgrade of a package version to Trialforce Template orgs listed in push/orgs_trial.txt
-        class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
-        options:
-            orgs: push/orgs_trial.txt
-        group: Push Upgrades
-    push_failure_report:
-        description: Produce a CSV report of the failed and otherwise anomalous push jobs.
-        class_path: cumulusci.tasks.push.pushfails.ReportPushFailures
-        options:
-            ignore_errors:
-              - "Salesforce Subscription Expired"
-              - "Package Uninstalled"
-        group: Push Upgrades
-    query:
-        description: Queries the connected org
-        class_path: cumulusci.tasks.salesforce.SOQLQuery
-        group: Salesforce Bulk API
-    retrieve_packaged:
-        description: Retrieves the packaged metadata from the org
-        class_path: cumulusci.tasks.salesforce.RetrievePackaged
-        options:
-            path: packaged
-        group: Salesforce Metadata
-    retrieve_src:
-        description: Retrieves the packaged metadata into the src directory
-        class_path: cumulusci.tasks.salesforce.RetrievePackaged
-        options:
-            path: src
-        group: Salesforce Metadata
-    retrieve_unpackaged:
-        description: Retrieve the contents of a package.xml file.
-        class_path: cumulusci.tasks.salesforce.RetrieveUnpackaged
-    list_changes:
-        description: List the changes from a scratch org
-        class_path: cumulusci.tasks.salesforce.sourcetracking.ListChanges
-        group: Salesforce Metadata
-    retrieve_changes:
-        description: Retrieve changed components from a scratch org
-        class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
-        group: Salesforce Metadata
-    retrieve_qa_config:
-        description: Retrieves the current changes in the scratch org into unpackaged/config/qa
-        class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
-        options:
-            path: unpackaged/config/qa
-            namespace_tokenize: $project_config.project__package__namespace
-        group: Salesforce Metadata
-    set_field_help_text:
-        group: Metadata Transformations
-        description: Sets specified fields' Help Text values.
-        class_path: cumulusci.tasks.metadata_etl.help_text.SetFieldHelpText
-        options:
-            namespace_inject: $project_config.project__package__namespace
-    snapshot_changes:
-        description: Tell SFDX source tracking to ignore previous changes in a scratch org
-        class_path: cumulusci.tasks.salesforce.sourcetracking.SnapshotChanges
-        group: Salesforce Metadata
-    revert_managed_src:
-        description: Reverts the changes from create_managed_src
-        class_path: cumulusci.tasks.metadata.managed_src.RevertManagedSrc
-        options:
-            path: src
-            revert_path: src.orig
-        group: Salesforce Metadata
-    revert_unmanaged_ee_src:
-        description: Reverts the changes from create_unmanaged_ee_src
-        class_path: cumulusci.tasks.metadata.ee_src.RevertUnmanagedEESrc
-        options:
-            path: src
-            revert_path: src.orig
-        group: Salesforce Metadata
-    robot:
-        description: Runs a Robot Framework test from a .robot file
-        class_path: cumulusci.tasks.robotframework.Robot
-        options:
-            suites: tests
-        group: Robot Framework
-    robot_libdoc:
-        description: Generates documentation for project keyword files
-        class_path: cumulusci.tasks.robotframework.RobotLibDoc
-        options:
-            output: Keywords.html
-            title: $project_config.project__package__name
-        group: Robot Framework
-    robot_lint:
-        description: Static analysis tool for robot framework files
-        class_path: cumulusci.tasks.robotframework.RobotLint
-        group: Robot Framework
-    robot_testdoc:
-        description: Generates html documentation of your Robot test suite and writes to tests/test_suite.
-        class_path: cumulusci.tasks.robotframework.RobotTestDoc
-        options:
-            path: tests
-            output: tests/test_suites.html
-        group: Robot Framework
-    run_tests:
-        description: Runs all apex tests
-        class_path: cumulusci.tasks.apex.testrunner.RunApexTests
-        group: Salesforce
-    set_duplicate_rule_status:
-        group: Metadata Transformations
-        description: Sets the active status of Duplicate Rules.
-        class_path: cumulusci.tasks.metadata_etl.SetDuplicateRuleStatus
-        options:
-            namespace_inject: $project_config.project__package__namespace
-    set_organization_wide_defaults:
-        group: Metadata Transformations
-        description: Sets the Organization-Wide Defaults for specific sObjects, and waits for sharing recalculation to complete.
-        class_path: cumulusci.tasks.metadata_etl.SetOrgWideDefaults
-        options:
-            namespace_inject: $project_config.project__package__namespace
-    uninstall_managed:
-        description: Uninstalls the managed version of the package
-        class_path: cumulusci.tasks.salesforce.UninstallPackage
-        group: Salesforce Packages
-    uninstall_packaged:
-        description: Uninstalls all deleteable metadata in the package in the target org
-        class_path: cumulusci.tasks.salesforce.UninstallPackaged
-        group: Salesforce Metadata
-    uninstall_packaged_incremental:
-        description: Deletes any metadata from the package in the target org not in the local workspace
-        class_path: cumulusci.tasks.salesforce.UninstallPackagedIncremental
-        group: Salesforce Metadata
-    uninstall_src:
-        description: Uninstalls all metadata in the local src directory
-        class_path: cumulusci.tasks.salesforce.UninstallLocal
-        options:
-            path: src
-        group: Salesforce Metadata
-    uninstall_pre:
-        description: Uninstalls the unpackaged/pre bundles
-        class_path: cumulusci.tasks.salesforce.UninstallLocalBundles
-        options:
-            path: unpackaged/pre
-        group: Salesforce Metadata
-    uninstall_post:
-        description: Uninstalls the unpackaged/post bundles
-        class_path: cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles
-        options:
-            path: unpackaged/post
-            filename_token: ___NAMESPACE___
-        group: Salesforce Metadata
-    unschedule_apex:
-        description: Unschedule all scheduled apex jobs (CronTriggers).
-        class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
-        options:
-            apex: 'for (CronTrigger t : [SELECT Id FROM CronTrigger]) { System.abortJob(t.Id); }'
-        group: Salesforce
-    update_admin_profile:
-        name: Update Admin Profile
-        description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
-        class_path: cumulusci.tasks.salesforce.ProfileGrantAllAccess
-        group: Salesforce Metadata
-    update_dependencies:
-        description: Installs all dependencies in project__dependencies into the target org
-        class_path: cumulusci.tasks.salesforce.UpdateDependencies
-        group: Salesforce Packages
-    update_metadata_first_child_text:
-        group: Metadata Transformations
-        description: Updates the text of the first child of Metadata with matching tag.  Adds a child for tag if it does not exist.
-        class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
-        options:
-            namespace_inject: $project_config.project__package__namespace
-    update_package_xml:
-        description: Updates src/package.xml with metadata in src/
-        class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
-        options:
-            path: src
-        group: Salesforce Metadata
-    upload_beta:
-        description: Uploads a beta release of the metadata currently in the packaging org
-        class_path: cumulusci.tasks.salesforce.PackageUpload
-        group: Release Operations
-    upload_production:
-        description: Uploads a production release of the metadata currently in the packaging org
-        class_path: cumulusci.tasks.salesforce.PackageUpload
-        options:
-            name: Release
-            production: True
-        group: Release Operations
-    upload_user_profile_photo:
-        group: Salesforce Users
-        description: Uploads a profile photo for a specified or default User.
-        class_path: cumulusci.tasks.salesforce.users.photos.UploadProfilePhoto
-    util_sleep:
-        description: Sleeps for N seconds
-        class_path: cumulusci.tasks.util.Sleep
-        options:
-            seconds: 5
-        group: Utilities
-    log:
-        description: Log a line at the info level.
-        class_path: cumulusci.tasks.util.LogLine
-        options:
-            level: info
-        group: Utilities
-    generate_dataset_mapping:
-        description: Create a mapping for extracting data from an org.
-        class_path: cumulusci.tasks.bulkdata.GenerateMapping
-        options:
-            namespace_prefix: $project_config.project__package__namespace
-            path: 'datasets/mapping.yml'
-        group: 'Data Operations'
-    extract_dataset:
-        description: Extract a sample dataset using the bulk API.
-        class_path: cumulusci.tasks.bulkdata.ExtractData
-        options:
-            mapping: 'datasets/mapping.yml'
-            sql_path: 'datasets/sample.sql'
-        group: 'Data Operations'
-    load_dataset:
-        description: Load a sample dataset using the bulk API.
-        class_path: cumulusci.tasks.bulkdata.LoadData
-        options:
-            mapping: 'datasets/mapping.yml'
-            sql_path: 'datasets/sample.sql'
-        group: 'Data Operations'
-    load_custom_settings:
-        description: Load Custom Settings specified in a YAML file to the target org
-        class_path: cumulusci.tasks.salesforce.LoadCustomSettings
-        group: 'Data Operations'
-    remove_metadata_xml_elements:
-        description: Remove specified XML elements from one or more metadata files
-        class_path: cumulusci.tasks.metadata.modify.RemoveElementsXPath
-        group: Salesforce Metadata
-    disable_tdtm_trigger_handlers:
-        class_path: cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
-        description: "Disable specified TDTM trigger handlers"
-        group: NPSP/EDA
-        options:
-            active: False
-    restore_tdtm_trigger_handlers:
-        class_path: cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
-        description: "Restore status of TDTM trigger handlers"
-        group: NPSP/EDA
-        options:
-            restore: True
+  activate_flow:
+    group: Metadata Transformations
+    description: Activates Flows identified by a given list of Developer Names
+    class_path: cumulusci.tasks.salesforce.activate_flow.ActivateFlow
+  add_page_layout_related_lists:
+    group: Metadata Transformations
+    description: Adds specified Related List to one or more Page Layouts.
+    class_path: cumulusci.tasks.metadata_etl.AddRelatedLists
+    options:
+      namespace_inject: $project_config.project__package__namespace
+  add_standard_value_set_entries:
+    group: Metadata Transformations
+    description: Adds specified picklist entries to a Standard Value Set.
+    class_path: cumulusci.tasks.metadata_etl.AddValueSetEntries
+    options:
+      namespace_inject: $project_config.project__package__namespace
+  add_picklist_entries:
+    group: Metadata Transformations
+    description: Adds specified picklist entries to a custom picklist field.
+    class_path: cumulusci.tasks.metadata_etl.picklists.AddPicklistEntries
+    options:
+      namespace_inject: $project_config.project__package__namespace
+  add_fields_to_field_set:
+    group: Metadata Transformations
+    description: Adds specified fields to a given field set.
+    class_path: cumulusci.tasks.metadata_etl.field_sets.AddFieldsToFieldSet
+  add_permission_set_perms:
+    group: Metadata Transformations
+    description: Adds specified Apex class access and Field-Level Security to a Permission Set.
+    class_path: cumulusci.tasks.metadata_etl.AddPermissionSetPermissions
+    options:
+      namespace_inject: $project_config.project__package__namespace
+  assign_compact_layout:
+    group: Metadata Transformations
+    description: "Assigns the Compact Layout specified in the 'value' option to the Custom Objects in 'api_names' option."
+    class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+    options:
+      namespace_inject: $project_config.project__package__namespace
+      metadata_type: CustomObject
+      tag: compactLayoutAssignment
+  assign_permission_sets:
+    group: Salesforce Users
+    description: "Assigns specified Permission Sets to the current user, if not already assigned."
+    class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSets
+  assign_permission_set_groups:
+    group: Salesforce Users
+    description: "Assigns specified Permission Set Groups to the current user, if not already assigned."
+    class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSetGroups
+  assign_permission_set_licenses:
+    group: Salesforce Users
+    description: "Assigns specified Permission Set Licenses to the current user, if not already assigned."
+    class_path: cumulusci.tasks.salesforce.users.permsets.AssignPermissionSetLicenses
+  batch_apex_wait:
+    description: Waits on a batch apex or queueable apex job to finish.
+    class_path: cumulusci.tasks.apex.batch.BatchApexWait
+    group: Salesforce
+  check_my_domain_active:
+    description: Runs as a preflight check to determine whether My Domain is active.
+    class_path: cumulusci.tasks.preflight.settings.CheckMyDomainActive
+    group: Salesforce Preflight Checks
+  check_sobjects_available:
+    description: Runs as a preflight check to determine whether specific sObjects are available.
+    class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectsAvailable
+    group: Salesforce Preflight Checks
+  check_sobject_permissions:
+    description: Runs as a preflight check to determine whether specific sObjects are permissioned as desired (options are required).
+    class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectPerms
+    group: Salesforce Preflight Checks
+  check_advanced_currency_management:
+    description: Runs as a preflight check to determine whether Advanced Currency Management is active (True result means the feature is active).
+    class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectPerms
+    group: Salesforce Preflight Checks
+    options:
+      permissions:
+        DatedConversionRate:
+          createable: True
+  check_org_wide_defaults:
+    description: Runs as a preflight check to validate Organization-Wide Defaults.
+    class_path: cumulusci.tasks.preflight.sobjects.CheckSObjectOWDs
+    group: Salesforce Preflight Checks
+  check_org_settings_value:
+    description: Runs as a preflight check to validate organization settings.
+    class_path: cumulusci.tasks.preflight.settings.CheckSettingsValue
+    group: Salesforce Preflight Checks
+  check_chatter_enabled:
+    description: Runs as a preflight check to validate Chatter is enabled.
+    class_path: cumulusci.tasks.preflight.settings.CheckSettingsValue
+    group: Salesforce Preflight Checks
+    options:
+      settings_type: ChatterSettings
+      settings_field: IsChatterEnabled
+      value: True
+  check_enhanced_notes_enabled:
+    description: Preflight check to validate that Enhanced Notes are enabled.
+    group: Salesforce Preflight Checks
+    class_path: cumulusci.tasks.preflight.settings.CheckSettingsValue
+    options:
+      settings_type: EnhancedNotesSettings
+      settings_field: IsEnhancedNotesEnabled
+      value: True
+  custom_settings_value_wait:
+    description: Waits for a specific field value on the specified custom settings object and field
+    class_path: cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
+    group: Salesforce
+  command:
+    description: Run an arbitrary command
+    class_path: cumulusci.tasks.command.Command
+    group: Utilities
+  composite_request:
+    description: Execute a series of REST API requests in a single call
+    class_path: cumulusci.tasks.salesforce.composite.CompositeApi
+    group: Data Operations
+  connected_app:
+    description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
+    class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
+    group: Setup
+    options:
+      label: CumulusCI
+      connect: True
+      overwrite: False
+  create_community:
+    description: Creates a Community in the target org using the Connect API
+    class_path: cumulusci.tasks.salesforce.CreateCommunity
+    group: Salesforce Communities
+  create_network_members:
+    description: Creates NetworkMemberGroup records which grant access to an Experience Site (Community) for specified Profiles or Permission Sets
+    class_path: cumulusci.tasks.salesforce.network_member_group.CreateNetworkMemberGroups
+    group: Salesforce Communities
+  insert_record:
+    description: Inserts a record of any sObject using the REST API
+    class_path: cumulusci.tasks.salesforce.insert_record.InsertRecord
+    group: Data Operations
+  create_package:
+    description: Creates a package in the target org with the default package name for the project
+    class_path: cumulusci.tasks.salesforce.CreatePackage
+    group: Salesforce Packages
+  create_package_version:
+    description: Uploads a 2nd-generation package (2GP) version
+    class_path: cumulusci.tasks.package_2gp.CreatePackageVersion
+    group: Salesforce Packages
+  create_managed_src:
+    description: Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
+    class_path: cumulusci.tasks.metadata.managed_src.CreateManagedSrc
+    options:
+      path: src
+      revert_path: src.orig
+    group: Salesforce Metadata
+  create_permission_set:
+    group: Metadata Transformations
+    description: Creates a Permission Set with specified User Permissions and assigns it to the running user.
+    class_path: cumulusci.tasks.salesforce.create_permission_sets.CreatePermissionSet
+  create_bulk_data_permission_set:
+    group: Data Operations
+    description: "Creates a Permission Set with the Hard Delete and Set Audit Fields user permissions. NOTE: the org setting to allow Set Audit Fields must be turned on."
+    class_path: cumulusci.tasks.salesforce.create_permission_sets.CreatePermissionSet
+    options:
+      api_name: CumulusCI_Bulk_Data
+      label: CumulusCI Bulk Data
+      user_permissions:
+        - PermissionsBulkApiHardDelete
+        - PermissionsCreateAuditFields
+  create_unmanaged_ee_src:
+    description: Modifies the src directory for unmanaged deployment to an EE org
+    class_path: cumulusci.tasks.metadata.ee_src.CreateUnmanagedEESrc
+    options:
+      path: src
+      revert_path: src.orig
+    group: Salesforce Metadata
+  delete_data:
+    description: Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
+    class_path: cumulusci.tasks.bulkdata.DeleteData
+    group: Data Operations
+  deploy:
+    description: Deploys the src directory of the repository to the org
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: src
+    group: Salesforce Metadata
+  deploy_pre:
+    description: Deploys all metadata bundles under unpackaged/pre/
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/pre
+    group: Salesforce Metadata
+  deploy_post:
+    description: Deploys all metadata bundles under unpackaged/post/
+    class_path: cumulusci.tasks.salesforce.DeployBundles
+    options:
+      path: unpackaged/post
+    group: Salesforce Metadata
+  deploy_qa_config:
+    description: Deploys configuration for QA.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/config/qa
+    group: Salesforce Metadata
+  dx:
+    description: Execute an arbitrary Salesforce DX command against an org. Use the 'command' option to specify the command, such as 'force:package:install'
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    group: Salesforce DX
+  dx_convert_to:
+    description: Converts src directory metadata format into sfdx format under force-app
+    class_path: cumulusci.tasks.sfdx.SFDXBaseTask
+    options:
+      command: "force:mdapi:convert -r src"
+    group: Salesforce DX
+  dx_convert_from:
+    description: Converts force-app directory in sfdx format into metadata format under src
+    class_path: cumulusci.tasks.sfdx.SFDXBaseTask
+    options:
+      command: "force:source:convert -d src"
+    group: Salesforce DX
+  dx_pull:
+    description: Uses sfdx to pull from a scratch org into the force-app directory
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "force:source:pull"
+    group: Salesforce DX
+  dx_push:
+    description: Uses sfdx to push the force-app directory metadata into a scratch org
+    class_path: cumulusci.tasks.sfdx.SFDXOrgTask
+    options:
+      command: "force:source:push"
+    group: Salesforce DX
+  ensure_record_types:
+    description: Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
+    class_path: cumulusci.tasks.salesforce.EnsureRecordTypes
+    options:
+      record_type_label: Default
+      record_type_developer_name: Default
+    group: "Salesforce Metadata"
+  execute_anon:
+    description: Execute anonymous apex via the tooling api.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    group: Salesforce
+  generate_data_dictionary:
+    description: Create a data dictionary for the project in CSV format.
+    class_path: cumulusci.tasks.datadictionary.GenerateDataDictionary
+    options:
+      release_prefix: $project_config.project__git__prefix_release
+  generate_and_load_from_yaml:
+    class_path: cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml
+    group: Data Operations
+  get_installed_packages:
+    description: Retrieves a list of the currently installed managed package namespaces and their versions
+    class_path: cumulusci.tasks.preflight.packages.GetInstalledPackages
+    group: Salesforce Preflight Checks
+  get_available_licenses:
+    description: Retrieves a list of the currently available license definition keys
+    class_path: cumulusci.tasks.preflight.licenses.GetAvailableLicenses
+    group: Salesforce Preflight Checks
+  get_available_permission_set_licenses:
+    description: Retrieves a list of the currently available Permission Set License definition keys
+    class_path: cumulusci.tasks.preflight.licenses.GetAvailablePermissionSetLicenses
+    group: Salesforce Preflight Checks
+  get_assigned_permission_sets:
+    description: Retrieves a list of the names of any permission sets assigned to the running user.
+    class_path: cumulusci.tasks.preflight.permsets.GetPermissionSetAssignments
+    group: Salesforce Preflight Checks
+  get_available_permission_sets:
+    description: Retrieves a list of the currently available Permission Sets
+    class_path: cumulusci.tasks.preflight.licenses.GetAvailablePermissionSets
+    group: Salesforce Preflight Checks
+  get_existing_record_types:
+    description: "Retrieves all Record Types in the org as a dict, with sObject names as keys and lists of Developer Names as values."
+    class_path: cumulusci.tasks.preflight.recordtypes.CheckSObjectRecordTypes
+    group: Salesforce Preflight Checks
+  github_parent_pr_notes:
+    description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
+    class_path: cumulusci.tasks.release_notes.task.ParentPullRequestNotes
+    group: GitHub
+  github_clone_tag:
+    description: Clones a github tag under a new name.
+    class_path: cumulusci.tasks.github.CloneTag
+    group: GitHub
+  github_automerge_main:
+    description: Merges the latest commit on the main branch into all open feature branches
+    class_path: cumulusci.tasks.github.MergeBranch
+    group: GitHub
+  github_automerge_feature:
+    description: Merges the latest commit on a source branch to all child branches.
+    class_path: cumulusci.tasks.github.MergeBranch
+    options:
+      source_branch: $project_config.repo_branch
+    group: GitHub
+  github_copy_subtree:
+    description: Copies one or more subtrees from the project repository for a given release to a target repository, with the option to include release notes.
+    class_path: cumulusci.tasks.github.publish.PublishSubtree
+    group: GitHub
+  github_package_data:
+    description: Look up 2gp package dependencies for a version id recorded in a commit status.
+    class_path: cumulusci.tasks.github.commit_status.GetPackageDataFromCommitStatus
+    group: GitHub
+  github_pull_requests:
+    description: Lists open pull requests in project Github repository
+    class_path: cumulusci.tasks.github.PullRequests
+    group: GitHub
+  github_release:
+    description: Creates a Github release for a given managed package version number
+    class_path: cumulusci.tasks.github.CreateRelease
+    group: GitHub
+  github_release_notes:
+    description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
+    class_path: cumulusci.tasks.release_notes.task.GithubReleaseNotes
+    group: GitHub
+  github_release_report:
+    description: Parses GitHub release notes to report various info
+    class_path: cumulusci.tasks.github.ReleaseReport
+    group: GitHub
+  install_managed:
+    description: Install the latest managed production release
+    class_path: cumulusci.tasks.salesforce.InstallPackageVersion
+    options:
+      version: latest
+      activateRSS: True
+    group: Salesforce Packages
+  install_managed_beta:
+    description: Installs the latest managed beta release
+    class_path: cumulusci.tasks.salesforce.InstallPackageVersion
+    options:
+      version: latest_beta
+      activateRSS: True
+    group: Salesforce Packages
+  list_communities:
+    description: Lists Communities for the current org using the Connect API.
+    class_path: cumulusci.tasks.salesforce.ListCommunities
+    group: Salesforce Communities
+  list_community_templates:
+    description: Prints the Community Templates available to the current org
+    class_path: cumulusci.tasks.salesforce.ListCommunityTemplates
+    group: Salesforce Communities
+  list_metadata_types:
+    description: Prints the metadata types in a project
+    class_path: cumulusci.tasks.util.ListMetadataTypes
+    group: Salesforce Metadata
+  meta_xml_apiversion:
+    description: Set the API version in ``*meta.xml`` files
+    class_path: cumulusci.tasks.metaxml.UpdateApi
+    group: Salesforce Metadata
+  meta_xml_dependencies:
+    description: Set the version for dependent packages
+    class_path: cumulusci.tasks.metaxml.UpdateDependencies
+    group: Salesforce Metadata
+  metadeploy_publish:
+    description: Publish a release to the MetaDeploy web installer
+    class_path: cumulusci.tasks.metadeploy.Publish
+    group: Release Operations
+  org_settings:
+    description: Apply org settings from a scratch org definition file or dict
+    class_path: cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
+    group: Salesforce DX
+  publish_community:
+    description: Publishes a Community in the target org using the Connect API
+    class_path: cumulusci.tasks.salesforce.PublishCommunity
+    group: Salesforce Communities
+  push_all:
+    description: Schedules a push upgrade of a package version to all subscribers
+    class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
+    group: Push Upgrades
+  push_list:
+    description: Schedules a push upgrade of a package version to all orgs listed in the specified file
+    class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
+    group: Push Upgrades
+  push_qa:
+    description: Schedules a push upgrade of a package version to all orgs listed in push/orgs_qa.txt
+    class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
+    options:
+      orgs: push/orgs_qa.txt
+    group: Push Upgrades
+  push_sandbox:
+    description: Schedules a push upgrade of a package version to all subscribers
+    class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
+    options:
+      subscriber_where: "OrgType = 'Sandbox'"
+    group: Push Upgrades
+  push_trial:
+    description: Schedules a push upgrade of a package version to Trialforce Template orgs listed in push/orgs_trial.txt
+    class_path: cumulusci.tasks.push.tasks.SchedulePushOrgList
+    options:
+      orgs: push/orgs_trial.txt
+    group: Push Upgrades
+  push_failure_report:
+    description: Produce a CSV report of the failed and otherwise anomalous push jobs.
+    class_path: cumulusci.tasks.push.pushfails.ReportPushFailures
+    options:
+      ignore_errors:
+        - "Salesforce Subscription Expired"
+        - "Package Uninstalled"
+    group: Push Upgrades
+  query:
+    description: Queries the connected org
+    class_path: cumulusci.tasks.salesforce.SOQLQuery
+    group: Salesforce Bulk API
+  retrieve_packaged:
+    description: Retrieves the packaged metadata from the org
+    class_path: cumulusci.tasks.salesforce.RetrievePackaged
+    options:
+      path: packaged
+    group: Salesforce Metadata
+  retrieve_src:
+    description: Retrieves the packaged metadata into the src directory
+    class_path: cumulusci.tasks.salesforce.RetrievePackaged
+    options:
+      path: src
+    group: Salesforce Metadata
+  retrieve_unpackaged:
+    description: Retrieve the contents of a package.xml file.
+    class_path: cumulusci.tasks.salesforce.RetrieveUnpackaged
+  list_changes:
+    description: List the changes from a scratch org
+    class_path: cumulusci.tasks.salesforce.sourcetracking.ListChanges
+    group: Salesforce Metadata
+  retrieve_changes:
+    description: Retrieve changed components from a scratch org
+    class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+    group: Salesforce Metadata
+  retrieve_qa_config:
+    description: Retrieves the current changes in the scratch org into unpackaged/config/qa
+    class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+    options:
+      path: unpackaged/config/qa
+      namespace_tokenize: $project_config.project__package__namespace
+    group: Salesforce Metadata
+  set_field_help_text:
+    group: Metadata Transformations
+    description: Sets specified fields' Help Text values.
+    class_path: cumulusci.tasks.metadata_etl.help_text.SetFieldHelpText
+    options:
+      namespace_inject: $project_config.project__package__namespace
+  snapshot_changes:
+    description: Tell SFDX source tracking to ignore previous changes in a scratch org
+    class_path: cumulusci.tasks.salesforce.sourcetracking.SnapshotChanges
+    group: Salesforce Metadata
+  revert_managed_src:
+    description: Reverts the changes from create_managed_src
+    class_path: cumulusci.tasks.metadata.managed_src.RevertManagedSrc
+    options:
+      path: src
+      revert_path: src.orig
+    group: Salesforce Metadata
+  revert_unmanaged_ee_src:
+    description: Reverts the changes from create_unmanaged_ee_src
+    class_path: cumulusci.tasks.metadata.ee_src.RevertUnmanagedEESrc
+    options:
+      path: src
+      revert_path: src.orig
+    group: Salesforce Metadata
+  robot:
+    description: Runs a Robot Framework test from a .robot file
+    class_path: cumulusci.tasks.robotframework.Robot
+    options:
+      suites: tests
+    group: Robot Framework
+  robot_libdoc:
+    description: Generates documentation for project keyword files
+    class_path: cumulusci.tasks.robotframework.RobotLibDoc
+    options:
+      output: Keywords.html
+      title: $project_config.project__package__name
+    group: Robot Framework
+  robot_lint:
+    description: Static analysis tool for robot framework files
+    class_path: cumulusci.tasks.robotframework.RobotLint
+    group: Robot Framework
+  robot_testdoc:
+    description: Generates html documentation of your Robot test suite and writes to tests/test_suite.
+    class_path: cumulusci.tasks.robotframework.RobotTestDoc
+    options:
+      path: tests
+      output: tests/test_suites.html
+    group: Robot Framework
+  run_tests:
+    description: Runs all apex tests
+    class_path: cumulusci.tasks.apex.testrunner.RunApexTests
+    group: Salesforce
+  set_duplicate_rule_status:
+    group: Metadata Transformations
+    description: Sets the active status of Duplicate Rules.
+    class_path: cumulusci.tasks.metadata_etl.SetDuplicateRuleStatus
+    options:
+      namespace_inject: $project_config.project__package__namespace
+  set_organization_wide_defaults:
+    group: Metadata Transformations
+    description: Sets the Organization-Wide Defaults for specific sObjects, and waits for sharing recalculation to complete.
+    class_path: cumulusci.tasks.metadata_etl.SetOrgWideDefaults
+    options:
+      namespace_inject: $project_config.project__package__namespace
+  uninstall_managed:
+    description: Uninstalls the managed version of the package
+    class_path: cumulusci.tasks.salesforce.UninstallPackage
+    group: Salesforce Packages
+  uninstall_packaged:
+    description: Uninstalls all deleteable metadata in the package in the target org
+    class_path: cumulusci.tasks.salesforce.UninstallPackaged
+    group: Salesforce Metadata
+  uninstall_packaged_incremental:
+    description: Deletes any metadata from the package in the target org not in the local workspace
+    class_path: cumulusci.tasks.salesforce.UninstallPackagedIncremental
+    group: Salesforce Metadata
+  uninstall_src:
+    description: Uninstalls all metadata in the local src directory
+    class_path: cumulusci.tasks.salesforce.UninstallLocal
+    options:
+      path: src
+    group: Salesforce Metadata
+  uninstall_pre:
+    description: Uninstalls the unpackaged/pre bundles
+    class_path: cumulusci.tasks.salesforce.UninstallLocalBundles
+    options:
+      path: unpackaged/pre
+    group: Salesforce Metadata
+  uninstall_post:
+    description: Uninstalls the unpackaged/post bundles
+    class_path: cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles
+    options:
+      path: unpackaged/post
+      filename_token: ___NAMESPACE___
+    group: Salesforce Metadata
+  unschedule_apex:
+    description: Unschedule all scheduled apex jobs (CronTriggers).
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      apex: "for (CronTrigger t : [SELECT Id FROM CronTrigger]) { System.abortJob(t.Id); }"
+    group: Salesforce
+  update_admin_profile:
+    name: Update Admin Profile
+    description: Retrieves, edits, and redeploys the Admin.profile with full FLS perms for all objects/fields
+    class_path: cumulusci.tasks.salesforce.ProfileGrantAllAccess
+    group: Salesforce Metadata
+  update_dependencies:
+    description: Installs all dependencies in project__dependencies into the target org
+    class_path: cumulusci.tasks.salesforce.UpdateDependencies
+    group: Salesforce Packages
+  update_metadata_first_child_text:
+    group: Metadata Transformations
+    description: Updates the text of the first child of Metadata with matching tag.  Adds a child for tag if it does not exist.
+    class_path: cumulusci.tasks.metadata_etl.UpdateMetadataFirstChildTextTask
+    options:
+      namespace_inject: $project_config.project__package__namespace
+  update_package_xml:
+    description: Updates src/package.xml with metadata in src/
+    class_path: cumulusci.tasks.metadata.package.UpdatePackageXml
+    options:
+      path: src
+    group: Salesforce Metadata
+  upload_beta:
+    description: Uploads a beta release of the metadata currently in the packaging org
+    class_path: cumulusci.tasks.salesforce.PackageUpload
+    group: Release Operations
+  upload_production:
+    description: Uploads a production release of the metadata currently in the packaging org
+    class_path: cumulusci.tasks.salesforce.PackageUpload
+    options:
+      name: Release
+      production: True
+    group: Release Operations
+  upload_user_profile_photo:
+    group: Salesforce Users
+    description: Uploads a profile photo for a specified or default User.
+    class_path: cumulusci.tasks.salesforce.users.photos.UploadProfilePhoto
+  util_sleep:
+    description: Sleeps for N seconds
+    class_path: cumulusci.tasks.util.Sleep
+    options:
+      seconds: 5
+    group: Utilities
+  log:
+    description: Log a line at the info level.
+    class_path: cumulusci.tasks.util.LogLine
+    options:
+      level: info
+    group: Utilities
+  generate_dataset_mapping:
+    description: Create a mapping for extracting data from an org.
+    class_path: cumulusci.tasks.bulkdata.GenerateMapping
+    options:
+      namespace_prefix: $project_config.project__package__namespace
+      path: "datasets/mapping.yml"
+    group: "Data Operations"
+  extract_dataset:
+    description: Extract a sample dataset using the bulk API.
+    class_path: cumulusci.tasks.bulkdata.ExtractData
+    options:
+      mapping: "datasets/mapping.yml"
+      sql_path: "datasets/sample.sql"
+    group: "Data Operations"
+  load_dataset:
+    description: Load a sample dataset using the bulk API.
+    class_path: cumulusci.tasks.bulkdata.LoadData
+    options:
+      mapping: "datasets/mapping.yml"
+      sql_path: "datasets/sample.sql"
+    group: "Data Operations"
+  load_custom_settings:
+    description: Load Custom Settings specified in a YAML file to the target org
+    class_path: cumulusci.tasks.salesforce.LoadCustomSettings
+    group: "Data Operations"
+  remove_metadata_xml_elements:
+    description: Remove specified XML elements from one or more metadata files
+    class_path: cumulusci.tasks.metadata.modify.RemoveElementsXPath
+    group: Salesforce Metadata
+  disable_tdtm_trigger_handlers:
+    class_path: cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
+    description: "Disable specified TDTM trigger handlers"
+    group: NPSP/EDA
+    options:
+      active: False
+  restore_tdtm_trigger_handlers:
+    class_path: cumulusci.tasks.salesforce.trigger_handlers.SetTDTMHandlerStatus
+    description: "Restore status of TDTM trigger handlers"
+    group: NPSP/EDA
+    options:
+      restore: True
 
 flows:
-    ci_beta:
-        group: Continuous Integration
-        description: Install the latest beta version and runs apex tests from the managed package
-        steps:
-            1:
-                flow: install_beta
-            2:
-                task: run_tests
+  ci_beta:
+    group: Continuous Integration
+    description: Install the latest beta version and runs apex tests from the managed package
+    steps:
+      1:
+        flow: install_beta
+      2:
+        task: run_tests
 
-    ci_feature:
-        group: Continuous Integration
-        description: Prepare an unmanaged metadata test org and run Apex tests. Intended for use against feature branch commits.
-        steps:
-            0.5:
-                task: github_parent_pr_notes
-                options:
-                    branch_name: $project_config.repo_branch
-                    build_notes_label: "Build Change Notes"
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                flow: deploy_unmanaged
-            3:
-                flow: config_apextest
-            4:
-                task: run_tests
-            5:
-                task: github_automerge_feature
-                when: project_config.repo_branch and project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
+  ci_feature:
+    group: Continuous Integration
+    description: Prepare an unmanaged metadata test org and run Apex tests. Intended for use against feature branch commits.
+    steps:
+      0.5:
+        task: github_parent_pr_notes
+        options:
+          branch_name: $project_config.repo_branch
+          build_notes_label: "Build Change Notes"
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        flow: deploy_unmanaged
+      3:
+        flow: config_apextest
+      4:
+        task: run_tests
+      5:
+        task: github_automerge_feature
+        when: project_config.repo_branch and project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
 
-    ci_feature_beta_deps:
-        group: Continuous Integration
-        description: This flow is deprecated. Please use ci_feature instead.
-        steps:
-            0.5:
-                task: github_parent_pr_notes
-                options:
-                    branch_name: $project_config.repo_branch
-                    build_notes_label: "Build Change Notes"
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                flow: deploy_unmanaged
-            3:
-                flow: config_apextest
-            4:
-                task: run_tests
-            5:
-                task: github_automerge_feature
-                when: project_config.repo_branch and project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
+  ci_feature_beta_deps:
+    group: Continuous Integration
+    description: This flow is deprecated. Please use ci_feature instead.
+    steps:
+      0.5:
+        task: github_parent_pr_notes
+        options:
+          branch_name: $project_config.repo_branch
+          build_notes_label: "Build Change Notes"
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        flow: deploy_unmanaged
+      3:
+        flow: config_apextest
+      4:
+        task: run_tests
+      5:
+        task: github_automerge_feature
+        when: project_config.repo_branch and project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
 
-    ci_feature_2gp:
-        group: Continuous Integration
-        description: Install as a managed 2gp package and run Apex tests. Intended for use after build_feature_test_package.
-        steps:
-            1:
-                flow: install_2gp_commit
-            2:
-                flow: config_apextest
-            3:
-                task: run_tests
+  ci_feature_2gp:
+    group: Continuous Integration
+    description: Install as a managed 2gp package and run Apex tests. Intended for use after build_feature_test_package.
+    steps:
+      1:
+        flow: install_2gp_commit
+      2:
+        flow: config_apextest
+      3:
+        task: run_tests
 
-    ci_master:
-        group: Continuous Integration
-        description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: False
-            2:
-                flow: deploy_packaging
-            3:
-                flow: config_packaging
+  ci_master:
+    group: Continuous Integration
+    description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: False
+      2:
+        flow: deploy_packaging
+      3:
+        flow: config_packaging
 
-    ci_release:
-        group: Continuous Integration
-        description: Install a production release version and runs tests from the managed package
-        steps:
-            1:
-                flow: install_prod
-            2:
-                task: run_tests
+  ci_release:
+    group: Continuous Integration
+    description: Install a production release version and runs tests from the managed package
+    steps:
+      1:
+        flow: install_prod
+      2:
+        task: run_tests
 
-    config_apextest:
-        group: Post-Install Configuration
-        description: Configure an org to run apex tests after package metadata is deployed
-        steps:
-            1:
-                task: deploy_post
-            2:
-                task: update_admin_profile
+  config_apextest:
+    group: Post-Install Configuration
+    description: Configure an org to run apex tests after package metadata is deployed
+    steps:
+      1:
+        task: deploy_post
+      2:
+        task: update_admin_profile
 
-    config_dev:
-        group: Post-Install Configuration
-        description: Configure an org for use as a dev org after package metadata is deployed
-        steps:
-            1:
-                task: deploy_post
-            2:
-                task: update_admin_profile
+  config_dev:
+    group: Post-Install Configuration
+    description: Configure an org for use as a dev org after package metadata is deployed
+    steps:
+      1:
+        task: deploy_post
+      2:
+        task: update_admin_profile
 
-    config_managed:
-        group: Post-Install Configuration
-        description: Configure an org for use after the managed package has been installed.
-        steps:
-            1:
-                task: deploy_post
-            2:
-                task: update_admin_profile
+  config_managed:
+    group: Post-Install Configuration
+    description: Configure an org for use after the managed package has been installed.
+    steps:
+      1:
+        task: deploy_post
+      2:
+        task: update_admin_profile
 
-    config_packaging:
-        group: Post-Install Configuration
-        description: Configure packaging org for upload after package metadata is deployed
-        steps:
-            1:
-                task: update_admin_profile
+  config_packaging:
+    group: Post-Install Configuration
+    description: Configure packaging org for upload after package metadata is deployed
+    steps:
+      1:
+        task: update_admin_profile
 
-    config_qa:
-        group: Post-Install Configuration
-        description: Configure an org for use as a QA org after package metadata is deployed
-        steps:
-            1:
-                task: deploy_post
-            2:
-                task: update_admin_profile
+  config_qa:
+    group: Post-Install Configuration
+    description: Configure an org for use as a QA org after package metadata is deployed
+    steps:
+      1:
+        task: deploy_post
+      2:
+        task: update_admin_profile
 
-    config_regression:
-        group: Post-Install Configuration
-        description: Configure an org for QA regression after the package is installed
-        steps:
-            1:
-                flow: config_managed
+  config_regression:
+    group: Post-Install Configuration
+    description: Configure an org for QA regression after the package is installed
+    steps:
+      1:
+        flow: config_managed
 
-    dependencies:
-        group: Dependency Management
-        description: Deploy dependencies to prepare the org environment for the package metadata
-        steps:
-            1:
-                task: update_dependencies
-            2:
-                task: deploy_pre
+  dependencies:
+    group: Dependency Management
+    description: Deploy dependencies to prepare the org environment for the package metadata
+    steps:
+      1:
+        task: update_dependencies
+      2:
+        task: deploy_pre
 
-    beta_dependencies:
-        group: Dependency Management
-        description: "This flow is deprecated. Please use the `dependencies` flow and set the `include_beta` option on the first task, `update_dependencies`. Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata"
-        steps:
-            1:
-                task: update_dependencies
-                options:
-                    include_beta: True
-            2:
-                task: deploy_pre
+  beta_dependencies:
+    group: Dependency Management
+    description: "This flow is deprecated. Please use the `dependencies` flow and set the `include_beta` option on the first task, `update_dependencies`. Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata"
+    steps:
+      1:
+        task: update_dependencies
+        options:
+          include_beta: True
+      2:
+        task: deploy_pre
 
-    deploy_unmanaged:
-        group: Deployment
-        description: Deploy the unmanaged metadata from the package
-        steps:
-            0:
-                task: dx_convert_from
-                when: project_config.project__source_format == "sfdx" and not org_config.scratch
-            1:
-                task: unschedule_apex
-            2:
-                task: update_package_xml
-                when: project_config.project__source_format != "sfdx" or not org_config.scratch
-            3:
-                task: deploy
-                when: project_config.project__source_format != "sfdx" or not org_config.scratch
-            3.1:
-                task: deploy
-                options:
-                    path: force-app
-                when: project_config.project__source_format == "sfdx" and org_config.scratch
-            4:
-                task: uninstall_packaged_incremental
-                when: project_config.project__source_format != "sfdx" or not org_config.scratch
-            5:
-                task: snapshot_changes
+  deploy_unmanaged:
+    group: Deployment
+    description: Deploy the unmanaged metadata from the package
+    steps:
+      0:
+        task: dx_convert_from
+        when: project_config.project__source_format == "sfdx" and not org_config.scratch
+      1:
+        task: unschedule_apex
+      2:
+        task: update_package_xml
+        when: project_config.project__source_format != "sfdx" or not org_config.scratch
+      3:
+        task: deploy
+        when: project_config.project__source_format != "sfdx" or not org_config.scratch
+      3.1:
+        task: deploy
+        options:
+          path: force-app
+        when: project_config.project__source_format == "sfdx" and org_config.scratch
+      4:
+        task: uninstall_packaged_incremental
+        when: project_config.project__source_format != "sfdx" or not org_config.scratch
+      5:
+        task: snapshot_changes
 
-    deploy_unmanaged_ee:
-        group: Deployment
-        description: Deploy the unmanaged metadata from the package to an Enterprise Edition org
-        steps:
-            0:
-                task: dx_convert_from
-                when: project_config.project__source_format == "sfdx"
-            1:
-                task: unschedule_apex
-            2:
-                task: update_package_xml
-            3:
-                task: create_unmanaged_ee_src
-            4:
-                task: deploy
-            5:
-                task: revert_unmanaged_ee_src
-            6:
-                task: uninstall_packaged_incremental
-                options:
-                    purge_on_delete: False
+  deploy_unmanaged_ee:
+    group: Deployment
+    description: Deploy the unmanaged metadata from the package to an Enterprise Edition org
+    steps:
+      0:
+        task: dx_convert_from
+        when: project_config.project__source_format == "sfdx"
+      1:
+        task: unschedule_apex
+      2:
+        task: update_package_xml
+      3:
+        task: create_unmanaged_ee_src
+      4:
+        task: deploy
+      5:
+        task: revert_unmanaged_ee_src
+      6:
+        task: uninstall_packaged_incremental
+        options:
+          purge_on_delete: False
 
-    deploy_packaging:
-        group: Deployment
-        description: Process and deploy the package metadata to the packaging org
-        steps:
-            0:
-                task: dx_convert_from
-                when: project_config.project__source_format == "sfdx"
-            1:
-                task: unschedule_apex
-            2:
-                task: create_managed_src
-            3:
-                task: update_package_xml
-                options:
-                    managed: True
-            4:
-                task: deploy
-            5:
-                task: revert_managed_src
-            6:
-                task: uninstall_packaged_incremental
+  deploy_packaging:
+    group: Deployment
+    description: Process and deploy the package metadata to the packaging org
+    steps:
+      0:
+        task: dx_convert_from
+        when: project_config.project__source_format == "sfdx"
+      1:
+        task: unschedule_apex
+      2:
+        task: create_managed_src
+      3:
+        task: update_package_xml
+        options:
+          managed: True
+      4:
+        task: deploy
+      5:
+        task: revert_managed_src
+      6:
+        task: uninstall_packaged_incremental
 
-    dev_org:
-        group: Org Setup
-        description: Set up an org as a development environment for unmanaged metadata
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                flow: deploy_unmanaged
-            3:
-                flow: config_dev
-            4:
-                task: snapshot_changes
+  dev_org:
+    group: Org Setup
+    description: Set up an org as a development environment for unmanaged metadata
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        flow: deploy_unmanaged
+      3:
+        flow: config_dev
+      4:
+        task: snapshot_changes
 
-    dev_org_beta_deps:
-        group: Org Setup
-        description: This flow is deprecated. Please use dev_org instead.
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                flow: deploy_unmanaged
-            3:
-                flow: config_dev
+  dev_org_beta_deps:
+    group: Org Setup
+    description: This flow is deprecated. Please use dev_org instead.
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        flow: deploy_unmanaged
+      3:
+        flow: config_dev
 
-    dev_org_namespaced:
-        group: Org Setup
-        description: Set up a namespaced scratch org as a development environment for unmanaged metadata
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                flow: deploy_unmanaged
-            3:
-                flow: config_dev
-            4:
-                task: snapshot_changes
+  dev_org_namespaced:
+    group: Org Setup
+    description: Set up a namespaced scratch org as a development environment for unmanaged metadata
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        flow: deploy_unmanaged
+      3:
+        flow: config_dev
+      4:
+        task: snapshot_changes
 
-    qa_org:
-        group: Org Setup
-        description: Set up an org as a QA environment for unmanaged metadata
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                flow: deploy_unmanaged
-            3:
-                flow: config_qa
-            4:
-                task: snapshot_changes
+  qa_org:
+    group: Org Setup
+    description: Set up an org as a QA environment for unmanaged metadata
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        flow: deploy_unmanaged
+      3:
+        flow: config_qa
+      4:
+        task: snapshot_changes
 
-    qa_org_2gp:
-        group: Org Setup
-        description: Set up an org as a QA environment using a second-generation package
-        steps:
-            1:
-                flow: install_2gp_commit
-            2:
-                flow: config_qa
-            3:
-                task: snapshot_changes
+  qa_org_2gp:
+    group: Org Setup
+    description: Set up an org as a QA environment using a second-generation package
+    steps:
+      1:
+        flow: install_2gp_commit
+      2:
+        flow: config_qa
+      3:
+        task: snapshot_changes
 
-    regression_org:
-        group: Org Setup
-        description: Simulates an org that has been upgraded from the latest release of to the current beta and its dependencies, but deploys any unmanaged metadata from the current beta.
-        steps:
-            1:
-                flow: install_regression
-            2:
-                flow: config_regression
-            3:
-                task: snapshot_changes
+  regression_org:
+    group: Org Setup
+    description: Simulates an org that has been upgraded from the latest release of to the current beta and its dependencies, but deploys any unmanaged metadata from the current beta.
+    steps:
+      1:
+        flow: install_regression
+      2:
+        flow: config_regression
+      3:
+        task: snapshot_changes
 
-    uninstall_managed:
-        group: Install / Uninstall
-        description: Uninstall the installed managed version of the package.  Run this before install_beta or install_prod if a version is already installed in the target org.
-        steps:
-            1:
-                task: uninstall_post
-            2:
-                task: uninstall_managed
+  uninstall_managed:
+    group: Install / Uninstall
+    description: Uninstall the installed managed version of the package.  Run this before install_beta or install_prod if a version is already installed in the target org.
+    steps:
+      1:
+        task: uninstall_post
+      2:
+        task: uninstall_managed
 
-    install_2gp_commit:
-        group: Install / Uninstall
-        description: Install the 2GP package for the current commit
-        steps:
-            1:
-                task: github_package_data
-                options:
-                    context: $project_config.project__git__2gp_context
-            2:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-                        dependencies: ^^github_package_data.dependencies
-                        prefer_2gp_from_release_branch: True
-            3:
-                task: install_managed
-                options:
-                    version: ^^github_package_data.version_id
+  install_2gp_commit:
+    group: Install / Uninstall
+    description: Install the 2GP package for the current commit
+    steps:
+      1:
+        task: github_package_data
+        options:
+          context: $project_config.project__git__2gp_context
+      2:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+            dependencies: ^^github_package_data.dependencies
+            prefer_2gp_from_release_branch: True
+      3:
+        task: install_managed
+        options:
+          version: ^^github_package_data.version_id
 
-    install_beta:
-        group: Org Setup
-        description: Install and configure the latest beta version
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                task: install_managed_beta
-            3:
-                flow: config_managed
-            4:
-                task: snapshot_changes
+  install_beta:
+    group: Org Setup
+    description: Install and configure the latest beta version
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        task: install_managed_beta
+      3:
+        flow: config_managed
+      4:
+        task: snapshot_changes
 
-    install_prod:
-        group: Org Setup
-        description: Install and configure the latest production version
-        steps:
-            1:
-                flow: dependencies
-            2:
-                task: install_managed
-            3:
-                flow: config_managed
-            4:
-                task: snapshot_changes
+  install_prod:
+    group: Org Setup
+    description: Install and configure the latest production version
+    steps:
+      1:
+        flow: dependencies
+      2:
+        task: install_managed
+      3:
+        flow: config_managed
+      4:
+        task: snapshot_changes
 
-    install_prod_no_config:
-        group: Install / Uninstall
-        description: Install but do not configure the latest production version
-        steps:
-            1:
-                flow: dependencies
-            2:
-                task: install_managed
-            3:
-                task: deploy_post
+  install_prod_no_config:
+    group: Install / Uninstall
+    description: Install but do not configure the latest production version
+    steps:
+      1:
+        flow: dependencies
+      2:
+        task: install_managed
+      3:
+        task: deploy_post
 
-    install_regression:
-        group: Install / Uninstall
-        description: Install the latest beta dependencies and upgrade to the latest beta version from the most recent production version
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        include_beta: True
-            2:
-                task: install_managed
-            3:
-                task: install_managed_beta
+  install_regression:
+    group: Install / Uninstall
+    description: Install the latest beta dependencies and upgrade to the latest beta version from the most recent production version
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            include_beta: True
+      2:
+        task: install_managed
+      3:
+        task: install_managed_beta
 
-    release_beta:
-        group: Release Operations
-        description: Upload and release a beta version of the metadata currently in packaging
-        steps:
-            1:
-                task: upload_beta
-                options:
-                    name: Automated beta release
-            2:
-                task: github_release
-                options:
-                    version: ^^upload_beta.version_number
-                    version_id: ^^upload_beta.version_id
-                    dependencies: ^^upload_beta.dependencies
-            3:
-                task: github_release_notes
-                ignore_failure: True  # Attempt to generate release notes but don't fail build
-                options:
-                    link_pr: True
-                    publish: True
-                    tag: ^^github_release.tag_name
-                    include_empty: True
-                    version_id: ^^upload_beta.version_id
-            4:
-                task: github_automerge_main
+  release_beta:
+    group: Release Operations
+    description: Upload and release a beta version of the metadata currently in packaging
+    steps:
+      1:
+        task: upload_beta
+        options:
+          name: Automated beta release
+      2:
+        task: github_release
+        options:
+          version: ^^upload_beta.version_number
+          version_id: ^^upload_beta.version_id
+          dependencies: ^^upload_beta.dependencies
+      3:
+        task: github_release_notes
+        ignore_failure: True # Attempt to generate release notes but don't fail build
+        options:
+          link_pr: True
+          publish: True
+          tag: ^^github_release.tag_name
+          include_empty: True
+          version_id: ^^upload_beta.version_id
+      4:
+        task: github_automerge_main
 
-    release_production:
-        group: Release Operations
-        description: Upload and release a production version of the metadata currently in packaging
-        steps:
-            1:
-                task: upload_production
-            2:
-                task: github_release
-                options:
-                    version: ^^upload_production.version_number
-                    version_id: ^^upload_production.version_id
-                    dependencies: ^^upload_production.dependencies
-            3:
-                task: github_release_notes
-                ignore_failure: True  # Attempt to generate release notes but don't fail build
-                options:
-                    publish: True
-                    tag: ^^github_release.tag_name
-                    version_id: ^^upload_production.version_id
+  release_production:
+    group: Release Operations
+    description: Upload and release a production version of the metadata currently in packaging
+    steps:
+      1:
+        task: upload_production
+      2:
+        task: github_release
+        options:
+          version: ^^upload_production.version_number
+          version_id: ^^upload_production.version_id
+          dependencies: ^^upload_production.dependencies
+      3:
+        task: github_release_notes
+        ignore_failure: True # Attempt to generate release notes but don't fail build
+        options:
+          publish: True
+          tag: ^^github_release.tag_name
+          version_id: ^^upload_production.version_id
 
-    build_feature_test_package:
-        group: Release Operations
-        description: Create a 2gp managed package version
-        steps:
-            1:
-                task: update_package_xml
-                when: project_config.project__source_format != "sfdx"
-            2:
-                task: create_package_version
-                options:
-                    package_type: Managed
-                    package_name: $project_config.project__package__name Managed Feature Test
-                    version_base: latest_github_release
-                    version_type: minor
-                    skip_validation: True
+  build_feature_test_package:
+    group: Release Operations
+    description: Create a 2gp managed package version
+    steps:
+      1:
+        task: update_package_xml
+        when: project_config.project__source_format != "sfdx"
+      2:
+        task: create_package_version
+        options:
+          package_type: Managed
+          package_name: $project_config.project__package__name Managed Feature Test
+          version_base: latest_github_release
+          version_type: minor
+          skip_validation: True
 
-    unmanaged_ee:
-        group: Deployment
-        description: Deploy the unmanaged package metadata and all dependencies to the target EE org
-        steps:
-            1:
-                flow: dependencies
-                options:
-                    update_dependencies:
-                        purge_on_delete: False
-            2:
-                flow: deploy_unmanaged_ee
+  unmanaged_ee:
+    group: Deployment
+    description: Deploy the unmanaged package metadata and all dependencies to the target EE org
+    steps:
+      1:
+        flow: dependencies
+        options:
+          update_dependencies:
+            purge_on_delete: False
+      2:
+        flow: deploy_unmanaged_ee
 
 services:
   connected_app:
@@ -1160,57 +1164,57 @@ services:
         required: True
 
 project:
+  name:
+  package:
     name:
-    package:
-        name:
-        name_managed:
-        namespace:
-        install_class:
-        uninstall_class:
-        api_version: '50.0'
-    git:
-        default_branch: master
-        prefix_feature: feature/
-        prefix_beta: beta/
-        prefix_release: release/
-        push_prefix_sandbox: 'Sandbox orgs: '
-        push_prefix_production: 'Production orgs: '
-        2gp_context: "Build Feature Test Package"
-        release_notes:
-            parsers:
-                1:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
-                    title: Critical Changes
-                2:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
-                    title: Changes
-                3:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubIssuesParser
-                    title: Issues Closed
-                4:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
-                    title: New Metadata
-                5:
-                    class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
-                    title: Deleted Metadata
-                6:
-                    class_path: cumulusci.tasks.release_notes.parser.InstallLinkParser
-                    title: Installation Info
-    test:
-        name_match: '%_TEST%'
-    dependencies:
+    name_managed:
+    namespace:
+    install_class:
+    uninstall_class:
+    api_version: "50.0"
+  git:
+    default_branch: master
+    prefix_feature: feature/
+    prefix_beta: beta/
+    prefix_release: release/
+    push_prefix_sandbox: "Sandbox orgs: "
+    push_prefix_production: "Production orgs: "
+    2gp_context: "Build Feature Test Package"
+    release_notes:
+      parsers:
+        1:
+          class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+          title: Critical Changes
+        2:
+          class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+          title: Changes
+        3:
+          class_path: cumulusci.tasks.release_notes.parser.GithubIssuesParser
+          title: Issues Closed
+        4:
+          class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+          title: New Metadata
+        5:
+          class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
+          title: Deleted Metadata
+        6:
+          class_path: cumulusci.tasks.release_notes.parser.InstallLinkParser
+          title: Installation Info
+  test:
+    name_match: "%_TEST%"
+  dependencies:
 
 orgs:
-    scratch:
-        dev:
-            config_file: orgs/dev.json
-            days: 7
-        qa:
-            config_file: orgs/dev.json
-            days: 7
-        feature:
-            config_file: orgs/feature.json
-        beta:
-            config_file: orgs/beta.json
-        release:
-            config_file: orgs/release.json
+  scratch:
+    dev:
+      config_file: orgs/dev.json
+      days: 7
+    qa:
+      config_file: orgs/dev.json
+      days: 7
+    feature:
+      config_file: orgs/feature.json
+    beta:
+      config_file: orgs/beta.json
+    release:
+      config_file: orgs/release.json
