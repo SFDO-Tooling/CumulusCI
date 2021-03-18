@@ -20,6 +20,11 @@ Changes:
       "IsReleased" state, making it available for installation in
       production orgs. (#2454)
 
+Snowfakery
+`1.7 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.7>`__:
+
+-  Adds support for Salesforce Person Accounts.
+
 Issues Closed:
 
 -  ``cci project init`` no longer overwrites existing files. If files
