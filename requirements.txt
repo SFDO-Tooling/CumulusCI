@@ -24,7 +24,7 @@ PyYAML==5.4.1
 requests==2.25.1
 requests-futures==1.0.0
 robotframework==3.2.2
-robotframework-pabot==1.10.1
+robotframework-pabot==1.11
 robotframework-requests==0.8.1
 robotframework-seleniumlibrary==4.5.0
 rst2ansi==0.1.5
