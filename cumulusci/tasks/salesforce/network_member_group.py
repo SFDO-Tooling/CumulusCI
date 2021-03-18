@@ -6,7 +6,7 @@ from cumulusci.core.utils import process_list_arg
 
 class CreateNetworkMemberGroups(BaseSalesforceApiTask):
     """
-    Creates NetworkMemberGroup for a Network for Profiles and Permission Sets
+    Creates NetworkMemberGroup for a Network (Experience Site) for Profiles and Permission Sets
     that don't already have a corresponding NetworkMemberGroup.
 
     Raises exceptions if records cannot be found:
@@ -59,8 +59,8 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
 
     def _get_network_member_group_parent_ids(self, network_id) -> set:
         """
-        Collect existing NetworkMemberGroup Parent IDs.  An excpetion is thrown
-        trying to create a NetworkMemberGroup for a parent who already has a
+        Collect existing NetworkMemberGroup Parent IDs (associated Profile or Permission Set ID).  
+        An excpetion is thrown trying to create a NetworkMemberGroup for a parent who already has a
         record.
         """
 
@@ -128,7 +128,7 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
             raise CumulusCIException(
                 f'No {sobject_type} record found with Name "{parent_name}"'
             )
-
+        # If the Profile/Permission set already exists for a NetworkMemberGroup - 
         if parent_id in self._parent_ids:
             self.logger.warn(f'        Already exists for "{parent_name}"')
         else:

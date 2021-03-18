@@ -11,46 +11,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
     Unit tests cumulusci.tasks.salesforce.network_member_group.CreateNetworkMemberGroups.
     """
 
-    def test_task_options(self):
-        self.assertTrue(CreateNetworkMemberGroups.task_options)
-
-        self.assertEqual(
-            set(["network_name", "profile_names", "permission_set_names"]),
-            CreateNetworkMemberGroups.task_options.keys(),
-        )
-
-        # network_name
-        network_name = CreateNetworkMemberGroups.task_options["network_name"]
-        self.assertTrue(network_name)
-        self.assertEqual(
-            "Name of Network to add NetworkMemberGroup children records.",
-            network_name["description"],
-        )
-        self.assertEqual(True, network_name["required"])
-
-        # profile_names
-        profile_names = CreateNetworkMemberGroups.task_options["profile_names"]
-        self.assertTrue(profile_names)
-        self.assertEqual(
-            "List of Profile Names to add as NetworkMemberGroups for this Network.",  # noqa: E501
-            profile_names["description"],
-        )
-        self.assertEqual(False, profile_names["required"])
-
-        # network_name
-        permission_set_names = CreateNetworkMemberGroups.task_options[
-            "permission_set_names"
-        ]
-        self.assertTrue(permission_set_names)
-        self.assertEqual(
-            (
-                "List of PermissionSet Names to add as NetworkMemberGroups "
-                "for this Network."
-            ),
-            permission_set_names["description"],
-        )
-        self.assertEqual(False, permission_set_names["required"])
-
     def test_get_network_id__no_network_found(self):
         network_name = "network_name"
 
