@@ -1,4 +1,4 @@
-import pytest  # noqa: F401
+
 import unittest
 from unittest.mock import Mock, call
 from cumulusci.tasks.salesforce.tests.util import create_task
@@ -21,6 +21,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
 
         task.logger = Mock()
         task.logger.info = Mock()
+        task.format_soql = Mock()
 
         # Execute the test.
         with self.assertRaises(SalesforceException) as context:
@@ -45,6 +46,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
 
         task.sf = Mock()
         task.sf.query = Mock(return_value={"records": [{"Id": "NetworkId"}]})
+        task.format_soql = Mock()
 
         task.logger = Mock()
         task.logger.info = Mock()
@@ -92,7 +94,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         self.assertEqual(expected, actual)
 
         task.sf.query.assert_called_once_with(
-            f"SELECT ParentId FROM NetworkMemberGroup WHERE NetworkId = '{network_id}'"  # noqa: E501
+            f"SELECT ParentId FROM NetworkMemberGroup WHERE NetworkId = '{network_id}'" 
         )
 
     def test_get_parent_ids_by_name(self):
@@ -130,6 +132,45 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
 
         task.sf.query.assert_called_once_with(
             "SELECT Id, Name FROM {} WHERE Name IN ('{}')".format(
+                sobject_type,
+                "','".join(record_names),
+            )
+        )
+    def test_get_parent_ids_by_label(self):
+        network_name = "network_name"
+        sobject_type = "PermissionSet"
+        record_names = [
+            "Name_0",
+            "Name_1",
+            "Name_2",
+        ]
+
+        task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
+
+        task.sf = Mock()
+        task.sf.query = Mock(
+            return_value={
+                "records": [
+                    {"Label": "Name_0", "Id": "Id_0"},
+                    {"Label": "Name_2", "Id": "Id_2"},
+                ]
+            }
+        )
+
+        expected = {
+            "Name_0": "Id_0",
+            "Name_1": None,
+            "Name_2": "Id_2",
+        }
+
+        # Execute the test.
+        actual = task._get_parent_ids_by_name(sobject_type, record_names)
+
+        # Assert scenario execute as expected.
+        self.assertEqual(expected, actual)
+
+        task.sf.query.assert_called_once_with(
+            "SELECT Id, Label FROM {} WHERE Label IN ('{}')".format(
                 sobject_type,
                 "','".join(record_names),
             )
@@ -369,7 +410,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
             task._create_network_member_group(sobject_type, parent_name, parent_id)
 
         # Assert scenario execute as expected.
-        self.assertEquals(
+        self.assertEqual(
             f'Error creating NetworkMemberGroup for Network "{task._network_id}" for parent {sobject_type} "{parent_name}" {parent_id}.   Errors: {", ".join(errors)}',
             context.exception.args[0],
         )
@@ -416,7 +457,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
             task._create_network_member_group(sobject_type, parent_name, parent_id)
 
         # Assert scenario execute as expected.
-        self.assertEquals(
+        self.assertEqual(
             f'Error creating NetworkMemberGroup for Network "{task._network_id}" for parent {sobject_type} "{parent_name}" {parent_id}.   Errors: {", ".join([])}',
             context.exception.args[0],
         )

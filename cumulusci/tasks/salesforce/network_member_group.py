@@ -2,6 +2,7 @@ from typing import List, Dict
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import SalesforceException, CumulusCIException
 from cumulusci.core.utils import process_list_arg
+from simple_salesforce import format_soql
 
 
 class CreateNetworkMemberGroups(BaseSalesforceApiTask):
@@ -44,8 +45,8 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
         Raises a SalesforceException if no Network is found.
         """
 
-        networks = self.sf.query(
-            f"SELECT Id FROM Network WHERE Name = '{network_name}' LIMIT 1"
+        networks = self.sf.query(format_soql
+            (f"SELECT Id FROM Network WHERE Name = '{network_name}' LIMIT 1")
         )
 
         if not networks["records"]:
@@ -78,15 +79,22 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
         Returns a Dict: Name --> ID of records with Name in record_names for
         sObject_type.   Dict value are None for all record_names that do not
         have corresponding records.
-        """
-
+        """        
         parent_ids_by_name = dict((name, None) for name in record_names)
+        
+        if sobject_type == "PermissionSet":
+            field_key = "Label"
+        else:
+            field_key = "Name"
+
         for record in self.sf.query(
-            "SELECT Id, Name FROM {} WHERE Name IN ('{}')".format(
-                sobject_type, "','".join(record_names),
+            "SELECT Id, {} FROM {} WHERE {} IN ('{}')".format(
+                field_key, sobject_type, field_key, "','".join(record_names),
             )
-        )["records"]:
-            parent_ids_by_name[record["Name"]] = record["Id"]
+        )["records"]:           
+            record_name = record[field_key]
+            parent_ids_by_name[record_name] = record["Id"]
+            
         return parent_ids_by_name
 
     def _process_parent(self, sobject_type, record_names) -> None:
