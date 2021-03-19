@@ -94,3 +94,10 @@ install: clean ## install the package to the active Python's site-packages
 tag: clean
 	git tag -a -m 'version $$(python setup.py --version)' v$$(python setup.py --version)
 	git push --follow-tags
+
+update-deps:
+	pip-compile -U --generate-hashes requirements/prod.in
+	pip-compile -U --generate-hashes requirements/dev.in
+
+dev-install:
+	pip-sync requirements/*.txt
