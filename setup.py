@@ -27,9 +27,12 @@ with open("HISTORY.rst", "rb") as history_file:
 with open("requirements/prod.txt") as requirements_file:
     requirements = []
     for req in requirements_file.read().splitlines():
+        # skip comments and hash lines
         if re.match(r"\s*#", req) or re.match(r"\s*--hash", req):
             continue
-        requirements.append(req)
+        else:
+            req = req.split(" ")[0]
+            requirements.append(req)
 
 setup(
     name="cumulusci",

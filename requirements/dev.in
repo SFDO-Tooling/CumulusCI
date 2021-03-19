@@ -1,4 +1,4 @@
--c requirements.txt
+-c prod.txt
 -e .
 black
 coverage[toml]
