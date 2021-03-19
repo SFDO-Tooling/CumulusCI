@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import re
 import os.path
 from setuptools import setup
 from pkgutil import walk_packages
@@ -23,18 +24,12 @@ with open("README.rst", "rb") as readme_file:
 with open("HISTORY.rst", "rb") as history_file:
     history = history_file.read().decode("utf-8")
 
-with open("requirements.txt") as requirements_file:
-    requirements = [
-        req.split("#")[0].strip() for req in requirements_file.read().splitlines()
-    ]
-
-with open("requirements_dev.txt") as dev_requirements_file:
-    test_requirements = [
-        req
-        for req in dev_requirements_file.read().splitlines()
-        if not req.startswith("-")
-    ]
-
+with open("requirements/prod.txt") as requirements_file:
+    requirements = []
+    for req in requirements_file.read().splitlines():
+        if re.match(r"\s*#", req) or re.match(r"\s*--hash", req):
+            continue
+        requirements.append(req)
 
 setup(
     name="cumulusci",
@@ -64,6 +59,5 @@ setup(
         "Programming Language :: Python :: 3.8",
     ],
     test_suite="cumulusci.core.tests",
-    tests_require=test_requirements,
     python_requires=">=3.6",
 )

@@ -1,0 +1,21 @@
+-c requirements.txt
+-e .
+black
+coverage[toml]
+coveralls
+flake8
+furo
+pip-tools
+pre-commit
+pytest
+pytest-random-order
+pytest-vcr
+responses
+Sphinx
+testfixtures
+tox
+twine
+typeguard
+vcrpy
+wheel
+factory-boy
