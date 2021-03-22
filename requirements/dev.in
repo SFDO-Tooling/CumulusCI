@@ -1,5 +1,4 @@
 -c prod.txt
--e .
 black
 coverage[toml]
 coveralls

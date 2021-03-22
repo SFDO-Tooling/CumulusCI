@@ -8,6 +8,7 @@ jinja2
 keyring
 lxml
 pydantic
+PyJWT
 pytz
 requests
 requests-futures
