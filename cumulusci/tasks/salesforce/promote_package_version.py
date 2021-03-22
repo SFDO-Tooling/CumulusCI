@@ -2,7 +2,12 @@ from typing import List, Dict, Optional
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.config.util import get_devhub_config
-from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    DependencyLookupError,
+    TaskOptionsError,
+)
+from cumulusci.core.github import get_tag_by_name
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
@@ -68,7 +73,10 @@ class PromotePackageVersion(BaseSalesforceApiTask):
 
     def _run_task(self) -> None:
         """Orchestrate the task"""
-        version_id = self.options["version_id"]
+        version_id = self.options.get("version_id")
+        if not version_id:
+            version_id = self._resolve_version_id()
+
         dependencies = self._get_dependency_info(version_id)
 
         self._process_one_gp_deps(dependencies)
@@ -79,6 +87,23 @@ class PromotePackageVersion(BaseSalesforceApiTask):
 
         target_package_info = self._get_target_package_info(version_id)
         self._promote_package_version(target_package_info)
+
+    def _resolve_version_id(self) -> str:
+        """
+        If a SubscriberPackageVersionId has not been specified we need to
+        auto-resolve a version_id from the tag on our current commit
+
+        @returns: (str) the SubscriberPackageVersionId from the current repo commit
+        """
+        tag_name = self.project_config.get_latest_tag(beta=True)
+        repo = self.project_config._get_repo()
+        tag = get_tag_by_name(repo, tag_name)
+
+        for line in tag.message.split("\n"):
+            if line.startswith("version_id:"):
+                return line.split("version_id: ")[1]
+
+        raise DependencyLookupError(f"Could not find version_id for tag {tag_name}")
 
     def _get_dependency_info(self, spv_id: str) -> Optional[List[Dict]]:
         """
@@ -144,6 +169,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         """
         one_gp_deps = self._filter_one_gp_deps(dependencies)
         if one_gp_deps:
+            self.logger.warning("")
             self.logger.warning("This package has the following 1GP dependencies:")
             for dep in one_gp_deps:
                 self.logger.warning("")
@@ -161,6 +187,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         two_gp_deps = self._filter_two_gp_deps(dependencies)
         unpromoted_two_gp_deps = self._filter_unpromoted_two_gp_deps(dependencies)
 
+        self.logger.info("")
         self.logger.info(f"Total 2GP dependencies: {len(two_gp_deps)}")
         self.logger.info(f"Unpromoted 2GP dependencies: {len(unpromoted_two_gp_deps)}")
 
