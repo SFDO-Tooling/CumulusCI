@@ -100,5 +100,5 @@ update-deps:
 	pip-compile -U --generate-hashes requirements/dev.in
 
 dev-install:
-	pip-sync requirements_dev.txt
+	pip-sync requirements/*.txt
 	pip install -e .
