@@ -249,7 +249,9 @@ def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=
     """Displays error of appropriate message back to user, prompts user to investigate further
     with `cci error` commands, and writes the traceback to the latest logfile.
     """
-    if isinstance(error, requests.exceptions.ConnectionError):
+    if isinstance(error, requests.exceptions.SSLError):
+        ssl_error_message(error)
+    elif isinstance(error, requests.exceptions.ConnectionError):
         connection_error_message()
     elif isinstance(error, click.ClickException):
         click.echo(click.style(f"Error: {error.format_message()}", fg="red"), err=True)
@@ -266,6 +268,23 @@ def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=
 
     if should_show_stacktraces and not isinstance(error, USAGE_ERRORS):
         raise error
+
+
+def ssl_error_message(error):
+    message = "We encountered an error with SSL:" + str(error)
+    if "CERTIFICATE_VERIFY_FAILED" in str(error):
+        message += "\n\nThe CURL_CA_BUNDLE or REQUESTS_CA_BUNDLE environment variables can often be used to solve this."
+
+    if "salesforce.com" in str(error):
+        message += (
+            "\n\nIf you are a Salesforce employee attempting "
+            "to use internal resources please search Concierge for "
+            "`How to Manually Download Internal SSL Root Certificates` "
+            "and ensure that the environment variables refer to the PEM files. "
+            "You may need to concatenate them into a single file."
+        )
+
+    click.echo(click.style(message, fg="red"), err=True)
 
 
 def connection_error_message():
