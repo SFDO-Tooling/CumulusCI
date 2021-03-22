@@ -1,13 +1,13 @@
-import responses
 import pytest
+import responses
 
 from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.tasks.salesforce.users.permsets import (
-    AssignPermissionSets,
-    AssignPermissionSetLicenses,
-    AssignPermissionSetGroups,
-)
 from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.tasks.salesforce.users.permsets import (
+    AssignPermissionSetGroups,
+    AssignPermissionSetLicenses,
+    AssignPermissionSets,
+)
 
 
 class TestCreatePermissionSet:
@@ -45,7 +45,7 @@ class TestCreatePermissionSet:
             status=200,
             json={
                 "done": True,
-                "totalSize": 1,
+                "totalSize": 2,
                 "records": [
                     {
                         "Id": "0PS000000000000",
@@ -60,15 +60,28 @@ class TestCreatePermissionSet:
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/sobjects/PermissionSetAssignment/",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/composite/sobjects",
             status=200,
-            json={"id": "0Pa000000000001", "success": True, "errors": []},
+            json=[{"id": "0Pa000000000001", "success": True, "errors": []}],
+            match=[
+                responses.json_params_matcher(
+                    {
+                        "allOrNone": False,
+                        "records": [
+                            {
+                                "attributes": {"type": "PermissionSetAssignment"},
+                                "AssigneeId": "005000000000000",
+                                "PermissionSetId": "0PS000000000001",
+                            }
+                        ],
+                    }
+                ),
+            ],
         )
 
         task()
 
         assert len(responses.calls) == 3
-        assert "0PS000000000001" in responses.calls[2].request.body
 
     @responses.activate
     def test_create_permset__alias(self):
@@ -76,17 +89,17 @@ class TestCreatePermissionSet:
             AssignPermissionSets,
             {
                 "api_names": "PermSet1,PermSet2",
-                "user_alias": "test",
+                "user_alias": "test0,test1",
             },
         )
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+%3D+%27test%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+IN+%28%27test0%27%2C%27test1%27%29",
             status=200,
             json={
                 "done": True,
-                "totalSize": 1,
+                "totalSize": 2,
                 "records": [
                     {
                         "Id": "005000000000000",
@@ -95,7 +108,15 @@ class TestCreatePermissionSet:
                             "totalSize": 1,
                             "records": [{"PermissionSetId": "0PS000000000000"}],
                         },
-                    }
+                    },
+                    {
+                        "Id": "005000000000001",
+                        "PermissionSetAssignments": {
+                            "done": True,
+                            "totalSize": 1,
+                            "records": [{"PermissionSetId": "0PS000000000000"}],
+                        },
+                    },
                 ],
             },
         )
@@ -120,15 +141,36 @@ class TestCreatePermissionSet:
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/sobjects/PermissionSetAssignment/",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/composite/sobjects",
             status=200,
-            json={"id": "0Pa000000000001", "success": True, "errors": []},
+            json=[
+                {"id": "0Pa000000000000", "success": True, "errors": []},
+                {"id": "0Pa000000000001", "success": True, "errors": []},
+            ],
+            match=[
+                responses.json_params_matcher(
+                    {
+                        "allOrNone": False,
+                        "records": [
+                            {
+                                "attributes": {"type": "PermissionSetAssignment"},
+                                "AssigneeId": "005000000000000",
+                                "PermissionSetId": "0PS000000000001",
+                            },
+                            {
+                                "attributes": {"type": "PermissionSetAssignment"},
+                                "AssigneeId": "005000000000001",
+                                "PermissionSetId": "0PS000000000001",
+                            },
+                        ],
+                    }
+                ),
+            ],
         )
 
         task()
 
         assert len(responses.calls) == 3
-        assert "0PS000000000001" in responses.calls[2].request.body
 
     @responses.activate
     def test_create_permset__alias_raises(self):
@@ -142,7 +184,7 @@ class TestCreatePermissionSet:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+%3D+%27test%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+IN+%28%27test%27%29",
             status=200,
             json={
                 "done": True,
@@ -255,15 +297,28 @@ class TestCreatePermissionSetLicense:
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/sobjects/PermissionSetLicenseAssign/",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/composite/sobjects",
             status=200,
             json={"id": "0Pa000000000001", "success": True, "errors": []},
+            match=[
+                responses.json_params_matcher(
+                    {
+                        "allOrNone": False,
+                        "records": [
+                            {
+                                "attributes": {"type": "PermissionSetLicenseAssign"},
+                                "AssigneeId": "005000000000000",
+                                "PermissionSetLicenseId": "0PL000000000001",
+                            }
+                        ],
+                    }
+                ),
+            ],
         )
 
         task()
 
         assert len(responses.calls) == 3
-        assert "0PL000000000001" in responses.calls[2].request.body
 
     @responses.activate
     def test_create_permsetlicense__no_assignments(self):
@@ -309,24 +364,38 @@ class TestCreatePermissionSetLicense:
                 ],
             },
         )
-        responses.add(
-            method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/sobjects/PermissionSetLicenseAssign/",
-            status=200,
-            json={"id": "0Pa000000000000", "success": True, "errors": []},
-        )
-        responses.add(
-            method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/sobjects/PermissionSetLicenseAssign/",
-            status=200,
-            json={"id": "0Pa000000000001", "success": True, "errors": []},
-        )
 
+        responses.add(
+            method="POST",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/composite/sobjects",
+            status=200,
+            json=[
+                {"id": "0Pa000000000000", "success": True, "errors": []},
+                {"id": "0Pa000000000001", "success": True, "errors": []},
+            ],
+            match=[
+                responses.json_params_matcher(
+                    {
+                        "allOrNone": False,
+                        "records": [
+                            {
+                                "attributes": {"type": "PermissionSetLicenseAssign"},
+                                "AssigneeId": "005000000000000",
+                                "PermissionSetLicenseId": "0PL000000000000",
+                            },
+                            {
+                                "attributes": {"type": "PermissionSetLicenseAssign"},
+                                "AssigneeId": "005000000000000",
+                                "PermissionSetLicenseId": "0PL000000000001",
+                            },
+                        ],
+                    }
+                ),
+            ],
+        )
         task()
 
-        assert len(responses.calls) == 4
-        assert "0PL000000000000" in responses.calls[2].request.body
-        assert "0PL000000000001" in responses.calls[3].request.body
+        assert len(responses.calls) == 3
 
     @responses.activate
     def test_create_permsetlicense__alias(self):
@@ -340,7 +409,7 @@ class TestCreatePermissionSetLicense:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetLicenseId+FROM+PermissionSetLicenseAssignments%29+FROM+User+WHERE+Alias+%3D+%27test%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetLicenseId+FROM+PermissionSetLicenseAssignments%29+FROM+User+WHERE+Alias+IN+%28%27test%27%29",
             status=200,
             json={
                 "done": True,
@@ -383,10 +452,29 @@ class TestCreatePermissionSetLicense:
             json={"id": "0Pa000000000001", "success": True, "errors": []},
         )
 
+        responses.add(
+            method="POST",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/composite/sobjects",
+            status=200,
+            json=[{"id": "0Pa000000000001", "success": True, "errors": []}],
+            match=[
+                responses.json_params_matcher(
+                    {
+                        "allOrNone": False,
+                        "records": [
+                            {
+                                "attributes": {"type": "PermissionSetLicenseAssign"},
+                                "AssigneeId": "005000000000000",
+                                "PermissionSetLicenseId": "0PL000000000001",
+                            }
+                        ],
+                    }
+                ),
+            ],
+        )
         task()
 
         assert len(responses.calls) == 3
-        assert "0PL000000000001" in responses.calls[2].request.body
 
     @responses.activate
     def test_create_permsetlicense__alias_raises(self):
@@ -400,7 +488,7 @@ class TestCreatePermissionSetLicense:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetLicenseId+FROM+PermissionSetLicenseAssignments%29+FROM+User+WHERE+Alias+%3D+%27test%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetLicenseId+FROM+PermissionSetLicenseAssignments%29+FROM+User+WHERE+Alias+IN+%28%27test%27%29",
             status=200,
             json={
                 "done": True,
@@ -513,15 +601,28 @@ class TestCreatePermissionSetGroup:
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/sobjects/PermissionSetAssignment/",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/composite/sobjects",
             status=200,
-            json={"id": "0Pa000000000001", "success": True, "errors": []},
+            json=[{"id": "0Pa000000000001", "success": True, "errors": []}],
+            match=[
+                responses.json_params_matcher(
+                    {
+                        "allOrNone": False,
+                        "records": [
+                            {
+                                "attributes": {"type": "PermissionSetAssignment"},
+                                "AssigneeId": "005000000000000",
+                                "PermissionSetGroupId": "0PG000000000001",
+                            }
+                        ],
+                    }
+                ),
+            ],
         )
 
         task()
 
         assert len(responses.calls) == 3
-        assert "0PG000000000001" in responses.calls[2].request.body
 
     @responses.activate
     def test_create_permsetgroup__alias(self):
@@ -535,7 +636,7 @@ class TestCreatePermissionSetGroup:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetGroupId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+%3D+%27test%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetGroupId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+IN+%28%27test%27%29",
             status=200,
             json={
                 "done": True,
@@ -573,15 +674,28 @@ class TestCreatePermissionSetGroup:
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/sobjects/PermissionSetAssignment/",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/composite/sobjects",
             status=200,
-            json={"id": "0Pa000000000001", "success": True, "errors": []},
+            json=[{"id": "0Pa000000000001", "success": True, "errors": []}],
+            match=[
+                responses.json_params_matcher(
+                    {
+                        "allOrNone": False,
+                        "records": [
+                            {
+                                "attributes": {"type": "PermissionSetAssignment"},
+                                "AssigneeId": "005000000000000",
+                                "PermissionSetGroupId": "0PG000000000001",
+                            }
+                        ],
+                    }
+                ),
+            ],
         )
 
         task()
 
         assert len(responses.calls) == 3
-        assert "0PG000000000001" in responses.calls[2].request.body
 
     @responses.activate
     def test_create_permsetgroup__alias_raises(self):
@@ -595,7 +709,7 @@ class TestCreatePermissionSetGroup:
 
         responses.add(
             method="GET",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetGroupId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+%3D+%27test%27",
+            url=f"{task.org_config.instance_url}/services/data/v50.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetGroupId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+IN+%28%27test%27%29",
             status=200,
             json={
                 "done": True,
