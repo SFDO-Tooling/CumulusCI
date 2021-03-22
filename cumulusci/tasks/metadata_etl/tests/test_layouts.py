@@ -1,6 +1,19 @@
+import unittest  # add action
+from unittest.mock import Mock, call, PropertyMock  # add action
+
 from cumulusci.tasks.salesforce.tests.util import create_task
+
+from tasks.metadata_etl import (
+    InsertChildInMetadataSingleEntityTransformTask,
+)  # add action
+from cumulusci.tasks.metadata_etl.layouts import (
+    InsertRecordPlatformActionListItem,
+)  # add action
+
 from cumulusci.tasks.metadata_etl import AddRelatedLists
 from cumulusci.utils.xml import metadata_tree
+from cumulusci.utils.xml.metadata_tree import MetadataElement, fromstring  # add action
+from cumulusci.core.exceptions import CumulusCIException  # add action
 
 MD = "{%s}" % metadata_tree.METADATA_NAMESPACE
 
@@ -177,3 +190,6 @@ class TestAddRelatedLists:
         result = task._transform_entity(tree, "Layout")
 
         assert result is None
+
+
+##### Lightning Action add to Layout tests
