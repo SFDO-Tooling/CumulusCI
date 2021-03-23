@@ -13,7 +13,7 @@ humanfriendly==9.1
 jinja2==2.11.3
 jwcrypto==0.8
 keyring==23.0.0
-lxml==4.6.2
+lxml==4.6.3
 MarkupSafe==1.1.1
 pycparser==2.20
 pydantic==1.8.1
