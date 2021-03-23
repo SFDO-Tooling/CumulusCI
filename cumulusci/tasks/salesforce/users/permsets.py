@@ -16,7 +16,7 @@ Assigns Permission Sets whose Names are in ``api_names`` to either the default o
             "required": True,
         },
         "user_alias": {
-            "description": "Target user aliases, separated by commas. l(if not the current running user, the default)."
+            "description": "Target user aliases, separated by commas. Defaults to the current running user."
         },
     }
 
@@ -96,7 +96,7 @@ Assigns Permission Sets whose Names are in ``api_names`` to either the default o
         ]
         if missing_perms:
             raise CumulusCIException(
-                f"The following {self.permission_label}s were was not found: {', '.join(missing_perms)}."
+                f"The following {self.permission_label}s were not found: {', '.join(missing_perms)}."
             )
         return perms_by_ids
 
