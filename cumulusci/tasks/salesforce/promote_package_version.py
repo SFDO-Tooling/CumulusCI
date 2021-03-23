@@ -106,6 +106,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
                 assert version_id.startswith("04t")
                 self.logger.info(f"Resolved to version: {version_id}")
                 self.logger.info("")
+                return version_id
 
         raise DependencyLookupError(f"Could not find version_id for tag {tag_name}")
 
