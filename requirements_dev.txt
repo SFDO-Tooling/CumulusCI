@@ -11,7 +11,7 @@ pytest==6.2.2
 pytest-random-order==1.0.4
 pytest-vcr==1.0.2
 responses==0.13.0
-Sphinx==3.5.2
+Sphinx==3.5.3
 testfixtures==6.17.1
 tox==3.23.0
 twine==3.4.1
