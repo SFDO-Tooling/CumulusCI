@@ -188,7 +188,9 @@ class PackageUpload(BaseSalesforceApiTask):
         )
         if dependencies:
             dependencies = self.org_config.resolve_04t_dependencies(dependencies)
-        self.return_values["dependencies"] = [d.dict() for d in dependencies]
+        self.return_values["dependencies"] = [
+            d.dict(exclude_none=True) for d in dependencies
+        ]
 
     def _log_package_upload_success(self):
         self.logger.info(

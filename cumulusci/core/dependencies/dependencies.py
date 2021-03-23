@@ -68,12 +68,12 @@ class Dependency(HashableBaseModel, abc.ABC):
     @property
     @abc.abstractmethod
     def is_resolved(self):
-        return False
+        return False  # pragma: no cover
 
     @property
     @abc.abstractmethod
     def is_flattened(self):
-        return False
+        return False  # pragma: no cover
 
     def flatten(self, context: BaseProjectConfig) -> List["Dependency"]:
         return [self]
@@ -81,7 +81,7 @@ class Dependency(HashableBaseModel, abc.ABC):
     def resolve(
         self, context: BaseProjectConfig, strategies: List[DependencyResolutionStrategy]
     ):
-        pass
+        pass  # pragma: no cover
 
 
 Dependency.update_forward_refs()
@@ -90,7 +90,7 @@ Dependency.update_forward_refs()
 class StaticDependency(Dependency, abc.ABC):
     @abc.abstractmethod
     def install(self, org_config: OrgConfig, retry_options: dict = None):
-        pass
+        pass  # pragma: no cover
 
     @property
     def is_resolved(self):
@@ -103,7 +103,7 @@ class StaticDependency(Dependency, abc.ABC):
     @property
     @abc.abstractmethod
     def name(self):
-        pass
+        pass  # pragma: no cover
 
 
 class DynamicDependency(Dependency, abc.ABC):
@@ -145,13 +145,13 @@ class Resolver(abc.ABC):
 
     @abc.abstractmethod
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
-        pass
+        pass  # pragma: no cover
 
     @abc.abstractmethod
     def resolve(
         self, dep: DynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional["ManagedPackageDependency"]]:
-        pass
+        pass  # pragma: no cover
 
     def __str__(self):
         return self.name
@@ -317,8 +317,6 @@ class GitHubDynamicDependency(
                         ref=self.ref,
                         subfolder="src",
                         unmanaged=self.unmanaged,
-                        managed=False,
-                        namespace=None,
                         namespace_inject=self.namespace_inject,
                         namespace_strip=self.namespace_strip,
                     )
@@ -527,7 +525,7 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
         subfolder = f"/{self.subfolder}" if self.subfolder else ""
 
         if self.github:
-            if subfolder:
+            if subfolder and subfolder != "src":
                 return f"Deploy {self.repo_name}{subfolder}"
             else:
                 return f"Deploy {self.repo_name}"

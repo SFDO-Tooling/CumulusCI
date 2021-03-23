@@ -1,10 +1,9 @@
-from github3.exceptions import NotFoundError
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
     ManagedPackageInstallOptions,
 )
 from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.dependencies import (
@@ -21,7 +20,6 @@ from cumulusci.core.dependencies.dependencies import (
     GitHubUnmanagedHeadResolver,
     ManagedPackageDependency,
     Resolver,
-    StaticDependency,
     DynamicDependency,
     UnmanagedDependency,
     get_resolver,
@@ -34,7 +32,7 @@ from cumulusci.utils.git import split_repo_url
 from unittest import mock
 import pytest
 
-from pydantic import ValidationError, parse
+from pydantic import ValidationError
 
 from cumulusci.core.tests.test_config import (
     DummyContents,
@@ -96,6 +94,27 @@ def github():
         ],
     )
 
+    # This repo contains an unparseable transitive dependency.
+    ROOT_BAD_DEP_REPO = DummyRepository(
+        "SFDO-Tooling",
+        "RootRepoBadDep",
+        {
+            "cumulusci.yml": DummyContents(
+                b"""
+    project:
+        name: RootRepo
+        package:
+            name: RootRepo
+            namespace: bar
+        git:
+            repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test
+        dependencies:
+            - bogus: foo
+    """
+            ),
+        },
+    )
+
     # This repo contains both beta and managed releases.
     RELEASES_REPO = DummyRepository(
         "SFDO-Tooling",
@@ -113,6 +132,32 @@ def github():
     """
             ),
             "unpackaged/pre": {},
+            "src": {},
+            "unpackaged/post": {},
+        },
+        [
+            DummyRelease("beta/2.1_Beta_1", "2.1 Beta 1"),
+            DummyRelease("release/2.0", "2.0"),
+            DummyRelease("release/1.0", "1.0"),
+        ],
+    )
+
+    # This repo contains releases, but no `unmanaged/pre`
+    NO_UNMANAGED_PRE_REPO = DummyRepository(
+        "SFDO-Tooling",
+        "NoUnmanagedPreRepo",
+        {
+            "cumulusci.yml": DummyContents(
+                b"""
+    project:
+        name: NoUnmanagedPreRepo
+        package:
+            name: NoUnmanagedPreRepo
+            namespace: foo
+        git:
+            repo_url: https://github.com/SFDO-Tooling/NoUnmanagedPreRepo
+    """
+            ),
             "src": {},
             "unpackaged/post": {},
         },
@@ -228,7 +273,9 @@ def github():
         {
             "UnmanagedRepo": UNMANAGED_REPO,
             "CumulusCI": CUMULUSCI_REPO,
+            "NoUnmanagedPreRepo": NO_UNMANAGED_PRE_REPO,
             "RootRepo": ROOT_REPO,
+            "RootRepoBadDep": ROOT_BAD_DEP_REPO,
             "DependencyRepo": DEPENDENCY_REPO,
             "ReleasesRepo": RELEASES_REPO,
             "TwoGPRepo": TWO_GP_REPO,
@@ -250,10 +297,17 @@ def project_config(github):
 
 class ConcreteDynamicDependency(DynamicDependency):
     ref: Optional[str]
+    resolved: Optional[bool] = False
 
     @property
     def is_resolved(self):
-        return False
+        return self.resolved
+
+    def resolve(
+        self, context: BaseProjectConfig, strategies: List[DependencyResolutionStrategy]
+    ):
+        super().resolve(context, strategies)
+        self.resolved = True
 
 
 class MockResolver(Resolver):
@@ -309,6 +363,30 @@ class TestDynamicDependency:
             namespace="foo", version="1.0"
         )
         assert d.ref == "aaaaaaaaaaaaaaaa"
+
+    @mock.patch("cumulusci.core.dependencies.dependencies.get_resolver")
+    def test_dynamic_dependency__twice(self, get_resolver):
+        d = ConcreteDynamicDependency()
+        resolvers = [
+            mock.Mock(
+                wraps=MockResolver(
+                    "aaaaaaaaaaaaaaaa",
+                    ManagedPackageDependency(namespace="foo", version="1.0"),
+                )
+            ),
+        ]
+        get_resolver.side_effect = resolvers
+
+        d.resolve(
+            mock.Mock(),
+            [
+                DependencyResolutionStrategy.STRATEGY_UNMANAGED_HEAD,
+                DependencyResolutionStrategy.STRATEGY_2GP_PREVIOUS_RELEASE_BRANCH,
+            ],
+        )
+
+        assert d.is_resolved
+        resolvers[0].resolve.assert_called_once()
 
     @mock.patch("cumulusci.core.dependencies.dependencies.get_resolver")
     def test_dynamic_dependency_resolution_fails(self, get_resolver):
@@ -403,6 +481,45 @@ class TestGitHubDynamicDependency:
             ),
         ]
 
+    def test_flatten__skip(self, project_config):
+        gh = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/RootRepo",
+            skip=["unpackaged/pre/first"],
+        )
+        gh.ref = "aaaaa"
+        gh.managed_dependency = ManagedPackageDependency(namespace="bar", version="2.0")
+
+        assert gh.flatten(project_config) == [
+            GitHubDynamicDependency(
+                github="https://github.com/SFDO-Tooling/DependencyRepo"
+            ),
+            UnmanagedDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/pre/second",
+                unmanaged=True,
+                ref="aaaaa",
+            ),
+            ManagedPackageDependency(namespace="bar", version="2.0"),
+            UnmanagedDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/post/first",
+                unmanaged=False,
+                ref="aaaaa",
+                namespace_inject="bar",
+            ),
+        ]
+
+    def test_flatten__not_found(self, project_config):
+        gh = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/NoUnmanagedPreRepo",
+        )
+        gh.ref = "aaaaa"
+        gh.managed_dependency = ManagedPackageDependency(namespace="foo", version="2.0")
+
+        assert gh.flatten(project_config) == [
+            ManagedPackageDependency(namespace="foo", version="2.0"),
+        ]
+
     def test_flatten__unresolved(self):
         context = mock.Mock()
         gh = GitHubDynamicDependency(repo_owner="Test", repo_name="TestRepo")
@@ -411,6 +528,65 @@ class TestGitHubDynamicDependency:
             gh.flatten(context)
 
         assert "is not resolved" in str(e)
+
+    def test_flatten__bad_transitive_dep(self, project_config):
+        gh = GitHubDynamicDependency(repo_owner="Test", repo_name="RootRepoBadDep")
+        gh.ref = "aaaa"
+
+        with pytest.raises(DependencyResolutionError) as e:
+            gh.flatten(project_config)
+
+        assert "transitive dependency could not be parsed" in str(e)
+
+    def test_flatten__unmanaged_src(self, project_config):
+        gh = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/RootRepo",
+            unmanaged=True,
+        )
+        gh.ref = "aaaaa"
+
+        assert gh.flatten(project_config) == [
+            GitHubDynamicDependency(
+                github="https://github.com/SFDO-Tooling/DependencyRepo"
+            ),
+            UnmanagedDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/pre/first",
+                unmanaged=True,
+                ref="aaaaa",
+            ),
+            UnmanagedDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/pre/second",
+                unmanaged=True,
+                ref="aaaaa",
+            ),
+            UnmanagedDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="src",
+                unmanaged=True,
+                ref="aaaaa",
+            ),
+            UnmanagedDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/post/first",
+                unmanaged=True,
+                ref="aaaaa",
+                namespace_strip="bar",
+            ),
+        ]
+
+    def test_flatten__no_release(self, project_config):
+        gh = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/RootRepo",
+            unmanaged=False,
+        )
+        gh.ref = "aaaaa"
+
+        with pytest.raises(DependencyResolutionError) as e:
+            gh.flatten(project_config)
+
+        assert "Could not find latest release" in str(e)
 
 
 class TestManagedPackageDependency:
@@ -594,6 +770,26 @@ class TestUnmanagedDependency:
         assert (
             str(UnmanagedDependency(zip_url="http://foo.com", subfolder="bar"))
             == "Deploy http://foo.com /bar"
+        )
+        assert (
+            str(
+                UnmanagedDependency(
+                    github="http://github.com/Test/TestRepo",
+                    subfolder="unpackaged/pre/first",
+                    ref="aaaa",
+                )
+            )
+            == "Deploy TestRepo/unpackaged/pre/first"
+        )
+
+        assert (
+            str(
+                UnmanagedDependency(
+                    github="http://github.com/Test/TestRepo",
+                    ref="aaaa",
+                )
+            )
+            == "Deploy TestRepo"
         )
 
 
