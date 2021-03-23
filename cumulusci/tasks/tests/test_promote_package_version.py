@@ -210,7 +210,11 @@ class TestPromotePackageVersion(GithubApiTestMixin):
         responses.add(  # query for releases (project_config.get_latest_tag)
             "GET",
             "https://api.github.com/repos/TestOwner/TestRepo/releases?per_page=100",
-            json=self._get_expected_releases("TestOwner", "TestRepo"),
+            json=self._get_expected_releases(
+                "TestOwner",
+                "TestRepo",
+                ["beta/1.113-Beta_1", "whatisthis/0.0.1", "release/0.0.1"],
+            ),
             status=200,
         )
         responses.add(  # query for ref to tag
