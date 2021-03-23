@@ -61,7 +61,7 @@ class CreateRelease(BaseGithubTask):
 
         # Build tag message
         message = self.options.get("message", f"Release of version {version}")
-        message += f"version_id: {self.options['version_id']}"
+        message += f"\nversion_id: {self.options['version_id']}"
         dependencies = self.project_config.get_static_dependencies(
             self.options.get("dependencies")
             or self.project_config.project__dependencies
