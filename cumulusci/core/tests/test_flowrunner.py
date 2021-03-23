@@ -312,26 +312,69 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
                 self.project_config, flow_config, name="self_referential_flow"
             )
 
-    def test_init_multiple_flow_calls(self):
-        """It's OK if a flow is called multiple times if not recursive"""
-
+    def test_init_recursive_flow_complex(self):
+        """Test a more complicated flow tree with recursion"""
         self.project_config.config["flows"] = {
-            "flow_one": {
+            "grandchild_flow": {
                 "description": "A flow that runs inside another flow",
                 "steps": {1: {"task": "pass_name"}},
             },
-            "flow_two": {
+            "parent_flow": {
                 "description": "A flow that calls another flow",
                 "steps": {
-                    1: {"flow": "flow_one"},
+                    1: {"flow": "grandchild_flow"},
                     2: {"task": "pass_name"},
-                    3: {"flow": "flow_one"},
+                    3: {"flow": "grandchild_flow"},
+                },
+            },
+            "grandparent_flow": {
+                "description": "A flow that calls another flow",
+                "steps": {
+                    1: {"flow": "grandchild_flow"},
+                    2: {"flow": "parent_flow"},
+                    3: {"task": "pass_name"},
+                    5: {"flow": "recursive_flow"},
+                },
+            },
+            "recursive_flow": {
+                "description": "A flow that calls grandparent flow adding recursion",
+                "steps": {
+                    1: {"flow": "grandchild_flow"},
+                    2: {"flow": "grandparent_flow"},
                 },
             },
         }
-        flow_config = self.project_config.get_flow("flow_two")
+        flow_config = self.project_config.get_flow("grandparent_flow")
         with self.assertRaises(FlowInfiniteLoopError):
-            FlowCoordinator(self.project_config, flow_config, name="flow_two")
+            FlowCoordinator(self.project_config, flow_config, name="grandparent_flow")
+
+    def test_init_recursive_flow_negative(self):
+        """It's OK if a flow is called multiple times if not recursive"""
+        self.project_config.config["flows"] = {
+            "grandchild_flow": {
+                "description": "A flow that runs inside another flow",
+                "steps": {1: {"task": "pass_name"}},
+            },
+            "parent_flow": {
+                "description": "A flow that calls another flow",
+                "steps": {
+                    1: {"flow": "grandchild_flow"},
+                    2: {"task": "pass_name"},
+                    3: {"flow": "grandchild_flow"},
+                },
+            },
+            "grandparent_flow": {
+                "description": "A flow that calls another flow",
+                "steps": {
+                    1: {"flow": "parent_flow"},
+                    2: {"flow": "grandchild_flow"},
+                    3: {"task": "pass_name"},
+                    4: {"task": "pass_name"},
+                },
+            },
+        }
+        flow_config = self.project_config.get_flow("grandparent_flow")
+        FlowCoordinator(self.project_config, flow_config, name="grandparent_flow")
 
     def test_from_steps(self):
         steps = [StepSpec("1", "test", {}, _TaskReturnsStuff, None)]
