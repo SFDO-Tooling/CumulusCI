@@ -6,7 +6,7 @@ click==7.1.2
 coloredlogs==15.0
 cryptography==3.4.6
 docutils==0.16
-Faker==6.6.1
+Faker==6.6.2
 fs==2.4.12
 github3.py==2.0.0
 humanfriendly==9.1
