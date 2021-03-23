@@ -45,8 +45,11 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
         Raises a SalesforceException if no Network is found.
         """
 
-        networks = self.sf.query(
-            format_soql(f"SELECT Id FROM Network WHERE Name = '{network_name}' LIMIT 1")
+        networks = self.sf.queryall(
+            format_soql(
+                "SELECT Id FROM Network WHERE Name = {network_name} LIMIT 1",
+                network_name=network_name,
+            )
         )
 
         if not networks["records"]:
@@ -54,7 +57,7 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
                 f'No Network record found with Name "{network_name}"'
             )
         self.logger.info(
-            "Creating NetworkMemberGroup records for " f'"{network_name}" Network:'
+            f"Creating NetworkMemberGroup records for {network_name} Network:"
         )
         return networks["records"][0]["Id"]
 
@@ -66,7 +69,7 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
         """
 
         network_member_group_parent_ids = set()
-        for record in self.sf.query(
+        for record in self.sf.queryall(
             f"SELECT ParentId FROM NetworkMemberGroup WHERE NetworkId = '{network_id}'"  # noqa: E501
         )["records"]:
             network_member_group_parent_ids.add(record["ParentId"])
@@ -150,7 +153,7 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
                 # It might be impossible to get to this state.
                 # If there's a query exception, it gets thrown before this is called.
                 raise SalesforceException(
-                    f'Error creating NetworkMemberGroup for Network "{self._network_id}" for parent {sobject_type} "{parent_name}" {parent_id}.   Errors: {", ".join(insert_response.get("errors") or [])}'  # noqa: E501
+                    f'Error creating NetworkMemberGroup for Network "{self._network_id}" for parent {sobject_type} "{parent_name}" {parent_id}.   Errors: {", ".join(insert_response.get("errors") or [])}'
                 )
 
     def _run_task(self):

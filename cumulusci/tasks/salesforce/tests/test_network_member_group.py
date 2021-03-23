@@ -16,10 +16,9 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task.sf = Mock()
-        task.sf.query = Mock(return_value={"records": []})
+        task.sf.queryall.return_value = {"records": []}
 
         task.logger = Mock()
-        task.logger.info = Mock()
         task.format_soql = Mock()
 
         # Execute the test.
@@ -32,7 +31,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
             context.exception.args[0],
         )
 
-        task.sf.query.assert_called_once_with(
+        task.sf.queryall.assert_called_once_with(
             f"SELECT Id FROM Network WHERE Name = '{network_name}' LIMIT 1"
         )
 
@@ -44,13 +43,10 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task.sf = Mock()
-        task.sf.query = Mock(return_value={"records": [{"Id": "NetworkId"}]})
+        task.sf.queryall.return_value = {"records": [{"Id": "NetworkId"}]}
         task.format_soql = Mock()
 
-        task.logger = Mock()
-        task.logger.info = Mock()
-
-        expected = task.sf.query.return_value["records"][0]["Id"]
+        expected = task.sf.queryall.return_value["records"][0]["Id"]
 
         # Execute the test.
         actual = task._get_network_id(network_name)
@@ -58,12 +54,8 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         # Assert scenario execute as expected.
         self.assertEqual(expected, actual)
 
-        task.sf.query.assert_called_once_with(
+        task.sf.queryall.assert_called_once_with(
             f"SELECT Id FROM Network WHERE Name = '{network_name}' LIMIT 1"
-        )
-
-        task.logger.info.assert_called_once_with(
-            'Creating NetworkMemberGroup records for "{}" Network:'.format(network_name)
         )
 
     def test_get_network_member_group_parent_ids(self):
@@ -73,16 +65,14 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task.sf = Mock()
-        task.sf.query = Mock(
-            return_value={
-                "records": [
-                    {"ParentId": "0"},
-                    {"ParentId": "2"},
-                    {"ParentId": "3"},
-                    {"ParentId": "1"},
-                ]
-            }
-        )
+        task.sf.queryall.return_value = {
+            "records": [
+                {"ParentId": "0"},
+                {"ParentId": "2"},
+                {"ParentId": "3"},
+                {"ParentId": "1"},
+            ]
+        }
 
         expected = set(["0", "1", "2", "3"])
 
@@ -92,7 +82,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         # Assert scenario execute as expected.
         self.assertEqual(expected, actual)
 
-        task.sf.query.assert_called_once_with(
+        task.sf.queryall.assert_called_once_with(
             f"SELECT ParentId FROM NetworkMemberGroup WHERE NetworkId = '{network_id}'"
         )
 
@@ -148,14 +138,12 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task.sf = Mock()
-        task.sf.query = Mock(
-            return_value={
-                "records": [
-                    {"Label": "Name_0", "Id": "Id_0"},
-                    {"Label": "Name_2", "Id": "Id_2"},
-                ]
-            }
-        )
+        task.sf.query.return_value = {
+            "records": [
+                {"Label": "Name_0", "Id": "Id_0"},
+                {"Label": "Name_2", "Id": "Id_2"},
+            ]
+        }
 
         expected = {
             "Name_0": "Id_0",
@@ -183,17 +171,14 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
             None,
             [],
         ]:
-            self.assertFalse(record_names)
 
             task = create_task(
                 CreateNetworkMemberGroups, {"network_name": network_name}
             )
 
             task.logger = Mock()
-            task.logger.info = Mock()
 
             parent_ids_by_name = Mock()
-            parent_ids_by_name.items = Mock()
 
             task._get_parent_ids_by_name = Mock(return_value=parent_ids_by_name)
 
@@ -224,13 +209,12 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
 
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
-        task.logger = Mock()
-        task.logger.info = Mock()
-
         parent_ids_by_name = Mock()
-        parent_ids_by_name.items = Mock(
-            return_value=[("Name_0", "Id_0"), ("Name_1", None), ("Name_2", "Id_2")]
-        )
+        parent_ids_by_name.items.return_value = [
+            ("Name_0", "Id_0"),
+            ("Name_1", None),
+            ("Name_2", "Id_2"),
+        ]
 
         task._get_parent_ids_by_name = Mock(return_value=parent_ids_by_name)
 
@@ -246,7 +230,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task._process_parent(sobject_type, record_names)
 
         # Assert scenario execute as expected.
-        task.logger.info.assert_called_once_with(f"    {sobject_type}:")
 
         task._get_parent_ids_by_name.assert_called_once_with(sobject_type, record_names)
 
@@ -262,23 +245,15 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         parent_name = "parent_name"
         parent_id = None
 
-        self.assertFalse(parent_id)
-
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task._parent_ids = set()
 
         task._network_id = "network_id"
 
-        task.logger = Mock()
-        task.logger.info = Mock()
-        task.logger.warn = Mock()
-
         task.sf = Mock()
-        task.sf.NetworkMemberGroup = Mock()
 
         insert_response = Mock()
-        insert_response.get = Mock()
         task.sf.NetworkMemberGroup.create = Mock(insert_response)
 
         # Execute the test.
@@ -290,10 +265,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
             f'No {sobject_type} record found with Name "{parent_name}"',
             context.exception.args[0],
         )
-
-        task.logger.info.assert_not_called()
-
-        task.logger.warn.assert_not_called()
 
         task.sf.NetworkMemberGroup.create.assert_not_called()
 
