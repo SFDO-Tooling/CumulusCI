@@ -280,13 +280,8 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
 
         task._parent_ids = set()
         task._parent_ids.add(parent_id)
-        self.assertTrue(parent_id in task._parent_ids)
 
         task._network_id = "network_id"
-
-        task.logger = Mock()
-        task.logger.info = Mock()
-        task.logger.warn = Mock()
 
         task.sf = Mock()
         task.sf.NetworkMemberGroup = Mock()
@@ -298,13 +293,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         # Execute the test.
         task._create_network_member_group(sobject_type, parent_name, parent_id)
 
-        # Assert scenario execute as expected.
-        task.logger.info.assert_not_called()
-
-        task.logger.warn.assert_called_once_with(
-            f'        Already exists for "{parent_name}"'
-        )
-
         task.sf.NetworkMemberGroup.create.assert_not_called()
 
     def test_create_network_member_group__creating_parent_with_success(self):
@@ -313,26 +301,20 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         parent_name = "parent_name"
         parent_id = "parent_id"
 
-        self.assertTrue(parent_id)
-
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task._parent_ids = set()
-        self.assertFalse(parent_id in task._parent_ids)
 
         task._network_id = "network_id"
 
         task.logger = Mock()
-        task.logger.info = Mock()
-        task.logger.warn = Mock()
 
         task.sf = Mock()
         task.sf.NetworkMemberGroup = Mock()
 
         insert_response = {"success": True}
-        self.assertTrue(insert_response.get("success") is True)
 
-        task.sf.NetworkMemberGroup.create = Mock(return_value=insert_response)
+        task.sf.NetworkMemberGroup.create.return_value = insert_response
 
         # Execute the test.
         task._create_network_member_group(sobject_type, parent_name, parent_id)
@@ -354,8 +336,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         parent_name = "parent_name"
         parent_id = "parent_id"
 
-        self.assertTrue(parent_id)
-
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task._parent_ids = set()
@@ -363,18 +343,12 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
 
         task._network_id = "network_id"
 
-        task.logger = Mock()
-        task.logger.info = Mock()
-        task.logger.warn = Mock()
-
         task.sf = Mock()
-        task.sf.NetworkMemberGroup = Mock()
 
         errors = ["error_0", "error_1"]
         insert_response = {"success": False, "errors": errors}
-        self.assertFalse(insert_response.get("success") is True)
 
-        task.sf.NetworkMemberGroup.create = Mock(return_value=insert_response)
+        task.sf.NetworkMemberGroup.create.return_value = insert_response
 
         # Execute the test.
         with self.assertRaises(SalesforceException) as context:
@@ -385,10 +359,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
             f'Error creating NetworkMemberGroup for Network "{task._network_id}" for parent {sobject_type} "{parent_name}" {parent_id}.   Errors: {", ".join(errors)}',
             context.exception.args[0],
         )
-
-        task.logger.info.assert_not_called()
-
-        task.logger.warn.assert_not_called()
 
         task.sf.NetworkMemberGroup.create.assert_called_once_with(
             {"NetworkId": task._network_id, "ParentId": parent_id}
@@ -402,24 +372,15 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         parent_name = "parent_name"
         parent_id = "parent_id"
 
-        self.assertTrue(parent_id)
-
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task._parent_ids = set()
-        self.assertFalse(parent_id in task._parent_ids)
 
         task._network_id = "network_id"
 
-        task.logger = Mock()
-        task.logger.info = Mock()
-        task.logger.warn = Mock()
-
         task.sf = Mock()
-        task.sf.NetworkMemberGroup = Mock()
 
         insert_response = {"success": False, "errors": None}
-        self.assertFalse(insert_response.get("success") is True)
 
         task.sf.NetworkMemberGroup.create = Mock(return_value=insert_response)
 
@@ -432,10 +393,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
             f'Error creating NetworkMemberGroup for Network "{task._network_id}" for parent {sobject_type} "{parent_name}" {parent_id}.   Errors: {", ".join([])}',
             context.exception.args[0],
         )
-
-        task.logger.info.assert_not_called()
-
-        task.logger.warn.assert_not_called()
 
         task.sf.NetworkMemberGroup.create.assert_called_once_with(
             {"NetworkId": task._network_id, "ParentId": parent_id}
@@ -452,7 +409,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         self.assertTrue(task.options.get("permission_set_names") is None)
 
         task._get_network_id = Mock(return_value="network_id")
-
         task._get_network_member_group_parent_ids = Mock(return_value=set(["Id_1"]))
 
         task._process_parent = Mock()
@@ -489,13 +445,8 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
             },
         )
 
-        self.assertEqual(profile_names, task.options.get("profile_names"))
-        self.assertEqual(permission_set_names, task.options.get("permission_set_names"))
-
         task._get_network_id = Mock(return_value="network_id")
-
         task._get_network_member_group_parent_ids = Mock(return_value=set(["Id_1"]))
-
         task._process_parent = Mock()
         expected_process_parent_calls = [
             call("Profile", [profile_names]),
