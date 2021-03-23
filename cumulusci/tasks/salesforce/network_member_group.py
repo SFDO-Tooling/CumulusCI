@@ -45,7 +45,7 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
         Raises a SalesforceException if no Network is found.
         """
 
-        networks = self.sf.queryall(
+        networks = self.sf.query_all(
             format_soql(
                 "SELECT Id FROM Network WHERE Name = {network_name} LIMIT 1",
                 network_name=network_name,
@@ -69,7 +69,7 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
         """
 
         network_member_group_parent_ids = set()
-        for record in self.sf.queryall(
+        for record in self.sf.query_all(
             f"SELECT ParentId FROM NetworkMemberGroup WHERE NetworkId = '{network_id}'"  # noqa: E501
         )["records"]:
             network_member_group_parent_ids.add(record["ParentId"])

@@ -16,8 +16,8 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task.sf = Mock()
+        task.sf.query_all.Mock()
         task.sf.query_all.return_value = {"records": []}
-
         task.format_soql = Mock()
 
         # Execute the test.
@@ -95,7 +95,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task.sf = Mock()
-        task.sf.query = Mock(
+        task.sf.query_all = Mock(
             return_value={
                 "records": [
                     {"Name": "Name_0", "Id": "Id_0"},
@@ -116,7 +116,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         # Assert scenario execute as expected.
         self.assertEqual(expected, actual)
 
-        task.sf.query.assert_called_once_with(
+        task.sf.query_all.assert_called_once_with(
             "SELECT Id, Name FROM {} WHERE Name IN ('{}')".format(
                 sobject_type,
                 "','".join(record_names),
@@ -135,7 +135,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task.sf = Mock()
-        task.sf.query.return_value = {
+        task.sf.query_all.return_value = {
             "records": [
                 {"Label": "Name_0", "Id": "Id_0"},
                 {"Label": "Name_2", "Id": "Id_2"},
@@ -154,7 +154,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         # Assert scenario execute as expected.
         self.assertEqual(expected, actual)
 
-        task.sf.query.assert_called_once_with(
+        task.sf.query_all.assert_called_once_with(
             "SELECT Id, Label FROM {} WHERE Label IN ('{}')".format(
                 sobject_type,
                 "','".join(record_names),
@@ -198,8 +198,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
             "Name_1",
             "Name_2",
         ]
-
-        self.assertTrue(record_names)
 
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
@@ -267,8 +265,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         sobject_type = "sobject_type"
         parent_name = "parent_name"
         parent_id = "parent_id"
-
-        self.assertTrue(parent_id)
 
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
@@ -391,9 +387,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
 
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
-        self.assertTrue(task.options.get("profile_names") is None)
-        self.assertTrue(task.options.get("permission_set_names") is None)
-
         task._get_network_id = Mock(return_value="network_id")
         task._get_network_member_group_parent_ids = Mock(return_value=set(["Id_1"]))
 
@@ -437,56 +430,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         expected_process_parent_calls = [
             call("Profile", [profile_names]),
             call("PermissionSet", [permission_set_names]),
-        ]
-
-        # Execute the test.
-        task._run_task()
-
-        # Assert scenario execute as expected.
-        task._get_network_id.assert_called_once_with(task.options.get("network_name"))
-
-        task._get_network_member_group_parent_ids.assert_called_once_with(
-            task._get_network_id.return_value
-        )
-
-        task._process_parent.assert_has_calls(expected_process_parent_calls)
-
-    def test_run_task__list_profile_names_and_permission_set_names(
-        self,
-    ):
-        network_name = "network_name"
-        profile_names = [
-            "profile_name_0",
-            "profile_name_1",
-            "profile_name_2",
-        ]
-        permission_set_names = [
-            "permission_set_name_0",
-            "permission_set_name_1",
-            "permission_set_name_2",
-            "permission_set_name_3",
-        ]
-
-        task = create_task(
-            CreateNetworkMemberGroups,
-            {
-                "network_name": network_name,
-                "profile_names": profile_names,
-                "permission_set_names": permission_set_names,
-            },
-        )
-
-        self.assertEqual(profile_names, task.options.get("profile_names"))
-        self.assertEqual(permission_set_names, task.options.get("permission_set_names"))
-
-        task._get_network_id = Mock(return_value="network_id")
-
-        task._get_network_member_group_parent_ids = Mock(return_value=set(["Id_1"]))
-
-        task._process_parent = Mock()
-        expected_process_parent_calls = [
-            call("Profile", profile_names),
-            call("PermissionSet", permission_set_names),
         ]
 
         # Execute the test.
