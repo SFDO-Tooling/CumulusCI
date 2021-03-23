@@ -128,7 +128,7 @@ tasks:
     create_network_members:
         description: Creates NetworkMemberGroup records which grant access to an Experience Site (Community) for specified Profiles or Permission Sets
         class_path: cumulusci.tasks.salesforce.network_member_group.CreateNetworkMemberGroups
-        group: Salesforce Communities˚
+        group: Salesforce Communities
     insert_record:
         description: Inserts a record of any sObject using the REST API
         class_path: cumulusci.tasks.salesforce.insert_record.InsertRecord

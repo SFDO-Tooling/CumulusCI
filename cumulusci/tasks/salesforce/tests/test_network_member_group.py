@@ -16,7 +16,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task.sf = Mock()
-        task.sf.queryall.return_value = {"records": []}
+        task.sf.query_all.return_value = {"records": []}
 
         task.format_soql = Mock()
 
@@ -30,7 +30,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
             context.exception.args[0],
         )
 
-        task.sf.queryall.assert_called_once_with(
+        task.sf.query_all.assert_called_once_with(
             f"SELECT Id FROM Network WHERE Name = '{network_name}' LIMIT 1"
         )
 
@@ -40,10 +40,10 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task.sf = Mock()
-        task.sf.queryall.return_value = {"records": [{"Id": "NetworkId"}]}
+        task.sf.query_all.return_value = {"records": [{"Id": "NetworkId"}]}
         task.format_soql = Mock()
 
-        expected = task.sf.queryall.return_value["records"][0]["Id"]
+        expected = task.sf.query_all.return_value["records"][0]["Id"]
 
         # Execute the test.
         actual = task._get_network_id(network_name)
@@ -51,7 +51,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         # Assert scenario execute as expected.
         self.assertEqual(expected, actual)
 
-        task.sf.queryall.assert_called_once_with(
+        task.sf.query_all.assert_called_once_with(
             f"SELECT Id FROM Network WHERE Name = '{network_name}' LIMIT 1"
         )
 
@@ -62,7 +62,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task.sf = Mock()
-        task.sf.queryall.return_value = {
+        task.sf.query_all.return_value = {
             "records": [
                 {"ParentId": "0"},
                 {"ParentId": "2"},
@@ -79,7 +79,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         # Assert scenario execute as expected.
         self.assertEqual(expected, actual)
 
-        task.sf.queryall.assert_called_once_with(
+        task.sf.query_all.assert_called_once_with(
             f"SELECT ParentId FROM NetworkMemberGroup WHERE NetworkId = '{network_id}'"
         )
 

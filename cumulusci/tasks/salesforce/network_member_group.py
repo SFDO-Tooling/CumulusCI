@@ -88,7 +88,7 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
         else:
             field_key = "Name"
 
-        for record in self.sf.query(
+        for record in self.sf.query_all(
             "SELECT Id, {} FROM {} WHERE {} IN ('{}')".format(
                 field_key,
                 sobject_type,
