@@ -225,7 +225,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             json=self._get_expected_tag(
                 "beta/1.0",
                 "tag_SHA",
-                message="Release for Beta v1.113\nversion_id: 04t000000000000\n\ndependencies: []",
+                message="Release for Beta v1.113\n\nversion_id: 04t000000000000\n\ndependencies: []",
             ),
             status=200,
         )
