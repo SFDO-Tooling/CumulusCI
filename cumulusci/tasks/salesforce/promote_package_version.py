@@ -53,7 +53,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
     def _init_options(self, kwargs) -> None:
         super()._init_options(kwargs)
 
-        version_id = self.options["version_id"]
+        version_id = self.options.get("version_id")
         if (
             version_id
             and not isinstance(version_id, str)
@@ -95,13 +95,19 @@ class PromotePackageVersion(BaseSalesforceApiTask):
 
         @returns: (str) the SubscriberPackageVersionId from the current repo commit
         """
+        self.logger.info(
+            "No version_id specified. Automatically resolving to latest available Beta version."
+        )
         tag_name = self.project_config.get_latest_tag(beta=True)
         repo = self.project_config._get_repo()
         tag = get_tag_by_name(repo, tag_name)
 
         for line in tag.message.split("\n"):
             if line.startswith("version_id:"):
-                return line.split("version_id: ")[1]
+                version_id = line.split("version_id: ")[1]
+                assert version_id.startswith("04t")
+                self.logger.info(f"Resolved to version: {version_id}")
+                self.logger.info("")
 
         raise DependencyLookupError(f"Could not find version_id for tag {tag_name}")
 
