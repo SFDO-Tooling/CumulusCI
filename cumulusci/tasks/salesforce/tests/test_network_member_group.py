@@ -18,7 +18,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task.sf = Mock()
         task.sf.queryall.return_value = {"records": []}
 
-        task.logger = Mock()
         task.format_soql = Mock()
 
         # Execute the test.
@@ -34,8 +33,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task.sf.queryall.assert_called_once_with(
             f"SELECT Id FROM Network WHERE Name = '{network_name}' LIMIT 1"
         )
-
-        task.logger.info.assert_not_called()
 
     def test_get_network_id__network_found(self):
         network_name = "network_name"
@@ -176,8 +173,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
                 CreateNetworkMemberGroups, {"network_name": network_name}
             )
 
-            task.logger = Mock()
-
             parent_ids_by_name = Mock()
 
             task._get_parent_ids_by_name = Mock(return_value=parent_ids_by_name)
@@ -188,7 +183,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
             task._process_parent(sobject_type, record_names)
 
             # Assert scenario execute as expected.
-            task.logger.info.assert_not_called()
 
             task._get_parent_ids_by_name.assert_not_called()
 
@@ -307,8 +301,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
 
         task._network_id = "network_id"
 
-        task.logger = Mock()
-
         task.sf = Mock()
         task.sf.NetworkMemberGroup = Mock()
 
@@ -318,11 +310,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
 
         # Execute the test.
         task._create_network_member_group(sobject_type, parent_name, parent_id)
-
-        # Assert scenario execute as expected.
-        task.logger.info.assert_called_once_with(f'        "{parent_name}"')
-
-        task.logger.warn.assert_not_called()
 
         task.sf.NetworkMemberGroup.create.assert_called_once_with(
             {"NetworkId": task._network_id, "ParentId": parent_id}
@@ -339,7 +326,6 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task = create_task(CreateNetworkMemberGroups, {"network_name": network_name})
 
         task._parent_ids = set()
-        self.assertFalse(parent_id in task._parent_ids)
 
         task._network_id = "network_id"
 

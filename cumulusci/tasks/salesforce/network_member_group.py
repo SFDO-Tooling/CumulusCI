@@ -142,7 +142,7 @@ class CreateNetworkMemberGroups(BaseSalesforceApiTask):
             )
         # If the Profile/Permission set already exists for a NetworkMemberGroup -
         if parent_id in self._parent_ids:
-            self.logger.warn(f'        Already exists for "{parent_name}"')
+            self.logger.warning(f'        Already exists for "{parent_name}"')
         else:
             insert_response = self.sf.NetworkMemberGroup.create(
                 {"NetworkId": self._network_id, "ParentId": parent_id}
