@@ -53,10 +53,22 @@ For dependencies that are an unpackaged bundle of metadata, CumulusCI creates an
 Promote a Package Version
 -------------------------
 
-To be installed in a production org, an unlocked package version must be `promoted <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_create_pkg_ver_promote.htm>`_ to mark it as released.
+To be installed in a production org, an 2GP package version must be `promoted <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_create_pkg_ver_promote.htm>`_ to mark it as released.
 
-CumulusCI does not yet provide tools to help promote an unlocked package version, so for now use the ``sfdx force:package:version:promote`` command. If additional unlocked packages were created to hold unpackaged dependencies, they must be promoted as well.
+Use the ``promote_package_version`` task along with a valid ``SubscriberPackageVersionId`` to promote a 2GP package.
 
+.. code-block:: console
+
+    $ cci task run promote_package_version --version_id 04t000000000000
+
+If additional unlocked packages were created to hold unpackaged dependencies, they must be promoted as well.
+To promote dependencies automatically use ``--promote_dependencies True``.
+
+.. code-block:: console
+
+    $ cci task run promote_package_version --version_id 04t000000000000 --promote_dependencies True
+
+Alternatively, you can use the ``sfdx force:package:version:promote`` command to promote a 2GP package.
 
 
 Install the Unlocked Package
@@ -93,4 +105,3 @@ To install unlocked packages in an org that doesn't use CumulusCI, use one of th
 
 * `Install via the Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_cli.htm>`_
 * `Install via an Installation URL <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_ui.htm>`_
-
