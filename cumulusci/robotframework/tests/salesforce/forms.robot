@@ -1,7 +1,6 @@
 *** Settings ***
 Resource        cumulusci/robotframework/Salesforce.robot
 Library         cumulusci.robotframework.PageObjects
-Library         cumulusci/robotframework/FormsMixin.py
 Library         Dialogs
 
 Suite Setup     Run keywords
