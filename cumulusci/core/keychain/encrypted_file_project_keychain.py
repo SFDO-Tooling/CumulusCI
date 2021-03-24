@@ -7,6 +7,8 @@ from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.config import OrgConfig
 
+DEFAULT_SERVICE_ALIAS = "default"
+
 
 class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     """ An encrypted project keychain that stores in the project's local directory """
@@ -57,25 +59,46 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         self._load_files(self.project_local_dir, ".org", "orgs", LocalOrg)
 
     def _load_services(self):
-        self._create_dir_structure()
-        self._convert_unaliased_services()
+        self._create_services_dir_structure(self.global_config_dir)
+        self._convert_unaliased_services(self.global_config_dir)
 
         self._load_files(self.global_config_dir, ".service", "services")
         self._load_files(self.project_local_dir, ".service", "services")
 
-    def _create_dir_structure(self, dir_path):
-        pass
-        # service_types = self.project_config......
-        # if services/ dir doesn't exist
-        # create it
+    def _create_services_dir_structure(self, dir_path: str):
+        """
+        Given a directory, ensure that the 'services' directory sturcutre exists.
+        The services dir has the following structure:
+        services
+        |-- github
+        |   |-- alias1.service
+        |   |-- alias2.service
+        |   |-- ...
+        |-- devhub
+        |   |-- alias1.service
+        |   |-- alias2.service
+        |   |-- ...
+        .
+        .
+        .
+        """
+        # ensure a root service/ dir exists
+        services_dir_path = Path(f"{dir_path}/services")
+        if not Path.is_dir(services_dir_path):
+            Path.mkdir(services_dir_path)
 
-        # for each item in service_types
-        # if dir with service doesn't exist in services/
-        # create it
+        service_types = self.project_config.config["services"].keys()
+        # ensure a dir for each service type exists
+        for service_type in service_types:
+            service_type_dir_path = Path(services_dir_path / service_type)
+            if not Path.is_dir(service_type_dir_path):
+                Path.mkdir(service_type_dir_path)
 
-    def _convert_unaliased_services(self, dir_path):
-        """Look in the given dir for any files with the .services extension and"""
+    def _convert_unaliased_services(self, dir_path: str):
+        """Look in the given dir for any files with the .services extension and
+        move them to the proper directory with the defualt alias."""
         pass
+        # for item in Path.iterdir(dir_path):
         # for each item in dir_path
         # if item has .service extension
         # service_type = item.replace(".service", "")

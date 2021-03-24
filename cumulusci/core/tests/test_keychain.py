@@ -598,18 +598,18 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         assert keychain.get_default_org() == (None, None)
 
     def test_create_services_dir_structure(self):
-        service_types = ["devhub", "github"]
+        service_types = list(self.universal_config.config["services"].keys())
         num_services = len(service_types)
-        # set the service type somewhere in project_config?
 
+        # _create_services_dir_structure() is invoked via constructor
         keychain = self.keychain_class(self.universal_config, self.key)
-        keychain._create_services_dir_structure(self.tempdir_home)
 
-        services_path = Path(self.home_dir / "services")
-        for item in Path.iterdir(services_path):
-            if item in service_types:
-                assert Path.is_dir(item)
-                service_types.remove(item)
+        services_path = Path(f"{self.tempdir_home}/.cumulusci/services")
+        for path in Path.iterdir(services_path):
+            service_type = str(path).split("/")[-1]
+            if service_type in service_types:
+                assert Path.is_dir(path)
+                service_types.remove(service_type)
 
         assert len(service_types) == 0
 
