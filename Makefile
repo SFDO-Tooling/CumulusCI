@@ -96,8 +96,8 @@ tag: clean
 	git push --follow-tags
 
 update-deps:
-	pip-compile -U --generate-hashes requirements/prod.in
-	pip-compile -U --generate-hashes requirements/dev.in
+	pip-compile -U --generate-hashes --allow-unsafe requirements/prod.in
+	pip-compile -U --generate-hashes --allow-unsafe requirements/dev.in
 
 dev-install:
 	pip-sync requirements/*.txt
