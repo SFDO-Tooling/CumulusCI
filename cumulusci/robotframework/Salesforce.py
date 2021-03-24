@@ -96,20 +96,28 @@ class Salesforce(object):
         return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
 
     def initialize_location_strategies(self):
-        """Initialize the Salesforce location strategies 'text' and 'title'
-        plus any strategies registered by other keyword libraries
+        """Initialize the Salesforce custom location strategies
 
         Note: This keyword is called automatically from *Open Test Browser*
         """
-        locator_manager.register_locators("sf", lex_locators)
-        locator_manager.register_locators("text", "Salesforce.Locate Element by Text")
-        locator_manager.register_locators("title", "Salesforce.Locate Element by Title")
-        locator_manager.register_locators("label", self.locate_element_by_label)
 
-        # This does the work of actually adding all of the above-registered
-        # location strategies, plus any that were registered by keyword
-        # libraries.
-        locator_manager.add_location_strategies()
+        if not self.builtin.get_variable_value(
+            "${LOCATION STRATEGIES INITIALIZED}", False
+        ):
+            # this manages strategies based on locators in a dictionary
+            locator_manager.register_locators("sf", lex_locators)
+            locator_manager.add_location_strategies()
+
+            # these are more traditional location strategies based on keywords
+            # or functions
+            self.selenium.add_location_strategy(
+                "text", "Salesforce.Locate Element by Text"
+            )
+            self.selenium.add_location_strategy(
+                "title", "Salesforce.Locate Element by Title"
+            )
+            self.selenium.add_location_strategy("label", self.locate_element_by_label)
+            self.builtin.set_suite_variable("${LOCATION STRATEGIES INITIALIZED}", True)
 
     @selenium_retry(False)
     def _jsclick(self, locator):
@@ -1397,6 +1405,7 @@ class Salesforce(object):
         builtins.set_tags("cci_metric")
         builtins.set_test_variable("${cci_metric_%s}" % metric, value)
 
+    @capture_screenshot_on_error
     def input_form_data(self, *args):
         """Fill in one or more labeled input fields fields with data
 
