@@ -644,11 +644,11 @@ class FlowCoordinator(object):
 
         for step in flow_config.steps.values():
             if "flow" in step:
-                flow_name = step["flow"]
-                if flow_name == "None":
+                next_flow_name = step["flow"]
+                if next_flow_name == "None":
                     continue
 
-                next_flow_config = project_config.get_flow(flow_name)
+                next_flow_config = project_config.get_flow(next_flow_name)
                 signature = (
                     hash(next_flow_config.project_config.source),
                     next_flow_config.name,
@@ -656,7 +656,7 @@ class FlowCoordinator(object):
 
                 if signature in flow_stack:
                     raise FlowInfiniteLoopError(
-                        f"Infinite flows detected with flow {flow_name}"
+                        f"Infinite flows detected with flow {next_flow_name}"
                     )
                 flow_stack.append(signature)
                 self._check_infinite_flows(next_flow_config, flow_stack)

@@ -312,7 +312,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
                 self.project_config, flow_config, name="self_referential_flow"
             )
 
-    def test_init_recursive_flow_complex(self):
+    def test_init_flow__with_infinite_loop(self):
         """Test a more complicated flow tree with recursion"""
         self.project_config.config["flows"] = {
             "grandchild_flow": {
@@ -348,7 +348,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         with self.assertRaises(FlowInfiniteLoopError):
             FlowCoordinator(self.project_config, flow_config, name="grandparent_flow")
 
-    def test_init_recursive_flow_negative(self):
+    def test_init_flow__without_infinite_loop(self):
         """It's OK if a flow is called multiple times if not recursive"""
         self.project_config.config["flows"] = {
             "grandchild_flow": {
