@@ -634,11 +634,11 @@ class FlowCoordinator(object):
         """
         Recursively loop through the flow_config and check if there are any cycles.
 
-        :param flow_config: Set of step definitions to loop through
+        :param flow_config: FlowConfig to traverse to find cycles/infinite loops
         :param flow_stack: list of flow signatures already visited
         :return: None
         """
-        if flow_stack is None:
+        if not flow_stack:
             flow_stack = []
         project_config = flow_config.project_config
 
