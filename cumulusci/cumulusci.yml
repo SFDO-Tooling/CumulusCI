@@ -264,6 +264,10 @@ tasks:
         description: "Retrieves all Record Types in the org as a dict, with sObject names as keys and lists of Developer Names as values."
         class_path: cumulusci.tasks.preflight.recordtypes.CheckSObjectRecordTypes
         group: Salesforce Preflight Checks
+    get_existing_sites:
+        description: "Retrieves a list of any existing Experience Cloud site names in the org."
+        class_path: cumulusci.tasks.salesforce.ListCommunities
+        group: Salesforce Preflight Checks
     github_parent_pr_notes:
         description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
         class_path: cumulusci.tasks.release_notes.task.ParentPullRequestNotes
