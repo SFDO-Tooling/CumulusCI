@@ -445,7 +445,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         keychain.set_org(self.org_config, False)
         self.assertEqual(list(keychain.orgs.keys()), [])
 
-    def test_load_files__empty(self):
+    def test_load_files__org_empty(self):
         dummy_keychain = BaseEncryptedProjectKeychain(self.project_config, self.key)
         os.makedirs(os.path.join(self.tempdir_home, ".cumulusci", self.project_name))
         self._write_file(
@@ -460,6 +460,26 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
             keychain._load_orgs()
         self.assertIn("foo", keychain.get_org("test").config)
         self.assertEqual(keychain.get_org("test").keychain, keychain)
+
+    def test_load_files__services(self):
+        dummy_keychain = BaseEncryptedProjectKeychain(self.project_config, self.key)
+        devhub_service_path = Path(
+            self.tempdir_home / ".cumulusci" / "services" / "devhub"
+        )
+        os.makedirs(devhub_service_path)
+        self._write_file(
+            Path(devhub_service_path / "test.service"),
+            dummy_keychain._encrypt_config(BaseConfig({"foo": "bar"})).decode("utf-8"),
+        )
+        keychain = self.keychain_class(self.project_config, self.key)
+        del keychain.config["orgs"]
+        with mock.patch.object(
+            self.keychain_class, "global_config_dir", Path(self.tempdir_home)
+        ):
+            keychain._load_files(self.tempdir_home / ".cumulusci")
+
+        assert "foo" in keychain.get_service("devhub", "test").config
+        assert keychain.get_service("devhub", "test").keychain == keychain
 
     def test_load_file(self):
         self._write_file(os.path.join(self.tempdir_home, "config"), "foo")
@@ -576,3 +596,60 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     def test_get_default_org__outside_project(self):
         keychain = self.keychain_class(self.universal_config, self.key)
         assert keychain.get_default_org() == (None, None)
+
+    def test_create_services_dir_structure(self):
+        service_types = ["devhub", "github"]
+        num_services = len(service_types)
+        # set the service type somewhere in project_config?
+
+        keychain = self.keychain_class(self.universal_config, self.key)
+        keychain._create_services_dir_structure(self.tempdir_home)
+
+        services_path = Path(self.home_dir / "services")
+        for item in Path.iterdir(services_path):
+            if item in service_types:
+                assert Path.is_dir(item)
+                service_types.remove(item)
+
+        assert len(service_types) == 0
+
+        keychain._create_services_dir_structure(self.tempdir_home)
+        # make sure no new dirs appeared
+        assert num_services == len(list(Path.iterdir(services_path)))
+
+    def test_convert_unaliased_services(self):
+        connected_app_service_path = Path(self.tempdir_home / "connected_app.service")
+        file_contents = "connected_app"
+        self._write_file(connected_app_service_path, file_contents)
+
+        keychain = self.keychain_class(self.universal_config, self.key)
+        keychain._convert_unaliased_services(self.tempdir_home)
+
+        service_file_path = Path(
+            self.tempdir_home / "services/connected_app/alias.service"
+        )
+        assert Path.is_file(service_file_path)
+        with open(service_file_path) as f:
+            assert f.read() == file_contents
+        assert not Path.is_file(connected_app_service_path)
+
+        keychain._convert_unaliased_services(self.tempdir_home)
+
+    def test_convert_unaliased_services__warn_duplicate_unaliased_service(self, caplog):
+        connected_app_service_path = Path(self.tempdir_home / "connected_app.service")
+        file_contents = "connected_app"
+        self._write_file(connected_app_service_path, file_contents)
+
+        keychain = self.keychain_class(self.universal_config, self.key)
+        keychain._convert_unaliased_services(self.tempdir_home)
+
+        service_file_path = Path(
+            self.tempdir_home / "services/connected_app/alias.service"
+        )
+        assert Path.is_file(service_file_path)
+        with open(service_file_path) as f:
+            assert f.read() == file_contents
+        assert not Path.is_file(connected_app_service_path)
+
+        keychain._convert_unaliased_services(self.tempdir_home)
+        assert caplog.records[3] == "Hey you have a weird thing going on"

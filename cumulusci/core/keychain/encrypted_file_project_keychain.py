@@ -54,12 +54,37 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     def _load_orgs(self):
         self._load_files(self.global_config_dir, ".org", "orgs", GlobalOrg)
-
         self._load_files(self.project_local_dir, ".org", "orgs", LocalOrg)
 
     def _load_services(self):
+        self._create_dir_structure()
+        self._convert_unaliased_services()
+
         self._load_files(self.global_config_dir, ".service", "services")
         self._load_files(self.project_local_dir, ".service", "services")
+
+    def _create_dir_structure(self, dir_path):
+        pass
+        # service_types = self.project_config......
+        # if services/ dir doesn't exist
+        # create it
+
+        # for each item in service_types
+        # if dir with service doesn't exist in services/
+        # create it
+
+    def _convert_unaliased_services(self, dir_path):
+        """Look in the given dir for any files with the .services extension and"""
+        pass
+        # for each item in dir_path
+        # if item has .service extension
+        # service_type = item.replace(".service", "")
+        # assert service_type in configured service types
+        # service_path = Path('services' / service_type)
+        # if item already exists in service_path with default alias
+        # log warning/error
+        # else
+        # mv item to service_path/default_alias.service
 
     def _remove_org(self, name, global_org):
         if global_org:
