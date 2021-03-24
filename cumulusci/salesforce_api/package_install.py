@@ -81,6 +81,7 @@ def _install_package_version(
     version_id: str,
     options: ManagedPackageInstallOptions,
 ):
+    """Install a 1gp or 2gp package using PackageInstallRequest"""
     tooling = get_simple_salesforce_connection(
         project_config, org_config, base_url="tooling"
     )
@@ -150,6 +151,7 @@ def install_package_version(
     install_options: ManagedPackageInstallOptions,
     retry_options=None,
 ):
+    """Install a 1gp or 2gp package using PackageInstallRequest, with retries"""
     retry_options = {
         **(retry_options or {}),
         "should_retry": _should_retry_package_install,
@@ -174,6 +176,7 @@ def install_1gp_package_version(
     install_options: ManagedPackageInstallOptions,
     retry_options=None,
 ):
+    """Install a 1gp package by deploying InstalledPackage metadata, with retries"""
     retry_options = {
         **(retry_options or {}),
         "should_retry": _should_retry_package_install,

@@ -65,6 +65,11 @@ class DependencyResolutionStrategy(str, Enum):
 
 
 class Dependency(HashableBaseModel, abc.ABC):
+    """Abstract base class for models representing dependencies
+    
+    Dependencies can be _resolved_ to an immutable version, or not.
+    They can also be _flattened_ (turned into a list including their own transitive dependencies) or not.
+    """
     @property
     @abc.abstractmethod
     def is_resolved(self):
@@ -76,11 +81,13 @@ class Dependency(HashableBaseModel, abc.ABC):
         return False  # pragma: no cover
 
     def flatten(self, context: BaseProjectConfig) -> List["Dependency"]:
+        """Get a list including this dependency as well as its transitive dependencies."""
         return [self]
 
     def resolve(
         self, context: BaseProjectConfig, strategies: List[DependencyResolutionStrategy]
     ):
+    """Resolve a dependency that is not pinned to a specific version into one that is."""
         pass  # pragma: no cover
 
 
@@ -88,6 +95,7 @@ Dependency.update_forward_refs()
 
 
 class StaticDependency(Dependency, abc.ABC):
+    """Abstract base class for dependencies that we know how to install."""
     @abc.abstractmethod
     def install(self, org_config: OrgConfig, retry_options: dict = None):
         pass  # pragma: no cover
@@ -107,6 +115,7 @@ class StaticDependency(Dependency, abc.ABC):
 
 
 class DynamicDependency(Dependency, abc.ABC):
+    """Abstract base class for dependencies that can be resolved."""
     managed_dependency: Optional[StaticDependency]
 
     @property
@@ -141,6 +150,7 @@ class DynamicDependency(Dependency, abc.ABC):
 
 
 class Resolver(abc.ABC):
+    """Abstract base class for dependency resolution strategies"""
     name = "Resolver"
 
     @abc.abstractmethod
@@ -244,6 +254,7 @@ class GitHubDynamicDependency(
         managed: bool,
         namespace: Optional[str],
     ) -> List[StaticDependency]:
+    """Locate unmanaged dependencies from a repository subfolder (such as unpackaged/pre or unpackaged/post)"""
         unpackaged = []
         try:
             contents = repo.directory_contents(subfolder, return_as=dict, ref=self.ref)
@@ -272,6 +283,14 @@ class GitHubDynamicDependency(
         return unpackaged
 
     def flatten(self, context: BaseProjectConfig) -> List[Dependency]:
+        """Find more dependencies based on repository contents.
+        
+        Includes:
+        - dependencies from cumulusci.yml
+        - subfolders of unpackaged/pre
+        - the contents of src, if this is not a managed package
+        - subfolders of unpackaged/post
+        """
         if not self.is_resolved or not self.ref:
             raise DependencyResolutionError(
                 f"Dependency {self.github} is not resolved and cannot be flattened."
@@ -373,7 +392,7 @@ class ManagedPackageDependency(StaticDependency):
         assert None in [
             values.get("namespace"),
             values.get("version_id"),
-        ], "Must not specify `namespace`/`version` and `version_id`"
+        ], "Must not specify both `namespace`/`version` and `version_id`"
         return values
 
     def install(
