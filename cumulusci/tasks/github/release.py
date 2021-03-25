@@ -18,7 +18,7 @@ class CreateRelease(BaseGithubTask):
         },
         "version_id": {
             "description": "The SubscriberPackageVersionId (04t) associated with this release.",
-            "required": True,
+            "required": False,
         },
         "message": {"description": "The message to attach to the created git tag"},
         "dependencies": {
