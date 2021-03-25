@@ -15,16 +15,28 @@ ${campaign name}  The Big SPAM
 
 *** Keywords ***
 Initialize test objects
-    [Documentation]  Create related objects
+    [Documentation]  Create related objects used by this test
 
-    ${result}=  salesforce query  Account  name=${account name}
+    Require salesforce object  Account   name=${account name}
+    Require salesforce object  Campaign  name=${campaign name}
+
+Require Salesforce object
+    # We might want to make this available to everyone.
+    [Documentation]
+    ...  Create a salesforce object if it doesn't exist
+    ...
+    ...  Example:
+    ...
+    ...  | Require salesforce object  Account  name=ACME Labs  description=Created for test case
+
+    [Arguments]  ${object_type}  &{args}
+
+    ${result}=  salesforce query  ${object_type}  &{args}
+    # if we don't already have such an object, create one
     Run keyword if  not $result
-    ...  salesforce insert  Account  name=${account name}
-
-    ${result}=  salesforce query  Campaign  name=${campaign name}
+    ...  Salesforce insert  ${object type}  &{args}
     Run keyword if  not $result
-    ...  salesforce insert  Campaign  name=${campaign name}
-
+    ...  log  created object  DEBUG
 
 *** Test Cases ***
 Lightning based form - Opportunity
