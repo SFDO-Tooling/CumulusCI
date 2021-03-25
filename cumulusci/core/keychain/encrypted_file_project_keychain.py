@@ -69,6 +69,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         """
         Given a directory, ensure that the 'services' directory sturcutre exists.
         The services dir has the following structure:
+
         services
         |-- github
         |   |-- alias1.service
@@ -81,33 +82,49 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         .
         .
         .
+
+        This also has the advantage that when we add a new service
+        type to cumulusci.yml a new directory for that service type
+        will be created the first time services are loaded.
         """
-        # ensure a root service/ dir exists
         services_dir_path = Path(f"{dir_path}/services")
+        # ensure a root service/ dir exists
         if not Path.is_dir(services_dir_path):
             Path.mkdir(services_dir_path)
 
-        service_types = self.project_config.config["services"].keys()
-        # ensure a dir for each service type exists
-        for service_type in service_types:
+        configured_service_types = self.project_config.config["services"].keys()
+        for service_type in configured_service_types:
             service_type_dir_path = Path(services_dir_path / service_type)
+            # ensure a dir for each service type exists
             if not Path.is_dir(service_type_dir_path):
                 Path.mkdir(service_type_dir_path)
 
     def _convert_unaliased_services(self, dir_path: str):
         """Look in the given dir for any files with the .services extension and
         move them to the proper directory with the defualt alias."""
-        pass
-        # for item in Path.iterdir(dir_path):
-        # for each item in dir_path
-        # if item has .service extension
-        # service_type = item.replace(".service", "")
-        # assert service_type in configured service types
-        # service_path = Path('services' / service_type)
-        # if item already exists in service_path with default alias
-        # log warning/error
-        # else
-        # mv item to service_path/default_alias.service
+        configured_service_types = self.project_config.config["services"].keys()
+
+        for item in Path(dir_path).iterdir():
+            if item.suffix == ".service":
+                service_type = item.name.replace(".service", "")
+                if service_type not in configured_service_types:
+                    continue  # we don't care about foo.service
+
+                service_type_path = Path(f"{dir_path}/services/{service_type}")
+                default_service_filename = (
+                    f"{service_type}_{DEFAULT_SERVICE_ALIAS}.service"
+                )
+                default_service_path = Path(
+                    service_type_path / default_service_filename
+                )
+
+                if Path.is_file(default_service_path):
+                    self.logger.warning(
+                        f"Found {service_type}.serive in ~/.cumulusci and default alias already exists."
+                    )
+                else:
+                    original_service_path = Path(f"{dir_path}/{service_type}.service")
+                    original_service_path.replace(default_service_path)
 
     def _remove_org(self, name, global_org):
         if global_org:

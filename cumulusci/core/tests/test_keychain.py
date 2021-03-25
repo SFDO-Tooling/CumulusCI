@@ -606,50 +606,55 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
 
         services_path = Path(f"{self.tempdir_home}/.cumulusci/services")
         for path in Path.iterdir(services_path):
-            service_type = str(path).split("/")[-1]
-            if service_type in service_types:
+            if path.name in service_types:
                 assert Path.is_dir(path)
-                service_types.remove(service_type)
+                service_types.remove(path.name)
 
         assert len(service_types) == 0
 
+        # explicitly invoke a second time to test idempotency
         keychain._create_services_dir_structure(self.tempdir_home)
         # make sure no new dirs appeared
         assert num_services == len(list(Path.iterdir(services_path)))
 
     def test_convert_unaliased_services(self):
-        connected_app_service_path = Path(self.tempdir_home / "connected_app.service")
-        file_contents = "connected_app"
-        self._write_file(connected_app_service_path, file_contents)
+        file_contents = "devhub"
+        devhub_service_path = Path(f"{self.tempdir_home}/.cumulusci/devhub.service")
+        self._write_file(devhub_service_path, file_contents)
 
         keychain = self.keychain_class(self.universal_config, self.key)
         keychain._convert_unaliased_services(self.tempdir_home)
 
         service_file_path = Path(
-            self.tempdir_home / "services/connected_app/alias.service"
+            f"{self.tempdir_home}/.cumulusci/services/devhub/devhub_default.service"
         )
+
         assert Path.is_file(service_file_path)
         with open(service_file_path) as f:
             assert f.read() == file_contents
-        assert not Path.is_file(connected_app_service_path)
+        assert not Path.is_file(devhub_service_path)
 
-        keychain._convert_unaliased_services(self.tempdir_home)
-
-    def test_convert_unaliased_services__warn_duplicate_unaliased_service(self, caplog):
-        connected_app_service_path = Path(self.tempdir_home / "connected_app.service")
-        file_contents = "connected_app"
-        self._write_file(connected_app_service_path, file_contents)
+    @mock.patch(
+        "cumulusci.core.keychain.encrypted_file_project_keychain.EncryptedFileProjectKeychain.logger"
+    )
+    def test_convert_unaliased_services__warn_duplicate_default_service(self, logger):
+        # make unaliased devhub service
+        file_contents = "devhub"
+        unaliased_devhub_service = Path(
+            f"{self.tempdir_home}/.cumulusci/devhub.service"
+        )
+        self._write_file(unaliased_devhub_service, file_contents)
+        # make default aliased devhub service
+        aliased_devhub_service = Path(
+            f"{self.tempdir_home}/.cumulusci/services/devhub/"
+        )
+        aliased_devhub_service.mkdir(parents=True)
+        self._write_file(
+            f"{aliased_devhub_service}/devhub_default.service", file_contents
+        )
 
         keychain = self.keychain_class(self.universal_config, self.key)
         keychain._convert_unaliased_services(self.tempdir_home)
 
-        service_file_path = Path(
-            self.tempdir_home / "services/connected_app/alias.service"
-        )
-        assert Path.is_file(service_file_path)
-        with open(service_file_path) as f:
-            assert f.read() == file_contents
-        assert not Path.is_file(connected_app_service_path)
-
-        keychain._convert_unaliased_services(self.tempdir_home)
-        assert caplog.records[3] == "Hey you have a weird thing going on"
+        # ensure we don't remove this service file
+        assert Path.is_file(unaliased_devhub_service)
