@@ -210,42 +210,52 @@ class BaseProjectKeychain(BaseConfig):
         orgs.sort()
         return orgs
 
-    def set_service(self, name, service_config, project=False):
+    def set_service(self, service_type, service_alias, service_config, project=False):
         """ Store a ServiceConfig in the keychain """
-        if not self.project_config.services or name not in self.project_config.services:
-            self._raise_service_not_valid(name)
-        self._validate_service(name, service_config)
-        self._set_service(name, service_config, project)
+        if (
+            not self.project_config.services
+            or service_type not in self.project_config.services
+        ):
+            self._raise_service_not_valid(service_type)
+        self._validate_service(service_type, service_config)
+        self._set_service(service_type, service_alias, service_config, project)
         self._load_services()
 
-    def _set_service(self, name, service_config, project=False):
-        self.services[name] = service_config
+    def _set_service(self, service_type, service_alias, service_config, project=False):
+        self.services[service_type][service_alias] = service_config
 
-    def get_service(self, name):
+    def get_service(self, service_type, service_alias=None):
         """Retrieve a stored ServiceConfig from the keychain or exception
 
-        :param name: the service name to retrieve
-        :type name: str
+        :param service_type: the service to retrieve e.g. 'Github'
+        :type service_type: str
+
+        :param service_alias: the named instance of a service e.g. 'GitSOMA'
+        :type service_alias: str
 
         :rtype ServiceConfig
         :return the configured Service
         """
         self._convert_connected_app()
-        if not self.project_config.services or name not in self.project_config.services:
-            self._raise_service_not_valid(name)
-        if name not in self.services:
-            if name == "connected_app":
+        if (
+            not self.project_config.services
+            or service_type not in self.project_config.services
+        ):
+            self._raise_service_not_valid(service_type)
+        if service_type not in self.services:
+            if service_type == "connected_app":
                 return DEFAULT_CONNECTED_APP
-            self._raise_service_not_configured(name)
+            self._raise_service_not_configured(service_type)
 
-        service = self._get_service(name)
+        service = self._get_service(service_type, service_alias)
         # transparent migration of github API tokens to new key
-        if name == "github" and service.password and not service.token:
+        if service_type == "github" and service.password and not service.token:
             service.config["token"] = service.password
         return service
 
-    def _get_service(self, name):
-        return self.services.get(name)
+    def _get_service(self, service_type, service_alias):
+        services_for_type = self.services.get(service_type)
+        return services_for_type.get(service_alias)
 
     def _validate_key(self):
         pass
