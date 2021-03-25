@@ -180,7 +180,7 @@ class BaseMetadataSynthesisTask(BaseMetadataETLTask, metaclass=ABCMeta):
 
     deploy = True
 
-    def _generate_package_xml(self, deploy):
+    def _get_package_xml_content(self, operation):
         """Synthesize a package.xml for generated metadata."""
         generator = PackageXmlGenerator(str(self.deploy_dir), self.api_version)
         return generator()

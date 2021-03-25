@@ -57,6 +57,9 @@ tasks:
         description: Waits on a batch apex or queueable apex job to finish.
         class_path: cumulusci.tasks.apex.batch.BatchApexWait
         group: Salesforce
+    celebrate:
+        description: Deploy a path and celebrate with confetti
+        class_path: cumulusci.tasks.metadata_etl.celebrate.Celebrate
     check_my_domain_active:
         description: Runs as a preflight check to determine whether My Domain is active.
         class_path: cumulusci.tasks.preflight.settings.CheckMyDomainActive
