@@ -1413,9 +1413,9 @@ class Salesforce(object):
         for required fields should not include the asterisk. Labels
         must be exact, including case.
 
-        This keyword uses the keyword 'locate element by label'
-        keyword to locate elements. More details about how elements
-        are found are in the documentation for that keyword.
+        This keyword uses the keyword *Locate Element by Label* to
+        locate elements. More details about how elements are found are
+        in the documentation for that keyword.
 
         Example:
 
@@ -1429,6 +1429,7 @@ class Salesforce(object):
 
         This keyword will eventually replace the "populate form"
         keyword once it has been more thoroughly tested in production.
+
         """
 
         it = iter(args)
@@ -1446,9 +1447,9 @@ class Salesforce(object):
                 raise Exception(
                     f"No form handler found for label '{label}' (tag: '{element.tag_name}')"
                 )
-        # maybe we should automatically set the focus to some
-        # other element to trigger any event handlers on the
-        # last element. But what should we set the focus to?
+        # FIXME: maybe we should automatically set the focus to some
+        # other element to trigger any event handlers on the last
+        # element? But what should we set the focus to?
 
     def locate_element_by_label(self, browser, locator, tag, constraints):
         """Find a lightning component, input, or textarea based on a label
@@ -1458,8 +1459,9 @@ class Salesforce(object):
         disambiguate the label.  (eg: Other address::First Name)
 
         If the label is inside nested ligntning components (eg:
-        <lightning-input><lightning-combobox>), the component closest
-        to the label will be returned.
+        ``<lightning-input>...<lightning-combobox>...<label>``), the
+        lightning component closest to the label will be
+        returned (in this case, ``lightning-combobox``).
 
         If a lightning component cannot be found for the label, an
         attempt will be made to find an input or textarea associated
@@ -1469,7 +1471,11 @@ class Salesforce(object):
 
         Example:
 
-        The following two lines produce identical results:
+        The following example is for a form with a formset named
+        "Expected Delivery Date", and inside of that a date input field
+        with a label of "Date".
+
+        These examples produce identical results:
 
         | ${element}=  Locate element by label    Expected Delivery Date::Date
         | ${element}=  Get webelement             label:Expected Delivery Date::Date
