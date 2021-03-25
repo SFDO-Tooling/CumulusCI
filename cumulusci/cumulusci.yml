@@ -125,6 +125,10 @@ tasks:
         description: Creates a Community in the target org using the Connect API
         class_path: cumulusci.tasks.salesforce.CreateCommunity
         group: Salesforce Communities
+    create_network_member_groups:
+        description: Creates NetworkMemberGroup records which grant access to an Experience Site (Community) for specified Profiles or Permission Sets
+        class_path: cumulusci.tasks.salesforce.network_member_group.CreateNetworkMemberGroups
+        group: Salesforce Communities
     insert_record:
         description: Inserts a record of any sObject using the REST API
         class_path: cumulusci.tasks.salesforce.insert_record.InsertRecord
@@ -263,6 +267,10 @@ tasks:
     get_existing_record_types:
         description: "Retrieves all Record Types in the org as a dict, with sObject names as keys and lists of Developer Names as values."
         class_path: cumulusci.tasks.preflight.recordtypes.CheckSObjectRecordTypes
+        group: Salesforce Preflight Checks
+    get_existing_sites:
+        description: "Retrieves a list of any existing Experience Cloud site names in the org."
+        class_path: cumulusci.tasks.salesforce.ListCommunities
         group: Salesforce Preflight Checks
     github_parent_pr_notes:
         description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
