@@ -96,8 +96,8 @@ tag: clean
 	git push --follow-tags
 
 update-deps:
-	pip-compile -U --allow-unsafe requirements/prod.in
-	pip-compile -U --allow-unsafe requirements/dev.in
+	pip-compile --upgrade --allow-unsafe requirements/prod.in
+	pip-compile --upgrade --upgrade-package 'typeguard==2.10.0' --allow-unsafe requirements/dev.in
 
 dev-install:
 	pip-sync requirements/*.txt

@@ -20,7 +20,7 @@ click==7.1.2
     #   snowfakery
 coloredlogs==15.0
     # via -r requirements/prod.in
-cryptography==3.4.6
+cryptography==3.4.7
     # via
     #   -r requirements/prod.in
     #   authlib
