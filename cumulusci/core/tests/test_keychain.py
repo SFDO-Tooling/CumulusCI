@@ -463,20 +463,22 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
 
     def test_load_files__services(self):
         dummy_keychain = BaseEncryptedProjectKeychain(self.project_config, self.key)
-        devhub_service_path = Path(
-            self.tempdir_home / ".cumulusci" / "services" / "devhub"
-        )
-        os.makedirs(devhub_service_path)
+        devhub_service_path = Path(f"{self.tempdir_home}/.cumulusci/services/devhub")
+        devhub_service_path.mkdir(parents=True)
         self._write_file(
-            Path(devhub_service_path / "test.service"),
+            Path(devhub_service_path / "alias.service"),
             dummy_keychain._encrypt_config(BaseConfig({"foo": "bar"})).decode("utf-8"),
         )
+
         keychain = self.keychain_class(self.project_config, self.key)
-        del keychain.config["orgs"]
+        del keychain.config["services"]
+
         with mock.patch.object(
             self.keychain_class, "global_config_dir", Path(self.tempdir_home)
         ):
-            keychain._load_files(self.tempdir_home / ".cumulusci")
+            keychain._load_files(
+                f"{self.tempdir_home}/.cumulusci", ".service", "services"
+            )
 
         assert "foo" in keychain.get_service("devhub", "test").config
         assert keychain.get_service("devhub", "test").keychain == keychain
@@ -634,10 +636,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
             assert f.read() == file_contents
         assert not Path.is_file(devhub_service_path)
 
-    @mock.patch(
-        "cumulusci.core.keychain.encrypted_file_project_keychain.EncryptedFileProjectKeychain.logger"
-    )
-    def test_convert_unaliased_services__warn_duplicate_default_service(self, logger):
+    def test_convert_unaliased_services__warn_duplicate_default_service(self):
         # make unaliased devhub service
         file_contents = "devhub"
         unaliased_devhub_service = Path(
