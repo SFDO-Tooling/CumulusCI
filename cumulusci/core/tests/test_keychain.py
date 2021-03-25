@@ -93,9 +93,11 @@ class ProjectKeychainTestMixin(unittest.TestCase):
 
     def test_set_service_github(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_service("github", self.services["github"], project)
+        keychain.services = {"github": {}}
+        keychain.set_service("github", "GithubAlias", self.services["github"], project)
         self.assertEqual(
-            keychain.get_service("github").config, self.services["github"].config
+            keychain.get_service("github", "GithubAlias").config,
+            self.services["github"].config,
         )
 
     def test_set_service_private(self, project=False):
