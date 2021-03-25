@@ -45,6 +45,14 @@ class BaseFormHandler:
     def selenium(self):
         return BuiltIn().get_library_instance("SeleniumLibrary")
 
+    @property
+    def input_element(self):
+        """Returns the actual <input> or <textarea> element inside the element"""
+        elements = self.element.find_elements_by_xpath(
+            ".//*[self::input or self::textarea]"
+        )
+        return elements[0] if elements else None
+
     # these should be implemented by each of the handlers
     def set(self, value):
         pass
@@ -82,7 +90,7 @@ class LightningComboboxHandler(BaseFormHandler):
         value_locator = f'//lightning-base-combobox-item[.="{value}"]'
         wait = 5
         try:
-            self.element.click()
+            self.input_element.click()
             self.selenium.wait_until_element_is_visible(value_locator, wait)
             self.selenium.click_element(value_locator)
         except Exception as e:
@@ -99,20 +107,22 @@ class LightningInputHandler(BaseFormHandler):
 
     def set(self, value):
         self.focus()
-        if self.element.get_attribute("type") == "checkbox":
+        if self.input_element.get_attribute("type") == "checkbox":
             # lightning-input elements are used for checkboxes
             # as well as free text input.
             checked = self.element.get_attribute("checked")
             if (checked and value != "checked") or (not checked and value == "checked"):
-                self.element.send_keys(" ")
+                self.input_element.send_keys(" ")
         else:
             self.clear()
-            self.element.send_keys(value)
+            self.input_element.send_keys(value)
 
     def clear(self):
         """Remove the value in the element"""
         # oddly, element.clear() doesn't always work.
-        self.selenium.driver.execute_script("arguments[0].value = '';", self.element)
+        self.selenium.driver.execute_script(
+            "arguments[0].value = '';", self.input_element
+        )
 
     def focus(self):
         """Set focus to the element
@@ -134,7 +144,7 @@ class LightningLookupHandler(BaseFormHandler):
         # instead of searching the whole document?
         value_locator = f'//div[@role="listbox"]//*[.="{value}"]'
         self.element.click()
-        self.element.send_keys(value)
+        self.input_element.send_keys(value)
         try:
             self.selenium.wait_until_element_is_visible(value_locator, wait)
             self.selenium.click_element(value_locator)
