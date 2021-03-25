@@ -1433,6 +1433,7 @@ class Salesforce(object):
         """
 
         it = iter(args)
+        errors = []
         for label, value in list(zip(it, it)):
             # this uses our custom "label" locator strategy
             locator = f"label:{label}"
@@ -1441,12 +1442,21 @@ class Salesforce(object):
             # so that we fail quickly if we can't find the element
             element = self.selenium.get_webelement(f"label:{label}")
             handler = get_form_handler(element, locator)
-            if handler:
-                handler.set(value)
-            else:
-                raise Exception(
-                    f"No form handler found for label '{label}' (tag: '{element.tag_name}')"
-                )
+            try:
+                if handler:
+                    handler.set(value)
+                else:
+                    raise Exception(
+                        f"No form handler found for label '{label}' (tag: '{element.tag_name}')"
+                    )
+            except Exception as e:
+                errors.append(f"{label}: {str(e)}")
+
+        if errors:
+            message = "There were errors with the following fields:\n"
+            message += "\n".join(errors)
+            raise Exception(message)
+
         # FIXME: maybe we should automatically set the focus to some
         # other element to trigger any event handlers on the last
         # element? But what should we set the focus to?
