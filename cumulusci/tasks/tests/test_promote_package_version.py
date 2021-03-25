@@ -284,6 +284,51 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             with pytest.raises(DependencyLookupError):
                 task()
 
+    @responses.activate
+    def test_run_task__resolve_version_id_dependency_error_malformed_version(
+        self, task, devhub_config, caplog
+    ):
+        responses.add(  # query for repository
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo",
+            json=self._get_expected_repo("TestOwner", "TestRepo"),
+            status=200,
+        )
+        responses.add(  # query for releases (project_config.get_latest_tag)
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/releases?per_page=100",
+            json=self._get_expected_releases(
+                "TestOwner",
+                "TestRepo",
+                ["beta/1.113-Beta_1", "whatisthis/0.0.1", "release/0.0.1"],
+            ),
+            status=200,
+        )
+        responses.add(  # query for ref to tag
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.113-Beta_1",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=200,
+        )
+        responses.add(  # query for tag
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag(
+                "beta/1.0",
+                "tag_SHA",
+                message="Release for Beta v1.113\n\nversion_id: malformedId\n\ndependencies: []",
+            ),
+            status=200,
+        )
+        self._mock_dependencies(2, 1, 0)
+        with mock.patch(
+            "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
+            return_value=devhub_config,
+        ):
+            task.options["version_id"] = None
+            with pytest.raises(DependencyLookupError):
+                task()
+
     def test_process_one_gp_dependencies(self, task, caplog):
         """Ensure proper logging output"""
         dependencies = [

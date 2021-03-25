@@ -103,7 +103,11 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         for line in tag.message.split("\n"):
             if line.startswith("version_id:"):
                 version_id = line.split("version_id: ")[1]
-                assert version_id.startswith("04t")
+                if not version_id.startswith("04t"):
+                    self.logger.error(
+                        f"Found malformed version_id on tag ({tag_name}): {version_id}"
+                    )
+                    continue
                 self.logger.info(f"Resolved to version: {version_id}")
                 self.logger.info("")
                 return version_id
