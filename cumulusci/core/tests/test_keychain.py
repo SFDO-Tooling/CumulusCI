@@ -445,7 +445,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         keychain.set_org(self.org_config, False)
         self.assertEqual(list(keychain.orgs.keys()), [])
 
-    def test_load_files__empty(self):
+    def test_load_files__org_empty(self):
         dummy_keychain = BaseEncryptedProjectKeychain(self.project_config, self.key)
         os.makedirs(os.path.join(self.tempdir_home, ".cumulusci", self.project_name))
         self._write_file(
@@ -460,6 +460,28 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
             keychain._load_orgs()
         self.assertIn("foo", keychain.get_org("test").config)
         self.assertEqual(keychain.get_org("test").keychain, keychain)
+
+    def test_load_files__services(self):
+        dummy_keychain = BaseEncryptedProjectKeychain(self.project_config, self.key)
+        devhub_service_path = Path(f"{self.tempdir_home}/.cumulusci/services/devhub")
+        devhub_service_path.mkdir(parents=True)
+        self._write_file(
+            Path(devhub_service_path / "alias.service"),
+            dummy_keychain._encrypt_config(BaseConfig({"foo": "bar"})).decode("utf-8"),
+        )
+
+        keychain = self.keychain_class(self.project_config, self.key)
+        del keychain.config["services"]
+
+        with mock.patch.object(
+            self.keychain_class, "global_config_dir", Path(self.tempdir_home)
+        ):
+            keychain._load_files(
+                f"{self.tempdir_home}/.cumulusci", ".service", "services"
+            )
+
+        assert "foo" in keychain.get_service("devhub", "test").config
+        assert keychain.get_service("devhub", "test").keychain == keychain
 
     def test_load_file(self):
         self._write_file(os.path.join(self.tempdir_home, "config"), "foo")
@@ -576,3 +598,62 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
     def test_get_default_org__outside_project(self):
         keychain = self.keychain_class(self.universal_config, self.key)
         assert keychain.get_default_org() == (None, None)
+
+    def test_create_services_dir_structure(self):
+        service_types = list(self.universal_config.config["services"].keys())
+        num_services = len(service_types)
+
+        # _create_services_dir_structure() is invoked via constructor
+        keychain = self.keychain_class(self.universal_config, self.key)
+
+        services_path = Path(f"{self.tempdir_home}/.cumulusci/services")
+        for path in Path.iterdir(services_path):
+            if path.name in service_types:
+                assert Path.is_dir(path)
+                service_types.remove(path.name)
+
+        assert len(service_types) == 0
+
+        # explicitly invoke a second time to test idempotency
+        keychain._create_services_dir_structure(self.tempdir_home)
+        # make sure no new dirs appeared
+        assert num_services == len(list(Path.iterdir(services_path)))
+
+    def test_convert_unaliased_services(self):
+        file_contents = "devhub"
+        devhub_service_path = Path(f"{self.tempdir_home}/.cumulusci/devhub.service")
+        self._write_file(devhub_service_path, file_contents)
+
+        keychain = self.keychain_class(self.universal_config, self.key)
+        keychain._convert_unaliased_services(self.tempdir_home)
+
+        service_file_path = Path(
+            f"{self.tempdir_home}/.cumulusci/services/devhub/devhub_default.service"
+        )
+
+        assert Path.is_file(service_file_path)
+        with open(service_file_path) as f:
+            assert f.read() == file_contents
+        assert not Path.is_file(devhub_service_path)
+
+    def test_convert_unaliased_services__warn_duplicate_default_service(self):
+        # make unaliased devhub service
+        file_contents = "devhub"
+        unaliased_devhub_service = Path(
+            f"{self.tempdir_home}/.cumulusci/devhub.service"
+        )
+        self._write_file(unaliased_devhub_service, file_contents)
+        # make default aliased devhub service
+        aliased_devhub_service = Path(
+            f"{self.tempdir_home}/.cumulusci/services/devhub/"
+        )
+        aliased_devhub_service.mkdir(parents=True)
+        self._write_file(
+            f"{aliased_devhub_service}/devhub_default.service", file_contents
+        )
+
+        keychain = self.keychain_class(self.universal_config, self.key)
+        keychain._convert_unaliased_services(self.tempdir_home)
+
+        # ensure we don't remove this service file
+        assert Path.is_file(unaliased_devhub_service)

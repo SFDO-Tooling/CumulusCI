@@ -1,11 +1,14 @@
 import os
-from typing import NamedTuple
+import typing as T
+
 from pathlib import Path
 
-from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.core.exceptions import CumulusCIException, OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.config import OrgConfig
+
+DEFAULT_SERVICE_ALIAS = "default"
 
 
 class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
@@ -26,17 +29,38 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     def project_local_dir(self):
         return self.project_config.project_local_dir
 
-    def _load_files(self, dirname, extension, key, constructor=None):
+    def _load_files(
+        self, dirname: str, extension: str, config_type: str, constructor=None
+    ) -> None:
+        """
+        Loads either .org or .service files into the keychain configuration.
+        For orgs, we store under config["orgs"][org_name]
+        For services, we store under config["services"][service_type][service_alias]
+        """
         if dirname is None:
             return
-        for item in sorted(os.listdir(dirname)):
-            if item.endswith(extension):
-                with open(os.path.join(dirname, item), "r") as f_item:
-                    config = f_item.read()
-                name = item.replace(extension, "")
-                if key not in self.config:
-                    self.config[key] = {}
-                self.config[key][name] = constructor(config) if constructor else config
+
+        dir_path = Path(dirname)
+        for item in dir_path.iterdir():
+            if item.suffix == extension:
+                with open(item) as f:
+                    config = f.read()
+                if config_type not in self.config:
+                    self.config[config_type] = {}
+                filename = item.name.replace(extension, "")
+                if config_type == "orgs":
+                    self.config[config_type][filename] = (
+                        constructor(config) if constructor else config
+                    )
+                elif config_type == "services":
+                    service_type = item.parent
+                    if service_type not in self.config[config_type]:
+                        self.config[config_type][service_type] = {}
+                    self.config[config_type][service_type][filename] = (
+                        constructor(config) if constructor else config
+                    )
+                else:
+                    raise CumulusCIException("Unknown service type.")
 
     def _load_file(self, dirname, filename, key):
         if dirname is None:
@@ -54,12 +78,79 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     def _load_orgs(self):
         self._load_files(self.global_config_dir, ".org", "orgs", GlobalOrg)
-
         self._load_files(self.project_local_dir, ".org", "orgs", LocalOrg)
 
     def _load_services(self):
         self._load_files(self.global_config_dir, ".service", "services")
         self._load_files(self.project_local_dir, ".service", "services")
+
+    def _load_services2(self):
+        self._create_services_dir_structure(self.global_config_dir)
+        self._convert_unaliased_services(self.global_config_dir)
+
+        self._load_files(self.global_config_dir, ".service", "services")
+        self._load_files(self.project_local_dir, ".service", "services")
+
+    def _create_services_dir_structure(self, dir_path: str):
+        """
+        Given a directory, ensure that the 'services' directory sturcutre exists.
+        The services dir has the following structure:
+
+        services
+        |-- github
+        |   |-- alias1.service
+        |   |-- alias2.service
+        |   |-- ...
+        |-- devhub
+        |   |-- alias1.service
+        |   |-- alias2.service
+        |   |-- ...
+        .
+        .
+        .
+
+        This also has the advantage that when we add a new service
+        type to cumulusci.yml a new directory for that service type
+        will be created the first time services are loaded.
+        """
+        services_dir_path = Path(f"{dir_path}/services")
+        # ensure a root service/ dir exists
+        if not Path.is_dir(services_dir_path):
+            Path.mkdir(services_dir_path)
+
+        configured_service_types = self.project_config.config["services"].keys()
+        for service_type in configured_service_types:
+            service_type_dir_path = Path(services_dir_path / service_type)
+            # ensure a dir for each service type exists
+            if not Path.is_dir(service_type_dir_path):
+                Path.mkdir(service_type_dir_path)
+
+    def _convert_unaliased_services(self, dir_path: str):
+        """Look in the given dir for any files with the .services extension and
+        move them to the proper directory with the defualt alias."""
+        configured_service_types = self.project_config.config["services"].keys()
+
+        for item in Path(dir_path).iterdir():
+            if item.suffix == ".service":
+                service_type = item.name.replace(".service", "")
+                if service_type not in configured_service_types:
+                    continue  # we don't care about foo.service
+
+                service_type_path = Path(f"{dir_path}/services/{service_type}")
+                default_service_filename = (
+                    f"{service_type}_{DEFAULT_SERVICE_ALIAS}.service"
+                )
+                default_service_path = Path(
+                    service_type_path / default_service_filename
+                )
+
+                if Path.is_file(default_service_path):
+                    self.logger.warning(
+                        f"Found {service_type}.serive in ~/.cumulusci and default alias already exists."
+                    )
+                else:
+                    original_service_path = Path(f"{dir_path}/{service_type}.service")
+                    original_service_path.replace(default_service_path)
 
     def _remove_org(self, name, global_org):
         if global_org:
@@ -161,11 +252,11 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 pass
 
 
-class GlobalOrg(NamedTuple):
+class GlobalOrg(T.NamedTuple):
     encrypted_data: bytes
     global_org: bool = True
 
 
-class LocalOrg(NamedTuple):
+class LocalOrg(T.NamedTuple):
     encrypted_data: bytes
     global_org: bool = False
