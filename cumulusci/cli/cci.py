@@ -1071,6 +1071,11 @@ def org_import(runtime, username_or_alias, org_name):
     scratch_org_config.config["created"] = True
 
     info = scratch_org_config.sfdx_info
+    if not info.get("created_date"):
+        raise click.UsageError(
+            "cci org import only works for locally created "
+            "scratch orgs.\nUse `cci org connect` for other orgs."
+        )
     scratch_org_config.config["days"] = calculate_org_days(info)
     scratch_org_config.config["date_created"] = parse_api_datetime(info["created_date"])
 

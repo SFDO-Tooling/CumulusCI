@@ -1227,6 +1227,33 @@ Environment Info: Rossian / x68_46
             "Imported scratch org: access, username: test@test.org" in "".join(out)
         )
 
+    @mock.patch("sarge.Command")
+    def test_org_import__persistent_org(self, cmd):
+        runtime = mock.Mock()
+        result = b"""{
+            "result": {
+                "createdDate": null,
+                "instanceUrl": "url",
+                "accessToken": "access!token",
+                "username": "test@test.org",
+                "password": "password"
+            }
+        }"""
+        cmd.return_value = mock.Mock(
+            stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=0
+        )
+
+        out = []
+        with mock.patch("click.echo", out.append), pytest.raises(
+            click.UsageError, match="cci org connect"
+        ):
+            run_click_command(
+                cci.org_import,
+                username_or_alias="test@test.org",
+                org_name="test",
+                runtime=runtime,
+            )
+
     def test_calculate_org_days(self):
         info_1 = {
             "created_date": "1970-01-01T12:34:56.789Z",
