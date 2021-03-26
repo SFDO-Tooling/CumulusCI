@@ -2,6 +2,66 @@
 History
 =======
 
+3.31.0 (2021-03-18)
+-------------------
+
+Changes:
+
+-  It is now possible to pass the ``--noancestors`` flag to sfdx when
+   creating a scratch org by setting ``noancestors: True`` in the
+   scratch org config in ``cumulusci.yml``. Thanks @lionelarmanet (#2452)
+-  The ``robot_outputdir`` return value from the ``robot`` task is now
+   an absolute path. (#2442)
+-  New tasks:
+
+   -  ``get_available_permission_sets``: retrieves the list of available
+      permission sets from an org. (#2455)
+   -  ``promote_2gp_package``: will promote a ``Package2Version`` to the
+      "IsReleased" state, making it available for installation in
+      production orgs. (#2454)
+
+Snowfakery
+`1.7 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.7>`__:
+
+-  Adds support for Salesforce Person Accounts.
+
+Issues Closed:
+
+-  ``cci project init`` no longer overwrites existing files. If files
+   already exist, it displays a warning and outputs the rendered file
+   template. (#1325)
+
+3.30.0 (2021-03-04)
+-------------------
+
+Critical changes:
+
+- We are planning to remove functionality in CumulusCI's dependency management in a future release. 
+
+  - The ``update_dependencies`` task will no longer support uninstalling managed packages in a persistent org as part of the dependency installation process. 
+  - The ``allow_newer`` option on ``update_dependencies`` will be removed and always be True.
+  - The ``project__dependencies`` section in ``cumulusci.yml`` will no longer support nested dependencies specified like this ::
+  
+      dependencies:
+        - namespace: "test"
+          version: "1.0"
+          dependencies:
+            - namespace: "parent"
+              version: "2.2"
+
+  
+  All dependencies should be listed in install order. 
+  
+  We recommend reformatting nested dependencies and discontinuing use of ``allow_newer`` and package uninstalls now to prepare for these future changes. 
+
+Changes:
+
+- We released a `new suite of documentation for CumulusCI <https://cumulusci.readthedocs.io/en/latest/>`_.
+- CumulusCI now caches org describe data in a local database to provide significant performance gains, especially in ``generate_dataset_mapping``.
+- The ``cci org browser`` command now has a ``--path`` option to open a specific page and a ``--url-only`` option to output the login URL without spawning a browser.
+- We improved messaging about errors while loading ``cumulusci.yml``.
+- CumulusCI now uses Snowfakery 1.6 (see its `release notes <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.6>`__).
+
 3.29.0 (2021-02-18)
 -------------------
 

@@ -738,6 +738,34 @@ Environment Info: Rossian / x68_46
             with self.assertRaises(click.ClickException):
                 run_click_command(cci.project_init)
 
+    def test_project_init_dont_overwrite(self):
+        with temporary_dir():
+            # Gotta have a Repo
+            os.mkdir(".git")
+            Path(".git", "HEAD").write_text("ref: refs/heads/main")
+
+            os.mkdir("orgs")
+            orgs = "orgs/"
+            text = "Can't touch this"
+
+            path_list = [
+                Path("README.md"),
+                Path(".gitignore"),
+                Path(orgs + "dev.json"),
+                Path(orgs + "release.json"),
+            ]
+            for path in path_list:
+                path.write_text(text)
+
+            runtime = mock.Mock()
+            runtime.project_config.project = {"test": "test"}
+
+            run_click_command(cci.project_info, runtime=runtime)
+
+            # Project init must not overwrite project files or org defs
+            for path in path_list:
+                self.assertEqual(text, path.read_text())
+
     @mock.patch("click.echo")
     def test_project_info(self, echo):
         runtime = mock.Mock()
@@ -1146,6 +1174,33 @@ Environment Info: Rossian / x68_46
         self.assertTrue(
             "Imported scratch org: access, username: test@test.org" in "".join(out)
         )
+
+    @mock.patch("sarge.Command")
+    def test_org_import__persistent_org(self, cmd):
+        runtime = mock.Mock()
+        result = b"""{
+            "result": {
+                "createdDate": null,
+                "instanceUrl": "url",
+                "accessToken": "access!token",
+                "username": "test@test.org",
+                "password": "password"
+            }
+        }"""
+        cmd.return_value = mock.Mock(
+            stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=0
+        )
+
+        out = []
+        with mock.patch("click.echo", out.append), pytest.raises(
+            click.UsageError, match="cci org connect"
+        ):
+            run_click_command(
+                cci.org_import,
+                username_or_alias="test@test.org",
+                org_name="test",
+                runtime=runtime,
+            )
 
     def test_calculate_org_days(self):
         info_1 = {

@@ -1,4 +1,3 @@
-from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 from typing import Optional, Union
 import base64
 import enum
@@ -11,7 +10,7 @@ import zipfile
 from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
-from cumulusci.core.exceptions import DependencyLookupError, ServiceNotConfigured
+from cumulusci.core.exceptions import DependencyLookupError
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import PackageUploadFailure
 from cumulusci.core.exceptions import TaskOptionsError
@@ -19,10 +18,10 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.core.sfdx import get_default_devhub_username
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils import download_extract_github
+from cumulusci.core.config.util import get_devhub_config
 
 VERSION_RE = re.compile(
     r"^(?P<MajorVersion>\d+)"
@@ -200,23 +199,12 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
 
     def _init_task(self):
-        self.devhub_config = self._init_devhub()
         self.tooling = get_simple_salesforce_connection(
             self.project_config,
-            self.devhub_config,
+            get_devhub_config(self.project_config),
             api_version=self.api_version,
             base_url="tooling",
         )
-
-    def _init_devhub(self):
-        # Determine the devhub username for this project
-        try:
-            devhub_service = self.project_config.keychain.get_service("devhub")
-        except ServiceNotConfigured:
-            devhub_username = get_default_devhub_username()
-        else:
-            devhub_username = devhub_service.username
-        return SfdxOrgConfig({"username": devhub_username}, "devhub")
 
     def _run_task(self):
         """Creates a new 2GP package version.
@@ -445,6 +433,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "SkipValidation": skip_validation,
             "Tag": f"hash:{package_hash}",
             "VersionInfo": version_info,
+            "CalculateCodeCoverage": not skip_validation,
         }
         self.logger.info(
             f"Requesting creation of package version {version_number.format()} "

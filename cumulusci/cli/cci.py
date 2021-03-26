@@ -601,8 +601,17 @@ def project_init(runtime):
     # Render templates
     for name in (".gitignore", "README.md", "cumulusci.yml"):
         template = env.get_template(name)
-        with open(name, "w") as f:
-            f.write(template.render(**context))
+        file_path = Path(name)
+        if not file_path.is_file():
+            file_path.write_text(template.render(**context))
+        else:
+            click.echo(
+                click.style(
+                    f"{name} already exists. As a reference, here is what would be placed in the file if it didn't already exist:",
+                    fg="red",
+                )
+            )
+            click.echo(click.style(template.render(**context) + "\n", fg="yellow"))
 
     # Create source directory
     source_path = "force-app" if context["source_format"] == "sfdx" else "src"
@@ -624,43 +633,35 @@ def project_init(runtime):
     if not os.path.isdir("orgs"):
         os.mkdir("orgs")
 
+    org_dict = {
+        "beta.json": {
+            "org_name": "Beta Test Org",
+            "edition": "Developer",
+            "managed": True,
+        },
+        "dev.json": {"org_name": "Dev Org", "edition": "Developer", "managed": False},
+        "feature.json": {
+            "org_name": "Feature Test Org",
+            "edition": "Developer",
+            "managed": False,
+        },
+        "release.json": {
+            "org_name": "Release Test Org",
+            "edition": "Enterprise",
+            "managed": True,
+        },
+    }
+
     template = env.get_template("scratch_def.json")
-    with open(os.path.join("orgs", "beta.json"), "w") as f:
-        f.write(
-            template.render(
-                package_name=context["package_name"],
-                org_name="Beta Test Org",
-                edition="Developer",
-                managed=True,
+    for org_name, properties in org_dict.items():
+        org_path = Path("orgs/" + org_name)
+        if not org_path.is_file():
+            org_path.write_text(
+                template.render(
+                    package_name=context["package_name"],
+                    **properties,
+                )
             )
-        )
-    with open(os.path.join("orgs", "dev.json"), "w") as f:
-        f.write(
-            template.render(
-                package_name=context["package_name"],
-                org_name="Dev Org",
-                edition="Developer",
-                managed=False,
-            )
-        )
-    with open(os.path.join("orgs", "feature.json"), "w") as f:
-        f.write(
-            template.render(
-                package_name=context["package_name"],
-                org_name="Feature Test Org",
-                edition="Developer",
-                managed=False,
-            )
-        )
-    with open(os.path.join("orgs", "release.json"), "w") as f:
-        f.write(
-            template.render(
-                package_name=context["package_name"],
-                org_name="Release Test Org",
-                edition="Enterprise",
-                managed=True,
-            )
-        )
 
     # create robot folder structure and starter files
     if not os.path.isdir("robot"):
@@ -1041,6 +1042,11 @@ def org_import(runtime, username_or_alias, org_name):
     scratch_org_config.config["created"] = True
 
     info = scratch_org_config.sfdx_info
+    if not info.get("created_date"):
+        raise click.UsageError(
+            "cci org import only works for locally created "
+            "scratch orgs.\nUse `cci org connect` for other orgs."
+        )
     scratch_org_config.config["days"] = calculate_org_days(info)
     scratch_org_config.config["date_created"] = parse_api_datetime(info["created_date"])
 
@@ -1122,7 +1128,7 @@ def org_info(runtime, org_name, print_json):
     org_config.save()
 
 
-@org.command(name="list", help="Lists the connected orgs for the current project")
+@org.command(name="list", help="Lists all orgs in scope for the current project")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @pass_runtime(require_project=False, require_keychain=True)
 def org_list(runtime, plain):
@@ -1610,7 +1616,9 @@ class RunTaskCommand(click.MultiCommand):
             finally:
                 RUNTIME.alert(f"Task complete: {task_name}")
 
-        return click.Command(task_name, params=params, callback=run_task)
+        cmd = click.Command(task_name, params=params, callback=run_task)
+        cmd.help = task_config.description
+        return cmd
 
     def format_help(self, ctx, formatter):
         """Custom help for `cci task run`"""
