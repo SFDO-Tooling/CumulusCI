@@ -23,6 +23,6 @@ sarge
 selenium
 simple-salesforce
 snowfakery
-SQLAlchemy==1.3.23
+SQLAlchemy<1.4
 terminaltables
 xmltodict
