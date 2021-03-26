@@ -1022,6 +1022,36 @@ flows:
             3:
                 task: install_managed_beta
 
+    release_2gp_beta:
+        group: Release Operations
+        description: Upload and release a beta version of the metadata in this repository
+        steps:
+          1:
+            task: create_package_version
+            options:
+              package_type: Managed
+              package_name: $project_config.project__package__name
+              skip_validation: True
+              version_base: latest_github_release
+              version_type: minor
+          2:
+            task: github_release
+            options:
+              version: ^^create_package_version.version_number
+              version_id: ^^create_package_version.subscriber_package_version_id
+              dependencies: ^^create_package_version.dependencies
+          3:
+            task: github_release_notes
+            ignore_failure: True # Attempt to generate release notes but don't fail build
+            options:
+              link_pr: True
+              publish: True
+              tag: ^^github_release.tag_name
+              include_empty: True
+              version_id: ^^upload_beta.version_id
+          4:
+            task: github_automerge_main
+
     release_beta:
         group: Release Operations
         description: Upload and release a beta version of the metadata currently in packaging
