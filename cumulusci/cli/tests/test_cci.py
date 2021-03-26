@@ -424,11 +424,15 @@ class TestCCI(unittest.TestCase):
             fg="red",
         )
 
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock())
+    @mock.patch("cumulusci.cli.cci.init_logger", mock.Mock())
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("click.echo")
     @mock.patch("sys.exit")
     @mock.patch("cumulusci.cli.cci.cli")
-    def test_handle_SSL_exception(self, cli, exit, echo):
+    def test_handle_SSL_exception(self, cli, exit, echo, get_tempfile_logger):
         runtime = mock.Mock()
+        get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
         runtime.project_config.repo_root = None
         runtime.keychain.get_service.return_value.config = {
             "username": "usrnm",
@@ -440,10 +444,16 @@ class TestCCI(unittest.TestCase):
             cci.main(["cci", "org", "info"])
         assert "We encountered an error with SSL" in str(echo.mock_calls)
 
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock())
+    @mock.patch("cumulusci.cli.cci.init_logger", mock.Mock())
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("click.echo")
     @mock.patch("sys.exit")
     @mock.patch("cumulusci.cli.cci.cli")
-    def test_handle_SSL_exception__Salesforce(self, cli, exit, echo):
+    def test_handle_SSL_exception__Salesforce(
+        self, cli, exit, echo, get_tempfile_logger
+    ):
+        get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
         runtime = mock.Mock()
         runtime.project_config.repo_root = None
         runtime.keychain.get_service.return_value.config = {
@@ -458,10 +468,14 @@ class TestCCI(unittest.TestCase):
             cci.main(["cci", "org", "info"])
         assert "CURL_CA_BUNDLE or REQUESTS_CA_BUNDLE" in str(echo.mock_calls)
 
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock())
+    @mock.patch("cumulusci.cli.cci.init_logger", mock.Mock())
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("click.echo")
     @mock.patch("sys.exit")
     @mock.patch("cumulusci.cli.cci.cli")
-    def test_handle_SSL_exception__localdev(self, cli, exit, echo):
+    def test_handle_SSL_exception__localdev(self, cli, exit, echo, get_tempfile_logger):
+        get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
         runtime = mock.Mock()
         runtime.project_config.repo_root = None
         runtime.keychain.get_service.return_value.config = {
