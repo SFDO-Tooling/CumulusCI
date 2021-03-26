@@ -1445,7 +1445,7 @@ class Salesforce(object):
             # FIXME: we should probably only wait for the first label;
             # after that we can assume the fields have been rendered
             # so that we fail quickly if we can't find the element
-            element = self.selenium.get_webelement(f"label:{label}")
+            element = self.selenium.get_webelement(locator)
             handler = get_form_handler(element, locator)
             try:
                 if handler:
