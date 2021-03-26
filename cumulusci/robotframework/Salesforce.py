@@ -1417,6 +1417,11 @@ class Salesforce(object):
         locate elements. More details about how elements are found are
         in the documentation for that keyword.
 
+        For most input form fields the actual value string will be
+        used.  For a checkbox, passing the value "checked" will check
+        the checkbox and any other value will uncheck it. Using
+        "unchecked" is recommended for clarity.
+
         Example:
 
         | Input form data
@@ -1447,7 +1452,7 @@ class Salesforce(object):
                     handler.set(value)
                 else:
                     raise Exception(
-                        f"No form handler found for label '{label}' (tag: '{element.tag_name}')"
+                        f"No form handler found for tag '{element.tag_name}'"
                     )
             except Exception as e:
                 errors.append(f"{label}: {str(e)}")
