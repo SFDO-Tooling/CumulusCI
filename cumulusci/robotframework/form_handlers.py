@@ -1,6 +1,5 @@
 import abc
 from robot.libraries.BuiltIn import BuiltIn
-from robot.api import logger
 from selenium.webdriver.common.action_chains import ActionChains
 from cumulusci.utils.classutils import get_all_subclasses
 
@@ -88,7 +87,7 @@ class BaseFormHandler(abc.ABC):
         actions.move_to_element(self.element).click().perform()
 
 
-class InputHandler(BaseFormHandler):
+class HTMLInputHandler(BaseFormHandler):
     """An input handler for non-lightning input and textarea form fields
 
     This is the fallback handler for when we can't find a lightning component.
@@ -121,8 +120,7 @@ class LightningComboboxHandler(BaseFormHandler):
             self.input_element.click()
             self.selenium.wait_until_element_is_visible(value_locator, wait)
             self.selenium.click_element(value_locator)
-        except Exception as e:
-            logger.debug(f"exception: {e}")
+        except Exception:
             raise Exception(
                 f"Dropdown value '{value}' for '{self.locator}' not found after {wait} seconds"
             )
@@ -176,10 +174,9 @@ class LightningLookupHandler(BaseFormHandler):
         try:
             self.selenium.wait_until_element_is_visible(value_locator, wait)
             self.selenium.click_element(value_locator)
-        except Exception as e:
+        except Exception:
             # *sigh* this still fails randomly even though
             # I can see the dadgum item in the dropdown.
-            logger.debug(f"exception: {e}")
             raise Exception(
                 f"Lookup value '{value}' for '{self.locator}' not found after {wait} seconds"
             )
