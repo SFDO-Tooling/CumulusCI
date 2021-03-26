@@ -1,7 +1,7 @@
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api import logger
 from selenium.webdriver.common.action_chains import ActionChains
-from cumulusci.utils import get_all_subclasses
+from cumulusci.utils.classutils import get_all_subclasses
 
 """
 FIXME: Something that still needs to be resolved is what to do about
