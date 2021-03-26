@@ -61,7 +61,7 @@ Lightning based form - Opportunity
     ...  Stage             Prospecting                             # combobox
     ...  Probability (%)   90                                      # percentage
     ...  Description       this is a long description\nblah blah   # textarea
-    ...  Primary Campaign Source  ${Campaign Name}                 # combobox
+    ...  Primary Campaign Source  ${Campaign Name}                 # lookup
     ...  Lead Source       Purchased List                          # combobox
 
     capture page screenshot
@@ -79,6 +79,14 @@ Non-lightning based form - Shipment
     ...  AND  Click Object Button    New
     ...  AND  Wait for modal         New     Shipment
     [Teardown]   Click modal button  Cancel
+
+    # first, let's make sure that the keyword returns an element
+    # that is not a lightning component
+    FOR  ${label}  IN  Ship To Street  Ship To City
+        ${element}=  Get webelement  label:${label}
+        Should not start with  ${element.tag_name}  lightning-
+        ...  Element tag for '${label}' not expected to be lightning component
+    END
 
     Input form data
     ...  Ship To Street  2501 Exchange Ave
