@@ -65,9 +65,11 @@ class DependencyResolutionStrategy(str, Enum):
     """Enum that defines a strategy for resolving a dynamic dependency into a static dependency."""
 
     STRATEGY_STATIC_TAG_REFERENCE = "tag"
-    STRATEGY_2GP_EXACT_BRANCH = "exact_branch_2gp"
-    STRATEGY_2GP_RELEASE_BRANCH = "release_branch_2gp"
-    STRATEGY_2GP_PREVIOUS_RELEASE_BRANCH = "previous_release_branch_2gp"
+    STRATEGY_COMMIT_STATUS_EXACT_BRANCH = "commit_status_exact_branch"
+    STRATEGY_COMMIT_STATUS_RELEASE_BRANCH = "commit_status_release_branch"
+    STRATEGY_COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH = (
+        "commit_status_previous_release_branch"
+    )
     STRATEGY_BETA_RELEASE_TAG = "latest_beta"
     STRATEGY_RELEASE_TAG = "latest_release"
     STRATEGY_UNMANAGED_HEAD = "unmanaged"
@@ -692,7 +694,7 @@ class GitHubUnmanagedHeadResolver(Resolver):
 
 
 class GitHubReleaseBranchResolver(Resolver, abc.ABC):
-    """Abstract base class for resolvers that use release branches to find refs."""
+    """Abstract base class for resolvers that use commit statuses release branches to find refs."""
 
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
         return self.is_valid_repo_context(context) and isinstance(
@@ -721,7 +723,7 @@ class GitHubReleaseBranchResolver(Resolver, abc.ABC):
             )
         )
 
-    def locate_2gp_package_id(self, remote_repo, release_branch, context_2gp):
+    def locate_commit_status_package_id(self, remote_repo, release_branch, context_2gp):
         version_id = None
         count = 0
         commit = release_branch.commit
@@ -740,11 +742,11 @@ class GitHubReleaseBranchResolver(Resolver, abc.ABC):
         return version_id, commit
 
 
-class GitHubReleaseBranch2GPResolver(GitHubReleaseBranchResolver):
-    """Resolver that identifies a ref by finding a 2GP package version
+class GitHubReleaseBranchCommitStatusResolver(GitHubReleaseBranchResolver):
+    """Resolver that identifies a ref by finding a beta package version
     in a commit status on a `feature/NNN` release branch."""
 
-    name = "GitHub Release Branch 2GP Resolver"
+    name = "GitHub Release Branch Commit Status Resolver"
     branch_depth = 1
 
     def resolve(
@@ -763,7 +765,7 @@ class GitHubReleaseBranch2GPResolver(GitHubReleaseBranchResolver):
             remote_2gp_context = find_repo_2gp_context(repo)
         except Exception:
             context.logger.info(
-                f"Could not find feature branch prefix or 2GP context for {repo.clone_url}. Unable to resolve 2GP packages."
+                f"Could not find feature branch prefix or commit-status context for {repo.clone_url}. Unable to resolve packages."
             )
             return (None, None)
 
@@ -781,7 +783,7 @@ class GitHubReleaseBranch2GPResolver(GitHubReleaseBranchResolver):
                 pass
 
         if release_branch:
-            version_id, commit = self.locate_2gp_package_id(
+            version_id, commit = self.locate_commit_status_package_id(
                 repo,
                 release_branch,
                 remote_2gp_context,
@@ -789,7 +791,7 @@ class GitHubReleaseBranch2GPResolver(GitHubReleaseBranchResolver):
 
             if version_id:
                 context.logger.info(
-                    f"Located 2GP package version {version_id} for release {release_id} on {repo.clone_url} at commit {release_branch.commit.sha}"
+                    f"Located package version {version_id} for release {release_id} on {repo.clone_url} at commit {release_branch.commit.sha}"
                 )
                 package_config = get_remote_project_config(repo, commit.sha)
                 package_name, _ = get_package_data(package_config)
@@ -799,25 +801,27 @@ class GitHubReleaseBranch2GPResolver(GitHubReleaseBranchResolver):
                 )
 
         context.logger.warn(
-            f"No 2GP package version located for release {release_id} on {repo.clone_url}."
+            f"No package version located for release {release_id} on {repo.clone_url}."
         )
         return (None, None)
 
 
-class GitHubPreviousReleaseBranch2GPResolver(GitHubReleaseBranch2GPResolver):
-    """Resolver that identifies a ref by finding a 2GP package version
+class GitHubPreviousReleaseBranchCommitStatusResolver(
+    GitHubReleaseBranchCommitStatusResolver
+):
+    """Resolver that identifies a ref by finding a beta package version
     in a commit status on a `feature/NNN` release branch that is earlier
     than the matching local release branch."""
 
-    name = "GitHub Previous Release Branch 2GP Resolver"
+    name = "GitHub Previous Release Branch Commit Status Resolver"
     branch_depth = 3
 
 
-class GitHubReleaseBranchExactMatch2GPResolver(GitHubReleaseBranchResolver):
-    """Resolver that identifies a ref by finding a 2GP package version
+class GitHubReleaseBranchExactMatchCommitStatusResolver(GitHubReleaseBranchResolver):
+    """Resolver that identifies a ref by finding a beta package version
     in a commit status on a branch whose name matches the local branch."""
 
-    name = "GitHub Exact-Match 2GP Resolver"
+    name = "GitHub Exact-Match Commit Status Resolver"
 
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
@@ -833,7 +837,7 @@ class GitHubReleaseBranchExactMatch2GPResolver(GitHubReleaseBranchResolver):
             remote_2gp_context = find_repo_2gp_context(repo)
         except Exception:
             context.logger.info(
-                f"Could not find feature branch prefix or 2GP context for {repo.clone_url}. Unable to resolve 2GP packages."
+                f"Could not find feature branch prefix or commit-status context for {repo.clone_url}. Unable to resolve package."
             )
             return (None, None)
 
@@ -847,7 +851,7 @@ class GitHubReleaseBranchExactMatch2GPResolver(GitHubReleaseBranchResolver):
             context.logger.info(f"Exact-match branch not found for {repo.clone_url}.")
             return (None, None)
 
-        version_id, commit = self.locate_2gp_package_id(
+        version_id, commit = self.locate_commit_status_package_id(
             repo,
             release_branch,
             remote_2gp_context,
@@ -855,7 +859,7 @@ class GitHubReleaseBranchExactMatch2GPResolver(GitHubReleaseBranchResolver):
 
         if version_id:
             context.logger.info(
-                f"Located 2GP package version {version_id} for release {release_id} on {repo.clone_url} at commit {release_branch.commit.sha}"
+                f"Located package version {version_id} for release {release_id} on {repo.clone_url} at commit {release_branch.commit.sha}"
             )
 
             package_config = get_remote_project_config(repo, commit.sha)
@@ -866,16 +870,16 @@ class GitHubReleaseBranchExactMatch2GPResolver(GitHubReleaseBranchResolver):
             )
 
         context.logger.warn(
-            f"No 2GP package version located for release {release_id} on {repo.clone_url}."
+            f"No package version located for release {release_id} on {repo.clone_url}."
         )
         return (None, None)
 
 
 RESOLVER_CLASSES = {
     DependencyResolutionStrategy.STRATEGY_STATIC_TAG_REFERENCE: GitHubTagResolver,
-    DependencyResolutionStrategy.STRATEGY_2GP_EXACT_BRANCH: GitHubReleaseBranchExactMatch2GPResolver,
-    DependencyResolutionStrategy.STRATEGY_2GP_RELEASE_BRANCH: GitHubReleaseBranch2GPResolver,
-    DependencyResolutionStrategy.STRATEGY_2GP_PREVIOUS_RELEASE_BRANCH: GitHubPreviousReleaseBranch2GPResolver,
+    DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_EXACT_BRANCH: GitHubReleaseBranchExactMatchCommitStatusResolver,
+    DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_RELEASE_BRANCH: GitHubReleaseBranchCommitStatusResolver,
+    DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH: GitHubPreviousReleaseBranchCommitStatusResolver,
     DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG: GitHubBetaReleaseTagResolver,
     DependencyResolutionStrategy.STRATEGY_RELEASE_TAG: GitHubReleaseTagResolver,
     DependencyResolutionStrategy.STRATEGY_UNMANAGED_HEAD: GitHubUnmanagedHeadResolver,

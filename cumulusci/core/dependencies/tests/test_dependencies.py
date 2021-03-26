@@ -10,8 +10,8 @@ from cumulusci.core.dependencies.dependencies import (
     DependencyResolutionStrategy,
     GitHubBetaReleaseTagResolver,
     GitHubDynamicDependency,
-    GitHubReleaseBranch2GPResolver,
-    GitHubReleaseBranchExactMatch2GPResolver,
+    GitHubReleaseBranchCommitStatusResolver,
+    GitHubReleaseBranchExactMatchCommitStatusResolver,
     GitHubReleaseBranchResolver,
     GitHubReleaseTagResolver,
     GitHubTagResolver,
@@ -364,7 +364,7 @@ class TestDynamicDependency:
             mock.Mock(),
             [
                 DependencyResolutionStrategy.STRATEGY_UNMANAGED_HEAD,
-                DependencyResolutionStrategy.STRATEGY_2GP_PREVIOUS_RELEASE_BRANCH,
+                DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH,
             ],
         )
 
@@ -390,7 +390,7 @@ class TestDynamicDependency:
             mock.Mock(),
             [
                 DependencyResolutionStrategy.STRATEGY_UNMANAGED_HEAD,
-                DependencyResolutionStrategy.STRATEGY_2GP_PREVIOUS_RELEASE_BRANCH,
+                DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH,
             ],
         )
 
@@ -1079,7 +1079,7 @@ class TestGitHubReleaseBranch2GPResolver:
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranch2GPResolver()
+        resolver = GitHubReleaseBranchCommitStatusResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
         )
@@ -1099,7 +1099,7 @@ class TestGitHubReleaseBranchExactMatch2GPResolver:
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatch2GPResolver()
+        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
         )
@@ -1142,7 +1142,10 @@ class TestResolverAccess:
         pc = BaseProjectConfig(UniversalConfig())
 
         strategy = get_resolver_stack(pc, "exact_2gp")
-        assert DependencyResolutionStrategy.STRATEGY_2GP_RELEASE_BRANCH in strategy
+        assert (
+            DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_RELEASE_BRANCH
+            in strategy
+        )
 
     def test_get_resolver_stack__fail(self):
         pc = BaseProjectConfig(UniversalConfig())

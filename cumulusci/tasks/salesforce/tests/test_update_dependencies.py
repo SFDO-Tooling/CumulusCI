@@ -162,7 +162,7 @@ def test_init_options_removes_2gp_resolver_for_prefer_2gp_false():
     )
 
     assert (
-        DependencyResolutionStrategy.STRATEGY_2GP_RELEASE_BRANCH
+        DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_RELEASE_BRANCH
         not in task.resolution_strategy
     )
 
@@ -188,7 +188,7 @@ def test_init_options_removes_unsafe_resolvers_persistent_org():
         not in task.resolution_strategy
     )
     assert (
-        DependencyResolutionStrategy.STRATEGY_2GP_RELEASE_BRANCH
+        DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_RELEASE_BRANCH
         not in task.resolution_strategy
     )
 

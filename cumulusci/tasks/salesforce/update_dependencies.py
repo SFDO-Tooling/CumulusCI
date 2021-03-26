@@ -108,9 +108,9 @@ class UpdateDependencies(BaseSalesforceTask):
         # Likewise remove 2GP resolution strategies if prefer_2gp_from_release_branch
         # is explicitly False
         resolvers_2gp = [
-            DependencyResolutionStrategy.STRATEGY_2GP_PREVIOUS_RELEASE_BRANCH,
-            DependencyResolutionStrategy.STRATEGY_2GP_RELEASE_BRANCH,
-            DependencyResolutionStrategy.STRATEGY_2GP_EXACT_BRANCH,
+            DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH,
+            DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_RELEASE_BRANCH,
+            DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_EXACT_BRANCH,
             DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG,
         ]
 

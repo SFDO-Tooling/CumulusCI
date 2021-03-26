@@ -1201,18 +1201,18 @@ project:
         preproduction: latest_release
         production: latest_release
         resolution_strategies:
-            exact_2gp:
+            include_beta_branch_match:
                 - tag
-                - exact_branch_2gp
-                - release_branch_2gp
-                - previous_release_branch_2gp
+                - commit_status_exact_branch
+                - commit_status_release_branch
+                - commit_status_previous_release_branch
                 - latest_beta
                 - latest_release
                 - unmanaged
             include_beta:
                 - tag
-                - release_branch_2gp
-                - previous_release_branch_2gp
+                - commit_status_release_branch
+                - commit_status_previous_release_branch
                 - latest_beta
                 - latest_release
                 - unmanaged
