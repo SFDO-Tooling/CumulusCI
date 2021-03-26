@@ -1,21 +1,24 @@
+import io
+import logging
+import zipfile
+from unittest import mock
+
+import pydantic
+import pytest
+
 from cumulusci.core.dependencies.dependencies import (
+    DependencyResolutionStrategy,
     GitHubDynamicDependency,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
     UnmanagedGitHubRefDependency,
     get_resolver_stack,
-    DependencyResolutionStrategy,
 )
-import io
-import logging
-from unittest import mock
-import zipfile
-import pytest
-import pydantic
-from cumulusci.core.exceptions import TaskOptionsError, DependencyParseError
+from cumulusci.core.exceptions import DependencyParseError, TaskOptionsError
 from cumulusci.core.flowrunner import StepSpec
 from cumulusci.tasks.salesforce.update_dependencies import UpdateDependencies
 from cumulusci.tests.util import create_project_config
+
 from .util import create_task
 
 

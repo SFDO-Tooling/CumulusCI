@@ -1,10 +1,7 @@
-from cumulusci.core.dependencies.github import (
-    get_package_data,
-    get_remote_project_config,
-    get_repo,
-)
-from cumulusci.utils.yaml.model_parser import CCIModel
+import abc
+import itertools
 import logging
+from enum import Enum
 from typing import Iterable, List, Optional, Tuple
 
 import pydantic
@@ -14,7 +11,23 @@ from pydantic.networks import AnyUrl
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.exceptions import DependencyResolutionError, DependencyParseError
+from cumulusci.core.dependencies.github import (
+    get_package_data,
+    get_remote_project_config,
+    get_repo,
+)
+from cumulusci.core.dependencies.utils import TaskContext
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    DependencyParseError,
+    DependencyResolutionError,
+)
+from cumulusci.core.github import (
+    find_latest_release,
+    find_repo_2gp_context,
+    find_repo_feature_prefix,
+    get_version_id_from_commit,
+)
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
@@ -24,29 +37,14 @@ from cumulusci.salesforce_api.package_install import (
 )
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.utils import download_extract_github_from_repo, download_extract_zip
-from cumulusci.utils.git import split_repo_url
-import abc
-
-from cumulusci.core.github import (
-    find_latest_release,
-    find_repo_2gp_context,
-    find_repo_feature_prefix,
-    get_version_id_from_commit,
-)
 from cumulusci.utils.git import (
-    get_feature_branch_name,
-    is_release_branch_or_child,
     construct_release_branch_name,
+    get_feature_branch_name,
     get_release_identifier,
+    is_release_branch_or_child,
+    split_repo_url,
 )
-
-from cumulusci.core.dependencies.utils import TaskContext
-
-from enum import Enum
-
-from cumulusci.core.exceptions import CumulusCIException
-import itertools
-
+from cumulusci.utils.yaml.model_parser import CCIModel
 
 logger = logging.getLogger(__name__)
 

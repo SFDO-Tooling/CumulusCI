@@ -1,14 +1,14 @@
-from cumulusci.core.config import BaseConfig
-from cumulusci.core.exceptions import DependencyResolutionError
 from unittest import mock
 
 import pytest
 
+from cumulusci.core.config import BaseConfig
 from cumulusci.core.dependencies.github import (
     get_package_data,
     get_remote_project_config,
     get_repo,
 )
+from cumulusci.core.exceptions import DependencyResolutionError
 
 
 def test_get_remote_project_config():

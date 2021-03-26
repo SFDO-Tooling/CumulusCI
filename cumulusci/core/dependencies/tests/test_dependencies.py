@@ -1,13 +1,14 @@
-from cumulusci.salesforce_api.package_install import (
-    DEFAULT_PACKAGE_RETRY_OPTIONS,
-    PackageInstallOptions,
-)
-from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
 from typing import List, Optional, Tuple
+from unittest import mock
+
+import pytest
+from pydantic import ValidationError
+
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.dependencies import (
     DependencyResolutionStrategy,
+    DynamicDependency,
     GitHubBetaReleaseTagResolver,
     GitHubDynamicDependency,
     GitHubReleaseBranchCommitStatusResolver,
@@ -19,7 +20,6 @@ from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
     Resolver,
-    DynamicDependency,
     StaticDependency,
     UnmanagedGitHubRefDependency,
     UnmanagedZipURLDependency,
@@ -28,19 +28,18 @@ from cumulusci.core.dependencies.dependencies import (
     get_static_dependencies,
     parse_dependency,
 )
-from cumulusci.utils.git import split_repo_url
-
-from unittest import mock
-import pytest
-
-from pydantic import ValidationError
-
+from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
 from cumulusci.core.tests.test_config import (
     DummyContents,
+    DummyGithub,
     DummyRelease,
     DummyRepository,
-    DummyGithub,
 )
+from cumulusci.salesforce_api.package_install import (
+    DEFAULT_PACKAGE_RETRY_OPTIONS,
+    PackageInstallOptions,
+)
+from cumulusci.utils.git import split_repo_url
 
 
 @pytest.fixture

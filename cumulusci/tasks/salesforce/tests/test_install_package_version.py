@@ -1,15 +1,17 @@
+from unittest import mock
+
+import pytest
+
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.flowrunner import StepSpec
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
     PackageInstallOptions,
 )
-from unittest import mock
-
-from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce.install_package_version import InstallPackageVersion
 from cumulusci.tests.util import create_project_config
+
 from .util import create_task
-import pytest
 
 
 @mock.patch(

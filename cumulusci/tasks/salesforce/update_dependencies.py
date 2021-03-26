@@ -1,16 +1,15 @@
-from cumulusci.salesforce_api.package_install import PackageInstallOptions
-from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.core.dependencies.dependencies import (
     DependencyResolutionStrategy,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
-    parse_dependencies,
     get_resolver_stack,
     get_static_dependencies,
+    parse_dependencies,
 )
-
-from cumulusci.core.utils import process_bool_arg
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.tasks import BaseSalesforceTask
+from cumulusci.core.utils import process_bool_arg
+from cumulusci.salesforce_api.package_install import PackageInstallOptions
 
 
 class UpdateDependencies(BaseSalesforceTask):
