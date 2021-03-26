@@ -1,3 +1,4 @@
+import abc
 from robot.libraries.BuiltIn import BuiltIn
 from robot.api import logger
 from selenium.webdriver.common.action_chains import ActionChains
@@ -32,7 +33,18 @@ def get_form_handler(element, locator):
     return None
 
 
-class BaseFormHandler:
+class BaseFormHandler(abc.ABC):
+    """Base class for all form handlers
+
+    The goal is to have each handler implement the methods 'get',
+    'set', 'focus', and 'clear'. However, at present we're only using
+    'set' externally. 'focus' is the one method that will probably
+    have the same implementation for every handler so it's defined in
+    the base class. The others are abstract methods which each handler
+    should define.
+
+    """
+
     def __init__(self, element, locator):
         # concrete element to be handled
         self.element = element
@@ -53,15 +65,27 @@ class BaseFormHandler:
         )
         return elements[0] if elements else None
 
-    # these should be implemented by each of the handlers
+    @abc.abstractmethod
     def set(self, value):
-        pass
+        pass  # pragma: no cover
+
+    @abc.abstractmethod
+    def get(self):
+        pass  # pragma: no cover
+
+    @abc.abstractmethod
+    def clear(self):
+        pass  # pragma: no cover
 
     def focus(self):
-        pass
+        """Set focus to the element
 
-    def clear(self):
-        pass
+        In addition to merely setting the focus via selenium, we click
+        on the element in case there are functions tied to that event.
+        """
+        self.selenium.set_focus_to_element(self.element)
+        actions = ActionChains(self.selenium.driver)
+        actions.move_to_element(self.element).click().perform()
 
 
 class InputHandler(BaseFormHandler):
@@ -75,9 +99,13 @@ class InputHandler(BaseFormHandler):
     def set(self, value):
         self.element.send_keys(value)
 
+    def get(self, value):
+        # not currently being used
+        pass  # pragma: no cover
+
     def clear(self):
-        """Remove the value in the element"""
-        # oddly, element.clear() doesn't always work.
+        # Salesforce.py has a crazy amount of code for clearing
+        # a field; for now these handlers seem to be working without it.
         self.selenium.driver.execute_script("arguments[0].value = '';", self.element)
 
 
@@ -99,6 +127,14 @@ class LightningComboboxHandler(BaseFormHandler):
                 f"Dropdown value '{value}' for '{self.locator}' not found after {wait} seconds"
             )
 
+    def get(self, value):
+        # not currently being used
+        pass  # pragma: no cover
+
+    def clear(self):
+        # not currently being used
+        pass  # pragma: no cover
+
 
 class LightningInputHandler(BaseFormHandler):
     """An input handler for components that can be treated as an input or textarea"""
@@ -117,22 +153,14 @@ class LightningInputHandler(BaseFormHandler):
             self.clear()
             self.input_element.send_keys(value)
 
+    def get(self, value):
+        # not currently being used
+        pass  # pragma: no cover
+
     def clear(self):
-        """Remove the value in the element"""
-        # oddly, element.clear() doesn't always work.
-        self.selenium.driver.execute_script(
-            "arguments[0].value = '';", self.input_element
-        )
-
-    def focus(self):
-        """Set focus to the element
-
-        In addition to merely setting the focus, we click on the
-        element in case there are functions tied to that event.
-        """
-        actions = ActionChains(self.selenium.driver)
-        actions.move_to_element(self.element).click().perform()
-        self.selenium.set_focus_to_element(self.element)
+        # Salesforce.py has a crazy amount of code for clearing
+        # a field; for now these handlers seem to be working without it.
+        self.selenium.driver.execute_script("arguments[0].value = '';", self.element)
 
 
 class LightningLookupHandler(BaseFormHandler):
@@ -156,7 +184,10 @@ class LightningLookupHandler(BaseFormHandler):
                 f"Lookup value '{value}' for '{self.locator}' not found after {wait} seconds"
             )
 
+    def get(self, value):
+        # not currently being used
+        pass  # pragma: no cover
+
     def clear(self):
-        """Remove the value in the element"""
-        # I'll get to this later...
-        pass
+        # this is not currently being used
+        pass  # pragma: no cover
