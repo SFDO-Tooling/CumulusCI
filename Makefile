@@ -97,7 +97,7 @@ tag: clean
 
 update-deps:
 	pip-compile --upgrade --allow-unsafe requirements/prod.in
-	pip-compile --upgrade --upgrade-package 'typeguard==2.10.0' --allow-unsafe requirements/dev.in
+	pip-compile --upgrade --allow-unsafe requirements/dev.in
 
 dev-install:
 	pip-sync requirements/*.txt

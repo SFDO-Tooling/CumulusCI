@@ -12,7 +12,7 @@ PyJWT
 pytz
 requests
 requests-futures
-robotframework
+robotframework==3.2.2
 robotframework-lint
 robotframework-pabot
 robotframework-requests
@@ -23,6 +23,6 @@ sarge
 selenium
 simple-salesforce
 snowfakery
-SQLAlchemy
+SQLAlchemy==1.3.23
 terminaltables
 xmltodict

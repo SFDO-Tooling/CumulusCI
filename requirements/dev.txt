@@ -54,7 +54,7 @@ docutils==0.16
     #   sphinx
 factory-boy==3.2.0
     # via -r requirements/dev.in
-faker==6.6.2
+faker==6.6.3
     # via
     #   -c requirements/prod.txt
     #   factory-boy
