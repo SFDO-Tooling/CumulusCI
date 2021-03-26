@@ -5,8 +5,6 @@ import unittest
 from unittest import mock
 from pathlib import Path
 
-import pytest
-
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
@@ -19,8 +17,6 @@ from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.core.keychain import EnvironmentProjectKeychain
 from cumulusci.core.keychain.encrypted_file_project_keychain import GlobalOrg
-from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.tests.utils import EnvironmentVarGuard
 
@@ -152,51 +148,6 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
     def test_set_and_get_scratch_org(self):
         self._clean_env(self.env)
         super(TestEnvironmentProjectKeychain, self).test_set_and_get_scratch_org()
-
-
-class TestBaseEncryptedProjectKeychain(ProjectKeychainTestMixin):
-    keychain_class = BaseEncryptedProjectKeychain
-
-    def test_get_connected_app(self):
-        keychain = self.keychain_class(self.project_config, self.key)
-        keychain.app = keychain._encrypt_config(BaseConfig({}))
-        app = keychain.get_connected_app()
-        self.assertIsInstance(app, ConnectedAppOAuthConfig)
-
-    def test_decrypt_config__no_config(self):
-        keychain = self.keychain_class(self.project_config, self.key)
-        config = keychain._decrypt_config(OrgConfig, None, extra=["test", keychain])
-        self.assertEqual(config.__class__, OrgConfig)
-        self.assertEqual(config.config, {})
-        self.assertEqual(config.keychain, keychain)
-
-    def test_decrypt_config__no_config_2(self):
-        keychain = self.keychain_class(self.project_config, self.key)
-        config = keychain._decrypt_config(BaseConfig, None)
-        self.assertEqual(config.__class__, BaseConfig)
-        self.assertEqual(config.config, {})
-
-    def test_decrypt_config__wrong_key(self):
-        keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_org(self.org_config, False)
-
-        keychain.key = "x" * 16
-        with pytest.raises(KeychainKeyNotFound):
-            keychain.get_org("test")
-
-    # def test_decrypt_config__py2_bytes(self):
-    #     keychain = self.keychain_class(self.project_config, self.key)
-    #     s =
-    #     config = keychain._decrypt_config(BaseConfig, s)
-    #     assert config["tést"] == "ünicode"
-
-    def test_validate_key__not_set(self):
-        with self.assertRaises(KeychainKeyNotFound):
-            self.keychain_class(self.project_config, None)
-
-    def test_validate_key__wrong_length(self):
-        with self.assertRaises(ConfigError):
-            self.keychain_class(self.project_config, "1")
 
 
 class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
