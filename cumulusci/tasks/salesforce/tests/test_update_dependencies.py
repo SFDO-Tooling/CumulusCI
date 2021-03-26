@@ -1,7 +1,8 @@
 from cumulusci.core.dependencies.dependencies import (
     GitHubDynamicDependency,
-    PackageDependency,
-    UnmanagedDependency,
+    PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
+    UnmanagedGitHubRefDependency,
     get_resolver_stack,
     DependencyResolutionStrategy,
 )
@@ -42,8 +43,8 @@ def test_init_options_base():
     )
 
     assert task.dependencies == [
-        PackageDependency(namespace="ns", version="1.0"),
-        PackageDependency(version_id="04t000000000000"),
+        PackageNamespaceVersionDependency(namespace="ns", version="1.0"),
+        PackageVersionIdDependency(version_id="04t000000000000"),
         GitHubDynamicDependency(github="https://github.com/Test/TestRepo"),
     ]
     assert task.resolution_strategy == get_resolver_stack(project_config, "production")
@@ -214,8 +215,8 @@ def test_run_task_gets_static_dependencies_and_installs():
 
     task._install_dependency.assert_has_calls(
         [
-            mock.call(PackageDependency(namespace="ns", version="1.0")),
-            mock.call(PackageDependency(version_id="04t000000000000")),
+            mock.call(PackageNamespaceVersionDependency(namespace="ns", version="1.0")),
+            mock.call(PackageVersionIdDependency(version_id="04t000000000000")),
         ]
     )
 
@@ -237,8 +238,12 @@ def test_run_task_exits_no_dependencies():
     task._install_dependency.assert_not_called()
 
 
-@mock.patch("cumulusci.core.dependencies.dependencies.install_1gp_package_version")
-def test_install_dependency_installs_managed_package(install_1gp_package_version):
+@mock.patch(
+    "cumulusci.core.dependencies.dependencies.install_package_by_namespace_version"
+)
+def test_install_dependency_installs_managed_package(
+    install_package_by_namespace_version,
+):
     task = create_task(
         UpdateDependencies,
         {
@@ -255,7 +260,7 @@ def test_install_dependency_installs_managed_package(install_1gp_package_version
     task.org_config.has_minimum_package_version.return_value = False
 
     task._install_dependency(task.dependencies[0])
-    install_1gp_package_version.assert_called_once_with(
+    install_package_by_namespace_version.assert_called_once_with(
         task.project_config,
         task.org_config,
         "ns",
@@ -265,8 +270,12 @@ def test_install_dependency_installs_managed_package(install_1gp_package_version
     )
 
 
-@mock.patch("cumulusci.core.dependencies.dependencies.install_1gp_package_version")
-def test_install_dependency_no_op_already_installed(install_1gp_package_version):
+@mock.patch(
+    "cumulusci.core.dependencies.dependencies.install_package_by_namespace_version"
+)
+def test_install_dependency_no_op_already_installed(
+    install_package_by_namespace_version,
+):
     task = create_task(
         UpdateDependencies,
         {
@@ -283,11 +292,15 @@ def test_install_dependency_no_op_already_installed(install_1gp_package_version)
     task.org_config.has_minimum_package_version.return_value = True
 
     task._install_dependency(task.dependencies[0])
-    install_1gp_package_version.assert_not_called()
+    install_package_by_namespace_version.assert_not_called()
 
 
-@mock.patch("cumulusci.core.dependencies.dependencies.install_1gp_package_version")
-def test_install_dependency_already_installed__newer_beta(install_1gp_package_version):
+@mock.patch(
+    "cumulusci.core.dependencies.dependencies.install_package_by_namespace_version"
+)
+def test_install_dependency_already_installed__newer_beta(
+    install_package_by_namespace_version,
+):
     task = create_task(
         UpdateDependencies,
         {
@@ -305,7 +318,7 @@ def test_install_dependency_already_installed__newer_beta(install_1gp_package_ve
 
     task._install_dependency(task.dependencies[0])
     task.org_config.has_minimum_package_version.assert_called_once_with("ns", "1.0b4")
-    install_1gp_package_version.assert_called_once_with(
+    install_package_by_namespace_version.assert_called_once_with(
         task.project_config,
         task.org_config,
         "ns",
@@ -355,8 +368,8 @@ def test_run_task__bad_security_type():
 @mock.patch("cumulusci.tasks.salesforce.update_dependencies.get_static_dependencies")
 def test_freeze(get_static_dependencies):
     get_static_dependencies.return_value = [
-        PackageDependency(namespace="ns", version="1.0"),
-        UnmanagedDependency(
+        PackageNamespaceVersionDependency(namespace="ns", version="1.0"),
+        UnmanagedGitHubRefDependency(
             github="https://github.com/SFDO-Tooling/CumulusCI-Test",
             ref="abcdef",
             subfolder="src",
@@ -401,7 +414,7 @@ def test_freeze(get_static_dependencies):
         {
             "is_required": True,
             "kind": "metadata",
-            "name": "Deploy CumulusCI-Test/src",
+            "name": "Deploy https://github.com/SFDO-Tooling/CumulusCI-Test",
             "path": "test_task.2",
             "step_num": "1.2",
             "source": None,

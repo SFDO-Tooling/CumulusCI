@@ -585,8 +585,10 @@ class TestGitHubDynamicDependency:
 
 
 class TestPackageNamespaceVersionDependency:
-    @mock.patch("cumulusci.core.dependencies.dependencies.install_1gp_package_version")
-    def test_install(self, install_1gp_package_version):
+    @mock.patch(
+        "cumulusci.core.dependencies.dependencies.install_package_by_namespace_version"
+    )
+    def test_install(self, install_package_by_namespace_version):
         m = PackageNamespaceVersionDependency(namespace="test", version="1.0")
 
         context = mock.Mock()
@@ -594,7 +596,7 @@ class TestPackageNamespaceVersionDependency:
 
         m.install(context, org)
 
-        install_1gp_package_version.assert_called_once_with(
+        install_package_by_namespace_version.assert_called_once_with(
             context,
             org,
             m.namespace,
@@ -603,8 +605,10 @@ class TestPackageNamespaceVersionDependency:
             retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
         )
 
-    @mock.patch("cumulusci.core.dependencies.dependencies.install_1gp_package_version")
-    def test_install__custom_options(self, install_1gp_package_version):
+    @mock.patch(
+        "cumulusci.core.dependencies.dependencies.install_package_by_namespace_version"
+    )
+    def test_install__custom_options(self, install_package_by_namespace_version):
         m = PackageNamespaceVersionDependency(namespace="foo", version="1.0")
 
         context = mock.Mock()
@@ -613,7 +617,7 @@ class TestPackageNamespaceVersionDependency:
 
         m.install(context, org, options=opts)
 
-        install_1gp_package_version.assert_called_once_with(
+        install_package_by_namespace_version.assert_called_once_with(
             context,
             org,
             m.namespace,
@@ -643,8 +647,10 @@ class TestPackageNamespaceVersionDependency:
 
 
 class TestPackageVersionIdDependency:
-    @mock.patch("cumulusci.core.dependencies.dependencies.install_package_version")
-    def test_install(self, install_package_version):
+    @mock.patch(
+        "cumulusci.core.dependencies.dependencies.install_package_by_version_id"
+    )
+    def test_install(self, install_package_by_version_id):
         m = PackageVersionIdDependency(version_id="04t000000000000")
 
         context = mock.Mock()
@@ -652,7 +658,7 @@ class TestPackageVersionIdDependency:
 
         m.install(context, org)
 
-        install_package_version.assert_called_once_with(
+        install_package_by_version_id.assert_called_once_with(
             context,
             org,
             m.version_id,
@@ -660,8 +666,10 @@ class TestPackageVersionIdDependency:
             retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
         )
 
-    @mock.patch("cumulusci.core.dependencies.dependencies.install_package_version")
-    def test_install__custom_options(self, install_package_version):
+    @mock.patch(
+        "cumulusci.core.dependencies.dependencies.install_package_by_version_id"
+    )
+    def test_install__custom_options(self, install_package_by_version_id):
         m = PackageVersionIdDependency(version_id="04t000000000000")
 
         context = mock.Mock()
@@ -670,7 +678,7 @@ class TestPackageVersionIdDependency:
 
         m.install(context, org, options=opts)
 
-        install_package_version.assert_called_once_with(
+        install_package_by_version_id.assert_called_once_with(
             context,
             org,
             m.version_id,

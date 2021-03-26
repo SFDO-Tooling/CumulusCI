@@ -1574,7 +1574,7 @@ class TestOrgConfig(unittest.TestCase):
             "dep@1.0": [VersionInfo("04t000000000001AAA", "1.0")]
         }
         result = config.resolve_04t_dependencies(
-            [PackageDependency(namespace="dep", version="1.0")]
+            [PackageNamespaceVersionDependency(namespace="dep", version="1.0")]
         )
         print(result)
         assert result == [PackageVersionIdDependency(version_id="04t000000000001AAA")]

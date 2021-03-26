@@ -2,7 +2,8 @@ from cumulusci.salesforce_api.package_install import PackageInstallOptions
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.core.dependencies.dependencies import (
     DependencyResolutionStrategy,
-    PackageDependency,
+    PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
     parse_dependencies,
     get_resolver_stack,
     get_static_dependencies,
@@ -173,29 +174,35 @@ class UpdateDependencies(BaseSalesforceTask):
         self.org_config.reset_installed_packages()
 
     def _install_dependency(self, dependency):
-        if isinstance(dependency, PackageDependency):
-            if dependency.version and "Beta" in dependency.version:
-                version_string = dependency.version.split(" ")[0]
-                beta = dependency.version.split(" ")[-1].strip(")")
-                version = f"{version_string}b{beta}"
-            else:
-                version = dependency.version
+        if isinstance(
+            dependency, (PackageNamespaceVersionDependency, PackageVersionIdDependency)
+        ):
+            installed = False
 
-            if (
-                dependency.version_id
-                and dependency.version_id not in self.org_config.installed_packages
-            ) or (
-                not self.org_config.has_minimum_package_version(
+            if isinstance(dependency, PackageNamespaceVersionDependency):
+                if "Beta" in dependency.version:
+                    version_string = dependency.version.split(" ")[0]
+                    beta = dependency.version.split(" ")[-1].strip(")")
+                    version = f"{version_string}b{beta}"
+                else:
+                    version = dependency.version
+
+                installed = self.org_config.has_minimum_package_version(
                     dependency.namespace,
                     version,
                 )
-            ):
-                dependency.install(
-                    self.project_config, self.org_config, self.install_options
-                )
             else:
+                installed = (
+                    dependency.version_id not in self.org_config.installed_packages
+                )
+
+            if installed:
                 self.logger.info(
                     f"{dependency} or a newer version is already installed; skipping."
+                )
+            else:
+                dependency.install(
+                    self.project_config, self.org_config, self.install_options
                 )
         else:
             dependency.install(self.project_config, self.org_config)
@@ -211,7 +218,10 @@ class UpdateDependencies(BaseSalesforceTask):
 
         steps = []
         for i, dependency in enumerate(dependencies, start=1):
-            if isinstance(dependency, PackageDependency):
+            if isinstance(
+                dependency,
+                (PackageNamespaceVersionDependency, PackageVersionIdDependency),
+            ):
                 kind = "managed"
             else:
                 kind = "metadata"

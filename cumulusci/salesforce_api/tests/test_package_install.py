@@ -1,4 +1,5 @@
 from collections import namedtuple
+from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.core.exceptions import PackageInstallError
 import logging
@@ -11,14 +12,14 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.salesforce_api.package_install import (
     PackageInstallOptions,
     SecurityType,
-    install_1gp_package_version,
-    install_package_version,
+    install_package_by_namespace_version,
+    install_package_by_version_id,
 )
 from cumulusci.tests.util import create_project_config
 
 
 @responses.activate
-def test_install_package_version(caplog):
+def test_install_package_by_version_id(caplog):
     caplog.set_level(logging.INFO)
     responses.add(
         "POST",
@@ -40,12 +41,14 @@ def test_install_package_version(caplog):
     org_config = OrgConfig(
         {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
     )
-    install_package_version(project_config, org_config, "04t", PackageInstallOptions())
+    install_package_by_version_id(
+        project_config, org_config, "04t", PackageInstallOptions()
+    )
     assert "Success" in caplog.text
 
 
 @responses.activate
-def test_install_package_version__error():
+def test_install_package_by_version_id__error():
     responses.add(
         "POST",
         "https://salesforce/services/data/v50.0/tooling/sobjects/PackageInstallRequest/",
@@ -69,13 +72,13 @@ def test_install_package_version__error():
         {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
     )
     with pytest.raises(PackageInstallError, match="We have a problem."):
-        install_package_version(
+        install_package_by_version_id(
             project_config, org_config, "04t", PackageInstallOptions()
         )
 
 
 @responses.activate
-def test_install_package_version__not_propagated(caplog):
+def test_install_package_by_version_id__not_propagated(caplog):
     caplog.set_level(logging.INFO)
     responses.add(
         "POST",
@@ -98,18 +101,20 @@ def test_install_package_version__not_propagated(caplog):
     org_config = OrgConfig(
         {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
     )
-    install_package_version(project_config, org_config, "04t", PackageInstallOptions())
+    install_package_by_version_id(
+        project_config, org_config, "04t", PackageInstallOptions()
+    )
     assert "Retrying" in caplog.text
     assert "Success" in caplog.text
 
 
 @mock.patch("cumulusci.salesforce_api.package_install.ApiDeploy")
 @mock.patch("cumulusci.salesforce_api.package_install.InstallPackageZipBuilder")
-def test_install_1gp_package_version(zip_builder, api_deploy):
+def test_install_package_by_namespace_version(zip_builder, api_deploy):
     pc = mock.Mock()
     org = mock.Mock()
 
-    install_1gp_package_version(
+    install_package_by_namespace_version(
         pc,
         org,
         "foo",
@@ -121,9 +126,7 @@ def test_install_1gp_package_version(zip_builder, api_deploy):
         ),
     )
 
-    task = namedtuple("TaskContext", ["org_config", "project_config", "logger"])(
-        org_config=org, project_config=pc, logger=mock.ANY
-    )
+    task = TaskContext(org_config=org, project_config=pc, logger=mock.ANY)
     zip_builder.assert_called_once_with(
         namespace="foo",
         version="1.0",
@@ -137,7 +140,7 @@ def test_install_1gp_package_version(zip_builder, api_deploy):
 
 @mock.patch("cumulusci.salesforce_api.package_install.ApiDeploy")
 @mock.patch("cumulusci.salesforce_api.package_install.InstallPackageZipBuilder")
-def test_install_1gp_package_version__retry(zip_builder, api_deploy):
+def test_install_package_by_namespace_version__retry(zip_builder, api_deploy):
     pc = mock.Mock()
     org = mock.Mock()
     api_deploy.return_value.side_effect = [
@@ -145,7 +148,7 @@ def test_install_1gp_package_version__retry(zip_builder, api_deploy):
         None,
     ]
 
-    install_1gp_package_version(
+    install_package_by_namespace_version(
         pc,
         org,
         "foo",
@@ -153,9 +156,7 @@ def test_install_1gp_package_version__retry(zip_builder, api_deploy):
         PackageInstallOptions(),
     )
 
-    task = namedtuple("TaskContext", ["org_config", "project_config", "logger"])(
-        org_config=org, project_config=pc, logger=mock.ANY
-    )
+    task = TaskContext(org_config=org, project_config=pc, logger=mock.ANY)
     api_deploy.assert_has_calls(
         [
             mock.call(task, mock.ANY, purge_on_delete=False),

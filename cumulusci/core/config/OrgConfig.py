@@ -490,19 +490,25 @@ class OrgConfig(BaseConfig):
 
     def resolve_04t_dependencies(self, dependencies):
         """Look up 04t SubscriberPackageVersion ids for 1GP project dependencies"""
-        from cumulusci.core.dependencies.dependencies import PackageDependency
+        from cumulusci.core.dependencies.dependencies import (
+            PackageNamespaceVersionDependency,
+            PackageVersionIdDependency,
+        )
 
         # Circular dependency.
 
         new_dependencies = []
         for dependency in dependencies:
-            if isinstance(dependency, PackageDependency) and dependency.namespace:
+            if (
+                isinstance(dependency, PackageNamespaceVersionDependency)
+                and dependency.namespace
+            ):
                 # get the SubscriberPackageVersion id
                 key = f"{dependency.namespace}@{dependency.version}"
                 version_info = self.installed_packages.get(key)
                 if version_info:
                     new_dependencies.append(
-                        PackageDependency(
+                        PackageVersionIdDependency(
                             version_id=version_info[0].id,
                             package_name=dependency.package_name,
                         )

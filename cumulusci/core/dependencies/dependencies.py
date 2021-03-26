@@ -20,8 +20,8 @@ from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
     PackageInstallOptions,
-    install_1gp_package_version,
-    install_package_version,
+    install_package_by_namespace_version,
+    install_package_by_version_id,
 )
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.utils import download_extract_github_from_repo, download_extract_zip
@@ -41,6 +41,8 @@ from cumulusci.utils.git import (
     get_release_identifier,
 )
 
+from cumulusci.core.dependencies.utils import TaskContext
+
 from enum import Enum
 
 from cumulusci.core.exceptions import CumulusCIException
@@ -59,10 +61,9 @@ class HashableBaseModel(CCIModel):
         return hash((type(self),) + tuple(self.json()))
 
 
-TaskContext = namedtuple("TaskContext", ["org_config", "project_config", "logger"])
-
-
 class DependencyResolutionStrategy(str, Enum):
+    """Enum that defines a strategy for resolving a dynamic dependency into a static dependency."""
+
     STRATEGY_STATIC_TAG_REFERENCE = "tag"
     STRATEGY_2GP_EXACT_BRANCH = "exact_branch_2gp"
     STRATEGY_2GP_RELEASE_BRANCH = "release_branch_2gp"
@@ -368,7 +369,7 @@ class GitHubDynamicDependency(DynamicDependency):
     @property
     def description(self):
         subfolder = f"/{self.subfolder}" if self.subfolder else ""
-        unmanaged = f" (unmanaged)" if self.unmanaged else ""
+        unmanaged = " (unmanaged)" if self.unmanaged else ""
         loc = f" @{self.ref or self.tag}" if self.ref or self.tag else ""
         return f"{self.name}{subfolder}{unmanaged}{loc}"
 
@@ -394,7 +395,7 @@ class PackageNamespaceVersionDependency(StaticDependency):
             options = PackageInstallOptions()
 
         context.logger.info(f"Installing {self.package} version {self.version}")
-        install_1gp_package_version(
+        install_package_by_namespace_version(
             context,
             org,
             self.namespace,
@@ -432,7 +433,7 @@ class PackageVersionIdDependency(StaticDependency):
             options = PackageInstallOptions()
 
         context.logger.info(f"Installing {self.package} {self.version_id}")
-        install_package_version(
+        install_package_by_version_id(
             context,
             org,
             self.version_id,
@@ -546,7 +547,7 @@ class UnmanagedGitHubRefDependency(UnmanagedDependency):
 
 
 class UnmanagedZipURLDependency(UnmanagedDependency):
-    """Static dependency on unmanaged metadata."""
+    """Static dependency on unmanaged metadata downloaded as a zip file from a URL."""
 
     zip_url: AnyUrl
 
@@ -565,6 +566,10 @@ class UnmanagedZipURLDependency(UnmanagedDependency):
 
 
 def parse_dependencies(deps: Optional[List[dict]]) -> List[Dependency]:
+    """Convert a list of dependency specifications in the form of dicts
+    (as defined in `cumulusci.yml`) and parse each into a concrete Dependency subclass.
+
+    Throws DependencyParseError if a dict cannot be parsed."""
     parsed_deps = [parse_dependency(d) for d in deps or []]
     if None in parsed_deps:
         raise DependencyParseError("Unable to parse dependencies")
@@ -573,6 +578,11 @@ def parse_dependencies(deps: Optional[List[dict]]) -> List[Dependency]:
 
 
 def parse_dependency(dep_dict: dict) -> Optional[Dependency]:
+    """Parse a single dependency specification in the form of a dict
+    into a concrete Dependency subclass.
+
+    Returns None if the given dict cannot be parsed."""
+
     for dependency_class in [
         PackageNamespaceVersionDependency,
         PackageVersionIdDependency,

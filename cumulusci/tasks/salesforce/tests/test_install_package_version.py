@@ -13,13 +13,13 @@ import pytest
 
 
 @mock.patch(
-    "cumulusci.tasks.salesforce.install_package_version.install_1gp_package_version"
+    "cumulusci.tasks.salesforce.install_package_version.install_package_by_namespace_version"
 )
-def test_install_1gp(install_1gp_package_version):
+def test_install_1gp(install_package_by_namespace_version):
     task = create_task(InstallPackageVersion, {"namespace": "test", "version": "1.0"})
 
     task()
-    install_1gp_package_version.assert_called_once_with(
+    install_package_by_namespace_version.assert_called_once_with(
         task.project_config,
         task.org_config,
         "test",
@@ -30,13 +30,13 @@ def test_install_1gp(install_1gp_package_version):
 
 
 @mock.patch(
-    "cumulusci.tasks.salesforce.install_package_version.install_package_version"
+    "cumulusci.tasks.salesforce.install_package_version.install_package_by_version_id"
 )
-def test_install_2gp(install_package_version):
+def test_install_2gp(install_package_by_version_id):
     task = create_task(InstallPackageVersion, {"version": "04t000000000000"})
 
     task()
-    install_package_version.assert_called_once_with(
+    install_package_by_version_id.assert_called_once_with(
         task.project_config,
         task.org_config,
         "04t000000000000",

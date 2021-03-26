@@ -1,4 +1,3 @@
-from collections import namedtuple
 from cumulusci.utils.yaml.model_parser import CCIModel
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
@@ -13,6 +12,8 @@ from simple_salesforce.api import SFType
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.exceptions import PackageInstallError
+from cumulusci.core.dependencies.utils import TaskContext
+
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils.waiting import poll, retry
 
@@ -20,8 +21,11 @@ logger = logging.getLogger(__name__)
 
 
 class SecurityType(str, Enum):
-    # The values specified by the Tooling API are confusing, and PUSH is not documented.
-    # We rename here for a little bit of clarity.
+    """Enum used to specify the component permissioning mode for a package install.
+
+    The values specified by the Tooling API are confusing, and PUSH is not documented.
+    We rename here for a little bit of clarity."""
+
     FULL = "FULL"  # All profiles
     CUSTOM = "CUSTOM"  # Custom profiles
     ADMIN = "NONE"  # System Administrator only
@@ -29,11 +33,16 @@ class SecurityType(str, Enum):
 
 
 class NameConflictResolution(str, Enum):
+    """Enum used to specify how name conflicts will be resolved when installing
+    an Unlocked Package."""
+
     BLOCK = "Block"
     RENAME = "RenameMetadata"
 
 
 class PackageInstallOptions(CCIModel):
+    """Options governing installation behavior for a managed or unlocked package."""
+
     activate_remote_site_settings: Optional[bool] = True
     name_conflict_resolution: NameConflictResolution = NameConflictResolution.BLOCK
     password: Optional[str]
@@ -75,7 +84,7 @@ def _wait_for_package_install(tooling, request):
         )
 
 
-def _install_package_version(
+def _install_package_by_version_id(
     project_config: BaseProjectConfig,
     org_config: OrgConfig,
     version_id: str,
@@ -102,12 +111,12 @@ def _install_package_version(
 
 
 def _should_retry_package_install(e: Exception) -> bool:
-    return isinstance(e, SalesforceMalformedRequest) and any(
+    return isinstance(e, (SalesforceMalformedRequest, MetadataApiError)) and any(
         err in str(e) for err in RETRY_PACKAGE_ERRORS
     )
 
 
-def _install_1gp_package_version(
+def _install_package_by_namespace_version(
     project_config: BaseProjectConfig,
     org_config: OrgConfig,
     namespace: str,
@@ -115,13 +124,13 @@ def _install_1gp_package_version(
     install_options: PackageInstallOptions,
     retry_options=None,
 ):
-    task = namedtuple("TaskContext", ["org_config", "project_config", "logger"])(
+    task = TaskContext(
         org_config=org_config, project_config=project_config, logger=logger
     )
 
     retry_options = {
         **(retry_options or {}),
-        "should_retry": _should_retry_1gp_package_install,
+        "should_retry": _should_retry_package_install,
     }
 
     package_zip = InstallPackageZipBuilder(
@@ -138,13 +147,7 @@ def _install_1gp_package_version(
     )
 
 
-def _should_retry_1gp_package_install(e: Exception) -> bool:
-    return isinstance(e, MetadataApiError) and any(
-        err in str(e) for err in RETRY_PACKAGE_ERRORS
-    )
-
-
-def install_package_version(
+def install_package_by_version_id(
     project_config: BaseProjectConfig,
     org_config: OrgConfig,
     version_id: str,
@@ -158,7 +161,7 @@ def install_package_version(
     }
     retry(
         functools.partial(
-            _install_package_version,
+            _install_package_by_version_id,
             project_config,
             org_config,
             version_id,
@@ -168,7 +171,7 @@ def install_package_version(
     )
 
 
-def install_1gp_package_version(
+def install_package_by_namespace_version(
     project_config: BaseProjectConfig,
     org_config: OrgConfig,
     namespace: str,
@@ -183,7 +186,7 @@ def install_1gp_package_version(
     }
     retry(
         functools.partial(
-            _install_1gp_package_version,
+            _install_package_by_namespace_version,
             project_config,
             org_config,
             namespace,

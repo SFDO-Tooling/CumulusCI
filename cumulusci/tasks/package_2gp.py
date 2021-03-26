@@ -12,8 +12,9 @@ from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.dependencies.dependencies import (
-    PackageDependency,
-    UnmanagedDependency,
+    PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
+    UnmanagedGitHubRefDependency,
     get_resolver_stack,
     get_static_dependencies,
     parse_dependencies,
@@ -521,11 +522,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
     def _has_1gp_namespace_dependency(self, project_dependencies):
         """Returns true if any dependencies are specified using a namespace rather than 04t"""
-        for dependency in project_dependencies:
-            if isinstance(dependency, PackageDependency) and dependency.namespace:
-                return True
-
-        return False
+        return any(
+            isinstance(dependency, PackageNamespaceVersionDependency)
+            for dependency in project_dependencies
+        )
 
     def _convert_project_dependencies(self, dependencies):
         """Convert dependencies into the format expected by Package2VersionCreateRequest.
@@ -535,20 +535,22 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         new_dependencies = []
         for dependency in dependencies:
             new_dependency = {}
-            if isinstance(dependency, PackageDependency) and dependency.version_id:
+            if (
+                isinstance(dependency, PackageVersionIdDependency)
+                and dependency.version_id
+            ):
                 self.logger.info(
                     f"Adding dependency {dependency.package_name} with id {dependency.version_id}"
                 )
                 new_dependency["subscriberPackageVersionId"] = dependency.version_id
 
-            elif isinstance(dependency, UnmanagedDependency) and dependency.repo_name:
+            elif isinstance(dependency, UnmanagedGitHubRefDependency):
                 # TODO: We do not support zip_url unmanaged dependencies
                 version_id = self._create_unlocked_package_from_github(
                     dependency, new_dependencies
                 )
                 self.logger.info(f"Adding dependency {dependency} with id {version_id}")
                 new_dependency["subscriberPackageVersionId"] = version_id
-
             else:
                 raise DependencyLookupError(
                     f"Unable to convert dependency: {dependency}"

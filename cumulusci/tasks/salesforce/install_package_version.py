@@ -3,8 +3,8 @@ from cumulusci.core.dependencies.dependencies import PackageInstallOptions
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_install import (
-    install_1gp_package_version,
-    install_package_version,
+    install_package_by_namespace_version,
+    install_package_by_version_id,
     DEFAULT_PACKAGE_RETRY_OPTIONS,
 )
 from pydantic import ValidationError
@@ -104,7 +104,7 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         self.logger.info(f"Installing {self.options['name']} {version}")
 
         if isinstance(version, str) and version.startswith("04t"):
-            install_package_version(
+            install_package_by_version_id(
                 self.project_config,
                 self.org_config,
                 version,
@@ -112,7 +112,7 @@ class InstallPackageVersion(BaseSalesforceApiTask):
                 self.retry_options,
             )
         else:
-            install_1gp_package_version(
+            install_package_by_namespace_version(
                 self.project_config,
                 self.org_config,
                 self.options["namespace"],
