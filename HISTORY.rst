@@ -2,6 +2,35 @@
 History
 =======
 
+3.31.0 (2021-03-18)
+-------------------
+
+Changes:
+
+-  It is now possible to pass the ``--noancestors`` flag to sfdx when
+   creating a scratch org by setting ``noancestors: True`` in the
+   scratch org config in ``cumulusci.yml``. Thanks @lionelarmanet (#2452)
+-  The ``robot_outputdir`` return value from the ``robot`` task is now
+   an absolute path. (#2442)
+-  New tasks:
+
+   -  ``get_available_permission_sets``: retrieves the list of available
+      permission sets from an org. (#2455)
+   -  ``promote_2gp_package``: will promote a ``Package2Version`` to the
+      "IsReleased" state, making it available for installation in
+      production orgs. (#2454)
+
+Snowfakery
+`1.7 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.7>`__:
+
+-  Adds support for Salesforce Person Accounts.
+
+Issues Closed:
+
+-  ``cci project init`` no longer overwrites existing files. If files
+   already exist, it displays a warning and outputs the rendered file
+   template. (#1325)
+
 3.30.0 (2021-03-04)
 -------------------
 

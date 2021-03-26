@@ -125,6 +125,10 @@ tasks:
         description: Creates a Community in the target org using the Connect API
         class_path: cumulusci.tasks.salesforce.CreateCommunity
         group: Salesforce Communities
+    create_network_member_groups:
+        description: Creates NetworkMemberGroup records which grant access to an Experience Site (Community) for specified Profiles or Permission Sets
+        class_path: cumulusci.tasks.salesforce.network_member_group.CreateNetworkMemberGroups
+        group: Salesforce Communities
     insert_record:
         description: Inserts a record of any sObject using the REST API
         class_path: cumulusci.tasks.salesforce.insert_record.InsertRecord
@@ -264,6 +268,10 @@ tasks:
         description: "Retrieves all Record Types in the org as a dict, with sObject names as keys and lists of Developer Names as values."
         class_path: cumulusci.tasks.preflight.recordtypes.CheckSObjectRecordTypes
         group: Salesforce Preflight Checks
+    get_existing_sites:
+        description: "Retrieves a list of any existing Experience Cloud site names in the org."
+        class_path: cumulusci.tasks.salesforce.ListCommunities
+        group: Salesforce Preflight Checks
     github_parent_pr_notes:
         description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
         class_path: cumulusci.tasks.release_notes.task.ParentPullRequestNotes
@@ -348,6 +356,10 @@ tasks:
         description: Apply org settings from a scratch org definition file or dict
         class_path: cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
         group: Salesforce DX
+    promote_package_version:
+        description: Promote a 2gp package so that it can be installed in a production org
+        class_path: cumulusci.tasks.salesforce.promote_package_version.PromotePackageVersion
+        group: Release Operations
     publish_community:
         description: Publishes a Community in the target org using the Connect API
         class_path: cumulusci.tasks.salesforce.PublishCommunity
