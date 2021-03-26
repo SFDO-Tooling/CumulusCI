@@ -33,17 +33,19 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
                 ConnectedAppOAuthConfig, self.app, context="connected app config"
             )
 
-    def _get_service(self, name):
+    def _get_service(self, service_type, alias):
         return self._decrypt_config(
-            ServiceConfig, self.services[name], context=f"service config ({name})"
+            ServiceConfig,
+            self.services[service_type][alias],
+            context=f"service config ({service_type}/{alias})",
         )
 
-    def _set_service(self, service, service_config, project):
+    def _set_service(self, service_type, alias, service_config, project):
         encrypted = self._encrypt_config(service_config)
-        self._set_encrypted_service(service, encrypted, project)
+        self._set_encrypted_service(service_type, alias, encrypted)
 
-    def _set_encrypted_service(self, service, encrypted, project):
-        self.services[service] = encrypted
+    def _set_encrypted_service(self, service_type, alias, encrypted, project):
+        self.services[service_type][alias] = encrypted
 
     def _set_org(self, org_config, global_org):
         if org_config.keychain:

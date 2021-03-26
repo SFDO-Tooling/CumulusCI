@@ -6,7 +6,6 @@ from cumulusci.core.config import (
     BaseProjectConfig,
     ConnectedAppOAuthConfig,
     OrgConfig,
-    ScratchOrgConfig,
     ServiceConfig,
     UniversalConfig,
 )
@@ -14,6 +13,11 @@ from cumulusci.core.exceptions import (
     ConfigError,
     KeychainKeyNotFound,
 )
+
+
+@pytest.fixture
+def org_config():
+    return OrgConfig({"foo": "bar"}, "test")
 
 
 @pytest.fixture()
@@ -27,24 +31,6 @@ def project_config():
     }
     project_config.project__name = "TestProject"
     return project_config
-
-
-@pytest.fixture
-def service_configs():
-    return {
-        "connected_app": ServiceConfig({"test": "value"}),
-        "github": ServiceConfig({"name": "hub"}),
-    }
-
-
-@pytest.fixture
-def org_config():
-    return OrgConfig({"foo": "bar"}, "test")
-
-
-@pytest.fixture
-def scratch_org_config():
-    return ScratchOrgConfig({"foo": "bar", "scratch": True}, "test_scratch")
 
 
 @pytest.fixture

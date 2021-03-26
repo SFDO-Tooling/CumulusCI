@@ -8,6 +8,7 @@ from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.config import OrgConfig
 
+# TODO: figure out circular import
 DEFAULT_SERVICE_ALIAS = "default"
 
 
@@ -81,12 +82,11 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         self._load_files(self.project_local_dir, ".org", "orgs", LocalOrg)
 
     def _load_services(self):
-        self._load_files(self.global_config_dir, ".service", "services")
-        self._load_files(self.project_local_dir, ".service", "services")
-
-    def _load_services2(self):
         self._create_services_dir_structure(self.global_config_dir)
         self._convert_unaliased_services(self.global_config_dir)
+
+        self._create_services_dir_structure(self.project_local_dir)
+        self._convert_unaliased_services(self.project_local_dir)
 
         self._load_files(self.global_config_dir, ".service", "services")
         self._load_files(self.project_local_dir, ".service", "services")
@@ -131,7 +131,9 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         configured_service_types = self.project_config.config["services"].keys()
 
         for item in Path(dir_path).iterdir():
-            if item.suffix == ".service":
+            if item.is_dir():
+                continue
+            elif item.suffix == ".service":
                 service_type = item.name.replace(".service", "")
                 if service_type not in configured_service_types:
                     continue  # we don't care about foo.service
