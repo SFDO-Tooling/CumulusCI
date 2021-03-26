@@ -275,14 +275,24 @@ def ssl_error_message(error):
     if "CERTIFICATE_VERIFY_FAILED" in str(error):
         message += "\n\nThe CURL_CA_BUNDLE or REQUESTS_CA_BUNDLE environment variables can often be used to solve this."
 
-    if "salesforce.com" in str(error):
-        message += (
-            "\n\nIf you are a Salesforce employee attempting "
-            "to use internal resources please search Concierge for "
-            "`How to Manually Download Internal SSL Root Certificates` "
-            "and ensure that the environment variables refer to the PEM files. "
-            "You may need to concatenate them into a single file."
-        )
+        if "salesforce.com" in str(error):
+            message += (
+                "\n\nIf you are a Salesforce employee attempting "
+                "to use internal resources please search Concierge for "
+                "`How to Manually Download Internal SSL Root Certificates` "
+                "and ensure that the environment variables refer to the PEM files. "
+                "You may need to concatenate them into a single file."
+            )
+
+        if "local.dev" in str(error):
+            message += (
+                "\n\nIf you are a Salesforce employee attempting "
+                "to use a local server please ensure that the key you "
+                "generated for local SSL is in the PEM files you reference."
+                "If you have trouble accessing github, pypi and other resources "
+                "you may also need to merge in the certificates from this URL: "
+                "https://raw.githubusercontent.com/certifi/python-certifi/master/certifi/cacert.pem"
+            )
 
     click.echo(click.style(message, fg="red"), err=True)
 

@@ -424,6 +424,58 @@ class TestCCI(unittest.TestCase):
             fg="red",
         )
 
+    @mock.patch("click.echo")
+    @mock.patch("sys.exit")
+    @mock.patch("cumulusci.cli.cci.cli")
+    def test_handle_SSL_exception(self, cli, exit, echo):
+        runtime = mock.Mock()
+        runtime.project_config.repo_root = None
+        runtime.keychain.get_service.return_value.config = {
+            "username": "usrnm",
+            "token": "token",
+        }
+        cli.side_effect = requests.exceptions.SSLError
+        exit.side_effect = AssertionError
+        with pytest.raises(AssertionError):
+            cci.main(["cci", "org", "info"])
+        assert "We encountered an error with SSL" in str(echo.mock_calls)
+
+    @mock.patch("click.echo")
+    @mock.patch("sys.exit")
+    @mock.patch("cumulusci.cli.cci.cli")
+    def test_handle_SSL_exception__Salesforce(self, cli, exit, echo):
+        runtime = mock.Mock()
+        runtime.project_config.repo_root = None
+        runtime.keychain.get_service.return_value.config = {
+            "username": "usrnm",
+            "token": "token",
+        }
+        cli.side_effect = requests.exceptions.SSLError(
+            "CERTIFICATE_VERIFY_FAILED : salesforce.com"
+        )
+        exit.side_effect = AssertionError
+        with pytest.raises(AssertionError):
+            cci.main(["cci", "org", "info"])
+        assert "CURL_CA_BUNDLE or REQUESTS_CA_BUNDLE" in str(echo.mock_calls)
+
+    @mock.patch("click.echo")
+    @mock.patch("sys.exit")
+    @mock.patch("cumulusci.cli.cci.cli")
+    def test_handle_SSL_exception__localdev(self, cli, exit, echo):
+        runtime = mock.Mock()
+        runtime.project_config.repo_root = None
+        runtime.keychain.get_service.return_value.config = {
+            "username": "usrnm",
+            "token": "token",
+        }
+        cli.side_effect = requests.exceptions.SSLError(
+            "CERTIFICATE_VERIFY_FAILED : local.dev"
+        )
+        exit.side_effect = AssertionError
+        with pytest.raises(AssertionError):
+            cci.main(["cci", "org", "info"])
+        assert "If you are a Salesforce employee" in str(echo.mock_calls)
+
     @mock.patch("cumulusci.cli.cci.CCI_LOGFILE_PATH")
     @mock.patch("cumulusci.cli.cci.webbrowser")
     @mock.patch("cumulusci.cli.cci.platform")
