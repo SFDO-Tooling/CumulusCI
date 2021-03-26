@@ -18,7 +18,7 @@ from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import SfdxOrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.dependencies.dependencies import (
-    ManagedPackageDependency,
+    PackageDependency,
     UnmanagedDependency,
 )
 from cumulusci.core.keychain import BaseProjectKeychain
@@ -153,14 +153,14 @@ def mock_get_static_dependencies():
         "cumulusci.tasks.package_2gp.get_static_dependencies"
     ) as get_static_dependencies:
         get_static_dependencies.return_value = [
-            ManagedPackageDependency(namespace="pub", version="1.5"),
+            PackageDependency(namespace="pub", version="1.5"),
             UnmanagedDependency(
                 repo_owner="SalesforceFoundation",
                 repo_name="EDA",
                 subfolder="unpackaged/pre/first",
                 ref="abcdef",
             ),
-            ManagedPackageDependency(namespace="hed", version="1.99"),
+            PackageDependency(namespace="hed", version="1.99"),
         ]
         yield get_static_dependencies
 
@@ -551,7 +551,7 @@ class TestCreatePackageVersion:
 
     def test_has_1gp_namespace_dependencies__transitive(self, task):
         assert task._has_1gp_namespace_dependency(
-            [ManagedPackageDependency(namespace="foo", version="1.5")]
+            [PackageDependency(namespace="foo", version="1.5")]
         )
 
     def test_convert_project_dependencies__unrecognized_format(self, task):

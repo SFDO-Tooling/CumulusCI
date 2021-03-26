@@ -1,7 +1,7 @@
 from cumulusci.core.flowrunner import StepSpec
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
-    ManagedPackageInstallOptions,
+    PackageInstallOptions,
 )
 from unittest import mock
 
@@ -24,7 +24,7 @@ def test_install_1gp(install_1gp_package_version):
         task.org_config,
         "test",
         "1.0",
-        ManagedPackageInstallOptions(activate_remote_site_settings=False),
+        PackageInstallOptions(activate_remote_site_settings=False),
         DEFAULT_PACKAGE_RETRY_OPTIONS,
     )
 
@@ -40,7 +40,7 @@ def test_install_2gp(install_package_version):
         task.project_config,
         task.org_config,
         "04t000000000000",
-        ManagedPackageInstallOptions(activate_remote_site_settings=False),
+        PackageInstallOptions(activate_remote_site_settings=False),
         DEFAULT_PACKAGE_RETRY_OPTIONS,
     )
 
@@ -69,7 +69,7 @@ def test_init_options():
         "retry_interval": 50,
         "retry_interval_add": 100,
     }
-    assert task.install_options == ManagedPackageInstallOptions(
+    assert task.install_options == PackageInstallOptions(
         activate_remote_site_settings=True, password="foo", security_type="PUSH"
     )
 

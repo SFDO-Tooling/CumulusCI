@@ -1,8 +1,8 @@
-from cumulusci.salesforce_api.package_install import ManagedPackageInstallOptions
+from cumulusci.salesforce_api.package_install import PackageInstallOptions
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.core.dependencies.dependencies import (
     DependencyResolutionStrategy,
-    ManagedPackageDependency,
+    PackageDependency,
     parse_dependencies,
     get_resolver_stack,
     get_static_dependencies,
@@ -146,7 +146,7 @@ class UpdateDependencies(BaseSalesforceTask):
                 "for update_dependencies are deprecated. Use resolution strategies instead."
             )
 
-        self.install_options = ManagedPackageInstallOptions(
+        self.install_options = PackageInstallOptions(
             security_type=self.options.get("security_type", "FULL"),
         )
 
@@ -173,7 +173,7 @@ class UpdateDependencies(BaseSalesforceTask):
         self.org_config.reset_installed_packages()
 
     def _install_dependency(self, dependency):
-        if isinstance(dependency, ManagedPackageDependency):
+        if isinstance(dependency, PackageDependency):
             if dependency.version and "Beta" in dependency.version:
                 version_string = dependency.version.split(" ")[0]
                 beta = dependency.version.split(" ")[-1].strip(")")
@@ -211,7 +211,7 @@ class UpdateDependencies(BaseSalesforceTask):
 
         steps = []
         for i, dependency in enumerate(dependencies, start=1):
-            if isinstance(dependency, ManagedPackageDependency):
+            if isinstance(dependency, PackageDependency):
                 kind = "managed"
             else:
                 kind = "metadata"

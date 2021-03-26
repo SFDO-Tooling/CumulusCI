@@ -1,6 +1,6 @@
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
-    ManagedPackageInstallOptions,
+    PackageInstallOptions,
 )
 from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
 from typing import List, Optional, Tuple
@@ -10,18 +10,19 @@ from cumulusci.core.dependencies.dependencies import (
     DependencyResolutionStrategy,
     GitHubBetaReleaseTagResolver,
     GitHubDynamicDependency,
-    GitHubPackageDataMixin,
     GitHubReleaseBranch2GPResolver,
     GitHubReleaseBranchExactMatch2GPResolver,
-    GitHubReleaseBranchMixin,
+    GitHubReleaseBranchResolver,
     GitHubReleaseTagResolver,
-    GitHubRepoMixin,
     GitHubTagResolver,
     GitHubUnmanagedHeadResolver,
-    ManagedPackageDependency,
+    PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
     Resolver,
     DynamicDependency,
-    UnmanagedDependency,
+    StaticDependency,
+    UnmanagedGitHubRefDependency,
+    UnmanagedZipURLDependency,
     get_resolver,
     get_resolver_stack,
     get_static_dependencies,
@@ -309,12 +310,20 @@ class ConcreteDynamicDependency(DynamicDependency):
         super().resolve(context, strategies)
         self.resolved = True
 
+    @property
+    def name(self):
+        return ""
+
+    @property
+    def description(self):
+        return ""
+
 
 class MockResolver(Resolver):
     def __init__(
         self,
         resolve_ref: Optional[str] = None,
-        resolve_dep: Optional[ManagedPackageDependency] = None,
+        resolve_dep: Optional[StaticDependency] = None,
     ):
         self.ref = resolve_ref
         self.dep = resolve_dep
@@ -324,7 +333,7 @@ class MockResolver(Resolver):
 
     def resolve(
         self, dep: DynamicDependency, context: BaseProjectConfig
-    ) -> Tuple[Optional[str], Optional["ManagedPackageDependency"]]:
+    ) -> Tuple[Optional[str], Optional[StaticDependency]]:
         return self.ref, self.dep
 
 
@@ -334,7 +343,7 @@ class MockBadResolver(Resolver):
 
     def resolve(
         self, dep: DynamicDependency, context: BaseProjectConfig
-    ) -> Tuple[Optional[str], Optional["ManagedPackageDependency"]]:
+    ) -> Tuple[Optional[str], Optional[StaticDependency]]:
         raise DependencyResolutionError("Bad resolver")
 
 
@@ -346,7 +355,7 @@ class TestDynamicDependency:
             MockResolver(),
             MockResolver(
                 "aaaaaaaaaaaaaaaa",
-                ManagedPackageDependency(namespace="foo", version="1.0"),
+                PackageNamespaceVersionDependency(namespace="foo", version="1.0"),
             ),
         ]
         get_resolver.side_effect = resolvers
@@ -359,7 +368,7 @@ class TestDynamicDependency:
             ],
         )
 
-        assert d.managed_dependency == ManagedPackageDependency(
+        assert d.managed_dependency == PackageNamespaceVersionDependency(
             namespace="foo", version="1.0"
         )
         assert d.ref == "aaaaaaaaaaaaaaaa"
@@ -371,7 +380,7 @@ class TestDynamicDependency:
             mock.Mock(
                 wraps=MockResolver(
                     "aaaaaaaaaaaaaaaa",
-                    ManagedPackageDependency(namespace="foo", version="1.0"),
+                    PackageNamespaceVersionDependency(namespace="foo", version="1.0"),
                 )
             ),
         ]
@@ -411,26 +420,6 @@ class TestDynamicDependency:
             )
 
 
-class TestGithubRepoMixin:
-    def test_mixin(self):
-        gh = GitHubRepoMixin()
-        gh.github = "test"
-        context = mock.Mock()
-
-        result = gh.get_repo(context)
-
-        assert result == context.get_repo_from_url.return_value
-
-    def test_mixin_failure(self):
-        gh = GitHubRepoMixin()
-        gh.github = "test"
-        context = mock.Mock()
-        context.get_repo_from_url.return_value = None
-
-        with pytest.raises(DependencyResolutionError):
-            gh.get_repo(context)
-
-
 class TestGitHubDynamicDependency:
     def test_create_repo_url(self):
         gh = GitHubDynamicDependency(github="https://github.com/Test/TestRepo")
@@ -453,26 +442,28 @@ class TestGitHubDynamicDependency:
     def test_flatten(self, project_config):
         gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
         gh.ref = "aaaaa"
-        gh.managed_dependency = ManagedPackageDependency(namespace="bar", version="2.0")
+        gh.managed_dependency = PackageNamespaceVersionDependency(
+            namespace="bar", version="2.0"
+        )
 
         assert gh.flatten(project_config) == [
             GitHubDynamicDependency(
                 github="https://github.com/SFDO-Tooling/DependencyRepo"
             ),
-            UnmanagedDependency(
+            UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
                 subfolder="unpackaged/pre/first",
                 unmanaged=True,
                 ref="aaaaa",
             ),
-            UnmanagedDependency(
+            UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
                 subfolder="unpackaged/pre/second",
                 unmanaged=True,
                 ref="aaaaa",
             ),
-            ManagedPackageDependency(namespace="bar", version="2.0"),
-            UnmanagedDependency(
+            PackageNamespaceVersionDependency(namespace="bar", version="2.0"),
+            UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
                 subfolder="unpackaged/post/first",
                 unmanaged=False,
@@ -487,20 +478,22 @@ class TestGitHubDynamicDependency:
             skip=["unpackaged/pre/first"],
         )
         gh.ref = "aaaaa"
-        gh.managed_dependency = ManagedPackageDependency(namespace="bar", version="2.0")
+        gh.managed_dependency = PackageNamespaceVersionDependency(
+            namespace="bar", version="2.0"
+        )
 
         assert gh.flatten(project_config) == [
             GitHubDynamicDependency(
                 github="https://github.com/SFDO-Tooling/DependencyRepo"
             ),
-            UnmanagedDependency(
+            UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
                 subfolder="unpackaged/pre/second",
                 unmanaged=True,
                 ref="aaaaa",
             ),
-            ManagedPackageDependency(namespace="bar", version="2.0"),
-            UnmanagedDependency(
+            PackageNamespaceVersionDependency(namespace="bar", version="2.0"),
+            UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
                 subfolder="unpackaged/post/first",
                 unmanaged=False,
@@ -514,10 +507,12 @@ class TestGitHubDynamicDependency:
             github="https://github.com/SFDO-Tooling/NoUnmanagedPreRepo",
         )
         gh.ref = "aaaaa"
-        gh.managed_dependency = ManagedPackageDependency(namespace="foo", version="2.0")
+        gh.managed_dependency = PackageNamespaceVersionDependency(
+            namespace="foo", version="2.0"
+        )
 
         assert gh.flatten(project_config) == [
-            ManagedPackageDependency(namespace="foo", version="2.0"),
+            PackageNamespaceVersionDependency(namespace="foo", version="2.0"),
         ]
 
     def test_flatten__unresolved(self):
@@ -549,25 +544,25 @@ class TestGitHubDynamicDependency:
             GitHubDynamicDependency(
                 github="https://github.com/SFDO-Tooling/DependencyRepo"
             ),
-            UnmanagedDependency(
+            UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
                 subfolder="unpackaged/pre/first",
                 unmanaged=True,
                 ref="aaaaa",
             ),
-            UnmanagedDependency(
+            UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
                 subfolder="unpackaged/pre/second",
                 unmanaged=True,
                 ref="aaaaa",
             ),
-            UnmanagedDependency(
+            UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
                 subfolder="src",
                 unmanaged=True,
                 ref="aaaaa",
             ),
-            UnmanagedDependency(
+            UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
                 subfolder="unpackaged/post/first",
                 unmanaged=True,
@@ -589,18 +584,10 @@ class TestGitHubDynamicDependency:
         assert "Could not find latest release" in str(e)
 
 
-class TestManagedPackageDependency:
-    def test_validation(self):
-        with pytest.raises(ValidationError):
-            ManagedPackageDependency(namespace="test")
-        with pytest.raises(ValidationError):
-            ManagedPackageDependency(
-                namespace="test", version="1.0", version_id="04t000000000000"
-            )
-
+class TestPackageNamespaceVersionDependency:
     @mock.patch("cumulusci.core.dependencies.dependencies.install_1gp_package_version")
-    def test_install__1gp(self, install_1gp_package_version):
-        m = ManagedPackageDependency(namespace="test", version="1.0")
+    def test_install(self, install_1gp_package_version):
+        m = PackageNamespaceVersionDependency(namespace="test", version="1.0")
 
         context = mock.Mock()
         org = mock.Mock()
@@ -612,13 +599,53 @@ class TestManagedPackageDependency:
             org,
             m.namespace,
             m.version,
-            ManagedPackageInstallOptions(),
+            PackageInstallOptions(),
             retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
         )
 
+    @mock.patch("cumulusci.core.dependencies.dependencies.install_1gp_package_version")
+    def test_install__custom_options(self, install_1gp_package_version):
+        m = PackageNamespaceVersionDependency(namespace="foo", version="1.0")
+
+        context = mock.Mock()
+        org = mock.Mock()
+        opts = PackageInstallOptions(password="test")
+
+        m.install(context, org, options=opts)
+
+        install_1gp_package_version.assert_called_once_with(
+            context,
+            org,
+            m.namespace,
+            m.version,
+            opts,
+            retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
+        )
+
+    def test_name(self):
+        assert (
+            str(PackageNamespaceVersionDependency(namespace="foo", version="1.0"))
+            == "Install foo 1.0"
+        )
+
+    def test_package_name(self):
+        assert (
+            PackageNamespaceVersionDependency(
+                namespace="foo", version="1.0", package_name="Foo"
+            ).package
+            == "Foo"
+        )
+
+        assert (
+            PackageNamespaceVersionDependency(namespace="foo", version="1.0").package
+            == "foo"
+        )
+
+
+class TestPackageVersionIdDependency:
     @mock.patch("cumulusci.core.dependencies.dependencies.install_package_version")
-    def test_install__2gp(self, install_package_version):
-        m = ManagedPackageDependency(version_id="04t000000000000")
+    def test_install(self, install_package_version):
+        m = PackageVersionIdDependency(version_id="04t000000000000")
 
         context = mock.Mock()
         org = mock.Mock()
@@ -629,17 +656,17 @@ class TestManagedPackageDependency:
             context,
             org,
             m.version_id,
-            ManagedPackageInstallOptions(),
+            PackageInstallOptions(),
             retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
         )
 
     @mock.patch("cumulusci.core.dependencies.dependencies.install_package_version")
     def test_install__custom_options(self, install_package_version):
-        m = ManagedPackageDependency(version_id="04t000000000000")
+        m = PackageVersionIdDependency(version_id="04t000000000000")
 
         context = mock.Mock()
         org = mock.Mock()
-        opts = ManagedPackageInstallOptions(password="test")
+        opts = PackageInstallOptions(password="test")
 
         m.install(context, org, options=opts)
 
@@ -653,51 +680,128 @@ class TestManagedPackageDependency:
 
     def test_name(self):
         assert (
-            str(ManagedPackageDependency(namespace="foo", version="1.0"))
-            == "Install foo 1.0"
+            str(
+                PackageVersionIdDependency(
+                    package_name="foo", version_id="04t000000000000"
+                )
+            )
+            == "Install foo 04t000000000000"
         )
 
     def test_package_name(self):
         assert (
-            ManagedPackageDependency(
-                namespace="foo", version="1.0", package_name="Foo"
-            ).package
-            == "Foo"
-        )
-
-        assert ManagedPackageDependency(namespace="foo", version="1.0").package == "foo"
-
-        assert (
-            ManagedPackageDependency(version_id="04t000000000000").package
+            PackageVersionIdDependency(version_id="04t000000000000").package
             == "Unknown Package"
         )
 
 
-class TestUnmanagedDependency:
+class TestUnmanagedGitHubRefDependency:
     def test_validation(self):
         with pytest.raises(ValidationError):
-            UnmanagedDependency()
-        with pytest.raises(ValidationError):
-            UnmanagedDependency(zip_url="http://foo.com", github="http://github.com")
-        with pytest.raises(ValidationError):
-            UnmanagedDependency(zip_url="http://foo.com", repo_owner="Test")
-        with pytest.raises(ValidationError):
-            UnmanagedDependency(github="http://github.com", repo_owner="Test")
+            UnmanagedGitHubRefDependency(github="http://github.com", repo_owner="Test")
 
-        u = UnmanagedDependency(
+        u = UnmanagedGitHubRefDependency(
             github="https://github.com/Test/TestRepo", ref="aaaaaaaa"
         )
         assert u.repo_owner == "Test"
         assert u.repo_name == "TestRepo"
 
-        u = UnmanagedDependency(repo_owner="Test", repo_name="TestRepo", ref="aaaaaaaa")
+        u = UnmanagedGitHubRefDependency(
+            repo_owner="Test", repo_name="TestRepo", ref="aaaaaaaa"
+        )
         assert u.github == "https://github.com/Test/TestRepo"
 
+    @mock.patch(
+        "cumulusci.core.dependencies.dependencies.download_extract_github_from_repo"
+    )
+    @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
+    @mock.patch("cumulusci.core.dependencies.dependencies.ApiDeploy")
+    def test_install(self, api_deploy_mock, zip_builder_mock, download_mock):
+        d = UnmanagedGitHubRefDependency(
+            github="http://github.com/Test/TestRepo", ref="aaaaaaaa"
+        )
+
+        context = mock.Mock()
+        org = mock.Mock()
+        d.install(context, org)
+
+        download_mock.assert_called_once_with(
+            context.get_repo_from_url.return_value, None, ref=d.ref
+        )
+        zip_builder_mock.from_zipfile.assert_called_once_with(
+            download_mock.return_value,
+            options={
+                "unmanaged": None,  # TODO: is this bad for this task?
+                "namespace_inject": None,
+                "namespace_strip": None,
+            },
+            logger=mock.ANY,  # the logger
+        )
+        api_deploy_mock.assert_called_once_with(
+            mock.ANY,  # The context object is checked below
+            zip_builder_mock.from_zipfile.return_value.as_base64.return_value,
+        )
+        mock_task = api_deploy_mock.call_args_list[0][0][0]
+        assert mock_task.org_config == org
+        assert mock_task.project_config == context
+
+        api_deploy_mock.return_value.assert_called_once()
+
+    def test_get_unmanaged(self):
+        org = mock.Mock()
+        org.installed_packages = {"foo": "1.0"}
+        assert (
+            UnmanagedGitHubRefDependency(
+                github="http://github.com/Test/TestRepo", ref="aaaa", unmanaged=True
+            )._get_unmanaged(org)
+            is True
+        )
+        assert (
+            UnmanagedGitHubRefDependency(
+                github="http://github.com/Test/TestRepo",
+                ref="aaaa",
+                namespace_inject="foo",
+            )._get_unmanaged(org)
+            is False
+        )
+        assert (
+            UnmanagedGitHubRefDependency(
+                github="http://github.com/Test/TestRepo",
+                ref="aaaa",
+                namespace_inject="bar",
+            )._get_unmanaged(org)
+            is True
+        )
+
+    def test_name(self):
+        assert (
+            str(
+                UnmanagedGitHubRefDependency(
+                    github="http://github.com/Test/TestRepo",
+                    subfolder="unpackaged/pre/first",
+                    ref="aaaa",
+                )
+            )
+            == "Deploy http://github.com/Test/TestRepo/unpackaged/pre/first"
+        )
+
+        assert (
+            str(
+                UnmanagedGitHubRefDependency(
+                    github="http://github.com/Test/TestRepo",
+                    ref="aaaa",
+                )
+            )
+            == "Deploy http://github.com/Test/TestRepo"
+        )
+
+
+class TestUnmanagedZipURLDependency:
     @mock.patch("cumulusci.core.dependencies.dependencies.download_extract_zip")
     @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
     @mock.patch("cumulusci.core.dependencies.dependencies.ApiDeploy")
-    def test_install__zip_url(self, api_deploy_mock, zip_builder_mock, download_mock):
-        d = UnmanagedDependency(zip_url="http://foo.com", subfolder="bar")
+    def test_install(self, api_deploy_mock, zip_builder_mock, download_mock):
+        d = UnmanagedZipURLDependency(zip_url="http://foo.com", subfolder="bar")
 
         context = mock.Mock()
         org = mock.Mock()
@@ -724,43 +828,23 @@ class TestUnmanagedDependency:
 
         api_deploy_mock.return_value.assert_called_once()
 
-    @mock.patch(
-        "cumulusci.core.dependencies.dependencies.download_extract_github_from_repo"
-    )
-    @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
-    @mock.patch("cumulusci.core.dependencies.dependencies.ApiDeploy")
-    def test_install__github(self, api_deploy_mock, zip_builder_mock, download_mock):
-        d = UnmanagedDependency(
-            github="http://github.com/Test/TestRepo", ref="aaaaaaaa"
-        )
-
-        context = mock.Mock()
-        org = mock.Mock()
-        d.install(context, org)
-
-        # All the common logic is tested above in test_install__zip_url()
-
-        download_mock.assert_called_once_with(
-            context.get_repo_from_url.return_value, None, ref=d.ref
-        )
-
     def test_get_unmanaged(self):
         org = mock.Mock()
         org.installed_packages = {"foo": "1.0"}
         assert (
-            UnmanagedDependency(
+            UnmanagedZipURLDependency(
                 zip_url="http://foo.com", unmanaged=True
             )._get_unmanaged(org)
             is True
         )
         assert (
-            UnmanagedDependency(
+            UnmanagedZipURLDependency(
                 zip_url="http://foo.com", namespace_inject="foo"
             )._get_unmanaged(org)
             is False
         )
         assert (
-            UnmanagedDependency(
+            UnmanagedZipURLDependency(
                 zip_url="http://foo.com", namespace_inject="bar"
             )._get_unmanaged(org)
             is True
@@ -768,28 +852,8 @@ class TestUnmanagedDependency:
 
     def test_name(self):
         assert (
-            str(UnmanagedDependency(zip_url="http://foo.com", subfolder="bar"))
+            str(UnmanagedZipURLDependency(zip_url="http://foo.com", subfolder="bar"))
             == "Deploy http://foo.com /bar"
-        )
-        assert (
-            str(
-                UnmanagedDependency(
-                    github="http://github.com/Test/TestRepo",
-                    subfolder="unpackaged/pre/first",
-                    ref="aaaa",
-                )
-            )
-            == "Deploy TestRepo/unpackaged/pre/first"
-        )
-
-        assert (
-            str(
-                UnmanagedDependency(
-                    github="http://github.com/Test/TestRepo",
-                    ref="aaaa",
-                )
-            )
-            == "Deploy TestRepo"
         )
 
 
@@ -797,7 +861,11 @@ class TestParseDependency:
     def test_parse_managed_package_dep(self):
         m = parse_dependency({"version": "1.0", "namespace": "foo"})
 
-        assert isinstance(m, ManagedPackageDependency)
+        assert isinstance(m, PackageNamespaceVersionDependency)
+
+        m = parse_dependency({"version_id": "04t000000000000"})
+
+        assert isinstance(m, PackageVersionIdDependency)
 
     def test_parse_github_dependency(self):
         g = parse_dependency({"github": "https://github.com/Test/TestRepo"})
@@ -810,12 +878,12 @@ class TestParseDependency:
         u = parse_dependency(
             {"repo_owner": "Test", "repo_name": "TestRepo", "ref": "aaaaaaaa"}
         )
-        assert isinstance(u, UnmanagedDependency)
+        assert isinstance(u, UnmanagedGitHubRefDependency)
 
         u = parse_dependency(
             {"github": "https://github.com/Test/TestRepo", "ref": "aaaaaaaa"}
         )
-        assert isinstance(u, UnmanagedDependency)
+        assert isinstance(u, UnmanagedGitHubRefDependency)
 
         u = parse_dependency(
             {
@@ -823,21 +891,7 @@ class TestParseDependency:
                 "subfolder": "unpackaged/pre",
             }
         )
-        assert isinstance(u, UnmanagedDependency)
-
-
-class TestGitHubPackageDataMixin:
-    def test_get_package_data(self):
-        content = b"""
-project:
-    package:
-        namespace: foo"""
-
-        repo = mock.Mock()
-        repo.file_contents.return_value.decoded = content
-
-        m = GitHubPackageDataMixin()
-        assert m._get_package_data(repo, "aaaaaaaa") == ("Package", "foo")
+        assert isinstance(u, UnmanagedZipURLDependency)
 
 
 class TestGitHubTagResolver:
@@ -851,7 +905,7 @@ class TestGitHubTagResolver:
         assert resolver.can_resolve(dep, project_config)
         assert resolver.resolve(dep, project_config) == (
             "tag_sha",
-            ManagedPackageDependency(
+            PackageNamespaceVersionDependency(
                 namespace="ccitestdep", version="1.0", package_name="CumulusCI-Test-Dep"
             ),
         )
@@ -911,7 +965,7 @@ class TestGitHubReleaseTagResolver:
         assert resolver.can_resolve(dep, project_config)
         assert resolver.resolve(dep, project_config) == (
             "tag_sha",
-            ManagedPackageDependency(
+            PackageNamespaceVersionDependency(
                 namespace="ccitestdep", version="2.0", package_name="CumulusCI-Test-Dep"
             ),
         )
@@ -925,7 +979,7 @@ class TestGitHubReleaseTagResolver:
         assert resolver.can_resolve(dep, project_config)
         assert resolver.resolve(dep, project_config) == (
             "tag_sha",
-            ManagedPackageDependency(
+            PackageNamespaceVersionDependency(
                 namespace="ccitestdep",
                 version="2.1 Beta 1",
                 package_name="CumulusCI-Test-Dep",
@@ -945,17 +999,24 @@ class TestGitHubUnmanagedHeadResolver:
         assert resolver.resolve(dep, project_config) == ("commit_sha", None)
 
 
-class TestGitHubReleaseBranchMixin:
+class ConcreteGitHubReleaseBranchResolver(GitHubReleaseBranchResolver):
+    def resolve(
+        self, dep: GitHubDynamicDependency, context: BaseProjectConfig
+    ) -> Tuple[Optional[str], Optional[StaticDependency]]:
+        return (None, None)
+
+
+class TestGitHubReleaseBranchResolver:
     def test_is_valid_repo_context(self):
         pc = BaseProjectConfig(UniversalConfig())
 
         pc.repo_info["branch"] = "feature/232__test"
         pc.project__git["prefix_feature"] = "feature/"
 
-        assert GitHubReleaseBranchMixin().is_valid_repo_context(pc)
+        assert ConcreteGitHubReleaseBranchResolver().is_valid_repo_context(pc)
 
         pc.repo_info["branch"] = "main"
-        assert not GitHubReleaseBranchMixin().is_valid_repo_context(pc)
+        assert not ConcreteGitHubReleaseBranchResolver().is_valid_repo_context(pc)
 
     def test_can_resolve(self):
         pc = BaseProjectConfig(UniversalConfig())
@@ -963,7 +1024,7 @@ class TestGitHubReleaseBranchMixin:
         pc.repo_info["branch"] = "feature/232__test"
         pc.project__git["prefix_feature"] = "feature/"
 
-        gh = GitHubReleaseBranchMixin()
+        gh = ConcreteGitHubReleaseBranchResolver()
 
         assert gh.can_resolve(
             GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/Test"),
@@ -977,7 +1038,7 @@ class TestGitHubReleaseBranchMixin:
         pc.repo_info["branch"] = "feature/232__test"
         pc.project__git["prefix_feature"] = "feature/"
 
-        assert GitHubReleaseBranchMixin().get_release_id(pc) == 232
+        assert ConcreteGitHubReleaseBranchResolver().get_release_id(pc) == 232
 
     def test_get_release_id__not_release_branch(self):
         pc = BaseProjectConfig(UniversalConfig())
@@ -987,7 +1048,7 @@ class TestGitHubReleaseBranchMixin:
             repo_branch.return_value = None
 
             with pytest.raises(DependencyResolutionError) as e:
-                GitHubReleaseBranchMixin().get_release_id(pc)
+                ConcreteGitHubReleaseBranchResolver().get_release_id(pc)
 
             assert "Cannot get current branch" in str(e)
 
@@ -1000,7 +1061,7 @@ class TestGitHubReleaseBranchMixin:
             pc.project__git["prefix_feature"] = "feature/"
 
             with pytest.raises(DependencyResolutionError) as e:
-                GitHubReleaseBranchMixin().get_release_id(pc)
+                ConcreteGitHubReleaseBranchResolver().get_release_id(pc)
 
             assert "Cannot get current release identifier" in str(e)
 
@@ -1019,7 +1080,7 @@ class TestGitHubReleaseBranch2GPResolver:
 
         assert resolver.resolve(dep, project_config) == (
             "parent_sha",
-            ManagedPackageDependency(
+            PackageVersionIdDependency(
                 version_id="04t000000000000", package_name="CumulusCI-2GP-Test"
             ),
         )
@@ -1039,7 +1100,7 @@ class TestGitHubReleaseBranchExactMatch2GPResolver:
 
         assert resolver.resolve(dep, project_config) == (
             "feature/232__test_sha",
-            ManagedPackageDependency(
+            PackageVersionIdDependency(
                 version_id="04t000000000001", package_name="CumulusCI-2GP-Test"
             ),
         )
@@ -1091,38 +1152,38 @@ class TestStaticDependencyResolution:
         assert get_static_dependencies(
             [gh], [DependencyResolutionStrategy.STRATEGY_RELEASE_TAG], project_config
         ) == [
-            UnmanagedDependency(
+            UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/DependencyRepo",
                 subfolder="unpackaged/pre/top",
                 unmanaged=True,
                 ref="tag_sha",
             ),
-            ManagedPackageDependency(
+            PackageNamespaceVersionDependency(
                 namespace="foo", version="1.1", package_name="DependencyRepo"
             ),
-            UnmanagedDependency(
+            UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/DependencyRepo",
                 subfolder="unpackaged/post/top",
                 unmanaged=False,
                 ref="tag_sha",
                 namespace_inject="foo",
             ),
-            UnmanagedDependency(
+            UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
                 subfolder="unpackaged/pre/first",
                 unmanaged=True,
                 ref="tag_sha",
             ),
-            UnmanagedDependency(
+            UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
                 subfolder="unpackaged/pre/second",
                 unmanaged=True,
                 ref="tag_sha",
             ),
-            ManagedPackageDependency(
+            PackageNamespaceVersionDependency(
                 namespace="bar", version="2.0", package_name="RootRepo"
             ),
-            UnmanagedDependency(
+            UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
                 subfolder="unpackaged/post/first",
                 unmanaged=False,

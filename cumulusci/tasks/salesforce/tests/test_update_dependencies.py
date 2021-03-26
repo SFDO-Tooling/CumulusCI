@@ -1,6 +1,6 @@
 from cumulusci.core.dependencies.dependencies import (
     GitHubDynamicDependency,
-    ManagedPackageDependency,
+    PackageDependency,
     UnmanagedDependency,
     get_resolver_stack,
     DependencyResolutionStrategy,
@@ -42,8 +42,8 @@ def test_init_options_base():
     )
 
     assert task.dependencies == [
-        ManagedPackageDependency(namespace="ns", version="1.0"),
-        ManagedPackageDependency(version_id="04t000000000000"),
+        PackageDependency(namespace="ns", version="1.0"),
+        PackageDependency(version_id="04t000000000000"),
         GitHubDynamicDependency(github="https://github.com/Test/TestRepo"),
     ]
     assert task.resolution_strategy == get_resolver_stack(project_config, "production")
@@ -214,8 +214,8 @@ def test_run_task_gets_static_dependencies_and_installs():
 
     task._install_dependency.assert_has_calls(
         [
-            mock.call(ManagedPackageDependency(namespace="ns", version="1.0")),
-            mock.call(ManagedPackageDependency(version_id="04t000000000000")),
+            mock.call(PackageDependency(namespace="ns", version="1.0")),
+            mock.call(PackageDependency(version_id="04t000000000000")),
         ]
     )
 
@@ -355,7 +355,7 @@ def test_run_task__bad_security_type():
 @mock.patch("cumulusci.tasks.salesforce.update_dependencies.get_static_dependencies")
 def test_freeze(get_static_dependencies):
     get_static_dependencies.return_value = [
-        ManagedPackageDependency(namespace="ns", version="1.0"),
+        PackageDependency(namespace="ns", version="1.0"),
         UnmanagedDependency(
             github="https://github.com/SFDO-Tooling/CumulusCI-Test",
             ref="abcdef",

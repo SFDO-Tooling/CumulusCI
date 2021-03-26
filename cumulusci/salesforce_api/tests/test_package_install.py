@@ -9,7 +9,7 @@ import responses
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.salesforce_api.package_install import (
-    ManagedPackageInstallOptions,
+    PackageInstallOptions,
     SecurityType,
     install_1gp_package_version,
     install_package_version,
@@ -40,9 +40,7 @@ def test_install_package_version(caplog):
     org_config = OrgConfig(
         {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
     )
-    install_package_version(
-        project_config, org_config, "04t", ManagedPackageInstallOptions()
-    )
+    install_package_version(project_config, org_config, "04t", PackageInstallOptions())
     assert "Success" in caplog.text
 
 
@@ -72,7 +70,7 @@ def test_install_package_version__error():
     )
     with pytest.raises(PackageInstallError, match="We have a problem."):
         install_package_version(
-            project_config, org_config, "04t", ManagedPackageInstallOptions()
+            project_config, org_config, "04t", PackageInstallOptions()
         )
 
 
@@ -100,9 +98,7 @@ def test_install_package_version__not_propagated(caplog):
     org_config = OrgConfig(
         {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
     )
-    install_package_version(
-        project_config, org_config, "04t", ManagedPackageInstallOptions()
-    )
+    install_package_version(project_config, org_config, "04t", PackageInstallOptions())
     assert "Retrying" in caplog.text
     assert "Success" in caplog.text
 
@@ -118,7 +114,7 @@ def test_install_1gp_package_version(zip_builder, api_deploy):
         org,
         "foo",
         "1.0",
-        ManagedPackageInstallOptions(
+        PackageInstallOptions(
             activate_remote_site_settings=True,
             password="foobar",
             security_type=SecurityType.PUSH,
@@ -154,7 +150,7 @@ def test_install_1gp_package_version__retry(zip_builder, api_deploy):
         org,
         "foo",
         "1.0",
-        ManagedPackageInstallOptions(),
+        PackageInstallOptions(),
     )
 
     task = namedtuple("TaskContext", ["org_config", "project_config", "logger"])(

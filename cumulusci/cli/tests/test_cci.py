@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from cumulusci.core.dependencies.dependencies import ManagedPackageDependency
+from cumulusci.core.dependencies.dependencies import PackageDependency
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
@@ -794,8 +794,8 @@ Environment Info: Rossian / x68_46
             {"namespace": "npsp", "version": "3.193"},
         ]
         get_static_dependencies.return_value = [
-            ManagedPackageDependency(namespace="npe01", version="3.16"),
-            ManagedPackageDependency(namespace="npsp", version="3.193"),
+            PackageDependency(namespace="npe01", version="3.16"),
+            PackageDependency(namespace="npsp", version="3.193"),
         ]
 
         with mock.patch("click.echo", out.append):
@@ -808,8 +808,8 @@ Environment Info: Rossian / x68_46
         self.assertEqual(
             out,
             [
-                str(ManagedPackageDependency(namespace="npe01", version="3.16")),
-                str(ManagedPackageDependency(namespace="npsp", version="3.193")),
+                str(PackageDependency(namespace="npe01", version="3.16")),
+                str(PackageDependency(namespace="npsp", version="3.193")),
             ],
         )
 

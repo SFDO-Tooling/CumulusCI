@@ -1,5 +1,5 @@
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.dependencies.dependencies import ManagedPackageInstallOptions
+from cumulusci.core.dependencies.dependencies import PackageInstallOptions
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_install import (
@@ -89,7 +89,7 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         # Ensure that this option is frozen in case the defaults ever change.
         self.options["security_type"] = self.options.get("security_type") or "FULL"
         try:
-            self.install_options = ManagedPackageInstallOptions(
+            self.install_options = PackageInstallOptions(
                 activate_remote_site_settings=process_bool_arg(
                     self.options.get("activateRSS") or False
                 ),

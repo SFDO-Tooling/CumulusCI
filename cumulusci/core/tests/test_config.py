@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-from cumulusci.core.dependencies.dependencies import ManagedPackageDependency
+from cumulusci.core.dependencies.dependencies import (
+    PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
+)
 from distutils.version import StrictVersion
 import json
 import os
@@ -1571,15 +1574,15 @@ class TestOrgConfig(unittest.TestCase):
             "dep@1.0": [VersionInfo("04t000000000001AAA", "1.0")]
         }
         result = config.resolve_04t_dependencies(
-            [ManagedPackageDependency(namespace="dep", version="1.0")]
+            [PackageDependency(namespace="dep", version="1.0")]
         )
         print(result)
-        assert result == [ManagedPackageDependency(version_id="04t000000000001AAA")]
+        assert result == [PackageVersionIdDependency(version_id="04t000000000001AAA")]
 
     def test_resolve_04t_dependencies__not_installed(self):
         config = OrgConfig({}, "test")
         config._installed_packages = {}
         with pytest.raises(DependencyResolutionError):
             config.resolve_04t_dependencies(
-                [ManagedPackageDependency(namespace="dep", version="1.0")]
+                [PackageNamespaceVersionDependency(namespace="dep", version="1.0")]
             )

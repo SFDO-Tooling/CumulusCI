@@ -1,7 +1,10 @@
 from collections import namedtuple
-from cumulusci.core.config.BaseConfig import BaseConfig
+from cumulusci.core.dependencies.github import (
+    get_package_data,
+    get_remote_project_config,
+    get_repo,
+)
 from cumulusci.utils.yaml.model_parser import CCIModel
-import io
 import logging
 from typing import Iterable, List, Optional, Tuple
 
@@ -16,14 +19,13 @@ from cumulusci.core.exceptions import DependencyResolutionError, DependencyParse
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
-    ManagedPackageInstallOptions,
+    PackageInstallOptions,
     install_1gp_package_version,
     install_package_version,
 )
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.utils import download_extract_github_from_repo, download_extract_zip
 from cumulusci.utils.git import split_repo_url
-from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 import abc
 
 from cumulusci.core.github import (
@@ -49,9 +51,15 @@ logger = logging.getLogger(__name__)
 
 
 class HashableBaseModel(CCIModel):
+    """Base Pydantic model class that has a functional `hash()` method.
+    Requires that model can be converted to JSON."""
+
     # See https://github.com/samuelcolvin/pydantic/issues/1303
     def __hash__(self):
         return hash((type(self),) + tuple(self.json()))
+
+
+TaskContext = namedtuple("TaskContext", ["org_config", "project_config", "logger"])
 
 
 class DependencyResolutionStrategy(str, Enum):
@@ -66,10 +74,21 @@ class DependencyResolutionStrategy(str, Enum):
 
 class Dependency(HashableBaseModel, abc.ABC):
     """Abstract base class for models representing dependencies
-    
+
     Dependencies can be _resolved_ to an immutable version, or not.
     They can also be _flattened_ (turned into a list including their own transitive dependencies) or not.
     """
+
+    @property
+    @abc.abstractmethod
+    def name(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def description(self):
+        pass
+
     @property
     @abc.abstractmethod
     def is_resolved(self):
@@ -87,15 +106,20 @@ class Dependency(HashableBaseModel, abc.ABC):
     def resolve(
         self, context: BaseProjectConfig, strategies: List[DependencyResolutionStrategy]
     ):
-    """Resolve a dependency that is not pinned to a specific version into one that is."""
+        """Resolve a dependency that is not pinned to a specific version into one that is."""
         pass  # pragma: no cover
+
+    def __str__(self):
+        return self.name
 
 
 Dependency.update_forward_refs()
 
 
 class StaticDependency(Dependency, abc.ABC):
-    """Abstract base class for dependencies that we know how to install."""
+    """Abstract base class for dependencies that we know how to install (i.e., they
+    are already both resolved and flattened)."""
+
     @abc.abstractmethod
     def install(self, org_config: OrgConfig, retry_options: dict = None):
         pass  # pragma: no cover
@@ -108,14 +132,11 @@ class StaticDependency(Dependency, abc.ABC):
     def is_flattened(self):
         return True
 
-    @property
-    @abc.abstractmethod
-    def name(self):
-        pass  # pragma: no cover
-
 
 class DynamicDependency(Dependency, abc.ABC):
-    """Abstract base class for dependencies that can be resolved."""
+    """Abstract base class for dependencies with dynamic references, like GitHub.
+    These dependencies must be resolved and flattened before they can be installed."""
+
     managed_dependency: Optional[StaticDependency]
 
     @property
@@ -125,6 +146,14 @@ class DynamicDependency(Dependency, abc.ABC):
     def resolve(
         self, context: BaseProjectConfig, strategies: List[DependencyResolutionStrategy]
     ):
+        """Try to resolve this dependency using the specified strategies.
+
+        If successful, sets `self.ref` and optionally `self.managed_dependency`
+        (if a package release is found).
+
+        Otherwise raises DependencyResolutionError.
+        """
+
         if self.is_resolved:
             return
 
@@ -150,7 +179,8 @@ class DynamicDependency(Dependency, abc.ABC):
 
 
 class Resolver(abc.ABC):
-    """Abstract base class for dependency resolution strategies"""
+    """Abstract base class for dependency resolution strategies."""
+
     name = "Resolver"
 
     @abc.abstractmethod
@@ -160,51 +190,21 @@ class Resolver(abc.ABC):
     @abc.abstractmethod
     def resolve(
         self, dep: DynamicDependency, context: BaseProjectConfig
-    ) -> Tuple[Optional[str], Optional["ManagedPackageDependency"]]:
+    ) -> Tuple[Optional[str], Optional[StaticDependency]]:
         pass  # pragma: no cover
 
     def __str__(self):
         return self.name
 
 
-class GitHubRepoMixin:
-    def get_repo(self, context: BaseProjectConfig) -> Repository:
-        repo = context.get_repo_from_url(self.github)
-        if repo is None:
-            raise DependencyResolutionError(
-                f"GitHub repository {self.github} not found or not authorized."
-            )
+class GitHubDynamicDependency(DynamicDependency):
+    """A dependency expressed by a reference to a GitHub repo, which needs
+    to be resolved to a specific ref and/or package version."""
 
-        return repo
-
-
-class GitHubPackageDataMixin:
-    def _get_project_config(self, repo: Repository, ref: str) -> BaseConfig:
-        contents = repo.file_contents("cumulusci.yml", ref=ref)
-        return BaseConfig(cci_safe_load(io.StringIO(contents.decoded.decode("utf-8"))))
-
-    def _get_package_data(
-        self, repo: Repository, ref: str
-    ) -> Tuple[str, Optional[str]]:
-        config = self._get_project_config(repo, ref)
-
-        namespace = config.project__package__namespace
-        package_name = (
-            config.project__package__name_managed
-            or config.project__package__name
-            or "Package"
-        )
-
-        return package_name, namespace
-
-
-class GitHubDynamicDependency(
-    GitHubRepoMixin, GitHubPackageDataMixin, DynamicDependency
-):
     github: Optional[AnyUrl]
 
-    repo_owner: Optional[str]  # Deprecate - use full URL
-    repo_name: Optional[str]  # Deprecate - use full URL
+    repo_owner: Optional[str]  # Deprecated - use full URL
+    repo_name: Optional[str]  # Deprecated - use full URL
 
     unmanaged: bool = False
     subfolder: Optional[str]
@@ -221,10 +221,10 @@ class GitHubDynamicDependency(
         return self.ref is not None
 
     @pydantic.root_validator
-    def check_deprecations(cls, values):
+    def check_deprecated_fields(cls, values):
         if values.get("repo_owner") or values.get("repo_name"):
             logger.warning(
-                "The dependency keys `repo_owner` and `repo_name` are deprecated. Use `github` instead."
+                "The dependency keys `repo_owner` and `repo_name` are deprecated. Use the full repo URL with the `github` key instead."
             )
         return values
 
@@ -254,7 +254,7 @@ class GitHubDynamicDependency(
         managed: bool,
         namespace: Optional[str],
     ) -> List[StaticDependency]:
-    """Locate unmanaged dependencies from a repository subfolder (such as unpackaged/pre or unpackaged/post)"""
+        """Locate unmanaged dependencies from a repository subfolder (such as unpackaged/pre or unpackaged/post)"""
         unpackaged = []
         try:
             contents = repo.directory_contents(subfolder, return_as=dict, ref=self.ref)
@@ -268,7 +268,7 @@ class GitHubDynamicDependency(
                     continue
 
                 unpackaged.append(
-                    UnmanagedDependency(
+                    UnmanagedGitHubRefDependency(
                         github=self.github,
                         ref=self.ref,
                         subfolder=this_subfolder,
@@ -284,7 +284,7 @@ class GitHubDynamicDependency(
 
     def flatten(self, context: BaseProjectConfig) -> List[Dependency]:
         """Find more dependencies based on repository contents.
-        
+
         Includes:
         - dependencies from cumulusci.yml
         - subfolders of unpackaged/pre
@@ -299,10 +299,10 @@ class GitHubDynamicDependency(
         deps = []
 
         context.logger.info(f"Collecting dependencies from Github repo {self.github}")
-        repo = self.get_repo(context)
+        repo = get_repo(self.github, context)
 
-        package_config = self._get_project_config(repo, self.ref)
-        namespace = package_config.project__package__namespace
+        package_config = get_remote_project_config(repo, self.ref)
+        _, namespace = get_package_data(package_config)
 
         # Parse upstream dependencies from the repo's cumulusci.yml
         # These may be unresolved or unflattened; if so, `get_static_dependencies()`
@@ -331,7 +331,7 @@ class GitHubDynamicDependency(
             contents = repo.directory_contents("src", ref=self.ref)
             if contents:
                 deps.append(
-                    UnmanagedDependency(
+                    UnmanagedGitHubRefDependency(
                         github=self.github,
                         ref=self.ref,
                         subfolder="src",
@@ -361,83 +361,138 @@ class GitHubDynamicDependency(
 
         return deps
 
-    def __str__(self):
+    @property
+    def name(self):
         return f"Dependency: {self.github}"
 
+    @property
+    def description(self):
+        subfolder = f"/{self.subfolder}" if self.subfolder else ""
+        unmanaged = f" (unmanaged)" if self.unmanaged else ""
+        loc = f" @{self.ref or self.tag}" if self.ref or self.tag else ""
+        return f"{self.name}{subfolder}{unmanaged}{loc}"
 
-class ManagedPackageDependency(StaticDependency):
-    namespace: Optional[str]
-    version: Optional[str]
-    version_id: Optional[str]
+
+class PackageNamespaceVersionDependency(StaticDependency):
+    """Static dependency on a package identified by namespace and version number."""
+
+    namespace: str
+    version: str
     package_name: Optional[str]
-
-    @property
-    def is_resolved(self):
-        return True
-
-    @property
-    def is_flattened(self):
-        return True
 
     @property
     def package(self):
         return self.package_name or self.namespace or "Unknown Package"
 
-    @pydantic.root_validator
-    def validate(cls, values):
-        assert (values.get("namespace") and values.get("version")) or values.get(
-            "version_id"
-        ), "Must specify `namespace` and `version`, or `version_id`"
+    def install(
+        self,
+        context: BaseProjectConfig,
+        org: OrgConfig,
+        options: PackageInstallOptions = None,
+    ):
+        if not options:
+            options = PackageInstallOptions()
 
-        assert None in [
-            values.get("namespace"),
-            values.get("version_id"),
-        ], "Must not specify both `namespace`/`version` and `version_id`"
-        return values
+        context.logger.info(f"Installing {self.package} version {self.version}")
+        install_1gp_package_version(
+            context,
+            org,
+            self.namespace,
+            self.version,
+            options,
+            retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
+        )
+
+    @property
+    def name(self):
+        return f"Install {self.package} {self.version}"
+
+    @property
+    def description(self):
+        return self.name
+
+
+class PackageVersionIdDependency(StaticDependency):
+    """Static dependency on a package identified by 04t version id."""
+
+    version_id: str
+    package_name: Optional[str]
+
+    @property
+    def package(self):
+        return self.package_name or "Unknown Package"
 
     def install(
         self,
         context: BaseProjectConfig,
         org: OrgConfig,
-        options: ManagedPackageInstallOptions = None,
+        options: PackageInstallOptions = None,
     ):
         if not options:
-            options = ManagedPackageInstallOptions()
+            options = PackageInstallOptions()
 
-        if self.namespace and self.version:
-            context.logger.info(
-                "Installing {} version {}".format(self.package, self.version)
-            )
-            install_1gp_package_version(
-                context,
-                org,
-                self.namespace,
-                self.version,
-                options,
-                retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
-            )
-        elif self.version_id:
-            context.logger.info(f"Installing {self.version_id}")
-            install_package_version(
-                context,
-                org,
-                self.version_id,
-                options,
-                retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
-            )
+        context.logger.info(f"Installing {self.package} {self.version_id}")
+        install_package_version(
+            context,
+            org,
+            self.version_id,
+            options,
+            retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
+        )
 
     @property
     def name(self):
-        return f"Install {self.package} {self.version or self.version_id}"
+        return f"Install {self.package} {self.version_id}"
 
-    def __str__(self):
+    @property
+    def description(self):
         return self.name
 
 
-class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
-    zip_url: Optional[AnyUrl]
+class UnmanagedDependency(StaticDependency, abc.ABC):
+    """Abstract base class for static, unmanaged dependencies."""
 
-    # or
+    unmanaged: Optional[bool]
+    subfolder: Optional[str]
+    namespace_inject: Optional[str]
+    namespace_strip: Optional[str]
+
+    def _get_unmanaged(self, org: OrgConfig):
+        if self.unmanaged is None and self.namespace_inject:
+            return self.namespace_inject not in org.installed_packages
+
+        return self.unmanaged
+
+    @abc.abstractmethod
+    def _get_zip_src(self, context: BaseProjectConfig):
+        pass
+
+    def install(self, context: BaseProjectConfig, org: OrgConfig):
+        zip_src = self._get_zip_src(context)
+
+        context.logger.info(f"Deploying unmanaged metadata from {self.description}")
+
+        # Determine whether to inject namespace prefixes or not
+        # If and only if we have no explicit configuration.
+
+        options = {
+            "unmanaged": self._get_unmanaged(org),
+            "namespace_inject": self.namespace_inject,
+            "namespace_strip": self.namespace_strip,
+        }
+
+        package_zip = MetadataPackageZipBuilder.from_zipfile(
+            zip_src, options=options, logger=logger
+        ).as_base64()
+        task = TaskContext(org_config=org, project_config=context, logger=logger)
+
+        api = ApiDeploy(task, package_zip)
+        return api()
+
+
+class UnmanagedGitHubRefDependency(UnmanagedDependency):
+    """Static dependency on unmanaged metadata in a specific GitHub ref and subfolder."""
+
     repo_owner: Optional[str]
     repo_name: Optional[str]
 
@@ -445,12 +500,7 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
     github: Optional[AnyUrl]
 
     # and
-    ref: Optional[str]
-
-    unmanaged: Optional[bool]
-    subfolder: Optional[str]
-    namespace_inject: Optional[str]
-    namespace_strip: Optional[str]
+    ref: str
 
     @pydantic.root_validator
     def validate(cls, values):
@@ -458,23 +508,6 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
             logger.warning(
                 "The repo_name and repo_owner keys are deprecated. Please use the github key."
             )
-        assert (
-            values.get("zip_url")
-            or (values.get("github") and values.get("ref"))
-            or (
-                values.get("repo_name")
-                and values.get("repo_owner")
-                and values.get("ref")
-            )
-        ), "Must specify `zip_url`, or `github` and `ref`"
-        assert None in [
-            values.get("zip_url"),
-            values.get("github"),
-        ], "Must specify `zip_url`, or `github` and `ref`, but not both."
-        assert None in [
-            values.get("zip_url"),
-            values.get("repo_owner"),
-        ], "Must specify `zip_url`, or `github` and `ref`, but not both."
         assert None in [
             values.get("repo_owner"),
             values.get("github"),
@@ -493,65 +526,41 @@ class UnmanagedDependency(GitHubRepoMixin, StaticDependency):
 
         return values
 
-    def install(self, context: BaseProjectConfig, org: OrgConfig):
-        zip_src = None
+    def _get_zip_src(self, context):
+        return download_extract_github_from_repo(
+            get_repo(self.github, context),
+            self.subfolder,
+            ref=self.ref,
+        )
 
-        if self.zip_url:
-            context.logger.info(
-                f"Deploying unmanaged metadata from /{self.subfolder} of {self.zip_url}"
-            )
-            zip_src = download_extract_zip(self.zip_url, subfolder=self.subfolder)
-        elif self.github:
-            context.logger.info(
-                f"Deploying unmanaged metadata from /{self.subfolder} of {self.github} at {self.ref}"
-            )
-            repo = self.get_repo(context)
+    @property
+    def name(self):
+        subfolder = (
+            f"/{self.subfolder}" if self.subfolder and self.subfolder != "src" else ""
+        )
+        return f"Deploy {self.github}{subfolder}"
 
-            zip_src = download_extract_github_from_repo(
-                repo,
-                self.subfolder,
-                ref=self.ref,
-            )
+    @property
+    def description(self):
+        return f"{self.name} @{self.ref}"
 
-        if zip_src:
-            # Determine whether to inject namespace prefixes or not
-            # If and only if we have no explicit configuration.
 
-            options = {
-                "unmanaged": self._get_unmanaged(org),
-                "namespace_inject": self.namespace_inject,
-                "namespace_strip": self.namespace_strip,
-            }
+class UnmanagedZipURLDependency(UnmanagedDependency):
+    """Static dependency on unmanaged metadata."""
 
-            package_zip = MetadataPackageZipBuilder.from_zipfile(
-                zip_src, options=options, logger=logger
-            ).as_base64()
-            task = namedtuple(
-                "TaskContext", ["org_config", "project_config", "logger"]
-            )(org_config=org, project_config=context, logger=logger)
+    zip_url: AnyUrl
 
-            api = ApiDeploy(task, package_zip)
-            return api()
-
-    def _get_unmanaged(self, org: OrgConfig):
-        if self.unmanaged is None and self.namespace_inject:
-            return self.namespace_inject not in org.installed_packages
-
-        return self.unmanaged
+    def _get_zip_src(self, context: BaseProjectConfig):
+        return download_extract_zip(self.zip_url, subfolder=self.subfolder)
 
     @property
     def name(self):
         subfolder = f"/{self.subfolder}" if self.subfolder else ""
 
-        if self.github:
-            if subfolder and subfolder != "src":
-                return f"Deploy {self.repo_name}{subfolder}"
-            else:
-                return f"Deploy {self.repo_name}"
-        else:
-            return f"Deploy {self.zip_url} {subfolder}"
+        return f"Deploy {self.zip_url} {subfolder}"
 
-    def __str__(self):
+    @property
+    def description(self):
         return self.name
 
 
@@ -565,9 +574,11 @@ def parse_dependencies(deps: Optional[List[dict]]) -> List[Dependency]:
 
 def parse_dependency(dep_dict: dict) -> Optional[Dependency]:
     for dependency_class in [
-        ManagedPackageDependency,
+        PackageNamespaceVersionDependency,
+        PackageVersionIdDependency,
         GitHubDynamicDependency,
-        UnmanagedDependency,
+        UnmanagedGitHubRefDependency,
+        UnmanagedZipURLDependency,
     ]:
         try:
             dep = dependency_class.parse_obj(dep_dict)
@@ -580,7 +591,9 @@ def parse_dependency(dep_dict: dict) -> Optional[Dependency]:
 ## Resolvers
 
 
-class GitHubTagResolver(GitHubPackageDataMixin, Resolver):
+class GitHubTagResolver(Resolver):
+    """Resolver that identifies a ref by a specific GitHub tag."""
+
     name = "GitHub Tag Resolver"
 
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
@@ -588,13 +601,14 @@ class GitHubTagResolver(GitHubPackageDataMixin, Resolver):
 
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
-    ) -> Tuple[Optional[str], Optional[ManagedPackageDependency]]:
+    ) -> Tuple[Optional[str], Optional[StaticDependency]]:
         try:
             # Find the github release corresponding to this tag.
-            repo = dep.get_repo(context)
+            repo = get_repo(dep.github, context)
             release = repo.release_from_tag(dep.tag)
             ref = repo.tag(repo.ref(f"tags/{release.tag_name}").object.sha).object.sha
-            package_name, namespace = self._get_package_data(repo, ref)
+            package_config = get_remote_project_config(repo, ref)
+            package_name, namespace = get_package_data(package_config)
 
             if not dep.unmanaged and not namespace:
                 raise DependencyResolutionError(
@@ -604,7 +618,7 @@ class GitHubTagResolver(GitHubPackageDataMixin, Resolver):
             if not dep.unmanaged:
                 return (
                     ref,
-                    ManagedPackageDependency(
+                    PackageNamespaceVersionDependency(
                         namespace=namespace,
                         version=release.name,
                         package_name=package_name,
@@ -616,7 +630,9 @@ class GitHubTagResolver(GitHubPackageDataMixin, Resolver):
             raise DependencyResolutionError(f"No release found for tag {dep.tag}")
 
 
-class GitHubReleaseTagResolver(GitHubPackageDataMixin, Resolver):
+class GitHubReleaseTagResolver(Resolver):
+    """Resolver that identifies a ref by finding the latest GitHub release."""
+
     name = "GitHub Release Resolver"
     include_beta = False
 
@@ -625,16 +641,17 @@ class GitHubReleaseTagResolver(GitHubPackageDataMixin, Resolver):
 
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
-    ) -> Tuple[Optional[str], Optional[ManagedPackageDependency]]:
-        repo = dep.get_repo(context)
+    ) -> Tuple[Optional[str], Optional[StaticDependency]]:
+        repo = get_repo(dep.github, context)
         release = find_latest_release(repo, include_beta=self.include_beta)
         if release:
             ref = repo.tag(repo.ref(f"tags/{release.tag_name}").object.sha).object.sha
-            package_name, namespace = self._get_package_data(repo, ref)
+            package_config = get_remote_project_config(repo, ref)
+            package_name, namespace = get_package_data(package_config)
 
             return (
                 ref,
-                ManagedPackageDependency(
+                PackageNamespaceVersionDependency(
                     namespace=namespace, version=release.name, package_name=package_name
                 ),
             )
@@ -643,11 +660,15 @@ class GitHubReleaseTagResolver(GitHubPackageDataMixin, Resolver):
 
 
 class GitHubBetaReleaseTagResolver(GitHubReleaseTagResolver):
+    """Resolver that identifies a ref by finding the latest GitHub release, including betas."""
+
     name = "GitHub Release Resolver (Betas)"
     include_beta = True
 
 
 class GitHubUnmanagedHeadResolver(Resolver):
+    """Resolver that identifies a ref by finding the latest commit on the main branch."""
+
     name = "GitHub Unmanaged Resolver"
 
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
@@ -655,12 +676,14 @@ class GitHubUnmanagedHeadResolver(Resolver):
 
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
-    ) -> Tuple[Optional[str], Optional[ManagedPackageDependency]]:
-        repo = dep.get_repo(context)
+    ) -> Tuple[Optional[str], Optional[StaticDependency]]:
+        repo = get_repo(dep.github, context)
         return (repo.branch(repo.default_branch).commit.sha, None)
 
 
-class GitHubReleaseBranchMixin:
+class GitHubReleaseBranchResolver(Resolver, abc.ABC):
+    """Abstract base class for resolvers that use release branches to find refs."""
+
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
         return self.is_valid_repo_context(context) and isinstance(
             dep, GitHubDynamicDependency
@@ -707,15 +730,16 @@ class GitHubReleaseBranchMixin:
         return version_id, commit
 
 
-class GitHubReleaseBranch2GPResolver(
-    GitHubPackageDataMixin, GitHubReleaseBranchMixin, Resolver
-):
+class GitHubReleaseBranch2GPResolver(GitHubReleaseBranchResolver):
+    """Resolver that identifies a ref by finding a 2GP package version
+    in a commit status on a `feature/NNN` release branch."""
+
     name = "GitHub Release Branch 2GP Resolver"
     branch_depth = 1
 
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
-    ) -> Tuple[Optional[str], Optional[ManagedPackageDependency]]:
+    ) -> Tuple[Optional[str], Optional[StaticDependency]]:
 
         release_id = self.get_release_id(context)
         repo = context.get_repo_from_url(dep.github)
@@ -757,10 +781,10 @@ class GitHubReleaseBranch2GPResolver(
                 context.logger.info(
                     f"Located 2GP package version {version_id} for release {release_id} on {repo.clone_url} at commit {release_branch.commit.sha}"
                 )
+                package_config = get_remote_project_config(repo, commit.sha)
+                package_name, _ = get_package_data(package_config)
 
-                package_name, _ = self._get_package_data(repo, commit.sha)
-
-                return commit.sha, ManagedPackageDependency(
+                return commit.sha, PackageVersionIdDependency(
                     version_id=version_id, package_name=package_name
                 )
 
@@ -771,18 +795,23 @@ class GitHubReleaseBranch2GPResolver(
 
 
 class GitHubPreviousReleaseBranch2GPResolver(GitHubReleaseBranch2GPResolver):
+    """Resolver that identifies a ref by finding a 2GP package version
+    in a commit status on a `feature/NNN` release branch that is earlier
+    than the matching local release branch."""
+
     name = "GitHub Previous Release Branch 2GP Resolver"
     branch_depth = 3
 
 
-class GitHubReleaseBranchExactMatch2GPResolver(
-    GitHubPackageDataMixin, GitHubReleaseBranchMixin, Resolver
-):
+class GitHubReleaseBranchExactMatch2GPResolver(GitHubReleaseBranchResolver):
+    """Resolver that identifies a ref by finding a 2GP package version
+    in a commit status on a branch whose name matches the local branch."""
+
     name = "GitHub Exact-Match 2GP Resolver"
 
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
-    ) -> Tuple[Optional[str], Optional[ManagedPackageDependency]]:
+    ) -> Tuple[Optional[str], Optional[StaticDependency]]:
         release_id = self.get_release_id(context)
 
         repo = context.get_repo_from_url(dep.github)
@@ -819,9 +848,10 @@ class GitHubReleaseBranchExactMatch2GPResolver(
                 f"Located 2GP package version {version_id} for release {release_id} on {repo.clone_url} at commit {release_branch.commit.sha}"
             )
 
-            package_name, _ = self._get_package_data(repo, commit.sha)
+            package_config = get_remote_project_config(repo, commit.sha)
+            package_name, _ = get_package_data(package_config)
 
-            return commit.sha, ManagedPackageDependency(
+            return commit.sha, PackageVersionIdDependency(
                 version_id=version_id, package_name=package_name
             )
 
@@ -848,6 +878,8 @@ RESOLVER_CLASSES = {
 def get_resolver(
     strategy: DependencyResolutionStrategy, dependency: DynamicDependency
 ) -> Optional[Resolver]:
+    """Return an instance of a resolver class capable of applying the specified
+    resolution strategy to the dependency."""
     # This will be fleshed out when further types of DynamicDependency are added.
 
     return RESOLVER_CLASSES[strategy]()
@@ -856,6 +888,9 @@ def get_resolver(
 def get_resolver_stack(
     context: BaseProjectConfig, name: str
 ) -> List[DependencyResolutionStrategy]:
+    """Return a sequence of resolution strategies identified by the given `name`,
+    which can be either a named strategy from project__dependency_resolutions__resolution_strategies
+    or an alias like `production`."""
     resolutions = context.project__dependency_resolutions
     stacks = context.project__dependency_resolutions__resolution_strategies
 
@@ -921,7 +956,10 @@ def _should_ignore_dependency(dependency: Dependency, ignore_deps: List[dict]):
     ignore_github = [d["github"] for d in ignore_deps if "github" in d]
     ignore_namespace = [d["namespace"] for d in ignore_deps if "namespace" in d]
 
-    if isinstance(dependency, ManagedPackageDependency) and dependency.namespace:
+    if (
+        isinstance(dependency, PackageNamespaceVersionDependency)
+        and dependency.namespace
+    ):
         return dependency.namespace in ignore_namespace
     if isinstance(dependency, GitHubDynamicDependency) and dependency.github:
         return dependency.github in ignore_github

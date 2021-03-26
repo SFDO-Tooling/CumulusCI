@@ -1,5 +1,5 @@
 from cumulusci.core.dependencies.dependencies import (
-    ManagedPackageDependency,
+    PackageDependency,
     get_resolver_stack,
     get_static_dependencies,
     parse_dependencies,
@@ -76,10 +76,7 @@ class UpdateDependencies(MetaXmlBaseTask):
     def _process_dependencies(self, dependencies):
         print(dependencies)
         for dependency in dependencies:
-            if (
-                isinstance(dependency, ManagedPackageDependency)
-                and dependency.namespace
-            ):
+            if isinstance(dependency, PackageDependency) and dependency.namespace:
                 self.dependencies.append((dependency.namespace, dependency.version))
 
     def _process_xml(self, root):

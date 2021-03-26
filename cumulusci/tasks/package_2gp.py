@@ -12,7 +12,7 @@ from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.dependencies.dependencies import (
-    ManagedPackageDependency,
+    PackageDependency,
     UnmanagedDependency,
     get_resolver_stack,
     get_static_dependencies,
@@ -522,10 +522,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     def _has_1gp_namespace_dependency(self, project_dependencies):
         """Returns true if any dependencies are specified using a namespace rather than 04t"""
         for dependency in project_dependencies:
-            if (
-                isinstance(dependency, ManagedPackageDependency)
-                and dependency.namespace
-            ):
+            if isinstance(dependency, PackageDependency) and dependency.namespace:
                 return True
 
         return False
@@ -538,10 +535,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         new_dependencies = []
         for dependency in dependencies:
             new_dependency = {}
-            if (
-                isinstance(dependency, ManagedPackageDependency)
-                and dependency.version_id
-            ):
+            if isinstance(dependency, PackageDependency) and dependency.version_id:
                 self.logger.info(
                     f"Adding dependency {dependency.package_name} with id {dependency.version_id}"
                 )

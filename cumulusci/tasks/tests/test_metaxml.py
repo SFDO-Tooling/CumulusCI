@@ -5,7 +5,7 @@ import unittest
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.dependencies.dependencies import ManagedPackageDependency
+from cumulusci.core.dependencies.dependencies import PackageDependency
 from cumulusci.tasks.metaxml import UpdateApi
 from cumulusci.tasks.metaxml import UpdateDependencies
 from cumulusci.utils import temporary_dir
@@ -50,8 +50,8 @@ class TestUpdateDependencies(unittest.TestCase):
     @mock.patch("cumulusci.tasks.metaxml.get_resolver_stack")
     def test_run_task(self, get_resolver_stack, get_static_dependencies):
         get_static_dependencies.return_value = [
-            ManagedPackageDependency(namespace="npe01", version="1.1"),
-            ManagedPackageDependency(namespace="npsp", version="3.0"),
+            PackageDependency(namespace="npe01", version="1.1"),
+            PackageDependency(namespace="npsp", version="3.0"),
         ]
 
         with temporary_dir() as d:

@@ -33,7 +33,7 @@ class NameConflictResolution(str, Enum):
     RENAME = "RenameMetadata"
 
 
-class ManagedPackageInstallOptions(CCIModel):
+class PackageInstallOptions(CCIModel):
     activate_remote_site_settings: Optional[bool] = True
     name_conflict_resolution: NameConflictResolution = NameConflictResolution.BLOCK
     password: Optional[str]
@@ -79,7 +79,7 @@ def _install_package_version(
     project_config: BaseProjectConfig,
     org_config: OrgConfig,
     version_id: str,
-    options: ManagedPackageInstallOptions,
+    options: PackageInstallOptions,
 ):
     """Install a 1gp or 2gp package using PackageInstallRequest"""
     tooling = get_simple_salesforce_connection(
@@ -112,7 +112,7 @@ def _install_1gp_package_version(
     org_config: OrgConfig,
     namespace: str,
     version: str,
-    install_options: ManagedPackageInstallOptions,
+    install_options: PackageInstallOptions,
     retry_options=None,
 ):
     task = namedtuple("TaskContext", ["org_config", "project_config", "logger"])(
@@ -148,7 +148,7 @@ def install_package_version(
     project_config: BaseProjectConfig,
     org_config: OrgConfig,
     version_id: str,
-    install_options: ManagedPackageInstallOptions,
+    install_options: PackageInstallOptions,
     retry_options=None,
 ):
     """Install a 1gp or 2gp package using PackageInstallRequest, with retries"""
@@ -173,7 +173,7 @@ def install_1gp_package_version(
     org_config: OrgConfig,
     namespace: str,
     version: str,
-    install_options: ManagedPackageInstallOptions,
+    install_options: PackageInstallOptions,
     retry_options=None,
 ):
     """Install a 1gp package by deploying InstalledPackage metadata, with retries"""
