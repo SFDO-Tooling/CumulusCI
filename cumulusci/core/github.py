@@ -8,6 +8,7 @@ from requests.packages.urllib3.util.retry import Retry
 import github3
 from github3 import GitHub
 from github3 import login
+from github3.git import Tag, Reference
 from github3.pulls import ShortPullRequest
 from github3.repos.repo import Repository
 from github3.session import GitHubSession
@@ -212,3 +213,24 @@ def find_repo_feature_prefix(repo: Repository) -> str:
         .get("git", {})
         .get("prefix_feature", "feature/")
     )
+
+
+def get_tag_by_name(repo: Repository, tag_name: str) -> Tag:
+    """Fetches a tag by name from the given repository"""
+    ref = get_ref_for_tag(repo, tag_name)
+    try:
+        return repo.tag(ref.object.sha)
+    except github3.exceptions.NotFoundError:
+        raise DependencyLookupError(
+            f"Could not find tag with SHA {ref.object.sha} on GitHub"
+        )
+
+
+def get_ref_for_tag(repo: Repository, tag_name: str) -> Reference:
+    """Gets a Reference object for the tag with the given name"""
+    try:
+        return repo.ref(f"tags/{tag_name}")
+    except github3.exceptions.NotFoundError:
+        raise DependencyLookupError(
+            f"Could not find reference for 'tags/{tag_name}' on GitHub"
+        )
