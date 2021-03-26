@@ -1,4 +1,3 @@
-from collections import namedtuple
 from cumulusci.core.dependencies.github import (
     get_package_data,
     get_remote_project_config,
