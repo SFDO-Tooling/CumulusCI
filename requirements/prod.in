@@ -12,11 +12,11 @@ PyJWT
 pytz
 requests
 requests-futures
-robotframework==3.2.2
+robotframework<4
 robotframework-lint
 robotframework-pabot
 robotframework-requests
-robotframework-seleniumlibrary
+robotframework-seleniumlibrary<5
 rst2ansi
 salesforce-bulk
 sarge
