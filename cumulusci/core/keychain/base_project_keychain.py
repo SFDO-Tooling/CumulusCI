@@ -10,6 +10,8 @@ from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import cleanup_org_cache_dirs
 
+DEFAULT_SERVICE_ALIAS = "default"
+
 DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig(
     {
         "client_id": "3MVG9i1HRpGLXp.or6OVlWVWyn8DXi9xueKNM4npq_AWh.yqswojK9sE5WY7f.biP0w7bNJIENfXc7JMDZGO1",
@@ -32,7 +34,11 @@ class BaseProjectKeychain(BaseConfig):
 
     def _convert_connected_app(self):
         """Convert Connected App to service"""
-        if self.services and "connected_app" in self.services:
+        if (
+            self.services
+            and "connected_app" in self.services
+            and self.services["connected_app"] != {}
+        ):
             # already a service
             return
         connected_app = self.get_connected_app()
@@ -53,7 +59,8 @@ class BaseProjectKeychain(BaseConfig):
                 "client_secret": connected_app.client_secret,
             }
         )
-        self.set_service("connected_app", ca_config)
+        # We're using an obnoxious alias to see who's using this
+        self.set_service("connected_app", "please_contact_sfdo_releng", ca_config)
 
     def _load_keychain(self):
         self._load_app()
@@ -106,9 +113,11 @@ class BaseProjectKeychain(BaseConfig):
     def change_key(self, key):
         """ re-encrypt stored services and orgs with the new key """
 
-        services = {}
-        for service_name in self.list_services():
-            services[service_name] = self.get_service(service_name)
+        service_types = {}
+        for service_type, alias in self.list_services():
+            if service_type not in service_types:
+                service_types[service_type] = {}
+            service_types[service_type][alias] = self.get_service(service_type, alias)
 
         orgs = {}
         for org_name in self.list_orgs():
@@ -120,9 +129,10 @@ class BaseProjectKeychain(BaseConfig):
             for org_name, org_config in list(orgs.items()):
                 org_config.save()
 
-        if services:
-            for service_name, service_config in list(services.items()):
-                self.set_service(service_name, service_config)
+        if service_types:
+            for service_type, aliases in service_types.items():
+                for alias, config in aliases.items():
+                    self.set_service(service_type, alias, config)
 
         self._convert_connected_app()
 
@@ -201,6 +211,7 @@ class BaseProjectKeychain(BaseConfig):
     def _get_org(self, name):
         return self.orgs.get(name)
 
+    # TODO: deprecate
     def _raise_org_not_found(self, name):
         raise OrgNotFound(f"Org named {name} was not found in keychain")
 
@@ -210,15 +221,15 @@ class BaseProjectKeychain(BaseConfig):
         orgs.sort()
         return orgs
 
-    def set_service(self, service_type, service_alias, service_config, project=False):
+    def set_service(self, service_type, alias, service_config, project=False):
         """ Store a ServiceConfig in the keychain """
         if (
-            not self.project_config.services
-            or service_type not in self.project_config.services
+            "services" not in self.project_config.config
+            or service_type not in self.project_config.config["services"]
         ):
             self._raise_service_not_valid(service_type)
-        self._validate_service(service_type, service_config)
-        self._set_service(service_type, service_alias, service_config, project)
+        self._validate_service(service_type, alias, service_config)
+        self._set_service(service_type, alias, service_config, project)
         self._load_services()
 
     def _set_service(self, service_type, service_alias, service_config, project=False):
@@ -260,15 +271,37 @@ class BaseProjectKeychain(BaseConfig):
     def _validate_key(self):
         pass
 
-    def _validate_service(self, name, service_config):
+    def _validate_service(self, service_type, alias, config):
+        self._validate_service_alias(service_type, alias)
+        self._validate_service_attributes(service_type, config)
+
+    def _validate_service_attributes(self, service_type, service_config):
+        """
+        Validate that all of the required attributes for a
+        given service are present.
+        """
         missing_required = []
-        attr_key = f"services__{name}__attributes"
+        attr_key = f"services__{service_type}__attributes"
         for atr, config in list(getattr(self.project_config, attr_key).items()):
-            if config.get("required") is True and not getattr(service_config, atr):
+            if config.get("required") and not getattr(service_config, atr):
                 missing_required.append(atr)
 
         if missing_required:
-            self._raise_service_not_valid(name)
+            raise ServiceNotValid(
+                f"Missing required attribute(s) for service: {missing_required}"
+            )
+
+    def _validate_service_alias(self, service_type, alias):
+        if alias == service_type:
+            raise ServiceNotValid(
+                "Service alias cannot be the same as the service type."
+            )
+
+        default = f"{service_type}__{DEFAULT_SERVICE_ALIAS}"
+        if alias == default:
+            raise ServiceNotValid(
+                f"Service alias cannot be the default alias: {default}"
+            )
 
     def _raise_service_not_configured(self, name):
         services = ", ".join(list(self.services))
@@ -276,13 +309,21 @@ class BaseProjectKeychain(BaseConfig):
             f"Service named {name} is not configured for this project. Configured services are: {services}"
         )
 
+    # TODO: deprecate
     def _raise_service_not_valid(self, name):
         raise ServiceNotValid(f"Service named {name} is not valid for this project")
 
     def list_services(self):
         """ list the services configured in the keychain """
-        services = list(self.services.keys())
-        services.sort()
+        service_types = list(self.services.keys())
+        service_types.sort()
+
+        services = []
+        for s_type in service_types:
+            aliases = list(self.services[s_type].keys())
+            aliases.sort()
+            for alias in aliases:
+                services.append((s_type, alias))
         return services
 
     @property
