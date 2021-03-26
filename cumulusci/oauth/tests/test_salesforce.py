@@ -1,4 +1,6 @@
 import http.client
+import pytest
+import responses
 import threading
 import time
 import unittest
@@ -7,10 +9,49 @@ import urllib.parse
 import urllib.request
 
 from unittest import mock
-import responses
 
-from cumulusci.oauth.salesforce import SalesforceOAuth2
-from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
+from cumulusci.core.exceptions import SalesforceCredentialsException
+from cumulusci.oauth.salesforce import (
+    CaptureSalesforceOAuth,
+    SalesforceOAuth2,
+    jwt_session,
+)
+
+
+@responses.activate
+@mock.patch("cumulusci.oauth.salesforce.jwt.encode")
+def test_jwt_session(encode):
+    # Mock the call to encode so we don't need
+    # to generate a private key that would be committed
+    error = "Yeti"
+    responses.add(
+        responses.POST,
+        "https://login.salesforce.com/services/oauth2/token",
+        body=error,
+        status=400,
+    )
+    with pytest.raises(
+        SalesforceCredentialsException, match=f"Error retrieving access token: {error}"
+    ):
+        jwt_session("client_id", "server_key", "username")
+
+
+@mock.patch("time.sleep", time.sleep)  # undo mock from conftest
+def start_httpd_thread(tester_class):
+    # create CaptureSalesforceOAuth instance
+    o = tester_class._create_oauth()
+
+    # call OAuth object on another thread - this spawns local httpd
+    t = threading.Thread(target=o.__call__)
+    t.start()
+    while t.is_alive():
+        if o.httpd:
+            break
+        print("waiting for o.httpd")
+        time.sleep(0.01)
+
+    assert o.httpd, "HTTPD did not start. Perhaps port 8080 cannot be accessed."
+    return o, t
 
 
 class TestSalesforceOAuth(unittest.TestCase):
@@ -63,7 +104,6 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         self.auth_site = "https://login.salesforce.com"
 
     @responses.activate
-    @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
     def test_oauth_flow_simple(self):
 
         # mock response to URL validation
@@ -75,15 +115,15 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
 
         # mock response for SalesforceOAuth2.get_token()
         expected_response = {
-            u"access_token": u"abc123",
-            u"id_token": u"abc123",
-            u"token_type": u"Bearer",
-            u"signature": u"abc123",
-            u"issued_at": u"12345",
-            u"scope": u"{}".format(self.scope),
-            u"instance_url": u"https://na15.salesforce.com",
-            u"id": u"https://login.salesforce.com/id/abc/xyz",
-            u"refresh_token": u"abc123",
+            "access_token": "abc123",
+            "id_token": "abc123",
+            "token_type": "Bearer",
+            "signature": "abc123",
+            "issued_at": "12345",
+            "scope": "{}".format(self.scope),
+            "instance_url": "https://na15.salesforce.com",
+            "id": "https://login.salesforce.com/id/abc/xyz",
+            "refresh_token": "abc123",
         }
         responses.add(
             responses.POST,
@@ -92,18 +132,8 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
             json=expected_response,
         )
 
-        # create CaptureSalesforceOAuth instance
-        o = self._create_oauth()
-
         # call OAuth object on another thread - this spawns local httpd
-        t = threading.Thread(target=o.__call__)
-        t.start()
-        while True:
-            if o.httpd:
-                break
-            print("waiting for o.httpd")
-            time.sleep(0.01)
-
+        o, t = start_httpd_thread(self)
         # simulate callback from browser
         response = urllib.request.urlopen(self.callback_url + "?code=123")
 
@@ -114,7 +144,6 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         self.assertEqual(o.response.json(), expected_response)
         self.assertIn(b"Congratulations", response.read())
 
-    @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
     @responses.activate
     def test_oauth_flow_error_from_auth(self):
 
@@ -127,15 +156,15 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
 
         # mock response for SalesforceOAuth2.get_token()
         expected_response = {
-            u"access_token": u"abc123",
-            u"id_token": u"abc123",
-            u"token_type": u"Bearer",
-            u"signature": u"abc123",
-            u"issued_at": u"12345",
-            u"scope": u"{}".format(self.scope),
-            u"instance_url": u"https://na15.salesforce.com",
-            u"id": u"https://login.salesforce.com/id/abc/xyz",
-            u"refresh_token": u"abc123",
+            "access_token": "abc123",
+            "id_token": "abc123",
+            "token_type": "Bearer",
+            "signature": "abc123",
+            "issued_at": "12345",
+            "scope": "{}".format(self.scope),
+            "instance_url": "https://na15.salesforce.com",
+            "id": "https://login.salesforce.com/id/abc/xyz",
+            "refresh_token": "abc123",
         }
         responses.add(
             responses.POST,
@@ -144,17 +173,8 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
             json=expected_response,
         )
 
-        # create CaptureSalesforceOAuth instance
-        o = self._create_oauth()
-
         # call OAuth object on another thread - this spawns local httpd
-        t = threading.Thread(target=o.__call__)
-        t.start()
-        while True:
-            if o.httpd:
-                break
-            print("waiting for o.httpd")
-            time.sleep(0.01)
+        o, t = start_httpd_thread(self)
 
         # simulate callback from browser
         with self.assertRaises(urllib.error.HTTPError):
@@ -165,7 +185,6 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
         # wait for thread to complete
         t.join()
 
-    @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
     @responses.activate
     def test_oauth_flow_error_from_token(self):
 
@@ -183,17 +202,8 @@ class TestCaptureSalesforceOAuth(unittest.TestCase):
             status=http.client.FORBIDDEN,
         )
 
-        # create CaptureSalesforceOAuth instance
-        o = self._create_oauth()
-
         # call OAuth object on another thread - this spawns local httpd
-        t = threading.Thread(target=o.__call__)
-        t.start()
-        while True:
-            if o.httpd:
-                break
-            print("waiting for o.httpd")
-            time.sleep(0.01)
+        o, t = start_httpd_thread(self)
 
         # simulate callback from browser
         with self.assertRaises(urllib.error.HTTPError):

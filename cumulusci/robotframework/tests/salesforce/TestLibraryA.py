@@ -9,7 +9,8 @@ from cumulusci.robotframework.locator_manager import (
 
 locators = {
     # eg: A:breadcrumb:Home
-    "breadcrumb": "//span[contains(@class, 'breadcrumbDetail') and text()='{}']"
+    "breadcrumb": "//span[contains(@class, 'breadcrumbDetail') and text()='{}']",
+    "something": "//whatever",
 }
 
 

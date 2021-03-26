@@ -290,6 +290,10 @@ MobileApplicationDetails:
     - type: MobileApplicationDetail
       class: MetadataFilenameParser
       extension: MobileApplicationDetail
+mutingpermissionsets:
+    - type: MutingPermissionSet
+      class: MetadataFilenameParser
+      extension: mutingpermissionset
 navigationMenus:
     - type: NavigationMenu
       class: MetadataFilenameParser

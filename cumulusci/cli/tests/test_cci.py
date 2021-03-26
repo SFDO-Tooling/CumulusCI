@@ -289,6 +289,22 @@ class TestCCI(unittest.TestCase):
 
         os.remove("tempfile.log")
 
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_main__CliRuntime_error(self, CliRuntime, get_tempfile_logger, tee):
+        CliRuntime.side_effect = CumulusCIException("something happened")
+        get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
+
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            with pytest.raises(SystemExit):
+                cci.main(["cci", "org", "info"])
+
+        assert "something happened" in stderr.getvalue()
+
+        tempfile = Path("tempfile.log")
+        tempfile.unlink()
+
     @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
@@ -722,6 +738,34 @@ Environment Info: Rossian / x68_46
             with self.assertRaises(click.ClickException):
                 run_click_command(cci.project_init)
 
+    def test_project_init_dont_overwrite(self):
+        with temporary_dir():
+            # Gotta have a Repo
+            os.mkdir(".git")
+            Path(".git", "HEAD").write_text("ref: refs/heads/main")
+
+            os.mkdir("orgs")
+            orgs = "orgs/"
+            text = "Can't touch this"
+
+            path_list = [
+                Path("README.md"),
+                Path(".gitignore"),
+                Path(orgs + "dev.json"),
+                Path(orgs + "release.json"),
+            ]
+            for path in path_list:
+                path.write_text(text)
+
+            runtime = mock.Mock()
+            runtime.project_config.project = {"test": "test"}
+
+            run_click_command(cci.project_info, runtime=runtime)
+
+            # Project init must not overwrite project files or org defs
+            for path in path_list:
+                self.assertEqual(text, path.read_text())
+
     @mock.patch("click.echo")
     def test_project_info(self, echo):
         runtime = mock.Mock()
@@ -909,10 +953,57 @@ Environment Info: Rossian / x68_46
         runtime = mock.Mock()
         runtime.get_org.return_value = ("test", org_config)
 
-        run_click_command(cci.org_browser, runtime=runtime, org_name="test")
+        run_click_command(
+            cci.org_browser, runtime=runtime, org_name="test", path=None, url_only=False
+        )
 
         org_config.refresh_oauth_token.assert_called_once()
         browser_open.assert_called_once()
+        org_config.save.assert_called_once_with()
+
+    @mock.patch("webbrowser.open")
+    def test_org_browser_path(self, browser_open):
+        start_url = "https://random-word-1234-dev-ed.cs42.my.salesforce.com//secur/frontdoor.jsp?sid=00Dorgid!longtoken"
+        target_path = "/lightning/setup/Package/home"
+
+        org_config = mock.Mock()
+        org_config.start_url = start_url
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
+
+        run_click_command(
+            cci.org_browser,
+            runtime=runtime,
+            org_name="test",
+            path=target_path,
+            url_only=False,
+        )
+
+        org_config.refresh_oauth_token.assert_called_once()
+        expected_query = "&retURL=%2Flightning%2Fsetup%2FPackage%2Fhome"
+        browser_open.assert_called_once_with(start_url + expected_query)
+        org_config.save.assert_called_once_with()
+
+    @mock.patch("click.echo")
+    @mock.patch("webbrowser.open")
+    def test_org_browser_url_only(self, browser_open, click_echo):
+        start_url = "https://random-word-1234-dev-ed.cs42.my.salesforce.com//secur/frontdoor.jsp?sid=00Dorgid!longtoken"
+        org_config = mock.Mock()
+        org_config.start_url = start_url
+        runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", org_config)
+
+        run_click_command(
+            cci.org_browser,
+            runtime=runtime,
+            org_name="test",
+            path=None,
+            url_only=True,
+        )
+
+        org_config.refresh_oauth_token.assert_called_once()
+        browser_open.assert_not_called()
+        click_echo.assert_called_once_with(start_url)
         org_config.save.assert_called_once_with()
 
     @mock.patch("cumulusci.cli.cci.CaptureSalesforceOAuth")
@@ -1083,6 +1174,33 @@ Environment Info: Rossian / x68_46
         self.assertTrue(
             "Imported scratch org: access, username: test@test.org" in "".join(out)
         )
+
+    @mock.patch("sarge.Command")
+    def test_org_import__persistent_org(self, cmd):
+        runtime = mock.Mock()
+        result = b"""{
+            "result": {
+                "createdDate": null,
+                "instanceUrl": "url",
+                "accessToken": "access!token",
+                "username": "test@test.org",
+                "password": "password"
+            }
+        }"""
+        cmd.return_value = mock.Mock(
+            stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=0
+        )
+
+        out = []
+        with mock.patch("click.echo", out.append), pytest.raises(
+            click.UsageError, match="cci org connect"
+        ):
+            run_click_command(
+                cci.org_import,
+                username_or_alias="test@test.org",
+                org_name="test",
+                runtime=runtime,
+            )
 
     def test_calculate_org_days(self):
         info_1 = {

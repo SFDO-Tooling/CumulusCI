@@ -1,10 +1,9 @@
-.. highlight:: shell
-
 ============
 Contributing
 ============
 
 Contributions are welcome, and they are greatly appreciated! Every little bit helps, and credit will always be given.
+If you are a new contributor, don't forget to add yourself to the `AUTHORS.rst` file in your pull request (either GitHub username, or first/last name). 
 
 You can contribute in many ways:
 
@@ -37,12 +36,10 @@ Write Documentation
 
 CumulusCI could always use more documentation, whether as part of the official CumulusCI docs, in docstrings, or even on the web in blog posts, articles, and such.
 
-If your contribution is a new or changed task or flow, you should run "make docs" to regenerate `docs/tasks.rst` and `docs/flows.rst`. Do not edit them in a text editor and please double check that only the changes you intended were captured.
-
 Submit Feedback
 ~~~~~~~~~~~~~~~
 
-The best way to send feedback is to file an issue at https://github.com/SFDO-Tooling/CumulusCI/issues.
+The best way to send feedback is to file an `issue <https://github.com/SFDO-Tooling/CumulusCI/issues>`_.
 
 If you are proposing a feature:
 
@@ -57,28 +54,33 @@ Ready to contribute? Here's how to set up CumulusCI for local development.
 
 1. Fork the CumulusCI repo on GitHub.
 2. Clone your fork to your local workspace.
-3. Create a fresh virtual environment using virtualenv and install development requirements::
+3. Create a fresh Python 3 virtual environment and activate it (to keep this isolated from other Python software on your machine). Here is one way::
+
+    $ python3 -m venv cci_venv
+    $ source cci_venv/bin/activate
+
+4. Install the development requirements::
 
     $ pip install -r requirements_dev.txt
 
-4. Install ``pre-commit`` hooks for ``black`` and ``flake8``::
+5. Install ``pre-commit`` hooks for ``black`` and ``flake8``::
 
     $ pre-commit install --install-hooks
 
-5. After making changes, run the tests and make sure they all pass::
+6. After making changes, run the tests and make sure they all pass::
 
     $ pytest
 
-6. Your new code should also have meaningful tests. One way to double check that
-   your tests cover everything is to ensure that your new code has test code coverage:
+7. Your new code should also have meaningful tests. One way to double check that
+   your tests cover everything is to ensure that your new code has test code coverage::
 
    $ make coverage
 
-7. Push your changes to GitHub and submit a pull request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to master.
+8. Push your changes to GitHub and submit a Pull Request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to main.
 
 Note that we enable typeguard with pytest so if you add type declarations to your 
-code, those declarations will be treated as runtime assertions in your python
-tests. MyPy validation is also on our roadmap.
+code, those declarations will be treated as runtime assertions in your Python
+tests.
 
 Pull Request Guidelines
 -----------------------
@@ -89,7 +91,7 @@ Before you submit a pull request, check that it meets these guidelines:
 * New classes, functions, etc have docstrings.
 * New code has comments.
 * Code style and file structure is similar to the rest of the project.
-* You have run the `black` code formatter.
+* You have run the ``black`` code formatter.
 
 Releasing CumulusCI
 -------------------
@@ -106,16 +108,16 @@ Make the necessary changes to prepare the new release:
 Commit the changes, open a Pull Request on GitHub and request approval from another committer.
 Once your PR has been merged, a GitHub action will automatically create the release tag and push the artifacts to PyPI.
 
-After a couple minutes, check for the new release's appearance at https://pypi.org/project/cumulusci/
+After a couple minutes, check for the new release's appearance at `PyPI <https://pypi.org/project/cumulusci/>`_.
 
 Next, head to the tag that was autocreated in the GitHub repository and edit it. Populate the version number and paste in the changelog notes from ``HISTORY.rst``. Note that some formatting, such as reStructuredText links, need to be converted to Markdown. Publish the release.
 
 .. note::
-If pandoc is installed on macOS, you can run ``pbpaste | pandoc -f rst -t gfm | pbcopy`` to convert from RST to Github Flavored Markdown.
+    If pandoc is installed on macOS, you can run ``pbpaste | pandoc -f rst -t gfm | pbcopy`` to convert from RST to GitHub Flavored Markdown.
 
 You can then create a pull request to update the `Homebrew Tap`_ by running this locally (note, it's important to do this as soon as possible after the release is published on PyPI, because PyPI is the source CumulusCI checks to see if a new version is available)::
 
-    $ git checkout master
+    $ git checkout main
     $ git pull
     $ make release-homebrew
 
@@ -126,11 +128,11 @@ That will create a new pull request in the ``SFDO-Tooling/homebrew-sfdo`` reposi
 
 Finally, post the release notes to our usual channels:
 
-- CumulusCI Release Announcements group in the Power of Us Hub (add the "CumulusCI Release Announcements: https://powerofus.force.com/s/group/0F91E000000DHjTSAW/cumulusci-release-announcements
+- `CumulusCI Release Announcements <https://powerofus.force.com/s/group/0F91E000000DHjTSAW/cumulusci-release-announcements>`_ group in the Power of Us Hub.
 
     - After posting add topics: CCI Releases & CumulusCI
     
-- CumulusCI group in the Trailblazer community https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU
+- `CumulusCI group <https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU>`_ in the Trailblazer community. 
 
 
 .. _Homebrew Tap: https://github.com/SFDO-Tooling/homebrew-sfdo
@@ -177,3 +179,19 @@ still be quite slow compared to normal unit tests. Nevertheless, if you are chan
 these tests, you should run them periodically.
 
 Do not commit the files ("large_cassettes/\*.yml") to the repository.
+
+Randomized tests
+~~~~~~~~~~~~~~~~
+
+Tests should be executable in any order. You can run this command
+a few times to verify if they are:
+
+    pytest --random-order
+
+It will output something like this:
+
+    Using --random-order-bucket=module
+    Using --random-order-seed=986925
+
+Using those two parameters on the command line, you can
+replicate a particular run later.

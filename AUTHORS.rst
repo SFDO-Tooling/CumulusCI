@@ -7,17 +7,29 @@ Development Team
 
 CumulusCI is developed by the Salesforce.org Release Engineering team:
 
-* Jason Lantz <jlantz@salesforce.com>
-* Christian Carter <christian.carter@salesforce.com>
-* David Glick <dglick@salesforce.com>
-* James Estevez <jestevez@salesforce.com>
-* Josh Kofsky <jkofsky@salesforce.com>
-* Paul Prescod <pprescod@salesforce.com>
-* Brandon Parker <brandon.parker@salesforce.com>
-* Tim Barton <tbarton@salesforce.com>
-* Bryan Oakley <boakley@salesforce.com>
+* Jason Lantz
+* David Glick
+* James Estevez
+* Paul Prescod
+* Bryan Oakley
+* David Reed
+* Brandon Parker
+* Josh Kofsky
+* Marcel Pufal
+* David Ray
 
 Developers Emeritus
 -------------------
 
 * Chris Polcyn
+* Christian Carter
+
+Contributors
+------------
+
+Thanks to the many community and Salesforce.org staff
+contributors!
+
+For example: 
+
+(add your name here, when you contribute through a Pull Request!)

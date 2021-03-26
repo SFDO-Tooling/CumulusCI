@@ -1,6 +1,5 @@
 cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
-
 tasks:
     activate_flow:
         group: Metadata Transformations
@@ -24,6 +23,10 @@ tasks:
         class_path: cumulusci.tasks.metadata_etl.picklists.AddPicklistEntries
         options:
             namespace_inject: $project_config.project__package__namespace
+    add_fields_to_field_set:
+        group: Metadata Transformations
+        description: Adds specified fields to a given field set.
+        class_path: cumulusci.tasks.metadata_etl.field_sets.AddFieldsToFieldSet
     add_permission_set_perms:
         group: Metadata Transformations
         description: Adds specified Apex class access and Field-Level Security to a Permission Set.
@@ -106,6 +109,10 @@ tasks:
         description: Run an arbitrary command
         class_path: cumulusci.tasks.command.Command
         group: Utilities
+    composite_request:
+        description: Execute a series of REST API requests in a single call
+        class_path: cumulusci.tasks.salesforce.composite.CompositeApi
+        group: Data Operations
     connected_app:
         description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
         class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
@@ -118,10 +125,14 @@ tasks:
         description: Creates a Community in the target org using the Connect API
         class_path: cumulusci.tasks.salesforce.CreateCommunity
         group: Salesforce Communities
+    create_network_member_groups:
+        description: Creates NetworkMemberGroup records which grant access to an Experience Site (Community) for specified Profiles or Permission Sets
+        class_path: cumulusci.tasks.salesforce.network_member_group.CreateNetworkMemberGroups
+        group: Salesforce Communities
     insert_record:
         description: Inserts a record of any sObject using the REST API
         class_path: cumulusci.tasks.salesforce.insert_record.InsertRecord
-        group: Salesforce
+        group: Data Operations
     create_package:
         description: Creates a package in the target org with the default package name for the project
         class_path: cumulusci.tasks.salesforce.CreatePackage
@@ -245,6 +256,22 @@ tasks:
         description: Retrieves a list of the currently available Permission Set License definition keys
         class_path: cumulusci.tasks.preflight.licenses.GetAvailablePermissionSetLicenses
         group: Salesforce Preflight Checks
+    get_assigned_permission_sets:
+        description: Retrieves a list of the names of any permission sets assigned to the running user.
+        class_path: cumulusci.tasks.preflight.permsets.GetPermissionSetAssignments
+        group: Salesforce Preflight Checks
+    get_available_permission_sets:
+        description: Retrieves a list of the currently available Permission Sets
+        class_path: cumulusci.tasks.preflight.licenses.GetAvailablePermissionSets
+        group: Salesforce Preflight Checks
+    get_existing_record_types:
+        description: "Retrieves all Record Types in the org as a dict, with sObject names as keys and lists of Developer Names as values."
+        class_path: cumulusci.tasks.preflight.recordtypes.CheckSObjectRecordTypes
+        group: Salesforce Preflight Checks
+    get_existing_sites:
+        description: "Retrieves a list of any existing Experience Cloud site names in the org."
+        class_path: cumulusci.tasks.salesforce.ListCommunities
+        group: Salesforce Preflight Checks
     github_parent_pr_notes:
         description: Merges the description of a child pull request to the respective parent's pull request (if one exists).
         class_path: cumulusci.tasks.release_notes.task.ParentPullRequestNotes
@@ -326,9 +353,13 @@ tasks:
         class_path: cumulusci.tasks.metadeploy.Publish
         group: Release Operations
     org_settings:
-        description: Apply org settings from a scratch org definition file
+        description: Apply org settings from a scratch org definition file or dict
         class_path: cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
         group: Salesforce DX
+    promote_package_version:
+        description: Promote a 2gp package so that it can be installed in a production org
+        class_path: cumulusci.tasks.salesforce.promote_package_version.PromotePackageVersion
+        group: Release Operations
     publish_community:
         description: Publishes a Community in the target org using the Connect API
         class_path: cumulusci.tasks.salesforce.PublishCommunity
@@ -924,13 +955,14 @@ flows:
             1:
                 task: github_package_data
                 options:
-                    context: "Build Feature Test Package"
+                    context: $project_config.project__git__2gp_context
             2:
                 flow: dependencies
                 options:
                     update_dependencies:
                         include_beta: True
                         dependencies: ^^github_package_data.dependencies
+                        prefer_2gp_from_release_branch: True
             3:
                 task: install_managed
                 options:
@@ -1048,6 +1080,8 @@ flows:
                 options:
                     package_type: Managed
                     package_name: $project_config.project__package__name Managed Feature Test
+                    version_base: latest_github_release
+                    version_type: minor
                     skip_validation: True
 
     unmanaged_ee:
@@ -1153,6 +1187,7 @@ project:
         prefix_release: release/
         push_prefix_sandbox: 'Sandbox orgs: '
         push_prefix_production: 'Production orgs: '
+        2gp_context: "Build Feature Test Package"
         release_notes:
             parsers:
                 1:

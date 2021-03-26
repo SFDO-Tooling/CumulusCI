@@ -10,7 +10,7 @@ from github3.exceptions import ConnectionError
 from github3.session import AppInstallationTokenAuth
 
 from cumulusci.core import github
-from cumulusci.core.exceptions import GithubException
+from cumulusci.core.exceptions import DependencyLookupError, GithubException
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.core.github import (
@@ -26,6 +26,8 @@ from cumulusci.core.github import (
     add_labels_to_pull_request,
     get_pull_requests_by_commit,
     get_pull_requests_with_base_branch,
+    get_tag_by_name,
+    get_ref_for_tag,
 )
 
 
@@ -266,3 +268,63 @@ class TestGithub(GithubApiTestMixin):
             json=self._get_expected_gist(description, files),
             status=201,
         )
+
+    @responses.activate
+    def test_get_tag_by_name(self, repo):
+        self.init_github()
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=200,
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag("beta/1.0", "tag_SHA"),
+            status=200,
+        )
+        tag = get_tag_by_name(repo, "tag_SHA")
+        assert tag.tag == "beta/1.0"
+
+    @responses.activate
+    def test_get_tag_by_name__404(self, repo):
+        self.init_github()
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=200,
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag("beta/1.0", "tag_SHA"),
+            status=404,
+        )
+        with pytest.raises(DependencyLookupError):
+            get_tag_by_name(repo, "tag_SHA")
+
+    @responses.activate
+    def test_get_ref_by_name(self, repo):
+        self.init_github()
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=200,
+        )
+        ref = get_ref_for_tag(repo, "tag_SHA")
+        assert ref.object.sha == "tag_SHA"
+
+    @responses.activate
+    def test_get_ref_by_name__404(self, repo):
+        self.init_github()
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=404,
+        )
+        with pytest.raises(DependencyLookupError):
+            get_ref_for_tag(repo, "tag_SHA")

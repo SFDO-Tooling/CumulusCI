@@ -279,6 +279,7 @@ ${login url}=  Login URL  alias=dadvisor
                   
                 </td>
                 <td class="kwdoc"><p>Runs a named CumulusCI task for the current project with optional support for overriding task options via kwargs.</p>
+<p>Note: task_name can be prefixed with the name of another project, just the same as when running the task from the command line. The other project needs to have been defined in the 'sources' section of cumulusci.yml.</p>
 <p>Examples:</p>
 <table border="1">
 <tr>
@@ -298,6 +299,12 @@ ${login url}=  Login URL  alias=dadvisor
 <td>deploy</td>
 <td>path=path/to/some/metadata</td>
 <td>Run deploy with custom path</td>
+</tr>
+<tr>
+<td>Run task</td>
+<td>npsp:deploy_rd2_config</td>
+<td></td>
+<td>Run the deploy_rd2_config task from the NPSP project</td>
 </tr>
 </table></td>
               </tr>
@@ -683,6 +690,29 @@ Wait for modal to appear    New    Contact   expected_heading=New Contact
                 </td>
                 <td class="kwdoc"><p>Deletes records that were created while running this test case.</p>
 <p>(Only records specifically recorded using the Store Session Record keyword are deleted.)</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="Salesforce.Elapsed Time For Last Record">
+                <td class="kwname">
+                  Elapsed Time For Last Record
+                </td>
+                <td class="kwargs">
+                  
+                  <i>obj_name</i>, 
+                  
+                  <i>start_field</i>, 
+                  
+                  <i>end_field</i>, 
+                  
+                  <i>order_by</i>, 
+                  
+                  <i>**kwargs</i>
+                  
+                </td>
+                <td class="kwdoc"><p>For records representing jobs or processes, compare the record's start-time to its end-time to see how long a process took.</p>
+<p>Arguments: obj_name:   SObject to look for last record start_field: Name of the datetime field that represents the process start end_field: Name of the datetime field that represents the process end order_by: Field name to order by. Should be a datetime field, and usually is just the same as end_field. where:  Optional Where-clause to use for filtering Other keywords are used for filtering as in the Salesforce Query keywordf</p>
+<p>The last matching record queried and summarized.</p>
+<p>Example: ${time_in_seconds} =    Elapsed Time For Last Record ...             obj_name=AsyncApexJob ...             where=ApexClass.Name='BlahBlah' ...             start_field=CreatedDate ...             end_field=CompletedDate ...             order_by=CompletedDate</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Field Value Should Be">
@@ -1237,6 +1267,7 @@ ${contact id}=  Salesforce Insert  Contact
                 <td class="kwdoc"><p>Constructs and runs a simple SOQL query and returns a list of dictionaries.</p>
 <p>By default the results will only contain object Ids. You can specify a SOQL SELECT clause via keyword arguments by passing a comma-separated list of fields with the <code>select</code> keyword argument.</p>
 <p>You can supply keys and values to match against in keyword arguments, or a full SOQL where-clause in a keyword argument named <code>where</code>. If you supply both, they will be combined with a SOQL "AND".</p>
+<p><code>order_by</code> and <code>limit</code> keyword arguments are also supported as shown below.</p>
 <p>Examples:</p>
 <p>The following example searches for all Contacts where the first name is "Eleanor". It returns the "Name" and "Id" fields and logs them to the robot report:</p>
 <pre>
@@ -1246,10 +1277,12 @@ FOR  ${record}  IN  @{records}
     log  Name: ${record['Name']} Id: ${record['Id']}
 END
 </pre>
-<p>Or with a WHERE-clause, we can look for every contact where the first name is NOT Eleanor.</p>
+<p>Or with a WHERE-clause, we can look for the last contact where the first name is NOT Eleanor.</p>
 <pre>
 @{records}=  Salesforce Query  Contact  select=Id,Name
 ...          where=FirstName!='Eleanor'
+...              order_by=LastName desc
+...              limit=1
 </pre></td>
               </tr>
               
@@ -1274,6 +1307,20 @@ END
 ...  Description=This Contact created during a test
 Should be equal as numbers ${result}  204
 </pre></td>
+              </tr>
+              
+              <tr class="kwrow" id="Salesforce.Scroll Element Into View">
+                <td class="kwname">
+                  Scroll Element Into View
+                </td>
+                <td class="kwargs">
+                  
+                  <i>locator</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Scroll the element identified by 'locator'</p>
+<p>This is a replacement for the keyword of the same name in SeleniumLibrary. The SeleniumLibrary implementation uses an unreliable method on Firefox. This keyword uses a more reliable technique.</p>
+<p>For more info see <a href="https://stackoverflow.com/a/52045231/7432">https://stackoverflow.com/a/52045231/7432</a></p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Select App Launcher App">
@@ -1348,6 +1395,45 @@ ${french_address}=  Faker  address
 </pre></td>
               </tr>
               
+              <tr class="kwrow" id="Salesforce.Set Test Elapsed Time">
+                <td class="kwname">
+                  Set Test Elapsed Time
+                </td>
+                <td class="kwargs">
+                  
+                  <i>elapsedtime</i>
+                  
+                </td>
+                <td class="kwdoc"><p>This keyword captures a computed rather than measured elapsed time for performance tests.</p>
+<p>For example, if you were performance testing a Salesforce batch process, you might want to store the Salesforce-measured elapsed time of the batch process instead of the time measured in the CCI client process.</p>
+<p>The keyword takes a single argument which is either a number of seconds or a Robot time string (<a href="https://robotframework.org/robotframework/latest/libraries/DateTime.html#Time%20formats">https://robotframework.org/robotframework/latest/libraries/DateTime.html#Time%20formats</a>).</p>
+<p>Using this keyword will automatically add the tag cci_metric_elapsed_time to the test case and ${cci_metric_elapsed_time} to the test's variables. cci_metric_elapsed_time is not included in Robot's html statistical roll-ups.</p>
+<p>Example:</p>
+<p>Set Test Elapsed Time       11655.9</p>
+<p>Performance test times are output in the CCI logs and are captured in MetaCI instead of the "total elapsed time" measured by Robot Framework. The Robot "test message" is also updated.</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="Salesforce.Set Test Metric">
+                <td class="kwname">
+                  Set Test Metric
+                </td>
+                <td class="kwargs">
+                  
+                  <i>metric: str</i>, 
+                  
+                  <i>value=None</i>
+                  
+                </td>
+                <td class="kwdoc"><p>This keyword captures any metric for performance monitoring.</p>
+<p>For example: number of queries, rows processed, CPU usage, etc.</p>
+<p>The keyword takes a metric name, which can be any string, and a value, which can be any number.</p>
+<p>Using this keyword will automatically add the tag cci_metric to the test case and ${cci_metric_&lt;metric_name&gt;} to the test's variables. These permit downstream processing in tools like CCI and MetaCI.</p>
+<p>cci_metric is not included in Robot's html statistical roll-ups.</p>
+<p>Example:</p>
+<p>Set Test Metric    Max_CPU_Percent    30</p>
+<p>Performance test metrics are output in the CCI logs, log.html and output.xml. MetaCI captures them but does not currently have a user interface for displaying them.</p></td>
+              </tr>
+              
               <tr class="kwrow" id="Salesforce.Soql Query">
                 <td class="kwname">
                   Soql Query
@@ -1369,6 +1455,32 @@ Run keyword if  len($result['records']) == 0  Fail  No records found
 ${contact}=  Get from list  ${result['records']}  0
 Should be equal  ${contact['Name']}  Eleanor Rigby
 </pre></td>
+              </tr>
+              
+              <tr class="kwrow" id="Salesforce.Start Performance Timer">
+                <td class="kwname">
+                  Start Performance Timer
+                </td>
+                <td class="kwargs">
+                  
+                </td>
+                <td class="kwdoc"><p>Start an elapsed time stopwatch for performance tests.</p>
+<p>See the docummentation for <b>*Stop Performance Timer*</b> for more information.</p>
+<p>Example:</p>
+<p>Start Performance Timer Do Something Stop Performance Timer</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="Salesforce.Stop Performance Timer">
+                <td class="kwname">
+                  Stop Performance Timer
+                </td>
+                <td class="kwargs">
+                  
+                </td>
+                <td class="kwdoc"><p>Record the results of a stopwatch. For perf testing.</p>
+<p>This keyword uses Set Test Elapsed Time internally and therefore outputs in all of the ways described there.</p>
+<p>Example:</p>
+<p>Start Performance Timer Do Something Stop Performance Timer</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Store Session Record">
@@ -2128,7 +2240,7 @@ Populate form
       
     </div>
     <div class="footer">
-      Generated on Wednesday December 09, 09:25 PM - cumulusci v3.24.1
+      Generated on Friday February 26, 07:51 AM - cumulusci v3.29.0
     </div>
   </body>
 </html>

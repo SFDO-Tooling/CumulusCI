@@ -15,7 +15,6 @@ from cumulusci.tasks.push.push_api import (
     PackageSubscriber,
     SalesforcePushApi,
     batch_list,
-    memoize,
 )
 
 NAME = "Chewbacca"
@@ -210,14 +209,6 @@ def test_sf_push_add_query_no_limit(sf_push_api):
     query = "SELECT Id FROM Account"
     returned = sf_push_api.add_query_limit(query, None)
     assert f"{query}" == returned
-
-
-def test_sf_push_get_where_last_version(sf_push_api):
-    assert (
-        sf_push_api.get_where_last_version(major="1", minor="2", beta="3")
-        == "ReleaseState = 'Beta' AND MajorVersion=1 AND MinorVersion=2"
-    )
-    assert sf_push_api.get_where_last_version() == "ReleaseState = 'Released'"
 
 
 def test_sf_push_get_packages(sf_push_api):
@@ -514,23 +505,6 @@ def test_sf_push_add_push_batch_retry(sf_push_api, metadata_package_version):
 
     assert [orgs[0]] == returned_batch  # only remaining org should be retry-able
     assert 4 == sf_push_api.sf._call_salesforce.call_count
-
-
-def test_push_memoize():
-    def test_func(number):
-        return number
-
-    memoized_func = memoize(test_func)
-    memoized_func(10)
-    memoized_func(20)
-
-    expected_cache = {"(10,){}": 10, "(20,){}": 20}
-    assert expected_cache == memoized_func.cache
-
-    memoized_func(10)
-    memoized_func(20)
-    # No new items introduced, cache should be same
-    assert expected_cache == memoized_func.cache
 
 
 def test_push_batch_list():

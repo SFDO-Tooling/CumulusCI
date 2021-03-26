@@ -15,8 +15,9 @@ import traceback
 import runpy
 import webbrowser
 import contextlib
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from urllib.parse import urlencode
 
 import click
 import github3
@@ -43,7 +44,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
-from cumulusci.core.utils import import_global
+from cumulusci.core.utils import import_global, format_duration
 from cumulusci.cli.utils import group_items
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.cli.runtime import get_installed_version
@@ -204,24 +205,28 @@ def main(args=None):
         if "--json" not in args and not is_version_command:
             check_latest_version()
 
-        # Load CCI config
-        global RUNTIME
-        RUNTIME = CliRuntime(load_keychain=False)
-        RUNTIME.check_cumulusci_version()
-
-        # Configure logging
-        debug = "--debug" in args
-        if debug:
-            args.remove("--debug")
-        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
-
-        # Only create logfiles for commands
-        # that are not `cci error`
+        # Only create logfiles for commands that are not `cci error`
         is_error_command = len(args) > 2 and args[1] == "error"
         tempfile_path = None
         if not is_error_command:
             logger, tempfile_path = get_tempfile_logger()
             stack.enter_context(tee_stdout_stderr(args, logger, tempfile_path))
+
+        debug = "--debug" in args
+        if debug:
+            args.remove("--debug")
+
+        # Load CCI config
+        global RUNTIME
+        try:
+            RUNTIME = CliRuntime(load_keychain=False)
+        except Exception as e:
+            handle_exception(e, is_error_command, tempfile_path, debug)
+            sys.exit(1)
+
+        RUNTIME.check_cumulusci_version()
+
+        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
 
         init_logger(log_requests=debug)
         # Hand CLI processing over to click, but handle exceptions
@@ -249,13 +254,12 @@ def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=
     elif isinstance(error, click.ClickException):
         click.echo(click.style(f"Error: {error.format_message()}", fg="red"), err=True)
     else:
-        click.echo(click.style(f"Error: {error}", fg="red"), err=True)
+        click.echo(click.style(f"{error}", fg="red"), err=True)
     # Only suggest gist command if it wasn't run
     if not is_error_cmd:
         click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"), err=True)
 
-    # This is None if we're handling an exception for a
-    # `cci error` command.
+    # This is None if we're handling an exception for a `cci error` command.
     if logfile_path:
         with open(logfile_path, "a") as log_file:
             traceback.print_exc(file=log_file)  # log stacktrace silently
@@ -597,8 +601,17 @@ def project_init(runtime):
     # Render templates
     for name in (".gitignore", "README.md", "cumulusci.yml"):
         template = env.get_template(name)
-        with open(name, "w") as f:
-            f.write(template.render(**context))
+        file_path = Path(name)
+        if not file_path.is_file():
+            file_path.write_text(template.render(**context))
+        else:
+            click.echo(
+                click.style(
+                    f"{name} already exists. As a reference, here is what would be placed in the file if it didn't already exist:",
+                    fg="red",
+                )
+            )
+            click.echo(click.style(template.render(**context) + "\n", fg="yellow"))
 
     # Create source directory
     source_path = "force-app" if context["source_format"] == "sfdx" else "src"
@@ -620,43 +633,35 @@ def project_init(runtime):
     if not os.path.isdir("orgs"):
         os.mkdir("orgs")
 
+    org_dict = {
+        "beta.json": {
+            "org_name": "Beta Test Org",
+            "edition": "Developer",
+            "managed": True,
+        },
+        "dev.json": {"org_name": "Dev Org", "edition": "Developer", "managed": False},
+        "feature.json": {
+            "org_name": "Feature Test Org",
+            "edition": "Developer",
+            "managed": False,
+        },
+        "release.json": {
+            "org_name": "Release Test Org",
+            "edition": "Enterprise",
+            "managed": True,
+        },
+    }
+
     template = env.get_template("scratch_def.json")
-    with open(os.path.join("orgs", "beta.json"), "w") as f:
-        f.write(
-            template.render(
-                package_name=context["package_name"],
-                org_name="Beta Test Org",
-                edition="Developer",
-                managed=True,
+    for org_name, properties in org_dict.items():
+        org_path = Path("orgs/" + org_name)
+        if not org_path.is_file():
+            org_path.write_text(
+                template.render(
+                    package_name=context["package_name"],
+                    **properties,
+                )
             )
-        )
-    with open(os.path.join("orgs", "dev.json"), "w") as f:
-        f.write(
-            template.render(
-                package_name=context["package_name"],
-                org_name="Dev Org",
-                edition="Developer",
-                managed=False,
-            )
-        )
-    with open(os.path.join("orgs", "feature.json"), "w") as f:
-        f.write(
-            template.render(
-                package_name=context["package_name"],
-                org_name="Feature Test Org",
-                edition="Developer",
-                managed=False,
-            )
-        )
-    with open(os.path.join("orgs", "release.json"), "w") as f:
-        f.write(
-            template.render(
-                package_name=context["package_name"],
-                org_name="Release Test Org",
-                edition="Enterprise",
-                managed=True,
-            )
-        )
 
     # create robot folder structure and starter files
     if not os.path.isdir("robot"):
@@ -909,12 +914,33 @@ def orgname_option_or_argument(*, required):
     help="Opens a browser window and logs into the org using the stored OAuth credentials",
 )
 @orgname_option_or_argument(required=False)
+@click.option(
+    "-p",
+    "--path",
+    required=False,
+    help="Navigate to the specified page after logging in.",
+)
+@click.option(
+    "-r",
+    "--url-only",
+    is_flag=True,
+    help="Display the target URL, but don't open a browser.",
+)
 @pass_runtime(require_project=False, require_keychain=True)
-def org_browser(runtime, org_name):
+def org_browser(runtime, org_name, path, url_only):
     org_name, org_config = runtime.get_org(org_name)
     org_config.refresh_oauth_token(runtime.keychain)
 
-    webbrowser.open(org_config.start_url)
+    target = org_config.start_url
+    if path:
+        ret_url = urlencode({"retURL": path})
+        target = f"{target}&{ret_url}"
+
+    if url_only:
+        click.echo(target)
+    else:
+        webbrowser.open(target)
+
     # Save the org config in case it was modified
     org_config.save()
 
@@ -1016,6 +1042,11 @@ def org_import(runtime, username_or_alias, org_name):
     scratch_org_config.config["created"] = True
 
     info = scratch_org_config.sfdx_info
+    if not info.get("created_date"):
+        raise click.UsageError(
+            "cci org import only works for locally created "
+            "scratch orgs.\nUse `cci org connect` for other orgs."
+        )
     scratch_org_config.config["days"] = calculate_org_days(info)
     scratch_org_config.config["date_created"] = parse_api_datetime(info["created_date"])
 
@@ -1097,7 +1128,7 @@ def org_info(runtime, org_name, print_json):
     org_config.save()
 
 
-@org.command(name="list", help="Lists the connected orgs for the current project")
+@org.command(name="list", help="Lists all orgs in scope for the current project")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @pass_runtime(require_project=False, require_keychain=True)
 def org_list(runtime, plain):
@@ -1415,9 +1446,7 @@ def task_list(runtime, plain, print_json):
     is_flag=True,
     help="If true, write output to a file (./docs/project_tasks.rst or ./docs/cumulusci_tasks.rst)",
 )
-@pass_runtime(
-    require_project=False,
-)
+@pass_runtime(require_project=False)
 def task_doc(runtime, project=False, write=False):
     if project and runtime.project_config is None:
         raise click.UsageError(
@@ -1453,7 +1482,8 @@ def task_doc(runtime, project=False, write=False):
 @flow.command(name="doc", help="Exports RST format documentation for all flows")
 @pass_runtime(require_project=False)
 def flow_doc(runtime):
-    with open("docs/flows.yml", "r", encoding="utf-8") as f:
+    flow_info_path = Path(__file__, "..", "..", "..", "docs", "flows.yml").resolve()
+    with open(flow_info_path, "r", encoding="utf-8") as f:
         flow_info = cci_safe_load(f)
     click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
     flow_info_groups = list(flow_info["groups"].keys())
@@ -1586,7 +1616,9 @@ class RunTaskCommand(click.MultiCommand):
             finally:
                 RUNTIME.alert(f"Task complete: {task_name}")
 
-        return click.Command(task_name, params=params, callback=run_task)
+        cmd = click.Command(task_name, params=params, callback=run_task)
+        cmd.help = task_config.description
+        return cmd
 
     def format_help(self, ctx, formatter):
         """Custom help for `cci task run`"""
@@ -1765,7 +1797,11 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
     # Create the flow and handle initialization exceptions
     try:
         coordinator = runtime.get_flow(flow_name, options=options)
+        start_time = datetime.now()
         coordinator.run(org_config)
+        duration = datetime.now() - start_time
+        click.echo(f"Ran {flow_name} in {format_duration(duration)}")
+
     finally:
         runtime.alert(f"Flow Complete: {flow_name}")
 
