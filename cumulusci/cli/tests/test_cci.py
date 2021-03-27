@@ -359,6 +359,84 @@ class TestCCI(unittest.TestCase):
             cci.main(["cci", "org", "default"])
         assert "There is no default org" in stdout.getvalue(), stdout.getvalue()
 
+    @mock.patch("cumulusci.cli.cci.init_logger", mock.Mock())
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock())
+    @mock.patch("cumulusci.tasks.salesforce.Deploy.__call__", mock.Mock())
+    @mock.patch("sys.exit", mock.Mock())
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    @mock.patch("cumulusci.tasks.salesforce.Deploy.__init__")
+    def test_cci_run_task_options__with_dash(
+        self,
+        Deploy,
+        CliRuntime,
+        get_tempfile_logger,
+    ):
+        # get_tempfile_logger doesn't clean up after itself which breaks other tests
+        Deploy.return_value = None
+        get_tempfile_logger.return_value = mock.Mock(), ""
+        CliRuntime.return_value = runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", mock.Mock())
+        runtime.project_config = BaseProjectConfig(
+            runtime.universal_config,
+            {
+                "project": {"name": "Test"},
+                "tasks": {
+                    "deploy": {"class_path": "cumulusci.tasks.salesforce.Deploy"}
+                },
+            },
+        )
+
+        cci.main(
+            ["cci", "task", "run", "deploy", "--path", "x", "--clean-meta-xml", "False"]
+        )
+        task_config = Deploy.mock_calls[0][1][1]
+        assert "clean_meta_xml" in task_config.options
+
+    @mock.patch("cumulusci.cli.cci.init_logger", mock.Mock())
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock())
+    @mock.patch("cumulusci.tasks.salesforce.Deploy.__call__", mock.Mock())
+    @mock.patch("sys.exit", mock.Mock())
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    @mock.patch("cumulusci.tasks.salesforce.Deploy.__init__")
+    def test_cci_run_task_options__old_style_with_dash(
+        self,
+        Deploy,
+        CliRuntime,
+        get_tempfile_logger,
+    ):
+        # get_tempfile_logger doesn't clean up after itself which breaks other tests
+        Deploy.return_value = None
+        get_tempfile_logger.return_value = mock.Mock(), ""
+        CliRuntime.return_value = runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", mock.Mock())
+        runtime.project_config = BaseProjectConfig(
+            runtime.universal_config,
+            {
+                "project": {"name": "Test"},
+                "tasks": {
+                    "deploy": {"class_path": "cumulusci.tasks.salesforce.Deploy"}
+                },
+            },
+        )
+
+        cci.main(
+            [
+                "cci",
+                "task",
+                "run",
+                "deploy",
+                "--path",
+                "x",
+                "-o",
+                "clean-meta-xml",
+                "False",
+            ]
+        )
+        task_config = Deploy.mock_calls[0][1][1]
+        assert "clean_meta_xml" in task_config.options
+
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
     @mock.patch("cumulusci.cli.cci.click.style")
