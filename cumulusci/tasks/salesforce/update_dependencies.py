@@ -1,3 +1,5 @@
+import itertools
+
 from cumulusci.core.dependencies.dependencies import (
     DependencyResolutionStrategy,
     PackageNamespaceVersionDependency,
@@ -191,7 +193,12 @@ class UpdateDependencies(BaseSalesforceTask):
                     version,
                 )
             else:
-                installed = dependency.version_id in self.org_config.installed_packages
+                installed = any(
+                    dependency.version_id == v.id
+                    for v in itertools.chain(
+                        *self.org_config.installed_packages.values()
+                    )
+                )
 
             if installed:
                 self.logger.info(

@@ -1,3 +1,4 @@
+from distutils.version import StrictVersion
 import io
 import logging
 import zipfile
@@ -6,6 +7,7 @@ from unittest import mock
 import pydantic
 import pytest
 
+from cumulusci.core.config.OrgConfig import OrgConfig, VersionInfo
 from cumulusci.core.dependencies.dependencies import (
     DependencyResolutionStrategy,
     GitHubDynamicDependency,
@@ -276,7 +278,9 @@ def test_install_dependency_installs_managed_package(
 @mock.patch(
     "cumulusci.core.dependencies.dependencies.install_package_by_namespace_version"
 )
+@mock.patch("cumulusci.core.dependencies.dependencies.install_package_by_version_id")
 def test_install_dependency_no_op_already_installed(
+    install_package_by_version_id,
     install_package_by_namespace_version,
 ):
     task = create_task(
@@ -286,15 +290,29 @@ def test_install_dependency_no_op_already_installed(
                 {
                     "namespace": "ns",
                     "version": "1.0",
-                }
+                },
+                {
+                    "version_id": "04t000000000000",
+                },
+                {
+                    "namespace": "ns",
+                    "version": "0.9",
+                },
             ]
         },
     )
-    task.org_config = mock.Mock()
-    task.org_config.installed_packages = {"ns": "1.0"}
-    task.org_config.has_minimum_package_version.return_value = True
+    task.org_config = OrgConfig({}, "dev")
+    task.org_config._installed_packages = {
+        "ns": [VersionInfo(id="04t000000000000", number=StrictVersion("1.0"))]
+    }
 
     task._install_dependency(task.dependencies[0])
+    install_package_by_namespace_version.assert_not_called()
+
+    task._install_dependency(task.dependencies[1])
+    install_package_by_version_id.assert_not_called()
+
+    task._install_dependency(task.dependencies[2])
     install_package_by_namespace_version.assert_not_called()
 
 
@@ -310,22 +328,22 @@ def test_install_dependency_already_installed__newer_beta(
             "dependencies": [
                 {
                     "namespace": "ns",
-                    "version": "1.0 Beta 4",
+                    "version": "1.1 Beta 4",
                 }
             ]
         },
     )
-    task.org_config = mock.Mock()
-    task.org_config.installed_packages = {"ns": "1.0"}
-    task.org_config.has_minimum_package_version.return_value = False
+    task.org_config = OrgConfig({}, "dev")
+    task.org_config._installed_packages = {
+        "ns": [VersionInfo(id="04t000000000000", number=StrictVersion("1.0"))]
+    }
 
     task._install_dependency(task.dependencies[0])
-    task.org_config.has_minimum_package_version.assert_called_once_with("ns", "1.0b4")
     install_package_by_namespace_version.assert_called_once_with(
         task.project_config,
         task.org_config,
         "ns",
-        "1.0 Beta 4",
+        "1.1 Beta 4",
         mock.ANY,
         retry_options=mock.ANY,  # Ignore the options
     )
