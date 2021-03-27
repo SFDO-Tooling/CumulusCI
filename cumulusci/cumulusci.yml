@@ -893,7 +893,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -909,7 +909,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -960,7 +960,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        resolution_strategy: preproduction
+                        resolution_strategy: commit_status
                         dependencies: ^^github_package_data.dependencies
             3:
                 task: install_managed
@@ -1213,7 +1213,7 @@ project:
         preproduction: latest_release
         production: latest_release
         resolution_strategies:
-            include_beta_branch_match:
+            commit_status:
                 - tag
                 - commit_status_exact_branch
                 - commit_status_release_branch
@@ -1223,8 +1223,6 @@ project:
                 - unmanaged
             include_beta:
                 - tag
-                - commit_status_release_branch
-                - commit_status_previous_release_branch
                 - latest_beta
                 - latest_release
                 - unmanaged

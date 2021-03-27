@@ -191,9 +191,7 @@ class UpdateDependencies(BaseSalesforceTask):
                     version,
                 )
             else:
-                installed = (
-                    dependency.version_id not in self.org_config.installed_packages
-                )
+                installed = dependency.version_id in self.org_config.installed_packages
 
             if installed:
                 self.logger.info(
