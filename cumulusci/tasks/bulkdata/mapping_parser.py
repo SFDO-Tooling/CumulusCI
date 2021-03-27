@@ -2,6 +2,8 @@ from datetime import date
 from typing import Dict, List, Union, IO, Optional, Any, Callable, Mapping
 from logging import getLogger
 from pathlib import Path
+from enum import Enum
+
 from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
 
 from pydantic import Field, validator, root_validator, ValidationError
@@ -68,6 +70,18 @@ class MappingLookup(CCIDictModel):
 SHOULD_REPORT_RECORD_TYPE_DEPRECATION = True
 
 
+class BulkMode(Enum):
+    serial = Serial = "Serial"
+    parallel = Parallel = "Parallel"
+
+
+ENUM_VALUES = {
+    v.value.lower(): v.value
+    for enum in [BulkMode, DataApi, DataOperationType]
+    for v in enum.__members__.values()
+}
+
+
 class MappingStep(CCIDictModel):
     "Step in a load or extract process"
     sf_object: str
@@ -85,6 +99,10 @@ class MappingStep(CCIDictModel):
         Literal["Serial", "Parallel"]
     ] = None  # default should come from task options
     anchor_date: Optional[Union[str, date]] = None
+
+    @validator("bulk_mode", "api", "action", pre=True)
+    def case_normalize(cls, val):
+        return ENUM_VALUES.get(val.lower())
 
     def get_oid_as_pk(self):
         """Returns True if using Salesforce Ids as primary keys."""
