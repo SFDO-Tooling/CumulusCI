@@ -1140,7 +1140,7 @@ class TestResolverAccess:
     def test_get_resolver_stack__direct(self):
         pc = BaseProjectConfig(UniversalConfig())
 
-        strategy = get_resolver_stack(pc, "include_beta_branch_match")
+        strategy = get_resolver_stack(pc, "commit_status")
         assert (
             DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_RELEASE_BRANCH
             in strategy
