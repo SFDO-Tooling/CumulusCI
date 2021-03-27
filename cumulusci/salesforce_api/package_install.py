@@ -133,16 +133,18 @@ def _install_package_by_namespace_version(
         "should_retry": _should_retry_package_install,
     }
 
-    package_zip = InstallPackageZipBuilder(
-        namespace=namespace,
-        version=version,
-        activateRSS=install_options.activate_remote_site_settings,
-        password=install_options.password,
-        securityType=install_options.security_type,
-    )
+    def deploy():
+        package_zip = InstallPackageZipBuilder(
+            namespace=namespace,
+            version=version,
+            activateRSS=install_options.activate_remote_site_settings,
+            password=install_options.password,
+            securityType=install_options.security_type,
+        )
+        ApiDeploy(task, package_zip(), purge_on_delete=False)()
 
     retry(
-        lambda: ApiDeploy(task, package_zip(), purge_on_delete=False)(),
+        deploy,
         **retry_options,
     )
 

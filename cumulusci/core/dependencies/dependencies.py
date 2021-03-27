@@ -82,12 +82,12 @@ class Dependency(HashableBaseModel, abc.ABC):
     @property
     @abc.abstractmethod
     def name(self):
-        pass
+        pass  # pragma: no cover
 
     @property
     @abc.abstractmethod
     def description(self):
-        pass
+        pass  # pragma: no cover
 
     @property
     @abc.abstractmethod
