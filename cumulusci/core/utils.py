@@ -10,7 +10,7 @@ import glob
 import pytz
 import time
 from shutil import rmtree
-from typing import Union
+import typing as T
 import warnings
 
 from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
@@ -35,7 +35,7 @@ def parse_datetime(dt_str, format):
     return datetime(t[0], t[1], t[2], t[3], t[4], t[5], t[6], pytz.UTC)
 
 
-def process_bool_arg(arg: Union[int, str, None]):
+def process_bool_arg(arg: T.Union[int, str, None]):
     """Determine True/False from argument.
 
     Similar to parts of the Salesforce API, there are a few true-ish and false-ish strings,
@@ -98,7 +98,7 @@ def process_glob_list_arg(arg):
     return list(dict.fromkeys(files))
 
 
-def process_list_arg(arg):
+def process_list_arg(arg) -> T.Optional[T.List[str]]:
     """ Parse a string into a list separated by commas with whitespace stripped """
     if isinstance(arg, list):
         return arg

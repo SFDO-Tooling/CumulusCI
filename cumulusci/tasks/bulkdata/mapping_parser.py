@@ -102,6 +102,8 @@ class MappingStep(CCIDictModel):
 
     @validator("bulk_mode", "api", "action", pre=True)
     def case_normalize(cls, val):
+        if isinstance(val, Enum):
+            return val
         return ENUM_VALUES.get(val.lower())
 
     def get_oid_as_pk(self):
