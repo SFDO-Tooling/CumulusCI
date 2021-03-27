@@ -38,6 +38,8 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.utils import temporary_dir
 from cumulusci.cli.tests.utils import run_click_command, recursive_list_files, DummyTask
 
+MagicMock = mock.MagicMock()
+
 
 class TestCCI(unittest.TestCase):
     @classmethod
@@ -2251,6 +2253,43 @@ Environment Info: Rossian / x68_46
         output = cci.lines_from_traceback(content, 10)
         assert output == traceback
 
+    @mock.patch(
+        "cumulusci.cli.runtime.CliRuntime.get_org",
+        lambda *args, **kwargs: (MagicMock(), MagicMock()),
+    )
+    @mock.patch("cumulusci.core.runtime.BaseCumulusCI._load_keychain", MagicMock())
+    @mock.patch("pdb.post_mortem", MagicMock())
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", MagicMock())
+    @mock.patch("cumulusci.cli.cci.init_logger", MagicMock())
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    def test_run_task_debug(self, get_tempfile_logger):
+        get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
+
+        gipnew = "cumulusci.tasks.preflight.packages.GetInstalledPackages._run_task"
+        with mock.patch(gipnew, mock_validate_debug(False)):
+            cci.main(["cci", "task", "run", "get_installed_packages"])
+        with mock.patch(gipnew, mock_validate_debug(True)):
+            cci.main(["cci", "task", "run", "get_installed_packages", "--debug"])
+
+    @mock.patch(
+        "cumulusci.cli.runtime.CliRuntime.get_org",
+        lambda *args, **kwargs: (MagicMock(), MagicMock()),
+    )
+    @mock.patch("cumulusci.core.runtime.BaseCumulusCI._load_keychain", MagicMock())
+    @mock.patch("pdb.post_mortem", MagicMock())
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", MagicMock())
+    @mock.patch("cumulusci.cli.cci.init_logger", MagicMock())
+    @mock.patch("cumulusci.tasks.robotframework.RobotLibDoc", MagicMock())
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    def test_run_flow_debug(self, get_tempfile_logger):
+        get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
+        rtd = "cumulusci.tasks.robotframework.RobotTestDoc._run_task"
+
+        with mock.patch(rtd, mock_validate_debug(False)):
+            cci.main(["cci", "flow", "run", "robot_docs"])
+        with mock.patch(rtd, mock_validate_debug(True)):
+            cci.main(["cci", "flow", "run", "robot_docs", "--debug"])
+
 
 def validate_service(options):
     raise Exception("Validation failed")
@@ -2258,3 +2297,10 @@ def validate_service(options):
 
 class SetTrace(Exception):
     pass
+
+
+def mock_validate_debug(value):
+    def _run_task(self, *args, **kwargs):
+        assert bool(self.debug_mode) == bool(value)
+
+    return _run_task

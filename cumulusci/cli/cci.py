@@ -42,6 +42,7 @@ from cumulusci.core.exceptions import (
     FlowNotFoundError,
 )
 from cumulusci.utils.http.requests_utils import safe_json_from_response
+from cumulusci.core.debug import DebugMode
 
 
 from cumulusci.core.utils import import_global, format_duration
@@ -216,33 +217,39 @@ def main(args=None):
         if debug:
             args.remove("--debug")
 
-        # Load CCI config
-        global RUNTIME
-        try:
-            RUNTIME = CliRuntime(load_keychain=False)
-        except Exception as e:
-            handle_exception(e, is_error_command, tempfile_path, debug)
-            sys.exit(1)
+        with DebugMode.set(debug):
+            # Load CCI config into global RUNTIME
+            _load_runtime(is_error_command, tempfile_path, debug)
 
-        RUNTIME.check_cumulusci_version()
+            should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
 
-        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
+            init_logger(log_requests=debug)
+            # Hand CLI processing over to click, but handle exceptions
+            try:
+                cli(args[1:], standalone_mode=False)
+            except click.Abort:  # Keyboard interrupt
+                show_debug_info() if debug else click.echo("\nAborted!", err=True)
+                sys.exit(1)
+            except Exception as e:
+                if debug:
+                    show_debug_info()
+                else:
+                    handle_exception(
+                        e, is_error_command, tempfile_path, should_show_stacktraces
+                    )
+                sys.exit(1)
 
-        init_logger(log_requests=debug)
-        # Hand CLI processing over to click, but handle exceptions
-        try:
-            cli(args[1:], standalone_mode=False)
-        except click.Abort:  # Keyboard interrupt
-            show_debug_info() if debug else click.echo("\nAborted!", err=True)
-            sys.exit(1)
-        except Exception as e:
-            if debug:
-                show_debug_info()
-            else:
-                handle_exception(
-                    e, is_error_command, tempfile_path, should_show_stacktraces
-                )
-            sys.exit(1)
+
+def _load_runtime(is_error_command, tempfile_path, debug):
+    global RUNTIME
+    try:
+        RUNTIME = CliRuntime(load_keychain=False)
+    except Exception as e:
+        handle_exception(e, is_error_command, tempfile_path, debug)
+        sys.exit(1)
+
+    RUNTIME.check_cumulusci_version()
+    return RUNTIME
 
 
 def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=False):
