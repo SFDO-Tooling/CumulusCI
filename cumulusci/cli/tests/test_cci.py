@@ -232,12 +232,9 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
-    @mock.patch("cumulusci.cli.cci.init_logger")
     @mock.patch("cumulusci.cli.cci.cli")
     @mock.patch("sys.exit")
-    def test_main__abort(
-        self, sys_exit, cli, init_logger, get_tempfile_logger, tee_stdout_stderr
-    ):
+    def test_main__abort(self, sys_exit, cli, get_tempfile_logger, tee_stdout_stderr):
         get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
         cli.side_effect = click.Abort
         cci.main(["cci"])
@@ -305,13 +302,12 @@ class TestCCI(unittest.TestCase):
         tempfile = Path("tempfile.log")
         tempfile.unlink()
 
-    @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
     @mock.patch("sys.exit")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
     def test_handle_org_name(
-        self, CliRuntime, exit, tee_stdout_stderr, get_tempfile_logger, init_logger
+        self, CliRuntime, exit, tee_stdout_stderr, get_tempfile_logger
     ):
 
         # get_tempfile_logger doesn't clean up after itself which breaks other tests
@@ -338,13 +334,12 @@ class TestCCI(unittest.TestCase):
             "Please specify ORGNAME or --org ORGNAME" in stderr.getvalue()
         ), stderr.getvalue()
 
-    @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
     @mock.patch("sys.exit")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
     def test_cci_org_default__no_orgname(
-        self, CliRuntime, exit, tee_stdout_stderr, get_tempfile_logger, init_logger
+        self, CliRuntime, exit, tee_stdout_stderr, get_tempfile_logger
     ):
         # get_tempfile_logger doesn't clean up after itself which breaks other tests
         get_tempfile_logger.return_value = mock.Mock(), ""

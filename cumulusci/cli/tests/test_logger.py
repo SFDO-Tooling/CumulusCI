@@ -9,7 +9,8 @@ class TestLogger:
     @patch("cumulusci.cli.logger.requests")
     @patch("cumulusci.cli.logger.logging")
     def test_init_logger(self, logging, requests):
-        init_logger(log_requests=True)
+        with init_logger(log_requests=True):
+            pass
         requests.packages.urllib3.add_stderr_logger.assert_called_once()
 
     def test_get_tempfile_logger(self):

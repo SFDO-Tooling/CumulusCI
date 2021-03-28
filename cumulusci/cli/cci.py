@@ -228,21 +228,21 @@ def main(args=None):
 
         should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
 
-        init_logger(log_requests=debug)
-        # Hand CLI processing over to click, but handle exceptions
-        try:
-            cli(args[1:], standalone_mode=False)
-        except click.Abort:  # Keyboard interrupt
-            show_debug_info() if debug else click.echo("\nAborted!", err=True)
-            sys.exit(1)
-        except Exception as e:
-            if debug:
-                show_debug_info()
-            else:
-                handle_exception(
-                    e, is_error_command, tempfile_path, should_show_stacktraces
-                )
-            sys.exit(1)
+        with init_logger(log_requests=debug):
+            # Hand CLI processing over to click, but handle exceptions
+            try:
+                cli(args[1:], standalone_mode=False)
+            except click.Abort:  # Keyboard interrupt
+                show_debug_info() if debug else click.echo("\nAborted!", err=True)
+                sys.exit(1)
+            except Exception as e:
+                if debug:
+                    show_debug_info()
+                else:
+                    handle_exception(
+                        e, is_error_command, tempfile_path, should_show_stacktraces
+                    )
+                sys.exit(1)
 
 
 def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=False):
