@@ -1031,7 +1031,7 @@ flows:
             options:
               package_type: Managed
               package_name: $project_config.project__package__name
-              skip_validation: True
+              skip_validation: False
               version_base: latest_github_release
               version_type: minor
           2:
