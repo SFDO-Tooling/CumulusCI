@@ -1024,7 +1024,7 @@ flows:
 
     release_2gp_beta:
         group: Release Operations
-        description: Upload and release a beta version of the metadata in this repository
+        description: Upload and release a beta 2gp managed package version
         steps:
           1:
             task: create_package_version
