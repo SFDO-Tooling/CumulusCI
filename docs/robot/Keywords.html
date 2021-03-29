@@ -1039,8 +1039,33 @@ Input text  //input  ${faker.date(pattern='%Y-%m-%d')}
                 <td class="kwargs">
                   
                 </td>
-                <td class="kwdoc"><p>Initialize the Salesforce location strategies 'text' and 'title' plus any strategies registered by other keyword libraries</p>
+                <td class="kwdoc"><p>Initialize the Salesforce custom location strategies</p>
 <p>Note: This keyword is called automatically from <b>Open Test Browser</b></p></td>
+              </tr>
+              
+              <tr class="kwrow" id="Salesforce.Input Form Data">
+                <td class="kwname">
+                  Input Form Data
+                </td>
+                <td class="kwargs">
+                  
+                  <i>*args</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Fill in one or more labeled input fields fields with data</p>
+<p>Arguments should be pairs of field labels and values. Labels for required fields should not include the asterisk. Labels must be exact, including case.</p>
+<p>This keyword uses the keyword <b>Locate Element by Label</b> to locate elements. More details about how elements are found are in the documentation for that keyword.</p>
+<p>Example:</p>
+<pre>
+Input form data
+...  Opportunity Name         The big one       # required text field
+...  Amount                   1b                # currency field
+...  Close Date               4/01/2022         # date field
+...  Private                  checked           # checkbox
+...  Type                     New Customer      # combobox
+...  Primary Campaign Source  The Big Campaign  # picklist
+</pre>
+<p>This keyword will eventually replace the "populate form" keyword once it has been more thoroughly tested in production.</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Load Related List">
@@ -1056,6 +1081,35 @@ Input text  //input  ${faker.date(pattern='%Y-%m-%d')}
                 </td>
                 <td class="kwdoc"><p>Scrolls down until the specified related list loads.</p>
 <p>If the related list isn't found, the keyword will scroll down in 100 pixel increments to trigger lightning into loading the list. This process of scrolling will be repeated until the related list has been loaded or we've tried several times (the default is 10 tries)</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="Salesforce.Locate Element By Label">
+                <td class="kwname">
+                  Locate Element By Label
+                </td>
+                <td class="kwargs">
+                  
+                  <i>browser</i>, 
+                  
+                  <i>locator</i>, 
+                  
+                  <i>tag</i>, 
+                  
+                  <i>constraints</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Find a lightning component, input, or textarea based on a label</p>
+<p>If the component is inside a fieldset, the fieldset label can be prefixed to the label with a double colon in order to disambiguate the label.  (eg: Other address::First Name)</p>
+<p>If the label is inside nested ligntning components (eg: <code>&lt;lightning-input&gt;...&lt;lightning-combobox&gt;...&lt;label&gt;</code>), the lightning component closest to the label will be returned (in this case, <code>lightning-combobox</code>).</p>
+<p>If a lightning component cannot be found for the label, an attempt will be made to find an input or textarea associated with the label.</p>
+<p>This is registered as a custom locator strategy named "label"</p>
+<p>Example:</p>
+<p>The following example is for a form with a formset named "Expected Delivery Date", and inside of that a date input field with a label of "Date".</p>
+<p>These examples produce identical results:</p>
+<pre>
+${element}=  Locate element by label    Expected Delivery Date::Date
+${element}=  Get webelement             label:Expected Delivery Date::Date
+</pre></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Log Browser Capabilities">
@@ -1430,7 +1484,9 @@ ${french_address}=  Faker  address
 <p>Using this keyword will automatically add the tag cci_metric to the test case and ${cci_metric_&lt;metric_name&gt;} to the test's variables. These permit downstream processing in tools like CCI and MetaCI.</p>
 <p>cci_metric is not included in Robot's html statistical roll-ups.</p>
 <p>Example:</p>
-<p>Set Test Metric    Max_CPU_Percent    30</p>
+<pre>
+Set Test Metric    Max_CPU_Percent    30
+</pre>
 <p>Performance test metrics are output in the CCI logs, log.html and output.xml. MetaCI captures them but does not currently have a user interface for displaying them.</p></td>
               </tr>
               
@@ -2240,7 +2296,7 @@ Populate form
       
     </div>
     <div class="footer">
-      Generated on Friday February 26, 07:51 AM - cumulusci v3.29.0
+      Generated on Wednesday March 24, 10:44 PM - cumulusci v3.31.0
     </div>
   </body>
 </html>
