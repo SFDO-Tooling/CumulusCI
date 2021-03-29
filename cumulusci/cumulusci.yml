@@ -1048,7 +1048,7 @@ flows:
               publish: True
               tag: ^^github_release.tag_name
               include_empty: True
-              version_id: ^^upload_beta.version_id
+              version_id: ^^create_package_version.subscriber_package_version_id
           4:
             task: github_automerge_main
 
