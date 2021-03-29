@@ -10,6 +10,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.github import get_tag_by_name
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.tasks.package_2gp import PackageVersionNumber
 
 
 class PromotePackageVersion(BaseSalesforceApiTask):
@@ -85,6 +86,11 @@ class PromotePackageVersion(BaseSalesforceApiTask):
 
         target_package_info = self._get_target_package_info(version_id)
         self._promote_package_version(target_package_info)
+        self.return_values = {
+            "dependencies": [d["spv_id"] for d in dependencies],
+            "version_id": version_id,
+            "version_number": target_package_info["package_version_number"],
+        }
 
     def _resolve_version_id(self) -> str:
         """
@@ -236,10 +242,17 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         }
         """
         package_2_version = self._query_Package2Version(spv_id)
+        subscriber_pacakage_version = self._query_SubscriberPackageVersion(spv_id)
         return {
             "name": self.project_config.project__name,
             "Package2VersionId": package_2_version["Id"],
             "version_id": spv_id,
+            "package_version_number": PackageVersionNumber(
+                subscriber_pacakage_version["MajorVersion"],
+                subscriber_pacakage_version["MinorVersion"],
+                subscriber_pacakage_version["PatchVersion"],
+                subscriber_pacakage_version["BuildNumber"],
+            ),
         }
 
     def _promote_package_version(self, package_info: Dict) -> None:
@@ -289,7 +302,15 @@ class PromotePackageVersion(BaseSalesforceApiTask):
     def _query_SubscriberPackageVersion(self, spv_id: str) -> Optional[Dict]:
         """Queries for a SubscriberPackageVersion record with the given SubscriberPackageVersionId"""
         return self._query_one_tooling(
-            ["Id", "Dependencies", "ReleaseState", "SubscriberPackageId"],
+            [
+                "Id",
+                "BuildNumber",
+                "Dependencies",
+                "MajorVersion",
+                "MinorVersion",
+                "PatchVersion" "ReleaseState",
+                "SubscriberPackageId",
+            ],
             "SubscriberPackageVersion",
             where_clause=f"Id='{spv_id}'",
             raise_error=True,
