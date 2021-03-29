@@ -1077,16 +1077,16 @@ flows:
             2:
                 task: github_release
                 options:
-                    version: ^^upload_production.version_number
-                    version_id: ^^upload_production.version_id
-                    dependencies: ^^upload_production.dependencies
+                    version: ^^promote_package_version.version_number
+                    version_id: ^^promote_package_version.version_id
+                    dependencies: ^^promote_package_version.dependencies
             3:
                 task: github_release_notes
                 ignore_failure: True  # Attempt to generate release notes but don't fail build
                 options:
                     publish: True
                     tag: ^^github_release.tag_name
-                    version_id: ^^upload_production.version_id
+                    version_id: ^^promote_package_version.version_id
 
     build_feature_test_package:
         group: Release Operations
