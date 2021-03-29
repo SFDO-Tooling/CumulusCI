@@ -87,7 +87,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         target_package_info = self._get_target_package_info(version_id)
         self._promote_package_version(target_package_info)
         self.return_values = {
-            "dependencies": [d["spv_id"] for d in dependencies],
+            "dependencies": [d["version_id"] for d in dependencies],
             "version_id": version_id,
             "version_number": target_package_info["package_version_number"],
         }
@@ -242,17 +242,13 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         }
         """
         package_2_version = self._query_Package2Version(spv_id)
-        subscriber_pacakage_version = self._query_SubscriberPackageVersion(spv_id)
+        version_number = PackageVersionNumber(**package_2_version)
+
         return {
             "name": self.project_config.project__name,
             "Package2VersionId": package_2_version["Id"],
             "version_id": spv_id,
-            "package_version_number": PackageVersionNumber(
-                subscriber_pacakage_version["MajorVersion"],
-                subscriber_pacakage_version["MinorVersion"],
-                subscriber_pacakage_version["PatchVersion"],
-                subscriber_pacakage_version["BuildNumber"],
-            ),
+            "package_version_number": version_number.format(),
         }
 
     def _promote_package_version(self, package_info: Dict) -> None:
@@ -277,7 +273,14 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         """Queries for a Package2Version record with the given SubscriberPackageVersionId"""
         try:
             return self._query_one_tooling(
-                ["Id", "IsReleased"],
+                [
+                    "Id",
+                    "BuildNumber",
+                    "MajorVersion",
+                    "MinorVersion",
+                    "PatchVersion",
+                    "IsReleased",
+                ],
                 "Package2Version",
                 where_clause=f"SubscriberPackageVersionId='{spv_id}'",
                 raise_error=raise_error,
@@ -304,11 +307,8 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         return self._query_one_tooling(
             [
                 "Id",
-                "BuildNumber",
                 "Dependencies",
-                "MajorVersion",
-                "MinorVersion",
-                "PatchVersion" "ReleaseState",
+                "ReleaseState",
                 "SubscriberPackageId",
             ],
             "SubscriberPackageVersion",
