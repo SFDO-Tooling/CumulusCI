@@ -1067,6 +1067,26 @@ flows:
                     publish: True
                     tag: ^^github_release.tag_name
                     version_id: ^^upload_production.version_id
+    
+    release_2gp_production:
+        group: Release Operations
+        description: Promote the latest beta release of the project to a production release
+        steps:
+            1:
+                task: promote_package_version
+            2:
+                task: github_release
+                options:
+                    version: ^^upload_production.version_number
+                    version_id: ^^upload_production.version_id
+                    dependencies: ^^upload_production.dependencies
+            3:
+                task: github_release_notes
+                ignore_failure: True  # Attempt to generate release notes but don't fail build
+                options:
+                    publish: True
+                    tag: ^^github_release.tag_name
+                    version_id: ^^upload_production.version_id
 
     build_feature_test_package:
         group: Release Operations
