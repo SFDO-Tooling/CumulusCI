@@ -1070,7 +1070,7 @@ flows:
     
     release_2gp_production:
         group: Release Operations
-        description: Promote the latest beta release of the project to a production release
+        description: Promote the latest beta 2gp managed package version and create a new release in GitHub
         steps:
             1:
                 task: promote_package_version
