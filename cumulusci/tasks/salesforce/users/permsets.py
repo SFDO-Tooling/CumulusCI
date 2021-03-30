@@ -40,11 +40,13 @@ Assigns Permission Sets whose Names are in ``api_names`` to either the default o
         users_assigned_perms = {
             user["Id"]: self._get_assigned_perms(user) for user in users
         }
-        self.perms_by_id = self._get_perm_ids()
+        perms_by_id = self._get_perm_ids()
 
         records_to_insert = []
         for user_id, assigned_perms in users_assigned_perms.items():
-            records_to_insert.extend(self._get_assignments(user_id, assigned_perms))
+            records_to_insert.extend(
+                self._get_assignments(user_id, assigned_perms, perms_by_id)
+            )
 
         self._insert_assignments(records_to_insert)
 
@@ -100,9 +102,9 @@ Assigns Permission Sets whose Names are in ``api_names`` to either the default o
             )
         return perms_by_ids
 
-    def _get_assignments(self, user_id, assigned_perms):
+    def _get_assignments(self, user_id, assigned_perms, perms_by_id):
         assignments = []
-        for perm, perm_name in self.perms_by_id.items():
+        for perm, perm_name in perms_by_id.items():
             if perm not in assigned_perms:
                 self.logger.info(
                     f'Assigning {self.permission_label} "{perm_name}" to {user_id}.'
