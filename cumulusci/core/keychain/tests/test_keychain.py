@@ -464,43 +464,48 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         # make sure no new dirs appeared
         assert num_services == len(list(Path.iterdir(services_path)))
 
-    def test_convert_unaliased_services(self):
+    def test_migrate_unnamed_services(self):
         cci_home_dir = Path(f"{self.tempdir_home}/.cumulusci")
-        self._write_file(cci_home_dir / "devhub.service", "devhub config")
+        self._write_file(cci_home_dir / "github.service", "github config")
         self._write_file(cci_home_dir / "foo.service", "foo config")
 
-        keychain = self.keychain_class(self.universal_config, self.key)
-        keychain._convert_unaliased_services(self.tempdir_home)
+        local_proj_dir = cci_home_dir / "test-project"
+        local_proj_dir.mkdir()
+        self._write_file(local_proj_dir / "github.service", "github2 config")
 
-        service_file_path = Path(
-            f"{self.tempdir_home}/.cumulusci/services/devhub/devhub_default.service"
-        )
+        keychain = self.keychain_class(self.project_config, self.key)
+        keychain._migrate_unnamed_services(cci_home_dir)
+        keychain._migrate_unnamed_services(cci_home_dir / "test-project")
 
-        assert Path.is_file(service_file_path)
-        with open(service_file_path) as f:
-            assert f.read() == "devhub config"
-        assert not Path.is_file(cci_home_dir / "devhub.service")
+        assert not Path.is_file(cci_home_dir / "github.service")
+        assert (cci_home_dir / "services/github/github__global.service").is_file()
+        with open(cci_home_dir / "services/github/github__global.service") as f:
+            assert f.read() == "github config"
+
+        assert not Path.is_file(cci_home_dir / "test-project/devhub.service")
+        assert (cci_home_dir / "services/github/github__project.service").is_file()
+        with open(cci_home_dir / "services/github/github__project.service") as f:
+            assert f.read() == "github2 config"
+
         # unrecognized services should be left alone
         assert (cci_home_dir / "foo.service").is_file()
 
-    def test_convert_unaliased_services__warn_duplicate_default_service(self):
+    def test_migrate_unnamed_services__warn_duplicate_default_service(self):
         # make unaliased devhub service
-        file_contents = "devhub"
-        unaliased_devhub_service = Path(
-            f"{self.tempdir_home}/.cumulusci/devhub.service"
-        )
-        self._write_file(unaliased_devhub_service, file_contents)
-        # make default aliased devhub service
-        aliased_devhub_service = Path(
-            f"{self.tempdir_home}/.cumulusci/services/devhub/"
-        )
-        aliased_devhub_service.mkdir(parents=True)
+        legacy_devhub_service = Path(f"{self.tempdir_home}/.cumulusci/devhub.service")
+        self._write_file(legacy_devhub_service, "legacy config")
+        # make existing default aliased devhub service
+        named_devhub_service = Path(f"{self.tempdir_home}/.cumulusci/services/devhub/")
+        named_devhub_service.mkdir(parents=True)
         self._write_file(
-            f"{aliased_devhub_service}/devhub_default.service", file_contents
+            f"{named_devhub_service}/devhub__global.service", "migrated config"
         )
 
         keychain = self.keychain_class(self.universal_config, self.key)
-        keychain._convert_unaliased_services(self.tempdir_home)
+        keychain._migrate_unnamed_services(self.tempdir_home)
 
         # ensure we don't remove this service file
-        assert Path.is_file(unaliased_devhub_service)
+        assert legacy_devhub_service.is_file()
+        # ensure contents of migrated are unchanged
+        with open(named_devhub_service / "devhub__global.service", "r") as f:
+            assert f.read() == "migrated config"

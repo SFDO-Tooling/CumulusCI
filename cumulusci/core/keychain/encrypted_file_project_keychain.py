@@ -8,9 +8,6 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import OrgNotFound, ServiceNotConfigured
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 
-# TODO: figure out circular import
-DEFAULT_SERVICE_ALIAS = "default"
-
 
 class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     """ An encrypted project keychain that stores in the project's local directory """
@@ -88,38 +85,48 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         self._load_org_files(self.project_local_dir, LocalOrg)
 
     def _load_services(self) -> None:
+        """Load services (and migrate old ones if present)"""
+        # The following steps occur in a _very_ particular order
         self._create_default_services_file(self.project_local_dir)
-
         self._create_services_dir_structure(self.global_config_dir)
-        self._convert_unaliased_services(self.global_config_dir)
+        self._migrate_unnamed_services(self.global_config_dir)
+        self._migrate_unnamed_services(self.project_local_dir)
 
         services_dir = Path(f"{self.global_config_dir}/services")
         self._load_service_files(services_dir)
 
-    def _create_default_services_file(self, dir_path: str) -> None:
+    def _create_default_services_file(self, local_project_path: str) -> None:
         """
         Creates the DEFAULT_SERVICES.json file if it does not yet exist.
-        This _should_ occur once, right before initial migration of service
+        This should occur once; right before initial migration of service
         files has been performed. This allows us to set any services configured
         at the project level as the default service for the given service type.
+
+        @param local_proj_path: should be the local_project_path for the project
         """
-        if not dir_path:
+        if not local_project_path:
             return
-        dir_path = Path(dir_path)
-        default_services_file = dir_path / "DEFAULT_SERVICES.json"
+
+        local_project_path = Path(local_project_path)
+        default_services_file = local_project_path / "DEFAULT_SERVICES.json"
         if default_services_file.is_file():
             return
-        default_services_file.touch()
 
+        default_services_file.touch()
         default_services = {s_type: {} for s_type in self.services}
-        self._set_default_services_in_dir(dir_path.parent, default_services, "global")
+        # set defaults from the global scope first
+        self._set_default_services_for_dir(
+            local_project_path.parent, default_services, "global"
+        )
         # set defaults in project dir second, so they override any global defaults
-        self._set_default_services_in_dir(dir_path, default_services, "project")
+        self._set_default_services_for_dir(
+            local_project_path, default_services, "project"
+        )
 
         with open(default_services_file, "w") as f:
             f.write(json.dumps(default_services))
 
-    def _set_default_services_in_dir(
+    def _set_default_services_for_dir(
         self, dir_path: Path, default_services: T.Dict, scope: str
     ) -> None:
         for item in dir_path.iterdir():
@@ -164,9 +171,16 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
             if not Path.is_dir(service_type_dir_path):
                 Path.mkdir(service_type_dir_path)
 
-    def _convert_unaliased_services(self, dir_path: str):
+    def _migrate_unnamed_services(self, dir_path: str):
         """Look in the given dir for any files with the .services extension and
-        move them to the proper directory with the defualt alias."""
+        move them to the proper directory with the defualt alias.
+
+        @param dir_path: the directory to migrate .service files from
+        should be either self.global_config_dir or self.project_local_dir
+        """
+        if dir_path is None:
+            return
+
         configured_service_types = self.project_config.config["services"].keys()
 
         for item in Path(dir_path).iterdir():
@@ -175,21 +189,22 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 if service_type not in configured_service_types:
                     continue  # we don't care about unrecognized services
 
-                service_type_path = Path(f"{dir_path}/services/{service_type}")
-                default_service_filename = (
-                    f"{service_type}_{DEFAULT_SERVICE_ALIAS}.service"
-                )
-                default_service_path = Path(
-                    service_type_path / default_service_filename
-                )
+                service_scope = "global" if dir_path.name == ".cumulusci" else "project"
+                service_filename = f"{service_type}__{service_scope}.service"
 
-                if Path.is_file(default_service_path):
+                service_type_path = Path(
+                    f"{self.global_config_dir}/services/{service_type}"
+                )
+                new_service_path = service_type_path / service_filename
+
+                if new_service_path.is_file():
                     self.logger.warning(
                         f"Found {service_type}.serive in ~/.cumulusci and default alias already exists."
                     )
-                else:
-                    original_service_path = Path(f"{dir_path}/{service_type}.service")
-                    original_service_path.replace(default_service_path)
+                    continue
+
+                old_service_path = Path(f"{dir_path}/{service_type}.service")
+                old_service_path.replace(new_service_path)
 
     def _remove_org(self, name, global_org):
         if global_org:
