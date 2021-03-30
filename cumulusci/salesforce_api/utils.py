@@ -17,23 +17,23 @@ def get_simple_salesforce_connection(
     # Retry on long-running metadeploy jobs
     retries = Retry(total=5, status_forcelist=(502, 503, 504), backoff_factor=0.3)
     adapter = HTTPAdapter(max_retries=retries)
-    instance_url = org_config.instance_url
+    instance = org_config.instance_url
 
     # Attept to get the host and port from the URL, but ignore any errors retrieving it.
     try:
-        instance_url = urlparse(org_config.instance_url).hostname
+        instance = urlparse(org_config.instance_url).hostname
     except:
         pass
 
     try:
         port = urlparse(org_config.instance_url).port
         if port:
-            instance_url = instance_url.replace(".com", ".com:" + str(port))
+            instance = instance.replace(".com", ".com:" + str(port))
     except:
         pass
 
     sf = simple_salesforce.Salesforce(
-        instance=instance_url,
+        instance=instance,
         session_id=org_config.access_token,
         version=api_version or project_config.project__package__api_version,
     )

@@ -16,7 +16,7 @@ def test_connection():
     with patch("simple_salesforce.Salesforce") as mock_sf:
         get_simple_salesforce_connection(proj_config, org_config)
         mock_sf.assert_called_once_with(
-            instance_url=org_config.instance_url,
+            instance=org_config.instance_url,
             session_id=org_config.access_token,
             version=proj_config.project__package__api_version,
         )
@@ -36,7 +36,7 @@ def test_connection__explicit_api_version():
     with patch("simple_salesforce.Salesforce") as mock_sf:
         get_simple_salesforce_connection(proj_config, org_config, api_version="42.0")
         mock_sf.assert_called_once_with(
-            instance_url=org_config.instance_url,
+            instance=org_config.instance_url,
             session_id=org_config.access_token,
             version="42.0",
         )
@@ -90,3 +90,25 @@ def test_sf_api_retries(mock_http_response):
             pass
 
         assert 2 == _make_request.call_count
+
+
+def test_connection_with_port():
+    targeturl = "enterprise-dream-6536.cs41.my.salesforce.com:1234"
+    org_config = Mock()
+    proj_config = Mock()
+    service_mock = Mock()
+    service_mock.client_id = "TEST"
+    org_config.instance_url = "https://" + targeturl
+    proj_config.keychain.get_service.return_value = service_mock
+
+    with patch("simple_salesforce.Salesforce") as mock_sf:
+        get_simple_salesforce_connection(proj_config, org_config)
+        mock_sf.assert_called_once_with(
+            instance=targeturl,
+            session_id=org_config.access_token,
+            version=proj_config.project__package__api_version,
+        )
+
+        mock_sf.return_value.headers.setdefault.assert_called_once_with(
+            "Sforce-Call-Options", "client={}".format(service_mock.client_id)
+        )
