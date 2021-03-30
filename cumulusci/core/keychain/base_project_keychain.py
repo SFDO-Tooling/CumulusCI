@@ -309,21 +309,22 @@ class BaseProjectKeychain(BaseConfig):
             f"Service named {name} is not configured for this project. Configured services are: {services}"
         )
 
-    # TODO: deprecate
     def _raise_service_not_valid(self, name):
         raise ServiceNotValid(f"Service named {name} is not valid for this project")
 
     def list_services(self):
-        """ list the services configured in the keychain """
+        """list the services configured in the keychain"""
         service_types = list(self.services.keys())
         service_types.sort()
 
-        services = []
+        services = {}
         for s_type in service_types:
+            if s_type not in services:
+                services[s_type] = []
             aliases = list(self.services[s_type].keys())
             aliases.sort()
             for alias in aliases:
-                services.append((s_type, alias))
+                services[s_type].append((s_type, alias))
         return services
 
     @property
