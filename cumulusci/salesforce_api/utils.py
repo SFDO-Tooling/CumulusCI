@@ -22,14 +22,14 @@ def get_simple_salesforce_connection(
     # Attept to get the host and port from the URL, but ignore any errors retrieving it.
     try:
         instance = urlparse(org_config.instance_url).hostname
-    except:
+    except Exception:
         pass
 
     try:
         port = urlparse(org_config.instance_url).port
         if port:
             instance = instance.replace(".com", ".com:" + str(port))
-    except:
+    except Exception:
         pass
 
     sf = simple_salesforce.Salesforce(
