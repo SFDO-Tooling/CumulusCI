@@ -59,11 +59,15 @@ test: ## run tests quickly with the default Python
 test-all: ## run tests on every Python version with tox
 	tox
 
+# you can also specific tests with PATH to run coverage for
+# $ make coverage CLASS_PATH="cumulusci/core/tests"
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source cumulusci -m pytest
+	coverage run --source cumulusci -m pytest $(CLASS_PATH)
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
+
+coverage:
 
 docs: ## generate Sphinx HTML documentation
 	$(MAKE) -C docs clean
