@@ -1,7 +1,7 @@
 import simple_salesforce
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 from cumulusci import __version__
 from cumulusci.core.exceptions import ServiceNotConfigured, ServiceNotValid
@@ -19,18 +19,13 @@ def get_simple_salesforce_connection(
     adapter = HTTPAdapter(max_retries=retries)
     instance = org_config.instance_url
 
-    # Attept to get the host and port from the URL, but ignore any errors retrieving it.
-    try:
-        instance = urlparse(org_config.instance_url).hostname
-    except Exception:
-        pass
+    # Attepmt to get the host and port from the URL
+    instance_url = urlparse(org_config.instance_url)
+    instance = instance_url.hostname
+    port = instance_url.port
 
-    try:
-        port = urlparse(org_config.instance_url).port
-        if port:
-            instance = instance.replace(".com", ".com:" + str(port))
-    except Exception:
-        pass
+    if port:
+        instance = instance.replace(".com", ".com:" + str(port))
 
     sf = simple_salesforce.Salesforce(
         instance=instance,

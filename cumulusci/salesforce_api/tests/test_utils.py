@@ -7,7 +7,8 @@ from cumulusci import __version__
 
 
 def test_connection():
-    org_config = Mock()
+    org_config = Mock(domain="zombo.com.salesforce.com")
+    org_config.instance_url = f"http://{org_config.domain}"
     proj_config = Mock()
     service_mock = Mock()
     service_mock.client_id = "TEST"
@@ -16,7 +17,7 @@ def test_connection():
     with patch("simple_salesforce.Salesforce") as mock_sf:
         get_simple_salesforce_connection(proj_config, org_config)
         mock_sf.assert_called_once_with(
-            instance=org_config.instance_url,
+            instance=org_config.domain,
             session_id=org_config.access_token,
             version=proj_config.project__package__api_version,
         )
@@ -27,7 +28,8 @@ def test_connection():
 
 
 def test_connection__explicit_api_version():
-    org_config = Mock()
+    org_config = Mock(domain="zombo.com.salesforce.com")
+    org_config.instance_url = f"http://{org_config.domain}"
     proj_config = Mock()
     service_mock = Mock()
     service_mock.client_id = "TEST"
@@ -36,7 +38,7 @@ def test_connection__explicit_api_version():
     with patch("simple_salesforce.Salesforce") as mock_sf:
         get_simple_salesforce_connection(proj_config, org_config, api_version="42.0")
         mock_sf.assert_called_once_with(
-            instance=org_config.instance_url,
+            instance=org_config.domain,
             session_id=org_config.access_token,
             version="42.0",
         )
@@ -47,7 +49,8 @@ def test_connection__explicit_api_version():
 
 
 def test_connection__no_connected_app():
-    org_config = Mock()
+    org_config = Mock(domain="zombo.com.salesforce.com")
+    org_config.instance_url = f"http://{org_config.domain}"
     proj_config = Mock()
     proj_config.keychain.get_service.side_effect = ServiceNotConfigured
 
