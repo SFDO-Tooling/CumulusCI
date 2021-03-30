@@ -42,7 +42,7 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
 
     def _set_service(self, service_type, alias, service_config, project):
         encrypted = self._encrypt_config(service_config)
-        self._set_encrypted_service(service_type, alias, encrypted)
+        self._set_encrypted_service(service_type, alias, encrypted, project)
 
     def _set_encrypted_service(self, service_type, alias, encrypted, project):
         self.services[service_type][alias] = encrypted

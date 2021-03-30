@@ -1,12 +1,12 @@
 import os
+import json
 import typing as T
 
 from pathlib import Path
 
-from cumulusci.core.exceptions import CumulusCIException, OrgNotFound
-from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.exceptions import OrgNotFound, ServiceNotConfigured
+from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 
 # TODO: figure out circular import
 DEFAULT_SERVICE_ALIAS = "default"
@@ -30,40 +30,46 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     def project_local_dir(self):
         return self.project_config.project_local_dir
 
-    def _load_files(
-        self, dirname: str, extension: str, config_type: str, constructor=None
-    ) -> None:
-        """
-        Loads either .org or .service files into the keychain configuration.
-        For orgs, we store under config["orgs"][org_name]
-        For services, we store under config["services"][service_type][service_alias]
-        """
-        if dirname is None:
+    def _load_org_files(self, dirname: str, constructor=None):
+        """Loads .org files in a given directory onto the keychain"""
+        if not dirname:
             return
-
         dir_path = Path(dirname)
-        for item in dir_path.iterdir():
-            if item.suffix == extension:
+        for item in sorted(dir_path.iterdir()):
+            if item.suffix == ".org":
+                with open(item, "r") as f:
+                    config = f.read()
+                name = item.name.replace(".org", "")
+                if "orgs" not in self.config:
+                    self.config["orgs"] = {}
+                self.config["orgs"][name] = (
+                    constructor(config) if constructor else config
+                )
+
+    def _load_service_files(self, dirname: str, constructor=None) -> None:
+        """
+        Loads .service files onto the keychain.
+        This method recursively goes through all subdirectories
+        looking for .service files.
+        """
+        if not dirname:
+            return
+        dir_path = Path(dirname)
+        for item in dir_path.glob("**/*"):
+            if item.suffix == ".service":
                 with open(item) as f:
                     config = f.read()
-                if config_type not in self.config:
-                    self.config[config_type] = {}
-                filename = item.name.replace(extension, "")
-                if config_type == "orgs":
-                    self.config[config_type][filename] = (
-                        constructor(config) if constructor else config
-                    )
-                elif config_type == "services":
-                    service_type = item.parent
-                    if service_type not in self.config[config_type]:
-                        self.config[config_type][service_type] = {}
-                    self.config[config_type][service_type][filename] = (
-                        constructor(config) if constructor else config
-                    )
-                else:
-                    raise CumulusCIException("Unknown service type.")
+                if "services" not in self.config:
+                    self.config["services"] = {}
+                name = item.name.replace(".service", "")
+                service_type = item.parent.name
+                if service_type not in self.config["services"]:
+                    self.config["services"][service_type] = {}
+                self.config["services"][service_type][name] = (
+                    constructor(config) if constructor else config
+                )
 
-    def _load_file(self, dirname, filename, key):
+    def _load_file(self, dirname: str, filename: str, key: str) -> None:
         if dirname is None:
             return
         full_path = os.path.join(dirname, filename)
@@ -73,25 +79,58 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
             config = f_item.read()
         self.config[key] = config
 
-    def _load_app(self):
+    def _load_app(self) -> None:
         self._load_file(self.global_config_dir, "connected.app", "app")
         self._load_file(self.project_local_dir, "connected.app", "app")
 
-    def _load_orgs(self):
-        self._load_files(self.global_config_dir, ".org", "orgs", GlobalOrg)
-        self._load_files(self.project_local_dir, ".org", "orgs", LocalOrg)
+    def _load_orgs(self) -> None:
+        self._load_org_files(self.global_config_dir, GlobalOrg)
+        self._load_org_files(self.project_local_dir, LocalOrg)
 
-    def _load_services(self):
+    def _load_services(self) -> None:
+        self._create_default_services_file(self.project_local_dir)
+
         self._create_services_dir_structure(self.global_config_dir)
         self._convert_unaliased_services(self.global_config_dir)
 
-        self._create_services_dir_structure(self.project_local_dir)
-        self._convert_unaliased_services(self.project_local_dir)
+        services_dir = Path(f"{self.global_config_dir}/services")
+        self._load_service_files(services_dir)
 
-        self._load_files(self.global_config_dir, ".service", "services")
-        self._load_files(self.project_local_dir, ".service", "services")
+    def _create_default_services_file(self, dir_path: str) -> None:
+        """
+        Creates the DEFAULT_SERVICES.json file if it does not yet exist.
+        This _should_ occur once, right before initial migration of service
+        files has been performed. This allows us to set any services configured
+        at the project level as the default service for the given service type.
+        """
+        if not dir_path:
+            return
+        dir_path = Path(dir_path)
+        default_services_file = dir_path / "DEFAULT_SERVICES.json"
+        if default_services_file.is_file():
+            return
+        default_services_file.touch()
 
-    def _create_services_dir_structure(self, dir_path: str):
+        default_services = {s_type: {} for s_type in self.services}
+        self._set_default_services_in_dir(dir_path.parent, default_services, "global")
+        # set defaults in project dir second, so they override any global defaults
+        self._set_default_services_in_dir(dir_path, default_services, "project")
+
+        with open(default_services_file, "w") as f:
+            f.write(json.dumps(default_services))
+
+    def _set_default_services_in_dir(
+        self, dir_path: Path, default_services: T.Dict, scope: str
+    ) -> None:
+        for item in dir_path.iterdir():
+            if item.suffix == ".service":
+                # this .service file has not yet been migrated
+                # so it's name is the type of service (not its alias)
+                service_type = item.name.replace(".service", "")
+                # TODO: get default name from constant
+                default_services[service_type] = f"{service_type}__{scope}"
+
+    def _create_services_dir_structure(self, dir_path: str) -> None:
         """
         Given a directory, ensure that the 'services' directory sturcutre exists.
         The services dir has the following structure:
@@ -131,12 +170,10 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         configured_service_types = self.project_config.config["services"].keys()
 
         for item in Path(dir_path).iterdir():
-            if item.is_dir():
-                continue
-            elif item.suffix == ".service":
+            if item.suffix == ".service":
                 service_type = item.name.replace(".service", "")
                 if service_type not in configured_service_types:
-                    continue  # we don't care about foo.service
+                    continue  # we don't care about unrecognized services
 
                 service_type_path = Path(f"{dir_path}/services/{service_type}")
                 default_service_filename = (
@@ -186,13 +223,12 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         with open(filename, "wb") as f_org:
             f_org.write(encrypted)
 
-    def _set_encrypted_service(self, name, encrypted, project):
-        if project:
-            filename = os.path.join(self.project_local_dir, f"{name}.service")
-        else:
-            filename = os.path.join(self.global_config_dir, f"{name}.service")
-        with open(filename, "wb") as f_service:
-            f_service.write(encrypted)
+    def _set_encrypted_service(self, service_type, name, encrypted, project):
+        service_path = Path(
+            f"{self.global_config_dir}/services/{service_type}/{name}.service"
+        )
+        with open(service_path, "wb") as f:
+            f.write(encrypted)
 
     def _raise_org_not_found(self, name):
         raise OrgNotFound(
@@ -200,7 +236,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         )
 
     def _raise_service_not_configured(self, name):
-        raise ServiceNotConfigured(
+        raise ServiceNotConfigured(  # pragma: no cover
             f"'{name}' service configuration could not be found. "
             f"Maybe you need to run: cci service connect {name}"
         )
