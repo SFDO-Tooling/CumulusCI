@@ -318,7 +318,7 @@ keyword libraries can be found here:
 Salesforce Library
 ==================
 
-The Salesforce Library provides a set of useful keywords for interacting with Salesforce's Lightning UI and Salesforce's APIs to test Salesforce applications.
+The Salesforce Library provides a set of useful keywords for interacting with Salesforce's Lightning UI and Salesforce's APIs to test Salesforce applications. In addition to keywords, the library defines some custom locator strategies to aid in locating elements on a page.
 
 UI Keywords
 -----------
@@ -347,6 +347,24 @@ In addition to browser interactions, the Salesforce Library also provides the fo
 * ``Salesforce Query``: Runs a simple query using the object type and field=value syntax.  Returns a list of matching record dictionaries.
 * ``Salesforce Update``: Updates a record using its type, ID, and field=value syntax.
 * ``SOQL Query``: Runs a SOQL query and returns a REST API result dictionary.
+
+Locator Strategies
+------------------
+
+SeleniumLibrary provides many locator strategies for finding elements on a page. For example, you can specify an element via an xpath, an id, a css selector, or several others. These are documented in the SeleniumLibrary documentation under a section titled `Locating elements <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Locating%20elements>`_.
+
+In addition to the predefined locator strategies, the Salesforce library defines the following locator strategies, all of which use keywords in the Salesforce library to find web elements. For detailed explanations of the locator strategies, see the documentation for each keyword.
+
+.. list-table::
+   :widths:  1 3
+
+   * - ``label``
+     - This uses the Salesforce library keyword ``Locaate Element by Label`` to find web elements.
+       It is most useful to find form fields based on lightning web components and which have a ``label`` associated with the component. For example, ``label:First Name`` might return a ``<lightning-input>`` component that wraps a block of code which contains a ``<label>`` element with the given text. This strategy is used by the Salesforce library keyword ``Input form data``.
+   * - ``text``
+     - This uses the Salesforce library keyword ``Locate Element by Text`` to find web elements that contain a given string. For example, ``text:Profile`` is shorthand for the xpath locator ``xpath://*[text()='Profile']``
+   * - ``title``
+     - This uses the Salesforce library keyword ``Locate Element by Title`` to find web elements that have a title attribute with the given string. For example, ``title:Appointment`` is shorthand for the xpath ``xpath://*[@title='Appointment']``
 
 PageObjects Library
 ===================
@@ -832,4 +850,3 @@ Further Reading
 
     robot_tutorial.rst
     robot_debugger.rst
-

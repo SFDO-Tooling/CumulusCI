@@ -44,9 +44,11 @@ LOCATORS = {}
 
 
 def register_locators(prefix, locators):
-    """Register a strategy with a set of locators or a keyword
+    """Register locators to be used with a custom locator strategy
 
-    If the prefix is already known, merge in the new locators.
+    If the prefix is already known, the locators will be merged with
+    the dictionary we already have.
+
     """
     if prefix in LOCATORS:
         logger.debug(f"merging keywords for prefix {prefix}")
@@ -66,14 +68,9 @@ def add_location_strategies():
     for (prefix, strategy) in LOCATORS.items():
         try:
             logger.debug(f"adding location strategy for '{prefix}'")
-            if isinstance(strategy, dict):
-                selenium.add_location_strategy(
-                    prefix, functools.partial(locate_element, prefix)
-                )
-            else:
-                # not a dict? Just pass it through to selenium as-is
-                # so that this function can register normal keywords
-                selenium.add_location_strategy(prefix, strategy)
+            selenium.add_location_strategy(
+                prefix, functools.partial(locate_element, prefix)
+            )
         except Exception as e:
             logger.debug(f"unable to register locators: {e}")
 
