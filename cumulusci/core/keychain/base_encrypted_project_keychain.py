@@ -15,7 +15,6 @@ from cumulusci.core.exceptions import (
     ConfigError,
     CumulusCIException,
     KeychainKeyNotFound,
-    ServiceNotConfigured,
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 
@@ -38,15 +37,7 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
                 ConnectedAppOAuthConfig, self.app, context="connected app config"
             )
 
-    def _get_service(self, service_type, alias=None):
-        if not alias:
-            try:
-                alias = self.default_services[service_type]
-            except KeyError:
-                raise ServiceNotConfigured(
-                    f"No configured services of type: {service_type}"
-                )
-
+    def _get_service(self, service_type, alias):
         return self._decrypt_config(
             ServiceConfig,
             self.services[service_type][alias],
@@ -56,11 +47,11 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
     def set_default_service(
         self, service_type: str, alias: str, project: bool = False
     ) -> None:
-        if service_type not in self.config["services"]:
-            raise CumulusCIException(f"Unrecognized service type: {service_type}")
-        if alias not in self.config["services"][service_type]:
+        if service_type not in self.services:
+            raise CumulusCIException(f"Service type is not configured: {service_type}")
+        if alias not in self.services[service_type]:
             raise CumulusCIException(
-                f"No service of type {service_type} configred with the name: {alias}"
+                f"No service of type {service_type} configured with the name: {alias}"
             )
 
         self.default_services[service_type] = alias

@@ -131,7 +131,7 @@ class TestBaseProjectKeychain:
         keychain.services = {"github": {}}
         with pytest.raises(
             ServiceNotValid,
-            match=re.escape("Unrecognized service type: test-service"),
+            match="Service type is not configured: test-service",
         ):
             keychain.get_service("test-service", "alias").config == service_conf.config
 

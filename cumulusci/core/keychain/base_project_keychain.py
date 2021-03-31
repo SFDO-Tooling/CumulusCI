@@ -254,7 +254,7 @@ class BaseProjectKeychain(BaseConfig):
                 "Expecting services to be loaded, but none were found."
             )
         elif service_type not in self.project_config.services:
-            raise ServiceNotValid(f"Unrecognized service type: {service_type}")
+            raise ServiceNotValid(f"Service type is not configured: {service_type}")
 
         if service_type not in self.services:
             if service_type == "connected_app":
