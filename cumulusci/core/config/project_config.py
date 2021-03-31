@@ -503,8 +503,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def get_repo_from_url(self, url):
         splits = self._split_repo_url(url)
-        gh = self.get_github_api(splits["owner"], splits["name"])
-        repo = gh.repository(splits["owner"], splits["name"])
+        try:
+            gh = self.get_github_api(splits["owner"], splits["name"])
+            repo = gh.repository(splits["owner"], splits["name"])
+        except NotFoundError:
+            raise Exception(
+                f"We are unable to find the repository at {url}. Please make sure the URL is correct, that your GitHub user has read access to the repository, and that your GitHub personal access token includes the “repo” scope."
+            )
 
         return repo
 
