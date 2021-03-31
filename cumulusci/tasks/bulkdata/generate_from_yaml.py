@@ -23,14 +23,13 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
     """Generate sample data from a YAML template file."""
 
     task_docs = """
-    Depends on the currently un-released Snowfakery tool from SFDO. Better documentation
-    will appear here when Snowfakery is publically available.
+    Generate YAML from a Snowfakery recipe.
     """
 
     task_options = {
         **BaseGenerateDataTask.task_options,
         "generator_yaml": {
-            "description": "A generator YAML file to use",
+            "description": "A Snowfakery recipe file to use",
             "required": True,
         },
         "vars": {
@@ -54,7 +53,7 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
             "description": "Default path for temporary / working files"
         },
         "loading_rules": {
-            "description": "Path to .load.yml containing rules to use to load the file. Defaults to <recipename>.load.yml . Multiple flles can be comma separated."
+            "description": "Path to .load.yml file containing rules to use to load the file. Defaults to <recipename>.load.yml . Multiple files can be comma separated."
         },
         "num_records": {
             "description": (

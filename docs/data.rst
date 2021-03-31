@@ -666,8 +666,11 @@ The specific keys that you can associate with an object are:
 
 * api: "smart", "rest" or "bulk"
 * batch_size: a number
-* bulk_mode: "serial" or "parallel"]
+* bulk_mode: "serial" or "parallel"
 * load_after: the name of another sobject to wait for before loading
+
+"api", "batch_size" and "bulk_mode" have the same meanings that they
+do in mapping.yml as described in `API Selection`_.
 
 For example, one could force Accounts and Opportunities to load after
 Contacts:
