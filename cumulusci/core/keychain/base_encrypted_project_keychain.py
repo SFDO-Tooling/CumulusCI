@@ -11,7 +11,12 @@ from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
-from cumulusci.core.exceptions import ConfigError, KeychainKeyNotFound
+from cumulusci.core.exceptions import (
+    ConfigError,
+    CumulusCIException,
+    KeychainKeyNotFound,
+    ServiceNotConfigured,
+)
 from cumulusci.core.keychain import BaseProjectKeychain
 
 BS = 16
@@ -33,12 +38,37 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
                 ConnectedAppOAuthConfig, self.app, context="connected app config"
             )
 
-    def _get_service(self, service_type, alias):
+    def _get_service(self, service_type, alias=None):
+        if not alias:
+            try:
+                alias = self.default_services[service_type]
+            except KeyError:
+                raise ServiceNotConfigured(
+                    f"No configured services of type: {service_type}"
+                )
+
         return self._decrypt_config(
             ServiceConfig,
             self.services[service_type][alias],
             context=f"service config ({service_type}/{alias})",
         )
+
+    def set_default_service(
+        self, service_type: str, alias: str, project: bool = False
+    ) -> None:
+        if service_type not in self.config["services"]:
+            raise CumulusCIException(f"Unrecognized service type: {service_type}")
+        if alias not in self.config["services"][service_type]:
+            raise CumulusCIException(
+                f"No service of type {service_type} configred with the name: {alias}"
+            )
+
+        self.default_services[service_type] = alias
+        self._save_default_services()
+
+    def _save_default_services(self):
+        """Implement in subclasses"""
+        pass
 
     def _set_service(self, service_type, alias, service_config, project):
         encrypted = self._encrypt_config(service_config)

@@ -28,6 +28,7 @@ def project_config():
         "connected_app": {"attributes": {"test": {"required": True}}},
         "github": {"attributes": {"name": {"required": True}, "password": {}}},
         "not_configured": {"attributes": {"foo": {"required": True}}},
+        "devhub": {"attributes": {"foo": {"required": True}}},
     }
     project_config.project__name = "TestProject"
     return project_config
@@ -81,3 +82,9 @@ class TestBaseEncryptedProjectKeychain:
     def test_validate_key__wrong_length(self, project_config):
         with pytest.raises(ConfigError):
             BaseEncryptedProjectKeychain(project_config, "1")
+
+    def test_get_service(self, keychain):
+        keychain.config["services"] = {"devhub": {"foo": "config"}}
+        keychain.default_services["devhub"] = "foo"
+        default_devhub_service = keychain.get_service("devhub")
+        assert default_devhub_service == "config"

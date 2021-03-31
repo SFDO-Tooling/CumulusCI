@@ -28,6 +28,7 @@ class BaseProjectKeychain(BaseConfig):
         super(BaseProjectKeychain, self).__init__()
         self.config = {"orgs": {}, "app": None, "services": {}}
         self.project_config = project_config
+        self.default_services = {}
         self.key = key
         self._validate_key()
         self._load_keychain()
@@ -74,6 +75,12 @@ class BaseProjectKeychain(BaseConfig):
     def _load_orgs(self):
         pass
 
+    def _load_services(self):
+        pass
+
+    def _load_default_services(self):
+        pass  # pragma: no cover
+
     def _load_scratch_orgs(self):
         """Creates all scratch org configs for the project in the keychain if
         a keychain org doesn't already exist"""
@@ -85,9 +92,6 @@ class BaseProjectKeychain(BaseConfig):
                 # Don't overwrite an existing keychain org
                 continue
             self.create_scratch_org(config_name, config_name)
-
-    def _load_services(self):
-        pass
 
     def create_scratch_org(self, org_name, config_name, days=None, set_password=True):
         """ Adds/Updates a scratch org config to the keychain from a named config """
@@ -112,12 +116,13 @@ class BaseProjectKeychain(BaseConfig):
 
     def change_key(self, key):
         """ re-encrypt stored services and orgs with the new key """
-
         service_types = {}
-        for service_type, alias in self.list_services():
+        services = self.list_services()
+        for service_type, names in services.items():
             if service_type not in service_types:
                 service_types[service_type] = {}
-            service_types[service_type][alias] = self.get_service(service_type, alias)
+            for name in names:
+                service_types[service_type][name] = self.get_service(service_type, name)
 
         orgs = {}
         for org_name in self.list_orgs():
@@ -211,7 +216,6 @@ class BaseProjectKeychain(BaseConfig):
     def _get_org(self, name):
         return self.orgs.get(name)
 
-    # TODO: deprecate
     def _raise_org_not_found(self, name):
         raise OrgNotFound(f"Org named {name} was not found in keychain")
 
@@ -222,7 +226,7 @@ class BaseProjectKeychain(BaseConfig):
         return orgs
 
     def set_service(self, service_type, alias, service_config, project=False):
-        """ Store a ServiceConfig in the keychain """
+        """Store a ServiceConfig in the keychain"""
         if (
             "services" not in self.project_config.config
             or service_type not in self.project_config.config["services"]
@@ -232,41 +236,43 @@ class BaseProjectKeychain(BaseConfig):
         self._set_service(service_type, alias, service_config, project)
         self._load_services()
 
-    def _set_service(self, service_type, service_alias, service_config, project=False):
-        self.services[service_type][service_alias] = service_config
+    def _set_service(self, service_type, alias, service_config, project=False):
+        self.services[service_type][alias] = service_config
 
-    def get_service(self, service_type, service_alias=None):
-        """Retrieve a stored ServiceConfig from the keychain or exception
+    def get_service(self, service_type, alias=None):
+        """Retrieve a stored ServiceConfig from the keychain.
+        If no alias is specified then the default service for
+        the given type is returned.
 
-        :param service_type: the service to retrieve e.g. 'Github'
-        :type service_type: str
-
-        :param service_alias: the named instance of a service e.g. 'GitSOMA'
-        :type service_alias: str
-
-        :rtype ServiceConfig
-        :return the configured Service
+        @param service_type: the service to retrieve e.g. 'github'
+        @param alias: the alias of the service
+        @returns: ServiceConfig for the requested service
         """
         self._convert_connected_app()
-        if (
-            not self.project_config.services
-            or service_type not in self.project_config.services
-        ):
-            self._raise_service_not_valid(service_type)
+        if not self.project_config.services:
+            raise ServiceNotValid(
+                "Expecting services to be loaded, but none were found."
+            )
+        elif service_type not in self.project_config.services:
+            raise ServiceNotValid(f"Unrecognized service type: {service_type}")
+
         if service_type not in self.services:
             if service_type == "connected_app":
                 return DEFAULT_CONNECTED_APP
             self._raise_service_not_configured(service_type)
 
-        service = self._get_service(service_type, service_alias)
+        if not alias:
+            alias = self.default_services[service_type]
+        service = self._get_service(service_type, alias)
+
         # transparent migration of github API tokens to new key
         if service_type == "github" and service.password and not service.token:
             service.config["token"] = service.password
+
         return service
 
-    def _get_service(self, service_type, service_alias):
-        services_for_type = self.services.get(service_type)
-        return services_for_type.get(service_alias)
+    def _get_service(self, service_type, alias):
+        return self.services[service_type][alias]
 
     def _validate_key(self):
         pass
@@ -321,13 +327,13 @@ class BaseProjectKeychain(BaseConfig):
         for s_type in service_types:
             if s_type not in services:
                 services[s_type] = []
-            aliases = list(self.services[s_type].keys())
-            aliases.sort()
-            for alias in aliases:
-                services[s_type].append((s_type, alias))
+            names = list(self.services[s_type].keys())
+            names.sort()
+            for name in names:
+                services[s_type].append(name)
         return services
 
     @property
     def cache_dir(self):
         "Helper function to get the cache_dir from the project_config"
-        return self.project_config.cache_dir
+        return self.project_config.cache_dir  # pragma: no cover

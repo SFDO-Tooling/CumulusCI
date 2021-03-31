@@ -8,6 +8,8 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import OrgNotFound, ServiceNotConfigured
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 
+DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
+
 
 class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     """ An encrypted project keychain that stores in the project's local directory """
@@ -43,16 +45,14 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                     constructor(config) if constructor else config
                 )
 
-    def _load_service_files(self, dirname: str, constructor=None) -> None:
+    def _load_service_files(self, constructor=None) -> None:
         """
-        Loads .service files onto the keychain.
+        Load configured services onto the keychain.
         This method recursively goes through all subdirectories
-        looking for .service files.
+        in ~/.cumulusci/services looking for .service files to load.
         """
-        if not dirname:
-            return
-        dir_path = Path(dirname)
-        for item in dir_path.glob("**/*"):
+        services_dir = Path(f"{self.global_config_dir}/services")
+        for item in services_dir.glob("**/*"):
             if item.suffix == ".service":
                 with open(item) as f:
                     config = f.read()
@@ -66,10 +66,43 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                     constructor(config) if constructor else config
                 )
 
-    def _load_file(self, dirname: str, filename: str, key: str) -> None:
+    def _load_default_services(self) -> None:
+        """Sets self.default_services on the keychain so that
+        calls to get_service() that do _not_ pass an alias can
+        return the default service for the given type"""
+        global_default_services = Path(
+            f"{self.global_config_dir}/{DEFAULT_SERVICES_FILENAME}"
+        )
+        project_default_services = Path(
+            f"{self.project_local_dir}/{DEFAULT_SERVICES_FILENAME}"
+        )
+
+        if global_default_services.is_file():
+            with open(global_default_services, "r") as f:
+                self.default_services = json.loads(f.read())
+        # project defaults will overwrite global defaults
+        if project_default_services.is_file():
+            with open(global_default_services, "r") as f:
+                project_default_services = json.loads(f.read())
+                self.default_services = {
+                    **self.default_services,
+                    **project_default_services,
+                }
+
+    def _save_default_services(self, project: bool = False) -> None:
+        """Write out the contents of self.default_services to the
+        DEFAULT_SERVICES.json file based on the provided scope"""
+        dir_path = (
+            Path(self.project_local_dir) if project else Path(self.global_config_dir)
+        )
+        with open(dir_path / DEFAULT_SERVICES_FILENAME, "w") as f:
+            f.write(json.dumps(self.default_services))
+
+    def _load_app_file(self, dirname: str, filename: str, key: str) -> None:
+        """This is only used for loading the legacy connected_app configurations"""
         if dirname is None:
             return
-        full_path = os.path.join(dirname, filename)
+        full_path = Path(f"{dirname}/{filename}")
         if not os.path.exists(full_path):
             return
         with open(os.path.join(dirname, filename), "r") as f_item:
@@ -77,8 +110,8 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         self.config[key] = config
 
     def _load_app(self) -> None:
-        self._load_file(self.global_config_dir, "connected.app", "app")
-        self._load_file(self.project_local_dir, "connected.app", "app")
+        self._load_app_file(self.global_config_dir, "connected.app", "app")
+        self._load_app_file(self.project_local_dir, "connected.app", "app")
 
     def _load_orgs(self) -> None:
         self._load_org_files(self.global_config_dir, GlobalOrg)
@@ -87,60 +120,65 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     def _load_services(self) -> None:
         """Load services (and migrate old ones if present)"""
         # The following steps occur in a _very_ particular order
-        self._create_default_services_file(self.project_local_dir)
-        self._create_services_dir_structure(self.global_config_dir)
-        self._migrate_unnamed_services(self.global_config_dir)
-        self._migrate_unnamed_services(self.project_local_dir)
+        self._create_default_service_files()
+        self._create_services_dir_structure()
+        self._migrate_services()
 
-        services_dir = Path(f"{self.global_config_dir}/services")
-        self._load_service_files(services_dir)
+        self._load_service_files()
+        self._load_default_services()
 
-    def _create_default_services_file(self, local_project_path: str) -> None:
+    def _create_default_service_files(self) -> None:
         """
-        Creates the DEFAULT_SERVICES.json file if it does not yet exist.
-        This should occur once; right before initial migration of service
-        files has been performed. This allows us to set any services configured
-        at the project level as the default service for the given service type.
+        Generate the DEFAULT_SERVICES.json files at global and project scopes.
 
         @param local_proj_path: should be the local_project_path for the project
         """
-        if not local_project_path:
+        global_default_service_file = Path(
+            f"{self.global_config_dir}/{DEFAULT_SERVICES_FILENAME}"
+        )
+        if global_default_service_file.is_file():
             return
 
-        local_project_path = Path(local_project_path)
-        default_services_file = local_project_path / "DEFAULT_SERVICES.json"
-        if default_services_file.is_file():
-            return
+        self._write_default_services_for_dir(self.global_config_dir)
+        for local_proj_dir in self._iter_local_project_dirs():
+            self._write_default_services_for_dir(local_proj_dir)
 
-        default_services_file.touch()
-        default_services = {s_type: {} for s_type in self.services}
-        # set defaults from the global scope first
-        self._set_default_services_for_dir(
-            local_project_path.parent, default_services, "global"
-        )
-        # set defaults in project dir second, so they override any global defaults
-        self._set_default_services_for_dir(
-            local_project_path, default_services, "project"
-        )
+    def _write_default_services_for_dir(self, dir_path: str) -> None:
+        """Look through the given dir and set all .service files
+        present as the defaults for their given types, and write these
+        out to a DEFAULT_SERVICES.json file in the directory. This occurs
+        once before .service files are migrated to the appropriate
+        services/ sub-directory, so we set the default to the alias
+        that will be assigned during migration.
 
-        with open(default_services_file, "w") as f:
-            f.write(json.dumps(default_services))
+        @param dir_path: the directory to look through and write
+        the DEFAULT_SERVICES.json file in.
+        """
+        if dir_path is None:
+            return  # pragma: no cover
 
-    def _set_default_services_for_dir(
-        self, dir_path: Path, default_services: T.Dict, scope: str
-    ) -> None:
+        dir_path = Path(dir_path)
+        default_services = {}
         for item in dir_path.iterdir():
             if item.suffix == ".service":
-                # this .service file has not yet been migrated
-                # so it's name is the type of service (not its alias)
                 service_type = item.name.replace(".service", "")
-                # TODO: get default name from constant
+                scope = "global" if item.parent.name == ".cumulusci" else "project"
                 default_services[service_type] = f"{service_type}__{scope}"
 
-    def _create_services_dir_structure(self, dir_path: str) -> None:
+        with open(dir_path / DEFAULT_SERVICES_FILENAME, "w") as f:
+            f.write(json.dumps(default_services))
+
+    def _iter_local_project_dirs(self):
+        """Iterate over all local project dirs in ~/.cumulusci"""
+        for item in Path(self.global_config_dir).iterdir():
+            if item.is_dir() and item.name not in ["logs", "services"]:
+                yield item
+
+    def _create_services_dir_structure(self) -> None:
         """
-        Given a directory, ensure that the 'services' directory sturcutre exists.
-        The services dir has the following structure:
+        Ensure the 'services' directory structure exists.
+        The services dir has the following structure and lives
+        in the global_config_dir:
 
         services
         |-- github
@@ -152,59 +190,76 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         |   |-- alias2.service
         |   |-- ...
         .
-        .
-        .
 
-        This also has the advantage that when we add a new service
-        type to cumulusci.yml a new directory for that service type
-        will be created the first time services are loaded.
+        This also has the advantage that when a new service type
+        is added to cumulusci.yml a new directory for that service type
+        will be created.
         """
-        services_dir_path = Path(f"{dir_path}/services")
-        # ensure a root service/ dir exists
+        services_dir_path = Path(f"{self.global_config_dir}/services")
         if not Path.is_dir(services_dir_path):
             Path.mkdir(services_dir_path)
 
         configured_service_types = self.project_config.config["services"].keys()
         for service_type in configured_service_types:
             service_type_dir_path = Path(services_dir_path / service_type)
-            # ensure a dir for each service type exists
             if not Path.is_dir(service_type_dir_path):
                 Path.mkdir(service_type_dir_path)
 
-    def _migrate_unnamed_services(self, dir_path: str):
-        """Look in the given dir for any files with the .services extension and
-        move them to the proper directory with the defualt alias.
-
-        @param dir_path: the directory to migrate .service files from
-        should be either self.global_config_dir or self.project_local_dir
+    def _migrate_services(self):
         """
-        if dir_path is None:
-            return
+        Migrate .service files from the global_config_dir and
+        any project local directories.
+        """
+        self._migrate_services_from_dir(self.global_config_dir)
+        for local_proj_dir in self._iter_local_project_dirs():
+            self._migrate_services_from_dir(local_proj_dir)
 
-        configured_service_types = self.project_config.config["services"].keys()
+    def _migrate_services_from_dir(self, dir_path: str) -> None:
+        """
+        Migrate all .service files from the given directory to
+        the appropriate service sub-directory and apply the default
+        alias. This is intended to be run against either the
+        global_config_dir, or a local project directory.
 
-        for item in Path(dir_path).iterdir():
+        Default aliases are in the form `service_type__scope`.
+        Scope is either 'project' or 'global' depending
+        on where the .service file is located.
+        """
+        if not dir_path:
+            return  # pragma: no cover
+
+        dir_path = Path(dir_path)
+
+        for item in dir_path.iterdir():
             if item.suffix == ".service":
-                service_type = item.name.replace(".service", "")
-                if service_type not in configured_service_types:
-                    continue  # we don't care about unrecognized services
-
-                service_scope = "global" if dir_path.name == ".cumulusci" else "project"
-                service_filename = f"{service_type}__{service_scope}.service"
-
-                service_type_path = Path(
-                    f"{self.global_config_dir}/services/{service_type}"
-                )
-                new_service_path = service_type_path / service_filename
-
-                if new_service_path.is_file():
+                new_service_filepath = self._get_new_service_filepath(item)
+                if not new_service_filepath:
+                    continue
+                if new_service_filepath.is_file():
                     self.logger.warning(
-                        f"Found {service_type}.serive in ~/.cumulusci and default alias already exists."
+                        f"Skipping migration of {item.name} as a default alias already exists for this service type. "
                     )
                     continue
 
-                old_service_path = Path(f"{dir_path}/{service_type}.service")
-                old_service_path.replace(new_service_path)
+                item.replace(new_service_filepath)
+
+    def _get_new_service_filepath(self, item: Path) -> Path:
+        """Given an old .service filepath, determine the path
+        and filename of the new .service file.
+
+        @returns: the Path to the newfile, or None if the service
+        is of an unrecognized type.
+        """
+        service_type = item.name.replace(".service", "")
+        configured_service_types = self.project_config.config["services"].keys()
+        if service_type not in configured_service_types:
+            self.logger.info(f"Skipping migration of unrecognized service: {item.name}")
+            return None
+
+        scope = "global" if item.parent.name == ".cumulusci" else "project"
+        new_filename = f"{service_type}__{scope}.service"
+        services_sub_dir = Path(f"{self.global_config_dir}/services/{service_type}")
+        return services_sub_dir / new_filename
 
     def _remove_org(self, name, global_org):
         if global_org:

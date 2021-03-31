@@ -3,7 +3,8 @@ import pytest
 
 from unittest import mock
 
-from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.keychain import BaseProjectKeychain, DEFAULT_CONNECTED_APP
+from cumulusci.core.exceptions import OrgNotFound, ServiceNotValid, ServiceNotConfigured
 from cumulusci.core.config import (
     BaseConfig,
     BaseProjectConfig,
@@ -12,7 +13,6 @@ from cumulusci.core.config import (
     ServiceConfig,
     UniversalConfig,
 )
-from cumulusci.core.exceptions import OrgNotFound, ServiceNotValid, ServiceNotConfigured
 
 
 @pytest.fixture()
@@ -23,6 +23,7 @@ def project_config():
         "connected_app": {"attributes": {"test": {"required": True}}},
         "github": {"attributes": {"name": {"required": True}, "password": {}}},
         "not_configured": {"attributes": {"foo": {"required": True}}},
+        "devhub": {"attributes": {"foo": {"required": True}}},
     }
     project_config.project__name = "TestProject"
     return project_config
@@ -103,9 +104,41 @@ class TestBaseProjectKeychain:
         )
 
     def test_set_service__github(self, keychain, service_conf):
-        keychain.services = {"github": {}}
+        keychain.config["services"] = {"github": {}}
         keychain.set_service("github", "alias", service_conf, project=False)
         assert keychain.get_service("github", "alias").config == service_conf.config
+
+    def test_get_service__default_service(self, keychain):
+        keychain.default_services = {"devhub": "baz"}
+        keychain.config["services"] = {
+            "devhub": {"foo": "config1", "bar": "config2", "baz": "config3"}
+        }
+        # If we don't specify an alias to get_service() we get
+        # the default service for the given type
+        default_github_service = keychain.get_service("devhub")
+
+        assert default_github_service == "config3"
+
+    def test_get_service__service_not_loaded(self, keychain, service_conf):
+        keychain.project_config.config["services"] = {}
+        with pytest.raises(
+            ServiceNotValid,
+            match=re.escape("Expecting services to be loaded, but none were found."),
+        ):
+            keychain.get_service("test-service", "alias").config == service_conf.config
+
+    def test_get_service__service_type_not_valid(self, keychain, service_conf):
+        keychain.services = {"github": {}}
+        with pytest.raises(
+            ServiceNotValid,
+            match=re.escape("Unrecognized service type: test-service"),
+        ):
+            keychain.get_service("test-service", "alias").config == service_conf.config
+
+    def test_get_service__DEFAULT_CONNECTED_APP(self, keychain, service_conf):
+        keychain.services = {}
+        service = keychain.get_service("connected_app", "alias")
+        assert service is DEFAULT_CONNECTED_APP
 
     def test_set_service__private_method(self, keychain, service_conf):
         alias = "ziggy"
@@ -144,6 +177,7 @@ class TestBaseProjectKeychain:
         project_config.config["orgs"]["scratch"] = {}
         project_config.config["orgs"]["scratch"]["test_scratch_auto"] = {}
         keychain = BaseProjectKeychain(project_config, key)
+        keychain._load_scratch_orgs()
         assert list(keychain.orgs) == ["test_scratch_auto"]
 
     def test_get_org__existing_org(self, project_config, key):
@@ -164,12 +198,12 @@ class TestBaseProjectKeychain:
 
     @mock.patch("sarge.Command")
     def test_set_and_get_default_org(self, Command, keychain, org_config):
-        org_config = OrgConfig({"foo": "bar"}, "test", keychain=keychain)
+        org_config = OrgConfig({"created": True}, "test", keychain=keychain)
         org_config.save()
         keychain.set_default_org("test")
         org_config.config["default"] = True
 
-        Command.assert_called_once()
+        assert Command.call_count == 2
         assert keychain.get_default_org()[1].config == org_config.config
 
     @mock.patch("sarge.Command")
@@ -180,7 +214,6 @@ class TestBaseProjectKeychain:
         keychain.set_org(org_config)
         keychain.unset_default_org()
 
-        # TODO: assert_called_once_with kwargs?
         Command.assert_called_once()
         assert keychain.get_default_org()[1] is None
 
@@ -227,16 +260,14 @@ class TestBaseProjectKeychain:
                 "bar_alias": service_config,
             },
             "github": {
-                "foo_alias": service_config,
-                "bar_alias": service_config,
+                "zed_alias": service_config,
+                "zoo_alias": service_config,
             },
         }
         services = keychain.list_services()
-
-        assert services[0] == ("devhub", "bar_alias")
-        assert services[1] == ("devhub", "foo_alias")
-        assert services[2] == ("github", "bar_alias")
-        assert services[3] == ("github", "foo_alias")
+        assert len(list(services.keys())) == 2
+        assert services["devhub"] == ["bar_alias", "foo_alias"]
+        assert services["github"] == ["zed_alias", "zoo_alias"]
 
     def test_convert_connected_app(self, key):
         project_config = BaseProjectConfig(

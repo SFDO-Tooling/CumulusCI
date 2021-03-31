@@ -252,24 +252,6 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         assert "foo" in keychain.get_org("test").config
         assert keychain.get_org("test").keychain == keychain
 
-    def test_load_service_files__no_dir(self):
-        dummy_keychain = BaseEncryptedProjectKeychain(self.project_config, self.key)
-        github_service_path = Path(f"{self.tempdir_home}/.cumulusci/services/github")
-        github_service_path.mkdir(parents=True)
-        self._write_file(
-            Path(github_service_path / "alias.service"),
-            dummy_keychain._encrypt_config(BaseConfig({"foo": "bar"})).decode("utf-8"),
-        )
-
-        keychain = self.keychain_class(self.project_config, self.key)
-        del keychain.config["services"]
-
-        with mock.patch.object(
-            self.keychain_class, "global_config_dir", Path(self.tempdir_home)
-        ):
-            keychain._load_service_files(None)
-        assert keychain.services is None
-
     def test_load_service_files(self):
         dummy_keychain = BaseEncryptedProjectKeychain(self.project_config, self.key)
         github_service_path = Path(f"{self.tempdir_home}/.cumulusci/services/github")
@@ -282,23 +264,21 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         keychain = self.keychain_class(self.project_config, self.key)
         del keychain.config["services"]
 
-        with mock.patch.object(
-            self.keychain_class, "global_config_dir", Path(self.tempdir_home)
-        ):
-            keychain._load_service_files(f"{self.tempdir_home}/.cumulusci/services")
+        keychain._load_service_files()
 
-        assert "foo" in keychain.get_service("github", "alias").config
+        github_service = keychain.get_service("github", "alias")
+        assert "foo" in github_service.config
 
     def test_load_file(self):
-        self._write_file(os.path.join(self.tempdir_home, "config"), "foo")
+        self._write_file(Path(f"{self.tempdir_home}/config"), "foo")
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain._load_file(self.tempdir_home, "config", "from_file")
-        self.assertEqual("foo", keychain.config["from_file"])
+        keychain._load_app_file(self.tempdir_home, "config", "from_file")
+        assert "foo" == keychain.config["from_file"]
 
     def test_load_file__universal_config(self):
-        self._write_file(os.path.join(self.tempdir_home, "config"), "foo")
+        self._write_file(Path(f"{self.tempdir_home}/config"), "foo")
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain._load_file(self.tempdir_home, "config", "from_file")
+        keychain._load_app_file(self.tempdir_home, "config", "from_file")
         assert "foo" == keychain.config["from_file"]
 
     @mock.patch("cumulusci.core.utils.cleanup_org_cache_dirs")
@@ -405,27 +385,49 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         keychain = self.keychain_class(self.universal_config, self.key)
         assert keychain.get_default_org() == (None, None)
 
-    def test_create_default_services_file__without_project_service(self):
+    def test_iter_local_project_dirs(self):
+        cci_home_dir = Path(f"{self.tempdir_home}/.cumulusci")
+        (cci_home_dir / "logs").mkdir()
+        (cci_home_dir / "services").mkdir()
+        (cci_home_dir / "chewy").mkdir()
+        (cci_home_dir / "yoshi").mkdir()
+
         keychain = self.keychain_class(self.universal_config, self.key)
+        local_project_dirs = list(keychain._iter_local_project_dirs())
+
+        assert local_project_dirs == [cci_home_dir / "chewy", cci_home_dir / "yoshi"]
+
+    def test_create_default_services_files__without_project_service(self):
         cci_home_dir = Path(f"{self.tempdir_home}/.cumulusci")
 
         self._write_file(cci_home_dir / "devhub.service", "<encrypted devhub config>")
         self._write_file(cci_home_dir / "github.service", "<encrypted github config>")
 
-        project_path = cci_home_dir / "test-project"
-        project_path.mkdir(parents=True)
+        # local project dir without a .service file
+        (cci_home_dir / "test-project").mkdir()
+        # we should ignore everything in the log dir
+        log_dir = cci_home_dir / "logs"
+        log_dir.mkdir()
+        self._write_file(log_dir / "connected_app.service", "<encrypted config>")
 
-        keychain._create_default_services_file(project_path)
-        default_services_file = project_path / "DEFAULT_SERVICES.json"
+        # _create_default_services_files() invoked via __init__
+        keychain = self.keychain_class(self.universal_config, self.key)
+
+        default_services_file = keychain.global_config_dir / "DEFAULT_SERVICES.json"
         with open(default_services_file, "r") as f:
             default_services = json.loads(f.read())
 
-        # no services configured at the project level
+        assert len(default_services.keys()) == 2  # we shouldn't get connected_app
         assert default_services["devhub"] == "devhub__global"
         assert default_services["github"] == "github__global"
 
-    def test_create_default_services_file__with_project_service(self):
-        keychain = self.keychain_class(self.universal_config, self.key)
+        project_default_services_file = Path(
+            f"{keychain.global_config_dir}/test-project/DEFAULT_SERVICES.json"
+        )
+        with open(project_default_services_file, "r") as f:
+            assert json.loads(f.read()) == {}
+
+    def test_create_default_services_files__with_project_service(self):
         cci_home_dir = Path(f"{self.tempdir_home}/.cumulusci")
 
         self._write_file(cci_home_dir / "devhub.service", "<encrypted devhub config>")
@@ -435,13 +437,26 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         project_path.mkdir(parents=True)
         self._write_file(project_path / "github.service", "project level github config")
 
-        keychain._create_default_services_file(project_path)
-        default_services_file = project_path / "DEFAULT_SERVICES.json"
-        with open(default_services_file, "r") as f:
+        # _create_default_services_files invoked via __init__
+        keychain = self.keychain_class(self.universal_config, self.key)
+
+        global_default_services_file = Path(
+            f"{keychain.global_config_dir}/DEFAULT_SERVICES.json"
+        )
+        assert global_default_services_file.is_file()
+        with open(global_default_services_file, "r") as f:
             default_services = json.loads(f.read())
 
+        assert len(default_services.keys()) == 2
+        assert default_services["github"] == "github__global"
         assert default_services["devhub"] == "devhub__global"
-        # github service should have a project level default
+
+        project_default_services_file = project_path / "DEFAULT_SERVICES.json"
+        assert project_default_services_file.is_file()
+        with open(project_default_services_file, "r") as f:
+            default_services = json.loads(f.read())
+
+        assert len(default_services.keys()) == 1
         assert default_services["github"] == "github__project"
 
     def test_create_services_dir_structure(self):
@@ -460,11 +475,11 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         assert len(service_types) == 0
 
         # explicitly invoke a second time to test idempotency
-        keychain._create_services_dir_structure(self.tempdir_home)
+        keychain._create_services_dir_structure()
         # make sure no new dirs appeared
         assert num_services == len(list(Path.iterdir(services_path)))
 
-    def test_migrate_unnamed_services(self):
+    def test_migrate_services(self):
         cci_home_dir = Path(f"{self.tempdir_home}/.cumulusci")
         self._write_file(cci_home_dir / "github.service", "github config")
         self._write_file(cci_home_dir / "foo.service", "foo config")
@@ -473,9 +488,8 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         local_proj_dir.mkdir()
         self._write_file(local_proj_dir / "github.service", "github2 config")
 
-        keychain = self.keychain_class(self.project_config, self.key)
-        keychain._migrate_unnamed_services(cci_home_dir)
-        keychain._migrate_unnamed_services(cci_home_dir / "test-project")
+        # _migrade_services() invoked via __init__
+        self.keychain_class(self.project_config, self.key)
 
         assert not Path.is_file(cci_home_dir / "github.service")
         assert (cci_home_dir / "services/github/github__global.service").is_file()
@@ -490,7 +504,7 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         # unrecognized services should be left alone
         assert (cci_home_dir / "foo.service").is_file()
 
-    def test_migrate_unnamed_services__warn_duplicate_default_service(self):
+    def test_migrate_services__warn_duplicate_default_service(self):
         # make unaliased devhub service
         legacy_devhub_service = Path(f"{self.tempdir_home}/.cumulusci/devhub.service")
         self._write_file(legacy_devhub_service, "legacy config")
@@ -501,8 +515,8 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
             f"{named_devhub_service}/devhub__global.service", "migrated config"
         )
 
-        keychain = self.keychain_class(self.universal_config, self.key)
-        keychain._migrate_unnamed_services(self.tempdir_home)
+        # _migrate_services() invoked via __init__
+        self.keychain_class(self.universal_config, self.key)
 
         # ensure we don't remove this service file
         assert legacy_devhub_service.is_file()
