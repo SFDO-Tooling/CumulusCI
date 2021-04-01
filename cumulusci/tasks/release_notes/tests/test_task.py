@@ -17,6 +17,7 @@ class TestGithubReleaseNotes:
         project_config = create_project_config()
         project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",
