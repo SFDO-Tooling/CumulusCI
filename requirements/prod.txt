@@ -25,6 +25,8 @@ cryptography==3.4.7
     #   -r requirements/prod.in
     #   authlib
     #   jwcrypto
+docutils==0.16
+    # via -r requirements/prod.in
 faker==7.0.1
     # via
     #   -r requirements/prod.in
