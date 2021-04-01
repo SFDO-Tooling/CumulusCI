@@ -27,6 +27,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
         self.project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",
