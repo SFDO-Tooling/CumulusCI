@@ -28,7 +28,9 @@ class TestBaseMetaDeployTask(unittest.TestCase):
 
         project_config = create_project_config()
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig()
         task = BaseMetaDeployTask(project_config, task_config)
@@ -51,7 +53,9 @@ class TestBaseMetaDeployTask(unittest.TestCase):
 
         project_config = create_project_config()
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig()
         task = BaseMetaDeployTask(project_config, task_config)
