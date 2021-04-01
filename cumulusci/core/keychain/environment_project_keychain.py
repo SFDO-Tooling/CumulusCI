@@ -55,5 +55,9 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
         for key, value in self._get_env():
             if key.startswith(self.service_var_prefix):
                 service_config = json.loads(value)
-                service_name = key[len(self.service_var_prefix) :].lower()
-                self._set_service(service_name, ServiceConfig(service_config))
+                service_type = key[len(self.service_var_prefix) :].lower()
+                self._set_service(service_type, "env", ServiceConfig(service_config))
+
+    def _init_default_services(self):
+        for service_type in self.services:
+            self.default_services[service_type] = "env"

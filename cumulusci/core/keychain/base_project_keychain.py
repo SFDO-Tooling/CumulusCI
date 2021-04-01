@@ -26,9 +26,15 @@ class BaseProjectKeychain(BaseConfig):
 
     def __init__(self, project_config, key):
         super(BaseProjectKeychain, self).__init__()
-        self.config = {"orgs": {}, "app": None, "services": {}}
+        self.config = {
+            "orgs": {},
+            "app": None,
+            "services": {s_type: {} for s_type in project_config.config["services"]},
+        }
         self.project_config = project_config
-        self.default_services = {}
+        self._default_services = {
+            s_type: None for s_type in project_config.config["services"]
+        }
         self.key = key
         self._validate_key()
         self._load_keychain()
@@ -68,6 +74,7 @@ class BaseProjectKeychain(BaseConfig):
         self._load_orgs()
         self._load_scratch_orgs()
         self._load_services()
+        self._init_default_services()
 
     def _load_app(self):
         pass
@@ -78,8 +85,8 @@ class BaseProjectKeychain(BaseConfig):
     def _load_services(self):
         pass
 
-    def _load_default_services(self):
-        pass  # pragma: no cover
+    def _init_default_services(self):
+        pass
 
     def _load_scratch_orgs(self):
         """Creates all scratch org configs for the project in the keychain if
@@ -232,9 +239,15 @@ class BaseProjectKeychain(BaseConfig):
             or service_type not in self.project_config.config["services"]
         ):
             self._raise_service_not_valid(service_type)
+
         self._validate_service(service_type, alias, service_config)
         self._set_service(service_type, alias, service_config, project)
         self._load_services()
+        # if we just set the first service of a given type,
+        # set it as the default
+        for service_type in self.services.keys():
+            if len(self.services[service_type].keys()) == 1:
+                self._default_services[service_type] = alias
 
     def _set_service(self, service_type, alias, service_config, project=False):
         self.services[service_type][alias] = service_config
@@ -262,7 +275,7 @@ class BaseProjectKeychain(BaseConfig):
             self._raise_service_not_configured(service_type)
 
         if not alias:
-            alias = self.default_services[service_type]
+            alias = self._default_services[service_type]
         service = self._get_service(service_type, alias)
 
         # transparent migration of github API tokens to new key

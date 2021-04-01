@@ -1,5 +1,6 @@
 import json
 import os
+import pytest
 import tempfile
 import unittest
 from unittest import mock
@@ -17,7 +18,7 @@ from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.core.keychain import EnvironmentProjectKeychain
 from cumulusci.core.keychain.encrypted_file_project_keychain import GlobalOrg
-from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.core.exceptions import OrgNotFound, ServiceNotValid, ServiceNotConfigured
 from cumulusci.core.tests.utils import EnvironmentVarGuard
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
@@ -51,8 +52,8 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         keychain = self.keychain_class(self.project_config, self.key)
         self.org_config.global_org = global_org
         keychain.set_org(self.org_config, global_org)
-        self.assertEqual(list(keychain.orgs.keys()), ["test"])
-        self.assertEqual(keychain.get_org("test").config, self.org_config.config)
+        assert list(keychain.orgs.keys()) == ["test"]
+        assert keychain.get_org("test").config == self.org_config.config
 
     def test_set_service_github(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
@@ -60,7 +61,7 @@ class ProjectKeychainTestMixin(unittest.TestCase):
             "github", "alias", self.services["github"], project=project
         )
         github_service = keychain.get_service("github", "alias")
-        self.assertEqual(github_service.config, self.services["github"].config)
+        assert github_service.config == self.services["github"].config
 
 
 class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
@@ -202,17 +203,17 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
 
     def _mk_temp_home(self):
         self.tempdir_home = tempfile.mkdtemp()
-        global_config_dir = os.path.join(self.tempdir_home, ".cumulusci")
-        os.makedirs(global_config_dir)
+        global_config_dir = Path(f"{self.tempdir_home}/.cumulusci")
+        global_config_dir.mkdir()
 
     def _mk_temp_project(self):
         self.tempdir_project = tempfile.mkdtemp()
-        git_dir = os.path.join(self.tempdir_project, ".git")
-        os.makedirs(git_dir)
+        git_dir = Path(f"{self.tempdir_project}/.git")
+        git_dir.mkdir()
         self._create_git_config()
 
     def _create_git_config(self):
-        filename = os.path.join(self.tempdir_project, ".git", "config")
+        filename = Path(f"{self.tempdir_project}/.git/config")
         content = (
             '[remote "origin"]\n'
             + f"  url = git@github.com:TestOwner/{self.project_name}"
@@ -238,9 +239,10 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
 
     def test_load_files__org_empty(self):
         dummy_keychain = BaseEncryptedProjectKeychain(self.project_config, self.key)
-        os.makedirs(os.path.join(self.tempdir_home, ".cumulusci", self.project_name))
+        local_project_dir = Path(f"{self.tempdir_home}/.cumulusci/{self.project_name}")
+        local_project_dir.mkdir(parents=True)
         self._write_file(
-            os.path.join(self.tempdir_home, "test.org"),
+            Path(f"{self.tempdir_home}/test.org"),
             dummy_keychain._encrypt_config(BaseConfig({"foo": "bar"})).decode("utf-8"),
         )
         keychain = self.keychain_class(self.project_config, self.key)
@@ -523,3 +525,34 @@ class TestEncryptedFileProjectKeychain(ProjectKeychainTestMixin):
         # ensure contents of migrated are unchanged
         with open(named_devhub_service / "devhub__global.service", "r") as f:
             assert f.read() == "migrated config"
+
+    def test_set_service__first_should_be_default(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        keychain.set_service("github", "foo_github", ServiceConfig({"git": "foo"}))
+        keychain.set_service("github", "bar_github", ServiceConfig({"git": "bar"}))
+
+        github_service = keychain.get_service("github")
+        assert github_service.config == {"git": "foo"}
+
+    def test_set_default_service(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        keychain.set_service("github", "foo_github", ServiceConfig({"git": "foo"}))
+        keychain.set_service("github", "bar_github", ServiceConfig({"git": "bar"}))
+
+        github_service = keychain.get_service("github")
+        assert github_service.config == {"git": "foo"}
+        # now set default to bar
+        keychain.set_default_service("github", "bar_github")
+        github_service = keychain.get_service("github")
+        assert github_service.config == {"git": "bar"}
+
+    def test_set_default_service__no_such_service(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        with pytest.raises(ServiceNotValid):
+            keychain.set_default_service("fooey", "alias")
+
+    def test_set_default_service__no_such_alias(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        keychain.set_service("github", "foo_github", ServiceConfig({"git": "foo"}))
+        with pytest.raises(ServiceNotConfigured):
+            keychain.set_default_service("github", "wrong_alias")

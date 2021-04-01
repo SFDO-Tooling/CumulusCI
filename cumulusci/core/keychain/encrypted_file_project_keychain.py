@@ -5,7 +5,7 @@ import typing as T
 from pathlib import Path
 
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.exceptions import OrgNotFound, ServiceNotConfigured
+from cumulusci.core.exceptions import OrgNotFound, ServiceNotConfigured, ServiceNotValid
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
@@ -66,9 +66,9 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                     constructor(config) if constructor else config
                 )
 
-    def _load_default_services(self) -> None:
-        """Sets self.default_services on the keychain so that
-        calls to get_service() that do _not_ pass an alias can
+    def _init_default_services(self) -> None:
+        """Init self._default_services on the keychain so that
+        calls to get_service() that do not pass an alias can
         return the default service for the given type"""
         global_default_services = Path(
             f"{self.global_config_dir}/{DEFAULT_SERVICES_FILENAME}"
@@ -79,15 +79,32 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
         if global_default_services.is_file():
             with open(global_default_services, "r") as f:
-                self.default_services = json.loads(f.read())
+                default_services = json.loads(f.read())
+
+            for s_type, alias in default_services.items():
+                self._default_services[s_type] = alias
+
         # project defaults will overwrite global defaults
         if project_default_services.is_file():
             with open(global_default_services, "r") as f:
-                project_default_services = json.loads(f.read())
-                self.default_services = {
-                    **self.default_services,
-                    **project_default_services,
-                }
+                default_services = json.loads(f.read())
+
+            for s_type, alias in default_services.items():
+                self._default_services[s_type] = alias
+
+    def set_default_service(
+        self, service_type: str, alias: str, project: bool = False
+    ) -> None:
+        """Public API for setting a default service e.g. `cci service default`"""
+        if service_type not in self.project_config.services:
+            raise ServiceNotValid(f"No such service type: {service_type}")
+        elif alias not in self.services[service_type]:
+            raise ServiceNotConfigured(
+                f"No service of type {service_type} configured with name: {alias}"
+            )
+
+        self._default_services[service_type] = alias
+        self._save_default_services(project)
 
     def _save_default_services(self, project: bool = False) -> None:
         """Write out the contents of self.default_services to the
@@ -123,9 +140,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         self._create_default_service_files()
         self._create_services_dir_structure()
         self._migrate_services()
-
         self._load_service_files()
-        self._load_default_services()
 
     def _create_default_service_files(self) -> None:
         """
@@ -293,9 +308,9 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         with open(filename, "wb") as f_org:
             f_org.write(encrypted)
 
-    def _set_encrypted_service(self, service_type, name, encrypted, project):
+    def _set_encrypted_service(self, service_type, alias, encrypted, project):
         service_path = Path(
-            f"{self.global_config_dir}/services/{service_type}/{name}.service"
+            f"{self.global_config_dir}/services/{service_type}/{alias}.service"
         )
         with open(service_path, "wb") as f:
             f.write(encrypted)
