@@ -59,9 +59,33 @@ class Robot(BaseSalesforceTask):
         "debug": {
             "description": "If true, enable the `breakpoint` keyword to enable the robot debugger"
         },
+        "ordering": {
+            "description": (
+                "Path to a file which defines the order in which parallel tests are run. "
+                "This maps directly to the pabot option of the same name. It is ignored "
+                "unless the processes argument is set to 2 or greater."
+            ),
+        },
         "processes": {
-            "description": "*experimental* Number of processes to use for running tests in parallel. If this value is set to a number larger than 1 the tests will run using the open source tool pabot rather than robotframework. For example, -o parallel 2 will run half of the tests in one process and half in another. If not provided, all tests will run in a single process using the standard robot test runner.",
+            "description": (
+                "*experimental* Number of processes to use for running tests in parallel. "
+                "If this value is set to a number larger than 1 the tests will run using the "
+                "open source tool pabot rather than robotframework. For example, -o parallel "
+                "2 will run half of the tests in one process and half in another. If not "
+                "provided, all tests will run in a single process using the standard robot "
+                "test runner. See https://pabot.org/ for more information on pabot."
+            ),
             "default": "1",
+        },
+        "testlevelsplit": {
+            "description": (
+                "If true, split parallel execution at the test level rather "
+                "than the suite level. This option is ignored unless the "
+                "processes option is set to 2 or greater. Note: this option "
+                "requires a boolean value even though the pabot option of the "
+                "same name does not. "
+            ),
+            "default": "false",
         },
     }
 
@@ -85,6 +109,17 @@ class Robot(BaseSalesforceTask):
             raise TaskOptionsError(
                 "Please specify an integer for the `processes` option."
             )
+
+        if self.options["processes"] > 1:
+            self.options["testlevelsplit"] = process_bool_arg(
+                self.options.get("testlevelsplit", False)
+            )
+        else:
+            # ignore these. Why not throw an error? This lets the user
+            # turn off parallel processing on the command line without
+            # having to also remove these options.
+            self.options.pop("testlevelsplit", None)
+            self.options.pop("ordering", None)
 
         # There are potentially many robot options that are or could
         # be lists. The only ones we currently care about are the
@@ -159,9 +194,21 @@ class Robot(BaseSalesforceTask):
                 "--pabotlib",
                 "--processes",
                 str(self.options["processes"]),
-                "--pythonpath",
-                str(self.project_config.repo_root),
             ]
+            # the pabot option `--testlevelsplit` takes no arguments,
+            # so we'll only add it if it's set to true and then remove
+            # it from options so it doesn't get added later.
+            if self.options.pop("testlevelsplit", False):
+                cmd.append("--testlevelsplit")
+
+            # the ordering option is pabot-specific and must come before
+            # all robot options:
+            if self.options.get("ordering", None):
+                cmd.extend(["--ordering", self.options.pop("ordering")])
+
+            # this has to come after the pabot-specific options.
+            cmd.extend(["--pythonpath", str(self.project_config.repo_root)])
+
             # We need to convert options to their commandline equivalent
             for option, value in options.items():
                 if isinstance(value, list):

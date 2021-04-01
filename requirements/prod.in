@@ -1,6 +1,7 @@
 click
 coloredlogs
 cryptography
+docutils
 Faker
 fs
 github3.py
