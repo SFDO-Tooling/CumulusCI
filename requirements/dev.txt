@@ -38,6 +38,8 @@ click==7.1.2
     #   pip-tools
 colorama==0.4.4
     # via twine
+contextvars==2.4
+    # via -r requirements/dev.in
 coverage[toml]==5.5
     # via
     #   -r requirements/dev.in
@@ -75,6 +77,8 @@ idna==2.10
     #   yarl
 imagesize==1.2.0
     # via sphinx
+immutables==0.15
+    # via contextvars
 importlib-metadata==3.10.0
     # via
     #   -c requirements/prod.txt
