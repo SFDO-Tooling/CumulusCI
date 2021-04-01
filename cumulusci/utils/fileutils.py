@@ -96,7 +96,6 @@ def proxy(funcname):
         real_func = getattr(self.fs, funcname)
         return real_func(self.filename, *args, **kwargs)
 
-    func.__doc__ = getattr(base.FS, funcname).__doc__
     return func
 
 
