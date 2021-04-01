@@ -52,6 +52,7 @@ docopt==0.6.2
     # via coveralls
 docutils==0.16
     # via
+    #   -c requirements/prod.txt
     #   readme-renderer
     #   sphinx
 factory-boy==3.2.0
