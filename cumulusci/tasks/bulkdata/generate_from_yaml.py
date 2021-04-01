@@ -7,7 +7,7 @@ from contextlib import contextmanager
 import yaml
 
 
-from cumulusci.core.utils import process_list_of_pairs_dict_arg
+from cumulusci.core.utils import process_list_of_pairs_dict_arg, process_list_arg
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata.base_generate_data_task import BaseGenerateDataTask
@@ -15,6 +15,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 from snowfakery.output_streams import SqlDbOutputStream
 from snowfakery.data_generator import generate, StoppingCriteria
 from snowfakery.generate_mapping_from_recipe import mapping_from_recipe_templates
+from snowfakery.cli import gather_declarations
 from snowfakery.salesforce import create_cci_record_type_tables
 
 
@@ -22,14 +23,13 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
     """Generate sample data from a YAML template file."""
 
     task_docs = """
-    Depends on the currently un-released Snowfakery tool from SFDO. Better documentation
-    will appear here when Snowfakery is publically available.
+    Generate YAML from a Snowfakery recipe.
     """
 
     task_options = {
         **BaseGenerateDataTask.task_options,
         "generator_yaml": {
-            "description": "A generator YAML file to use",
+            "description": "A Snowfakery recipe file to use",
             "required": True,
         },
         "vars": {
@@ -51,6 +51,9 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         },
         "working_directory": {
             "description": "Default path for temporary / working files"
+        },
+        "loading_rules": {
+            "description": "Path to .load.yml file containing rules to use to load the file. Defaults to <recipename>.load.yml . Multiple files can be comma separated."
         },
         "num_records": {
             "description": (
@@ -92,6 +95,8 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                 num_records_tablename, num_records
             )
         self.working_directory = self.options.get("working_directory")
+        loading_rules = process_list_arg(self.options.get("loading_rules")) or []
+        self.loading_rules = [Path(path) for path in loading_rules if path]
 
     def _generate_data(self, db_url, mapping_file_path, num_records, current_batch_num):
         """Generate all of the data"""
@@ -180,9 +185,12 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                 )
 
         if self.generate_mapping_file:
+            declarations = gather_declarations(self.yaml_file, self.loading_rules)
             with open(self.generate_mapping_file, "w+") as f:
                 yaml.safe_dump(
-                    mapping_from_recipe_templates(summary), f, sort_keys=False
+                    mapping_from_recipe_templates(summary, declarations),
+                    f,
+                    sort_keys=False,
                 )
 
         create_cci_record_type_tables(db_url)
