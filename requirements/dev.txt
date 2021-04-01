@@ -50,11 +50,12 @@ docopt==0.6.2
     # via coveralls
 docutils==0.16
     # via
+    #   -c requirements/prod.txt
     #   readme-renderer
     #   sphinx
 factory-boy==3.2.0
     # via -r requirements/dev.in
-faker==6.6.3
+faker==7.0.1
     # via
     #   -c requirements/prod.txt
     #   factory-boy
@@ -66,7 +67,7 @@ flake8==3.9.0
     # via -r requirements/dev.in
 furo==2021.3.20b30
     # via -r requirements/dev.in
-identify==2.2.1
+identify==2.2.2
     # via pre-commit
 idna==2.10
     # via
@@ -75,7 +76,7 @@ idna==2.10
     #   yarl
 imagesize==1.2.0
     # via sphinx
-importlib-metadata==3.7.3
+importlib-metadata==3.10.0
     # via
     #   -c requirements/prod.txt
     #   keyring
@@ -172,7 +173,7 @@ requests==2.25.1
     #   responses
     #   sphinx
     #   twine
-responses==0.13.1
+responses==0.13.2
     # via -r requirements/dev.in
 rfc3986==1.4.0
     # via twine
