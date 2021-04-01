@@ -18,6 +18,10 @@ from snowfakery import data_generator_runtime, data_generator
 
 sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.yml"
 simple_yaml = Path(__file__).parent / "snowfakery/include_parent.yml"
+simple_snowfakery_yaml = (
+    Path(__file__).parent / "snowfakery/simple_snowfakery.recipe.yml"
+)
+
 from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateDataFromYaml
 
 vanilla_mapping_file = Path(__file__).parent / "../tests/mapping_vanilla_sf.yml"
@@ -34,6 +38,15 @@ def temporary_file_path(filename):
 def temp_sqlite_database_url():
     with temporary_file_path("test.db") as path:
         yield f"sqlite:///{str(path)}"
+
+
+@contextmanager
+def run_task(task=GenerateDataFromYaml, **options):
+    with temp_sqlite_database_url() as database_url:
+        options["database_url"] = database_url
+        task = _make_task(task, {"options": options})
+        task()
+        yield database_url
 
 
 class TestGenerateFromDataTask(unittest.TestCase):
@@ -301,5 +314,65 @@ class TestGenerateFromDataTask(unittest.TestCase):
                     },
                 )
                 task()
-            mapping = yaml.safe_load(open(temp_continuation_file))
-            assert mapping  # internals of this file are not important to MetaCI
+            continuation_file = yaml.safe_load(open(temp_continuation_file))
+            assert continuation_file  # internals of this file are not important to CumulusCI
+
+    def _get_mapping_file(self, **options):
+        with temporary_file_path("mapping.yml") as temp_mapping:
+            with temp_sqlite_database_url() as database_url:
+                task = _make_task(
+                    GenerateDataFromYaml,
+                    {
+                        "options": {
+                            "database_url": database_url,
+                            "generate_mapping_file": temp_mapping,
+                            **options,
+                        }
+                    },
+                )
+                task()
+            with open(temp_mapping) as f:
+                mapping = yaml.safe_load(f)
+        return mapping
+
+    def test_generate_mapping_file__loadfile__inferred(self):
+        mapping = self._get_mapping_file(generator_yaml=simple_snowfakery_yaml)
+
+        assert mapping["Insert Account"]["api"] == "bulk"
+        assert mapping["Insert Contact"].get("bulk_mode") is None
+        assert list(mapping.keys()) == ["Insert Account", "Insert Contact"]
+
+    def test_generate_mapping_file__loadfile__overridden(self):
+        loading_rules = str(simple_snowfakery_yaml).replace(
+            ".recipe.yml", "_2.load.yml"
+        )
+        mapping = self._get_mapping_file(
+            generator_yaml=simple_snowfakery_yaml, loading_rules=str(loading_rules)
+        )
+
+        assert mapping["Insert Account"].get("api") is None
+        assert mapping["Insert Contact"]["bulk_mode"].lower() == "parallel"
+        assert list(mapping.keys()) == ["Insert Contact", "Insert Account"]
+
+    def test_generate_mapping_file__loadfile_multiple_files(self):
+        loading_rules = (
+            str(simple_snowfakery_yaml).replace(".recipe.yml", "_2.load.yml")
+            + ","
+            + str(simple_snowfakery_yaml).replace(".recipe.yml", ".load.yml")
+        )
+        mapping = self._get_mapping_file(
+            generator_yaml=simple_snowfakery_yaml, loading_rules=str(loading_rules)
+        )
+
+        assert mapping["Insert Account"]["api"] == "bulk"
+        assert mapping["Insert Contact"]["bulk_mode"].lower() == "parallel"
+        assert list(mapping.keys()) == ["Insert Contact", "Insert Account"]
+
+    def test_generate_mapping_file__loadfile_missing(self):
+        loading_rules = str(simple_snowfakery_yaml).replace(
+            ".recipe.yml", "_3.load.yml"
+        )
+        with pytest.raises(FileNotFoundError):
+            self._get_mapping_file(
+                generator_yaml=simple_snowfakery_yaml, loading_rules=str(loading_rules)
+            )
