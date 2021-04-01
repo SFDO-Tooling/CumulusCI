@@ -2,6 +2,42 @@
 History
 =======
 
+3.32.0 (2021-04-01)
+-------------------
+
+Changes:
+
+* A new task, ``create_network_member_groups``, creates NetworkMemberGroup records to grant specified Profiles or Permissions Sets access to an Experience Cloud site (community). (#2460, thanks @ClayTomerlin)
+
+* A new preflight check task, ``get_existing_sites``, returns a list of existing Experience Cloud site names in the org. (#2493)
+
+* It is now possible to create a flow which runs the same sub-flow multiple times, as long as they don't create a self-referential cycle. (#2494)
+
+* Improvements to support for releasing 2nd-generation (2GP) packages:
+
+  * The ``github_release`` task now includes the package version's 04t id in the message of the tag that is created. (#2485)
+  * The ``promote_package_version`` task now defaults to promoting the package version corresponding to the most recent beta tag in the repository, if ``version_id`` is not specified explicitly. (#2485)
+  * Added a new flow, ``release_2gp_beta``, which creates a beta package version of a 2GP managed package and a corresponding tag and release in GitHub. (#2509)
+  * Added a new flow, ``release_2gp_production``, which promotes a 2gp managed package version to released status and creates a corresponding tag and release in GitHub. (#2510)
+
+* Data generation with Snowfakery:
+
+  * Updated to `Snowfakery 1.8.1 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.8>`__ (#2516)
+  * Snowfakery can now use "load files" to provide hints about how objects should be loaded.
+  * Values for the ``bulk_mode``, ``api``, and ``action`` parameters in mapping files are now case insensitive.
+
+* Robot Framework:
+
+  * Added a new keyword, ``Input Form Data``, for populating form fields of many different types. This keyword is considered experimental but is intended to eventually replace ``Populate Form``. (#2496)
+  * Added a new keyword, ``Locate Element by Label``, for finding form inputs using their label. (#2496)
+  * Added a custom locator strategy called ``label`` which uses ``Locate Element By Label`` (e.g. ``label:First Name``). (#2496)
+  * Added two new options to the robot task: ``ordering`` and ``testlevelsplit``. These only have an effect when combined with the ``processes`` option to run tests in parallel.
+
+Issues Closed:
+
+* The ``cci org import`` command now shows a clearer error message if you try to import an org that is not a locally created scratch org. (#2482)
+
+
 3.31.0 (2021-03-18)
 -------------------
 
