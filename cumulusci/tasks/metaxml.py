@@ -74,7 +74,6 @@ class UpdateDependencies(MetaXmlBaseTask):
         self._process_dependencies(dependencies)
 
     def _process_dependencies(self, dependencies):
-        print(dependencies)
         for dependency in dependencies:
             if (
                 isinstance(dependency, PackageNamespaceVersionDependency)
@@ -83,7 +82,6 @@ class UpdateDependencies(MetaXmlBaseTask):
                 self.dependencies.append((dependency.namespace, dependency.version))
 
     def _process_xml(self, root):
-        print(self.dependencies)
         changed = False
         xmlns = re.search("({.+}).+", root.tag).group(1)
         for namespace, version in self.dependencies:
