@@ -1675,12 +1675,16 @@ class RunTaskCommand(click.MultiCommand):
             # click complains that there are no values for options. We set required=False
             # to mitigate this error. Task option validation should be performed at the
             # task level via task._validate_options() or Pydantic models.
+            decls = set(
+                (
+                    f"--{name}",
+                    f"--{name.replace('_', '-')}",
+                )
+            )
+
             click_options.append(
                 click.Option(
-                    param_decls=(
-                        f"--{name}",
-                        f"--{name.replace('_', '-')}",
-                    ),
+                    param_decls=tuple(decls),
                     required=False,  # don't enforce option values in Click
                     help=properties.get("description", ""),
                 )
