@@ -1,32 +1,33 @@
 from contextlib import contextmanager
 from contextvars import ContextVar
 
-_DEBUG_MODE = ContextVar("debug_mode", default=False)
+
+class DebugMode(int):
+    """A bool-like object that represents the debug mode.
+
+    Over time it will have sub-flags like debug.http_tracing,
+    debug.save_intermediate_load_files etc."""
+
+    def __repr__(self):
+        return f"<Debug mode: {'enabled' if self else 'disabled'}>"
 
 
-# This may have levels/modes/flags someday
-# For now let's discourage anyone from using "DebugMode is True"
-class DebugMode:
-    """A singleton/proxy that behaves truthy
-    when debug mode is not enabled in a context
-    and falsy otherwise.
-
-    Debug mode can be set for a context with the
-    context manager called `set`."""
-
-    def __bool__(self):
-        return _DEBUG_MODE.get()
-
-    @contextmanager
-    def set(self, enable: bool):
-        token = _DEBUG_MODE.set(enable)
-        try:
-            yield
-        finally:
-            _DEBUG_MODE.reset(token)
+_DEBUG_MODE = ContextVar("debug_mode", default=DebugMode(False))
 
 
-DebugMode = DebugMode()
+def get_debug_mode():
+    """Get a bool-like object specifying debug state."""
+    return _DEBUG_MODE.get()
 
 
-__all__ = ("DebugMode",)
+@contextmanager
+def set_debug_mode(enable: bool):
+    """Set debug state for the context scoped by this context manager."""
+    token = _DEBUG_MODE.set(DebugMode(enable))
+    try:
+        yield
+    finally:
+        _DEBUG_MODE.reset(token)
+
+
+__all__ = ("get_debug_mode", "set_debug_mode")

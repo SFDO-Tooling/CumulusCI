@@ -42,7 +42,7 @@ from cumulusci.core.exceptions import (
     FlowNotFoundError,
 )
 from cumulusci.utils.http.requests_utils import safe_json_from_response
-from cumulusci.core.debug import DebugMode
+from cumulusci.core.debug import set_debug_mode
 
 
 from cumulusci.core.utils import import_global, format_duration
@@ -217,7 +217,7 @@ def main(args=None):
         if debug:
             args.remove("--debug")
 
-        with DebugMode.set(debug):
+        with set_debug_mode(debug):
             # Load CCI config into global RUNTIME
             _load_runtime(is_error_command, tempfile_path, debug)
 

@@ -205,10 +205,8 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.CliRuntime")
     @mock.patch("cumulusci.cli.cci.cli")
     @mock.patch("pdb.post_mortem")
-    @mock.patch("sys.exit")
     def test_main__cci_show_stacktraces(
         self,
-        sys_exit,
         post_mortem,
         cli,
         CliRuntime,
@@ -299,8 +297,10 @@ class TestCCI(unittest.TestCase):
         get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
 
         with contextlib.redirect_stderr(io.StringIO()) as stderr:
-            with pytest.raises(SystemExit):
-                cci.main(["cci", "org", "info"])
+            with mock.patch("sys.exit") as sys_exit:
+                sys_exit.side_effect = SystemExit  # emulate real sys.exit
+                with pytest.raises(SystemExit):
+                    cci.main(["cci", "org", "info"])
 
         assert "something happened" in stderr.getvalue()
 
@@ -310,10 +310,9 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
-    @mock.patch("sys.exit")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
     def test_handle_org_name(
-        self, CliRuntime, exit, tee_stdout_stderr, get_tempfile_logger, init_logger
+        self, CliRuntime, tee_stdout_stderr, get_tempfile_logger, init_logger
     ):
 
         # get_tempfile_logger doesn't clean up after itself which breaks other tests

@@ -5,7 +5,7 @@ from cumulusci.core.config import UniversalConfig, BaseProjectConfig
 from cumulusci.core.exceptions import NotInProject, ProjectConfigNotFound
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.flowrunner import FlowCallback, FlowCoordinator
-from cumulusci.core.debug import DebugMode
+from cumulusci.core.debug import get_debug_mode
 
 
 # pylint: disable=assignment-from-none
@@ -19,7 +19,7 @@ class BaseCumulusCI(object):
         self.universal_config = None
         self.project_config = None
         self.keychain = None
-        self.debug_mode = DebugMode
+        self.debug_mode = get_debug_mode()
 
         self._load_universal_config()
 
