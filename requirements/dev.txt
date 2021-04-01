@@ -25,6 +25,10 @@ certifi==2020.12.5
     # via
     #   -c requirements/prod.txt
     #   requests
+cffi==1.14.5
+    # via
+    #   -c requirements/prod.txt
+    #   cryptography
 cfgv==3.2.0
     # via pre-commit
 chardet==4.0.0
@@ -44,6 +48,10 @@ coverage[toml]==5.5
     #   coveralls
 coveralls==3.0.1
     # via -r requirements/dev.in
+cryptography==3.4.7
+    # via
+    #   -c requirements/prod.txt
+    #   secretstorage
 distlib==0.3.1
     # via virtualenv
 docopt==0.6.2
@@ -83,6 +91,10 @@ importlib-metadata==3.10.0
     #   twine
 iniconfig==1.1.1
     # via pytest
+jeepney==0.6.0
+    # via
+    #   keyring
+    #   secretstorage
 jinja2==2.11.3
     # via
     #   -c requirements/prod.txt
@@ -129,6 +141,10 @@ py==1.10.0
     #   tox
 pycodestyle==2.7.0
     # via flake8
+pycparser==2.20
+    # via
+    #   -c requirements/prod.txt
+    #   cffi
 pyflakes==2.3.1
     # via flake8
 pygments==2.8.1
@@ -177,6 +193,8 @@ responses==0.13.2
     # via -r requirements/dev.in
 rfc3986==1.4.0
     # via twine
+secretstorage==3.3.1
+    # via keyring
 six==1.15.0
     # via
     #   -c requirements/prod.txt
@@ -229,7 +247,7 @@ twine==3.4.1
     # via -r requirements/dev.in
 typed-ast==1.4.2
     # via black
-typeguard==2.10.0
+typeguard==2.12.0
     # via -r requirements/dev.in
 typing-extensions==3.7.4.3
     # via
