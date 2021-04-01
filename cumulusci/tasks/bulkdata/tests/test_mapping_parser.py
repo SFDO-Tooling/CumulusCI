@@ -1086,3 +1086,25 @@ class TestMappingLookup:
         assert mapping["Insert Accounts"].api == DataApi.REST
         assert mapping["Insert Accounts"].bulk_mode == "Serial"
         assert mapping["Insert Accounts"].batch_size == 50
+
+    @responses.activate
+    def test_case_conversions(self):
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    """Insert Accounts:
+                        sf_object: account
+                        table: account
+                        api: ReST
+                        bulk_mode: serial
+                        action: INSerT
+                        batch_size: 50
+                        fields:
+                            - name"""
+                )
+            )
+        )
+        assert mapping["Insert Accounts"].api == DataApi.REST
+        assert mapping["Insert Accounts"].bulk_mode == "Serial"
+        assert mapping["Insert Accounts"].action.value == "insert"
+        assert mapping["Insert Accounts"].batch_size == 50
