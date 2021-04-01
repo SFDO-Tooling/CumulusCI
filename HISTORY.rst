@@ -2,6 +2,11 @@
 History
 =======
 
+3.32.1 (2021-04-01)
+-------------------
+
+April Fool's! This is the real new release, because there was a packaging problem with 3.32.0.
+
 3.32.0 (2021-04-01)
 -------------------
 
