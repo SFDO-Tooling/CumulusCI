@@ -29,12 +29,14 @@ class BaseProjectKeychain(BaseConfig):
         self.config = {
             "orgs": {},
             "app": None,
-            "services": {s_type: {} for s_type in project_config.config["services"]},
+            "services": {},
         }
         self.project_config = project_config
-        self._default_services = {
-            s_type: None for s_type in project_config.config["services"]
-        }
+        self._default_services = (
+            {s_type: None for s_type in project_config.config["services"]}
+            if "services" in project_config.config
+            else {}
+        )
         self.key = key
         self._validate_key()
         self._load_keychain()
@@ -243,14 +245,15 @@ class BaseProjectKeychain(BaseConfig):
         self._validate_service(service_type, alias, service_config)
         self._set_service(service_type, alias, service_config, project)
         self._load_services()
-        # if we just set the first service of a given type,
-        # set it as the default
-        for service_type in self.services.keys():
-            if len(self.services[service_type].keys()) == 1:
-                self._default_services[service_type] = alias
 
     def _set_service(self, service_type, alias, service_config, project=False):
+        if service_type not in self.services:
+            self.services[service_type] = {}
+
         self.services[service_type][alias] = service_config
+        # If this is the first service of its type set it as the default
+        if len(self.services[service_type].keys()) == 1:
+            self._default_services[service_type] = alias
 
     def get_service(self, service_type, alias=None):
         """Retrieve a stored ServiceConfig from the keychain.
@@ -267,7 +270,9 @@ class BaseProjectKeychain(BaseConfig):
                 "Expecting services to be loaded, but none were found."
             )
         elif service_type not in self.project_config.services:
-            raise ServiceNotValid(f"Service type is not configured: {service_type}")
+            raise ServiceNotConfigured(
+                f"Service type is not configured: {service_type}"
+            )
 
         if service_type not in self.services:
             if service_type == "connected_app":

@@ -79,7 +79,13 @@ class TestBaseProjectKeychain:
                 "github", "alias", ServiceConfig({"name": ""}), project=False
             )
 
+    def test_get_service_not_in_configuration(self, keychain):
+        """This service is not listed as a service type in cumulusci.yml"""
+        with pytest.raises(ServiceNotConfigured):
+            keychain.get_service("not_in_configuration")
+
     def test_get_service_not_configured(self, keychain):
+        """This service is supported by CumulusCI but is not currently configured"""
         with pytest.raises(ServiceNotConfigured):
             keychain.get_service("not_configured")
 
@@ -104,12 +110,11 @@ class TestBaseProjectKeychain:
         )
 
     def test_set_service__github(self, keychain, service_conf):
-        keychain.config["services"] = {"github": {}}
         keychain.set_service("github", "alias", service_conf, project=False)
         assert keychain.get_service("github", "alias").config == service_conf.config
 
     def test_get_service__default_service(self, keychain):
-        keychain.default_services = {"devhub": "baz"}
+        keychain._default_services = {"devhub": "baz"}
         keychain.config["services"] = {
             "devhub": {"foo": "config1", "bar": "config2", "baz": "config3"}
         }
@@ -127,16 +132,17 @@ class TestBaseProjectKeychain:
         ):
             keychain.get_service("test-service", "alias").config == service_conf.config
 
-    def test_get_service__service_type_not_valid(self, keychain, service_conf):
-        keychain.services = {"github": {}}
+    def test_get_service__service_type_not_in_config(self, keychain, service_conf):
         with pytest.raises(
-            ServiceNotValid,
+            ServiceNotConfigured,
             match="Service type is not configured: test-service",
         ):
             keychain.get_service("test-service", "alias").config == service_conf.config
 
+    def test_get_service__service_not_configured(self, keychain, service_conf):
+        pass
+
     def test_get_service__DEFAULT_CONNECTED_APP(self, keychain, service_conf):
-        keychain.services = {}
         service = keychain.get_service("connected_app", "alias")
         assert service is DEFAULT_CONNECTED_APP
 
@@ -231,7 +237,6 @@ class TestBaseProjectKeychain:
     def test_validate_service_attributes(self, keychain):
         # config is missing the "name" attribute
         service_config = ServiceConfig({"password": "test123"})
-        keychain.services = {"github": {}}
         with pytest.raises(
             ServiceNotValid,
             match=re.escape("Missing required attribute(s) for service: ['name']"),
@@ -291,7 +296,6 @@ class TestBaseProjectKeychain:
             "client_secret": "SECRET",
         }
         keychain.config["app"] = BaseConfig(app_config)
-        keychain.services = {"connected_app": {}}
         keychain._convert_connected_app()
         actual_service = keychain.get_service(
             "connected_app", "please_contact_sfdo_releng"

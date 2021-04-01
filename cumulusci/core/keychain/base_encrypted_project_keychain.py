@@ -54,14 +54,13 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
                 f"No service of type {service_type} configured with the name: {alias}"
             )
 
-        self.default_services[service_type] = alias
-        self._save_default_services()
-
-    def _save_default_services(self):
-        """Implement in subclasses"""
-        pass
+        self._default_services[service_type] = alias
 
     def _set_service(self, service_type, alias, service_config, project):
+        if service_type not in self.services:
+            self.services[service_type] = {}
+            self._default_services[service_type] = alias
+
         encrypted = self._encrypt_config(service_config)
         self._set_encrypted_service(service_type, alias, encrypted, project)
 

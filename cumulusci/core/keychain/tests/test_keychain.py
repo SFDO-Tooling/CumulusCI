@@ -48,6 +48,15 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         )
         self.key = "0123456789123456"
 
+    def test_get_org_not_found(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        with self.assertRaises(OrgNotFound):
+            keychain.get_org("test")
+
+    def test_list_orgs_empty(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        assert keychain.list_orgs() == []
+
     def test_set_and_get_org(self, global_org=False):
         keychain = self.keychain_class(self.project_config, self.key)
         self.org_config.global_org = global_org
@@ -62,6 +71,34 @@ class ProjectKeychainTestMixin(unittest.TestCase):
         )
         github_service = keychain.get_service("github", "alias")
         assert github_service.config == self.services["github"].config
+
+    def test_load_scratch_orgs_create_one(self):
+        self.project_config.config["orgs"] = {}
+        self.project_config.config["orgs"]["scratch"] = {}
+        self.project_config.config["orgs"]["scratch"]["test_scratch_auto"] = {}
+        keychain = self.keychain_class(self.project_config, self.key)
+        assert list(keychain.orgs) == ["test_scratch_auto"]
+
+    def test_load_scratch_orgs_none(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        assert list(keychain.orgs) == []
+
+    def test_get_default_org(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        org_config = self.org_config.config.copy()
+        org_config = OrgConfig(org_config, "test", keychain=keychain)
+        org_config.save()
+        keychain.set_default_org("test")
+        org_config.config["default"] = True
+        assert keychain.get_default_org()[1].config == org_config.config
+
+    def test_set_and_get_scratch_org(self, global_org=False):
+        keychain = self.keychain_class(self.project_config, self.key)
+        keychain.set_org(self.scratch_org_config, global_org)
+        self.assertEqual(list(keychain.orgs.keys()), ["test_scratch"])
+        org = keychain.get_org("test_scratch")
+        assert org.config == self.scratch_org_config.config
+        assert org.__class__ == ScratchOrgConfig
 
 
 class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
@@ -98,12 +135,12 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
     def test_load_app(self):
         self.env["CUMULUSCI_CONNECTED_APP"] = "{}"
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertIsInstance(keychain.app, ConnectedAppOAuthConfig)
+        assert isinstance(keychain.app, ConnectedAppOAuthConfig)
 
     def test_get_org(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEqual(list(keychain.orgs.keys()), ["test"])
-        self.assertEqual(keychain.get_org("test").config, self.org_config.config)
+        assert list(keychain.orgs.keys()) == ["test"]
+        assert keychain.get_org("test").config == self.org_config.config
 
     def test_get_org_not_found(self):
         self._clean_env(self.env)
@@ -111,7 +148,7 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
 
     def test_list_orgs(self):
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEqual(keychain.list_orgs(), ["test"])
+        assert keychain.list_orgs() == ["test"]
 
     def test_list_orgs_empty(self):
         self._clean_env(self.env)
@@ -128,8 +165,8 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
             json.dumps(self.scratch_org_config.config),
         )
         keychain = self.keychain_class(self.project_config, self.key)
-        self.assertEqual(keychain.list_orgs(), ["test"])
-        self.assertEqual(keychain.orgs["test"].__class__, ScratchOrgConfig)
+        assert keychain.list_orgs() == ["test"]
+        assert keychain.orgs["test"].__class__, ScratchOrgConfig
 
     def test_load_scratch_orgs_create_one(self):
         self._clean_env(self.env)
@@ -158,7 +195,7 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
         expected_org_config = self.org_config.config.copy()
         expected_org_config["default"] = True
 
-        self.assertEqual(None, keychain.get_default_org()[1])
+        assert keychain.get_default_org()[1] is None
 
     def test_set_and_get_scratch_org(self):
         self._clean_env(self.env)

@@ -107,7 +107,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         self._save_default_services(project)
 
     def _save_default_services(self, project: bool = False) -> None:
-        """Write out the contents of self.default_services to the
+        """Write out the contents of self._default_services to the
         DEFAULT_SERVICES.json file based on the provided scope"""
         dir_path = (
             Path(self.project_local_dir) if project else Path(self.global_config_dir)

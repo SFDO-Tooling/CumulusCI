@@ -10,7 +10,7 @@ from cumulusci.core.utils import import_global
 
 scratch_org_class = os.environ.get("CUMULUSCI_SCRATCH_ORG_CLASS")
 if scratch_org_class:
-    scratch_org_factory = import_global(scratch_org_class)
+    scratch_org_factory = import_global(scratch_org_class)  # pragma: no cover
 else:
     scratch_org_factory = ScratchOrgConfig
 
@@ -60,4 +60,4 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
 
     def _init_default_services(self):
         for service_type in self.services:
-            self.default_services[service_type] = "env"
+            self._default_services[service_type] = "env"
