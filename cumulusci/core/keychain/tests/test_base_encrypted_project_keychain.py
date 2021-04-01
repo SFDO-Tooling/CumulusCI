@@ -101,16 +101,13 @@ class TestBaseEncryptedProjectKeychain:
         keychain.set_default_service("devhub", "foo")
         assert keychain.default_services["devhub"] == "foo"
 
-    def test_set_default_service__service_not_configured(
-        self, keychain, service_config
-    ):
+    def test_set_default_service__service_not_configured(self, keychain):
         with pytest.raises(
             CumulusCIException, match="Service type is not configured: foo"
         ):
             keychain.set_default_service("foo", "foo_alias")
 
     def test_set_default_service__invalid_alias(self, keychain):
-        keychain.services = {"devhub": {}}
         with pytest.raises(
             CumulusCIException,
             match="No service of type devhub configured with the name: foo_alias",
@@ -118,7 +115,6 @@ class TestBaseEncryptedProjectKeychain:
             keychain.set_default_service("devhub", "foo_alias")
 
     def test_set_encrypted_service(self, keychain, service_config):
-        keychain.config["services"] = {"github": {}}
         encrypted = keychain._encrypt_config(service_config)
         keychain._set_encrypted_service("github", "alias", encrypted, project=False)
         assert keychain.services["github"]["alias"] == encrypted
