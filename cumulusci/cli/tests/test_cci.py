@@ -311,6 +311,7 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
+    @mock.patch("sys.exit", MagicMock())
     def test_handle_org_name(
         self, CliRuntime, tee_stdout_stderr, get_tempfile_logger, init_logger
     ):
