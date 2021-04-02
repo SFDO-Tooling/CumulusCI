@@ -246,8 +246,16 @@ Manage Dependencies
 CumulusCI is built to automate the complexities of dependency management for projects that extend and implement managed packages. CumulusCI currently handles these main types of dependencies for projects.
 
 * **GitHub Repository**: Dynamically resolve a product release, and its own dependencies, from a CumulusCI project on GitHub.
-* **Managed Packages**: Require a specific version of a managed package.
+* **Packages**: Require a specific version of a managed package or unlocked package.
 * **Unmanaged Metadata**: Require the deployment of unmanaged metadata.
+
+Dependencies are listed in the ``project__dependencies`` section of ``cumulusci.yml``
+
+.. code-block:: yaml
+ 
+    project:
+        dependencies:
+
 
 The ``update_dependencies`` task handles deploying dependencies to a target org, and is included in all flows designed to deploy or install to an org, such as ``dev_org``, ``qa_org``, ``install_prod``, and others.
 
@@ -347,8 +355,7 @@ Managed package and unlocked package dependencies are rather simple. Under the `
             - version_id: 04t000000000001
 
 Package dependencies can include any package, whether or not it is built as a CumulusCI project. Dependencies on managed packages
-may be specified using the namespace and version or the version id.
-Dependencies on unlocked packages should use the version id.
+may be specified using the namespace and version or the version id. Dependencies on unlocked packages should use the version id.
 
 
 
@@ -365,11 +372,12 @@ Specify unmanaged metadata to be deployed by specifying a ``zip_url`` or a ``git
             - zip_url: https://SOME_HOST/metadata.zip
             - github: https://github.com/SalesforceFoundation/EDA
               subfolder: unpackaged/post/course_connection_record_types
+              ref: 0cabfe
 
 When the ``update_dependencies`` task runs, it downloads the zip file or GitHub subdirectory and deploys it via the Metadata API.
 The zip file must contain valid metadata for use with a deploy, including a ``package.xml`` file in the root.
 
-
+Unmanaged metadata dependencies from GitHub must specify the ``ref`` to download.
 
 Specify a Subfolder
 *******************
@@ -381,7 +389,6 @@ Use the ``subfolder`` option to specify a subfolder of the zip file or GitHub re
     This option is handy when referring to metadata stored in a GitHub repository.
 
 When ``update_dependencies`` runs, it still downloads the zip from ``zip_url``, but then builds a new zip containing only the content of ``subfolder``, starting inside ``subfolder`` as the zip's root.
-
 
 
 Inject Namespace Prefixes
@@ -397,7 +404,9 @@ Controlling GitHub Dependency Resolution
 
 CumulusCI converts dynamic dependencies specified via GitHub repositories into specific package versions and commit references by applying one or more *resolvers*. You can customize the resolvers that CumulusCI applies to control how beta managed packages and second-generation feature packages, or to intervene more deeply in the dependency resolution process.
 
-CumulusCI organizes resolvers into *resolution strategies*, which are named, ordered lists of resolvers to apply. When CumulusCI applies a resolution strategy to a dependency, it applies each resolver from top to bottom until a resolver succeeds in resolving the dependency. Three resolution strategies are provided in the CumulusCI standard library:
+CumulusCI organizes resolvers into *resolution strategies*, which are named, ordered lists of resolvers to apply. When CumulusCI applies a resolution strategy to a dependency, it applies each resolver from top to bottom until a resolver succeeds in resolving the dependency.
+
+Three resolution strategies are provided in the CumulusCI standard library:
 
  * ``latest_release``, which will attempt to resolve to the latest managed release of a managed package project.
  * ``include_beta``, which will attempt to resolve to the latest beta, if any, or managed release of a managed package project.
@@ -405,9 +414,9 @@ CumulusCI organizes resolvers into *resolution strategies*, which are named, ord
 
 The complete list of steps taken by each resolution strategy is given below.
 
-Each flow that resolves dependencies selects a resolution strategy that meets its needs. Two aliases, ``production``, and ``preproduction``, are defined for this purpose, because in many cases a development flow like ``dev_org`` or ``install_beta`` will want to utilize a *different* resolution strategy than a production flow like ``ci_master`` or ``install_prod``. By default, both ``production`` and ``preproduction`` use the ``latest_release`` resolution strategy.
+Each flow that resolves dependencies selects a resolution strategy that meets its needs. Two aliases, ``production``, and ``preproduction``, are defined for this purpose, because in many cases a development flow like ``dev_org`` or ``install_beta`` will want to utilize a *different* resolution strategy than a production flow like ``ci_master`` or ``install_prod``. 
 
-To opt in development flows to use beta versions of managed package dependencies, you can switch the ``preproduction`` alias to point to the ``include_beta`` resolution strategy::
+By default, both ``production`` and ``preproduction`` use the ``latest_release`` resolution strategy. To opt to have development flows use beta versions of managed package dependencies, you can switch the ``preproduction`` alias to point to the ``include_beta`` resolution strategy::
 
     project:
         dependency_resolutions:
@@ -419,6 +428,53 @@ After this change, flows like ``dev_org`` will install beta releases of dependen
 Resolution Strategy Details
 ***************************
 
+The standard resolution strategies execute the following steps to resolve a dependency:
+
+**commit_status**:
+
+This resolution strategy is suitable for feature builds on products that utilize a release branch model and build second-generation package betas (using the ``build_feature_test_package`` flow) on each commit.
+
+ - If a ``tag`` is present, use the commit for that tag, and any package version found there. (Resolver: ``tag``)
+ - If the current branch is a release branch (``feature/NNN``, where ``feature/`` is the feature branch prefix and ``NNN`` is any integer) or a child branch of a release branch, locate a branch with the same name in the dependency repository. If a commit status contains a beta package Id for any of the first five commits on that branch, use that commit and package. (Resolver: ``commit_status_exact_branch``)
+ - If the current branch is a release branch (``feature/NNN``, where ``feature/`` is the feature branch prefix and ``NNN`` is any integer) or a child branch of a release branch, locate a matching release branch (``feature/NNN``) in the dependency repository. If a commit status contains a beta package Id for any of the first five commits on that branch, use that commit and package. (Resolver: ``commit_status_release_branch``)
+ - If the current branch is a release branch (``feature/NNN``, where ``feature/`` is the feature branch prefix and ``NNN`` is any integer) or a child branch of a release branch, locate a branch for either of the two previous releases (e.g., ``feature/230`` in this repository would search ``feature/229`` and ``feature/228``) in the dependency repository. If a commit status contains a beta package Id for any of the first five commits on that branch, use that commit and package. (Resolver: ``commit_status_previous_release_branch``)
+ - Identify the most recent beta package release via the GitHub Releases section. If located, use that package and commit. (Resolver: ``latest_beta``)
+ - Identify the most recent production package release via the GitHub Releases section. If located, use that package and commit. (Resolver: ``latest_release``)
+ - Use the most recent commit on the repository's main branch as an unmanaged dependency. (Resolver: ``unmanaged``)
+
+**include_beta**:
+
+This resolution strategy is suitable for any pre-production build for products that wish to consume beta releases of their dependencies during development and testing.
+
+- If a ``tag`` is present, use the commit for that tag, and any package version found there. (Resolver: ``tag``)
+- Identify the most recent beta package release via the GitHub Releases section. If located, use that package and commit. (Resolver: ``latest_beta``)
+- Identify the most recent production package release via the GitHub Releases section. If located, use that package and commit. (Resolver: ``latest_release``)
+- Use the most recent commit on the repository's main branch as an unmanaged dependency. (Resolver: ``unmanaged``)
+
+**latest_release**:
+
+This resolution strategy is suitable for any build for products that wish to consume production releases of their dependencies during development and testing. It is also suitable for production flows (such as ``install_prod`` or a MetaDeploy installer flow) for all products.
+
+- If a ``tag`` is present, use the commit for that tag, and any package version found there. (Resolver: ``tag``)
+- Identify the most recent production package release via the GitHub Releases section. If located, use that package and commit. (Resolver: ``latest_release``)
+- Use the most recent commit on the repository's main branch as an unmanaged dependency. (Resolver: ``unmanaged``)
+
+Customizing Resolution Strategies
+*********************************
+
+Projects that require deep control of how dependencies are resolved can create custom resolution strategies.
+
+To add a resolution strategy, add a list of the resolvers desired to the section ``project__dependency_resolutions__resolution_strategies`` in ``cumulusci.yml``. For example::
+
+    dependency_resolutions:
+        production: releases_only
+        resolution_strategies:
+            releases_only:
+                - latest_release
+
+would create a new resolution strategy called ``releases_only`` that *only* can resolve to a production release. (Dependencies without a production release would cause a failure). It also assigns the alias ``production`` to point to ``releases_only``, meaning that standard flows like ``install_prod`` would use this resolution strategy.
+
+Customizing resolution strategies is an advanced topic. The out-of-the-box resolution strategies provided with CumulusCI will cover the needs of most projects. However, this capability is available for projects that need it.
 
 
 Automatic Cleaning of ``meta.xml`` Files on Deploy
