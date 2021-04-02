@@ -42,6 +42,55 @@ class BaseProjectKeychain(BaseConfig):
         self._load_keychain()
         self._init_default_services()
 
+    def _load_keychain(self):
+        self._load_app()
+        self._load_orgs()
+        self._load_scratch_orgs()
+        self._load_services()
+
+    def _validate_key(self):
+        pass
+
+    def change_key(self, key):
+        """ re-encrypt stored services and orgs with the new key """
+        service_types = {}
+        services = self.list_services()
+        for service_type, names in services.items():
+            if service_type not in service_types:
+                service_types[service_type] = {}
+            for name in names:
+                service_types[service_type][name] = self.get_service(service_type, name)
+
+        orgs = {}
+        for org_name in self.list_orgs():
+            orgs[org_name] = self.get_org(org_name)
+
+        self.key = key
+
+        if orgs:
+            for org_name, org_config in list(orgs.items()):
+                org_config.save()
+
+        if service_types:
+            for service_type, aliases in service_types.items():
+                for alias, config in aliases.items():
+                    self.set_service(service_type, alias, config)
+
+        self._convert_connected_app()
+
+    #######################################
+    #               Apps                  #
+    #######################################
+    def _load_app(self):
+        pass
+
+    def get_connected_app(self):
+        """ retrieve the connected app configuration """
+        return self._get_connected_app()
+
+    def _get_connected_app(self):
+        return self.app
+
     def _convert_connected_app(self):
         """Convert Connected App to service"""
         if (
@@ -72,22 +121,11 @@ class BaseProjectKeychain(BaseConfig):
         # We're using an obnoxious alias to see who's using this
         self.set_service("connected_app", "please_contact_sfdo_releng", ca_config)
 
-    def _load_keychain(self):
-        self._load_app()
-        self._load_orgs()
-        self._load_scratch_orgs()
-        self._load_services()
-
-    def _load_app(self):
-        pass
+    #######################################
+    #               Orgs                  #
+    #######################################
 
     def _load_orgs(self):
-        pass
-
-    def _load_services(self):
-        pass
-
-    def _init_default_services(self):
         pass
 
     def _load_scratch_orgs(self):
@@ -123,50 +161,6 @@ class BaseProjectKeychain(BaseConfig):
         )
         org_config.save()
 
-    def change_key(self, key):
-        """ re-encrypt stored services and orgs with the new key """
-        service_types = {}
-        services = self.list_services()
-        for service_type, names in services.items():
-            if service_type not in service_types:
-                service_types[service_type] = {}
-            for name in names:
-                service_types[service_type][name] = self.get_service(service_type, name)
-
-        orgs = {}
-        for org_name in self.list_orgs():
-            orgs[org_name] = self.get_org(org_name)
-
-        self.key = key
-
-        if orgs:
-            for org_name, org_config in list(orgs.items()):
-                org_config.save()
-
-        if service_types:
-            for service_type, aliases in service_types.items():
-                for alias, config in aliases.items():
-                    self.set_service(service_type, alias, config)
-
-        self._convert_connected_app()
-
-    def get_connected_app(self):
-        """ retrieve the connected app configuration """
-
-        return self._get_connected_app()
-
-    def _get_connected_app(self):
-        return self.app
-
-    def remove_org(self, name, global_org=None):
-        if name in self.orgs.keys():
-            self._remove_org(name, global_org)
-        cleanup_org_cache_dirs(self, self.project_config)
-
-    def _remove_org(self, name, global_org):
-        del self.orgs[name]
-        self._load_orgs()
-
     def set_org(self, org_config, global_org=False):
         if isinstance(org_config, ScratchOrgConfig):
             org_config.config["scratch"] = True
@@ -175,19 +169,6 @@ class BaseProjectKeychain(BaseConfig):
 
     def _set_org(self, org_config, global_org):
         self.orgs[org_config.name] = org_config
-
-    # This implementation of get_default_org, set_default_org, and unset_default_org
-    # is currently kept for backwards compatibility, but EncryptedFileProjectKeychain
-    # now stores the default elsewhere, and EnvironmentProjectKeychain doesn't actually
-    # persist across multiple invocations of cci, so we should consider getting rid of this.
-
-    def get_default_org(self):
-        """ retrieve the name and configuration of the default org """
-        for org in self.list_orgs():
-            org_config = self.get_org(org)
-            if org_config.default:
-                return org, org_config
-        return None, None
 
     def set_default_org(self, name):
         """ set the default org for tasks and flows by name """
@@ -225,14 +206,46 @@ class BaseProjectKeychain(BaseConfig):
     def _get_org(self, name):
         return self.orgs.get(name)
 
-    def _raise_org_not_found(self, name):
-        raise OrgNotFound(f"Org named {name} was not found in keychain")
+    # This implementation of get_default_org, set_default_org, and unset_default_org
+    # is currently kept for backwards compatibility, but EncryptedFileProjectKeychain
+    # now stores the default elsewhere, and EnvironmentProjectKeychain doesn't actually
+    # persist across multiple invocations of cci, so we should consider getting rid of this.
+
+    def get_default_org(self):
+        """ retrieve the name and configuration of the default org """
+        for org in self.list_orgs():
+            org_config = self.get_org(org)
+            if org_config.default:
+                return org, org_config
+        return None, None
+
+    def remove_org(self, name, global_org=None):
+        if name in self.orgs.keys():
+            self._remove_org(name, global_org)
+        cleanup_org_cache_dirs(self, self.project_config)
+
+    def _remove_org(self, name, global_org):
+        del self.orgs[name]
+        self._load_orgs()
 
     def list_orgs(self):
         """ list the orgs configured in the keychain """
         orgs = list(self.orgs.keys())
         orgs.sort()
         return orgs
+
+    def _raise_org_not_found(self, name):
+        raise OrgNotFound(f"Org named {name} was not found in keychain")
+
+    #######################################
+    #              Services               #
+    #######################################
+
+    def _load_services(self):
+        pass
+
+    def _init_default_services(self):
+        pass
 
     def set_service(self, service_type, alias, service_config, project=False):
         """Store a ServiceConfig in the keychain"""
@@ -291,9 +304,6 @@ class BaseProjectKeychain(BaseConfig):
 
     def _get_service(self, service_type, alias):
         return self.services[service_type][alias]
-
-    def _validate_key(self):
-        pass
 
     def _validate_service(self, service_type, alias, config):
         self._validate_service_alias(service_type, alias)
