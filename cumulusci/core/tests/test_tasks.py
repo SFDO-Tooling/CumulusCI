@@ -227,5 +227,3 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
             self.project_config, self.task_config, self.org_config, logger=mock_logger
         )
         assert task.logger is mock_logger
-        breakpoint()
-        print("feh")
