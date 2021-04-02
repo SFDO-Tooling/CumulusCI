@@ -657,8 +657,8 @@ Inside of that file you put a list of declarations in the following format:
 .. code-block::
 
     - sf_object: Account
-    api: bulk
-    bulk_mode: parallel
+      api: bulk
+      bulk_mode: parallel
 
 
 Which would specifically load accounts using the bulk API's parallel mode.
@@ -679,10 +679,10 @@ Contacts:
 .. code-block::
 
     - sf_object: Account
-    load_after: Contact
+      load_after: Contact
 
     - sf_object: Opportunity
-    load_after: Contact
+      load_after: Contact
 
 If you wish to share a loading file between multiple recipes, you can
 refer to it with the ``--loading_rules`` option. That will override the
