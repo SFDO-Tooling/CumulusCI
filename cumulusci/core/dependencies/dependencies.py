@@ -159,12 +159,8 @@ class DynamicDependency(Dependency, abc.ABC):
 
             if resolver and resolver.can_resolve(self, context):
                 try:
-                    context.logger.debug(f"Attempting to resolve {self} via {resolver}")
                     self.ref, self.managed_dependency = resolver.resolve(self, context)
                     if self.ref:
-                        context.logger.debug(
-                            f"Resolved {self} to {self.ref} (package {self.managed_dependency})"
-                        )
                         break
                 except DependencyResolutionError:
                     context.logger.info(
