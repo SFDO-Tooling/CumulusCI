@@ -61,7 +61,7 @@ Ready to contribute? Here's how to set up CumulusCI for local development.
 
 4. Install the development requirements::
 
-    $ pip install -r requirements_dev.txt
+    $ make dev-install
 
 5. Install ``pre-commit`` hooks for ``black`` and ``flake8``::
 

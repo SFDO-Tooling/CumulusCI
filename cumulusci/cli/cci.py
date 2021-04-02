@@ -1042,6 +1042,11 @@ def org_import(runtime, username_or_alias, org_name):
     scratch_org_config.config["created"] = True
 
     info = scratch_org_config.sfdx_info
+    if not info.get("created_date"):
+        raise click.UsageError(
+            "cci org import only works for locally created "
+            "scratch orgs.\nUse `cci org connect` for other orgs."
+        )
     scratch_org_config.config["days"] = calculate_org_days(info)
     scratch_org_config.config["date_created"] = parse_api_datetime(info["created_date"])
 
@@ -1642,8 +1647,12 @@ class RunTaskCommand(click.MultiCommand):
             or the option doesn't exist for the given task.
         """
         # filter out options with no values
-        options = {k: v for k, v in new_options.items() if v is not None}
+        options = {
+            normalize_option_name(k): v for k, v in new_options.items() if v is not None
+        }
+
         for k, v in old_options:
+            k = normalize_option_name(k)
             if options.get(k):
                 raise CumulusCIUsageError(
                     f"Please make sure to specify options only once. Found duplicate option `{k}`."
@@ -1666,9 +1675,16 @@ class RunTaskCommand(click.MultiCommand):
             # click complains that there are no values for options. We set required=False
             # to mitigate this error. Task option validation should be performed at the
             # task level via task._validate_options() or Pydantic models.
+            decls = set(
+                (
+                    f"--{name}",
+                    f"--{name.replace('_', '-')}",
+                )
+            )
+
             click_options.append(
                 click.Option(
-                    param_decls=(f"--{name}",),
+                    param_decls=tuple(decls),
                     required=False,  # don't enforce option values in Click
                     help=properties.get("description", ""),
                 )
@@ -1884,3 +1900,7 @@ def gist(runtime):
     else:
         click.echo(f"Gist created: {gist.html_url}")
         webbrowser.open(gist.html_url)
+
+
+def normalize_option_name(k):
+    return k.replace("-", "_")
