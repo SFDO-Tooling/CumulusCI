@@ -108,9 +108,3 @@ def temp_db():
                 yield connection, Base.metadata, session
 
         yield open_db
-
-
-@pytest.fixture(scope="session", autouse=True)
-def disable_exit(request):
-    with mock.patch("sys.exit"):
-        yield

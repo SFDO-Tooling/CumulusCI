@@ -15,7 +15,7 @@ class DebugMode(int):
 _DEBUG_MODE = ContextVar("debug_mode", default=DebugMode(False))
 
 
-def get_debug_mode():
+def get_debug_mode() -> DebugMode:
     """Get a bool-like object specifying debug state."""
     return _DEBUG_MODE.get()
 
