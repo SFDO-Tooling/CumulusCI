@@ -19,13 +19,13 @@ def get_simple_salesforce_connection(
     adapter = HTTPAdapter(max_retries=retries)
     instance = org_config.instance_url
 
-    # Attepmt to get the host and port from the URL
+    # Attempt to get the host and port from the URL
     instance_url = urlparse(org_config.instance_url)
     instance = instance_url.hostname
     port = instance_url.port
 
     if port:
-        instance = instance.replace(".com", ".com:" + str(port))
+        instance = f"{instance}:{port}"
 
     sf = simple_salesforce.Salesforce(
         instance=instance,
