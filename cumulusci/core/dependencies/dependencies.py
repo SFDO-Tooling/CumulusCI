@@ -61,15 +61,13 @@ class HashableBaseModel(CCIModel):
 class DependencyResolutionStrategy(str, Enum):
     """Enum that defines a strategy for resolving a dynamic dependency into a static dependency."""
 
-    STRATEGY_STATIC_TAG_REFERENCE = "tag"
-    STRATEGY_COMMIT_STATUS_EXACT_BRANCH = "commit_status_exact_branch"
-    STRATEGY_COMMIT_STATUS_RELEASE_BRANCH = "commit_status_release_branch"
-    STRATEGY_COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH = (
-        "commit_status_previous_release_branch"
-    )
-    STRATEGY_BETA_RELEASE_TAG = "latest_beta"
-    STRATEGY_RELEASE_TAG = "latest_release"
-    STRATEGY_UNMANAGED_HEAD = "unmanaged"
+    STATIC_TAG_REFERENCE = "tag"
+    COMMIT_STATUS_EXACT_BRANCH = "commit_status_exact_branch"
+    COMMIT_STATUS_RELEASE_BRANCH = "commit_status_release_branch"
+    COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH = "commit_status_previous_release_branch"
+    BETA_RELEASE_TAG = "latest_beta"
+    RELEASE_TAG = "latest_release"
+    UNMANAGED_HEAD = "unmanaged"
 
 
 class Dependency(HashableBaseModel, abc.ABC):
@@ -85,9 +83,8 @@ class Dependency(HashableBaseModel, abc.ABC):
         pass  # pragma: no cover
 
     @property
-    @abc.abstractmethod
     def description(self):
-        pass  # pragma: no cover
+        return self.name  # pragma: no cover
 
     @property
     @abc.abstractmethod
@@ -110,7 +107,7 @@ class Dependency(HashableBaseModel, abc.ABC):
         pass  # pragma: no cover
 
     def __str__(self):
-        return self.name
+        return self.description
 
 
 Dependency.update_forward_refs()
@@ -377,10 +374,9 @@ class GitHubDynamicDependency(DynamicDependency):
 
     @property
     def description(self):
-        subfolder = f"/{self.subfolder}" if self.subfolder else ""
         unmanaged = " (unmanaged)" if self.unmanaged else ""
-        loc = f" @{self.ref or self.tag}" if self.ref or self.tag else ""
-        return f"{self.name}{subfolder}{unmanaged}{loc}"
+        loc = f" @{self.tag or self.ref}" if self.ref or self.tag else ""
+        return f"{self.github}{unmanaged}{loc}"
 
 
 class PackageNamespaceVersionDependency(StaticDependency):
@@ -403,7 +399,23 @@ class PackageNamespaceVersionDependency(StaticDependency):
         if not options:
             options = PackageInstallOptions()
 
-        context.logger.info(f"Installing {self.package} version {self.version}")
+        if "Beta" in self.version:
+            version_string = self.version.split(" ")[0]
+            beta = self.version.split(" ")[-1].strip(")")
+            version = f"{version_string}b{beta}"
+        else:
+            version = self.version
+
+        if org.has_minimum_package_version(
+            self.namespace,
+            version,
+        ):
+            context.logger.info(
+                f"{self} or a newer version is already installed; skipping."
+            )
+            return
+
+        context.logger.info(f"Installing {self.description}")
         install_package_by_namespace_version(
             context,
             org,
@@ -419,7 +431,7 @@ class PackageNamespaceVersionDependency(StaticDependency):
 
     @property
     def description(self):
-        return self.name
+        return f"{self.package} {self.version}"
 
 
 class PackageVersionIdDependency(StaticDependency):
@@ -441,7 +453,16 @@ class PackageVersionIdDependency(StaticDependency):
         if not options:
             options = PackageInstallOptions()
 
-        context.logger.info(f"Installing {self.package} {self.version_id}")
+        if any(
+            self.version_id == v.id
+            for v in itertools.chain(*org.installed_packages.values())
+        ):
+            context.logger.info(
+                f"{self} or a newer version is already installed; skipping."
+            )
+            return
+
+        context.logger.info(f"Installing {self.description}")
         install_package_by_version_id(
             context,
             org,
@@ -456,7 +477,7 @@ class PackageVersionIdDependency(StaticDependency):
 
     @property
     def description(self):
-        return self.name
+        return f"{self.package} {self.version_id}"
 
 
 class UnmanagedDependency(StaticDependency, abc.ABC):
@@ -552,7 +573,11 @@ class UnmanagedGitHubRefDependency(UnmanagedDependency):
 
     @property
     def description(self):
-        return f"{self.name} @{self.ref}"
+        subfolder = (
+            f"/{self.subfolder}" if self.subfolder and self.subfolder != "src" else ""
+        )
+
+        return f"{self.github}{subfolder} @{self.ref}"
 
 
 class UnmanagedZipURLDependency(UnmanagedDependency):
@@ -566,12 +591,12 @@ class UnmanagedZipURLDependency(UnmanagedDependency):
     @property
     def name(self):
         subfolder = f"/{self.subfolder}" if self.subfolder else ""
-
         return f"Deploy {self.zip_url} {subfolder}"
 
     @property
     def description(self):
-        return self.name
+        subfolder = f"/{self.subfolder}" if self.subfolder else ""
+        return f"{self.zip_url} {subfolder}"
 
 
 def parse_dependencies(deps: Optional[List[dict]]) -> List[Dependency]:
@@ -883,13 +908,13 @@ class GitHubReleaseBranchExactMatchCommitStatusResolver(GitHubReleaseBranchResol
 
 
 RESOLVER_CLASSES = {
-    DependencyResolutionStrategy.STRATEGY_STATIC_TAG_REFERENCE: GitHubTagResolver,
-    DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_EXACT_BRANCH: GitHubReleaseBranchExactMatchCommitStatusResolver,
-    DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_RELEASE_BRANCH: GitHubReleaseBranchCommitStatusResolver,
-    DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH: GitHubPreviousReleaseBranchCommitStatusResolver,
-    DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG: GitHubBetaReleaseTagResolver,
-    DependencyResolutionStrategy.STRATEGY_RELEASE_TAG: GitHubReleaseTagResolver,
-    DependencyResolutionStrategy.STRATEGY_UNMANAGED_HEAD: GitHubUnmanagedHeadResolver,
+    DependencyResolutionStrategy.STATIC_TAG_REFERENCE: GitHubTagResolver,
+    DependencyResolutionStrategy.COMMIT_STATUS_EXACT_BRANCH: GitHubReleaseBranchExactMatchCommitStatusResolver,
+    DependencyResolutionStrategy.COMMIT_STATUS_RELEASE_BRANCH: GitHubReleaseBranchCommitStatusResolver,
+    DependencyResolutionStrategy.COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH: GitHubPreviousReleaseBranchCommitStatusResolver,
+    DependencyResolutionStrategy.BETA_RELEASE_TAG: GitHubBetaReleaseTagResolver,
+    DependencyResolutionStrategy.RELEASE_TAG: GitHubReleaseTagResolver,
+    DependencyResolutionStrategy.UNMANAGED_HEAD: GitHubUnmanagedHeadResolver,
 }
 
 

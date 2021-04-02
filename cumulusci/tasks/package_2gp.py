@@ -524,10 +524,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         new_dependencies = []
         for dependency in dependencies:
             new_dependency = {}
-            if (
-                isinstance(dependency, PackageVersionIdDependency)
-                and dependency.version_id
-            ):
+            if isinstance(dependency, PackageVersionIdDependency):
                 self.logger.info(
                     f"Adding dependency {dependency.package_name} with id {dependency.version_id}"
                 )

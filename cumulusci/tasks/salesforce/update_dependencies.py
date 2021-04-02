@@ -96,24 +96,21 @@ class UpdateDependencies(BaseSalesforceTask):
         # remove the `latest_beta` resolver from the stack.
         # Note: this applies even if the resolution strategy is set
         # to a beta-y strategy.
-        if (
-            DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
-            in self.resolution_strategy
-        ):
+        if DependencyResolutionStrategy.BETA_RELEASE_TAG in self.resolution_strategy:
             if "include_beta" in self.options and not process_bool_arg(
                 self.options["include_beta"]
             ):
                 self.resolution_strategy.remove(
-                    DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
+                    DependencyResolutionStrategy.BETA_RELEASE_TAG
                 )
 
         # Likewise remove 2GP resolution strategies if prefer_2gp_from_release_branch
         # is explicitly False
         resolvers_2gp = [
-            DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH,
-            DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_RELEASE_BRANCH,
-            DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_EXACT_BRANCH,
-            DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG,
+            DependencyResolutionStrategy.COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH,
+            DependencyResolutionStrategy.COMMIT_STATUS_RELEASE_BRANCH,
+            DependencyResolutionStrategy.COMMIT_STATUS_EXACT_BRANCH,
+            DependencyResolutionStrategy.BETA_RELEASE_TAG,
         ]
 
         if "prefer_2gp_from_release_branch" in self.options and not process_bool_arg(
@@ -125,9 +122,9 @@ class UpdateDependencies(BaseSalesforceTask):
 
         unsafe_prod_resolvers = [
             *resolvers_2gp,
-            DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG,
+            DependencyResolutionStrategy.BETA_RELEASE_TAG,
         ]
-        # FIXME: This should probably take place in run_task, since when we freeze we won't have an org config.
+
         if (
             self.org_config
             and not self.org_config.scratch
@@ -179,36 +176,9 @@ class UpdateDependencies(BaseSalesforceTask):
         if isinstance(
             dependency, (PackageNamespaceVersionDependency, PackageVersionIdDependency)
         ):
-            installed = False
-
-            if isinstance(dependency, PackageNamespaceVersionDependency):
-                if "Beta" in dependency.version:
-                    version_string = dependency.version.split(" ")[0]
-                    beta = dependency.version.split(" ")[-1].strip(")")
-                    version = f"{version_string}b{beta}"
-                else:
-                    version = dependency.version
-
-                installed = self.org_config.has_minimum_package_version(
-                    dependency.namespace,
-                    version,
-                )
-            else:
-                installed = any(
-                    dependency.version_id == v.id
-                    for v in itertools.chain(
-                        *self.org_config.installed_packages.values()
-                    )
-                )
-
-            if installed:
-                self.logger.info(
-                    f"{dependency} or a newer version is already installed; skipping."
-                )
-            else:
-                dependency.install(
-                    self.project_config, self.org_config, self.install_options
-                )
+            dependency.install(
+                self.project_config, self.org_config, self.install_options
+            )
         else:
             dependency.install(self.project_config, self.org_config)
 

@@ -499,10 +499,7 @@ class OrgConfig(BaseConfig):
 
         new_dependencies = []
         for dependency in dependencies:
-            if (
-                isinstance(dependency, PackageNamespaceVersionDependency)
-                and dependency.namespace
-            ):
+            if isinstance(dependency, PackageNamespaceVersionDependency):
                 # get the SubscriberPackageVersion id
                 key = f"{dependency.namespace}@{dependency.version}"
                 version_info = self.installed_packages.get(key)

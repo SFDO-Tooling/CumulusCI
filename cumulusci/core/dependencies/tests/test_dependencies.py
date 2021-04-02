@@ -1,3 +1,5 @@
+from distutils.version import StrictVersion
+from cumulusci.core.config.OrgConfig import OrgConfig, VersionInfo
 from typing import List, Optional, Tuple
 from unittest import mock
 
@@ -362,8 +364,8 @@ class TestDynamicDependency:
         d.resolve(
             mock.Mock(),
             [
-                DependencyResolutionStrategy.STRATEGY_UNMANAGED_HEAD,
-                DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH,
+                DependencyResolutionStrategy.UNMANAGED_HEAD,
+                DependencyResolutionStrategy.COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH,
             ],
         )
 
@@ -388,8 +390,8 @@ class TestDynamicDependency:
         d.resolve(
             mock.Mock(),
             [
-                DependencyResolutionStrategy.STRATEGY_UNMANAGED_HEAD,
-                DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH,
+                DependencyResolutionStrategy.UNMANAGED_HEAD,
+                DependencyResolutionStrategy.COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH,
             ],
         )
 
@@ -403,9 +405,7 @@ class TestDynamicDependency:
         get_resolver.side_effect = resolvers
 
         with pytest.raises(DependencyResolutionError):
-            d.resolve(
-                mock.Mock(), [DependencyResolutionStrategy.STRATEGY_UNMANAGED_HEAD]
-            )
+            d.resolve(mock.Mock(), [DependencyResolutionStrategy.UNMANAGED_HEAD])
 
     @mock.patch("cumulusci.core.dependencies.dependencies.get_resolver")
     def test_dynamic_dependency_resolution_no_results(self, get_resolver):
@@ -414,9 +414,7 @@ class TestDynamicDependency:
         get_resolver.side_effect = resolvers
 
         with pytest.raises(DependencyResolutionError):
-            d.resolve(
-                mock.Mock(), [DependencyResolutionStrategy.STRATEGY_UNMANAGED_HEAD]
-            )
+            d.resolve(mock.Mock(), [DependencyResolutionStrategy.UNMANAGED_HEAD])
 
 
 class TestGitHubDynamicDependency:
@@ -596,7 +594,47 @@ class TestPackageNamespaceVersionDependency:
         m = PackageNamespaceVersionDependency(namespace="test", version="1.0")
 
         context = mock.Mock()
-        org = mock.Mock()
+        org = OrgConfig({}, "dev")
+        org._installed_packages = {}
+
+        m.install(context, org)
+
+        install_package_by_namespace_version.assert_called_once_with(
+            context,
+            org,
+            m.namespace,
+            m.version,
+            PackageInstallOptions(),
+            retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
+        )
+
+    @mock.patch(
+        "cumulusci.core.dependencies.dependencies.install_package_by_namespace_version"
+    )
+    def test_install__already_installed(self, install_package_by_namespace_version):
+        m = PackageNamespaceVersionDependency(namespace="test", version="1.0")
+
+        context = mock.Mock()
+        org = OrgConfig({}, "dev")
+        org._installed_packages = {
+            "test": [VersionInfo(id="04t000000000000", number=StrictVersion("1.0"))]
+        }
+
+        m.install(context, org)
+
+        install_package_by_namespace_version.assert_not_called()
+
+    @mock.patch(
+        "cumulusci.core.dependencies.dependencies.install_package_by_namespace_version"
+    )
+    def test_install__newer_beta(self, install_package_by_namespace_version):
+        m = PackageNamespaceVersionDependency(namespace="test", version="1.1 (Beta 4)")
+
+        context = mock.Mock()
+        org = OrgConfig({}, "dev")
+        org._installed_packages = {
+            "test": [VersionInfo(id="04t000000000000", number=StrictVersion("1.0"))]
+        }
 
         m.install(context, org)
 
@@ -616,7 +654,8 @@ class TestPackageNamespaceVersionDependency:
         m = PackageNamespaceVersionDependency(namespace="foo", version="1.0")
 
         context = mock.Mock()
-        org = mock.Mock()
+        org = OrgConfig({}, "dev")
+        org._installed_packages = {}
         opts = PackageInstallOptions(password="test")
 
         m.install(context, org, options=opts)
@@ -632,7 +671,7 @@ class TestPackageNamespaceVersionDependency:
 
     def test_name(self):
         assert (
-            str(PackageNamespaceVersionDependency(namespace="foo", version="1.0"))
+            PackageNamespaceVersionDependency(namespace="foo", version="1.0").name
             == "Install foo 1.0"
         )
 
@@ -658,7 +697,8 @@ class TestPackageVersionIdDependency:
         m = PackageVersionIdDependency(version_id="04t000000000000")
 
         context = mock.Mock()
-        org = mock.Mock()
+        org = OrgConfig({}, "dev")
+        org._installed_packages = {}
 
         m.install(context, org)
 
@@ -673,11 +713,28 @@ class TestPackageVersionIdDependency:
     @mock.patch(
         "cumulusci.core.dependencies.dependencies.install_package_by_version_id"
     )
+    def test_install__already_installed(self, install_package_by_version_id):
+        m = PackageVersionIdDependency(version_id="04t000000000000")
+
+        context = mock.Mock()
+        org = OrgConfig({}, "dev")
+        org._installed_packages = {
+            "04t000000000000": [VersionInfo(number="1.0", id="04t000000000000")]
+        }
+
+        m.install(context, org)
+
+        install_package_by_version_id.assert_not_called()
+
+    @mock.patch(
+        "cumulusci.core.dependencies.dependencies.install_package_by_version_id"
+    )
     def test_install__custom_options(self, install_package_by_version_id):
         m = PackageVersionIdDependency(version_id="04t000000000000")
 
         context = mock.Mock()
-        org = mock.Mock()
+        org = OrgConfig({}, "dev")
+        org._installed_packages = {}
         opts = PackageInstallOptions(password="test")
 
         m.install(context, org, options=opts)
@@ -692,11 +749,9 @@ class TestPackageVersionIdDependency:
 
     def test_name(self):
         assert (
-            str(
-                PackageVersionIdDependency(
-                    package_name="foo", version_id="04t000000000000"
-                )
-            )
+            PackageVersionIdDependency(
+                package_name="foo", version_id="04t000000000000"
+            ).name
             == "Install foo 04t000000000000"
         )
 
@@ -787,23 +842,19 @@ class TestUnmanagedGitHubRefDependency:
 
     def test_name(self):
         assert (
-            str(
-                UnmanagedGitHubRefDependency(
-                    github="http://github.com/Test/TestRepo",
-                    subfolder="unpackaged/pre/first",
-                    ref="aaaa",
-                )
-            )
+            UnmanagedGitHubRefDependency(
+                github="http://github.com/Test/TestRepo",
+                subfolder="unpackaged/pre/first",
+                ref="aaaa",
+            ).name
             == "Deploy http://github.com/Test/TestRepo/unpackaged/pre/first"
         )
 
         assert (
-            str(
-                UnmanagedGitHubRefDependency(
-                    github="http://github.com/Test/TestRepo",
-                    ref="aaaa",
-                )
-            )
+            UnmanagedGitHubRefDependency(
+                github="http://github.com/Test/TestRepo",
+                ref="aaaa",
+            ).name
             == "Deploy http://github.com/Test/TestRepo"
         )
 
@@ -864,7 +915,7 @@ class TestUnmanagedZipURLDependency:
 
     def test_name(self):
         assert (
-            str(UnmanagedZipURLDependency(zip_url="http://foo.com", subfolder="bar"))
+            UnmanagedZipURLDependency(zip_url="http://foo.com", subfolder="bar").name
             == "Deploy http://foo.com /bar"
         )
 
@@ -1122,7 +1173,7 @@ class TestResolverAccess:
     def test_get_resolver(self):
         assert isinstance(
             get_resolver(
-                DependencyResolutionStrategy.STRATEGY_STATIC_TAG_REFERENCE,
+                DependencyResolutionStrategy.STATIC_TAG_REFERENCE,
                 GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/Test"),
             ),
             GitHubTagResolver,
@@ -1132,24 +1183,21 @@ class TestResolverAccess:
         pc = BaseProjectConfig(UniversalConfig())
 
         strategy = get_resolver_stack(pc, "production")
-        assert DependencyResolutionStrategy.STRATEGY_RELEASE_TAG in strategy
-        assert DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG not in strategy
+        assert DependencyResolutionStrategy.RELEASE_TAG in strategy
+        assert DependencyResolutionStrategy.BETA_RELEASE_TAG not in strategy
 
     def test_get_resolver_stack__customized_indirect(self):
         pc = BaseProjectConfig(UniversalConfig())
 
         pc.project__dependency_resolutions["preproduction"] = "include_beta"
         strategy = get_resolver_stack(pc, "preproduction")
-        assert DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG in strategy
+        assert DependencyResolutionStrategy.BETA_RELEASE_TAG in strategy
 
     def test_get_resolver_stack__direct(self):
         pc = BaseProjectConfig(UniversalConfig())
 
         strategy = get_resolver_stack(pc, "commit_status")
-        assert (
-            DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_RELEASE_BRANCH
-            in strategy
-        )
+        assert DependencyResolutionStrategy.COMMIT_STATUS_RELEASE_BRANCH in strategy
 
     def test_get_resolver_stack__fail(self):
         pc = BaseProjectConfig(UniversalConfig())
@@ -1165,7 +1213,7 @@ class TestStaticDependencyResolution:
         gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
 
         assert get_static_dependencies(
-            [gh], [DependencyResolutionStrategy.STRATEGY_RELEASE_TAG], project_config
+            [gh], [DependencyResolutionStrategy.RELEASE_TAG], project_config
         ) == [
             UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/DependencyRepo",

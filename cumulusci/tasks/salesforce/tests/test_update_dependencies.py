@@ -125,10 +125,7 @@ def test_init_options_uses_include_beta_strategy_for_include_beta_true():
         org_config=org_config,
     )
 
-    assert (
-        DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
-        in task.resolution_strategy
-    )
+    assert DependencyResolutionStrategy.BETA_RELEASE_TAG in task.resolution_strategy
 
 
 def test_init_options_removes_beta_resolver_for_include_beta_false():
@@ -146,10 +143,7 @@ def test_init_options_removes_beta_resolver_for_include_beta_false():
         },
     )
 
-    assert (
-        DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
-        not in task.resolution_strategy
-    )
+    assert DependencyResolutionStrategy.BETA_RELEASE_TAG not in task.resolution_strategy
 
 
 def test_init_options_removes_2gp_resolver_for_prefer_2gp_false():
@@ -168,7 +162,7 @@ def test_init_options_removes_2gp_resolver_for_prefer_2gp_false():
     )
 
     assert (
-        DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_RELEASE_BRANCH
+        DependencyResolutionStrategy.COMMIT_STATUS_RELEASE_BRANCH
         not in task.resolution_strategy
     )
 
@@ -189,12 +183,9 @@ def test_init_options_removes_unsafe_resolvers_persistent_org():
     task.org_config = mock.Mock()
     task.org_config.scratch = False
 
+    assert DependencyResolutionStrategy.BETA_RELEASE_TAG not in task.resolution_strategy
     assert (
-        DependencyResolutionStrategy.STRATEGY_BETA_RELEASE_TAG
-        not in task.resolution_strategy
-    )
-    assert (
-        DependencyResolutionStrategy.STRATEGY_COMMIT_STATUS_RELEASE_BRANCH
+        DependencyResolutionStrategy.COMMIT_STATUS_RELEASE_BRANCH
         not in task.resolution_strategy
     )
 
@@ -271,80 +262,6 @@ def test_install_dependency_installs_managed_package(
         task.org_config,
         "ns",
         "1.0",
-        mock.ANY,
-        retry_options=mock.ANY,  # Ignore the options
-    )
-
-
-@mock.patch(
-    "cumulusci.core.dependencies.dependencies.install_package_by_namespace_version"
-)
-@mock.patch("cumulusci.core.dependencies.dependencies.install_package_by_version_id")
-def test_install_dependency_no_op_already_installed(
-    install_package_by_version_id,
-    install_package_by_namespace_version,
-):
-    task = create_task(
-        UpdateDependencies,
-        {
-            "dependencies": [
-                {
-                    "namespace": "ns",
-                    "version": "1.0",
-                },
-                {
-                    "version_id": "04t000000000000",
-                },
-                {
-                    "namespace": "ns",
-                    "version": "0.9",
-                },
-            ]
-        },
-    )
-    task.org_config = OrgConfig({}, "dev")
-    task.org_config._installed_packages = {
-        "ns": [VersionInfo(id="04t000000000000", number=StrictVersion("1.0"))]
-    }
-
-    task._install_dependency(task.dependencies[0])
-    install_package_by_namespace_version.assert_not_called()
-
-    task._install_dependency(task.dependencies[1])
-    install_package_by_version_id.assert_not_called()
-
-    task._install_dependency(task.dependencies[2])
-    install_package_by_namespace_version.assert_not_called()
-
-
-@mock.patch(
-    "cumulusci.core.dependencies.dependencies.install_package_by_namespace_version"
-)
-def test_install_dependency_already_installed__newer_beta(
-    install_package_by_namespace_version,
-):
-    task = create_task(
-        UpdateDependencies,
-        {
-            "dependencies": [
-                {
-                    "namespace": "ns",
-                    "version": "1.1 Beta 4",
-                }
-            ]
-        },
-    )
-    task.org_config = OrgConfig({}, "dev")
-    task.org_config._installed_packages = {
-        "ns": [VersionInfo(id="04t000000000000", number=StrictVersion("1.0"))]
-    }
-
-    task._install_dependency(task.dependencies[0])
-    install_package_by_namespace_version.assert_called_once_with(
-        task.project_config,
-        task.org_config,
-        "ns",
-        "1.1 Beta 4",
         mock.ANY,
         retry_options=mock.ANY,  # Ignore the options
     )
