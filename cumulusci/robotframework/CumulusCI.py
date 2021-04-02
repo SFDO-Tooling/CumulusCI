@@ -1,6 +1,6 @@
 import logging
 
-from robot.api import logger
+import robot.api.logger
 from robot.libraries.BuiltIn import BuiltIn
 
 from cumulusci.cli.runtime import CliRuntime
@@ -55,12 +55,11 @@ class CumulusCI(object):
                 # If CumulusCI is running a task, use that task's config
                 return CURRENT_TASK.stack[0].project_config
             else:
-                logger.console("Initializing CumulusCI config\n")
+                robot.api.logger.console("Initializing CumulusCI config\n")
                 self._project_config = CliRuntime().project_config
         return self._project_config
 
     def set_project_config(self, project_config):
-        logger.console("\n")
         self._project_config = project_config
 
     @property
@@ -182,6 +181,8 @@ class CumulusCI(object):
         just the same as when running the task from the command line. The other
         project needs to have been defined in the 'sources' section of cumulusci.yml.
 
+        The task output will appear in the robot log.
+
         Examples:
         | =Keyword= | =task_name= | =task_options=             | =comment=                        |
         | Run Task  | deploy      |                            | Run deploy with standard options |
@@ -201,6 +202,8 @@ class CumulusCI(object):
         most useful in cases where a test needs to use task logic for
         logic unique to the test and thus not worth making into a named
         task for the project
+
+        The task output will appear in the robot log.
 
         Examples:
         | =Keyword=      | =task_class=                     | =task_options=                            |
@@ -222,8 +225,8 @@ class CumulusCI(object):
             task_config.project_config or self.project_config,
             task_config,
             org_config=self.org,
+            logger=robot.api.logger,
         )
-
         return task
 
     def _parse_task_options(self, options, task_class, task_config):
@@ -246,10 +249,6 @@ class CumulusCI(object):
         return task_config
 
     def _run_task(self, task):
-        # add newline so first line of task output is not appended
-        # to the current line
-        logger.console("\n")
-        task.logger = logger
         task()
         return task.return_values
 
