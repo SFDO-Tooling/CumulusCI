@@ -300,6 +300,7 @@ Here is a project with Salesforce.org's `EDA <https://github.com/SalesforceFound
 
 The EDA repository is configured for a namespace, but the dependency  specifies ``unmanaged: True``, so EDA  deploys as unmanaged metadata.
 
+CumulusCI only supports unmanaged repositories in Metadata API source format at present.
 
 
 Reference a Specific Tag
@@ -332,10 +333,10 @@ If the referenced repository has unpackaged metadata under ``unpackaged/pre`` or
 
 
 
-Managed Package Dependencies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Package Dependencies
+^^^^^^^^^^^^^^^^^^^^
 
-Managed package dependencies are rather simple. Under the ``project__dependencies`` section of the ``cumulusci.yml`` file, specify the namespace of the target package, and the required version number.
+Managed package and unlocked package dependencies are rather simple. Under the ``project__dependencies`` section of the ``cumulusci.yml`` file, specify the namespace of the target package, and the required version number, or specify the package version id.
 
 .. code-block:: yaml
 
@@ -343,14 +344,17 @@ Managed package dependencies are rather simple. Under the ``project__dependencie
         dependencies:
             - namespace: npe01
               version: 3.6
+            - version_id: 04t000000000001
 
-Managed package dependencies can include any package, whether or not it is built as a CumulusCI project.
+Package dependencies can include any package, whether or not it is built as a CumulusCI project. Dependencies on managed packages
+may be specified using the namespace and version or the version id.
+Dependencies on unlocked packages should use the version id.
 
 
 
 Unmanaged Metadata Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Specify unmanaged metadata to be deployed by specifying a ``zip_url`` and, optionally,
+Specify unmanaged metadata to be deployed by specifying a ``zip_url`` or a ``github`` URL, and, optionally,
 ``subfolder``, ``namespace_inject``, ``namespace_strip``, and ``unmanaged`` under the
 ``project__dependencies`` section of the cumulusci.yml file.
 
@@ -359,27 +363,22 @@ Specify unmanaged metadata to be deployed by specifying a ``zip_url`` and, optio
     project:
         dependencies:
             - zip_url: https://SOME_HOST/metadata.zip
+            - github: https://github.com/SalesforceFoundation/EDA
+              subfolder: unpackaged/post/course_connection_record_types
 
-When the ``update_dependencies`` task runs, it downloads the zip file and deploys it via the Metadata API.
+When the ``update_dependencies`` task runs, it downloads the zip file or GitHub subdirectory and deploys it via the Metadata API.
 The zip file must contain valid metadata for use with a deploy, including a ``package.xml`` file in the root.
 
 
 
-Specify a Subfolder of the Zip File
-***********************************
+Specify a Subfolder
+*******************
 
-Use the ``subfolder`` option to specify a subfolder of the zip file to use for the deployment. 
+Use the ``subfolder`` option to specify a subfolder of the zip file or GitHub repository to use for the deployment. 
 
 .. tip::
     
     This option is handy when referring to metadata stored in a GitHub repository.
-
-.. code-block:: yaml
-
-    project:
-        dependencies:
-            - zip_url: https://github.com/SalesforceFoundation/CumulusReports/archive/master.zip
-              subfolder: CumulusReports-master/record_types
 
 When ``update_dependencies`` runs, it still downloads the zip from ``zip_url``, but then builds a new zip containing only the content of ``subfolder``, starting inside ``subfolder`` as the zip's root.
 
@@ -392,6 +391,34 @@ CumulusCI has support for tokenizing references to a package's namespace prefix 
 When tokenized, all occurrences of the namespace prefix, are replaced with ``%%%NAMESPACE%%%`` inside of files and ``___NAMESPACE___`` in file names. The ``namespace_inject`` option instructs CumulusCI to replace these tokens with the specified namespace before deploying the unpackaged dependency.
 
 For more on this topic see :ref:`namespace injection`. 
+
+Controlling GitHub Dependency Resolution
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+CumulusCI converts dynamic dependencies specified via GitHub repositories into specific package versions and commit references by applying one or more *resolvers*. You can customize the resolvers that CumulusCI applies to control how beta managed packages and second-generation feature packages, or to intervene more deeply in the dependency resolution process.
+
+CumulusCI organizes resolvers into *resolution strategies*, which are named, ordered lists of resolvers to apply. When CumulusCI applies a resolution strategy to a dependency, it applies each resolver from top to bottom until a resolver succeeds in resolving the dependency. Three resolution strategies are provided in the CumulusCI standard library:
+
+ * ``latest_release``, which will attempt to resolve to the latest managed release of a managed package project.
+ * ``include_beta``, which will attempt to resolve to the latest beta, if any, or managed release of a managed package project.
+ * ``commit_status``, which will resolve to second-generation package betas created on feature branches, if any, before falling back to managed package releases. This strategy is used only in the ``qa_org_2gp`` flow.
+
+The complete list of steps taken by each resolution strategy is given below.
+
+Each flow that resolves dependencies selects a resolution strategy that meets its needs. Two aliases, ``production``, and ``preproduction``, are defined for this purpose, because in many cases a development flow like ``dev_org`` or ``install_beta`` will want to utilize a *different* resolution strategy than a production flow like ``ci_master`` or ``install_prod``. By default, both ``production`` and ``preproduction`` use the ``latest_release`` resolution strategy.
+
+To opt in development flows to use beta versions of managed package dependencies, you can switch the ``preproduction`` alias to point to the ``include_beta`` resolution strategy::
+
+    project:
+        dependency_resolutions:
+            preproduction: include_beta
+            production: latest_release
+
+After this change, flows like ``dev_org`` will install beta releases of dependencies, if present.
+
+Resolution Strategy Details
+***************************
+
 
 
 Automatic Cleaning of ``meta.xml`` Files on Deploy
