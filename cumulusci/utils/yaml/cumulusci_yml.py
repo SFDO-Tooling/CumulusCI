@@ -1,10 +1,10 @@
-import re
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, Sequence
+from operator import xor
 
 from typing_extensions import Literal, TypedDict
-from pydantic import Field
+from pydantic import Field, root_validator
 
 from cumulusci.utils.fileutils import DataInput, load_from_source
 from cumulusci.utils.yaml.model_parser import CCIDictModel
@@ -13,35 +13,30 @@ from cumulusci.utils.yaml.safer_loader import load_yaml_data
 default_logger = getLogger(__name__)
 
 
-NBSP = "\u00A0"
-
-pattern = re.compile(r"^\s*[\u00A0]+\s*", re.MULTILINE)
-
-
 #  type aliases
 PythonClassPath = str
 URL = str
 
 
-class FlowReference(CCIDictModel):
+class Step(CCIDictModel):
+    task: str = None
     flow: str = None
     options: Dict[str, Any] = {}
     ignore_failure: bool = False
     when: str = None  # is this allowed?
     ui_options: Dict[str, Any] = {}
 
-
-class TaskReference(CCIDictModel):
-    task: str
-    options: Dict[str, Any] = {}
-    ui_options: Dict[str, Any] = {}
-    ignore_failure: bool = None
-    when: str = None  # is this a documented feature?
-    # classpath, description allowed?
+    @root_validator()
+    def _check(cls, values):
+        assert xor(
+            bool(values.get("task")), bool(values.get("flow"))
+        ), "Steps must have a task or flow"
+        return values
 
 
 class Task(CCIDictModel):
-    class_path: str
+    name: str = None  # get rid of this???
+    class_path: str = None  # to discuss
     description: str = None
     options: Dict[str, Any] = None
     group: str = None
@@ -50,7 +45,7 @@ class Task(CCIDictModel):
 
 class Flow(CCIDictModel):
     description: str = None
-    steps: Dict[str, Union[FlowReference, TaskReference]]
+    steps: Dict[str, Step]
     group: str = None
 
 
@@ -73,7 +68,7 @@ class ReleaseNotesParser(CCIDictModel):
 
 
 class ReleaseNotes(CCIDictModel):
-    parsers: Dict[int, Parser]
+    parsers: Dict[int, ReleaseNotesParser]
 
 
 class Git(CCIDictModel):
@@ -88,13 +83,6 @@ class Git(CCIDictModel):
     two_gp_context: str = Field(None, alias="2gp_context")
 
 
-class ApexDoc(CCIDictModel):
-    homepage: str = None  # can't find these in the CCI Python code
-    banner: str = None
-    branch: str = None
-    repo_dir: Path = None
-
-
 class PreflightCheck(CCIDictModel):
     when: str = None
     action: str = None
@@ -104,11 +92,11 @@ class PreflightCheck(CCIDictModel):
 class Plan(CCIDictModel):  # MetaDeploy plans
     title: str
     description: str = None
-    tier: str = None
-    slug: str = None
+    tier: str = Literal["primary", "secondary", "additional"]
+    slug: str
     is_listed: bool = True
-    steps: Dict[str, Union[FlowReference, TaskReference]]
-    checks: List[Check] = []
+    steps: Dict[str, Step]
+    checks: List[PreflightCheck] = []
     group: str = None
     error_message: str = None
     post_install_message: str = None
@@ -116,7 +104,7 @@ class Plan(CCIDictModel):  # MetaDeploy plans
 
 
 class Project(CCIDictModel):
-    name: Optional[str]
+    name: str = None
     package: Package = None
     test: Test = None
     git: Git = None
@@ -128,6 +116,7 @@ class ScratchOrg(CCIDictModel):
     config_file: Path
     days: int = None
     namespaced: str = None
+    setup_flow: str = None
 
 
 class Orgs(CCIDictModel):
@@ -141,7 +130,7 @@ class ServiceAttribute(CCIDictModel):
 
 class Service(CCIDictModel):
     description: str
-    attributes: Dict[str, Attribute]
+    attributes: Dict[str, ServiceAttribute]
     validator: PythonClassPath = None
 
 
@@ -151,7 +140,10 @@ class CumulusCIConfig(CCIDictModel):
 
 class Source(CCIDictModel):
     github: URL = None
-    release: str = None
+    release: Literal["latest", "previous", "latest_beta"] = None
+    ref: str = None
+    branch: str = None
+    tag: str = None
 
 
 class CumulusCLIConfig(CCIDictModel):
@@ -173,7 +165,7 @@ class CumulusCIRoot(CCIDictModel):
 
 
 class CumulusCIFile(CCIDictModel):
-    __root__: CumulusCIRoot
+    __root__: Union[CumulusCIRoot, None]
 
 
 def parse_from_yaml(source):
@@ -211,7 +203,6 @@ def _log_yaml_error(logger, error: ErrorDict):
     logger.error(
         "NOTE: These errors will cause major problems in future versions of CumulusCI."
     )
-    logger.error("Please correct them before May 1, 2021.")
     logger.error(
         "If you think your YAML has no error, please report the bug to the CumulusCI team."
     )

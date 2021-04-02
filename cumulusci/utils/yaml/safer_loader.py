@@ -16,10 +16,10 @@ NBSP = "\u00A0"
 
 pattern = re.compile(r"^\s*[\u00A0]+\s*", re.MULTILINE)
 
-default_logger = getLogger(__name__)
+logger = getLogger(__name__)
 
 
-def _replace_nbsp(origdata, filename, logger=default_logger):
+def _replace_nbsp(origdata, filename):
     """Replace nbsp characters in leading whitespace in a YAML file."""
     counter = 0
 
