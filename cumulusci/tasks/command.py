@@ -134,6 +134,7 @@ class Command(BaseTask):
                 elif p.poll() is not None:
                     break
             p.wait()
+        self.return_values = {"returncode": p.returncode}
 
         # Handle return code
         if not return_code_handler:
