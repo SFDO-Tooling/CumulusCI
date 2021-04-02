@@ -1,5 +1,4 @@
 import json
-import os
 import pytest
 import tempfile
 
@@ -11,29 +10,10 @@ from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.core.keychain.encrypted_file_project_keychain import GlobalOrg
 from cumulusci.core.config import (
     BaseConfig,
-    BaseProjectConfig,
     OrgConfig,
     ServiceConfig,
     UniversalConfig,
 )
-
-
-@pytest.fixture
-def key() -> str:
-    return "0123456789123456"
-
-
-@pytest.fixture()
-def project_config() -> BaseProjectConfig:
-    universal_config = UniversalConfig()
-    project_config = BaseProjectConfig(universal_config, config={"no_yaml": True})
-    project_config.config["services"] = {
-        "connected_app": {"attributes": {"test": {"required": True}}},
-        "github": {"attributes": {"name": {"required": True}, "password": {}}},
-        "not_configured": {"attributes": {"foo": {"required": True}}},
-    }
-    project_config.project__name = "TestProject"
-    return project_config
 
 
 @pytest.fixture()
@@ -42,18 +22,6 @@ def keychain(project_config, key) -> EncryptedFileProjectKeychain:
     assert keychain.project_config == project_config
     assert keychain.key == key
     return keychain
-
-
-@pytest.fixture
-def org_config():
-    return OrgConfig({"foo": "bar"}, "test")
-
-
-@pytest.fixture
-def service_config() -> ServiceConfig:
-    return ServiceConfig(
-        {"name": "bar@baz.biz", "password": "test123", "token": "test123"}
-    )
 
 
 class TestEncryptedFileProjectKeychain:
@@ -144,10 +112,9 @@ class TestEncryptedFileProjectKeychain:
             "cumulusci.core.keychain.encrypted_file_project_keychain.open"
         ) as o:
             org_config.save()
-            opened_filename = o.mock_calls[0][1][0]
-            assert ".cumulusci/test.org" in opened_filename.replace(
-                os.sep, "/"
-            ), opened_filename
+            opened_file = o.mock_calls[0][1][0]
+            assert opened_file.parent.name == ".cumulusci"
+            assert opened_file.name == "test.org"
 
         # check that it can be loaded in a fresh keychain
         new_keychain = EncryptedFileProjectKeychain(project_config, key)

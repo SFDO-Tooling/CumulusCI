@@ -15,20 +15,6 @@ from cumulusci.core.config import (
 )
 
 
-@pytest.fixture()
-def project_config():
-    universal_config = UniversalConfig()
-    project_config = BaseProjectConfig(universal_config, config={"no_yaml": True})
-    project_config.config["services"] = {
-        "connected_app": {"attributes": {"test": {"required": True}}},
-        "github": {"attributes": {"name": {"required": True}, "password": {}}},
-        "not_configured": {"attributes": {"foo": {"required": True}}},
-        "devhub": {"attributes": {"foo": {"required": True}}},
-    }
-    project_config.project__name = "TestProject"
-    return project_config
-
-
 @pytest.fixture
 def service_configs():
     return {
@@ -38,23 +24,8 @@ def service_configs():
 
 
 @pytest.fixture
-def org_config():
-    return OrgConfig({"foo": "bar"}, "test")
-
-
-@pytest.fixture
 def scratch_org_config():
     return ScratchOrgConfig({"foo": "bar", "scratch": True}, "test_scratch")
-
-
-@pytest.fixture
-def key():
-    return "0123456789123456"
-
-
-@pytest.fixture
-def service_conf():
-    return ServiceConfig({"name": "bar@baz.biz", "password": "test123"})
 
 
 @pytest.fixture()
@@ -109,9 +80,9 @@ class TestBaseProjectKeychain:
             == service_configs["connected_app"].config
         )
 
-    def test_set_service__github(self, keychain, service_conf):
-        keychain.set_service("github", "alias", service_conf, project=False)
-        assert keychain.get_service("github", "alias").config == service_conf.config
+    def test_set_service__github(self, keychain, service_config):
+        keychain.set_service("github", "alias", service_config, project=False)
+        assert keychain.get_service("github", "alias").config == service_config.config
 
     def test_get_service__default_service(self, keychain):
         keychain._default_services = {"devhub": "baz"}
@@ -124,34 +95,35 @@ class TestBaseProjectKeychain:
 
         assert default_github_service == "config3"
 
-    def test_get_service__service_not_loaded(self, keychain, service_conf):
+    def test_get_service__service_not_loaded(self, keychain, service_config):
         keychain.project_config.config["services"] = {}
         with pytest.raises(
             ServiceNotValid,
             match=re.escape("Expecting services to be loaded, but none were found."),
         ):
-            keychain.get_service("test-service", "alias").config == service_conf.config
+            keychain.get_service(
+                "test-service", "alias"
+            ).config == service_config.config
 
-    def test_get_service__service_type_not_in_config(self, keychain, service_conf):
+    def test_get_service__service_type_not_in_config(self, keychain, service_config):
         with pytest.raises(
             ServiceNotConfigured,
             match="Service type is not configured: test-service",
         ):
-            keychain.get_service("test-service", "alias").config == service_conf.config
+            keychain.get_service(
+                "test-service", "alias"
+            ).config == service_config.config
 
-    def test_get_service__service_not_configured(self, keychain, service_conf):
-        pass
-
-    def test_get_service__DEFAULT_CONNECTED_APP(self, keychain, service_conf):
+    def test_get_service__DEFAULT_CONNECTED_APP(self, keychain):
         service = keychain.get_service("connected_app", "alias")
         assert service is DEFAULT_CONNECTED_APP
 
-    def test_set_service__private_method(self, keychain, service_conf):
+    def test_set_service__private_method(self, keychain, service_config):
         alias = "ziggy"
         keychain.services = {"github": {}}
-        keychain._set_service("github", alias, service_conf, project=False)
+        keychain._set_service("github", alias, service_config, project=False)
         assert alias in keychain.services["github"].keys()
-        assert keychain.services["github"][alias].config == service_conf.config
+        assert keychain.services["github"][alias].config == service_config.config
 
     def test_set_and_get_org(self, keychain, org_config):
         org_config.global_org = False
@@ -303,7 +275,9 @@ class TestBaseProjectKeychain:
         assert app_config == actual_service.config
 
     @mock.patch("cumulusci.core.keychain.base_project_keychain.cleanup_org_cache_dirs")
-    def test_remove_org(self, cleanup_org_cache_dirs, keychain, org_config):
+    def test_remove_org(
+        self, cleanup_org_cache_dirs, keychain, org_config, project_config
+    ):
         keychain.set_org(org_config)
         keychain.remove_org("test")
         assert "test" not in keychain.orgs
