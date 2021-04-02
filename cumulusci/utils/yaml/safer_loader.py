@@ -20,7 +20,7 @@ default_logger = getLogger(__name__)
 
 
 def _replace_nbsp(origdata, filename, logger=default_logger):
-    "Replace nbsp characters in leading whitespace in a YAML file."
+    """Replace nbsp characters in leading whitespace in a YAML file."""
     counter = 0
 
     def _replacer_func(matchobj):

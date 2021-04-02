@@ -26,7 +26,7 @@ URL = str
 class FlowReference(CCIDictModel):
     flow: str = None
     options: Dict[str, Any] = {}
-    ignore_failure: bool = None  # is this allowed?
+    ignore_failure: bool = False
     when: str = None  # is this allowed?
     ui_options: Dict[str, Any] = {}
 
@@ -41,8 +41,7 @@ class TaskReference(CCIDictModel):
 
 
 class Task(CCIDictModel):
-    name: str = None  # is this real or a typo
-    class_path: str = None
+    class_path: str
     description: str = None
     options: Dict[str, Any] = None
     group: str = None
@@ -68,13 +67,13 @@ class Test(CCIDictModel):
     name_match: str
 
 
-class Parser(CCIDictModel):
+class ReleaseNotesParser(CCIDictModel):
     class_path: PythonClassPath
     title: str
 
 
 class ReleaseNotes(CCIDictModel):
-    parsers: Dict[int, Parser]  # should probably be a list
+    parsers: Dict[int, Parser]
 
 
 class Git(CCIDictModel):
@@ -96,7 +95,7 @@ class ApexDoc(CCIDictModel):
     repo_dir: Path = None
 
 
-class Check(CCIDictModel):
+class PreflightCheck(CCIDictModel):
     when: str = None
     action: str = None
     message: str = None
@@ -107,11 +106,10 @@ class Plan(CCIDictModel):  # MetaDeploy plans
     description: str = None
     tier: str = None
     slug: str = None
-    is_listed: bool = None
+    is_listed: bool = True
     steps: Dict[str, Union[FlowReference, TaskReference]]
-    checks: List[Check] = None
+    checks: List[Check] = []
     group: str = None
-    error_message: str = None
     error_message: str = None
     post_install_message: str = None
     preflight_message: str = None
@@ -123,7 +121,6 @@ class Project(CCIDictModel):
     test: Test = None
     git: Git = None
     dependencies: List[Dict[str, URL]] = None  # TODO
-    apexdoc: ApexDoc = None
     source_format: Literal["sfdx", "mdapi"] = "mdapi"
 
 
@@ -137,7 +134,7 @@ class Orgs(CCIDictModel):
     scratch: Dict[str, ScratchOrg]
 
 
-class Attribute(CCIDictModel):
+class ServiceAttribute(CCIDictModel):
     description: str
     required: bool
 
@@ -158,7 +155,7 @@ class Source(CCIDictModel):
 
 
 class CumulusCLIConfig(CCIDictModel):
-    show_stacktraces: bool = None
+    show_stacktraces: bool = False
     plain_output: bool = None
 
 

@@ -40,7 +40,7 @@ class UniversalConfig(BaseTaskFlowConfig):
 
     @property
     def config_global_path(self):
-        "The global config path. Usually ~/.cumulusci/cumulusci.yml"
+        """The global config path. Usually ~/.cumulusci/cumulusci.yml"""
         directory = self.cumulusci_config_dir
         if not os.path.exists(directory):
             os.makedirs(directory)
