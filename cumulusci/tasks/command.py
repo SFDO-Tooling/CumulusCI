@@ -110,7 +110,7 @@ class Command(BaseTask):
 
         interactive_mode = process_bool_arg(self.options["interactive"])
 
-        self.logger.info("Running command: %s", command)
+        self.logger.info(f"Running command: {command}")
 
         p = sarge.Command(
             command,
