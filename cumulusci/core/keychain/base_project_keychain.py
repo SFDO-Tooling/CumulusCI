@@ -40,6 +40,7 @@ class BaseProjectKeychain(BaseConfig):
         self.key = key
         self._validate_key()
         self._load_keychain()
+        self._init_default_services()
 
     def _convert_connected_app(self):
         """Convert Connected App to service"""
@@ -76,7 +77,6 @@ class BaseProjectKeychain(BaseConfig):
         self._load_orgs()
         self._load_scratch_orgs()
         self._load_services()
-        self._init_default_services()
 
     def _load_app(self):
         pass

@@ -7,6 +7,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CBC
 
+from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
@@ -16,7 +17,6 @@ from cumulusci.core.exceptions import (
     CumulusCIException,
     KeychainKeyNotFound,
 )
-from cumulusci.core.keychain import BaseProjectKeychain
 
 BS = 16
 backend = default_backend()
@@ -30,19 +30,6 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
     """ Base class for building project keychains that use AES encryption for securing stored org credentials """
 
     encrypted = True
-
-    def _get_connected_app(self):
-        if self.app:
-            return self._decrypt_config(
-                ConnectedAppOAuthConfig, self.app, context="connected app config"
-            )
-
-    def _get_service(self, service_type, alias):
-        return self._decrypt_config(
-            ServiceConfig,
-            self.services[service_type][alias],
-            context=f"service config ({service_type}/{alias})",
-        )
 
     def set_default_service(
         self, service_type: str, alias: str, project: bool = False
@@ -59,13 +46,22 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
     def _set_service(self, service_type, alias, service_config, project):
         if service_type not in self.services:
             self.services[service_type] = {}
+            # TODO: Should this be moved after _set_encrypted_service?
             self._default_services[service_type] = alias
+            self._save_default_services(project)
 
         encrypted = self._encrypt_config(service_config)
         self._set_encrypted_service(service_type, alias, encrypted, project)
 
     def _set_encrypted_service(self, service_type, alias, encrypted, project):
         self.services[service_type][alias] = encrypted
+
+    def _get_service(self, service_type, alias):
+        return self._decrypt_config(
+            ServiceConfig,
+            self.services[service_type][alias],
+            context=f"service config ({service_type}/{alias})",
+        )
 
     def _set_org(self, org_config, global_org):
         if org_config.keychain:
@@ -86,6 +82,12 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
             extra=[name, self],
             context=f"org config ({name})",
         )
+
+    def _get_connected_app(self):
+        if self.app:
+            return self._decrypt_config(
+                ConnectedAppOAuthConfig, self.app, context="connected app config"
+            )
 
     def _get_cipher(self, iv=None):
         key = self.key
