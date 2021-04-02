@@ -81,14 +81,15 @@ class UpdateDependencies(BaseSalesforceTask):
 
         # Backwards-compatibility: if include_beta is set and True,
         # use the include_beta resolution strategy.
-        default = "production"
+        include_beta = None
         if "include_beta" in self.options and process_bool_arg(
             self.options["include_beta"]
         ):
-            default = "include_beta"
+            include_beta = "include_beta"
 
         self.resolution_strategy = get_resolver_stack(
-            self.project_config, self.options.get("resolution_strategy") or default
+            self.project_config,
+            include_beta or self.options.get("resolution_strategy") or "production",
         )
 
         # Backwards-compatibility: if `include_beta` is set and False,

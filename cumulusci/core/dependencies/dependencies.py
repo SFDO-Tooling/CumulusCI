@@ -207,7 +207,6 @@ class GitHubDynamicDependency(DynamicDependency):
     repo_name: Optional[str]  # Deprecated - use full URL
 
     unmanaged: bool = False
-    subfolder: Optional[str]
     namespace_inject: Optional[str]
     namespace_strip: Optional[str]
 
@@ -219,6 +218,17 @@ class GitHubDynamicDependency(DynamicDependency):
     @property
     def is_resolved(self):
         return self.ref is not None
+
+    @pydantic.root_validator
+    def check_unmanaged_values(cls, values):
+        if not values.get("unmanaged") and (
+            values.get("namespace_inject") or values.get("namespace_strip")
+        ):
+            raise ValueError(
+                "The namespace_strip and namespace_inject fields require unmanaged = True"
+            )
+
+        return values
 
     @pydantic.root_validator
     def check_deprecated_fields(cls, values):

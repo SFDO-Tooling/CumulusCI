@@ -438,6 +438,11 @@ class TestGitHubDynamicDependency:
                 github="http://github.com/Test/TestRepo", tag="tag/1.0", ref="aaaaa"
             )
 
+        with pytest.raises(ValidationError):
+            GitHubDynamicDependency(
+                github="http://github.com/Test/TestRepo", namespace_inject="foo"
+            )
+
     def test_flatten(self, project_config):
         gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
         gh.ref = "aaaaa"

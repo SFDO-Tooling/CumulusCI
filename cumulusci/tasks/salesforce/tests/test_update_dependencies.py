@@ -120,6 +120,7 @@ def test_init_options_uses_include_beta_strategy_for_include_beta_true():
                 }
             ],
             "include_beta": True,
+            "resolution_strategy": "production",
         },
         org_config=org_config,
     )

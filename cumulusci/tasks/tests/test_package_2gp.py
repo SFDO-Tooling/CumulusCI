@@ -51,6 +51,7 @@ def repo_root():
                             {
                                 "repo_owner": "SalesforceFoundation",
                                 "repo_name": "EDA",
+                                "ref": "aaaaa",
                                 "subfolder": "unpackaged/pre/first",
                             },
                             {
