@@ -108,11 +108,18 @@ def test_init_options__name_inference():
     project_config = create_project_config()
     project_config.config["project"]["package"]["namespace"] = "ns"
     project_config.config["project"]["package"]["name"] = "Test"
+
     task = create_task(
         InstallPackageVersion,
-        {
-            "version": "04t000000000000",
-        },
+        {"version": "04t000000000000"},
+        project_config=project_config,
+    )
+
+    assert task.options["name"] == "Package"
+
+    task = create_task(
+        InstallPackageVersion,
+        {"version": "1.0"},
         project_config=project_config,
     )
 

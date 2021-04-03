@@ -54,7 +54,9 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         # Populate a reasonable default. Note that if we're deploying a different package
         # than our own, we should not show the name of this repo's package.
         if "name" not in self.options:
-            if (
+            if isinstance(version, str) and version.startswith("04t"):
+                self.options["name"] = "Package"
+            elif (
                 self.options["namespace"]
                 == self.project_config.project__package__namespace
             ):
