@@ -1132,6 +1132,7 @@ flows:
                     version_base: latest_github_release
                     version_type: minor
                     skip_validation: True
+                    resolution_strategy: commit_status
 
     unmanaged_ee:
         group: Deployment
