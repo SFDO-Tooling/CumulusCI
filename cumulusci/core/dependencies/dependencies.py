@@ -190,38 +190,25 @@ class Resolver(abc.ABC):
         return self.name
 
 
-class GitHubDynamicDependency(DynamicDependency):
-    """A dependency expressed by a reference to a GitHub repo, which needs
-    to be resolved to a specific ref and/or package version."""
+class BaseGitHubDependency(DynamicDependency, abc.ABC):
+    """Base class for dynamic dependencies that reference a GitHub repo."""
 
     github: Optional[AnyUrl]
 
     repo_owner: Optional[str]  # Deprecated - use full URL
     repo_name: Optional[str]  # Deprecated - use full URL
 
-    unmanaged: bool = False
-    namespace_inject: Optional[str]
-    namespace_strip: Optional[str]
-
     tag: Optional[str]
     ref: Optional[str]
 
-    skip: List[str] = []
+    @property
+    @abc.abstractmethod
+    def is_unmanaged(self):
+        pass  # pragma: no cover
 
     @property
     def is_resolved(self):
-        return self.ref is not None
-
-    @pydantic.root_validator
-    def check_unmanaged_values(cls, values):
-        if not values.get("unmanaged") and (
-            values.get("namespace_inject") or values.get("namespace_strip")
-        ):
-            raise ValueError(
-                "The namespace_strip and namespace_inject fields require unmanaged = True"
-            )
-
-        return values
+        return bool(self.ref)
 
     @pydantic.root_validator
     def check_deprecated_fields(cls, values):
@@ -246,6 +233,76 @@ class GitHubDynamicDependency(DynamicDependency):
             values[
                 "github"
             ] = f"https://github.com/{values['repo_owner']}/{values['repo_name']}"
+
+        return values
+
+    @property
+    def name(self):
+        return f"Dependency: {self.github}"
+
+
+class GitHubDynamicSubfolderDependency(BaseGitHubDependency):
+    """A dependency expressed by a reference to a subfolder of a GitHub repo, which needs
+    to be resolved to a specific ref. This is always an unmanaged dependency."""
+
+    subfolder: str
+    namespace_inject: Optional[str]
+    namespace_strip: Optional[str]
+
+    @property
+    def is_unmanaged(self):
+        return True
+
+    def flatten(self, context: BaseProjectConfig) -> List[Dependency]:
+        """Convert to a static dependency after resolution"""
+
+        if not self.is_resolved:
+            raise DependencyResolutionError(
+                f"Dependency {self} is not resolved and cannot be flattened."
+            )
+
+        return [
+            UnmanagedGitHubRefDependency(
+                github=self.github,
+                ref=self.ref,
+                subfolder=self.subfolder,
+                namespace_inject=self.namespace_inject,
+                namespace_strip=self.namespace_strip,
+            )
+        ]
+
+    @property
+    def name(self):
+        return f"Dependency: {self.github}/{self.subfolder}"
+
+    @property
+    def description(self):
+        loc = f" @{self.tag or self.ref}" if self.ref or self.tag else ""
+        return f"{self.github}/{self.subfolder}{loc}"
+
+
+class GitHubDynamicDependency(BaseGitHubDependency):
+    """A dependency expressed by a reference to a GitHub repo, which needs
+    to be resolved to a specific ref and/or package version."""
+
+    unmanaged: bool = False
+    namespace_inject: Optional[str]
+    namespace_strip: Optional[str]
+
+    skip: List[str] = []
+
+    @property
+    def is_unmanaged(self):
+        return self.unmanaged
+
+    @pydantic.root_validator
+    def check_unmanaged_values(cls, values):
+        if not values.get("unmanaged") and (
+            values.get("namespace_inject") or values.get("namespace_strip")
+        ):
+            raise ValueError(
+                "The namespace_strip and namespace_inject fields require unmanaged = True"
+            )
 
         return values
 
@@ -294,9 +351,9 @@ class GitHubDynamicDependency(DynamicDependency):
         - the contents of src, if this is not a managed package
         - subfolders of unpackaged/post
         """
-        if not self.is_resolved or not self.ref:
+        if not self.is_resolved:
             raise DependencyResolutionError(
-                f"Dependency {self.github} is not resolved and cannot be flattened."
+                f"Dependency {self} is not resolved and cannot be flattened."
             )
 
         deps = []
@@ -363,10 +420,6 @@ class GitHubDynamicDependency(DynamicDependency):
         )
 
         return deps
-
-    @property
-    def name(self):
-        return f"Dependency: {self.github}"
 
     @property
     def description(self):
@@ -613,12 +666,17 @@ def parse_dependency(dep_dict: dict) -> Optional[Dependency]:
 
     Returns None if the given dict cannot be parsed."""
 
+    # The order in which we attempt parsing is significant.
+    # GitHubDynamicDependency has an optional `ref` field, but we want
+    # any dependencies with a populated `ref` to be parsed as static deps.
+
     for dependency_class in [
         PackageNamespaceVersionDependency,
         PackageVersionIdDependency,
-        GitHubDynamicDependency,
         UnmanagedGitHubRefDependency,
         UnmanagedZipURLDependency,
+        GitHubDynamicDependency,
+        GitHubDynamicSubfolderDependency,
     ]:
         try:
             dep = dependency_class.parse_obj(dep_dict)
@@ -637,10 +695,10 @@ class GitHubTagResolver(Resolver):
     name = "GitHub Tag Resolver"
 
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
-        return isinstance(dep, GitHubDynamicDependency) and dep.tag is not None
+        return isinstance(dep, BaseGitHubDependency) and dep.tag is not None
 
     def resolve(
-        self, dep: GitHubDynamicDependency, context: BaseProjectConfig
+        self, dep: BaseGitHubDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
         try:
             # Find the github release corresponding to this tag.
@@ -650,12 +708,12 @@ class GitHubTagResolver(Resolver):
             package_config = get_remote_project_config(repo, ref)
             package_name, namespace = get_package_data(package_config)
 
-            if not dep.unmanaged and not namespace:
+            if not dep.is_unmanaged and not namespace:
                 raise DependencyResolutionError(
                     f"The tag {dep.tag} in {dep.github} does not identify a managed release"
                 )
 
-            if not dep.unmanaged:
+            if not dep.is_unmanaged:
                 return (
                     ref,
                     PackageNamespaceVersionDependency(
@@ -677,10 +735,10 @@ class GitHubReleaseTagResolver(Resolver):
     include_beta = False
 
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
-        return isinstance(dep, GitHubDynamicDependency)
+        return isinstance(dep, BaseGitHubDependency)
 
     def resolve(
-        self, dep: GitHubDynamicDependency, context: BaseProjectConfig
+        self, dep: BaseGitHubDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
         repo = get_repo(dep.github, context)
         release = find_latest_release(repo, include_beta=self.include_beta)
@@ -712,10 +770,10 @@ class GitHubUnmanagedHeadResolver(Resolver):
     name = "GitHub Unmanaged Resolver"
 
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
-        return isinstance(dep, GitHubDynamicDependency)
+        return isinstance(dep, BaseGitHubDependency)
 
     def resolve(
-        self, dep: GitHubDynamicDependency, context: BaseProjectConfig
+        self, dep: BaseGitHubDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
         repo = get_repo(dep.github, context)
         return (repo.branch(repo.default_branch).commit.sha, None)
@@ -726,7 +784,7 @@ class GitHubReleaseBranchResolver(Resolver, abc.ABC):
 
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
         return self.is_valid_repo_context(context) and isinstance(
-            dep, GitHubDynamicDependency
+            dep, BaseGitHubDependency
         )
 
     def get_release_id(self, context: BaseProjectConfig) -> int:
@@ -778,7 +836,7 @@ class GitHubReleaseBranchCommitStatusResolver(GitHubReleaseBranchResolver):
     branch_depth = 1
 
     def resolve(
-        self, dep: GitHubDynamicDependency, context: BaseProjectConfig
+        self, dep: BaseGitHubDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
 
         release_id = self.get_release_id(context)
@@ -852,7 +910,7 @@ class GitHubReleaseBranchExactMatchCommitStatusResolver(GitHubReleaseBranchResol
     name = "GitHub Exact-Match Commit Status Resolver"
 
     def resolve(
-        self, dep: GitHubDynamicDependency, context: BaseProjectConfig
+        self, dep: BaseGitHubDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
         release_id = self.get_release_id(context)
 
@@ -1003,7 +1061,7 @@ def _should_ignore_dependency(dependency: Dependency, ignore_deps: List[dict]):
         and dependency.namespace
     ):
         return dependency.namespace in ignore_namespace
-    if isinstance(dependency, GitHubDynamicDependency) and dependency.github:
+    if isinstance(dependency, BaseGitHubDependency):
         return dependency.github in ignore_github
 
     return False

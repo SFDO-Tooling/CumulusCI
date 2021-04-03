@@ -13,6 +13,7 @@ from cumulusci.core.dependencies.dependencies import (
     DynamicDependency,
     GitHubBetaReleaseTagResolver,
     GitHubDynamicDependency,
+    GitHubDynamicSubfolderDependency,
     GitHubReleaseBranchCommitStatusResolver,
     GitHubReleaseBranchExactMatchCommitStatusResolver,
     GitHubReleaseBranchResolver,
@@ -415,6 +416,25 @@ class TestDynamicDependency:
 
         with pytest.raises(DependencyResolutionError):
             d.resolve(mock.Mock(), [DependencyResolutionStrategy.UNMANAGED_HEAD])
+
+
+class TestGitHubDynamicSubfolderDependency:
+    gh = GitHubDynamicSubfolderDependency(
+        github="https://github.com/Test/TestRepo", subfolder="foo"
+    )
+
+    gh.ref = "aaaa"
+
+    assert gh.is_unmanaged
+    assert gh.flatten(mock.Mock()) == [
+        UnmanagedGitHubRefDependency(
+            github="https://github.com/Test/TestRepo",
+            subfolder="foo",
+            ref="aaaa",
+            namespace_inject=None,
+            namespace_strip=None,
+        )
+    ]
 
 
 class TestGitHubDynamicDependency:
