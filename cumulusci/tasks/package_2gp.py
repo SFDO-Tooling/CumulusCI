@@ -14,6 +14,7 @@ from cumulusci.core.exceptions import DependencyLookupError
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import PackageUploadFailure
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.github import get_version_id_from_tag
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
@@ -170,6 +171,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         "static_resource_path": {
             "description": "The path where decompressed static resources are stored. Any subdirectories found will be zipped and added to the staticresources directory of the build."
         },
+        "ancestor_id": {"description": "The 04t Id of the ancestor of this package."},
     }
 
     def _init_options(self, kwargs):
@@ -233,11 +235,13 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             options=options,
             logger=self.logger,
         )
+
         self.request_id = self._create_version_request(
             self.package_id,
             self.package_config,
             package_zip_builder,
             self.options["skip_validation"],
+            ancestor_id=self._resolve_ancestor_id(),
         )
         self.return_values["request_id"] = self.request_id
 
@@ -339,6 +343,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_zip_builder: BasePackageZipBuilder,
         skip_validation: bool = False,
         dependencies: list = None,
+        ancestor_id: str = None,
     ):
         # Prepare the VersionInfo file
         version_bytes = io.BytesIO()
@@ -371,7 +376,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 package_config.version_base, package_id
             ).increment(package_config.version_type)
             package_descriptor = {
-                "ancestorId": "",  # @@@ need to add this for Managed 2gp
+                "ancestorId": ancestor_id or "",
                 "id": package_id,
                 "path": "",
                 "versionName": package_config.version_name,
@@ -444,6 +449,16 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             f"Package2VersionCreateRequest created with id {response['id']}"
         )
         return response["id"]
+
+    def _resolve_ancestor_id(self) -> str:
+        ancestor_id = self.options.get("ancestor_id")
+        if not ancestor_id:
+            tag_name = self.project_config.get_latest_tag(beta=True)
+            repo = self.project_config._get_repo()
+            version_id = get_version_id_from_tag(repo, tag_name)
+            self.logger.info(f"Resolved ancestor to version: {version_id}")
+            self.logger.info("")
+        return ancestor_id
 
     def _get_base_version_number(
         self, version_base: Optional[str], package_id: str

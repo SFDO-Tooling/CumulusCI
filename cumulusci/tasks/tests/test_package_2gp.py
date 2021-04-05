@@ -101,6 +101,7 @@ def task(project_config, devhub_config, org_config):
                     "org_dependent": False,
                     "package_name": "Test Package",
                     "static_resource_path": "static-resources",
+                    "ancestor_id": "04t000000000000",
                 }
             }
         ),
