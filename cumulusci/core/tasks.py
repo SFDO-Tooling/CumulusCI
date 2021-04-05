@@ -14,6 +14,7 @@ from cumulusci.utils import cd
 from cumulusci.core.exceptions import ServiceNotValid, ServiceNotConfigured
 from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.debug import get_debug_mode
 
 CURRENT_TASK = threading.local()
 
@@ -74,8 +75,11 @@ class BaseTask(object):
         # the tasks stepnumber in the flow
         self.stepnum = stepnum
 
+        self.debug_mode = get_debug_mode()
+
         if not self.logger:
             self._init_logger()
+
         self._init_options(kwargs)
         self._validate_options()
 
