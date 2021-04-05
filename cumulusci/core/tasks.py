@@ -51,11 +51,13 @@ class BaseTask(object):
         flow=None,
         name=None,
         stepnum=None,
+        logger=None,
         **kwargs,
     ):
         self.project_config = project_config
         self.task_config = task_config
         self.org_config = org_config
+        self.logger = logger
         self._reset_poll()
 
         # dict of return_values that can be used by task callers
@@ -75,7 +77,9 @@ class BaseTask(object):
 
         self.debug_mode = get_debug_mode()
 
-        self._init_logger()
+        if not self.logger:
+            self._init_logger()
+
         self._init_options(kwargs)
         self._validate_options()
 
