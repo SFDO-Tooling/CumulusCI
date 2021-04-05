@@ -306,10 +306,28 @@ tasks:
         description: Creates a Github release for a given managed package version number
         class_path: cumulusci.tasks.github.CreateRelease
         group: GitHub
+
+
+
+
+
     github_release_notes:
         description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
         class_path: cumulusci.tasks.release_notes.task.GithubReleaseNotes
         group: GitHub
+        options:
+            repos:
+                - PMM
+                - k12-architecture-kit
+                - sal
+                - CaseMan
+                - Transport-Layer
+
+
+
+
+
+                
     github_release_report:
         description: Parses GitHub release notes to report various info
         class_path: cumulusci.tasks.github.ReleaseReport
@@ -1145,6 +1163,11 @@ flows:
                         purge_on_delete: False
             2:
                 flow: deploy_unmanaged_ee
+
+
+
+
+
 
 services:
   connected_app:

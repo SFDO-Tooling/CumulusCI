@@ -12,7 +12,10 @@ class BaseGithubTask(BaseTask):
             self.project_config.repo_name,
         )
 
-    def get_repo(self):
-        return self.github.repository(
-            self.project_config.repo_owner, self.project_config.repo_name
-        )
+    def get_repo(self, owner=None,repo=None):
+        if owner and repo:
+            return self.github.repository(owner,repo)
+        else:
+            return self.github.repository(
+                self.project_config.repo_owner, self.project_config.repo_name
+            )

@@ -29,6 +29,10 @@ class GithubReleaseNotes(BaseGithubTask):
                 + " releases."
             )
         },
+        "repos": {
+            "description": "Optional field to allow for dynamic project release notes",
+            "required": False,
+        },
         "link_pr": {
             "description": (
                 "If True, insert link to source pull request at" + " end of each line."
@@ -62,25 +66,29 @@ class GithubReleaseNotes(BaseGithubTask):
             "prefix_beta": self.project_config.project__git__prefix_beta,
             "prefix_prod": self.project_config.project__git__prefix_release,
         }
+        for repo in self.options["repos"]:
+            print(f"Repo: {repo}\n")
+            github_info["github_repo"] = repo
+            generator = GithubReleaseNotesGenerator(
+                self.github,
+                github_info,
+                self.project_config.project__git__release_notes__parsers.values(),
+                self.options["tag"],
+                self.options.get("last_tag"),
+                process_bool_arg(self.options.get("link_pr", False)),
+                process_bool_arg(self.options.get("publish", False)),
+                self.get_repo("SalesforceFoundation", repo).has_issues,
+                process_bool_arg(self.options.get("include_empty", False)),
+                repos=self.options.get("repos"),
+                version_id=self.options.get("version_id"),
+                trial_info=self.options.get("trial_info", False),
+                sandbox_date=self.options.get("sandbox_date", None),
+                production_date=self.options.get("production_date", None),
+            )
 
-        generator = GithubReleaseNotesGenerator(
-            self.github,
-            github_info,
-            self.project_config.project__git__release_notes__parsers.values(),
-            self.options["tag"],
-            self.options.get("last_tag"),
-            process_bool_arg(self.options.get("link_pr", False)),
-            process_bool_arg(self.options.get("publish", False)),
-            self.get_repo().has_issues,
-            process_bool_arg(self.options.get("include_empty", False)),
-            version_id=self.options.get("version_id"),
-            trial_info=self.options.get("trial_info", False),
-            sandbox_date=self.options.get("sandbox_date", None),
-            production_date=self.options.get("production_date", None),
-        )
-
-        release_notes = generator()
-        self.logger.info("\n" + release_notes)
+            release_notes = generator()
+            self.logger.info("\n" + release_notes)
+            self.logger.info("\n")
 
 
 class ParentPullRequestNotes(BaseGithubTask):
@@ -120,6 +128,10 @@ class ParentPullRequestNotes(BaseGithubTask):
             "description": "force rebuilding of change notes from child branches in the given branch.",
             "required": False,
         },
+        "repos": {
+            "description": "Optional field to allow for dynamic project release notes",
+            "required": False,
+        },
     }
 
     def _init_options(self, kwargs):
@@ -127,9 +139,10 @@ class ParentPullRequestNotes(BaseGithubTask):
         self.options["branch_name"] = self.options.get("branch_name")
         self.options["build_notes_label"] = self.options.get("build_notes_label")
         self.options["force"] = self.options.get("force")
+        self.options["repos"] = self.options.get("repos")
 
-    def _setup_self(self):
-        self.repo = self.get_repo()
+    def _setup_self(self, owner, repo):
+        self.repo = self.get_repo(owner, repo) if owner and repo else self.get_repo()
         self.commit = self.repo.commit(self.project_config.repo_commit)
         self.branch_name = self.options.get("branch_name")
         self.force_rebuild_change_notes = process_bool_arg(
@@ -140,28 +153,59 @@ class ParentPullRequestNotes(BaseGithubTask):
         )
 
     def _run_task(self):
-        self._setup_self()
+        if len(self.options["repos"]) > 0:
+            for repo in self.options["repos"]:
+                self._setup_self("SalesforceFoundation", repo)
+                if self.force_rebuild_change_notes:
+                    pull_request = self._get_parent_pull_request()
+                    if pull_request:
+                        self.generator.aggregate_child_change_notes(pull_request)
 
-        if self.force_rebuild_change_notes:
-            pull_request = self._get_parent_pull_request()
-            if pull_request:
-                self.generator.aggregate_child_change_notes(pull_request)
+                elif self._has_parent_branch() and self._commit_is_merge():
+                    parent_pull_request = self._get_parent_pull_request()
+                    if parent_pull_request:
+                        if is_label_on_pull_request(
+                            self.repo,
+                            parent_pull_request,
+                            self.options.get("build_notes_label"),
+                        ):
+                            self.generator.aggregate_child_change_notes(
+                                parent_pull_request
+                            )
+                        else:
+                            child_branch_name = (
+                                self._get_child_branch_name_from_merge_commit()
+                            )
+                            if child_branch_name:
+                                self._update_unaggregated_pr_header(
+                                    parent_pull_request, child_branch_name
+                                )
 
-        elif self._has_parent_branch() and self._commit_is_merge():
-            parent_pull_request = self._get_parent_pull_request()
-            if parent_pull_request:
-                if is_label_on_pull_request(
-                    self.repo,
-                    parent_pull_request,
-                    self.options.get("build_notes_label"),
-                ):
-                    self.generator.aggregate_child_change_notes(parent_pull_request)
-                else:
-                    child_branch_name = self._get_child_branch_name_from_merge_commit()
-                    if child_branch_name:
-                        self._update_unaggregated_pr_header(
-                            parent_pull_request, child_branch_name
+        else:
+            self._setup_self()
+
+            if self.force_rebuild_change_notes:
+                pull_request = self._get_parent_pull_request()
+                if pull_request:
+                    self.generator.aggregate_child_change_notes(pull_request)
+
+            elif self._has_parent_branch() and self._commit_is_merge():
+                parent_pull_request = self._get_parent_pull_request()
+                if parent_pull_request:
+                    if is_label_on_pull_request(
+                        self.repo,
+                        parent_pull_request,
+                        self.options.get("build_notes_label"),
+                    ):
+                        self.generator.aggregate_child_change_notes(parent_pull_request)
+                    else:
+                        child_branch_name = (
+                            self._get_child_branch_name_from_merge_commit()
                         )
+                        if child_branch_name:
+                            self._update_unaggregated_pr_header(
+                                parent_pull_request, child_branch_name
+                            )
 
     def _has_parent_branch(self):
         feature_prefix = self.project_config.project__git__prefix_feature

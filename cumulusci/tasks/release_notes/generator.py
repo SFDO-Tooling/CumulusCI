@@ -192,6 +192,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         trial_info=False,
         sandbox_date=None,
         production_date=None,
+        repos=[],
     ):
         self.github = github
         self.github_info = github_info
@@ -199,6 +200,7 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         self.current_tag = current_tag
         self.last_tag = last_tag
         self.link_pr = link_pr
+        self.repos = repos
         self.do_publish = publish
         self.has_issues = has_issues
         self.include_empty_pull_requests = include_empty
