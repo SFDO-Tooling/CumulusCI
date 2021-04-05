@@ -13,9 +13,6 @@ import yaml
 
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config import SfdxOrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.exceptions import DependencyLookupError, GithubException
@@ -94,30 +91,6 @@ def project_config(repo_root):
 
 
 @pytest.fixture
-def devhub_config():
-    org_config = OrgConfig(
-        {"instance_url": "https://devhub.my.salesforce.com", "access_token": "token"},
-        "devhub",
-    )
-    org_config.refresh_oauth_token = mock.Mock()
-    return org_config
-
-
-@pytest.fixture
-def org_config():
-    org_config = OrgConfig(
-        {
-            "instance_url": "https://scratch.my.salesforce.com",
-            "access_token": "token",
-            "config_file": "orgs/scratch_def.json",
-        },
-        "dev",
-    )
-    org_config.refresh_oauth_token = mock.Mock()
-    return org_config
-
-
-@pytest.fixture
 def task(project_config, devhub_config, org_config):
     task = CreatePackageVersion(
         project_config,
@@ -133,8 +106,10 @@ def task(project_config, devhub_config, org_config):
         ),
         org_config,
     )
-    task._init_devhub = mock.Mock(return_value=devhub_config)
-    task._init_task()
+    with mock.patch(
+        "cumulusci.tasks.package_2gp.get_devhub_config", return_value=devhub_config
+    ):
+        task._init_task()
     return task
 
 
@@ -192,7 +167,7 @@ class TestCreatePackageVersion:
     scratch_base_url = "https://scratch.my.salesforce.com/services/data/v50.0"
 
     @responses.activate
-    def test_run_task(self, task, mock_download_extract_github):
+    def test_run_task(self, task, mock_download_extract_github, devhub_config):
         mock_download_extract_github.return_value = zipfile.ZipFile(io.BytesIO(), "w")
 
         responses.add(  # query to find existing package
@@ -420,7 +395,10 @@ class TestCreatePackageVersion:
             json={"size": 1, "records": [{"Dependencies": ""}]},
         )
 
-        task()
+        with mock.patch(
+            "cumulusci.tasks.package_2gp.get_devhub_config", return_value=devhub_config
+        ):
+            task()
 
     @responses.activate
     def test_get_or_create_package__namespaced_existing(
@@ -450,8 +428,12 @@ class TestCreatePackageVersion:
             ),
             org_config,
         )
-        task._init_devhub = mock.Mock(return_value=devhub_config)
-        task._init_task()
+
+        with mock.patch(
+            "cumulusci.tasks.package_2gp.get_devhub_config", return_value=devhub_config
+        ):
+            task._init_task()
+
         result = task._get_or_create_package(task.package_config)
         assert result == "0Ho6g000000fy4ZCAQ"
 
@@ -483,8 +465,10 @@ class TestCreatePackageVersion:
             ),
             org_config,
         )
-        task._init_devhub = mock.Mock(return_value=devhub_config)
-        task._init_task()
+        with mock.patch(
+            "cumulusci.tasks.package_2gp.get_devhub_config", return_value=devhub_config
+        ):
+            task._init_task()
         with pytest.raises(PackageUploadFailure):
             task._get_or_create_package(task.package_config)
 
@@ -576,46 +560,6 @@ class TestCreatePackageVersion:
 
         task.request_id = "08c000000000002AAA"
         task._poll_action()
-
-    def test_init_devhub__from_sfdx(self, project_config, org_config):
-        task = CreatePackageVersion(
-            project_config,
-            TaskConfig(
-                {
-                    "options": {
-                        "package_type": "Managed",
-                        "package_name": "Test Package",
-                    }
-                }
-            ),
-            org_config,
-        )
-        with mock.patch(
-            "cumulusci.tasks.package_2gp.get_default_devhub_username",
-            return_value="devhub@example.com",
-        ):
-            result = task._init_devhub()
-        assert isinstance(result, SfdxOrgConfig)
-        assert result.username == "devhub@example.com"
-
-    def test_init_devhub__from_service(self, project_config, org_config):
-        project_config.keychain.services["devhub"] = ServiceConfig(
-            {"username": "devhub@example.com"}
-        )
-        task = CreatePackageVersion(
-            project_config,
-            TaskConfig(
-                {
-                    "options": {
-                        "package_type": "Managed",
-                        "package_name": "Test Package",
-                    }
-                }
-            ),
-            org_config,
-        )
-        devhub_config = task._init_devhub()
-        assert devhub_config.username == "devhub@example.com"
 
     @responses.activate
     def test_get_base_version_number__fallback(self, task):

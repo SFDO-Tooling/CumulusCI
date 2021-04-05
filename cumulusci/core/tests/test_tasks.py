@@ -219,3 +219,11 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
         self.assertEqual(4, task.poll_count)
         self.assertEqual(1, task.poll_interval_level)
         self.assertEqual(2, task.poll_interval_s)
+
+    def test_explicit_logger(self):
+        """Verify that the logger is properly set when passed in as an argument"""
+        mock_logger = mock.Mock()
+        task = BaseTask(
+            self.project_config, self.task_config, self.org_config, logger=mock_logger
+        )
+        assert task.logger is mock_logger
