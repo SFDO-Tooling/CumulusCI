@@ -374,8 +374,6 @@ class SalesforcePushApi(object):
     @lru_cache(32)
     def get_subscribers(self, where=None, limit=None):
         where = self.format_where_clause(where, obj="PackageSubscriber")
-        query = f"SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber{where}"
-        query = self.add_query_limit(query, limit)
         field_names = [
             "Id",
             "MetadataPackageVersionId",
@@ -385,6 +383,9 @@ class SalesforcePushApi(object):
             "OrgStatus",
             "OrgType",
         ]
+        query = f"SELECT {', '.join(field_names)} from PackageSubscriber{where}"
+        query = self.add_query_limit(query, limit)
+
         return self.return_query_records(
             query, field_names=field_names, sobject="PackageSubscriber"
         )
@@ -418,10 +419,10 @@ class SalesforcePushApi(object):
     @lru_cache(32)
     def get_push_requests(self, where=None, limit=None):
         sobject = "PackagePushRequest"
-        where = self.format_where_clause(where, obj=sobject)
-        query = f"SELECT Id, PackageVersionId, ScheduledStartTime, Status FROM {sobject}{where} ORDER BY ScheduledStartTime DESC"
-        query = self.add_query_limit(query, limit)
         field_names = ["Id", "PackageVersionId", "ScheduledStartTime", "Status"]
+        where = self.format_where_clause(where, obj=sobject)
+        query = f"SELECT {', '.join(field_names)} FROM {sobject}{where} ORDER BY ScheduledStartTime DESC"
+        query = self.add_query_limit(query, limit)
         return self.return_query_records(
             query, field_names=field_names, sobject=sobject
         )
@@ -452,14 +453,14 @@ class SalesforcePushApi(object):
     @lru_cache(32)
     def get_push_jobs(self, where=None, limit=None):
         where = self.format_where_clause(where)
-        query = f"SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob{where}"
-        query = self.add_query_limit(query, limit)
         field_names = [
             "Id",
             "PackagePushRequestId",
             "SubscriberOrganizationKey",
             "Status",
         ]
+        query = f"SELECT {', '.join(field_names)} FROM PackagePushJob{where}"
+        query = self.add_query_limit(query, limit)
         return self.return_query_records(
             query, field_names=field_names, sobject="PackagePushJob"
         )
@@ -507,8 +508,6 @@ class SalesforcePushApi(object):
     def get_push_errors(self, where=None, limit=None):
         sobject = "PackagePushError"
         where = self.format_where_clause(where)
-        query = f"SELECT Id, PackagePushJobId, ErrorSeverity, ErrorType, ErrorTitle, ErrorMessage, ErrorDetails FROM {sobject}{where}"
-        query = self.add_query_limit(query, limit)
         field_names = [
             "Id",
             "PackagePushJobId",
@@ -518,6 +517,8 @@ class SalesforcePushApi(object):
             "ErrorMessage",
             "ErrorDetails",
         ]
+        query = f"SELECT {', '.join(field_names)} FROM {sobject}{where}"
+        query = self.add_query_limit(query, limit)
         return self.return_query_records(
             query, field_names=field_names, sobject=sobject
         )
