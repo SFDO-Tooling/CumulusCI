@@ -38,6 +38,8 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.utils import temporary_dir
 from cumulusci.cli.tests.utils import run_click_command, recursive_list_files, DummyTask
 
+MagicMock = mock.MagicMock()
+
 
 class TestCCI(unittest.TestCase):
     @classmethod
@@ -203,10 +205,8 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.CliRuntime")
     @mock.patch("cumulusci.cli.cci.cli")
     @mock.patch("pdb.post_mortem")
-    @mock.patch("sys.exit")
     def test_main__cci_show_stacktraces(
         self,
-        sys_exit,
         post_mortem,
         cli,
         CliRuntime,
@@ -297,8 +297,10 @@ class TestCCI(unittest.TestCase):
         get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
 
         with contextlib.redirect_stderr(io.StringIO()) as stderr:
-            with pytest.raises(SystemExit):
-                cci.main(["cci", "org", "info"])
+            with mock.patch("sys.exit") as sys_exit:
+                sys_exit.side_effect = SystemExit  # emulate real sys.exit
+                with pytest.raises(SystemExit):
+                    cci.main(["cci", "org", "info"])
 
         assert "something happened" in stderr.getvalue()
 
@@ -308,10 +310,10 @@ class TestCCI(unittest.TestCase):
     @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
     @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
-    @mock.patch("sys.exit")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
+    @mock.patch("sys.exit", MagicMock())
     def test_handle_org_name(
-        self, CliRuntime, exit, tee_stdout_stderr, get_tempfile_logger, init_logger
+        self, CliRuntime, tee_stdout_stderr, get_tempfile_logger, init_logger
     ):
 
         # get_tempfile_logger doesn't clean up after itself which breaks other tests
@@ -358,6 +360,84 @@ class TestCCI(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()) as stdout:
             cci.main(["cci", "org", "default"])
         assert "There is no default org" in stdout.getvalue(), stdout.getvalue()
+
+    @mock.patch("cumulusci.cli.cci.init_logger", mock.Mock())
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock())
+    @mock.patch("cumulusci.tasks.salesforce.Deploy.__call__", mock.Mock())
+    @mock.patch("sys.exit", mock.Mock())
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    @mock.patch("cumulusci.tasks.salesforce.Deploy.__init__")
+    def test_cci_run_task_options__with_dash(
+        self,
+        Deploy,
+        CliRuntime,
+        get_tempfile_logger,
+    ):
+        # get_tempfile_logger doesn't clean up after itself which breaks other tests
+        Deploy.return_value = None
+        get_tempfile_logger.return_value = mock.Mock(), ""
+        CliRuntime.return_value = runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", mock.Mock())
+        runtime.project_config = BaseProjectConfig(
+            runtime.universal_config,
+            {
+                "project": {"name": "Test"},
+                "tasks": {
+                    "deploy": {"class_path": "cumulusci.tasks.salesforce.Deploy"}
+                },
+            },
+        )
+
+        cci.main(
+            ["cci", "task", "run", "deploy", "--path", "x", "--clean-meta-xml", "False"]
+        )
+        task_config = Deploy.mock_calls[0][1][1]
+        assert "clean_meta_xml" in task_config.options
+
+    @mock.patch("cumulusci.cli.cci.init_logger", mock.Mock())
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock())
+    @mock.patch("cumulusci.tasks.salesforce.Deploy.__call__", mock.Mock())
+    @mock.patch("sys.exit", mock.Mock())
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    @mock.patch("cumulusci.tasks.salesforce.Deploy.__init__")
+    def test_cci_run_task_options__old_style_with_dash(
+        self,
+        Deploy,
+        CliRuntime,
+        get_tempfile_logger,
+    ):
+        # get_tempfile_logger doesn't clean up after itself which breaks other tests
+        Deploy.return_value = None
+        get_tempfile_logger.return_value = mock.Mock(), ""
+        CliRuntime.return_value = runtime = mock.Mock()
+        runtime.get_org.return_value = ("test", mock.Mock())
+        runtime.project_config = BaseProjectConfig(
+            runtime.universal_config,
+            {
+                "project": {"name": "Test"},
+                "tasks": {
+                    "deploy": {"class_path": "cumulusci.tasks.salesforce.Deploy"}
+                },
+            },
+        )
+
+        cci.main(
+            [
+                "cci",
+                "task",
+                "run",
+                "deploy",
+                "--path",
+                "x",
+                "-o",
+                "clean-meta-xml",
+                "False",
+            ]
+        )
+        task_config = Deploy.mock_calls[0][1][1]
+        assert "clean_meta_xml" in task_config.options
 
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
@@ -2251,6 +2331,43 @@ Environment Info: Rossian / x68_46
         output = cci.lines_from_traceback(content, 10)
         assert output == traceback
 
+    @mock.patch(
+        "cumulusci.cli.runtime.CliRuntime.get_org",
+        lambda *args, **kwargs: (MagicMock(), MagicMock()),
+    )
+    @mock.patch("cumulusci.core.runtime.BaseCumulusCI._load_keychain", MagicMock())
+    @mock.patch("pdb.post_mortem", MagicMock())
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", MagicMock())
+    @mock.patch("cumulusci.cli.cci.init_logger", MagicMock())
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    def test_run_task_debug(self, get_tempfile_logger):
+        get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
+
+        gipnew = "cumulusci.tasks.preflight.packages.GetInstalledPackages._run_task"
+        with mock.patch(gipnew, mock_validate_debug(False)):
+            cci.main(["cci", "task", "run", "get_installed_packages"])
+        with mock.patch(gipnew, mock_validate_debug(True)):
+            cci.main(["cci", "task", "run", "get_installed_packages", "--debug"])
+
+    @mock.patch(
+        "cumulusci.cli.runtime.CliRuntime.get_org",
+        lambda *args, **kwargs: (MagicMock(), MagicMock()),
+    )
+    @mock.patch("cumulusci.core.runtime.BaseCumulusCI._load_keychain", MagicMock())
+    @mock.patch("pdb.post_mortem", MagicMock())
+    @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", MagicMock())
+    @mock.patch("cumulusci.cli.cci.init_logger", MagicMock())
+    @mock.patch("cumulusci.tasks.robotframework.RobotLibDoc", MagicMock())
+    @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+    def test_run_flow_debug(self, get_tempfile_logger):
+        get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
+        rtd = "cumulusci.tasks.robotframework.RobotTestDoc._run_task"
+
+        with mock.patch(rtd, mock_validate_debug(False)):
+            cci.main(["cci", "flow", "run", "robot_docs"])
+        with mock.patch(rtd, mock_validate_debug(True)):
+            cci.main(["cci", "flow", "run", "robot_docs", "--debug"])
+
 
 def validate_service(options):
     raise Exception("Validation failed")
@@ -2258,3 +2375,10 @@ def validate_service(options):
 
 class SetTrace(Exception):
     pass
+
+
+def mock_validate_debug(value):
+    def _run_task(self, *args, **kwargs):
+        assert bool(self.debug_mode) == bool(value)
+
+    return _run_task
