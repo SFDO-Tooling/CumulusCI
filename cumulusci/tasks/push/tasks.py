@@ -375,7 +375,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
     def _get_orgs(self):
         subscriber_where = self.options.get("subscriber_where")
         default_where = {
-            "PackageSubscriber": ("OrgStatus = 'Active' AND InstalledStatus = 'i'")
+            "PackageSubscriber": ("OrgStatus != 'Inactive' AND InstalledStatus = 'i'")
         }
         if subscriber_where:
             default_where["PackageSubscriber"] += " AND ({})".format(subscriber_where)
