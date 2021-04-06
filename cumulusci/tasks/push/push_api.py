@@ -75,7 +75,7 @@ class MetadataPackageVersion(BasePushApiObject):
             version_number += " (Beta %s)" % self.build
         return version_number
 
-    def get_newer_released_version_objs(self, less_than_version=None):
+    def get_newer_released_version_objs(self):
         where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released' AND "
         version_info = {"major": self.major, "minor": self.minor, "patch": self.patch}
         where += f"(MajorVersion >= {version_info['major']} OR (MajorVersion = {version_info['major']} AND MinorVersion >= {version_info['minor']}))"
@@ -83,21 +83,7 @@ class MetadataPackageVersion(BasePushApiObject):
             patch_where = f" OR (MajorVersion = {version_info['major']} AND MinorVersion = {version_info['minor']} AND PatchVersion >= {version_info['patch']})"
             where = where[:-1] + patch_where + where[-1:]
 
-        if less_than_version:
-            version_info = {
-                "major": less_than_version.major,
-                "minor": less_than_version.minor,
-                "patch": less_than_version.patch,
-            }
-            less_than_where = f" AND (MajorVersion <= {version_info['major']} OR (MajorVersion = {version_info['major']} AND MinorVersion <= {version_info['minor']}))"
-            if less_than_version.patch:
-                patch_where = f" OR (MajorVersion = {version_info['major']} AND MinorVersion = {version_info['minor']} AND PatchVersion <= {version_info['patch']})"
-                less_than_where = (
-                    less_than_where[:-1] + patch_where + less_than_where[-1:]
-                )
-            where += less_than_where
-
-        return self.package.get_package_version_objs(where)  # versions
+        return self.package.get_package_version_objs(where)
 
     def get_older_released_version_objs(self, greater_than_version=None):
         where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released' AND "
