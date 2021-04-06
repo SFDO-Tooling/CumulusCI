@@ -1,8 +1,10 @@
 from distutils.version import StrictVersion
+import functools
 from cumulusci.core.config.OrgConfig import OrgConfig, VersionInfo
 from typing import List, Optional, Tuple
 from unittest import mock
 
+from github3.exceptions import NotFoundError
 import pytest
 from pydantic import ValidationError
 
@@ -265,12 +267,49 @@ def github():
         },
     )
 
-    def branch(which_branch):
+    TWO_GP_MISSING_REPO = DummyRepository(
+        "SFDO-Tooling",
+        "TwoGPMissingRepo",
+        {
+            "cumulusci.yml": DummyContents(
+                b"""
+    project:
+        name: CumulusCI-2GP-Test
+        package:
+            name: CumulusCI-2GP-Test
+        git:
+            2gp_context: "Nonstandard Package Status"
+    """
+            ),
+            "unpackaged/pre": {"pre": {}, "skip": {}},
+            "src": {"src": ""},
+            "unpackaged/post": {"post": {}, "skip": {}},
+        },
+        releases=[],
+        commits={
+            "main_sha": mock.Mock(sha="main_sha"),
+            "feature/232_sha": mock.Mock(
+                sha="feature/232_sha",
+                parents=[{"sha": "parent_sha"}],
+                status=mock.Mock(return_value=mock.Mock(statuses=[])),
+            ),
+            "parent_sha": mock.Mock(
+                sha="parent_sha",
+                parents=[],
+                status=mock.Mock(return_value=mock.Mock(statuses=[])),
+            ),
+        },
+    )
+
+    def branch(which_repo, which_branch):
         branch = mock.Mock()
-        branch.commit = TWO_GP_REPO.commit(f"{which_branch}_sha")
+        branch.commit = which_repo.commit(f"{which_branch}_sha")
         return branch
 
-    TWO_GP_REPO.branch = mock.Mock(wraps=branch)
+    TWO_GP_REPO.branch = mock.Mock(wraps=functools.partial(branch, TWO_GP_REPO))
+    TWO_GP_MISSING_REPO.branch = mock.Mock(
+        wraps=functools.partial(branch, TWO_GP_MISSING_REPO)
+    )
 
     return DummyGithub(
         {
@@ -282,6 +321,7 @@ def github():
             "DependencyRepo": DEPENDENCY_REPO,
             "ReleasesRepo": RELEASES_REPO,
             "TwoGPRepo": TWO_GP_REPO,
+            "TwoGPMissingRepo": TWO_GP_MISSING_REPO,
         }
     )
 
@@ -398,6 +438,15 @@ class TestDynamicDependency:
 
         assert d.is_resolved
         resolvers[0].resolve.assert_called_once()
+        d.resolve(
+            mock.Mock(),
+            [
+                DependencyResolutionStrategy.UNMANAGED_HEAD,
+                DependencyResolutionStrategy.COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH,
+            ],
+        )
+        assert d.is_resolved
+        resolvers[0].resolve.assert_called_once()
 
     @mock.patch("cumulusci.core.dependencies.dependencies.get_resolver")
     def test_dynamic_dependency_resolution_fails(self, get_resolver):
@@ -419,22 +468,51 @@ class TestDynamicDependency:
 
 
 class TestGitHubDynamicSubfolderDependency:
-    gh = GitHubDynamicSubfolderDependency(
-        github="https://github.com/Test/TestRepo", subfolder="foo"
-    )
-
-    gh.ref = "aaaa"
-
-    assert gh.is_unmanaged
-    assert gh.flatten(mock.Mock()) == [
-        UnmanagedGitHubRefDependency(
-            github="https://github.com/Test/TestRepo",
-            subfolder="foo",
-            ref="aaaa",
-            namespace_inject=None,
-            namespace_strip=None,
+    def test_flatten(self):
+        gh = GitHubDynamicSubfolderDependency(
+            github="https://github.com/Test/TestRepo", subfolder="foo"
         )
-    ]
+
+        gh.ref = "aaaa"
+
+        assert gh.is_unmanaged
+        assert gh.flatten(mock.Mock()) == [
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/Test/TestRepo",
+                subfolder="foo",
+                ref="aaaa",
+                namespace_inject=None,
+                namespace_strip=None,
+            )
+        ]
+
+    def test_flatten__unresolved(self):
+        context = mock.Mock()
+        gh = GitHubDynamicSubfolderDependency(
+            repo_owner="Test", repo_name="TestRepo", subfolder="foo"
+        )
+
+        with pytest.raises(DependencyResolutionError) as e:
+            gh.flatten(context)
+
+        assert "is not resolved" in str(e)
+
+    def test_name(self):
+        gh = GitHubDynamicSubfolderDependency(
+            repo_owner="Test", repo_name="TestRepo", subfolder="foo"
+        )
+        assert gh.github in gh.name and gh.subfolder in gh.name
+
+    def test_description(self):
+        gh = GitHubDynamicSubfolderDependency(
+            repo_owner="Test", repo_name="TestRepo", subfolder="foo"
+        )
+        gh.ref = "aaaa"
+        assert (
+            gh.github in gh.description
+            and gh.subfolder in gh.description
+            and gh.ref in gh.description
+        )
 
 
 class TestGitHubDynamicDependency:
@@ -604,6 +682,10 @@ class TestGitHubDynamicDependency:
             gh.flatten(project_config)
 
         assert "Could not find latest release" in str(e)
+
+    def test_name(self):
+        gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
+        assert gh.github in gh.name
 
 
 class TestPackageNamespaceVersionDependency:
@@ -818,7 +900,7 @@ class TestUnmanagedGitHubRefDependency:
         zip_builder_mock.from_zipfile.assert_called_once_with(
             download_mock.return_value,
             options={
-                "unmanaged": None,  # TODO: is this bad for this task?
+                "unmanaged": True,
                 "namespace_inject": None,
                 "namespace_strip": None,
             },
@@ -840,6 +922,12 @@ class TestUnmanagedGitHubRefDependency:
         assert (
             UnmanagedGitHubRefDependency(
                 github="http://github.com/Test/TestRepo", ref="aaaa", unmanaged=True
+            )._get_unmanaged(org)
+            is True
+        )
+        assert (
+            UnmanagedGitHubRefDependency(
+                github="http://github.com/Test/TestRepo", ref="aaaa"
             )._get_unmanaged(org)
             is True
         )
@@ -895,7 +983,7 @@ class TestUnmanagedZipURLDependency:
         zip_builder_mock.from_zipfile.assert_called_once_with(
             download_mock.return_value,
             options={
-                "unmanaged": None,  # TODO: is this bad for this task?
+                "unmanaged": True,
                 "namespace_inject": None,
                 "namespace_strip": None,
             },
@@ -1037,6 +1125,9 @@ class TestGitHubTagResolver:
             resolver.resolve(dep, project_config)
         assert "No release found for tag" in str(e.value)
 
+    def test_str(self):
+        assert str(GitHubTagResolver()) == GitHubTagResolver.name
+
 
 class TestGitHubReleaseTagResolver:
     def test_github_release_tag_resolver(self, project_config):
@@ -1068,6 +1159,15 @@ class TestGitHubReleaseTagResolver:
                 package_name="CumulusCI-Test-Dep",
             ),
         )
+
+    def test_not_found(self, project_config):
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/TwoGPRepo"  # This mock repo contains no releases
+        )
+        resolver = GitHubReleaseTagResolver()
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (None, None)
 
 
 class TestGitHubUnmanagedHeadResolver:
@@ -1148,8 +1248,14 @@ class TestGitHubReleaseBranchResolver:
 
             assert "Cannot get current release identifier" in str(e)
 
+    def test_locate_commit_status_package_id__not_found_with_parent(self, github):
+        repo = github.repository("SFDO-Tooling", "TwoGPMissingRepo")
+        assert ConcreteGitHubReleaseBranchResolver().locate_commit_status_package_id(
+            repo, repo.branch("feature/232"), "Build Feature Test Package"
+        ) == (None, None)
 
-class TestGitHubReleaseBranch2GPResolver:
+
+class TestGitHubReleaseBranchCommitStatusResolver:
     def test_2gp_release_branch_resolver(self, project_config):
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
@@ -1168,9 +1274,62 @@ class TestGitHubReleaseBranch2GPResolver:
             ),
         )
 
+    def test_commit_status_not_found(self, project_config):
+        project_config.repo_branch = "feature/232__test"
+        project_config.project__git__prefix_feature = "feature/"
 
-class TestGitHubReleaseBranchExactMatch2GPResolver:
-    def test_2gp_exact_branch_resolver(self, project_config):
+        resolver = GitHubReleaseBranchCommitStatusResolver()
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/TwoGPMissingRepo"
+        )
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (None, None)
+
+    def test_repo_not_found(self, project_config):
+        project_config.repo_branch = "feature/232__test"
+        project_config.project__git__prefix_feature = "feature/"
+
+        resolver = GitHubReleaseBranchCommitStatusResolver()
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/NonexistentRepo"
+        )
+
+        project_config.get_repo_from_url = mock.Mock(return_value=None)
+
+        with pytest.raises(DependencyResolutionError) as exc:
+            resolver.resolve(dep, project_config)
+
+        assert "Unable to access GitHub" in str(exc)
+
+    @mock.patch("cumulusci.core.dependencies.dependencies.find_repo_feature_prefix")
+    def test_unable_locate_feature_prefix(
+        self, find_repo_feature_prefix_mock, project_config
+    ):
+        find_repo_feature_prefix_mock.side_effect = NotFoundError
+        project_config.repo_branch = "feature/232__test"
+        project_config.project__git__prefix_feature = "feature/"
+
+        resolver = GitHubReleaseBranchCommitStatusResolver()
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/TwoGPRepo"
+        )
+        assert resolver.resolve(dep, project_config) == (None, None)
+
+    def test_branch_not_found(self, project_config):
+        project_config.repo_branch = "feature/290__test"
+        project_config.project__git__prefix_feature = "feature/"
+
+        resolver = GitHubReleaseBranchCommitStatusResolver()
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/TwoGPRepo"
+        )
+
+        assert resolver.resolve(dep, project_config) == (None, None)
+
+
+class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
+    def test_exact_branch_resolver(self, project_config):
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
@@ -1187,6 +1346,59 @@ class TestGitHubReleaseBranchExactMatch2GPResolver:
                 version_id="04t000000000001", package_name="CumulusCI-2GP-Test"
             ),
         )
+
+    def test_repo_not_found(self, project_config):
+        project_config.repo_branch = "feature/232__test"
+        project_config.project__git__prefix_feature = "feature/"
+
+        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/NonexistentRepo"
+        )
+
+        project_config.get_repo_from_url = mock.Mock(return_value=None)
+
+        with pytest.raises(DependencyResolutionError) as exc:
+            resolver.resolve(dep, project_config)
+
+        assert "Unable to access GitHub" in str(exc)
+
+    @mock.patch("cumulusci.core.dependencies.dependencies.find_repo_feature_prefix")
+    def test_unable_locate_feature_prefix(
+        self, find_repo_feature_prefix_mock, project_config
+    ):
+        find_repo_feature_prefix_mock.side_effect = NotFoundError
+        project_config.repo_branch = "feature/232__test"
+        project_config.project__git__prefix_feature = "feature/"
+
+        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/TwoGPRepo"
+        )
+        assert resolver.resolve(dep, project_config) == (None, None)
+
+    def test_branch_not_found(self, project_config):
+        project_config.repo_branch = "feature/290__test"
+        project_config.project__git__prefix_feature = "feature/"
+
+        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/TwoGPRepo"
+        )
+
+        assert resolver.resolve(dep, project_config) == (None, None)
+
+    def test_commit_status_not_found(self, project_config):
+        project_config.repo_branch = "feature/232"
+        project_config.project__git__prefix_feature = "feature/"
+
+        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/TwoGPMissingRepo"
+        )
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (None, None)
 
 
 class TestResolverAccess:
@@ -1229,7 +1441,7 @@ class TestResolverAccess:
 
 
 class TestStaticDependencyResolution:
-    def test_flatten(self, project_config):
+    def test_get_static_dependencies(self, project_config):
         gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
 
         assert get_static_dependencies(
@@ -1251,6 +1463,85 @@ class TestStaticDependencyResolution:
                 ref="tag_sha",
                 namespace_inject="foo",
             ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/pre/first",
+                unmanaged=True,
+                ref="tag_sha",
+            ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/pre/second",
+                unmanaged=True,
+                ref="tag_sha",
+            ),
+            PackageNamespaceVersionDependency(
+                namespace="bar", version="2.0", package_name="RootRepo"
+            ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/post/first",
+                unmanaged=False,
+                ref="tag_sha",
+                namespace_inject="bar",
+            ),
+        ]
+
+    def test_get_static_dependencies__ignore_namespace(self, project_config):
+        gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
+
+        assert get_static_dependencies(
+            [gh],
+            [DependencyResolutionStrategy.RELEASE_TAG],
+            project_config,
+            ignore_deps=[{"namespace": "foo"}],
+        ) == [
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/DependencyRepo",
+                subfolder="unpackaged/pre/top",
+                unmanaged=True,
+                ref="tag_sha",
+            ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/DependencyRepo",
+                subfolder="unpackaged/post/top",
+                unmanaged=False,
+                ref="tag_sha",
+                namespace_inject="foo",
+            ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/pre/first",
+                unmanaged=True,
+                ref="tag_sha",
+            ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/pre/second",
+                unmanaged=True,
+                ref="tag_sha",
+            ),
+            PackageNamespaceVersionDependency(
+                namespace="bar", version="2.0", package_name="RootRepo"
+            ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/post/first",
+                unmanaged=False,
+                ref="tag_sha",
+                namespace_inject="bar",
+            ),
+        ]
+
+    def test_get_static_dependencies__ignore_github(self, project_config):
+        gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
+
+        assert get_static_dependencies(
+            [gh],
+            [DependencyResolutionStrategy.RELEASE_TAG],
+            project_config,
+            ignore_deps=[{"github": "https://github.com/SFDO-Tooling/DependencyRepo"}],
+        ) == [
             UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
                 subfolder="unpackaged/pre/first",

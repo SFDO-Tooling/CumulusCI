@@ -538,14 +538,17 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
     namespace_strip: Optional[str]
 
     def _get_unmanaged(self, org: OrgConfig):
-        if self.unmanaged is None and self.namespace_inject:
-            return self.namespace_inject not in org.installed_packages
+        if self.unmanaged is None:
+            if self.namespace_inject:
+                return self.namespace_inject not in org.installed_packages
+            else:
+                return True
 
         return self.unmanaged
 
     @abc.abstractmethod
     def _get_zip_src(self, context: BaseProjectConfig):
-        pass
+        pass  # pragma: no cover
 
     def install(self, context: BaseProjectConfig, org: OrgConfig):
         zip_src = self._get_zip_src(context)
@@ -780,7 +783,7 @@ class GitHubUnmanagedHeadResolver(Resolver):
 
 
 class GitHubReleaseBranchResolver(Resolver, abc.ABC):
-    """Abstract base class for resolvers that use commit statuses release branches to find refs."""
+    """Abstract base class for resolvers that use commit statuses on release branches to find refs."""
 
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
         return self.is_valid_repo_context(context) and isinstance(
@@ -823,6 +826,7 @@ class GitHubReleaseBranchResolver(Resolver, abc.ABC):
             if commit.parents:
                 commit = remote_repo.commit(commit.parents[0]["sha"])
             else:
+                commit = None
                 break
 
         return version_id, commit
@@ -916,7 +920,9 @@ class GitHubReleaseBranchExactMatchCommitStatusResolver(GitHubReleaseBranchResol
 
         repo = context.get_repo_from_url(dep.github)
         if not repo:
-            raise DependencyResolutionError(f"Unable to access repository {dep.github}")
+            raise DependencyResolutionError(
+                f"Unable to access GitHub repository for {dep.github}"
+            )
 
         try:
             remote_branch_prefix = find_repo_feature_prefix(repo)
