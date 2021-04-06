@@ -79,7 +79,7 @@ class BaseProjectKeychain(BaseConfig):
     def _load_app(self):
         pass
 
-    def get_connected_app(self):
+    def get_legacy_connected_app(self):
         """ retrieve the connected app configuration """
         return self._get_connected_app()
 
@@ -95,7 +95,7 @@ class BaseProjectKeychain(BaseConfig):
         ):
             # already a service
             return
-        connected_app = self.get_connected_app()
+        connected_app = self.get_legacy_connected_app()
         if not connected_app:
             # not configured
             return

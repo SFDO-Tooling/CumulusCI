@@ -24,7 +24,7 @@ def keychain(project_config, key):
 class TestBaseEncryptedProjectKeychain:
     def test_get_connected_app(self, keychain):
         keychain.app = keychain._encrypt_config(BaseConfig({}))
-        app = keychain.get_connected_app()
+        app = keychain.get_legacy_connected_app()
         assert isinstance(app, ConnectedAppOAuthConfig)
 
     def test_decrypt_config__no_config(self, keychain):
