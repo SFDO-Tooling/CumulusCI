@@ -379,7 +379,7 @@ tasks:
             orgs: push/orgs_qa.txt
         group: Push Upgrades
     push_sandbox:
-        description: Schedules a push upgrade of a package version to all subscribers
+        description: Schedules a push upgrade of a package version to sandbox orgs
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
         options:
             subscriber_where: "OrgType = 'Sandbox'"
