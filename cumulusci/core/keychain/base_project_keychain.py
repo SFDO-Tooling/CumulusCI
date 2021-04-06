@@ -32,11 +32,7 @@ class BaseProjectKeychain(BaseConfig):
             "services": {},
         }
         self.project_config = project_config
-        self._default_services = (
-            {s_type: None for s_type in project_config.config["services"]}
-            if "services" in project_config.config
-            else {}
-        )
+        self._default_services = {}
         self.key = key
         self._validate_key()
         self._load_keychain()
