@@ -379,7 +379,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 yield item
 
     def _raise_service_not_configured(self, name):
-        raise ServiceNotConfigured(  # pragma: no cover
+        raise ServiceNotConfigured(
             f"'{name}' service configuration could not be found. "
             f"Maybe you need to run: cci service connect {name}"
         )
