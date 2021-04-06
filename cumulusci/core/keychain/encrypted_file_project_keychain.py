@@ -225,7 +225,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         with open(service_path, "wb") as f:
             f.write(encrypted)
 
-    def _init_default_services(self) -> None:
+    def _load_default_services(self) -> None:
         """Init self._default_services on the keychain so that
         calls to get_service() that do not pass an alias can
         return the default service for the given type"""

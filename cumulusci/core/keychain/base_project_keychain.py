@@ -36,13 +36,13 @@ class BaseProjectKeychain(BaseConfig):
         self.key = key
         self._validate_key()
         self._load_keychain()
-        self._init_default_services()
 
     def _load_keychain(self):
         self._load_app()
         self._load_orgs()
         self._load_scratch_orgs()
         self._load_services()
+        self._load_default_services()
 
     def _validate_key(self):
         pass
@@ -240,7 +240,7 @@ class BaseProjectKeychain(BaseConfig):
     def _load_services(self):
         pass
 
-    def _init_default_services(self):
+    def _load_default_services(self):
         pass
 
     def set_service(self, service_type, alias, service_config, project=False):
