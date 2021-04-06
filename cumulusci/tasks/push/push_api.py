@@ -88,10 +88,10 @@ class MetadataPackageVersion(BasePushApiObject):
     def get_older_released_version_objs(self, greater_than_version=None):
         where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released' AND "
         version_info = {"major": self.major, "minor": self.minor, "patch": self.patch}
-        where += f"(MajorVersion <= {version_info['major']} OR (MajorVersion = {version_info['major']} AND MinorVersion <= {version_info['minor']}))"
+        where += f"(MajorVersion < {version_info['major']} OR (MajorVersion = {version_info['major']} AND MinorVersion < {version_info['minor']}))"
 
         if self.patch:
-            patch_where = f" OR (MajorVersion = {version_info['major']} AND MinorVersion = {version_info['minor']} AND PatchVersion <= {version_info['patch']})"
+            patch_where = f" OR (MajorVersion = {version_info['major']} AND MinorVersion = {version_info['minor']} AND PatchVersion < {version_info['patch']})"
             where = where[:-1] + patch_where + where[-1:]
 
         if greater_than_version:
@@ -108,7 +108,7 @@ class MetadataPackageVersion(BasePushApiObject):
                 )
             where += greater_than_where
 
-        return self.package.get_package_version_objs(where)  # versions
+        return self.package.get_package_version_objs(where)
 
     def get_subscribers(self, where=None, limit=None):
         where = self.format_where("MetadataPackageVersionId", where)
