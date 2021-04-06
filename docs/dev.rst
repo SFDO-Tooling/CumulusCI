@@ -402,7 +402,7 @@ For more on this topic see :ref:`namespace injection`.
 Controlling GitHub Dependency Resolution
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-CumulusCI converts dynamic dependencies specified via GitHub repositories into specific package versions and commit references by applying one or more *resolvers*. You can customize the resolvers that CumulusCI applies to control how beta managed packages and second-generation feature packages, or to intervene more deeply in the dependency resolution process.
+CumulusCI converts dynamic dependencies specified via GitHub repositories into specific package versions and commit references by applying one or more *resolvers*. You can customize the resolvers that CumulusCI applies to control when it will use beta managed packages or second-generation feature test packages, or to intervene more deeply in the dependency resolution process.
 
 CumulusCI organizes resolvers into *resolution strategies*, which are named, ordered lists of resolvers to apply. When CumulusCI applies a resolution strategy to a dependency, it applies each resolver from top to bottom until a resolver succeeds in resolving the dependency.
 
