@@ -410,7 +410,7 @@ Three resolution strategies are provided in the CumulusCI standard library:
 
  * ``latest_release``, which will attempt to resolve to the latest managed release of a managed package project.
  * ``include_beta``, which will attempt to resolve to the latest beta, if any, or managed release of a managed package project.
- * ``commit_status``, which will resolve to second-generation package betas created on feature branches, if any, before falling back to managed package releases. This strategy is used only in the ``qa_org_2gp`` flow.
+ * ``commit_status``, which will resolve to second-generation package betas created on feature branches, if any, before falling back to managed package releases. This strategy is used only in the ``qa_org_2gp`` and ``ci_feature_2gp`` flows.
 
 The complete list of steps taken by each resolution strategy is given below.
 
