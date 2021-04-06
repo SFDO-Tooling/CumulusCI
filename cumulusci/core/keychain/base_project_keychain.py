@@ -329,8 +329,7 @@ class BaseProjectKeychain(BaseConfig):
                 "Service alias cannot be the same as the service type."
             )
 
-        # TODO: add test for this
-        if self.services.get(alias):
+        if alias in self.services[service_type]:
             raise ServiceNotValid(
                 f"A service of type {service_type} is already configured with the name: {alias}. Please choose a different name."
             )

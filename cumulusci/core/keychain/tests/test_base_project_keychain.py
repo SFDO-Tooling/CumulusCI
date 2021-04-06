@@ -222,12 +222,13 @@ class TestBaseProjectKeychain:
         ):
             keychain._validate_service_alias("service_type", "service_type")
 
-    def test_validate_service_alias__same_as_default_alias(self, keychain):
+    def test_validate_service_alias__duplicate(self, keychain):
+        keychain.config["services"] = {"github": {"existing-alias": {}}}
         with pytest.raises(
             ServiceNotValid,
-            match="Service alias cannot be the default alias: service_type__default",
+            match="A service of type github is already configured with the name: existing-alias. Please choose a different name.",
         ):
-            keychain._validate_service_alias("service_type", "service_type__default")
+            keychain._validate_service_alias("github", "existing-alias")
 
     def test_list_services(self, keychain):
         service_config = ServiceConfig({"foo": "bar"})
