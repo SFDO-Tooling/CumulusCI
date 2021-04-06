@@ -49,13 +49,12 @@ class BaseProjectKeychain(BaseConfig):
 
     def change_key(self, key):
         """ re-encrypt stored services and orgs with the new key """
-        service_types = {}
-        services = self.list_services()
-        for service_type, names in services.items():
-            if service_type not in service_types:
-                service_types[service_type] = {}
-            for name in names:
-                service_types[service_type][name] = self.get_service(service_type, name)
+        configured_services = {}
+        for service_type, aliases in self.services.items():
+            if service_type not in configured_services:
+                configured_services[service_type] = {}
+            for alias, config in aliases.items():
+                configured_services[service_type][alias] = config
 
         orgs = {}
         for org_name in self.list_orgs():
@@ -67,8 +66,8 @@ class BaseProjectKeychain(BaseConfig):
             for org_name, org_config in list(orgs.items()):
                 org_config.save()
 
-        if service_types:
-            for service_type, aliases in service_types.items():
+        if configured_services:
+            for service_type, aliases in configured_services.items():
                 for alias, config in aliases.items():
                     self.set_service(service_type, alias, config)
 
