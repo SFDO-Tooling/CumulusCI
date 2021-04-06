@@ -4,7 +4,6 @@ import unittest
 
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
@@ -123,11 +122,6 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
         for key, value in list(env.items()):
             if key.startswith(self.keychain_class.service_var_prefix):
                 del env[key]
-
-    def test_load_app(self):
-        self.env["CUMULUSCI_CONNECTED_APP"] = "{}"
-        keychain = self.keychain_class(self.project_config, self.key)
-        assert isinstance(keychain.app, ConnectedAppOAuthConfig)
 
     def test_get_org(self):
         keychain = self.keychain_class(self.project_config, self.key)

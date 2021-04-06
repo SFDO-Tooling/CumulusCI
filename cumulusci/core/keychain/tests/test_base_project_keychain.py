@@ -6,7 +6,6 @@ from unittest import mock
 from cumulusci.core.keychain import BaseProjectKeychain, DEFAULT_CONNECTED_APP
 from cumulusci.core.exceptions import OrgNotFound, ServiceNotValid, ServiceNotConfigured
 from cumulusci.core.config import (
-    BaseConfig,
     BaseProjectConfig,
     OrgConfig,
     ScratchOrgConfig,
@@ -62,7 +61,6 @@ class TestBaseProjectKeychain:
 
     def test_change_key(self, keychain, org_config, service_configs):
         keychain.set_org(org_config)
-        keychain.services = {"connected_app": {}, "github": {}}
         keychain.set_service("connected_app", "alias", service_configs["connected_app"])
         keychain.set_service("github", "alias", service_configs["github"])
 
@@ -246,34 +244,6 @@ class TestBaseProjectKeychain:
         assert len(list(services.keys())) == 2
         assert services["devhub"] == ["bar_alias", "foo_alias"]
         assert services["github"] == ["zed_alias", "zoo_alias"]
-
-    def test_convert_connected_app(self, key):
-        project_config = BaseProjectConfig(
-            UniversalConfig,
-            {
-                "services": {
-                    "connected_app": {
-                        "attributes": {
-                            "callback_url": {},
-                            "client_id": {},
-                            "client_secret": {},
-                        }
-                    }
-                }
-            },
-        )
-        keychain = BaseProjectKeychain(project_config, key)
-        app_config = {
-            "callback_url": "http://localhost:8080/callback",
-            "client_id": "CLIENT",
-            "client_secret": "SECRET",
-        }
-        keychain.config["app"] = BaseConfig(app_config)
-        keychain._convert_connected_app()
-        actual_service = keychain.get_service(
-            "connected_app", "please_contact_sfdo_releng"
-        )
-        assert app_config == actual_service.config
 
     @mock.patch("cumulusci.core.keychain.base_project_keychain.cleanup_org_cache_dirs")
     def test_remove_org(

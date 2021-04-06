@@ -1,12 +1,12 @@
 import sarge
 
-from cumulusci.core.config import BaseConfig
-from cumulusci.core.config import ConnectedAppOAuthConfig
-from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.exceptions import CumulusCIException, OrgNotFound
-from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.exceptions import ServiceNotValid
+from cumulusci.core.config import BaseConfig, ConnectedAppOAuthConfig, ScratchOrgConfig
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    OrgNotFound,
+    ServiceNotConfigured,
+    ServiceNotValid,
+)
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import cleanup_org_cache_dirs
 
@@ -36,7 +36,6 @@ class BaseProjectKeychain(BaseConfig):
         self._load_keychain()
 
     def _load_keychain(self):
-        self._load_app()
         self._load_orgs()
         self._load_scratch_orgs()
         self._load_services()
@@ -67,52 +66,8 @@ class BaseProjectKeychain(BaseConfig):
         if configured_services:
             for service_type, aliases in configured_services.items():
                 for alias, config in aliases.items():
+                    del self.services[service_type][alias]
                     self.set_service(service_type, alias, config)
-
-        self._convert_connected_app()
-
-    #######################################
-    #               Apps                  #
-    #######################################
-    def _load_app(self):
-        pass
-
-    def get_legacy_connected_app(self):
-        """ retrieve the connected app configuration """
-        return self._get_connected_app()
-
-    def _get_connected_app(self):
-        return self.app
-
-    def _convert_connected_app(self):
-        """Convert Connected App to service"""
-        if (
-            self.services
-            and "connected_app" in self.services
-            and self.services["connected_app"] != {}
-        ):
-            # already a service
-            return
-        connected_app = self.get_legacy_connected_app()
-        if not connected_app:
-            # not configured
-            return
-        self.logger.warning(
-            "Reading Connected App info from deprecated config."
-            " Connected App should be changed to a service."
-            " If using environment keychain, update the environment variable."
-            " Otherwise, it has been handled automatically and you should not"
-            " see this message again."
-        )
-        ca_config = ServiceConfig(
-            {
-                "callback_url": connected_app.callback_url,
-                "client_id": connected_app.client_id,
-                "client_secret": connected_app.client_secret,
-            }
-        )
-        # We're using an obnoxious alias to see who's using this
-        self.set_service("connected_app", "please_contact_sfdo_releng", ca_config)
 
     #######################################
     #               Orgs                  #
@@ -270,7 +225,6 @@ class BaseProjectKeychain(BaseConfig):
         @param alias: the alias of the service
         @returns: ServiceConfig for the requested service
         """
-        self._convert_connected_app()
         if not self.project_config.services:
             raise ServiceNotValid(
                 "Expecting services to be loaded, but none were found."
@@ -329,7 +283,7 @@ class BaseProjectKeychain(BaseConfig):
                 "Service alias cannot be the same as the service type."
             )
 
-        if alias in self.services[service_type]:
+        if alias in self.services.get(service_type, []):
             raise ServiceNotValid(
                 f"A service of type {service_type} is already configured with the name: {alias}. Please choose a different name."
             )

@@ -43,20 +43,6 @@ class TestEncryptedFileProjectKeychain:
             keychain._raise_service_not_configured("test-name")
 
     #######################################
-    #               Apps                  #
-    #######################################
-
-    def test_load_app_file(self, keychain):
-        self._write_file(Path(keychain.global_config_dir, "config"), "foo")
-        keychain._load_app_file(keychain.global_config_dir, "config", "from_file")
-        assert "foo" == keychain.config["from_file"]
-
-    def test_load_app_file__universal_config(self, keychain):
-        self._write_file(Path(keychain.global_config_dir, "config"), "foo")
-        keychain._load_app_file(keychain.global_config_dir, "config", "from_file")
-        assert "foo" == keychain.config["from_file"]
-
-    #######################################
     #               Orgs                  #
     #######################################
 

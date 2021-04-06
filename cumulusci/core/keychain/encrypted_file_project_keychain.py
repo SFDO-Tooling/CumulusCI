@@ -50,25 +50,6 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         return self.project_config.project_local_dir
 
     #######################################
-    #               Apps                  #
-    #######################################
-
-    def _load_app(self) -> None:
-        self._load_app_file(self.global_config_dir, "connected.app", "app")
-        self._load_app_file(self.project_local_dir, "connected.app", "app")
-
-    def _load_app_file(self, dirname: str, filename: str, key: str) -> None:
-        """This is only used for loading the legacy connected_app configurations"""
-        if dirname is None:
-            return
-        full_path = Path(f"{dirname}/{filename}")
-        if not full_path.exists():
-            return
-        with open(full_path, "r") as f_item:
-            config = f_item.read()
-        self.config[key] = config
-
-    #######################################
     #               Orgs                  #
     #######################################
 

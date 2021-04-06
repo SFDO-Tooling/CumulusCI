@@ -3,7 +3,6 @@ import pytest
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 from cumulusci.core.config import (
     BaseConfig,
-    ConnectedAppOAuthConfig,
     OrgConfig,
 )
 from cumulusci.core.exceptions import (
@@ -22,11 +21,6 @@ def keychain(project_config, key):
 
 
 class TestBaseEncryptedProjectKeychain:
-    def test_get_connected_app(self, keychain):
-        keychain.app = keychain._encrypt_config(BaseConfig({}))
-        app = keychain.get_legacy_connected_app()
-        assert isinstance(app, ConnectedAppOAuthConfig)
-
     def test_decrypt_config__no_config(self, keychain):
         config = keychain._decrypt_config(OrgConfig, None, extra=["test", keychain])
         assert config.__class__ == OrgConfig

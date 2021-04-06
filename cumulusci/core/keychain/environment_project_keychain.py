@@ -1,10 +1,7 @@
 import json
 import os
 
-from cumulusci.core.config import ConnectedAppOAuthConfig
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.config import ServiceConfig
+from cumulusci.core.config import OrgConfig, ScratchOrgConfig, ServiceConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.utils import import_global
 
@@ -31,11 +28,6 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
             v = v.decode() if isinstance(v, bytes) else v
             env[k] = v
         return list(env.items())
-
-    def _load_app(self):
-        app = os.environ.get(self.app_var)
-        if app:
-            self.app = ConnectedAppOAuthConfig(json.loads(app))
 
     def _load_orgs(self):
         for key, value in self._get_env():
