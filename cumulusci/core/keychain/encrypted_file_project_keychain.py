@@ -1,4 +1,3 @@
-import os
 import json
 import typing as T
 
@@ -63,9 +62,9 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         if dirname is None:
             return
         full_path = Path(f"{dirname}/{filename}")
-        if not os.path.exists(full_path):
+        if not full_path.exists():
             return
-        with open(os.path.join(dirname, filename), "r") as f_item:
+        with open(full_path, "r") as f_item:
             config = f_item.read()
         self.config[key] = config
 
@@ -284,9 +283,6 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         @param dir_path: the directory to look through and write
         the DEFAULT_SERVICES.json file in.
         """
-        if dir_path is None:
-            return  # pragma: no cover
-
         dir_path = Path(dir_path)
         default_services = {}
         for item in dir_path.iterdir():
@@ -320,8 +316,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         will be created.
         """
         services_dir_path = Path(f"{self.global_config_dir}/services")
-        if not Path.is_dir(services_dir_path):
-            Path.mkdir(services_dir_path)
+        services_dir_path.mkdir(exist_ok=True)
 
         configured_service_types = self.project_config.config["services"].keys()
         for service_type in configured_service_types:
@@ -345,11 +340,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         Default aliases are in the form `service_type__scope`.
         Scope is either 'project' or 'global' depending
         on where the .service file is located."""
-        if not dir_path:
-            return  # pragma: no cover
-
         dir_path = Path(dir_path)
-
         for item in dir_path.iterdir():
             if item.suffix == ".service":
                 new_service_filepath = self._get_new_service_filepath(item)
