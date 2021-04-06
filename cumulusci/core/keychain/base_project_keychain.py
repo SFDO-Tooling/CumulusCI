@@ -4,13 +4,11 @@ from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
-from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.core.exceptions import CumulusCIException, OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ServiceNotValid
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import cleanup_org_cache_dirs
-
-DEFAULT_SERVICE_ALIAS = "default"
 
 DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig(
     {
@@ -288,7 +286,12 @@ class BaseProjectKeychain(BaseConfig):
             self._raise_service_not_configured(service_type)
 
         if not alias:
-            alias = self._default_services[service_type]
+            alias = self._default_services.get(service_type)
+            # TODO: add test
+            if not alias:
+                raise CumulusCIException(
+                    f"No defualt service currently set for service type: {service_type}"
+                )
         service = self._get_service(service_type, alias)
 
         # transparent migration of github API tokens to new key
@@ -326,10 +329,10 @@ class BaseProjectKeychain(BaseConfig):
                 "Service alias cannot be the same as the service type."
             )
 
-        default = f"{service_type}__{DEFAULT_SERVICE_ALIAS}"
-        if alias == default:
+        # TODO: add test for this
+        if self.services.get(alias):
             raise ServiceNotValid(
-                f"Service alias cannot be the default alias: {default}"
+                f"A service of type {service_type} is already configured with the name: {alias}. Please choose a different name."
             )
 
     def _raise_service_not_configured(self, name):

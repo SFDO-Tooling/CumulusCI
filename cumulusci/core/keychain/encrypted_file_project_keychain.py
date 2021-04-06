@@ -20,15 +20,15 @@ files. These files have the extensions: '.org' and '.service'.
 Service files (.service) are organized under ~/.cumulusci/services/ into sub-directories that
 pertain to a particular service type (e.g. github, connected_app). These files hold
 the encrypted 'attributes' of each service as they are listed in the universal
-cumulusci.yml file. There are multiple DEFAULT_SERVICES.json files, the map a particular
+cumulusci.yml file. There are multiple DEFAULT_SERVICES.json files that map a particular
 service type to the default alias for that taype.
 
-The DEFUALT_SERVICES.json file that resides at ~/.cumulusci holds the global default
+The DEFAULT_SERVICES.json file that resides at ~/.cumulusci holds the global default
 services mappings. Each local project directory (~/.cumulusci/project/) also has a
-DEFUALT_SERVICES.json file for any services that have been configured to be project specific.
+DEFAULT_SERVICES.json file for any services that have been configured to be project specific.
 
-Org files (.org) live in both under ~/.cumulusci and in local project direcotries.
-The .org files store an encrypted access_token and ____________. There is a
+Org files (.org) live in both under ~/.cumulusci and in local project directories.
+The .org files store an encrypted access_token and other org attributes. There is a
 DEFAULT_ORG.txt file in each local project directory that stores the name of
 the default org for that project.
 """
