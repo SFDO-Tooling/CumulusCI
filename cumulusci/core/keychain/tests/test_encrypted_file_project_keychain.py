@@ -38,7 +38,7 @@ class TestEncryptedFileProjectKeychain:
     def test_cache_dir(self, keychain):
         assert keychain.cache_dir.name == ".cci"
 
-    def test_raise_service_not_configred(self, keychain):
+    def test_raise_service_not_configured(self, keychain):
         with pytest.raises(ServiceNotConfigured):
             keychain._raise_service_not_configured("test-name")
 
