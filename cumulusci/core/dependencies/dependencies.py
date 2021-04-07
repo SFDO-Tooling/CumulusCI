@@ -80,21 +80,21 @@ class Dependency(HashableBaseModel, abc.ABC):
     @property
     @abc.abstractmethod
     def name(self):
-        pass  # pragma: no cover
+        pass
 
     @property
     def description(self):
-        return self.name  # pragma: no cover
+        return self.name
 
     @property
     @abc.abstractmethod
     def is_resolved(self):
-        return False  # pragma: no cover
+        return False
 
     @property
     @abc.abstractmethod
     def is_flattened(self):
-        return False  # pragma: no cover
+        return False
 
     def flatten(self, context: BaseProjectConfig) -> List["Dependency"]:
         """Get a list including this dependency as well as its transitive dependencies."""
@@ -104,7 +104,7 @@ class Dependency(HashableBaseModel, abc.ABC):
         self, context: BaseProjectConfig, strategies: List[DependencyResolutionStrategy]
     ):
         """Resolve a dependency that is not pinned to a specific version into one that is."""
-        pass  # pragma: no cover
+        pass
 
     def __str__(self):
         return self.description
@@ -119,7 +119,7 @@ class StaticDependency(Dependency, abc.ABC):
 
     @abc.abstractmethod
     def install(self, org_config: OrgConfig, retry_options: dict = None):
-        pass  # pragma: no cover
+        pass
 
     @property
     def is_resolved(self):
@@ -178,13 +178,13 @@ class Resolver(abc.ABC):
 
     @abc.abstractmethod
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
-        pass  # pragma: no cover
+        pass
 
     @abc.abstractmethod
     def resolve(
         self, dep: DynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
-        pass  # pragma: no cover
+        pass
 
     def __str__(self):
         return self.name
@@ -204,7 +204,7 @@ class BaseGitHubDependency(DynamicDependency, abc.ABC):
     @property
     @abc.abstractmethod
     def is_unmanaged(self):
-        pass  # pragma: no cover
+        pass
 
     @property
     def is_resolved(self):
@@ -548,7 +548,7 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
 
     @abc.abstractmethod
     def _get_zip_src(self, context: BaseProjectConfig):
-        pass  # pragma: no cover
+        pass
 
     def install(self, context: BaseProjectConfig, org: OrgConfig):
         zip_src = self._get_zip_src(context)
