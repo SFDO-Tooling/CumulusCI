@@ -1,0 +1,5 @@
+- sf_object: Contact
+  bulk_mode: Parallel
+
+- sf_object: Account
+  load_after: Contact

@@ -1,63 +1,80 @@
 from json import JSONDecodeError
 from unittest.mock import Mock, patch
 
-from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci import __version__
+from cumulusci.core.config import OrgConfig
+from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 
 
 def test_connection():
-    org_config = Mock()
+    org_config = OrgConfig(
+        {
+            "instance_url": "https://orgname.my.salesforce.com",
+            "access_token": "BOGUS",
+        },
+        "test",
+    )
     proj_config = Mock()
     service_mock = Mock()
     service_mock.client_id = "TEST"
     proj_config.keychain.get_service.return_value = service_mock
+    proj_config.project__package__api_version = "51.0"
 
-    with patch("simple_salesforce.Salesforce") as mock_sf:
-        get_simple_salesforce_connection(proj_config, org_config)
-        mock_sf.assert_called_once_with(
-            instance_url=org_config.instance_url,
-            session_id=org_config.access_token,
-            version=proj_config.project__package__api_version,
-        )
-
-        mock_sf.return_value.headers.setdefault.assert_called_once_with(
-            "Sforce-Call-Options", "client={}".format(service_mock.client_id)
-        )
+    sf = get_simple_salesforce_connection(proj_config, org_config)
+    assert sf.base_url == "https://orgname.my.salesforce.com/services/data/v51.0/"
+    assert sf.headers["Authorization"] == "Bearer BOGUS"
+    assert sf.headers["Sforce-Call-Options"] == "client=TEST"
 
 
 def test_connection__explicit_api_version():
-    org_config = Mock()
+    org_config = OrgConfig(
+        {
+            "instance_url": "https://orgname.my.salesforce.com",
+            "access_token": "BOGUS",
+        },
+        "test",
+    )
     proj_config = Mock()
     service_mock = Mock()
     service_mock.client_id = "TEST"
     proj_config.keychain.get_service.return_value = service_mock
 
-    with patch("simple_salesforce.Salesforce") as mock_sf:
-        get_simple_salesforce_connection(proj_config, org_config, api_version="42.0")
-        mock_sf.assert_called_once_with(
-            instance_url=org_config.instance_url,
-            session_id=org_config.access_token,
-            version="42.0",
-        )
-
-        mock_sf.return_value.headers.setdefault.assert_called_once_with(
-            "Sforce-Call-Options", "client={}".format(service_mock.client_id)
-        )
+    sf = get_simple_salesforce_connection(proj_config, org_config, api_version="42.0")
+    assert sf.base_url == "https://orgname.my.salesforce.com/services/data/v42.0/"
 
 
 def test_connection__no_connected_app():
-    org_config = Mock()
+    org_config = OrgConfig(
+        {
+            "instance_url": "https://orgname.my.salesforce.com",
+            "access_token": "BOGUS",
+        },
+        "test",
+    )
     proj_config = Mock()
     proj_config.keychain.get_service.side_effect = ServiceNotConfigured
 
-    with patch("simple_salesforce.Salesforce") as mock_sf:
-        get_simple_salesforce_connection(proj_config, org_config)
+    sf = get_simple_salesforce_connection(proj_config, org_config)
+    assert sf.headers["Sforce-Call-Options"] == f"client=CumulusCI/{__version__}"
 
-        mock_sf.return_value.headers.setdefault.assert_called_once_with(
-            "Sforce-Call-Options",
-            "client={}".format("CumulusCI/{}".format(__version__)),
-        )
+
+def test_connection__with_port():
+    org_config = OrgConfig(
+        {
+            "instance_url": "https://orgname.my.salesforce.com:8080",
+            "access_token": "BOGUS",
+        },
+        "test",
+    )
+    proj_config = Mock()
+    service_mock = Mock()
+    service_mock.client_id = "TEST"
+    proj_config.keychain.get_service.return_value = service_mock
+    proj_config.project__package__api_version = "51.0"
+
+    sf = get_simple_salesforce_connection(proj_config, org_config)
+    assert sf.base_url == "https://orgname.my.salesforce.com:8080/services/data/v51.0/"
 
 
 def test_sf_api_retries(mock_http_response):
