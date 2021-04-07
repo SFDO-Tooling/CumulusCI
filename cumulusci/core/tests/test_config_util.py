@@ -87,7 +87,7 @@ def test_get_devhub_config__from_sfdx(project_config):
 
 def test_get_devhub_config__from_service(project_config, org_config):
     project_config.keychain.set_service(
-        "devhub", "test_alias", ServiceConfig({"username": "devhub@example"})
+        "devhub", "test_alias", ServiceConfig({"username": "devhub@example.com"})
     )
     devhub_config = get_devhub_config(project_config)
     assert devhub_config.username == "devhub@example.com"
