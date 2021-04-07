@@ -865,8 +865,7 @@ Environment Info: Rossian / x68_46
                 run_click_command(cci.project_info, runtime=runtime)
 
     @mock.patch("cumulusci.cli.cci.get_static_dependencies")
-    @mock.patch("cumulusci.cli.cci.get_resolver_stack")
-    def test_project_dependencies(self, get_resolver_stack, get_static_dependencies):
+    def test_project_dependencies(self, get_static_dependencies):
         out = []
         runtime = mock.Mock()
         runtime.project_config.project__dependencies = [
@@ -888,8 +887,12 @@ Environment Info: Rossian / x68_46
         self.assertEqual(
             out,
             [
-                str(PackageNamespaceVersionDependency(namespace="npe01", version="3.16")),
-                str(PackageNamespaceVersionDependency(namespace="npsp", version="3.193")),
+                str(
+                    PackageNamespaceVersionDependency(namespace="npe01", version="3.16")
+                ),
+                str(
+                    PackageNamespaceVersionDependency(namespace="npsp", version="3.193")
+                ),
             ],
         )
 

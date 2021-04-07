@@ -1,4 +1,3 @@
-from distutils.version import StrictVersion
 import io
 import logging
 import zipfile
@@ -7,13 +6,14 @@ from unittest import mock
 import pydantic
 import pytest
 
-from cumulusci.core.config.OrgConfig import OrgConfig, VersionInfo
 from cumulusci.core.dependencies.dependencies import (
-    DependencyResolutionStrategy,
     GitHubDynamicDependency,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
     UnmanagedGitHubRefDependency,
+)
+from cumulusci.core.dependencies.resolvers import (
+    DependencyResolutionStrategy,
     get_resolver_stack,
 )
 from cumulusci.core.exceptions import DependencyParseError, TaskOptionsError

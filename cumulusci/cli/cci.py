@@ -1,9 +1,5 @@
 from collections import defaultdict
-from cumulusci.core.dependencies.dependencies import (
-    get_resolver_stack,
-    get_static_dependencies,
-    parse_dependencies,
-)
+from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from urllib.parse import urlparse
 
 import code
@@ -744,15 +740,7 @@ def project_info(runtime):
 )
 @pass_runtime(require_keychain=True)
 def project_dependencies(runtime, resolution_strategy):
-    dependencies = get_static_dependencies(
-        parse_dependencies(runtime.project_config.project__dependencies),
-        get_resolver_stack(
-            runtime.project_config,
-            resolution_strategy,
-        ),
-        runtime.project_config,
-    )
-
+    dependencies = get_static_dependencies(runtime.project_config, resolution_strategy)
     for line in dependencies:
         click.echo(f"{line}")
 

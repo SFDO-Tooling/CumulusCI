@@ -14,10 +14,8 @@ from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
     UnmanagedGitHubRefDependency,
-    get_resolver_stack,
-    get_static_dependencies,
-    parse_dependencies,
 )
+from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.exceptions import DependencyLookupError
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import PackageUploadFailure
@@ -487,12 +485,8 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     def _get_dependencies(self):
         """Resolve dependencies into SubscriberPackageVersionIds (04t prefix)"""
         dependencies = get_static_dependencies(
-            parse_dependencies(self.project_config.project__dependencies),
-            get_resolver_stack(
-                self.project_config,
-                self.options.get("resolution_strategy") or "production",
-            ),
             self.project_config,
+            resolution_strategy=self.options.get("resolution_strategy") or "production",
         )
 
         # If any dependencies are expressed as a 1gp namespace + version,

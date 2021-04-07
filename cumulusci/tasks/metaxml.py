@@ -1,9 +1,3 @@
-from cumulusci.core.dependencies.dependencies import (
-    PackageNamespaceVersionDependency,
-    get_resolver_stack,
-    get_static_dependencies,
-    parse_dependencies,
-)
 import fileinput
 import os
 import re
@@ -11,6 +5,8 @@ import sys
 
 from lxml import etree as ET
 
+from cumulusci.core.dependencies.dependencies import PackageNamespaceVersionDependency
+from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.tasks import BaseTask
 
 
@@ -64,21 +60,13 @@ class UpdateDependencies(MetaXmlBaseTask):
     def _init_task(self):
         self.dependencies = []
         dependencies = get_static_dependencies(
-            parse_dependencies(self.project_config.project__dependencies),
-            get_resolver_stack(
-                self.project_config,
-                "production",
-            ),
-            self.project_config,
+            self.project_config, resolution_strategy="production"
         )
         self._process_dependencies(dependencies)
 
     def _process_dependencies(self, dependencies):
         for dependency in dependencies:
-            if (
-                isinstance(dependency, PackageNamespaceVersionDependency)
-                and dependency.namespace
-            ):
+            if isinstance(dependency, PackageNamespaceVersionDependency):
                 self.dependencies.append((dependency.namespace, dependency.version))
 
     def _process_xml(self, root):
