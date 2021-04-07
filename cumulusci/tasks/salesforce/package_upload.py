@@ -1,10 +1,6 @@
-from cumulusci.core.dependencies.dependencies import (
-    get_resolver_stack,
-    get_static_dependencies,
-    parse_dependencies,
-)
 from datetime import datetime
 
+from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -179,12 +175,8 @@ class PackageUpload(BaseSalesforceApiTask):
 
     def _set_dependencies(self):
         dependencies = get_static_dependencies(
-            parse_dependencies(self.project_config.project__dependencies),
-            get_resolver_stack(
-                self.project_config,
-                self.options.get("resolution_strategy") or "production",
-            ),
             self.project_config,
+            resolution_strategy=self.options.get("resolution_strategy") or "production",
         )
         if dependencies:
             dependencies = self.org_config.resolve_04t_dependencies(dependencies)

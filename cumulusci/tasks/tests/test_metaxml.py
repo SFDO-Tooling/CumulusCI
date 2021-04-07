@@ -49,8 +49,7 @@ class TestUpdateApi(unittest.TestCase):
 
 class TestUpdateDependencies(unittest.TestCase):
     @mock.patch("cumulusci.tasks.metaxml.get_static_dependencies")
-    @mock.patch("cumulusci.tasks.metaxml.get_resolver_stack")
-    def test_run_task(self, get_resolver_stack, get_static_dependencies):
+    def test_run_task(self, get_static_dependencies):
         get_static_dependencies.return_value = [
             PackageNamespaceVersionDependency(namespace="npe01", version="1.1"),
             PackageNamespaceVersionDependency(namespace="npsp", version="3.0"),

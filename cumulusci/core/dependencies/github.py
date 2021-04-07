@@ -2,7 +2,7 @@ import io
 
 from github3.repos.repo import Repository
 
-from cumulusci.core.config.BaseConfig import BaseConfig
+from cumulusci.core.config import BaseConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load

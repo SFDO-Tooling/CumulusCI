@@ -1,14 +1,11 @@
-from cumulusci.core.dependencies.dependencies import (
-    get_resolver_stack,
-    get_static_dependencies,
-    parse_dependencies,
-)
 import json
 import time
 from datetime import datetime
 
 import github3.exceptions
 
+from cumulusci.core.dependencies.dependencies import parse_dependencies
+from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.github.base import BaseGithubTask
@@ -72,15 +69,12 @@ class CreateRelease(BaseGithubTask):
         if self.options.get("version_id"):
             message += f"\n\nversion_id: {self.options['version_id']}"
         dependencies = get_static_dependencies(
-            parse_dependencies(
+            self.project_config,
+            dependencies=parse_dependencies(
                 self.options.get("dependencies")
                 or self.project_config.project__dependencies
             ),
-            get_resolver_stack(
-                self.project_config,
-                self.options.get("resolution_strategy") or "production",
-            ),
-            self.project_config,
+            resolution_strategy=self.options.get("resolution_strategy") or "production",
         )
         if dependencies:
             dependencies = [d.dict(exclude_none=True) for d in dependencies]

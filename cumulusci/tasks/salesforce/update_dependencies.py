@@ -1,12 +1,12 @@
-import itertools
-
 from cumulusci.core.dependencies.dependencies import (
-    DependencyResolutionStrategy,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
-    get_resolver_stack,
-    get_static_dependencies,
     parse_dependencies,
+)
+from cumulusci.core.dependencies.resolvers import (
+    DependencyResolutionStrategy,
+    get_static_dependencies,
+    get_resolver_stack,
 )
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseSalesforceTask
@@ -157,9 +157,9 @@ class UpdateDependencies(BaseSalesforceTask):
 
         self.logger.info("Resolving dependencies...")
         dependencies = get_static_dependencies(
-            self.dependencies,
-            self.resolution_strategy,
             self.project_config,
+            dependencies=self.dependencies,
+            strategies=self.resolution_strategy,
             ignore_deps=self.options.get("ignore_dependencies"),
         )
         self.logger.info("Collected dependencies:")
@@ -185,9 +185,9 @@ class UpdateDependencies(BaseSalesforceTask):
     def freeze(self, step):
         ui_options = self.task_config.config.get("ui_options", {})
         dependencies = get_static_dependencies(
-            self.dependencies,
-            self.resolution_strategy,
             self.project_config,
+            dependencies=self.dependencies,
+            strategies=self.resolution_strategy,
             ignore_deps=self.options.get("ignore_dependencies"),
         )
 
