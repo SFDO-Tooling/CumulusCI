@@ -228,11 +228,9 @@ class TestEncryptedFileProjectKeychain:
         # services/ and TestProject/ are also presenct in ~/.cumulusci
 
         local_project_dirs = list(keychain._iter_local_project_dirs())
-        assert local_project_dirs == [
-            cci_home_dir / "TestProject",
-            cci_home_dir / "chewy",
-            cci_home_dir / "yoshi",
-        ]
+        assert cci_home_dir / "TestProject" in local_project_dirs
+        assert cci_home_dir / "chewy" in local_project_dirs
+        assert cci_home_dir / "yoshi" in local_project_dirs
 
     def test_create_default_services_files__without_project_service(self, key):
         home_dir = tempfile.mkdtemp()
