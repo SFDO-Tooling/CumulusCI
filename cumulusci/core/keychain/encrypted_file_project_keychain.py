@@ -167,7 +167,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
             )
 
         self._default_services[service_type] = alias
-        self._save_default_services(project)
+        self._save_default_service(service_type, alias, project=project)
 
     def _load_services(self) -> None:
         """Load services (and migrate old ones if present)"""
@@ -228,14 +228,21 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
             for s_type, alias in default_services.items():
                 self._default_services[s_type] = alias
 
-    def _save_default_services(self, project: bool = False) -> None:
+    def _save_default_service(
+        self, service_type: str, alias: str, project: bool = False
+    ) -> None:
         """Write out the contents of self._default_services to the
         DEFAULT_SERVICES.json file based on the provided scope"""
         dir_path = (
             Path(self.project_local_dir) if project else Path(self.global_config_dir)
         )
+        with open(dir_path / DEFAULT_SERVICES_FILENAME, "r") as f:
+            default_services = json.loads(f.read())
+
+        default_services[service_type] = alias
+
         with open(dir_path / DEFAULT_SERVICES_FILENAME, "w") as f:
-            f.write(json.dumps(self._default_services))
+            f.write(json.dumps(default_services))
 
     def _create_default_service_files(self) -> None:
         """
@@ -269,7 +276,9 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         for item in dir_path.iterdir():
             if item.suffix == ".service":
                 service_type = item.name.replace(".service", "")
-                scope = "global" if item.parent.name == ".cumulusci" else "project"
+                scope = (
+                    "global" if item.parent.name == ".cumulusci" else item.parent.name
+                )
                 default_services[service_type] = f"{service_type}__{scope}"
 
         with open(dir_path / DEFAULT_SERVICES_FILENAME, "w") as f:
@@ -319,8 +328,8 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         global_config_dir, or a local project directory.
 
         Default aliases are in the form `service_type__scope`.
-        Scope is either 'project' or 'global' depending
-        on where the .service file is located."""
+        Scope is either the name of the local project directory
+        or 'global'; depending on where the .service file is located."""
         dir_path = Path(dir_path)
         for item in dir_path.iterdir():
             if item.suffix == ".service":

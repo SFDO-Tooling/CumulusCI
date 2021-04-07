@@ -46,9 +46,8 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
     def _set_service(self, service_type, alias, service_config, project):
         if service_type not in self.services:
             self.services[service_type] = {}
-            # TODO: Should this be moved after _set_encrypted_service?
             self._default_services[service_type] = alias
-            self._save_default_services(project)
+            self._save_default_service(service_type, alias, project=project)
 
         encrypted = self._encrypt_config(service_config)
         self._set_encrypted_service(service_type, alias, encrypted, project)

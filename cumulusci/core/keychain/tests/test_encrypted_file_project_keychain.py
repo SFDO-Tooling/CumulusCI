@@ -220,6 +220,44 @@ class TestEncryptedFileProjectKeychain:
         with pytest.raises(ServiceNotConfigured):
             keychain.set_default_service("github", "wrong_alias")
 
+    def test_save_default_service__global_default_service(self, keychain):
+        with open(Path(keychain.global_config_dir, "DEFAULT_SERVICES.json"), "w") as f:
+            f.write(
+                json.dumps({"devhub": "current_default", "github": "current_default"})
+            )
+
+        keychain._save_default_service("github", "new_default", project=False)
+
+        with open(Path(keychain.global_config_dir, "DEFAULT_SERVICES.json"), "r") as f:
+            default_services = json.loads(f.read())
+
+        assert default_services["devhub"] == "current_default"
+        assert default_services["github"] == "new_default"
+
+        with open(Path(keychain.project_local_dir, "DEFAULT_SERVICES.json"), "r") as f:
+            project_defaults = json.loads(f.read())
+
+        assert project_defaults == {}
+
+    def test_save_default_service__project_default_service(self, keychain):
+        with open(Path(keychain.project_local_dir, "DEFAULT_SERVICES.json"), "w") as f:
+            f.write(
+                json.dumps({"devhub": "current_default", "github": "current_default"})
+            )
+
+        keychain._save_default_service("github", "new_default", project=True)
+
+        with open(Path(keychain.project_local_dir, "DEFAULT_SERVICES.json"), "r") as f:
+            default_services = json.loads(f.read())
+
+        assert default_services["devhub"] == "current_default"
+        assert default_services["github"] == "new_default"
+
+        with open(Path(keychain.global_config_dir, "DEFAULT_SERVICES.json"), "r") as f:
+            global_defaults = json.loads(f.read())
+
+        assert global_defaults == {}
+
     def test_iter_local_project_dirs(self, keychain):
         cci_home_dir = Path(keychain.global_config_dir)
         (cci_home_dir / "logs").mkdir()
@@ -300,7 +338,7 @@ class TestEncryptedFileProjectKeychain:
             default_services = json.loads(f.read())
 
         assert len(default_services.keys()) == 1
-        assert default_services["github"] == "github__project"
+        assert default_services["github"] == "github__test-project"
 
     def test_create_services_dir_structure(self, key):
         service_types = list(UniversalConfig().config["services"].keys())
