@@ -25,9 +25,10 @@ cryptography==3.4.7
     #   -r requirements/prod.in
     #   authlib
     #   jwcrypto
+    #   secretstorage
 docutils==0.16
     # via -r requirements/prod.in
-faker==7.0.1
+faker==8.0.0
     # via
     #   -r requirements/prod.in
     #   snowfakery
@@ -43,6 +44,10 @@ idna==2.10
     # via requests
 importlib-metadata==3.10.0
     # via keyring
+jeepney==0.6.0
+    # via
+    #   keyring
+    #   secretstorage
 jinja2==2.11.3
     # via
     #   -r requirements/prod.in
@@ -107,6 +112,8 @@ salesforce-bulk==2.2.0
     # via -r requirements/prod.in
 sarge==0.1.6
     # via -r requirements/prod.in
+secretstorage==3.3.1
+    # via keyring
 selenium==3.141.0
     # via
     #   -r requirements/prod.in
