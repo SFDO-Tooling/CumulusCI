@@ -379,7 +379,7 @@ tasks:
             orgs: push/orgs_qa.txt
         group: Push Upgrades
     push_sandbox:
-        description: Schedules a push upgrade of a package version to all subscribers
+        description: Schedules a push upgrade of a package version to sandbox orgs
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
         options:
             subscriber_where: "OrgType = 'Sandbox'"
@@ -646,7 +646,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -670,7 +670,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -700,7 +700,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: False
+                        resolution_strategy: production
             2:
                 flow: deploy_packaging
             3:
@@ -781,7 +781,7 @@ flows:
             1:
                 task: update_dependencies
                 options:
-                    include_beta: True
+                    resolution_strategy: preproduction
             2:
                 task: deploy_pre
 
@@ -863,7 +863,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -879,7 +879,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -893,7 +893,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -909,7 +909,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -960,9 +960,8 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: commit_status
                         dependencies: ^^github_package_data.dependencies
-                        prefer_2gp_from_release_branch: True
             3:
                 task: install_managed
                 options:
@@ -976,7 +975,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 task: install_managed_beta
             3:
@@ -1016,7 +1015,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 task: install_managed
             3:
@@ -1133,6 +1132,7 @@ flows:
                     version_base: latest_github_release
                     version_type: minor
                     skip_validation: True
+                    resolution_strategy: commit_status
 
     unmanaged_ee:
         group: Deployment
@@ -1260,6 +1260,27 @@ project:
                     title: Installation Info
     test:
         name_match: '%_TEST%'
+    dependency_resolutions:
+        preproduction: latest_release
+        production: latest_release
+        resolution_strategies:
+            commit_status:
+                - tag
+                - commit_status_exact_branch
+                - commit_status_release_branch
+                - commit_status_previous_release_branch
+                - latest_beta
+                - latest_release
+                - unmanaged
+            include_beta:
+                - tag
+                - latest_beta
+                - latest_release
+                - unmanaged
+            latest_release:
+                - tag
+                - latest_release
+                - unmanaged
     dependencies:
 
 orgs:
