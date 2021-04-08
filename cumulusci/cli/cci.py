@@ -1,4 +1,5 @@
 from collections import defaultdict
+from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from urllib.parse import urlparse
 
 import code
@@ -732,11 +733,16 @@ def project_info(runtime):
     name="dependencies",
     help="Displays the current dependencies for the project.  If the dependencies section has references to other github repositories, the repositories are inspected and a static list of dependencies is created",
 )
+@click.option(
+    "--resolution-strategy",
+    help="The resolution strategy to use. Defaults to production.",
+    default="production",
+)
 @pass_runtime(require_keychain=True)
-def project_dependencies(runtime):
-    dependencies = runtime.project_config.get_static_dependencies()
-    for line in runtime.project_config.pretty_dependencies(dependencies):
-        click.echo(line)
+def project_dependencies(runtime, resolution_strategy):
+    dependencies = get_static_dependencies(runtime.project_config, resolution_strategy)
+    for line in dependencies:
+        click.echo(f"{line}")
 
 
 # Commands for group: service
