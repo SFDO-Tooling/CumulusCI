@@ -67,7 +67,6 @@ coverage: ## check code coverage quickly with the default Python
 	coverage html
 	$(BROWSER) htmlcov/index.html
 
-
 docs: ## generate Sphinx HTML documentation
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
