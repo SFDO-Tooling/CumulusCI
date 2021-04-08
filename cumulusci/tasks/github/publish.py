@@ -1,3 +1,4 @@
+from cumulusci.utils.git import split_repo_url
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -101,11 +102,9 @@ class PublishSubtree(BaseGithubTask):
         return local_to_target_paths
 
     def _get_target_repo_api(self):
-        target_repo_info = self.project_config._split_repo_url(self.options["repo_url"])
-        gh = self.project_config.get_github_api(
-            target_repo_info["owner"], target_repo_info["name"]
-        )
-        return gh.repository(target_repo_info["owner"], target_repo_info["name"])
+        owner, name = split_repo_url(self.options["repo_url"])
+        gh = self.project_config.get_github_api(owner, name)
+        return gh.repository(owner, name)
 
     def _run_task(self):
         self.target_repo = self._get_target_repo_api()

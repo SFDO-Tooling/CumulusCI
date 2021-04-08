@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -28,6 +29,9 @@ class PackageUpload(BaseSalesforceApiTask):
         },
         "namespace": {
             "description": "The namespace of the package.  Defaults to project__package__namespace"
+        },
+        "resolution_strategy": {
+            "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies. Defaults to 'production'."
         },
     }
 
@@ -170,12 +174,15 @@ class PackageUpload(BaseSalesforceApiTask):
         }
 
     def _set_dependencies(self):
-        dependencies = self.project_config.get_static_dependencies(
-            self.project_config.project__dependencies
+        dependencies = get_static_dependencies(
+            self.project_config,
+            resolution_strategy=self.options.get("resolution_strategy") or "production",
         )
         if dependencies:
             dependencies = self.org_config.resolve_04t_dependencies(dependencies)
-        self.return_values["dependencies"] = dependencies
+        self.return_values["dependencies"] = [
+            d.dict(exclude_none=True) for d in dependencies
+        ]
 
     def _log_package_upload_success(self):
         self.logger.info(

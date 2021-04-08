@@ -215,6 +215,21 @@ def find_repo_feature_prefix(repo: Repository) -> str:
     )
 
 
+def find_repo_2gp_context(repo: Repository) -> str:
+    contents = repo.file_contents(
+        "cumulusci.yml",
+        ref=repo.branch(repo.default_branch).commit.sha,
+    )
+    head_cumulusci_yml = cci_safe_load(io.StringIO(contents.decoded.decode("utf-8")))
+    return (
+        head_cumulusci_yml.get("project", {})
+        .get("git", {})
+        .get(
+            "2gp_context", "Build Feature Test Package"
+        )  # TODO: source default from our `cumulusci.yml`
+    )
+
+
 def get_tag_by_name(repo: Repository, tag_name: str) -> Tag:
     """Fetches a tag by name from the given repository"""
     ref = get_ref_for_tag(repo, tag_name)
