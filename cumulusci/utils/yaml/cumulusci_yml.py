@@ -200,12 +200,12 @@ class ErrorDict(TypedDict):
 def _log_yaml_errors(logger, errors: List[ErrorDict]):
     "Format and log a Pydantic-style error dictionary"
     plural = "" if len(errors) <= 1 else "s"
-    logger.warning(f"CumulusCI Parsing Error{plural}:")
+    logger.warning(f"CumulusCI Configuration Warning{plural}:")
     for error in errors:
         loc = " -> ".join(repr(x) for x in error["loc"] if x != "__root__")
         logger.warning("  %s\n    %s", loc, error["msg"])
     logger.error(
-        "NOTE: These errors will cause major problems in future versions of CumulusCI."
+        "NOTE: These warnings may become errors in future versions of CumulusCI."
     )
     logger.error(
         "If you think your YAML has no error, please report the bug to the CumulusCI team."
