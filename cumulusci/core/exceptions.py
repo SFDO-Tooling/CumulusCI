@@ -68,6 +68,12 @@ class DependencyResolutionError(CumulusCIException):
     pass
 
 
+class DependencyParseError(CumulusCIException):
+    """ Raised when CumulusCI cannot parse a dependency specification. """
+
+    pass
+
+
 class ConfigError(CumulusCIException):
     """ Raised when a configuration enounters an error """
 

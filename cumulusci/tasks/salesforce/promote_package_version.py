@@ -2,9 +2,15 @@ from typing import List, Dict, Optional
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.config.util import get_devhub_config
-from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    DependencyLookupError,
+    TaskOptionsError,
+)
+from cumulusci.core.github import get_tag_by_name
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.tasks.package_2gp import PackageVersionNumber
 
 
 class PromotePackageVersion(BaseSalesforceApiTask):
@@ -27,7 +33,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
     task_options = {
         "version_id": {
             "description": "The SubscriberPackageVersion (04t) Id for the target package.",
-            "required": True,
+            "required": False,
         },
         "promote_dependencies": {
             "description": (
@@ -48,11 +54,10 @@ class PromotePackageVersion(BaseSalesforceApiTask):
     def _init_options(self, kwargs) -> None:
         super()._init_options(kwargs)
 
-        if "version_id" not in self.options:
-            raise TaskOptionsError("Task option `version_id` is required.")
-
-        version_id = self.options["version_id"]
-        if not isinstance(version_id, str) or not version_id.startswith("04t"):
+        version_id = self.options.get("version_id")
+        if version_id and (
+            not isinstance(version_id, str) or not version_id.startswith("04t")
+        ):
             raise TaskOptionsError(
                 "Task option `version_id` must be a valid SubscriberPackageVersion (04t) Id"
             )
@@ -67,7 +72,10 @@ class PromotePackageVersion(BaseSalesforceApiTask):
 
     def _run_task(self) -> None:
         """Orchestrate the task"""
-        version_id = self.options["version_id"]
+        version_id = self.options.get("version_id")
+        if not version_id:
+            version_id = self._resolve_version_id()
+
         dependencies = self._get_dependency_info(version_id)
 
         self._process_one_gp_deps(dependencies)
@@ -78,6 +86,39 @@ class PromotePackageVersion(BaseSalesforceApiTask):
 
         target_package_info = self._get_target_package_info(version_id)
         self._promote_package_version(target_package_info)
+        self.return_values = {
+            "dependencies": [d["version_id"] for d in dependencies],
+            "version_id": version_id,
+            "version_number": target_package_info["package_version_number"],
+        }
+
+    def _resolve_version_id(self) -> str:
+        """
+        If a SubscriberPackageVersionId has not been specified we need to
+        auto-resolve a version_id from the tag on our current commit
+
+        @returns: (str) the SubscriberPackageVersionId from the current repo commit
+        """
+        self.logger.info(
+            "No version_id specified. Automatically resolving to latest available Beta version."
+        )
+        tag_name = self.project_config.get_latest_tag(beta=True)
+        repo = self.project_config._get_repo()
+        tag = get_tag_by_name(repo, tag_name)
+
+        for line in tag.message.split("\n"):
+            if line.startswith("version_id:"):
+                version_id = line.split("version_id: ")[1]
+                if not version_id.startswith("04t"):
+                    self.logger.error(
+                        f"Found malformed version_id on tag ({tag_name}): {version_id}"
+                    )
+                    continue
+                self.logger.info(f"Resolved to version: {version_id}")
+                self.logger.info("")
+                return version_id
+
+        raise DependencyLookupError(f"Could not find version_id for tag {tag_name}")
 
     def _get_dependency_info(self, spv_id: str) -> Optional[List[Dict]]:
         """
@@ -143,6 +184,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         """
         one_gp_deps = self._filter_one_gp_deps(dependencies)
         if one_gp_deps:
+            self.logger.warning("")
             self.logger.warning("This package has the following 1GP dependencies:")
             for dep in one_gp_deps:
                 self.logger.warning("")
@@ -160,6 +202,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         two_gp_deps = self._filter_two_gp_deps(dependencies)
         unpromoted_two_gp_deps = self._filter_unpromoted_two_gp_deps(dependencies)
 
+        self.logger.info("")
         self.logger.info(f"Total 2GP dependencies: {len(two_gp_deps)}")
         self.logger.info(f"Unpromoted 2GP dependencies: {len(unpromoted_two_gp_deps)}")
 
@@ -199,10 +242,13 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         }
         """
         package_2_version = self._query_Package2Version(spv_id)
+        version_number = PackageVersionNumber(**package_2_version)
+
         return {
             "name": self.project_config.project__name,
             "Package2VersionId": package_2_version["Id"],
             "version_id": spv_id,
+            "package_version_number": version_number.format(),
         }
 
     def _promote_package_version(self, package_info: Dict) -> None:
@@ -227,7 +273,14 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         """Queries for a Package2Version record with the given SubscriberPackageVersionId"""
         try:
             return self._query_one_tooling(
-                ["Id", "IsReleased"],
+                [
+                    "Id",
+                    "BuildNumber",
+                    "MajorVersion",
+                    "MinorVersion",
+                    "PatchVersion",
+                    "IsReleased",
+                ],
                 "Package2Version",
                 where_clause=f"SubscriberPackageVersionId='{spv_id}'",
                 raise_error=raise_error,
@@ -252,7 +305,12 @@ class PromotePackageVersion(BaseSalesforceApiTask):
     def _query_SubscriberPackageVersion(self, spv_id: str) -> Optional[Dict]:
         """Queries for a SubscriberPackageVersion record with the given SubscriberPackageVersionId"""
         return self._query_one_tooling(
-            ["Id", "Dependencies", "ReleaseState", "SubscriberPackageId"],
+            [
+                "Id",
+                "Dependencies",
+                "ReleaseState",
+                "SubscriberPackageId",
+            ],
             "SubscriberPackageVersion",
             where_clause=f"Id='{spv_id}'",
             raise_error=True,

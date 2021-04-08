@@ -7,6 +7,7 @@ from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import PushApiObjectNotFound
 from cumulusci.tasks.push.push_api import SalesforcePushApi
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.utils import process_bool_arg
 
 
 class BaseSalesforcePushTask(BaseSalesforceApiTask):
@@ -236,7 +237,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
     def _init_options(self, kwargs):
         super(SchedulePushOrgList, self)._init_options(kwargs)
-
+        self.options["dry_run"] = False
         neither_file_option = "orgs" not in self.options and "csv" not in self.options
         both_file_options = "orgs" in self.options and "csv" in self.options
         if neither_file_option or both_file_options:
@@ -283,6 +284,13 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
                 "Scheduling push for %d minutes from now", delay_minutes
             )
             start_time = datetime.utcnow() + timedelta(minutes=delay_minutes)
+
+        if self.options["dry_run"]:
+            self.logger.info(
+                f"Selected {len(orgs)} orgs. "
+                f"Skipping actual creation of the PackagePushRequest because the dry_run flag is on."
+            )
+            return
 
         self.request_id, num_scheduled_orgs = self.push.create_push_request(
             version, orgs, start_time
@@ -349,18 +357,31 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
                 + " Ex: 2016-10-19T10:00"
             )
         },
+        "dry_run": {
+            "description": "If True, log how many orgs were selected but skip creating a PackagePushRequest.  Defaults to False"
+        },
     }
+
+    def _init_options(self, kwargs):
+        super(SchedulePushOrgList, self)._init_options(kwargs)
+        # Set the namespace option to the value from cumulusci.yml if not
+        # already set
+        if "namespace" not in self.options:
+            self.options["namespace"] = self.project_config.project__package__namespace
+        if "batch_size" not in self.options:
+            self.options["batch_size"] = 200
+        self.options["dry_run"] = process_bool_arg(self.options.get("dry_run", False))
 
     def _get_orgs(self):
         subscriber_where = self.options.get("subscriber_where")
         default_where = {
-            "PackageSubscriber": ("OrgStatus = 'Active' AND InstalledStatus = 'i'")
+            "PackageSubscriber": ("OrgStatus != 'Inactive' AND InstalledStatus = 'i'")
         }
         if subscriber_where:
             default_where["PackageSubscriber"] += " AND ({})".format(subscriber_where)
 
         push_api = SalesforcePushApi(
-            self.sf, self.logger, default_where=default_where.copy()
+            self.sf, self.logger, default_where=default_where.copy(), bulk=self.bulk
         )
 
         package = self._get_package(self.options.get("namespace"))

@@ -81,6 +81,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
                 {
                     "options": {
                         "version": "1.0",
+                        "version_id": "04t000000000000",
                         "dependencies": [{"namespace": "foo", "version": "1.0"}],
                     }
                 }
@@ -110,7 +111,10 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
 
         task = CreateRelease(
-            self.project_config, TaskConfig({"options": {"version": "1.0"}})
+            self.project_config,
+            TaskConfig(
+                {"options": {"version": "1.0", "version_id": "04t000000000000"}}
+            ),
         )
         with self.assertRaises(GithubException):
             task()

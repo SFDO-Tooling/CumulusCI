@@ -125,6 +125,10 @@ tasks:
         description: Creates a Community in the target org using the Connect API
         class_path: cumulusci.tasks.salesforce.CreateCommunity
         group: Salesforce Communities
+    create_network_member_groups:
+        description: Creates NetworkMemberGroup records which grant access to an Experience Site (Community) for specified Profiles or Permission Sets
+        class_path: cumulusci.tasks.salesforce.network_member_group.CreateNetworkMemberGroups
+        group: Salesforce Communities
     insert_record:
         description: Inserts a record of any sObject using the REST API
         class_path: cumulusci.tasks.salesforce.insert_record.InsertRecord
@@ -375,7 +379,7 @@ tasks:
             orgs: push/orgs_qa.txt
         group: Push Upgrades
     push_sandbox:
-        description: Schedules a push upgrade of a package version to all subscribers
+        description: Schedules a push upgrade of a package version to sandbox orgs
         class_path: cumulusci.tasks.push.tasks.SchedulePushOrgQuery
         options:
             subscriber_where: "OrgType = 'Sandbox'"
@@ -642,7 +646,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -666,7 +670,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -696,7 +700,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: False
+                        resolution_strategy: production
             2:
                 flow: deploy_packaging
             3:
@@ -777,7 +781,7 @@ flows:
             1:
                 task: update_dependencies
                 options:
-                    include_beta: True
+                    resolution_strategy: preproduction
             2:
                 task: deploy_pre
 
@@ -859,7 +863,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -875,7 +879,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -889,7 +893,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -905,7 +909,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 flow: deploy_unmanaged
             3:
@@ -956,9 +960,8 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: commit_status
                         dependencies: ^^github_package_data.dependencies
-                        prefer_2gp_from_release_branch: True
             3:
                 task: install_managed
                 options:
@@ -972,7 +975,7 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 task: install_managed_beta
             3:
@@ -1012,11 +1015,41 @@ flows:
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: True
+                        resolution_strategy: preproduction
             2:
                 task: install_managed
             3:
                 task: install_managed_beta
+
+    release_2gp_beta:
+        group: Release Operations
+        description: Upload and release a beta 2gp managed package version
+        steps:
+          1:
+            task: create_package_version
+            options:
+              package_type: Managed
+              package_name: $project_config.project__package__name
+              skip_validation: False
+              version_base: latest_github_release
+              version_type: minor
+          2:
+            task: github_release
+            options:
+              version: ^^create_package_version.version_number
+              version_id: ^^create_package_version.subscriber_package_version_id
+              dependencies: ^^create_package_version.dependencies
+          3:
+            task: github_release_notes
+            ignore_failure: True # Attempt to generate release notes but don't fail build
+            options:
+              link_pr: True
+              publish: True
+              tag: ^^github_release.tag_name
+              include_empty: True
+              version_id: ^^create_package_version.subscriber_package_version_id
+          4:
+            task: github_automerge_main
 
     release_beta:
         group: Release Operations
@@ -1063,6 +1096,26 @@ flows:
                     publish: True
                     tag: ^^github_release.tag_name
                     version_id: ^^upload_production.version_id
+    
+    release_2gp_production:
+        group: Release Operations
+        description: Promote the latest beta 2gp managed package version and create a new release in GitHub
+        steps:
+            1:
+                task: promote_package_version
+            2:
+                task: github_release
+                options:
+                    version: ^^promote_package_version.version_number
+                    version_id: ^^promote_package_version.version_id
+                    dependencies: ^^promote_package_version.dependencies
+            3:
+                task: github_release_notes
+                ignore_failure: True  # Attempt to generate release notes but don't fail build
+                options:
+                    publish: True
+                    tag: ^^github_release.tag_name
+                    version_id: ^^promote_package_version.version_id
 
     build_feature_test_package:
         group: Release Operations
@@ -1079,6 +1132,7 @@ flows:
                     version_base: latest_github_release
                     version_type: minor
                     skip_validation: True
+                    resolution_strategy: commit_status
 
     unmanaged_ee:
         group: Deployment
@@ -1206,6 +1260,27 @@ project:
                     title: Installation Info
     test:
         name_match: '%_TEST%'
+    dependency_resolutions:
+        preproduction: latest_release
+        production: latest_release
+        resolution_strategies:
+            commit_status:
+                - tag
+                - commit_status_exact_branch
+                - commit_status_release_branch
+                - commit_status_previous_release_branch
+                - latest_beta
+                - latest_release
+                - unmanaged
+            include_beta:
+                - tag
+                - latest_beta
+                - latest_release
+                - unmanaged
+            latest_release:
+                - tag
+                - latest_release
+                - unmanaged
     dependencies:
 
 orgs:

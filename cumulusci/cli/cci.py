@@ -1,4 +1,5 @@
 from collections import defaultdict
+from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from urllib.parse import urlparse
 
 import code
@@ -42,6 +43,7 @@ from cumulusci.core.exceptions import (
     FlowNotFoundError,
 )
 from cumulusci.utils.http.requests_utils import safe_json_from_response
+from cumulusci.core.debug import set_debug_mode
 
 
 from cumulusci.core.utils import import_global, format_duration
@@ -216,33 +218,39 @@ def main(args=None):
         if debug:
             args.remove("--debug")
 
-        # Load CCI config
-        global RUNTIME
-        try:
-            RUNTIME = CliRuntime(load_keychain=False)
-        except Exception as e:
-            handle_exception(e, is_error_command, tempfile_path, debug)
-            sys.exit(1)
+        with set_debug_mode(debug):
+            # Load CCI config into global RUNTIME
+            _load_runtime(is_error_command, tempfile_path, debug)
 
-        RUNTIME.check_cumulusci_version()
+            should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
 
-        should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
+            init_logger(log_requests=debug)
+            # Hand CLI processing over to click, but handle exceptions
+            try:
+                cli(args[1:], standalone_mode=False)
+            except click.Abort:  # Keyboard interrupt
+                show_debug_info() if debug else click.echo("\nAborted!", err=True)
+                sys.exit(1)
+            except Exception as e:
+                if debug:
+                    show_debug_info()
+                else:
+                    handle_exception(
+                        e, is_error_command, tempfile_path, should_show_stacktraces
+                    )
+                sys.exit(1)
 
-        init_logger(log_requests=debug)
-        # Hand CLI processing over to click, but handle exceptions
-        try:
-            cli(args[1:], standalone_mode=False)
-        except click.Abort:  # Keyboard interrupt
-            show_debug_info() if debug else click.echo("\nAborted!", err=True)
-            sys.exit(1)
-        except Exception as e:
-            if debug:
-                show_debug_info()
-            else:
-                handle_exception(
-                    e, is_error_command, tempfile_path, should_show_stacktraces
-                )
-            sys.exit(1)
+
+def _load_runtime(is_error_command, tempfile_path, debug):
+    global RUNTIME
+    try:
+        RUNTIME = CliRuntime(load_keychain=False)
+    except Exception as e:
+        handle_exception(e, is_error_command, tempfile_path, debug)
+        sys.exit(1)
+
+    RUNTIME.check_cumulusci_version()
+    return RUNTIME
 
 
 def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=False):
@@ -725,11 +733,16 @@ def project_info(runtime):
     name="dependencies",
     help="Displays the current dependencies for the project.  If the dependencies section has references to other github repositories, the repositories are inspected and a static list of dependencies is created",
 )
+@click.option(
+    "--resolution-strategy",
+    help="The resolution strategy to use. Defaults to production.",
+    default="production",
+)
 @pass_runtime(require_keychain=True)
-def project_dependencies(runtime):
-    dependencies = runtime.project_config.get_static_dependencies()
-    for line in runtime.project_config.pretty_dependencies(dependencies):
-        click.echo(line)
+def project_dependencies(runtime, resolution_strategy):
+    dependencies = get_static_dependencies(runtime.project_config, resolution_strategy)
+    for line in dependencies:
+        click.echo(f"{line}")
 
 
 # Commands for group: service
@@ -1702,8 +1715,12 @@ class RunTaskCommand(click.MultiCommand):
             or the option doesn't exist for the given task.
         """
         # filter out options with no values
-        options = {k: v for k, v in new_options.items() if v is not None}
+        options = {
+            normalize_option_name(k): v for k, v in new_options.items() if v is not None
+        }
+
         for k, v in old_options:
+            k = normalize_option_name(k)
             if options.get(k):
                 raise CumulusCIUsageError(
                     f"Please make sure to specify options only once. Found duplicate option `{k}`."
@@ -1726,9 +1743,16 @@ class RunTaskCommand(click.MultiCommand):
             # click complains that there are no values for options. We set required=False
             # to mitigate this error. Task option validation should be performed at the
             # task level via task._validate_options() or Pydantic models.
+            decls = set(
+                (
+                    f"--{name}",
+                    f"--{name.replace('_', '-')}",
+                )
+            )
+
             click_options.append(
                 click.Option(
-                    param_decls=(f"--{name}",),
+                    param_decls=tuple(decls),
                     required=False,  # don't enforce option values in Click
                     help=properties.get("description", ""),
                 )
@@ -1944,3 +1968,7 @@ def gist(runtime):
     else:
         click.echo(f"Gist created: {gist.html_url}")
         webbrowser.open(gist.html_url)
+
+
+def normalize_option_name(k):
+    return k.replace("-", "_")

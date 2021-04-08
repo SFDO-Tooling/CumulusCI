@@ -1,19 +1,32 @@
+from cumulusci.tests.util import create_project_config
 import logging
 import pytest
 import responses
 from unittest import mock
 
-from cumulusci.core.config import TaskConfig, BaseProjectConfig
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
-from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.config import ServiceConfig, TaskConfig
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    DependencyLookupError,
+    TaskOptionsError,
+)
+from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.salesforce.promote_package_version import PromotePackageVersion
 
 
 @pytest.fixture
 def project_config():
-    project_config = BaseProjectConfig(UniversalConfig())
-    project_config.keychain = BaseProjectKeychain(project_config, key=None)
+    project_config = create_project_config()
+    project_config.keychain.set_service(
+        "github",
+        ServiceConfig(
+            {
+                "username": "TestUser",
+                "token": "TestPass",
+                "email": "testuser@testdomain.com",
+            }
+        ),
+    )
     return project_config
 
 
@@ -39,8 +52,32 @@ def task(project_config, devhub_config, org_config):
     return task
 
 
-class TestPromotePackageVersion:
+class TestPromotePackageVersion(GithubApiTestMixin):
     devhub_base_url = "https://devhub.my.salesforce.com/services/data/v50.0"
+
+    def _mock_target_package_api_calls(self):
+        responses.add(  # query for main package's Package2Version info
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={
+                "size": 1,
+                "records": [
+                    {
+                        "BuildNumber": 0,
+                        "Id": "main_package",
+                        "IsReleased": False,
+                        "MajorVersion": 1,
+                        "MinorVersion": 0,
+                        "PatchVersion": 0,
+                    }
+                ],
+                "done": True,
+            },
+        )
+        responses.add(  # Promote the Package2Version
+            "PATCH",
+            f"{self.devhub_base_url}/tooling/sobjects/Package2Version/main_package",
+        )
 
     def _mock_dependencies(
         self, total_deps: int, num_2gp: int, num_unpromoted: int
@@ -76,20 +113,6 @@ class TestPromotePackageVersion:
         # mock promoted 2GP dependencies
         for i in range(num_2gp - num_unpromoted):
             self._mock_dependency(i + 1, is_two_gp=True, is_promoted=True)
-
-        responses.add(  # query for main package's Package2Version
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [{"Id": "main_package", "IsReleased": False}],
-                "done": True,
-            },
-        )
-        responses.add(
-            "PATCH",
-            f"{self.devhub_base_url}/tooling/sobjects/Package2Version/main_package",
-        )
 
     def _mock_dependency(
         self, dependency_num: int, is_two_gp: bool = False, is_promoted: bool = False
@@ -137,16 +160,6 @@ class TestPromotePackageVersion:
                 f"{self.devhub_base_url}/tooling/sobjects/Package2Version/dep_{dependency_num}",
             )
 
-    def test_run_task__no_version_id(self, project_config, devhub_config, org_config):
-        with pytest.raises(
-            TaskOptionsError, match="Task option `version_id` is required."
-        ):
-            PromotePackageVersion(
-                project_config,
-                TaskConfig({"options": {}}),
-                org_config,
-            )
-
     def test_run_task__invalid_version_id(
         self, project_config, devhub_config, org_config
     ):
@@ -161,6 +174,7 @@ class TestPromotePackageVersion:
     def test_run_task(self, task, devhub_config):
         # 20 dependencies, 10 are 2GP, 5 of those are not yet promoted
         self._mock_dependencies(20, 10, 5)
+        self._mock_target_package_api_calls()
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
@@ -170,6 +184,7 @@ class TestPromotePackageVersion:
     @responses.activate
     def test_run_task__no_dependencies(self, task, devhub_config):
         self._mock_dependencies(0, 0, 0)
+        self._mock_target_package_api_calls()
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
@@ -179,6 +194,7 @@ class TestPromotePackageVersion:
     @responses.activate
     def test_run_task__promote_dependencies(self, task, devhub_config):
         self._mock_dependencies(2, 1, 1)
+        self._mock_target_package_api_calls()
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
@@ -186,15 +202,156 @@ class TestPromotePackageVersion:
             task.options["promote_dependencies"] = True
             task()
 
+        assert task.return_values["version_id"] == "04t000000000000"
+        assert task.return_values["version_number"] == "1.0.0.0"
+        assert task.return_values["dependencies"] == [
+            "04t000000000001",
+            "04t000000000002",
+        ]
+
     @responses.activate
     def test_run_task__all_deps_promoted(self, task, devhub_config):
         self._mock_dependencies(4, 4, 4)
+        self._mock_target_package_api_calls()
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
         ):
             task.options["auto_promote"] = True
             task()
+
+    @responses.activate
+    def test_run_task__resolve_version_id(self, task, devhub_config):
+        responses.add(  # query for repository
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo",
+            json=self._get_expected_repo("TestOwner", "TestRepo"),
+            status=200,
+        )
+        responses.add(  # query for releases (project_config.get_latest_tag)
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/releases?per_page=100",
+            json=self._get_expected_releases(
+                "TestOwner",
+                "TestRepo",
+                ["beta/1.113-Beta_1", "whatisthis/0.0.1", "release/0.0.1"],
+            ),
+            status=200,
+        )
+        responses.add(  # query for ref to tag
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.113-Beta_1",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=200,
+        )
+        responses.add(  # query for tag
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag(
+                "beta/1.0",
+                "tag_SHA",
+                message="Release for Beta v1.113\n\nversion_id: 04t000000000000\n\ndependencies: []",
+            ),
+            status=200,
+        )
+        self._mock_dependencies(2, 1, 0)
+        self._mock_target_package_api_calls()
+        with mock.patch(
+            "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
+            return_value=devhub_config,
+        ):
+            task.options["version_id"] = None
+            task()
+
+    @responses.activate
+    def test_run_task__resolve_version_id_dependency_error(self, task, devhub_config):
+        responses.add(  # query for repository
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo",
+            json=self._get_expected_repo("TestOwner", "TestRepo"),
+            status=200,
+        )
+        responses.add(  # query for releases (project_config.get_latest_tag)
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/releases?per_page=100",
+            json=self._get_expected_releases(
+                "TestOwner",
+                "TestRepo",
+                ["beta/1.113-Beta_1", "whatisthis/0.0.1", "release/0.0.1"],
+            ),
+            status=200,
+        )
+        responses.add(  # query for ref to tag
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.113-Beta_1",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=200,
+        )
+        responses.add(  # query for tag
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag(
+                "beta/1.0",
+                "tag_SHA",
+                message="Release for Beta v1.113\n\ndependencies: []",
+            ),
+            status=200,
+        )
+        self._mock_dependencies(2, 1, 0)
+        self._mock_target_package_api_calls()
+        with mock.patch(
+            "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
+            return_value=devhub_config,
+        ):
+            task.options["version_id"] = None
+            with pytest.raises(DependencyLookupError):
+                task()
+
+    @responses.activate
+    def test_run_task__resolve_version_id_dependency_error_malformed_version(
+        self, task, devhub_config, caplog
+    ):
+        responses.add(  # query for repository
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo",
+            json=self._get_expected_repo("TestOwner", "TestRepo"),
+            status=200,
+        )
+        responses.add(  # query for releases (project_config.get_latest_tag)
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/releases?per_page=100",
+            json=self._get_expected_releases(
+                "TestOwner",
+                "TestRepo",
+                ["beta/1.113-Beta_1", "whatisthis/0.0.1", "release/0.0.1"],
+            ),
+            status=200,
+        )
+        responses.add(  # query for ref to tag
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.113-Beta_1",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=200,
+        )
+        responses.add(  # query for tag
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag(
+                "beta/1.0",
+                "tag_SHA",
+                message="Release for Beta v1.113\n\nversion_id: malformedId\n\ndependencies: []",
+            ),
+            status=200,
+        )
+        self._mock_dependencies(2, 1, 0)
+        self._mock_target_package_api_calls()
+        with mock.patch(
+            "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
+            return_value=devhub_config,
+        ):
+            task.options["version_id"] = None
+            with pytest.raises(DependencyLookupError):
+                task()
 
     def test_process_one_gp_dependencies(self, task, caplog):
         """Ensure proper logging output"""
@@ -213,10 +370,10 @@ class TestPromotePackageVersion:
         task._process_one_gp_deps(dependencies)
         assert (
             "This package has the following 1GP dependencies:"
-            == caplog.records[0].message
+            == caplog.records[1].message
         )
-        assert "Package Name: Dependency 1" in caplog.records[2].message
-        assert "Release State: Beta" in caplog.records[3].message
+        assert "Package Name: Dependency 1" in caplog.records[3].message
+        assert "Release State: Beta" in caplog.records[4].message
 
     def test_process_two_gp_dependencies(self, task, caplog):
         """Ensure proper logging output"""
@@ -232,13 +389,13 @@ class TestPromotePackageVersion:
         ]
         with caplog.at_level(logging.INFO):
             task._process_two_gp_deps(dependencies)
-        assert "Total 2GP dependencies: 1" == caplog.records[0].message
-        assert "Unpromoted 2GP dependencies: 1" == caplog.records[1].message
+        assert "Total 2GP dependencies: 1" == caplog.records[1].message
+        assert "Unpromoted 2GP dependencies: 1" == caplog.records[2].message
         assert (
             "This package depends on other packages that have not yet been promoted."
-            == caplog.records[3].message
+            == caplog.records[4].message
         )
-        assert "Package Name: Dependency 2" in caplog.records[7].message
+        assert "Package Name: Dependency 2" in caplog.records[8].message
 
     @responses.activate
     def test_query_Package2Version__malformed_request(self, task):

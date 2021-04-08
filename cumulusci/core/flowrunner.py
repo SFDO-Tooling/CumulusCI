@@ -267,7 +267,12 @@ class TaskRunner(object):
         for key, info in task.task_options.items():
             value = task.options.get(key)
             if value is not None:
-                task.logger.info(f"  {key}: {value}")
+                if type(value) is not list:
+                    task.logger.info(f"  {key}: {value}")
+                else:
+                    task.logger.info(f"  {key}:")
+                    for v in value:
+                        task.logger.info(f"    - {v}")
 
 
 class FlowCoordinator(object):
@@ -396,6 +401,7 @@ class FlowCoordinator(object):
         self.logger.info("Organization:")
         self.logger.info(f"  Username: {org_config.username}")
         self.logger.info(f"    Org Id: {org_config.org_id}")
+        self.logger.info(f"  Instance: {org_config.instance_name}")
         self._rule(fill="-", new_line=True)
 
         # Give pre_flow callback a chance to alter the steps
@@ -415,7 +421,9 @@ class FlowCoordinator(object):
             for step in self.steps:
                 self._run_step(step)
             flow_name = f"'{self.name}' " if self.name else ""
-            self.logger.info(f"Completed flow {flow_name}on org {org_config.name} successfully!")
+            self.logger.info(
+                f"Completed flow {flow_name}on org {org_config.name} successfully!"
+            )
         finally:
             self.callbacks.post_flow(self)
 
@@ -628,33 +636,37 @@ class FlowCoordinator(object):
             else:
                 raise FlowConfigError("No steps found in the flow definition")
 
-    def _check_infinite_flows(self, flow_config, visited_flows=None):
+    def _check_infinite_flows(self, flow_config, flow_stack=None):
         """
         Recursively loop through the flow_config and check if there are any cycles.
 
-        :param steps: Set of step definitions to loop through
-        :param flows: Flows already visited.
+        :param flow_config: FlowConfig to traverse to find cycles/infinite loops
+        :param flow_stack: list of flow signatures already visited
         :return: None
         """
-        if visited_flows is None:
-            visited_flows = set()
+        if not flow_stack:
+            flow_stack = []
         project_config = flow_config.project_config
+
         for step in flow_config.steps.values():
             if "flow" in step:
-                flow_name = step["flow"]
-                if flow_name == "None":
+                next_flow_name = step["flow"]
+                if next_flow_name == "None":
                     continue
-                next_flow_config = project_config.get_flow(flow_name)
+
+                next_flow_config = project_config.get_flow(next_flow_name)
                 signature = (
                     hash(next_flow_config.project_config.source),
                     next_flow_config.name,
                 )
-                if signature in visited_flows:
+
+                if signature in flow_stack:
                     raise FlowInfiniteLoopError(
-                        f"Infinite flows detected with flow {flow_name}"
+                        f"Infinite flows detected with flow {next_flow_name}"
                     )
-                visited_flows.add(signature)
-                self._check_infinite_flows(next_flow_config, visited_flows)
+                flow_stack.append(signature)
+                self._check_infinite_flows(next_flow_config, flow_stack)
+                flow_stack.pop()
 
     def _init_org(self):
         """ Test and refresh credentials to the org specified. """

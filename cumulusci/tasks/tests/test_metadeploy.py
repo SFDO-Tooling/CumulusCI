@@ -198,6 +198,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         task()
 
         steps = json.loads(responses.calls[-2].request.body)["steps"]
+        self.maxDiff = None
         self.assertEqual(
             [
                 {
@@ -212,9 +213,6 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                         "options": {
                             "activateRSS": True,
                             "namespace": "ns",
-                            "retries": 10,
-                            "retry_interval": 5,
-                            "retry_interval_add": 30,
                             "security_type": "FULL",
                             "version": "1.0",
                         },

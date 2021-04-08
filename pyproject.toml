@@ -6,7 +6,7 @@ omit = ["*/tests/*", "cumulusci/files/*", ]
 source = ["cumulusci", ]
 
 [tool.coverage.report]
-exclude_lines = ["pragma: no cover", "@abstract", ]
+exclude_lines = ["pragma: no cover", "@abstract", "@abc.abstract" ]
 
 [tool.pytest.ini_options]
 testpaths = "cumulusci"

@@ -9,6 +9,7 @@ from pprint import pformat
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from robot.utils import timestr_to_secs
 from cumulusci.robotframework.utils import get_locator_module_name
+from cumulusci.robotframework.form_handlers import get_form_handler
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import (
@@ -95,19 +96,28 @@ class Salesforce(object):
         return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
 
     def initialize_location_strategies(self):
-        """Initialize the Salesforce location strategies 'text' and 'title'
-        plus any strategies registered by other keyword libraries
+        """Initialize the Salesforce custom location strategies
 
         Note: This keyword is called automatically from *Open Test Browser*
         """
-        locator_manager.register_locators("sf", lex_locators)
-        locator_manager.register_locators("text", "Salesforce.Locate Element by Text")
-        locator_manager.register_locators("title", "Salesforce.Locate Element by Title")
 
-        # This does the work of actually adding all of the above-registered
-        # location strategies, plus any that were registered by keyword
-        # libraries.
-        locator_manager.add_location_strategies()
+        if not self.builtin.get_variable_value(
+            "${LOCATION STRATEGIES INITIALIZED}", False
+        ):
+            # this manages strategies based on locators in a dictionary
+            locator_manager.register_locators("sf", lex_locators)
+            locator_manager.add_location_strategies()
+
+            # these are more traditional location strategies based on keywords
+            # or functions
+            self.selenium.add_location_strategy(
+                "text", "Salesforce.Locate Element by Text"
+            )
+            self.selenium.add_location_strategy(
+                "title", "Salesforce.Locate Element by Title"
+            )
+            self.selenium.add_location_strategy("label", self.locate_element_by_label)
+            self.builtin.set_suite_variable("${LOCATION STRATEGIES INITIALIZED}", True)
 
     @selenium_retry(False)
     def _jsclick(self, locator):
@@ -1382,7 +1392,7 @@ class Salesforce(object):
 
         Example:
 
-            Set Test Metric    Max_CPU_Percent    30
+        | Set Test Metric    Max_CPU_Percent    30
 
         Performance test metrics are output in the CCI logs, log.html and output.xml.
         MetaCI captures them but does not currently have a user interface for displaying
@@ -1394,6 +1404,125 @@ class Salesforce(object):
 
         builtins.set_tags("cci_metric")
         builtins.set_test_variable("${cci_metric_%s}" % metric, value)
+
+    @capture_screenshot_on_error
+    def input_form_data(self, *args):
+        """Fill in one or more labeled input fields fields with data
+
+        Arguments should be pairs of field labels and values. Labels
+        for required fields should not include the asterisk. Labels
+        must be exact, including case.
+
+        This keyword uses the keyword *Locate Element by Label* to
+        locate elements. More details about how elements are found are
+        in the documentation for that keyword.
+
+        For most input form fields the actual value string will be
+        used.  For a checkbox, passing the value "checked" will check
+        the checkbox and any other value will uncheck it. Using
+        "unchecked" is recommended for clarity.
+
+        Example:
+
+        | Input form data
+        | ...  Opportunity Name         The big one       # required text field
+        | ...  Amount                   1b                # currency field
+        | ...  Close Date               4/01/2022         # date field
+        | ...  Private                  checked           # checkbox
+        | ...  Type                     New Customer      # combobox
+        | ...  Primary Campaign Source  The Big Campaign  # picklist
+
+        This keyword will eventually replace the "populate form"
+        keyword once it has been more thoroughly tested in production.
+
+        """
+
+        it = iter(args)
+        errors = []
+        for label, value in list(zip(it, it)):
+            # this uses our custom "label" locator strategy
+            locator = f"label:{label}"
+            # FIXME: we should probably only wait for the first label;
+            # after that we can assume the fields have been rendered
+            # so that we fail quickly if we can't find the element
+            element = self.selenium.get_webelement(locator)
+            handler = get_form_handler(element, locator)
+            try:
+                if handler:
+                    handler.set(value)
+                else:
+                    raise Exception(
+                        f"No form handler found for tag '{element.tag_name}'"
+                    )
+            except Exception as e:
+                errors.append(f"{label}: {str(e)}")
+
+        if errors:
+            message = "There were errors with the following fields:\n"
+            message += "\n".join(errors)
+            raise Exception(message)
+
+        # FIXME: maybe we should automatically set the focus to some
+        # other element to trigger any event handlers on the last
+        # element? But what should we set the focus to?
+
+    def locate_element_by_label(self, browser, locator, tag, constraints):
+        """Find a lightning component, input, or textarea based on a label
+
+        If the component is inside a fieldset, the fieldset label can
+        be prefixed to the label with a double colon in order to
+        disambiguate the label.  (eg: Other address::First Name)
+
+        If the label is inside nested ligntning components (eg:
+        ``<lightning-input>...<lightning-combobox>...<label>``), the
+        lightning component closest to the label will be
+        returned (in this case, ``lightning-combobox``).
+
+        If a lightning component cannot be found for the label, an
+        attempt will be made to find an input or textarea associated
+        with the label.
+
+        This is registered as a custom locator strategy named "label"
+
+        Example:
+
+        The following example is for a form with a formset named
+        "Expected Delivery Date", and inside of that a date input field
+        with a label of "Date".
+
+        These examples produce identical results:
+
+        | ${element}=  Locate element by label    Expected Delivery Date::Date
+        | ${element}=  Get webelement             label:Expected Delivery Date::Date
+
+        """
+
+        if "::" in locator:
+            fieldset, label = [x.strip() for x in locator.split("::", 1)]
+            fieldset_prefix = f'//fieldset[.//*[.="{fieldset}"]]'
+        else:
+            label = locator
+            fieldset_prefix = ""
+
+        xpath = fieldset_prefix + (
+            # a label with the given text, optionally with a leading
+            # or trailing "*" (ie: required field)
+            f'//label[.="{label}" or .="*{label}" or .="{label}*"]'
+            # then find the nearest ancestor lightning component
+            '/ancestor::*[starts-with(local-name(), "lightning-")][1]'
+        )
+        elements = browser.find_elements_by_xpath(xpath)
+
+        if not elements:
+            # fall back to finding an input or textarea based on the 'for'
+            # attribute of a label
+            xpath = fieldset_prefix + (
+                "//*[self::input or self::textarea]"
+                f'[@id=string(//label[.="{label}" or .="*{label}" or .="{label}*"]/@for)]'
+            )
+            elements = browser.find_elements_by_xpath(xpath)
+
+        return elements
 
 
 def _duration(start_date: str, end_date: str, record: dict):

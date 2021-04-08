@@ -110,7 +110,7 @@ class Command(BaseTask):
 
         interactive_mode = process_bool_arg(self.options["interactive"])
 
-        self.logger.info("Running command: %s", command)
+        self.logger.info(f"Running command: {command}")
 
         p = sarge.Command(
             command,
@@ -134,6 +134,7 @@ class Command(BaseTask):
                 elif p.poll() is not None:
                     break
             p.wait()
+        self.return_values = {"returncode": p.returncode}
 
         # Handle return code
         if not return_code_handler:

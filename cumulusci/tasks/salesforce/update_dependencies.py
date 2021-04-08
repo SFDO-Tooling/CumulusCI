@@ -1,29 +1,27 @@
-from distutils.version import LooseVersion
-
-from cumulusci.core.utils import process_bool_arg
-from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.salesforce_api.metadata import ApiDeploy
-from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
-from cumulusci.salesforce_api.package_install import install_package_version
-from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
-from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
-from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
-from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
-    BaseSalesforceMetadataApiTask,
+from cumulusci.core.dependencies.dependencies import (
+    PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
+    parse_dependencies,
 )
-from cumulusci.utils import download_extract_zip
-from cumulusci.utils import download_extract_github
+from cumulusci.core.dependencies.resolvers import (
+    DependencyResolutionStrategy,
+    get_static_dependencies,
+    get_resolver_stack,
+)
+from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.tasks import BaseSalesforceTask
+from cumulusci.core.utils import process_bool_arg
+from cumulusci.salesforce_api.package_install import PackageInstallOptions
 
 
-class UpdateDependencies(BaseSalesforceMetadataApiTask):
-    api_class = ApiDeploy
+class UpdateDependencies(BaseSalesforceTask):
     name = "UpdateDependencies"
     task_options = {
         "dependencies": {
             "description": "List of dependencies to update. Defaults to project__dependencies. "
             "Each dependency is a dict with either 'github' set to a github repository URL "
             "or 'namespace' set to a Salesforce package namespace. "
-            "Github dependencies may include 'tag' to install a particular git ref. "
+            "GitHub dependencies may include 'tag' to install a particular git ref. "
             "Package dependencies may include 'version' to install a particular version."
         },
         "ignore_dependencies": {
@@ -39,14 +37,7 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             "This option is only supported for scratch orgs, "
             "to avoid installing a package that can't be upgraded in persistent orgs."
         },
-        "allow_newer": {
-            "description": "If the org already has a newer release, use it. Defaults to True."
-        },
-        "allow_uninstalls": {
-            "description": "Allow uninstalling a beta release or newer final release "
-            "in order to install the requested version. Defaults to False. "
-            "Warning: Enabling this may destroy data."
-        },
+        "allow_newer": {"description": "Deprecated. This option has no effect."},
         "security_type": {
             "description": "Which users to install packages for (FULL = all users, NONE = admins only)"
         },
@@ -55,34 +46,29 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             "or a child branch of a release branch, resolve GitHub managed package dependencies to 2GP builds present on "
             "a matching release branch on the dependency."
         },
+        "resolution_strategy": {
+            "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies."
+        },
     }
 
     def _init_options(self, kwargs):
         super(UpdateDependencies, self)._init_options(kwargs)
-        self.options["purge_on_delete"] = process_bool_arg(
-            self.options.get("purge_on_delete", True)
-        )
-        self.options["include_beta"] = process_bool_arg(
-            self.options.get("include_beta", False)
-        )
-        self.options["dependencies"] = (
+        self.dependencies = parse_dependencies(
             self.options.get("dependencies")
             or self.project_config.project__dependencies
         )
-        self.options["allow_newer"] = process_bool_arg(
-            self.options.get("allow_newer", True)
-        )
-        self.options["allow_uninstalls"] = process_bool_arg(
-            self.options.get("allow_uninstalls", False)
-        )
+
         self.options["security_type"] = self.options.get("security_type", "FULL")
         if self.options["security_type"] not in ("FULL", "NONE", "PUSH"):
             raise TaskOptionsError(
                 f"Unsupported value for security_type: {self.options['security_type']}"
             )
-        self.options["prefer_2gp_from_release_branch"] = process_bool_arg(
-            self.options.get("prefer_2gp_from_release_branch", False)
-        )
+
+        if "allow_uninstalls" in self.options or "allow_newer" in self.options:
+            self.logger.warning(
+                "The allow_uninstalls and allow_newer options for update_dependencies are no longer supported. "
+                "CumulusCI will not attempt to uninstall packages and newer versions are always allowed."
+            )
 
         if "ignore_dependencies" in self.options:
             if any(
@@ -93,268 +79,136 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
                     "An invalid dependency was specified for ignore_dependencies."
                 )
 
+        # Backwards-compatibility: if include_beta is set and True,
+        # use the include_beta resolution strategy.
+        include_beta = None
+        if "include_beta" in self.options and process_bool_arg(
+            self.options["include_beta"]
+        ):
+            include_beta = "include_beta"
+
+        self.resolution_strategy = get_resolver_stack(
+            self.project_config,
+            include_beta or self.options.get("resolution_strategy") or "production",
+        )
+
+        # Backwards-compatibility: if `include_beta` is set and False,
+        # remove the `latest_beta` resolver from the stack.
+        # Note: this applies even if the resolution strategy is set
+        # to a beta-y strategy.
+        if DependencyResolutionStrategy.BETA_RELEASE_TAG in self.resolution_strategy:
+            if "include_beta" in self.options and not process_bool_arg(
+                self.options["include_beta"]
+            ):
+                self.resolution_strategy.remove(
+                    DependencyResolutionStrategy.BETA_RELEASE_TAG
+                )
+
+        # Likewise remove 2GP resolution strategies if prefer_2gp_from_release_branch
+        # is explicitly False
+        resolvers_2gp = [
+            DependencyResolutionStrategy.COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH,
+            DependencyResolutionStrategy.COMMIT_STATUS_RELEASE_BRANCH,
+            DependencyResolutionStrategy.COMMIT_STATUS_EXACT_BRANCH,
+            DependencyResolutionStrategy.BETA_RELEASE_TAG,
+        ]
+
+        if "prefer_2gp_from_release_branch" in self.options and not process_bool_arg(
+            self.options["prefer_2gp_from_release_branch"]
+        ):
+            self.resolution_strategy = [
+                r for r in self.resolution_strategy if r not in resolvers_2gp
+            ]
+
+        unsafe_prod_resolvers = [
+            *resolvers_2gp,
+            DependencyResolutionStrategy.BETA_RELEASE_TAG,
+        ]
+
         if (
             self.org_config
-            and self.options["include_beta"]
             and not self.org_config.scratch
+            and any(r in self.resolution_strategy for r in unsafe_prod_resolvers)
         ):
             self.logger.warning(
-                "The `include_beta` option is enabled but this not a scratch org.\n"
-                "Setting `include_beta` to False to avoid installing beta package versions in a persistent org."
+                "Target org is a persistent org; removing Beta resolvers. Consider selecting the `production` resolver stack."
             )
-            self.options["include_beta"] = False
+            self.resolution_strategy = [
+                r for r in self.resolution_strategy if r not in unsafe_prod_resolvers
+            ]
+
+        if (
+            "prefer_2gp_from_release_branch" in self.options
+            or "include_beta" in self.options
+        ):
+            self.logger.warning(
+                "The include_beta and prefer_2gp_from_release_branch options "
+                "for update_dependencies are deprecated. Use resolution strategies instead."
+            )
+
+        self.install_options = PackageInstallOptions(
+            security_type=self.options.get("security_type", "FULL"),
+        )
 
     def _run_task(self):
-        if not self.options["dependencies"]:
+        if not self.dependencies:
             self.logger.info("Project has no dependencies, doing nothing")
             return
 
-        self.logger.info("Preparing static dependencies map")
-        dependencies = self.project_config.get_static_dependencies(
-            self.options["dependencies"],
-            include_beta=self.options["include_beta"],
+        self.logger.info("Resolving dependencies...")
+        dependencies = get_static_dependencies(
+            self.project_config,
+            dependencies=self.dependencies,
+            strategies=self.resolution_strategy,
             ignore_deps=self.options.get("ignore_dependencies"),
-            match_release_branch=self.options["prefer_2gp_from_release_branch"],
         )
+        self.logger.info("Collected dependencies:")
 
-        self.installed = None
-        self.uninstall_queue = []
-        self.install_queue = []
+        for d in dependencies:
+            self.logger.info(f"    {d}")
 
-        self.logger.info("Dependencies:")
-        for line in self.project_config.pretty_dependencies(dependencies):
-            self.logger.info(line)
+        for d in dependencies:
+            self._install_dependency(d)
 
-        self._process_dependencies(dependencies)
-        installs = []
-        for dep in self.install_queue:
-            if dep not in installs:
-                installs.append(dep)
-
-        self.install_queue = installs
-
-        # Reverse the uninstall queue
-        self.uninstall_queue.reverse()
-
-        self._uninstall_dependencies()
-        self._install_dependencies()
         self.org_config.reset_installed_packages()
 
-    def _process_dependencies(self, dependencies):
-        for dependency in dependencies:
-            # Process child dependencies
-            dependency_uninstalled = False
-            subdependencies = dependency.get("dependencies")
-            if subdependencies:
-                count_uninstall = len(self.uninstall_queue)
-                self._process_dependencies(subdependencies)
-                if count_uninstall != len(self.uninstall_queue):
-                    dependency_uninstalled = True
-
-            # Process namespace dependencies (managed packages)
-            if "namespace" in dependency:
-                self._process_namespace_dependency(dependency, dependency_uninstalled)
-            else:
-                # zip_url or repo dependency
-                self.install_queue.append(dependency)
-
-        if self.uninstall_queue and not self.options["allow_uninstalls"]:
-            raise TaskOptionsError(
-                "Updating dependencies would require uninstalling these packages "
-                "but uninstalls are not enabled: {}".format(
-                    ", ".join(dep["namespace"] for dep in self.uninstall_queue)
-                )
-            )
-
-    def _process_namespace_dependency(self, dependency, dependency_uninstalled=None):
-        dependency_version = str(dependency["version"])
-
-        if self.installed is None:
-            self.installed = self._get_installed()
-
-        if dependency["namespace"] in self.installed:
-            # Some version is installed, check what to do
-            installed_version = self.installed[dependency["namespace"]]
-            required_version = LooseVersion(dependency_version)
-            installed_version = LooseVersion(installed_version)
-
-            if installed_version > required_version and self.options["allow_newer"]:
-                # Avoid downgrading if allow_newer = True
-                required_version = installed_version
-
-            if required_version == installed_version and not dependency_uninstalled:
-                self.logger.info(
-                    "  {}: version {} already installed".format(
-                        dependency["namespace"], dependency_version
-                    )
-                )
-                return
-
-            if "Beta" in installed_version.vstring:
-                # Always uninstall Beta versions if required is different
-                self.uninstall_queue.append(dependency)
-                self.logger.info(
-                    "  {}: Uninstall {} to upgrade to {}".format(
-                        dependency["namespace"],
-                        installed_version,
-                        dependency["version"],
-                    )
-                )
-            elif dependency_uninstalled:
-                # If a dependency of this one needs to be uninstalled, always uninstall the package
-                self.uninstall_queue.append(dependency)
-                self.logger.info(
-                    "  {}: Uninstall and Reinstall to allow downgrade of dependency".format(
-                        dependency["namespace"]
-                    )
-                )
-            elif required_version < installed_version:
-                # Uninstall to downgrade
-                self.uninstall_queue.append(dependency)
-                self.logger.info(
-                    "  {}: Downgrade from {} to {} (requires uninstall/install)".format(
-                        dependency["namespace"],
-                        installed_version,
-                        dependency["version"],
-                    )
-                )
-            else:
-                self.logger.info(
-                    "  {}: Upgrade from {} to {}".format(
-                        dependency["namespace"],
-                        installed_version,
-                        dependency["version"],
-                    )
-                )
-            self.install_queue.append(dependency)
-        else:
-            # Just a regular install
-            self.logger.info(
-                "  {}: Install version {}".format(
-                    dependency["namespace"], dependency["version"]
-                )
-            )
-            self.install_queue.append(dependency)
-
-    def _get_installed(self):
-        # @@@ use org_config.installed_packages instead
-        self.logger.info("Retrieving list of packages from target org")
-        api = ApiRetrieveInstalledPackages(self)
-        return api()
-
-    def _uninstall_dependencies(self):
-        for dependency in self.uninstall_queue:
-            self._uninstall_dependency(dependency)
-
-    def _install_dependencies(self):
-        for dependency in self.install_queue:
-            self._install_dependency(dependency)
-
-    # hooks for tests
-    _download_extract_github = staticmethod(download_extract_github)
-    _download_extract_zip = staticmethod(download_extract_zip)
-
     def _install_dependency(self, dependency):
-        package_zip = None
-
-        zip_src = None
-        if "zip_url" in dependency:
-            self.logger.info(
-                "Deploying unmanaged metadata from /{} of {}".format(
-                    dependency.get("subfolder") or "", dependency["zip_url"]
-                )
+        if isinstance(
+            dependency, (PackageNamespaceVersionDependency, PackageVersionIdDependency)
+        ):
+            dependency.install(
+                self.project_config, self.org_config, self.install_options
             )
-            zip_src = self._download_extract_zip(
-                dependency["zip_url"], subfolder=dependency.get("subfolder")
-            )
-        elif "repo_name" in dependency:
-            self.logger.info(
-                "Deploying unmanaged metadata from /{} of {}/{}".format(
-                    dependency["subfolder"],
-                    dependency["repo_owner"],
-                    dependency["repo_name"],
-                )
-            )
-            gh_for_repo = self.project_config.get_github_api(
-                dependency["repo_owner"], dependency["repo_name"]
-            )
-            zip_src = self._download_extract_github(
-                gh_for_repo,
-                dependency["repo_owner"],
-                dependency["repo_name"],
-                dependency["subfolder"],
-                ref=dependency.get("ref"),
-            )
-
-        if zip_src:
-            # determine whether to inject namespace prefixes or not
-            options = dependency.copy()
-            if "unmanaged" not in options:
-                namespace = options.get("namespace_inject")
-                options["unmanaged"] = (
-                    not namespace
-                ) or namespace not in self.org_config.installed_packages
-
-            package_zip = MetadataPackageZipBuilder.from_zipfile(
-                zip_src, options=options, logger=self.logger
-            ).as_base64()
-        elif "namespace" in dependency:
-            self.logger.info(
-                "Installing {} version {}".format(
-                    dependency["namespace"], dependency["version"]
-                )
-            )
-            package_zip = InstallPackageZipBuilder(
-                dependency["namespace"],
-                dependency["version"],
-                securityType=self.options["security_type"],
-            )()
-
-        if package_zip:
-            api = self.api_class(
-                self, package_zip, purge_on_delete=self.options["purge_on_delete"]
-            )
-            return api()
-        elif "version_id" in dependency:
-            self.logger.info(f"Installing {dependency['version_id']}")
-            install_package_version(self.project_config, self.org_config, dependency)
         else:
-            raise TaskOptionsError(f"Could not find package for {dependency}")
-
-    def _uninstall_dependency(self, dependency):
-        self.logger.info("Uninstalling {}".format(dependency["namespace"]))
-        package_zip = UninstallPackageZipBuilder(
-            dependency["namespace"], self.project_config.project__package__api_version
-        )
-        api = self.api_class(
-            self, package_zip(), purge_on_delete=self.options["purge_on_delete"]
-        )
-        return api()
+            dependency.install(self.project_config, self.org_config)
 
     def freeze(self, step):
         ui_options = self.task_config.config.get("ui_options", {})
-        dependencies = self.project_config.get_static_dependencies(
-            self.options["dependencies"],
-            include_beta=self.options["include_beta"],
+        dependencies = get_static_dependencies(
+            self.project_config,
+            dependencies=self.dependencies,
+            strategies=self.resolution_strategy,
             ignore_deps=self.options.get("ignore_dependencies"),
         )
+
         steps = []
-        for i, dependency in enumerate(self._flatten(dependencies), start=1):
-            name = dependency.pop("name", None)
-            if "namespace" in dependency:
+        for i, dependency in enumerate(dependencies, start=1):
+            if isinstance(
+                dependency,
+                (PackageNamespaceVersionDependency, PackageVersionIdDependency),
+            ):
                 kind = "managed"
-                name = name or "Install {} {}".format(
-                    dependency["namespace"], dependency["version"]
-                )
             else:
                 kind = "metadata"
-                name = name or "Deploy {}".format(dependency["subfolder"])
+
             task_config = {
                 "options": self.options.copy(),
                 "checks": self.task_config.checks or [],
             }
-            task_config["options"]["dependencies"] = [dependency]
-            ui_step = {"name": name, "kind": kind, "is_required": True}
+            task_config["options"]["dependencies"] = [
+                dependency.dict(exclude_none=True)
+            ]
+            ui_step = {"name": dependency.name, "kind": kind, "is_required": True}
             ui_step.update(ui_options.get(i, {}))
             ui_step.update(
                 {
@@ -367,14 +221,3 @@ class UpdateDependencies(BaseSalesforceMetadataApiTask):
             )
             steps.append(ui_step)
         return steps
-
-    def _flatten(self, dependencies):
-        result = []
-        for dependency in dependencies:
-            subdeps = dependency.pop("dependencies", [])
-            for subdep in self._flatten(subdeps):
-                if subdep not in result:
-                    result.append(subdep)
-            if dependency not in result:
-                result.append(dependency)
-        return result
