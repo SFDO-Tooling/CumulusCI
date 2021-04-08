@@ -1,15 +1,12 @@
 from collections import defaultdict
-from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from urllib.parse import urlparse
 
 import code
-import functools
 import json
 import re
 import os
 import platform
 import pdb
-import shutil
 import sys
 import time
 import traceback
@@ -25,8 +22,6 @@ import github3
 import pkg_resources
 import requests
 from rst2ansi import rst2ansi
-from jinja2 import Environment
-from jinja2 import PackageLoader
 
 import cumulusci
 from cumulusci.core.config import OrgConfig
@@ -55,7 +50,6 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import doc_task, document_flow, flow_ref_title_and_intro
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils import get_cci_upgrade_command
-from cumulusci.utils.git import current_branch
 from cumulusci.utils.logging import tee_stdout_stderr
 from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
 from cumulusci.core.utils import cleanup_org_cache_dirs
@@ -63,6 +57,8 @@ from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 
 from .logger import init_logger, get_tempfile_logger
+from .project import project
+from .runtime import pass_runtime
 
 
 @contextlib.contextmanager
@@ -134,54 +130,6 @@ def check_latest_version():
             )
 
 
-def render_recursive(data, indent=None):
-    if indent is None:
-        indent = 0
-    indent_str = " " * indent
-    if isinstance(data, list):
-        for item in data:
-            if isinstance(item, (bytes, str)):
-                click.echo(f"{indent_str}- {item}")
-            else:
-                click.echo(f"{indent_str}-")
-                render_recursive(item, indent=indent + 4)
-    elif isinstance(data, dict):
-        for key, value in data.items():
-            key_str = click.style(str(key) + ":", bold=True)
-            if isinstance(value, list):
-                click.echo(f"{indent_str}{key_str}")
-                render_recursive(value, indent=indent + 4)
-            elif isinstance(value, dict):
-                click.echo(f"{indent_str}{key_str}")
-                render_recursive(value, indent=indent + 4)
-            else:
-                click.echo(f"{indent_str}{key_str} {value}")
-
-
-# global reference to active runtime
-RUNTIME = None
-
-
-def pass_runtime(func=None, require_project=True, require_keychain=False):
-    """Decorator which passes the CCI runtime object as the first arg to a click command."""
-
-    def decorate(func):
-        def new_func(*args, **kw):
-            runtime = RUNTIME
-            if require_project and runtime.project_config is None:
-                raise runtime.project_config_error
-            if require_keychain:
-                runtime._load_keychain()
-            func(RUNTIME, *args, **kw)
-
-        return functools.update_wrapper(new_func, func)
-
-    if func is None:
-        return decorate
-    else:
-        return decorate(func)
-
-
 SUGGEST_ERROR_COMMAND = (
     """Run this command for more information about debugging errors: cci error --help"""
 )
@@ -219,15 +167,19 @@ def main(args=None):
             args.remove("--debug")
 
         with set_debug_mode(debug):
-            # Load CCI config into global RUNTIME
-            _load_runtime(is_error_command, tempfile_path, debug)
+            try:
+                runtime = CliRuntime(load_keychain=False)
+            except Exception as e:
+                handle_exception(e, is_error_command, tempfile_path, debug)
+                sys.exit(1)
 
-            should_show_stacktraces = RUNTIME.universal_config.cli__show_stacktraces
+            runtime.check_cumulusci_version()
+            should_show_stacktraces = runtime.universal_config.cli__show_stacktraces
 
             init_logger(log_requests=debug)
             # Hand CLI processing over to click, but handle exceptions
             try:
-                cli(args[1:], standalone_mode=False)
+                cli(args[1:], standalone_mode=False, obj=runtime)
             except click.Abort:  # Keyboard interrupt
                 show_debug_info() if debug else click.echo("\nAborted!", err=True)
                 sys.exit(1)
@@ -239,18 +191,6 @@ def main(args=None):
                         e, is_error_command, tempfile_path, should_show_stacktraces
                     )
                 sys.exit(1)
-
-
-def _load_runtime(is_error_command, tempfile_path, debug):
-    global RUNTIME
-    try:
-        RUNTIME = CliRuntime(load_keychain=False)
-    except Exception as e:
-        handle_exception(e, is_error_command, tempfile_path, debug)
-        sys.exit(1)
-
-    RUNTIME.check_cumulusci_version()
-    return RUNTIME
 
 
 def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=False):
@@ -358,12 +298,7 @@ def get_context_info():
 
 # Top Level Groups
 
-
-@cli.group(
-    "project", help="Commands for interacting with project repository configurations"
-)
-def project():
-    pass
+cli.add_command(project)
 
 
 @cli.group("org", help="Commands for connecting and interacting with Salesforce orgs")
@@ -407,342 +342,6 @@ def error():
     For more information on working with errors in CumulusCI visit:
     https://cumulusci.readthedocs.io/en/latest/features.html#working-with-errors
     """
-
-
-# Commands for group: project
-
-
-def validate_project_name(value):
-    if not re.match(r"^[a-zA-Z0-9_-]+$", value):
-        raise click.UsageError(
-            "Invalid project name. Allowed characters: "
-            "letters, numbers, dash, and underscore"
-        )
-    return value
-
-
-@project.command(
-    name="init", help="Initialize a new project for use with the cumulusci toolbelt"
-)
-@pass_runtime(require_project=False)
-def project_init(runtime):
-    if not os.path.isdir(".git"):
-        raise click.ClickException("You are not in the root of a Git repository")
-
-    if os.path.isfile("cumulusci.yml"):
-        raise click.ClickException("This project already has a cumulusci.yml file")
-
-    context = {"cci_version": cumulusci.__version__}
-
-    # Prep jinja2 environment for rendering files
-    env = Environment(
-        loader=PackageLoader(
-            "cumulusci", os.path.join("files", "templates", "project")
-        ),
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
-
-    # Project and Package Info
-    click.echo()
-    click.echo(click.style("# Project Info", bold=True, fg="blue"))
-    click.echo(
-        "The following prompts will collect general information about the project"
-    )
-
-    project_name = os.path.split(os.getcwd())[-1:][0]
-    click.echo()
-    click.echo(
-        "Enter the project name.  The name is usually the same as your repository name.  NOTE: Do not use spaces in the project name!"
-    )
-    context["project_name"] = click.prompt(
-        click.style("Project Name", bold=True),
-        default=project_name,
-        value_proc=validate_project_name,
-    )
-
-    click.echo()
-    click.echo(
-        "CumulusCI uses an unmanaged package as a container for your project's metadata.  Enter the name of the package you want to use."
-    )
-    context["package_name"] = click.prompt(
-        click.style("Package Name", bold=True), default=project_name
-    )
-
-    click.echo()
-    context["package_namespace"] = None
-    if click.confirm(
-        click.style("Is this a managed package project?", bold=True), default=False
-    ):
-        click.echo(
-            "Enter the namespace assigned to the managed package for this project"
-        )
-        context["package_namespace"] = click.prompt(
-            click.style("Package Namespace", bold=True), default=project_name
-        )
-
-    click.echo()
-    context["api_version"] = click.prompt(
-        click.style("Salesforce API Version", bold=True),
-        default=runtime.universal_config.project__package__api_version,
-    )
-
-    click.echo()
-    click.echo(
-        "Salesforce metadata can be stored using Metadata API format or DX source format. "
-        "Which do you want to use?"
-    )
-    context["source_format"] = click.prompt(
-        click.style("Source format", bold=True),
-        type=click.Choice(["sfdx", "mdapi"]),
-        default="sfdx",
-    )
-
-    # Dependencies
-    dependencies = []
-    click.echo(click.style("# Extend Project", bold=True, fg="blue"))
-    click.echo(
-        "CumulusCI makes it easy to build extensions of other projects configured for CumulusCI like Salesforce.org's NPSP and EDA.  If you are building an extension of another project using CumulusCI and have access to its Github repository, use this section to configure this project as an extension."
-    )
-    if click.confirm(
-        click.style(
-            "Are you extending another CumulusCI project such as NPSP or EDA?",
-            bold=True,
-        ),
-        default=False,
-    ):
-        click.echo("Please select from the following options:")
-        click.echo("  1: EDA (https://github.com/SalesforceFoundation/EDA)")
-        click.echo("  2: NPSP (https://github.com/SalesforceFoundation/NPSP)")
-        click.echo(
-            "  3: Github URL (provide a URL to a Github repository configured for CumulusCI)"
-        )
-        selection = click.prompt(click.style("Enter your selection", bold=True))
-        github_url = {
-            "1": "https://github.com/SalesforceFoundation/EDA",
-            "2": "https://github.com/SalesforceFoundation/NPSP",
-        }.get(selection)
-        if github_url is None:
-            print(selection)
-            github_url = click.prompt(
-                click.style("Enter the Github Repository URL", bold=True)
-            )
-        dependencies.append({"type": "github", "url": github_url})
-    context["dependencies"] = dependencies
-
-    # Git Configuration
-    git_config = {}
-    click.echo()
-    click.echo(click.style("# Git Configuration", bold=True, fg="blue"))
-    click.echo(
-        "CumulusCI assumes the current git branch is your default branch, your feature branches are named feature/*, your beta release tags are named beta/*, and your release tags are release/*.  If you want to use a different branch/tag naming scheme, you can configure the overrides here.  Otherwise, just accept the defaults."
-    )
-
-    default_main_branch = current_branch(os.getcwd()) or "main"
-    git_default_branch = click.prompt(
-        click.style("Default Branch", bold=True), default=default_main_branch
-    )
-    if (
-        git_default_branch
-        and git_default_branch != runtime.universal_config.project__git__default_branch
-    ):
-        git_config["default_branch"] = git_default_branch
-
-    git_prefix_feature = click.prompt(
-        click.style("Feature Branch Prefix", bold=True), default="feature/"
-    )
-    if (
-        git_prefix_feature
-        and git_prefix_feature != runtime.universal_config.project__git__prefix_feature
-    ):
-        git_config["prefix_feature"] = git_prefix_feature
-
-    git_prefix_beta = click.prompt(
-        click.style("Beta Tag Prefix", bold=True), default="beta/"
-    )
-    if (
-        git_prefix_beta
-        and git_prefix_beta != runtime.universal_config.project__git__prefix_beta
-    ):
-        git_config["prefix_beta"] = git_prefix_beta
-
-    git_prefix_release = click.prompt(
-        click.style("Release Tag Prefix", bold=True), default="release/"
-    )
-    if (
-        git_prefix_release
-        and git_prefix_release != runtime.universal_config.project__git__prefix_release
-    ):
-        git_config["prefix_release"] = git_prefix_release
-
-    context["git"] = git_config
-
-    #     test:
-    click.echo()
-    click.echo(click.style("# Apex Tests Configuration", bold=True, fg="blue"))
-    click.echo(
-        "The CumulusCI Apex test runner uses a SOQL where clause to select which tests to run.  Enter the SOQL pattern to use to match test class names."
-    )
-
-    test_name_match = click.prompt(
-        click.style("Test Name Match", bold=True),
-        default=runtime.universal_config.project__test__name_match,
-    )
-    if (
-        test_name_match
-        and test_name_match == runtime.universal_config.project__test__name_match
-    ):
-        test_name_match = None
-    context["test_name_match"] = test_name_match
-
-    context["code_coverage"] = None
-    if click.confirm(
-        click.style(
-            "Do you want to check Apex code coverage when tests are run?", bold=True
-        ),
-        default=True,
-    ):
-        context["code_coverage"] = click.prompt(
-            click.style("Minimum code coverage percentage", bold=True), default=75
-        )
-
-    # Render templates
-    for name in (".gitignore", "README.md", "cumulusci.yml"):
-        template = env.get_template(name)
-        file_path = Path(name)
-        if not file_path.is_file():
-            file_path.write_text(template.render(**context))
-        else:
-            click.echo(
-                click.style(
-                    f"{name} already exists. As a reference, here is what would be placed in the file if it didn't already exist:",
-                    fg="red",
-                )
-            )
-            click.echo(click.style(template.render(**context) + "\n", fg="yellow"))
-
-    # Create source directory
-    source_path = "force-app" if context["source_format"] == "sfdx" else "src"
-    if not os.path.isdir(source_path):
-        os.mkdir(source_path)
-
-    # Create sfdx-project.json
-    if not os.path.isfile("sfdx-project.json"):
-
-        sfdx_project = {
-            "packageDirectories": [{"path": "force-app", "default": True}],
-            "namespace": context["package_namespace"],
-            "sourceApiVersion": context["api_version"],
-        }
-        with open("sfdx-project.json", "w") as f:
-            f.write(json.dumps(sfdx_project))
-
-    # Create orgs subdir
-    if not os.path.isdir("orgs"):
-        os.mkdir("orgs")
-
-    org_dict = {
-        "beta.json": {
-            "org_name": "Beta Test Org",
-            "edition": "Developer",
-            "managed": True,
-        },
-        "dev.json": {"org_name": "Dev Org", "edition": "Developer", "managed": False},
-        "feature.json": {
-            "org_name": "Feature Test Org",
-            "edition": "Developer",
-            "managed": False,
-        },
-        "release.json": {
-            "org_name": "Release Test Org",
-            "edition": "Enterprise",
-            "managed": True,
-        },
-    }
-
-    template = env.get_template("scratch_def.json")
-    for org_name, properties in org_dict.items():
-        org_path = Path("orgs/" + org_name)
-        if not org_path.is_file():
-            org_path.write_text(
-                template.render(
-                    package_name=context["package_name"],
-                    **properties,
-                )
-            )
-
-    # create robot folder structure and starter files
-    if not os.path.isdir("robot"):
-        test_folder = os.path.join("robot", context["project_name"], "tests")
-        resource_folder = os.path.join("robot", context["project_name"], "resources")
-        doc_folder = os.path.join("robot", context["project_name"], "doc")
-
-        os.makedirs(test_folder)
-        os.makedirs(resource_folder)
-        os.makedirs(doc_folder)
-        test_src = os.path.join(
-            cumulusci.__location__,
-            "robotframework",
-            "tests",
-            "salesforce",
-            "create_contact.robot",
-        )
-        test_dest = os.path.join(test_folder, "create_contact.robot")
-        shutil.copyfile(test_src, test_dest)
-
-    # Create pull request template
-    if not os.path.isdir(".github"):
-        os.mkdir(".github")
-        with open(os.path.join(".github", "PULL_REQUEST_TEMPLATE.md"), "w") as f:
-            f.write(
-                """
-
-# Critical Changes
-
-# Changes
-
-# Issues Closed
-"""
-            )
-
-    # Create datasets folder
-    if not os.path.isdir("datasets"):
-        os.mkdir("datasets")
-        template = env.get_template("mapping.yml")
-        with open(os.path.join("datasets", "mapping.yml"), "w") as f:
-            f.write(template.render(**context))
-
-    click.echo(
-        click.style(
-            "Your project is now initialized for use with CumulusCI",
-            bold=True,
-            fg="green",
-        )
-    )
-
-
-@project.command(
-    name="info", help="Display information about the current project's configuration"
-)
-@pass_runtime
-def project_info(runtime):
-    render_recursive(runtime.project_config.project)
-
-
-@project.command(
-    name="dependencies",
-    help="Displays the current dependencies for the project.  If the dependencies section has references to other github repositories, the repositories are inspected and a static list of dependencies is created",
-)
-@click.option(
-    "--resolution-strategy",
-    help="The resolution strategy to use. Defaults to production.",
-    default="production",
-)
-@pass_runtime(require_keychain=True)
-def project_dependencies(runtime, resolution_strategy):
-    dependencies = get_static_dependencies(runtime.project_config, resolution_strategy)
-    for line in dependencies:
-        click.echo(f"{line}")
 
 
 # Commands for group: service
@@ -789,7 +388,8 @@ class ConnectServiceCommand(click.MultiCommand):
 
     def list_commands(self, ctx):
         """ list the services that can be configured """
-        services = self._get_services_config(RUNTIME)
+        runtime = ctx.obj
+        services = self._get_services_config(runtime)
         return sorted(services.keys())
 
     def _build_param(self, attribute, details):
@@ -797,9 +397,9 @@ class ConnectServiceCommand(click.MultiCommand):
         return click.Option((f"--{attribute}",), prompt=req, required=req)
 
     def get_command(self, ctx, name):
-        runtime = RUNTIME
+        runtime = ctx.obj
         runtime._load_keychain()
-        services = self._get_services_config(RUNTIME)
+        services = self._get_services_config(runtime)
         try:
             service_config = services[name]
         except KeyError:
@@ -1573,14 +1173,16 @@ class RunTaskCommand(click.MultiCommand):
     }
 
     def list_commands(self, ctx):
-        tasks = RUNTIME.get_available_tasks()
+        runtime = ctx.obj
+        tasks = runtime.get_available_tasks()
         return sorted([t["name"] for t in tasks])
 
     def get_command(self, ctx, task_name):
-        if RUNTIME.project_config is None:
-            raise RUNTIME.project_config_error
-        RUNTIME._load_keychain()
-        task_config = RUNTIME.project_config.get_task(task_name)
+        runtime = ctx.obj
+        if runtime.project_config is None:
+            raise runtime.project_config_error
+        runtime._load_keychain()
+        task_config = runtime.project_config.get_task(task_name)
 
         if "options" not in task_config.config:
             task_config.config["options"] = {}
@@ -1593,7 +1195,7 @@ class RunTaskCommand(click.MultiCommand):
 
         def run_task(*args, **kwargs):
             """Callback function that executes when the command fires."""
-            org, org_config = RUNTIME.get_org(
+            org, org_config = runtime.get_org(
                 kwargs.pop("org", None), fail_if_missing=False
             )
 
@@ -1627,7 +1229,7 @@ class RunTaskCommand(click.MultiCommand):
                     pdb.set_trace()
 
             finally:
-                RUNTIME.alert(f"Task complete: {task_name}")
+                runtime.alert(f"Task complete: {task_name}")
 
         cmd = click.Command(task_name, params=params, callback=run_task)
         cmd.help = task_config.description
@@ -1635,8 +1237,9 @@ class RunTaskCommand(click.MultiCommand):
 
     def format_help(self, ctx, formatter):
         """Custom help for `cci task run`"""
-        tasks = RUNTIME.get_available_tasks()
-        plain = RUNTIME.universal_config.cli__plain_output or False
+        runtime = ctx.obj
+        tasks = runtime.get_available_tasks()
+        plain = runtime.universal_config.cli__plain_output or False
         task_groups = group_items(tasks)
         for group, tasks in task_groups.items():
             data = [["Task", "Description"]]
@@ -1898,7 +1501,7 @@ def gist(runtime):
     }
 
     try:
-        gh = RUNTIME.keychain.get_service("github")
+        gh = runtime.keychain.get_service("github")
         gist = create_gist(
             get_github_api(gh.username, gh.password or gh.token),
             "CumulusCI Error Output",

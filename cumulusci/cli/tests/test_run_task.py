@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 
 from cumulusci.cli import cci
 from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.cli.tests.utils import run_click_command, DummyTask
+from cumulusci.cli.tests.utils import DummyTask
 
 color_opts = {"options": {"color": {}}}
 multiple_opts = {"options": {"foo": {}, "bar": {}, "baz": {}}}
@@ -32,16 +32,15 @@ def runtime():
     runtime.keychain = Mock()
     runtime.keychain.get_default_org.return_value = (None, None)
 
-    with patch("cumulusci.cli.cci.RUNTIME", runtime):
-        yield runtime
+    yield runtime
 
 
 def test_task_run(runtime):
     DummyTask._run_task = Mock()
     multi_cmd = cci.RunTaskCommand()
-    cmd = multi_cmd.get_command(Mock, "dummy-task")
-
-    run_click_command(cmd, "dummy-task", color="blue", runtime=runtime)
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        cmd = multi_cmd.get_command(ctx, "dummy-task")
+        cmd.callback(runtime, "dummy-task", color="blue")
 
     DummyTask._run_task.assert_called_once()
 
@@ -49,8 +48,10 @@ def test_task_run(runtime):
 def test_task_run__no_project(runtime):
     runtime.project_config = None
     runtime.project_config_error = Exception("Broken")
+    multi_cmd = cci.RunTaskCommand()
     with pytest.raises(Exception, match="Broken"):
-        cci.RunTaskCommand().get_command(Mock, "dummy-task")
+        with click.Context(multi_cmd, obj=runtime) as ctx:
+            multi_cmd.get_command(ctx, "dummy-task")
 
 
 def test_task_run__debug_before(runtime):
@@ -58,55 +59,59 @@ def test_task_run__debug_before(runtime):
     multi_cmd = cci.RunTaskCommand()
     set_trace = Mock(side_effect=SetTrace)
 
-    with patch("pdb.set_trace", set_trace):
-        with pytest.raises(SetTrace):
-            cmd = multi_cmd.get_command(Mock(), "dummy-task")
-            run_click_command(
-                cmd,
-                "dummy_task",
-                color="blue",
-                debug_before=True,
-                debug_after=False,
-                runtime=runtime,
-            )
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        with patch("pdb.set_trace", set_trace):
+            with pytest.raises(SetTrace):
+                cmd = multi_cmd.get_command(ctx, "dummy-task")
+                cmd.callback(
+                    runtime,
+                    "dummy_task",
+                    color="blue",
+                    debug_before=True,
+                    debug_after=False,
+                )
 
 
 def test_task_run__debug_after(runtime):
     DummyTask._run_task = Mock()
     multi_cmd = cci.RunTaskCommand()
-
     set_trace = Mock(side_effect=SetTrace)
-    with patch("pdb.set_trace", set_trace):
-        with pytest.raises(SetTrace):
-            cmd = multi_cmd.get_command(Mock(), "dummy-task")
-            run_click_command(
-                cmd,
-                "dummy-task",
-                color="blue",
-                debug_before=False,
-                debug_after=True,
-                runtime=runtime,
-            )
+
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        with patch("pdb.set_trace", set_trace):
+            with pytest.raises(SetTrace):
+                cmd = multi_cmd.get_command(ctx, "dummy-task")
+                cmd.callback(
+                    runtime,
+                    "dummy-task",
+                    color="blue",
+                    debug_before=False,
+                    debug_after=True,
+                )
 
 
 def test_task_run__help(runtime):
     DummyTask._run_task = Mock()
     multi_cmd = cci.RunTaskCommand()
-    cmd = multi_cmd.get_command(Mock, "dummy-task")
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        cmd = multi_cmd.get_command(ctx, "dummy-task")
 
     assert "This is a dummy task." in cmd.help  # task description
 
 
 def test_task_run__list_commands(runtime):
     multi_cmd = cci.RunTaskCommand()
-    commands = multi_cmd.list_commands(Mock())
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        commands = multi_cmd.list_commands(ctx)
     assert commands == ["dummy-derived-task", "dummy-task"]
 
 
 def test_format_help(runtime):
     with patch("cumulusci.cli.cci.click.echo") as echo:
         runtime.universal_config = Mock()
-        RunTaskCommand().format_help(Mock(), Mock())
+        multi_cmd = cci.RunTaskCommand()
+        with click.Context(multi_cmd, obj=runtime) as ctx:
+            multi_cmd.format_help(ctx, Mock())
         assert 4 == echo.call_count
 
         assert 0 == len(runtime.universal_config.method_calls)
