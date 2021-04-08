@@ -2,6 +2,7 @@ from distutils.version import LooseVersion
 import json
 import os
 import re
+from io import StringIO
 from pathlib import Path
 from configparser import ConfigParser
 from itertools import chain
@@ -10,7 +11,6 @@ from contextlib import contextmanager
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
 import github3
-import yaml
 
 from cumulusci.core.utils import merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
@@ -98,24 +98,26 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             )
 
         # Load the project's yaml config file
-        with open(self.config_project_path, "r", encoding="utf-8") as f_config:
-            project_config = cci_safe_load(f_config)
+        project_config = cci_safe_load(self.config_project_path, logger=self.logger)
 
         if project_config:
             self.config_project.update(project_config)
 
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
-            with open(
-                self.config_project_local_path, "r", encoding="utf-8"
-            ) as f_local_config:
-                local_config = cci_safe_load(f_local_config)
+            local_config = cci_safe_load(
+                self.config_project_local_path, logger=self.logger
+            )
             if local_config:
                 self.config_project_local.update(local_config)
 
         # merge in any additional yaml that was passed along
         if self.additional_yaml:
-            additional_yaml_config = yaml.safe_load(self.additional_yaml)
+            additional_yaml_config = cci_safe_load(
+                StringIO(self.additional_yaml),
+                self.config_project_path,
+                logger=self.logger,
+            )
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
 
