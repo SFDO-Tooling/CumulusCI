@@ -10,6 +10,8 @@ from cumulusci.utils import temporary_dir
 from cumulusci.utils.yaml.cumulusci_yml import (
     cci_safe_load,
     parse_from_yaml,
+    _validate_files,
+    _validate_url,
 )
 
 
@@ -145,6 +147,25 @@ class TestCumulusciYml:
         print(caplog.text)
         assert "steps" in caplog.text
         assert "my_flow" in caplog.text
+
+    def test_validate_files__no_errors(self, caplog):
+        import cumulusci
+
+        codedir = Path(cumulusci.__file__).parent.parent
+        errs = _validate_files([str(codedir / "cumulusci.yml")])
+        assert not errs
+
+    def test_validate_files__with_errors(self, caplog):
+        codedir = Path(__file__).parent
+        errs = _validate_files([str(Path(codedir / "bad_cci.yml"))])
+        assert errs
+
+    @pytest.mark.vcr(record_mode="none")
+    def test_validate_url__with_errors(self, caplog):
+        url = "https://test/bad/cumulusci.yml"
+        errs = _validate_url(url)
+        assert "foo" in str(errs)
+        assert "extra fields not permitted" in str(errs)
 
 
 @pytest.fixture

@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union, Sequence
 from operator import xor
 
 from typing_extensions import Literal, TypedDict
-from pydantic import Field, root_validator
+from pydantic import Field
 
 from cumulusci.utils.fileutils import DataInput, load_from_source
 from cumulusci.utils.yaml.model_parser import CCIDictModel
@@ -18,6 +18,12 @@ PythonClassPath = str
 URL = str
 
 
+class PreflightCheck(CCIDictModel):
+    when: str = None
+    action: str = None
+    message: str = None
+
+
 class Step(CCIDictModel):
     task: str = None
     flow: str = None
@@ -25,8 +31,10 @@ class Step(CCIDictModel):
     ignore_failure: bool = False
     when: str = None  # is this allowed?
     ui_options: Dict[str, Any] = {}
+    checks: List[PreflightCheck] = []
 
-    @root_validator()
+    # only for validating against full model
+    @classmethod
     def _check(cls, values):
         assert xor(
             bool(values.get("task")), bool(values.get("flow"))
@@ -35,17 +43,17 @@ class Step(CCIDictModel):
 
 
 class Task(CCIDictModel):
-    name: str = None  # get rid of this???
-    class_path: str = None  # to discuss
+    class_path: str = None
     description: str = None
     options: Dict[str, Any] = None
     group: str = None
     ui_options: Dict[str, Any] = None
+    name: str = None  # get rid of this???
 
 
 class Flow(CCIDictModel):
     description: str = None
-    steps: Dict[str, Step]
+    steps: Dict[str, Step] = None
     group: str = None
 
 
@@ -83,19 +91,13 @@ class Git(CCIDictModel):
     two_gp_context: str = Field(None, alias="2gp_context")
 
 
-class PreflightCheck(CCIDictModel):
-    when: str = None
-    action: str = None
-    message: str = None
-
-
 class Plan(CCIDictModel):  # MetaDeploy plans
-    title: str
+    title: str = None
     description: str = None
-    tier: str = Literal["primary", "secondary", "additional"]
-    slug: str
+    tier: Literal["primary", "secondary", "additional"] = None
+    slug: str = None
     is_listed: bool = True
-    steps: Dict[str, Step]
+    steps: Dict[str, Step] = None
     checks: List[PreflightCheck] = []
     group: str = None
     error_message: str = None
@@ -108,29 +110,29 @@ class Project(CCIDictModel):
     package: Package = None
     test: Test = None
     git: Git = None
-    dependencies: List[Dict[str, URL]] = None  # TODO
+    dependencies: List[Dict[str, str]] = None  # TODO
     source_format: Literal["sfdx", "mdapi"] = "mdapi"
 
 
 class ScratchOrg(CCIDictModel):
-    config_file: Path
+    config_file: Path = None
     days: int = None
     namespaced: str = None
     setup_flow: str = None
 
 
 class Orgs(CCIDictModel):
-    scratch: Dict[str, ScratchOrg]
+    scratch: Dict[str, ScratchOrg] = None
 
 
 class ServiceAttribute(CCIDictModel):
-    description: str
-    required: bool
+    description: str = None
+    required: bool = None
 
 
 class Service(CCIDictModel):
-    description: str
-    attributes: Dict[str, ServiceAttribute]
+    description: str = None
+    attributes: Dict[str, ServiceAttribute] = None
     validator: PythonClassPath = None
 
 
@@ -195,29 +197,31 @@ class ErrorDict(TypedDict):
     type: str
 
 
-def _log_yaml_error(logger, error: ErrorDict):
+def _log_yaml_errors(logger, errors: List[ErrorDict]):
     "Format and log a Pydantic-style error dictionary"
-    logger.warning("CumulusCI Parsing Error:")
-    loc = " -> ".join(repr(x) for x in error["loc"] if x != "__root__")
-    logger.warning("%s : %s", loc, error["msg"])
+    plural = "" if len(errors) <= 1 else "s"
+    logger.warning(f"CumulusCI Parsing Error{plural}:")
+    for error in errors:
+        loc = " -> ".join(repr(x) for x in error["loc"] if x != "__root__")
+        logger.warning("  %s\n    %s", loc, error["msg"])
     logger.error(
         "NOTE: These errors will cause major problems in future versions of CumulusCI."
     )
     logger.error(
         "If you think your YAML has no error, please report the bug to the CumulusCI team."
     )
-    logger.error("https://github.com/SFDO-Tooling/CumulusCI/issues/")
+    logger.error("https://github.com/SFDO-Tooling/CumulusCI/issues/\n")
 
 
 def cci_safe_load(
     source: DataInput, context: str = None, on_error: callable = None, logger=None
 ):
     """Load a CumulusCI.yml file and issue warnings for unknown structures."""
-
+    errors = []
     assert not (
         on_error and logger
     ), "Please specify either on_error or logger but not both"
-    on_error = on_error or (lambda error: _log_yaml_error(logger, error))
+    on_error = on_error or errors.append
 
     logger = logger or default_logger
 
@@ -227,6 +231,8 @@ def cci_safe_load(
 
         try:
             validate_data(data, context=context, on_error=on_error)
+            if errors:
+                _log_yaml_errors(logger, errors)
         except Exception as e:
             # should never be executed
             print(f"Error validating cumulusci.yml {e}")
@@ -242,23 +248,35 @@ def cci_safe_load(
         return data
 
 
-# validate YML files as a CLI for smoke testing
-if __name__ == "__main__":
-    import sys
+def _validate_files(globs):
+    "Validate YML files from Dev CLI for smoke testing"
+
     from glob import glob
+
+    errors = []
+    for g in globs:
+        print(g)
+        filenames = glob(g, recursive=True)
+        for filename in filenames:
+            print("Validating", filename)
+
+            cci_safe_load(filename, filename, on_error=errors.append)
+    return errors
+
+
+def _validate_url(url):  # pragma: no cover
+    "Validate YML URL from Dev CLI for smoke testing"
+    errors = []
+    cci_safe_load(url, url, on_error=errors.append)
+    return errors
+
+
+# validate YML files as a CLI for smoke testing
+if __name__ == "__main__":  # pragma: no cover
+    import sys
     from pprint import pprint
 
-    def main():
-        "Validate YML files from CLI for smoke testing"
-
-        globs = sys.argv[1:]
-        errors = []
-        for g in globs:
-            filenames = glob(g)
-            for filename in filenames:
-                print("Validating", filename)
-
-                cci_safe_load(filename, filename, logger=getLogger(__name__))
-        pprint(errors)
-
-    main()
+    if sys.argv[1].startswith("http"):
+        pprint(_validate_url(sys.argv[1]))
+    else:
+        pprint(_validate_files(sys.argv[1:]))
