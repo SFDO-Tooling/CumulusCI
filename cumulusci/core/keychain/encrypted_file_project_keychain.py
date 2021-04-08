@@ -8,7 +8,6 @@ from cumulusci.core.exceptions import (
     CumulusCIException,
     OrgNotFound,
     ServiceNotConfigured,
-    ServiceNotValid,
 )
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 
@@ -165,11 +164,13 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     ) -> None:
         """Public API for setting a default service e.g. `cci service default`"""
         if service_type not in self.project_config.services:
-            raise ServiceNotValid(f"No such service type: {service_type}")
+            raise ServiceNotConfigured(f"No such service type: {service_type}")
         elif alias not in self.services[service_type]:
             raise ServiceNotConfigured(
                 f"No service of type {service_type} configured with name: {alias}"
             )
+        elif alias == self._default_services[service_type]:
+            return  # already the default
 
         self._default_services[service_type] = alias
         self._save_default_service(service_type, alias, project=project)

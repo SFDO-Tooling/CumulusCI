@@ -8,7 +8,6 @@ from unittest import mock
 from cumulusci.core.exceptions import (
     CumulusCIException,
     OrgNotFound,
-    ServiceNotValid,
     ServiceNotConfigured,
 )
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
@@ -224,8 +223,18 @@ class TestEncryptedFileProjectKeychain:
         github_service = keychain.get_service("github")
         assert github_service.config == {"name": "bar"}
 
+    def test_set_default_service__service_alredy_default(self, keychain):
+        keychain.set_service("github", "foo_github", ServiceConfig({"name": "foo"}))
+        github_service = keychain.get_service("github")
+        assert github_service.config == {"name": "foo"}
+
+        keychain.set_default_service("github", "foo_github")
+
+        github_service = keychain.get_service("github")
+        assert github_service.config == {"name": "foo"}
+
     def test_set_default_service__no_such_service(self, keychain):
-        with pytest.raises(ServiceNotValid):
+        with pytest.raises(ServiceNotConfigured):
             keychain.set_default_service("fooey", "alias")
 
     def test_set_default_service__no_such_alias(self, keychain):
