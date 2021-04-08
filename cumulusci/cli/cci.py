@@ -737,7 +737,7 @@ def project_dependencies(runtime):
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_runtime(require_project=False, require_keychain=True)
-def service_list(runtime, plain, print_json):
+def service_list2(runtime, plain, print_json):
     services = (
         runtime.project_config.services
         if runtime.project_config is not None
@@ -766,6 +766,56 @@ def service_list(runtime, plain, print_json):
     table.echo(plain)
 
 
+@service.command(name="list", help="List services available for configuration and use")
+@click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
+@click.option("--json", "print_json", is_flag=True, help="Print a json string")
+@pass_runtime(require_project=False, require_keychain=True)
+def service_list(runtime, plain, print_json):
+    services = (
+        runtime.project_config.services
+        if runtime.project_config is not None
+        else runtime.universal_config.services
+    )
+    supported_service_types = list(services.keys())
+    supported_service_types.sort()
+
+    if print_json:
+        click.echo(json.dumps(services))
+        return None
+
+    configured_services = runtime.keychain.list_services()
+    plain = plain or runtime.universal_config.cli__plain_output
+
+    data = [["Type", "Name", "Default", "Description"]]
+
+    for service_type in supported_service_types:
+        if service_type not in configured_services:
+            data.append(
+                [service_type, "", False, services[service_type]["description"]]
+            )
+            continue
+        for alias in configured_services[service_type]:
+            default_service_for_type = runtime.keychain._default_services[service_type]
+            data.append(
+                [
+                    service_type,
+                    alias,
+                    alias == default_service_for_type,
+                    services[service_type]["description"],
+                ]
+            )
+
+    rows_to_dim = [row_index for row_index, row in enumerate(data) if not row[1]]
+    table = CliTable(
+        data,
+        title="Services",
+        wrap_cols=["Description"],
+        bool_cols=["Default"],
+        dim_rows=rows_to_dim,
+    )
+    table.echo(plain)
+
+
 class ConnectServiceCommand(click.MultiCommand):
     def _get_services_config(self, runtime):
         return (
@@ -783,14 +833,16 @@ class ConnectServiceCommand(click.MultiCommand):
         req = details["required"]
         return click.Option((f"--{attribute}",), prompt=req, required=req)
 
-    def get_command(self, ctx, name):
+    def get_command(self, ctx, service_type):
         runtime = RUNTIME
         runtime._load_keychain()
         services = self._get_services_config(RUNTIME)
         try:
-            service_config = services[name]
+            service_config = services[service_type]
         except KeyError:
-            raise click.UsageError(f"Sorry, I don't know about the '{name}' service.")
+            raise click.UsageError(
+                f"Sorry, I don't know about the '{service_type}' service."
+            )
         attributes = service_config["attributes"].items()
 
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
@@ -812,14 +864,19 @@ class ConnectServiceCommand(click.MultiCommand):
                 validator = import_global(validator_path)
                 validator(serv_conf)
 
-            runtime.keychain.set_service(name, ServiceConfig(serv_conf), project)
+            service_name = kwargs["service_name"]
+            runtime.keychain.set_service(
+                service_type, service_name, ServiceConfig(serv_conf), project
+            )
             if project:
-                click.echo(f"{name} is now configured for this project.")
+                click.echo(f"{service_type} is now configured for this project.")
             else:
-                click.echo(f"{name} is now configured for all CumulusCI projects.")
+                click.echo(
+                    f"{service_type} is now configured for all CumulusCI projects."
+                )
 
-        ret = click.Command(name, params=params, callback=callback)
-        return ret
+        params.append(click.Argument(["service_name"]))
+        return click.Command(service_type, params=params, callback=callback)
 
 
 @service.command(
@@ -830,30 +887,76 @@ def service_connect():
 
 
 @service.command(name="info", help="Show the details of a connected service")
+@click.argument("service_type")
 @click.argument("service_name")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @pass_runtime(require_project=False, require_keychain=True)
-def service_info(runtime, service_name, plain):
+def service_info(runtime, service_name, service_type, plain):
     try:
         plain = plain or runtime.universal_config.cli__plain_output
-        service_config = runtime.keychain.get_service(service_name)
+        service_config = runtime.keychain.get_service(service_type, service_name)
         service_data = [["Key", "Value"]]
         service_data.extend(
             [
                 [click.style(k, bold=True), str(v)]
                 for k, v in service_config.config.items()
+                if k != "service_name"
             ]
         )
         wrap_cols = ["Value"] if not plain else None
-        service_table = CliTable(service_data, title=service_name, wrap_cols=wrap_cols)
+        service_table = CliTable(
+            service_data, title=f"{service_type}/{service_name}", wrap_cols=wrap_cols
+        )
         service_table._table.inner_heading_row_border = False
         service_table.echo(plain)
     except ServiceNotConfigured:
         click.echo(
-            "{0} is not configured for this project.  Use service connect {0} to configure.".format(
-                service_name
-            )
+            f"{service_name} is not configured for this project.  Use service connect {service_name} to configure."
         )
+
+
+@service.command(name="default", help="Show the details of a connected service")
+@click.argument("service_type")
+@click.argument("service_name")
+@pass_runtime(require_project=False, require_keychain=True)
+def service_default(runtime, service_type, service_name):
+    configured_services = runtime.keychain.list_services()
+
+    if service_type not in configured_services:
+        click.echo(f"No service of type {service_type} is currently configured.")
+        return
+    elif service_name not in configured_services[service_type]:
+        click.echo(
+            f"No service of type {service_type} is configured with the name: {service_name}"
+        )
+        return
+    elif service_name == runtime.keychain._default_services[service_type]:
+        click.echo("This service is already the default.")
+        return
+
+    runtime.keychain.set_default_service(service_type, service_name)
+    click.echo(f"'{service_name}' is now the default for {service_type}")
+
+
+@service.command(name="rename", help="Rename a service")
+@click.argument("service_type")
+@click.argument("current_name")
+@click.argument("new_name")
+@pass_runtime(require_project=False, require_keychain=True)
+def service_rename(runtime, service_type, current_name, new_name):
+    configured_services = runtime.keychain.list_services()
+
+    if service_type not in configured_services:
+        click.echo(f"No service of type {service_type} is currently configured.")
+        return
+    elif current_name not in configured_services[service_type]:
+        click.echo(
+            f"No service of type {service_type} is configured with the name: {current_name}"
+        )
+        return
+
+    runtime.keychain.rename_service(service_type, current_name, new_name)
+    click.echo(f"Service {service_type}/{current_name} has been renamed to {new_name}")
 
 
 # Commands for group: org
