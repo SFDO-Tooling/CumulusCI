@@ -5,7 +5,12 @@ import tempfile
 from pathlib import Path
 from unittest import mock
 
-from cumulusci.core.exceptions import OrgNotFound, ServiceNotValid, ServiceNotConfigured
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    OrgNotFound,
+    ServiceNotValid,
+    ServiceNotConfigured,
+)
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.core.keychain.encrypted_file_project_keychain import GlobalOrg
 from cumulusci.core.config import (
@@ -81,6 +86,11 @@ class TestEncryptedFileProjectKeychain:
         keychain.orgs["test"] = mock.Mock()
         with pytest.raises(OrgNotFound):
             keychain.remove_org("test")
+
+    def test_remove_org__global_not_found(self, keychain):
+        keychain.orgs["test"] = mock.Mock()
+        with pytest.raises(OrgNotFound):
+            keychain.remove_org("test", True)
 
     def test_set_and_get_org_local_should_not_shadow_global(
         self,
@@ -184,7 +194,10 @@ class TestEncryptedFileProjectKeychain:
         keychain.set_service("github", "alias", service_config, project=True)
         default_github_service = keychain.get_service("github")
 
-        assert default_github_service.config == service_config.config
+        assert default_github_service.config == {
+            **service_config.config,
+            "token": "test123",
+        }
         #
         project_default_services_file = Path(
             f"{keychain.project_local_dir}/DEFAULT_SERVICES.json"
@@ -419,3 +432,107 @@ class TestEncryptedFileProjectKeychain:
         # ensure contents of migrated are unchanged
         with open(named_devhub_service / "devhub__global.service", "r") as f:
             assert f.read() == "migrated config"
+
+    def test_rename_service(self, keychain, service_config):
+        home_dir = tempfile.mkdtemp()
+
+        cci_home_dir = Path(f"{home_dir}/.cumulusci")
+        cci_home_dir.mkdir()
+        with open(cci_home_dir / "DEFAULT_SERVICES.json", "w") as f:
+            f.write(json.dumps({"github": "old_alias"}))
+
+        local_project_dir = cci_home_dir / "test-project"
+        local_project_dir.mkdir()
+        with open(local_project_dir / "DEFAULT_SERVICES.json", "w") as f:
+            f.write(json.dumps({"github": "old_alias"}))
+
+        github_services_dir = Path(f"{home_dir}/.cumulusci/services/github")
+        github_services_dir.mkdir(parents=True)
+        self._write_file(github_services_dir / "old_alias.service", "github config")
+
+        encrypted = keychain._encrypt_config(service_config)
+        keychain.services = {"github": {"old_alias": encrypted}}
+        with mock.patch.object(
+            EncryptedFileProjectKeychain, "global_config_dir", cci_home_dir
+        ):
+            keychain.rename_service("github", "old_alias", "new_alias")
+
+        # Getting old alias should fail
+        with pytest.raises(KeyError):
+            keychain.get_service("github", "old_alias")
+
+        # Validate new alias has same contents as original
+        assert keychain.get_service("github", "new_alias").config == {
+            **service_config.config,
+            "token": "test123",
+        }
+        # Old service file should be gone
+        assert not (github_services_dir / "old_alias.service").is_file()
+        # New service file should be present
+        assert (github_services_dir / "new_alias.service").is_file()
+
+        # DEFAULT_SERVICES.json files should have updated aliases
+        with open(local_project_dir / "DEFAULT_SERVICES.json", "r") as f:
+            assert json.loads(f.read()) == {"github": "new_alias"}
+
+        with open(cci_home_dir / "DEFAULT_SERVICES.json", "r") as f:
+            assert json.loads(f.read()) == {"github": "new_alias"}
+
+    def test_rename_service__invalid_service_type(self, keychain, service_config):
+        with pytest.raises(ServiceNotConfigured):
+            keychain.rename_service("does-not-exist", "old_alias", "new_alias")
+
+    def test_rename_service__invalid_service_alias(self, keychain, service_config):
+        keychain.services = {"github": {"current_alias": "some config"}}
+        with pytest.raises(ServiceNotConfigured):
+            keychain.rename_service("github", "does-not-exist", "new_alias")
+
+    def test_rename_alias_in_default_service_file__no_default_present(self, keychain):
+        filepath = Path(f"{keychain.global_config_dir}/DEFAULT_SERVICES.json")
+        with open(filepath, "w") as f:
+            f.write(json.dumps({"saucelabs": "default_alias"}))
+        keychain._rename_alias_in_default_service_file(
+            filepath, "github", "current_alias", "new_alias"
+        )
+
+        with open(filepath, "r") as f:
+            assert json.loads(f.read()) == {"saucelabs": "default_alias"}
+
+    def test_read_default_services(self, keychain):
+        expected_defaults = {
+            "github": "github_alias",
+            "apextestdb": "apextestdb_alias",
+            "metaci": "metaci_alias",
+            "devhub": "devhub_alias",
+            "connected_app": "connected_app__alias",
+        }
+        filepath = Path(f"{keychain.global_config_dir}/DEFAULT_SERVICES.json")
+        with open(filepath, "w") as f:
+            f.write(json.dumps(expected_defaults))
+
+        actual_defaults = keychain._read_default_services(filepath)
+        assert actual_defaults == expected_defaults
+
+    def test_read_default_services__file_does_not_exist(self, keychain):
+        with pytest.raises(CumulusCIException):
+            keychain._read_default_services(Path("not-a-valid-filepath"))
+
+    def test_write_default_services(self, keychain):
+        expected_defaults = {
+            "github": "github_alias",
+            "apextestdb": "apextestdb_alias",
+            "metaci": "metaci_alias",
+            "devhub": "devhub_alias",
+            "connected_app": "connected_app__alias",
+        }
+        filepath = Path(f"{keychain.global_config_dir}/DEFAULT_SERVICES.json")
+        keychain._write_default_services(filepath, expected_defaults)
+
+        with open(filepath, "r") as f:
+            actual_defaults = json.loads(f.read())
+        assert actual_defaults == expected_defaults
+
+    def test_write_default_services__bad_filename(self, keychain):
+        filepath = Path("DEFAULT_THINGS.json")
+        with pytest.raises(CumulusCIException):
+            keychain._write_default_services(filepath, {})

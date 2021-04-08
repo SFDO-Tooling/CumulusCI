@@ -8,7 +8,6 @@ from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CBC
 
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.config import ConnectedAppOAuthConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
@@ -81,12 +80,6 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
             extra=[name, self],
             context=f"org config ({name})",
         )
-
-    def _get_connected_app(self):
-        if self.app:
-            return self._decrypt_config(
-                ConnectedAppOAuthConfig, self.app, context="connected app config"
-            )
 
     def _get_cipher(self, iv=None):
         key = self.key

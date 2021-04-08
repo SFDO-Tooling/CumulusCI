@@ -4,7 +4,12 @@ import typing as T
 from pathlib import Path
 
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.exceptions import OrgNotFound, ServiceNotConfigured, ServiceNotValid
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    OrgNotFound,
+    ServiceNotConfigured,
+    ServiceNotValid,
+)
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
@@ -169,6 +174,79 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         self._default_services[service_type] = alias
         self._save_default_service(service_type, alias, project=project)
 
+    def rename_service(
+        self, service_type: str, current_alias: str, new_alias: str
+    ) -> None:
+        """Public API for renaming a service
+
+        @param service_type type of service being renamed
+        @param current_alias the current alias of the service
+        @param new_alias the new alias for the service
+        @throws: ServiceNotValid if no services of the given type are configured,
+        or if no service of the given type has the current_alias
+        """
+
+        if service_type not in self.services:
+            raise ServiceNotConfigured(
+                f"No services of type {service_type} are currently configured"
+            )
+        elif current_alias not in self.services[service_type]:
+            raise ServiceNotConfigured(
+                f"No service of type {service_type} configrued with the name: {current_alias}"
+            )
+
+        self.services[service_type][new_alias] = self.services[service_type][
+            current_alias
+        ]
+        del self.services[service_type][current_alias]
+
+        # rename the corresponding .service file
+        current_filepath = Path(
+            f"{self.global_config_dir}/services/{service_type}/{current_alias}.service"
+        )
+        new_filepath = Path(
+            f"{self.global_config_dir}/services/{service_type}/{new_alias}.service"
+        )
+        current_filepath.replace(new_filepath)
+
+        # look through all DEFAULT_SERVICE.json files and
+        # change current_alias to new_alias (if present)
+        self._rename_alias_in_default_service_file(
+            Path(self.global_config_dir, "DEFAULT_SERVICES.json"),
+            service_type,
+            current_alias,
+            new_alias,
+        )
+        for project_dir in self._iter_local_project_dirs():
+            self._rename_alias_in_default_service_file(
+                project_dir / "DEFAULT_SERVICES.json",
+                service_type,
+                current_alias,
+                new_alias,
+            )
+
+    def _rename_alias_in_default_service_file(
+        self,
+        default_service_file_path: Path,
+        service_type: str,
+        current_alias: str,
+        new_alias: str,
+    ) -> None:
+        """Given the path to a DEFAULT_SERVICES.json file,
+        if current_alias is present for the given service_type,
+        then rename it to new_alias. Otherwise, do nothing.
+        """
+        default_services = self._read_default_services(default_service_file_path)
+
+        if (
+            service_type not in default_services
+            or current_alias != default_services[service_type]
+        ):
+            return
+
+        default_services[service_type] = new_alias
+        self._write_default_services(default_service_file_path, default_services)
+
     def _load_services(self) -> None:
         """Load services (and migrate old ones if present)"""
         # The following steps occur in a _very_ particular order
@@ -220,11 +298,14 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         # project defaults will overwrite global defaults
         self._set_default_services_for_dir(project_default_services)
 
-    def _set_default_services_for_dir(self, dir_path: Path) -> None:
-        if dir_path.is_file():
-            with open(dir_path, "r") as f:
-                default_services = json.loads(f.read())
+    def _set_default_services_for_dir(self, default_services_file: Path) -> None:
+        """Sets the keychain._default_services dictionary to the default
+        values in the given file.
 
+        @param default_services_file path to a DEFAULT_SERVICES.json file
+        """
+        if default_services_file.is_file():
+            default_services = self._read_default_services(default_services_file)
             for s_type, alias in default_services.items():
                 self._default_services[s_type] = alias
 
@@ -236,13 +317,11 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         dir_path = (
             Path(self.project_local_dir) if project else Path(self.global_config_dir)
         )
-        with open(dir_path / DEFAULT_SERVICES_FILENAME, "r") as f:
-            default_services = json.loads(f.read())
+        default_services_file = dir_path / DEFAULT_SERVICES_FILENAME
 
+        default_services = self._read_default_services(default_services_file)
         default_services[service_type] = alias
-
-        with open(dir_path / DEFAULT_SERVICES_FILENAME, "w") as f:
-            f.write(json.dumps(default_services))
+        self._write_default_services(default_services_file, default_services)
 
     def _create_default_service_files(self) -> None:
         """
@@ -281,8 +360,9 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 )
                 default_services[service_type] = f"{service_type}__{scope}"
 
-        with open(dir_path / DEFAULT_SERVICES_FILENAME, "w") as f:
-            f.write(json.dumps(default_services))
+        self._write_default_services(
+            dir_path / DEFAULT_SERVICES_FILENAME, default_services
+        )
 
     def _create_services_dir_structure(self) -> None:
         """
@@ -361,6 +441,38 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         new_filename = f"{service_type}__{scope}.service"
         services_sub_dir = Path(f"{self.global_config_dir}/services/{service_type}")
         return services_sub_dir / new_filename
+
+    def _read_default_services(self, file_path: Path) -> T.Dict[str, str]:
+        """Reads the default services file at the given path
+
+        @param file_path path to DEFAULT_SERVICES.json
+        @returns dict of default services
+        @raises CumulusCIException if the file does not exist
+        """
+        if not file_path.is_file() or file_path.name != DEFAULT_SERVICES_FILENAME:
+            raise CumulusCIException(
+                f"No {DEFAULT_SERVICES_FILENAME} file found at: {file_path}"
+            )
+
+        with open(file_path, "r") as f:
+            return json.loads(f.read())
+
+    def _write_default_services(
+        self, file_path: Path, default_services: T.Dict[str, str]
+    ) -> None:
+        """Writes default services out to the given file
+
+        @param file_path path to DEFAULT_SERVICES.json
+        @param dictionary mapping service types to the alias of the default service for that type
+        @raises CumulusCIException if the file does not exist
+        """
+        if file_path.name != DEFAULT_SERVICES_FILENAME:
+            raise CumulusCIException(
+                f"No {DEFAULT_SERVICES_FILENAME} file found at: {file_path}"
+            )
+
+        with open(file_path, "w") as f:
+            f.write(json.dumps(default_services))
 
     def _iter_local_project_dirs(self):
         """Iterate over all local project dirs in ~/.cumulusci"""

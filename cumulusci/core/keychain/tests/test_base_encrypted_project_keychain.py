@@ -1,3 +1,4 @@
+from cumulusci.core.config.ScratchOrgConfig import ScratchOrgConfig
 import pytest
 
 from cumulusci.core.keychain import BaseEncryptedProjectKeychain
@@ -82,3 +83,9 @@ class TestBaseEncryptedProjectKeychain:
         encrypted = keychain._encrypt_config(service_config)
         keychain._set_encrypted_service("github", "alias", encrypted, project=False)
         assert keychain.services["github"]["alias"] == encrypted
+
+    def test_construct_config(self, keychain):
+        result = keychain._construct_config(
+            None, [{"scratch": "scratch org"}, "org_name"]
+        )
+        assert isinstance(result, ScratchOrgConfig)

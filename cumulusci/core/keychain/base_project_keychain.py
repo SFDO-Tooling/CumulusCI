@@ -241,10 +241,9 @@ class BaseProjectKeychain(BaseConfig):
 
         if not alias:
             alias = self._default_services.get(service_type)
-            # TODO: add test
             if not alias:
                 raise CumulusCIException(
-                    f"No defualt service currently set for service type: {service_type}"
+                    f"No default service currently set for service type: {service_type}"
                 )
         service = self._get_service(service_type, alias)
 

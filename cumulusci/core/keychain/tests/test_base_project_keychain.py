@@ -4,7 +4,12 @@ import pytest
 from unittest import mock
 
 from cumulusci.core.keychain import BaseProjectKeychain, DEFAULT_CONNECTED_APP
-from cumulusci.core.exceptions import OrgNotFound, ServiceNotValid, ServiceNotConfigured
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    OrgNotFound,
+    ServiceNotValid,
+    ServiceNotConfigured,
+)
 from cumulusci.core.config import (
     BaseProjectConfig,
     OrgConfig,
@@ -92,6 +97,18 @@ class TestBaseProjectKeychain:
         default_github_service = keychain.get_service("devhub")
 
         assert default_github_service == "config3"
+
+    def test_get_service__default_service_not_set(self, keychain):
+        keychain._default_services = {"github": "baz"}
+        keychain.config["services"] = {
+            "devhub": {"foo": "config1", "bar": "config2", "baz": "config3"}
+        }
+
+        with pytest.raises(
+            CumulusCIException,
+            match="No default service currently set for service type: devhub",
+        ):
+            keychain.get_service("devhub")
 
     def test_get_service__service_not_loaded(self, keychain, service_config):
         keychain.project_config.config["services"] = {}
