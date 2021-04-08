@@ -1,10 +1,9 @@
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, Sequence
-from operator import xor
 
 from typing_extensions import Literal, TypedDict
-from pydantic import Field
+from pydantic import Field, root_validator
 
 from cumulusci.utils.fileutils import DataInput, load_from_source
 from cumulusci.utils.yaml.model_parser import CCIDictModel
@@ -33,12 +32,13 @@ class Step(CCIDictModel):
     ui_options: Dict[str, Any] = {}
     checks: List[PreflightCheck] = []
 
-    # only for validating against full model
-    @classmethod
+    @root_validator()
     def _check(cls, values):
-        assert xor(
-            bool(values.get("task")), bool(values.get("flow"))
-        ), "Steps must have a task or flow"
+        has_task = values.get("task") and values["task"] != "None"
+        has_flow = values.get("flow") and values["flow"] != "None"
+        assert not (
+            has_task and has_flow
+        ), "Steps must have either task or flow but not both"
         return values
 
 
@@ -105,12 +105,19 @@ class Plan(CCIDictModel):  # MetaDeploy plans
     preflight_message: str = None
 
 
+class DependencyResolutions(CCIDictModel):
+    production: str = None
+    preproduction: str = None
+    resolution_strategies: Dict[str, List[str]] = None
+
+
 class Project(CCIDictModel):
     name: str = None
     package: Package = None
     test: Test = None
     git: Git = None
     dependencies: List[Dict[str, str]] = None  # TODO
+    dependency_resolutions: DependencyResolutions = None
     source_format: Literal["sfdx", "mdapi"] = "mdapi"
 
 
