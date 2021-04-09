@@ -487,13 +487,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def get_repo_from_url(self, url):
         owner, name = split_repo_url(url)
-        try:
-            repo = self.get_github_api(owner, name).repository(owner, name)
-        except github3.exceptions.NotFoundError:
-            raise Exception(
-                f"We are unable to find the repository at {url}. Please make sure the URL is correct, that your GitHub user has read access to the repository, and that your GitHub personal access token includes the “repo” scope."
-            )
-        return repo
+        return self.get_github_api(owner, name).repository(owner, name)
 
     def get_task(self, name):
         """Get a TaskConfig by task name

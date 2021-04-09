@@ -1,6 +1,7 @@
 import io
 
 from github3.repos.repo import Repository
+from github3.exceptions import NotFoundError
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
@@ -9,12 +10,15 @@ from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 
 def get_repo(github: str, context: BaseProjectConfig) -> Repository:
-    repo = context.get_repo_from_url(github)
+    try:
+        repo = context.get_repo_from_url(github)
+    except NotFoundError:
+        repo = None
+
     if repo is None:
         raise DependencyResolutionError(
-            f"GitHub repository {github} not found or not authorized."
+            f"We are unable to find the repository at {github}. Please make sure the URL is correct, that your GitHub user has read access to the repository, and that your GitHub personal access token includes the “repo” scope."
         )
-
     return repo
 
 
