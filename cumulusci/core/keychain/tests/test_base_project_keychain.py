@@ -210,17 +210,9 @@ class TestBaseProjectKeychain:
     def test_validate_service_alias__same_as_service_type(self, keychain):
         with pytest.raises(
             ServiceNotValid,
-            match=re.escape("Service alias cannot be the same as the service type."),
+            match=re.escape("Service name cannot be the same as the service type."),
         ):
             keychain._validate_service_alias("service_type", "service_type")
-
-    def test_validate_service_alias__duplicate(self, keychain):
-        keychain.config["services"] = {"github": {"existing-alias": {}}}
-        with pytest.raises(
-            ServiceNotValid,
-            match="A service of type github is already configured with the name: existing-alias. Please choose a different name.",
-        ):
-            keychain._validate_service_alias("github", "existing-alias")
 
     def test_list_services(self, keychain):
         service_config = ServiceConfig({"foo": "bar"})

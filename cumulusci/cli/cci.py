@@ -883,20 +883,22 @@ class ConnectServiceCommand(click.MultiCommand):
                 service_name,
                 ServiceConfig(serv_conf),
             )
+            click.echo(f"Service {service_type}:{service_name} is now connected")
 
             if set_global_default:
                 runtime.keychain.set_default_service(
                     service_type, service_name, project=False
                 )
                 click.echo(
-                    f"Service {service_type}:{service_name} is configured for all CumulusCI projects."
+                    f"Service {service_type}:{service_name} is now the default for all CumulusCI projects"
                 )
             if set_project_default:
                 runtime.keychain.set_default_service(
                     service_type, service_name, project=True
                 )
+                project_name = Path(runtime.keychain.local_project_dir).name
                 click.echo(
-                    f"Service {service_type}:{service_name} is configured for this project."
+                    f"Service {service_type}:{service_name} is now the default for project '{project_name}'"
                 )
 
         params.append(click.Argument(["service_name"]))
@@ -961,11 +963,11 @@ def service_default(runtime, service_type, service_name, project):
     if project:
         project_name = Path(runtime.keychain.project_local_dir).name
         click.echo(
-            f"Service {service_type}:{service_name} is now the default for project '{project_name}''."
+            f"Service {service_type}:{service_name} is now the default for project '{project_name}'"
         )
     else:
         click.echo(
-            f"Service {service_type}:{service_name} is no the default for all CumulusCI projects."
+            f"Service {service_type}:{service_name} is now the default for all CumulusCI projects"
         )
 
 
