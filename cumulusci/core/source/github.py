@@ -7,6 +7,8 @@ from cumulusci.core.github import find_latest_release
 from cumulusci.core.github import find_previous_release
 from cumulusci.utils import download_extract_github
 
+from github3.exceptions import NotFoundError
+
 
 class GitHubSource:
     def __init__(self, project_config, spec):
@@ -19,11 +21,15 @@ class GitHubSource:
         repo_owner, repo_name = self.url.split("/")[-2:]
         self.repo_owner = repo_owner
         self.repo_name = repo_name
-
-        self.gh = get_github_api_for_repo(
-            project_config.keychain, repo_owner, repo_name
-        )
-        self.repo = self.gh.repository(self.repo_owner, self.repo_name)
+        try:
+            self.gh = get_github_api_for_repo(
+                project_config.keychain, repo_owner, repo_name
+            )
+            self.repo = self.gh.repository(self.repo_owner, self.repo_name)
+        except NotFoundError:
+            raise DependencyResolutionError(
+                f"We are unable to find the repository at {self.url}. Please make sure the URL is correct, that your GitHub user has read access to the repository, and that your GitHub personal access token includes the “repo” scope."
+            )
         self.resolve()
 
     def __repr__(self):
