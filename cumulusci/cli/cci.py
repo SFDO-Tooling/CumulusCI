@@ -854,6 +854,13 @@ class ConnectServiceCommand(click.MultiCommand):
         params.extend(self._get_default_options(runtime))
 
         def callback(*args, **kwargs):
+            service_name = kwargs["service_name"]
+            if service_name in runtime.keychain.list_services()[service_type]:
+                click.confirm(
+                    f"There is already a {service_type}:{service_name} service. Do you want to overwrite it?",
+                    abort=True,
+                )
+
             if runtime.project_config is None:
                 set_project_default = False
             else:
@@ -871,7 +878,6 @@ class ConnectServiceCommand(click.MultiCommand):
                 validator = import_global(validator_path)
                 validator(serv_conf)
 
-            service_name = kwargs["service_name"]
             runtime.keychain.set_service(
                 service_type,
                 service_name,
