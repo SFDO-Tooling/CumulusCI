@@ -889,14 +889,14 @@ class ConnectServiceCommand(click.MultiCommand):
                     service_type, service_name, project=False
                 )
                 click.echo(
-                    f"The {service_type} service named {service_name} is now configured for all CumulusCI projects."
+                    f"Service {service_type}:{service_name} is configured for all CumulusCI projects."
                 )
             if set_project_default:
                 runtime.keychain.set_default_service(
                     service_type, service_name, project=True
                 )
                 click.echo(
-                    f"The {service_type} service named {service_name} is now configured for this project."
+                    f"Service {service_type}:{service_name} is configured for this project."
                 )
 
         params.append(click.Argument(["service_name"]))
