@@ -958,8 +958,15 @@ def service_default(runtime, service_type, service_name, project):
     except ServiceNotConfigured as e:
         click.echo(f"An error occurred setting the default service: {e}")
         return
-
-    click.echo(f"'{service_name}' set as the default for {service_type} services.")
+    if project:
+        project_name = Path(runtime.keychain.project_local_dir).name
+        click.echo(
+            f"Service {service_type}:{service_name} is now the default for project {project_name}."
+        )
+    else:
+        click.echo(
+            f"Service {service_type}:{service_name} is no the default for all CumulusCI projects."
+        )
 
 
 @service.command(name="rename", help="Rename a service")
