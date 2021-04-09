@@ -674,94 +674,6 @@ class TestCCI(unittest.TestCase):
         self.assertIn("not configured for this project", echo.call_args[0][0])
 
     @mock.patch("cumulusci.cli.cci.CliTable")
-    def test_task_list(self, cli_tbl):
-        runtime = mock.Mock()
-        runtime.universal_config.cli__plain_output = None
-        runtime.get_available_tasks.return_value = [
-            {"name": "test_task", "description": "Test Task", "group": "Test Group"}
-        ]
-
-        run_click_command(cci.task_list, runtime=runtime, plain=False, print_json=False)
-
-        cli_tbl.assert_called_with(
-            [["Task", "Description"], ["test_task", "Test Task"]],
-            "Test Group",
-            wrap_cols=["Description"],
-        )
-
-    @mock.patch("json.dumps")
-    def test_task_list_json(self, json_):
-        task_dicts = {
-            "name": "test_task",
-            "description": "Test Task",
-            "group": "Test Group",
-        }
-        runtime = mock.Mock()
-        runtime.universal_config.cli__plain_output = None
-        runtime.get_available_tasks.return_value = [task_dicts]
-
-        run_click_command(cci.task_list, runtime=runtime, plain=False, print_json=True)
-
-        json_.assert_called_with([task_dicts])
-
-    @mock.patch("cumulusci.cli.cci.doc_task", return_value="docs")
-    def test_task_doc(self, doc_task):
-        runtime = mock.Mock()
-        runtime.universal_config.tasks = {"test": {}}
-        run_click_command(cci.task_doc, runtime=runtime, project=False)
-        doc_task.assert_called()
-
-    def test_task_doc__project__outside_project(self):
-        runtime = mock.Mock()
-        runtime.project_config = None
-        with pytest.raises(click.UsageError):
-            run_click_command(cci.task_doc, runtime=runtime, project=True)
-
-    @mock.patch("click.echo")
-    @mock.patch("cumulusci.cli.cci.doc_task", return_value="docs")
-    def test_task_doc_project(self, doc_task, echo):
-        runtime = mock.Mock()
-        runtime.universal_config = {"tasks": {}}
-        runtime.project_config = BaseProjectConfig(
-            runtime.universal_config,
-            {
-                "project": {"name": "Test"},
-                "tasks": {"task1": {"a": "b"}, "task2": {}},
-            },
-        )
-        runtime.project_config.config_project = {"tasks": {"task1": {"a": "b"}}}
-        run_click_command(cci.task_doc, runtime=runtime, project=True)
-        doc_task.assert_called()
-        echo.assert_called()
-
-    @mock.patch("cumulusci.cli.cci.Path")
-    @mock.patch("click.echo")
-    @mock.patch("cumulusci.cli.cci.doc_task", return_value="docs")
-    def test_task_doc_project_write(self, doc_task, echo, Path):
-        runtime = mock.Mock()
-        runtime.universal_config.tasks = {"test": {}}
-        runtime.project_config = BaseProjectConfig(
-            runtime.universal_config,
-            {
-                "project": {"name": "Test"},
-                "tasks": {"option": {"a": "b"}},
-            },
-        )
-        runtime.project_config.config_project = {"tasks": {"option": {"a": "b"}}}
-        run_click_command(cci.task_doc, runtime=runtime, project=True, write=True)
-        doc_task.assert_called()
-        echo.assert_not_called()
-
-    @mock.patch("cumulusci.cli.cci.rst2ansi")
-    @mock.patch("cumulusci.cli.cci.doc_task")
-    def test_task_info(self, doc_task, rst2ansi):
-        runtime = mock.Mock()
-        runtime.project_config.tasks__test = {"options": {}}
-        run_click_command(cci.task_info, runtime=runtime, task_name="test")
-        doc_task.assert_called_once()
-        rst2ansi.assert_called_once()
-
-    @mock.patch("cumulusci.cli.cci.CliTable")
     def test_flow_list(self, cli_tbl):
         runtime = mock.Mock()
         runtime.get_available_flows.return_value = [
@@ -1004,10 +916,6 @@ class TestCCI(unittest.TestCase):
 
 def validate_service(options):
     raise Exception("Validation failed")
-
-
-class SetTrace(Exception):
-    pass
 
 
 def mock_validate_debug(value):
