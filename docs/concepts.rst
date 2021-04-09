@@ -157,8 +157,11 @@ For details, see :doc:`Manage Scratch Orgs <scratch_orgs>` and :doc:`Connect Per
 Services
 ^^^^^^^^
 
-Services represent external resources used by CumulusCI automation, such as access to a GitHub account or a MetaDeploy instance. Services are usually, but not always, connected to CumulusCI across projects as part of the global keychain. The command ``cci service list`` shows you which services are connected in the context of the current project.
+Services represent external resources used by CumulusCI automation, such as access to a GitHub account or a MetaDeploy instance.
+Services are usually, but not always, connected to CumulusCI across projects as part of the global keychain.
+The command ``cci service list`` shows you which services are connected in the context of the current project.
 
-Global services are easy to use and share. We recommend that you use them as much as possible. However, services can also be connected at the project level, which means that they're scoped to a single project and cannot be shared.
+Global services are easy to use and share. We recommend that you use them as much as possible.
+However, services can also be connected at the project level, which means that they're scoped to a single project and cannot be shared.
 
-        Example: If you need to use a specific Dev Hub for a specific project, you can connect to that service with the command ``cci service connect devhub --project``.
+For more information on configuring services via the ``cci`` command line see the :ref:`managing services <Manage Services>` section.

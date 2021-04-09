@@ -316,7 +316,13 @@ To rename a service use:
 
     $ cci service rename <service_type> <old_name> <new_name>
 
+Remove a Service
+****************
+To remove a service use:
 
+.. code-block:: console
+
+    $ cci service remove <service_type> <service_name>
 
 Troubleshoot Errors
 -------------------

@@ -228,6 +228,6 @@ By default, CumulusCI creates scratch orgs using the DevHub org configured as th
 
 .. code-block:: console
 
-    $ cci service connect devhub --project
+    $ cci service connect devhub mydevhub --project
     Username: <DevHub username>
     devhub is now configured for this project.
