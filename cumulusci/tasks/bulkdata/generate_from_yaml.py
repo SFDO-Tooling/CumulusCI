@@ -9,7 +9,6 @@ from cumulusci.core.utils import process_list_of_pairs_dict_arg, process_list_ar
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata.base_generate_data_task import BaseGenerateDataTask
-from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 from snowfakery import generate_data
 
 
@@ -85,20 +84,17 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                     "Cannot specify num_records without num_records_tablename."
                 )
 
-            self.stopping_criteria = (num_records_tablename, num_records)
+            self.stopping_criteria = (num_records, num_records_tablename)
         self.working_directory = self.options.get("working_directory")
         loading_rules = process_list_arg(self.options.get("loading_rules")) or []
         self.loading_rules = [Path(path) for path in loading_rules if path]
 
     def _generate_data(self, db_url, mapping_file_path, num_records, current_batch_num):
         """Generate all of the data"""
-        if mapping_file_path:
-            self.mapping = parse_from_yaml(mapping_file_path)
-        else:
-            self.mapping = {}
         if num_records is not None:  # num_records is None means execute Snowfakery once
             self.logger.info(f"Generating batch {current_batch_num} with {num_records}")
         self.generate_data(db_url, num_records, current_batch_num)
+        self.logger.info("Generated batch")
 
     def default_continuation_file_path(self):
         return Path(self.working_directory) / "continuation.yml"
@@ -162,6 +158,7 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                 generate_cci_mapping_file=self.generate_mapping_file,
                 dburl=dburl,
                 load_declarations=self.loading_rules,
+                should_create_cci_record_type_tables=True,
             )
 
             if (
