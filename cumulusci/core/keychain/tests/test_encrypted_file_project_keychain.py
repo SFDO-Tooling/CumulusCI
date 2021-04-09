@@ -7,6 +7,7 @@ from unittest import mock
 
 from cumulusci.core.exceptions import (
     CumulusCIException,
+    CumulusCIUsageError,
     OrgNotFound,
     ServiceNotConfigured,
 )
@@ -480,9 +481,20 @@ class TestEncryptedFileProjectKeychain:
         with open(cci_home_dir / "DEFAULT_SERVICES.json", "r") as f:
             assert json.loads(f.read()) == {"github": "new_alias"}
 
+    def test_rename_service__new_alias_already_exists(self, keychain):
+        keychain.services = {
+            "github": {"old-alias": "old config", "new-alias": "new config"}
+        }
+        with pytest.raises(
+            CumulusCIUsageError,
+            match="A service of type github already exists with name: new-alias",
+        ):
+            keychain.rename_service("github", "old-alias", "new-alias")
+
     def test_rename_service__invalid_service_type(self, keychain, service_config):
+        keychain.services = {"github": {"alias": "config"}}
         with pytest.raises(ServiceNotConfigured):
-            keychain.rename_service("does-not-exist", "old_alias", "new_alias")
+            keychain.rename_service("does-not-exist", "old-alias", "new-alias")
 
     def test_rename_service__invalid_service_alias(self, keychain, service_config):
         keychain.services = {"github": {"current_alias": "some config"}}

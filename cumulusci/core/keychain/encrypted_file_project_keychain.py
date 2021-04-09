@@ -6,6 +6,7 @@ from pathlib import Path
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import (
     CumulusCIException,
+    CumulusCIUsageError,
     OrgNotFound,
     ServiceNotConfigured,
 )
@@ -192,6 +193,10 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         elif current_alias not in self.services[service_type]:
             raise ServiceNotConfigured(
                 f"No service of type {service_type} configured with the name: {current_alias}"
+            )
+        elif new_alias in self.services[service_type]:
+            raise CumulusCIUsageError(
+                f"A service of type {service_type} already exists with name: {new_alias}"
             )
 
         self.services[service_type][new_alias] = self.services[service_type][
