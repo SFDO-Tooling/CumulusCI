@@ -675,7 +675,7 @@ CumulusCI includes several tasks for working with Robot Framework tests and keyw
   documentation if you choose to create a library of robot keywords
   for your project.
 
-Configuring the robot task
+Configuring the ``robot`` task
 --------------------------
 
 The robot framework command-line test runner supports more than 50
