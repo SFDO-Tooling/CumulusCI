@@ -44,31 +44,6 @@ class BaseProjectKeychain(BaseConfig):
     def _validate_key(self):
         pass
 
-    def change_key(self, key):
-        """ re-encrypt stored services and orgs with the new key """
-        configured_services = {}
-        for service_type, aliases in self.services.items():
-            if service_type not in configured_services:
-                configured_services[service_type] = {}
-            for alias, config in aliases.items():
-                configured_services[service_type][alias] = config
-
-        orgs = {}
-        for org_name in self.list_orgs():
-            orgs[org_name] = self.get_org(org_name)
-
-        self.key = key
-
-        if orgs:
-            for org_name, org_config in list(orgs.items()):
-                org_config.save()
-
-        if configured_services:
-            for service_type, aliases in configured_services.items():
-                for alias, config in aliases.items():
-                    del self.services[service_type][alias]
-                    self.set_service(service_type, alias, config)
-
     #######################################
     #               Orgs                  #
     #######################################

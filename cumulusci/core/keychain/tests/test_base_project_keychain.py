@@ -60,25 +60,6 @@ class TestBaseProjectKeychain:
         with pytest.raises(ServiceNotConfigured):
             keychain.get_service("not_configured")
 
-    def test_change_key(self, keychain, org_config, service_configs):
-        keychain.set_org(org_config)
-        keychain.set_service("connected_app", "alias", service_configs["connected_app"])
-        keychain.set_service("github", "alias", service_configs["github"])
-
-        new_key = "9876543210987654"
-        keychain.change_key(new_key)
-
-        assert keychain.key == new_key
-        assert keychain.get_org("test").config == org_config.config
-        assert (
-            keychain.get_service("github", "alias").config
-            == service_configs["github"].config
-        )
-        assert (
-            keychain.get_service("connected_app", "alias").config
-            == service_configs["connected_app"].config
-        )
-
     def test_set_service__github(self, keychain, service_config):
         keychain.set_service("github", "alias", service_config)
         assert keychain.get_service("github", "alias").config == service_config.config
