@@ -681,7 +681,7 @@ Configuring the ``robot`` task
 The robot framework command-line test runner supports more than 50
 `command line options
 <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#command-line-options-for-test-execution>`_.
-To make the robot task simpler to use, we've only exposed a few of the
+To make the ``robot`` task simpler to use, we've only exposed a few of the
 command-line options at the task level. For example, the robot task
 options ``include`` and ``exclude`` directly map to the robot
 command-line options ``--include`` and ``--exclude``. These options
