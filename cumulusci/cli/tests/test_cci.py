@@ -467,6 +467,39 @@ class TestCCI(unittest.TestCase):
         # no assertion; this test is for coverage of empty methods
 
     @mock.patch("cumulusci.cli.cci.CliTable")
+    def test_service_list__no_active_defaults(self, cli_tbl):
+        runtime = mock.Mock()
+        runtime.project_config.services = {
+            "bad": {"description": "Unconfigured Service"},
+            "test": {"description": "Test Service"},
+            "something_else": {"description": "something else"},
+        }
+        runtime.keychain.list_services.return_value = {
+            "test": ["test_alias", "test2_alias"],
+            "bad": ["bad_alias"],
+        }
+        runtime.keychain._default_services = {"test": "test_alias"}
+        runtime.universal_config.cli__plain_output = None
+
+        run_click_command(
+            cci.service_list, runtime=runtime, plain=False, print_json=False
+        )
+
+        cli_tbl.assert_called_with(
+            [
+                ["Type", "Name", "Default", "Description"],
+                ["bad", "bad_alias", False, "Unconfigured Service"],
+                ["something_else", "", False, "something else"],
+                ["test", "test_alias", True, "Test Service"],
+                ["test", "test2_alias", False, "Test Service"],
+            ],
+            bool_cols=["Default"],
+            dim_rows=[2],
+            title="Services",
+            wrap_cols=["Description"],
+        )
+
+    @mock.patch("cumulusci.cli.cci.CliTable")
     def test_service_list(self, cli_tbl):
         runtime = mock.Mock()
         runtime.project_config.services = {
@@ -550,6 +583,29 @@ class TestCCI(unittest.TestCase):
 
             cmd.callback(ctx.obj, project=False, service_name="test-alias")
 
+    @mock.patch("cumulusci.cli.cci.click.confirm")
+    def test_service_connect__alias_already_exists(self, confirm):
+        confirm.side_effect = "y"
+        multi_cmd = cci.ConnectServiceCommand()
+        ctx = mock.Mock()
+        runtime = mock.MagicMock()
+        runtime.project_config.services = {
+            "test-type": {"attributes": {"attr": {"required": False}}}
+        }
+        runtime.services = {"test-type": {"already-exists": "some config"}}
+        runtime.keychain.list_services.return_value = {"test-type": ["already-exists"]}
+
+        with click.Context(multi_cmd, obj=runtime) as ctx:
+            cmd = multi_cmd.get_command(ctx, "test-type")
+            cmd.callback(
+                runtime,
+                service_type="test-type",
+                service_name="already-exists",
+                project=True,
+            )
+
+        confirm.assert_called_once()
+
     @mock.patch("click.echo")
     def test_service_connect__global_default(self, echo):
         multi_cmd = cci.ConnectServiceCommand()
@@ -568,8 +624,12 @@ class TestCCI(unittest.TestCase):
         runtime.keychain.set_default_service.assert_called_once_with(
             "test", "test-alias", project=False
         )
-        echo.assert_called_once_with(
-            "The test service named test-alias is now configured for all CumulusCI projects."
+        assert (
+            echo.call_args_list[0][0][0] == "Service test:test-alias is now connected"
+        )
+        assert (
+            echo.call_args_list[1][0][0]
+            == "Service test:test-alias is now the default for all CumulusCI projects"
         )
 
     @mock.patch("click.echo")
@@ -590,8 +650,12 @@ class TestCCI(unittest.TestCase):
         runtime.keychain.set_default_service.assert_called_once_with(
             "test", "test-alias", project=True
         )
-        echo.assert_called_once_with(
-            "The test service named test-alias is now configured for this project."
+        assert (
+            echo.call_args_list[0][0][0] == "Service test:test-alias is now connected"
+        )
+        assert (
+            "Service test:test-alias is now the default for project"
+            in echo.call_args_list[1][0][0]
         )
 
     def test_service_connect_global_keychain(self):
@@ -632,7 +696,12 @@ class TestCCI(unittest.TestCase):
         with click.Context(multi_cmd, obj=runtime) as ctx:
             cmd = multi_cmd.get_command(ctx, "test")
             with pytest.raises(Exception, match="Validation failed"):
-                cmd.callback(ctx.obj, project=True, service_name="test-alias")
+                cmd.callback(
+                    runtime,
+                    service_type="test",
+                    service_name="test-alias",
+                    project=False,
+                )
 
     @mock.patch("cumulusci.cli.cci.CliTable")
     def test_service_info(self, cli_tbl):
@@ -672,9 +741,8 @@ class TestCCI(unittest.TestCase):
         assert "not configured for this project" in echo.call_args[0][0]
 
     @mock.patch("click.echo")
-    def test_service_default(self, echo):
+    def test_service_default__global(self, echo):
         runtime = mock.Mock()
-
         run_click_command(
             cci.service_default,
             runtime=runtime,
@@ -684,7 +752,23 @@ class TestCCI(unittest.TestCase):
         )
         runtime.keychain.set_default_service.called_once_with("test", "test-alias")
         echo.assert_called_once_with(
-            "'test-alias' set as the default for test services."
+            "Service test:test-alias is now the default for all CumulusCI projects"
+        )
+
+    @mock.patch("click.echo")
+    def test_service_default__project(self, echo):
+        runtime = mock.Mock()
+        runtime.keychain.project_local_dir = "test"
+        run_click_command(
+            cci.service_default,
+            runtime=runtime,
+            service_type="test",
+            service_name="test-alias",
+            project=True,
+        )
+        runtime.keychain.set_default_service.called_once_with("test", "test-alias")
+        echo.assert_called_once_with(
+            "Service test:test-alias is now the default for project 'test'"
         )
 
     @mock.patch("click.echo")
@@ -738,7 +822,6 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.cci.click")
     def test_service_remove(self, click):
-
         click.prompt.side_effect = ("future-default-alias",)
         runtime = mock.Mock()
         runtime.keychain.services = {
@@ -768,6 +851,34 @@ class TestCCI(unittest.TestCase):
             click.echo.call_args_list[-1][0][0]
             == "Service github:current-default-alias has been removed."
         )
+
+    @mock.patch("cumulusci.cli.cci.click")
+    def test_service_remove__name_does_not_exist(self, click):
+        click.prompt.side_effect = ("this-alias-does-not-exist",)
+        runtime = mock.Mock()
+        runtime.keychain.services = {
+            "github": {
+                "current-default-alias": "config1",
+                "another-alias": "config2",
+                "future-default-alias": "config3",
+            }
+        }
+        runtime.keychain._default_services = {"github": "current-default-alias"}
+        runtime.keychain.list_services.return_value = {
+            "github": ["current-default-alias", "another-alias", "future-default-alias"]
+        }
+        run_click_command(
+            cci.service_remove,
+            runtime=runtime,
+            service_type="github",
+            service_name="current-default-alias",
+        )
+        assert (
+            click.echo.call_args_list[-1][0][0]
+            == "No service of type github with name: this-alias-does-not-exist"
+        )
+        assert runtime.keychain.remove_service.call_count == 0
+        assert runtime.keychain.set_default_service.call_count == 0
 
     @mock.patch("cumulusci.cli.cci.click")
     def test_service_remove__exception_thrown(self, click):

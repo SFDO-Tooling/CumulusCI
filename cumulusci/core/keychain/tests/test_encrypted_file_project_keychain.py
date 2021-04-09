@@ -286,6 +286,21 @@ class TestEncryptedFileProjectKeychain:
         assert cci_home_dir / "chewy" in local_project_dirs
         assert cci_home_dir / "yoshi" in local_project_dirs
 
+    def test_create_default_service_file__file_already_exists(self, key):
+        home_dir = tempfile.mkdtemp()
+        cci_home_dir = Path(f"{home_dir}/.cumulusci")
+        cci_home_dir.mkdir(parents=True)
+        local_project_dir = cci_home_dir / "test-project"
+        local_project_dir.mkdir()
+        self._write_file(cci_home_dir / "DEFAULT_SERVICES.json", json.dumps({}))
+        with mock.patch.object(
+            EncryptedFileProjectKeychain, "global_config_dir", cci_home_dir
+        ):
+            keychain = EncryptedFileProjectKeychain(UniversalConfig(), key)
+            keychain._create_default_service_files()
+
+        assert not (local_project_dir / "DEFAULT_SERVICE.json").is_file()
+
     def test_create_default_services_files__without_project_service(self, key):
         home_dir = tempfile.mkdtemp()
         cci_home_dir = Path(f"{home_dir}/.cumulusci")
