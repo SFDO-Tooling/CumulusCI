@@ -896,7 +896,7 @@ class ConnectServiceCommand(click.MultiCommand):
                 runtime.keychain.set_default_service(
                     service_type, service_name, project=True
                 )
-                project_name = Path(runtime.keychain.local_project_dir).name
+                project_name = runtime.project_config.project__name
                 click.echo(
                     f"Service {service_type}:{service_name} is now the default for project '{project_name}'"
                 )
