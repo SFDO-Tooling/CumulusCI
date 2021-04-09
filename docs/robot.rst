@@ -699,7 +699,7 @@ use the robot command line option ``--outputdir`` to specify where robot should
 write its report and log files. To configure this option
 for the task, you must remove the leading dashes from the option name
 and then place that option
-and value in a nested ``option`` section.
+and value in a nested ``options`` section.
 
 .. code-block:: robotframework
 
