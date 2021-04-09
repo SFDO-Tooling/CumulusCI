@@ -685,7 +685,16 @@ To make the ``robot`` task simpler to use, we've only exposed a few of the
 command-line options at the task level. For example, the ``robot`` task
 options ``include`` and ``exclude`` directly map to the Robot
 command-line options ``--include`` and ``--exclude``. These options
-can be configured the same as any other task option. Other robot
+are specified the same way as task options elsewhere in the CumulusCI framework, 
+using either command-line options as shown above or by including them in the ``options``
+section of a task configuration in ``cumulusci.yml``::
+
+    tasks:
+        robot:
+            options:
+                include: <value>
+
+Other Robot
 command-line options, such as ``tagstatlink``, ``expandkeywords``, and
 many others, have no direct task option counterpart.
 
