@@ -698,7 +698,7 @@ Other Robot
 command-line options, such as ``tagstatlink``, ``expandkeywords``, and
 many others, have no direct task option counterpart.
 
-There may be times when you want to use some of the robot framework
+There may be times when you want to use some of the Robot Framework
 options which haven't been exposed as task options. We support that through
 an additional ``options`` section inside the normal task options in
 cumulusci.yml.
