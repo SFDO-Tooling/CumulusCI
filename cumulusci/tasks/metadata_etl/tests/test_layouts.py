@@ -182,4 +182,75 @@ class TestAddRelatedLists:
 
 
 ##### Lightning Action add to Layout tests
-# #TODO - rewrite!
+
+# SET MOCK DATA
+
+#   EMPTY LAYOUT (no actions)
+    MOCK_EMPTY_LAYOUT = """<?xml version="1.0" encoding="UTF-8"?>
+<Layout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <excludeButtons>Submit</excludeButtons>
+    <layoutSections>
+        <customLabel>false</customLabel>
+        <detailHeading>false</detailHeading>
+        <editHeading>true</editHeading>
+        <label>Information</label>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Required</behavior>
+                <field>Name</field>
+            </layoutItems>
+            <layoutItems>
+                <emptySpace>true</emptySpace>
+            </layoutItems>
+            <layoutItems>
+                <emptySpace>true</emptySpace>
+            </layoutItems>
+        </layoutColumns>
+        <style>TwoColumnsTopToBottom</style>
+    </layoutSections>
+    <miniLayout>
+        <fields>Name</fields>
+        <relatedLists>
+            <fields>NAME</fields>
+            <fields>STATUS</fields>            
+            <relatedList>MOCKOBJECT</relatedList>
+        </relatedLists>
+    </miniLayout>
+    {action_list_scenario}
+<relatedLists>
+        <fields>FULL_NAME</fields>
+        <fields>CONTACT.TITLE</fields>
+        <fields>CONTACT.EMAIL</fields>
+        <fields>CONTACT.PHONE1</fields>
+        <relatedList>RelatedContactList</relatedList>
+    </relatedLists>
+    <relatedLists>
+        <relatedList>RelatedFileList</relatedList>
+    </relatedLists>
+    <showEmailCheckbox>false</showEmailCheckbox>
+    <showHighlightsPanel>false</showHighlightsPanel>
+    <showInteractionLogPanel>false</showInteractionLogPanel>
+    <showRunAssignmentRulesCheckbox>false</showRunAssignmentRulesCheckbox>
+    <showSubmitAndAttachButton>false</showSubmitAndAttachButton>
+</Layout>
+"""
+#   LAYOUT with existing record action list and 2 items
+#   LAYOUT with non record platform action
+
+class TestAddRecordPlatformActionListItem:
+# tests of transform_entity
+#   Should return without transform not insert if exists
+    #        tree = metadata_tree.fromstring(
+        #     LAYOUT_XML.format(relatedLists=RELATED_LIST).encode("utf-8")
+        # )
+# test functions
+#   test get_existing_action_list
+#       Metadata has existing record action list
+#       Metadata doesnt have record action list
+#   test create_new_action_list_item 
+#       # test add action last 
+#       # test add action first
+#       # NOTE: these will not update the sortOrder
+#   test update_platform_action_list_items_sort_order
+#       # mock data with new item first
+#       # mock data with new item last
