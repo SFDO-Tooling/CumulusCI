@@ -675,6 +675,55 @@ CumulusCI includes several tasks for working with Robot Framework tests and keyw
   documentation if you choose to create a library of robot keywords
   for your project.
 
+Configuring the robot task
+--------------------------
+
+The robot framework command-line test runner supports more than 50
+`command line options
+<http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#command-line-options-for-test-execution>`_.
+To make the robot task simpler to use, we've only exposed a few of the
+command-line options at the task level. For example, the robot task
+options ``include`` and ``exclude`` directly map to the robot
+command-line options ``--include`` and ``--exclude``. These options
+can be configured the same as any other task option. Other robot
+command-line options, such as ``tagstatlink``, ``expandkeywords``, and
+many others, have no direct task option counterpart.
+
+There may be times when you want to use some of the robot framework
+options which haven't been exposed as task options. We support that through
+an additional ``options`` section inside the normal task options in
+cumulusci.yml.
+
+For example, one of the most common uses of this inner ``options`` section is to
+use the robot command line option ``--outputdir`` to specify where robot should
+write its report and log files. To configure this command line option
+for the task, you must remove the leading dashes from the option name
+and then place that option
+and value in a nested ``option`` section.
+
+.. code-block:: robotframework
+
+    tasks:
+        robot:
+            options:
+                options:
+                    outputdir: robot/my_project/results
+
+Any robot command-line option which takes a value can be specified
+this way. For example, to use the robot option ``--name`` along with
+``--outputdir``, your cumulusci.yml file should look like
+this:
+
+.. code-block:: robotframework
+
+    tasks:
+        robot:
+            options:
+                options:
+                    outputdir: robot/my_project/results
+                    name: Salesforce Robot Tests
+
+
 Configuring the libdoc task
 ---------------------------
 
@@ -782,7 +831,7 @@ configure the ``robot`` task to use one of the sources that have been
 defined for the project. To do this, add a :code:`sources` option in
 the ``robot`` task, and add to it the name of one of the imported sources.
 
-For exmple, if your project is built on top of NPSP and you want to
+For example, if your project is built on top of NPSP and you want to
 use keywords from the NPSP project, you must first add the NPSP
 repository as a source in the project's ``cumulusci.yml``:
 
