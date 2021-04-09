@@ -683,9 +683,9 @@ The Robot Framework command-line test runner supports more than 50
 <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#command-line-options-for-test-execution>`_.
 To make the ``robot`` task simpler to use, we've only exposed a few of the
 command-line options at the task level. For example, the ``robot`` task
-options ``include`` and ``exclude`` directly map to the Robot
-command-line options ``--include`` and ``--exclude``. These options
-are specified the same way as task options elsewhere in the CumulusCI framework, 
+options ``include`` and ``exclude`` directly map to the Robot CLI
+options ``--include`` and ``--exclude``. These options
+are specified the same way as task options elsewhere in the CumulusCI framework,
 using either command-line options as shown above or by including them in the ``options``
 section of a task configuration in ``cumulusci.yml``::
 
@@ -694,17 +694,17 @@ section of a task configuration in ``cumulusci.yml``::
             options:
                 include: <value>
 
-Other Robot
-command-line options, such as ``tagstatlink``, ``expandkeywords``, and
+Other Robot CLI
+options, such as ``tagstatlink``, ``expandkeywords``, and
 many others, have no direct task option counterpart.
 
-There may be times when you want to use some of the Robot Framework
+There may be times when you want to use some of the Robot CLI
 options which haven't been exposed as task options. We support that through
 an additional ``options`` section nested inside the typical task options in
 ``cumulusci.yml``.
 
 For example, one of the most common uses of this inner ``options`` section is to
-use the Robot command line option ``--outputdir`` to specify where Robot should
+use the Robot CLI option ``--outputdir`` to specify where Robot should
 write its report and log files. To configure this option
 for the task, you must remove the leading dashes from the option name
 and then place that option
@@ -718,8 +718,8 @@ and value in a nested ``options`` section.
                 options:
                     outputdir: robot/my_project/results
 
-Any Robot command-line option which takes a value can be specified
-this way. For example, to use the robot option ``--name`` along with
+Any Robot CLI option which takes a value can be specified
+this way. For example, to use the Robot CLI option ``--name`` along with
 ``--outputdir``, your ``cumulusci.yml`` file should look like
 this:
 
@@ -736,7 +736,7 @@ this:
 Configuring the ``libdoc`` task
 ---------------------------
 
-If you have defined a robot resource file named MyProject.resource and
+If you have defined a Robot resource file named MyProject.resource and
 placed it in the ``resources`` folder, you can add the following
 configuration to your cumulusci.yml file in order to enable the
 ``robot_libdoc`` task to generate documentation:
