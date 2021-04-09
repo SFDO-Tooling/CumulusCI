@@ -152,6 +152,7 @@ class CreateConnectedApp(SFDXBaseTask):
     def _connect_service(self):
         self.project_config.keychain.set_service(
             "connected_app",
+            "default_connected_app",
             ServiceConfig(
                 {
                     "client_id": self.client_id,

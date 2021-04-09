@@ -77,7 +77,7 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
             "github": {"attributes": {"email": {}}}
         }
         self.project_config.keychain.set_service(
-            "github", ServiceConfig({"email": self.email}), True
+            "github", "test_alias", ServiceConfig({"email": self.email})
         )
         task = CreateConnectedApp(self.project_config, self.task_config)
         self.assertEqual(task.options["email"], self.email)
@@ -192,6 +192,7 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         }
         self.project_config.keychain.set_service(
             "connected_app",
+            "test_alias",
             ServiceConfig(
                 {
                     "callback_url": "http://callback",
@@ -199,7 +200,6 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
                     "client_secret": "ClientSecret",
                 }
             ),
-            True,
         )
         task = CreateConnectedApp(self.project_config, self.task_config)
         with pytest.raises(
