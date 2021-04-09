@@ -701,7 +701,7 @@ many others, have no direct task option counterpart.
 There may be times when you want to use some of the Robot Framework
 options which haven't been exposed as task options. We support that through
 an additional ``options`` section nested inside the typical task options in
-cumulusci.yml.
+``cumulusci.yml``.
 
 For example, one of the most common uses of this inner ``options`` section is to
 use the Robot command line option ``--outputdir`` to specify where Robot should
