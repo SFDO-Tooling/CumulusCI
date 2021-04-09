@@ -724,7 +724,7 @@ this:
                     name: Salesforce Robot Tests
 
 
-Configuring the libdoc task
+Configuring the ``libdoc`` task
 ---------------------------
 
 If you have defined a robot resource file named MyProject.resource and
