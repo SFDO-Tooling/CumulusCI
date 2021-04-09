@@ -1133,6 +1133,7 @@ Environment Info: Rossian / x68_46
             runtime=runtime,
             service_type="test",
             service_name="test-alias",
+            project=False,
         )
         runtime.keychain.set_default_service.called_once_with("test", "test-alias")
         echo.assert_called_once_with(
@@ -1150,6 +1151,7 @@ Environment Info: Rossian / x68_46
             runtime=runtime,
             service_type="no-such-type",
             service_name="test-alias",
+            project=False,
         )
         echo.assert_called_once_with(
             "An error occurred setting the default service: test error"

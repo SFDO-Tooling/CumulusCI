@@ -940,10 +940,15 @@ def service_info(runtime, service_name, service_type, plain):
 )
 @click.argument("service_type")
 @click.argument("service_name")
+@click.option(
+    "--project",
+    is_flag=True,
+    help="Sets the service as the default for the current project.",
+)
 @pass_runtime(require_project=False, require_keychain=True)
-def service_default(runtime, service_type, service_name):
+def service_default(runtime, service_type, service_name, project):
     try:
-        runtime.keychain.set_default_service(service_type, service_name)
+        runtime.keychain.set_default_service(service_type, service_name, project)
     except ServiceNotConfigured as e:
         click.echo(f"An error occurred setting the default service: {e}")
         return
