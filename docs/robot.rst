@@ -683,7 +683,7 @@ The Robot Framework command-line test runner supports more than 50
 <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#command-line-options-for-test-execution>`_.
 To make the ``robot`` task simpler to use, we've only exposed a few of the
 command-line options at the task level. For example, the ``robot`` task
-options ``include`` and ``exclude`` directly map to the robot
+options ``include`` and ``exclude`` directly map to the Robot
 command-line options ``--include`` and ``--exclude``. These options
 can be configured the same as any other task option. Other robot
 command-line options, such as ``tagstatlink``, ``expandkeywords``, and
