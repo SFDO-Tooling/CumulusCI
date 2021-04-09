@@ -61,7 +61,7 @@ class TestSalesforceToolingTask(unittest.TestCase):
 
     def test_connected_app_client_name(self):
         self.project_config.keychain.set_service(
-            "connectedapp", ServiceConfig({"client_id": "test123"})
+            "connectedapp", "test_alias", ServiceConfig({"client_id": "test123"})
         )
 
         task = BaseSalesforceApiTask(
