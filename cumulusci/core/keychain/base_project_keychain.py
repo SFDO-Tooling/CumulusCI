@@ -172,12 +172,6 @@ class BaseProjectKeychain(BaseConfig):
 
     def set_service(self, service_type, alias, service_config):
         """Store a ServiceConfig in the keychain"""
-        if (
-            not self.project_config.services
-            or service_type not in self.project_config.services
-        ):
-            self._raise_service_not_valid(service_type)
-
         self._validate_service(service_type, alias, service_config)
         self._set_service(service_type, alias, service_config)
         self._load_services()
@@ -230,6 +224,12 @@ class BaseProjectKeychain(BaseConfig):
         return self.services[service_type][alias]
 
     def _validate_service(self, service_type, alias, config):
+        if (
+            not self.project_config.services
+            or service_type not in self.project_config.services
+        ):
+            self._raise_service_not_valid(service_type)
+
         self._validate_service_alias(service_type, alias)
         self._validate_service_attributes(service_type, config)
 
