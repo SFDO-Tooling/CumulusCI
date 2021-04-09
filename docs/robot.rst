@@ -700,7 +700,7 @@ many others, have no direct task option counterpart.
 
 There may be times when you want to use some of the Robot Framework
 options which haven't been exposed as task options. We support that through
-an additional ``options`` section inside the normal task options in
+an additional ``options`` section nested inside the typical task options in
 cumulusci.yml.
 
 For example, one of the most common uses of this inner ``options`` section is to
