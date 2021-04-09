@@ -163,14 +163,14 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     def set_default_service(
         self, service_type: str, alias: str, project: bool = False
     ) -> None:
-        """Public API for setting a default service e.g. `cci service default`"""
-        if service_type not in self.project_config.services:
-            raise ServiceNotConfigured(f"No such service type: {service_type}")
-        elif alias not in self.services[service_type]:
-            raise ServiceNotConfigured(
-                f"No service of type {service_type} configured with name: {alias}"
-            )
+        """Public API for setting a default service e.g. `cci service default`
 
+        @param service_type: the type of service
+        @param alias: the name of the service
+        @param project: Should this be a project default
+        @raises ServiceNotConfigured if service_type or alias are invalid
+        """
+        self._validate_service_type_and_alias(service_type, alias)
         self._default_services[service_type] = alias
         self._save_default_service(service_type, alias, project=project)
 
@@ -185,16 +185,8 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         @throws: ServiceNotValid if no services of the given type are configured,
         or if no service of the given type has the current_alias
         """
-
-        if service_type not in self.services:
-            raise ServiceNotConfigured(
-                f"No services of type {service_type} are currently configured"
-            )
-        elif current_alias not in self.services[service_type]:
-            raise ServiceNotConfigured(
-                f"No service of type {service_type} configured with the name: {current_alias}"
-            )
-        elif new_alias in self.services[service_type]:
+        self._validate_service_type_and_alias(service_type, current_alias)
+        if new_alias in self.services[service_type]:
             raise CumulusCIUsageError(
                 f"A service of type {service_type} already exists with name: {new_alias}"
             )
@@ -228,6 +220,58 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 current_alias,
                 new_alias,
             )
+
+    def remove_service(self, service_type: str, alias: str):
+        """Removes the given service from the keychain. If the service
+        is the default service, and there is only one other service
+        of the same type, that service is set as the new default.
+
+        @param service_type type of the service
+        @param alias the name of the service
+        @raises ServiceNotConfigured if the service_type or alias are invalid
+        """
+        self._validate_service_type_and_alias(service_type, alias)
+
+        # remove the loaded service from the keychain
+        del self.services[service_type][alias]
+
+        # delete the corresponding .service file
+        service_filepath = Path(
+            f"{self.global_config_dir}/services/{service_type}/{alias}.service"
+        )
+        service_filepath.unlink()
+
+        # remove any references from DEFAULT_SERVICES.json files
+        self._remove_reference_to_alias(
+            Path(self.global_config_dir, "DEFAULT_SERVICES.json"),
+            service_type,
+            alias,
+        )
+        for project_dir in self._iter_local_project_dirs():
+            self._remove_reference_to_alias(
+                project_dir / "DEFAULT_SERVICES.json",
+                service_type,
+                alias,
+            )
+
+        # if set, remove the service as the default
+        if alias == self._default_services[service_type]:
+            del self._default_services[service_type]
+            if len(self.services[service_type].keys()) == 1:
+                alias = self.list_services()[service_type][0]
+                self.set_default_service(service_type, alias, project=False)
+
+    def _remove_reference_to_alias(
+        self, default_services_filepath: Path, service_type: str, alias: str
+    ) -> None:
+        """Given the path to a DEFAULT_SERVICES.json file, removes any references
+        to the given alias if present."""
+        default_services = self._read_default_services(default_services_filepath)
+
+        if service_type in default_services and alias == default_services[service_type]:
+            del default_services[service_type]
+
+        self._write_default_services(default_services_filepath, default_services)
 
     def _rename_alias_in_default_service_file(
         self,
@@ -489,6 +533,18 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         for item in Path(self.global_config_dir).iterdir():
             if item.is_dir() and item.name not in ["logs", "services"]:
                 yield item
+
+    def _validate_service_type_and_alias(self, service_type, alias):
+        """Raises ServiceNotConfigured exception if the service_type
+        or alias are not valid."""
+        if service_type not in self.services:
+            raise ServiceNotConfigured(
+                f"No services of type {service_type} are currently configured"
+            )
+        elif alias not in self.services[service_type]:
+            raise ServiceNotConfigured(
+                f"No service of type {service_type} configured with the name: {alias}"
+            )
 
     def _raise_service_not_configured(self, name):
         raise ServiceNotConfigured(

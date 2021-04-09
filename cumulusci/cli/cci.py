@@ -775,7 +775,12 @@ def service_list(runtime, plain, print_json):
             )
             continue
         for alias in configured_services[service_type]:
-            default_service_for_type = runtime.keychain._default_services[service_type]
+            try:
+                default_service_for_type = runtime.keychain._default_services[
+                    service_type
+                ]
+            except KeyError:
+                default_service_for_type = None
             data.append(
                 [
                     service_type,
@@ -855,10 +860,6 @@ class ConnectServiceCommand(click.MultiCommand):
                 set_project_default = kwargs.pop("project", False)
 
             set_global_default = kwargs.pop("default", False)
-            if set_global_default and set_project_default:
-                raise click.UsageError(
-                    "Cannot specify both --default and --project. Please choose one."
-                )
 
             serv_conf = dict(
                 (k, v) for k, v in list(kwargs.items()) if v is not None
@@ -881,18 +882,15 @@ class ConnectServiceCommand(click.MultiCommand):
                 runtime.keychain.set_default_service(
                     service_type, service_name, project=False
                 )
-            elif set_project_default:
+                click.echo(
+                    f"The {service_type} service named {service_name} is now configured for all CumulusCI projects."
+                )
+            if set_project_default:
                 runtime.keychain.set_default_service(
                     service_type, service_name, project=True
                 )
-
-            if set_project_default:
                 click.echo(
                     f"The {service_type} service named {service_name} is now configured for this project."
-                )
-            else:
-                click.echo(
-                    f"The {service_type} service named {service_name} is now configured for all CumulusCI projects."
                 )
 
         params.append(click.Argument(["service_name"]))
@@ -970,7 +968,42 @@ def service_rename(runtime, service_type, current_name, new_name):
         click.echo(f"An error occurred renaming the service: {e}")
         return
 
-    click.echo(f"Service {service_type}/{current_name} has been renamed to {new_name}")
+    click.echo(f"Service {service_type}:{current_name} has been renamed to {new_name}")
+
+
+@service.command(name="remove", help="Remove a service")
+@click.argument("service_type")
+@click.argument("service_name")
+@pass_runtime(require_project=False, require_keychain=True)
+def service_remove(runtime, service_type, service_name):
+    new_default = None
+    if (
+        len(runtime.keychain.services[service_type].keys()) > 2
+        and service_name == runtime.keychain._default_services[service_type]
+    ):
+        click.echo(
+            f"The service you would like to remove is currently the default for {service_type} services."
+        )
+        click.echo("Your other services of the same type are:")
+        for alias in runtime.keychain.list_services()[service_type]:
+            if alias != service_name:
+                click.echo(alias)
+        new_default = click.prompt(
+            "Enter the name of the service you would like as the new default"
+        )
+        if new_default not in runtime.keychain.list_services()[service_type]:
+            click.echo(f"No service of type {service_type} with name: {new_default}")
+            return
+
+    try:
+        runtime.keychain.remove_service(service_type, service_name)
+        if new_default:
+            runtime.keychain.set_default_service(service_type, new_default)
+    except ServiceNotConfigured as e:
+        click.echo(f"An error occurred removing the service: {e}")
+        return
+
+    click.echo(f"Service {service_type}:{service_name} has been removed.")
 
 
 # Commands for group: org

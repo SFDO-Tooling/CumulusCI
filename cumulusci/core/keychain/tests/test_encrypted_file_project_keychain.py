@@ -423,20 +423,19 @@ class TestEncryptedFileProjectKeychain:
         # make existing default aliased devhub service
         named_devhub_service = Path(f"{cci_home_dir}/services/devhub/")
         named_devhub_service.mkdir(parents=True)
-        self._write_file(
-            f"{named_devhub_service}/devhub__global.service", "migrated config"
-        )
+        self._write_file(f"{named_devhub_service}/global.service", "migrated config")
 
         with mock.patch.object(
             EncryptedFileProjectKeychain, "global_config_dir", cci_home_dir
         ):
             # _migrate_services() invoked via __init__
-            EncryptedFileProjectKeychain(project_config, key)
+            keychain = EncryptedFileProjectKeychain(project_config, key)
+            keychain._migrate_services_from_dir(cci_home_dir)
 
         # ensure this file wasn't removed
         assert legacy_devhub_service.is_file()
         # ensure contents of migrated are unchanged
-        with open(named_devhub_service / "devhub__global.service", "r") as f:
+        with open(named_devhub_service / "global.service", "r") as f:
             assert f.read() == "migrated config"
 
     def test_rename_service(self, keychain, service_config):
@@ -514,6 +513,71 @@ class TestEncryptedFileProjectKeychain:
 
         with open(filepath, "r") as f:
             assert json.loads(f.read()) == {"saucelabs": "default_alias"}
+
+    def test_remove_service(self, keychain, service_config):
+        home_dir = tempfile.mkdtemp()
+
+        cci_home_dir = Path(f"{home_dir}/.cumulusci")
+        cci_home_dir.mkdir()
+        with open(cci_home_dir / "DEFAULT_SERVICES.json", "w") as f:
+            f.write(json.dumps({"github": "alias"}))
+
+        local_project_dir = cci_home_dir / "test-project"
+        local_project_dir.mkdir()
+        with open(local_project_dir / "DEFAULT_SERVICES.json", "w") as f:
+            f.write(json.dumps({"github": "alias"}))
+
+        github_services_dir = Path(f"{home_dir}/.cumulusci/services/github")
+        github_services_dir.mkdir(parents=True)
+        self._write_file(github_services_dir / "alias.service", "github config")
+
+        encrypted = keychain._encrypt_config(service_config)
+        keychain.services = {"github": {"alias": encrypted}}
+        keychain._default_services["github"] = "alias"
+        with mock.patch.object(
+            EncryptedFileProjectKeychain, "global_config_dir", cci_home_dir
+        ):
+            keychain.remove_service("github", "alias")
+
+        # loaded service is removed
+        assert "old-alias" not in keychain.services["github"]
+        # corresponding .service file is gone
+        assert not (github_services_dir / "alias.service").is_file()
+        # references in DEFAULT_SERVICES.json are gone
+        with open(cci_home_dir / "DEFAULT_SERVICES.json", "r") as f:
+            assert json.loads(f.read()) == {}
+        with open(local_project_dir / "DEFAULT_SERVICES.json", "r") as f:
+            assert json.loads(f.read()) == {}
+        # default service is unset
+        assert "github" not in keychain._default_services
+
+    def test_remove_service__other_set_as_default(self, keychain, service_config):
+        home_dir = tempfile.mkdtemp()
+
+        cci_home_dir = Path(f"{home_dir}/.cumulusci")
+        cci_home_dir.mkdir()
+        with open(cci_home_dir / "DEFAULT_SERVICES.json", "w") as f:
+            f.write(json.dumps({"github": "alias"}))
+
+        local_project_dir = cci_home_dir / "test-project"
+        local_project_dir.mkdir()
+        with open(local_project_dir / "DEFAULT_SERVICES.json", "w") as f:
+            f.write(json.dumps({"github": "alias"}))
+
+        github_services_dir = Path(f"{home_dir}/.cumulusci/services/github")
+        github_services_dir.mkdir(parents=True)
+        self._write_file(github_services_dir / "alias.service", "github config")
+
+        encrypted = keychain._encrypt_config(service_config)
+        keychain.services = {"github": {"alias": encrypted, "other-service": encrypted}}
+        keychain._default_services["github"] = "alias"
+        with mock.patch.object(
+            EncryptedFileProjectKeychain, "global_config_dir", cci_home_dir
+        ):
+            keychain.remove_service("github", "alias")
+
+        # the one other service should be the default
+        assert keychain._default_services["github"] == "other-service"
 
     def test_read_default_services(self, keychain):
         expected_defaults = {

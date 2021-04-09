@@ -1054,23 +1054,6 @@ Environment Info: Rossian / x68_46
             with pytest.raises(click.UsageError):
                 multi_cmd.get_command(ctx, "test")
 
-    def test_servcice_connect__both_default_flags_specified(self):
-        multi_cmd = cci.ConnectServiceCommand()
-        ctx = mock.Mock()
-        runtime = mock.MagicMock()
-        runtime.project_config.services = {
-            "test": {"attributes": {"attr": {"required": False}}}
-        }
-
-        kwargs = {"service_name": "test-alias"}
-        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
-            cmd = multi_cmd.get_command(ctx, "test")
-            with pytest.raises(
-                click.UsageError,
-                match="Cannot specify both --default and --project. Please choose one.",
-            ):
-                run_click_command(cmd, default=True, project=True, **kwargs)
-
     def test_service_connect_validator(self):
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
@@ -1187,6 +1170,67 @@ Environment Info: Rossian / x68_46
         )
         echo.assert_called_once_with(
             "An error occurred renaming the service: test error"
+        )
+
+    @mock.patch("cumulusci.cli.cci.click")
+    def test_service_remove(self, click):
+
+        click.prompt.side_effect = ("future-default-alias",)
+        runtime = mock.Mock()
+        runtime.keychain.services = {
+            "github": {
+                "current-default-alias": "config1",
+                "another-alias": "config2",
+                "future-default-alias": "config3",
+            }
+        }
+        runtime.keychain._default_services = {"github": "current-default-alias"}
+        runtime.keychain.list_services.return_value = {
+            "github": ["current-default-alias", "another-alias", "future-default-alias"]
+        }
+        run_click_command(
+            cci.service_remove,
+            runtime=runtime,
+            service_type="github",
+            service_name="current-default-alias",
+        )
+        runtime.keychain.remove_service.assert_called_once_with(
+            "github", "current-default-alias"
+        )
+        runtime.keychain.set_default_service.assert_called_once_with(
+            "github", "future-default-alias"
+        )
+        assert (
+            click.echo.call_args_list[-1][0][0]
+            == "Service github:current-default-alias has been removed."
+        )
+
+    @mock.patch("cumulusci.cli.cci.click")
+    def test_service_remove__exception_thrown(self, click):
+
+        click.prompt.side_effect = ("future-default-alias",)
+        runtime = mock.Mock()
+        runtime.keychain.services = {
+            "github": {
+                "current-default-alias": "config1",
+                "another-alias": "config2",
+                "future-default-alias": "config3",
+            }
+        }
+        runtime.keychain._default_services = {"github": "current-default-alias"}
+        runtime.keychain.list_services.return_value = {
+            "github": ["current-default-alias", "another-alias", "future-default-alias"]
+        }
+        runtime.keychain.remove_service.side_effect = ServiceNotConfigured("test error")
+        run_click_command(
+            cci.service_remove,
+            runtime=runtime,
+            service_type="github",
+            service_name="current-default-alias",
+        )
+        assert (
+            click.echo.call_args_list[-1][0][0]
+            == "An error occurred removing the service: test error"
         )
 
     @mock.patch("webbrowser.open")
