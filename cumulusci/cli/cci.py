@@ -900,7 +900,9 @@ class ConnectServiceCommand(click.MultiCommand):
 
 
 @service.command(
-    cls=ConnectServiceCommand, name="connect", help="Connect a CumulusCI task service"
+    cls=ConnectServiceCommand,
+    name="connect",
+    help="Connect an external service to CumulusCI",
 )
 def service_connect():
     pass
