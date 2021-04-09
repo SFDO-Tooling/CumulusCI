@@ -279,7 +279,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        url_line = self.git_config_remote_origin_url()
+        url_line = self.repo_url
         return split_repo_url(url_line)[1]
 
     @property
@@ -303,7 +303,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if not self.repo_root:
             return
 
-        url_line = self.git_config_remote_origin_url()
+        url_line = self.repo_url
         return split_repo_url(url_line)[0]
 
     @property
