@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
 import io
-import json
 import os
 import shutil
 import tempfile
-import time
 import pytest
 import unittest
 from pathlib import Path
@@ -13,21 +10,15 @@ import contextlib
 import click
 from unittest import mock
 import pkg_resources
-import requests
-import responses
 from requests.exceptions import ConnectionError
 
 import cumulusci
-from cumulusci.core.config import FlowConfig
 from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.flowrunner import FlowCoordinator
-from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.cli import cci
-from cumulusci.cli.runtime import CliRuntime
 from cumulusci.utils import temporary_dir
-from cumulusci.cli.tests.utils import run_click_command, DummyTask
+from cumulusci.cli.tests.utils import run_click_command
 
 MagicMock = mock.MagicMock()
 
@@ -48,57 +39,6 @@ class TestCCI(unittest.TestCase):
         assert cls.global_tempdir in os.environ["HOME"]
         cls.environ_mock.stop()
         shutil.rmtree(cls.tempdir)
-
-    def test_get_installed_version(self):
-        result = cci.get_installed_version()
-        self.assertEqual(cumulusci.__version__, str(result))
-
-    @responses.activate
-    def test_get_latest_final_version(self):
-        responses.add(
-            method="GET",
-            url="https://pypi.org/pypi/cumulusci/json",
-            body=json.dumps(
-                {
-                    "releases": {
-                        "1.0b1": {},
-                        "1.0": {},
-                        "1.0.1.dev0": {},
-                        "1.0.1": {},
-                        "1.0.post1": {},
-                    }
-                }
-            ),
-            status=200,
-        )
-        result = cci.get_latest_final_version()
-        self.assertEqual("1.0.1", result.base_version)
-
-    @mock.patch("cumulusci.cli.cci.get_installed_version")
-    @mock.patch("cumulusci.cli.cci.get_latest_final_version")
-    @mock.patch("cumulusci.cli.cci.click")
-    def test_check_latest_version(
-        self, click, get_latest_final_version, get_installed_version
-    ):
-        with cci.timestamp_file() as f:
-            f.write(str(time.time() - 4000))
-        get_latest_final_version.return_value = pkg_resources.parse_version("2")
-        get_installed_version.return_value = pkg_resources.parse_version("1")
-
-        cci.check_latest_version()
-
-        click.echo.assert_called_once()
-
-    @mock.patch("cumulusci.cli.cci.get_latest_final_version")
-    @mock.patch("cumulusci.cli.cci.click")
-    def test_check_latest_version_request_error(self, click, get_latest_final_version):
-        with cci.timestamp_file() as f:
-            f.write(str(time.time() - 4000))
-        get_latest_final_version.side_effect = requests.exceptions.RequestException()
-
-        cci.check_latest_version()
-
-        click.echo.assert_any_call("Error checking cci version:", err=True)
 
     @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
@@ -672,209 +612,6 @@ class TestCCI(unittest.TestCase):
         )
 
         self.assertIn("not configured for this project", echo.call_args[0][0])
-
-    @mock.patch("cumulusci.cli.cci.CliTable")
-    def test_flow_list(self, cli_tbl):
-        runtime = mock.Mock()
-        runtime.get_available_flows.return_value = [
-            {"name": "test_flow", "description": "Test Flow", "group": "Testing"}
-        ]
-        runtime.universal_config.cli__plain_output = None
-        run_click_command(cci.flow_list, runtime=runtime, plain=False, print_json=False)
-
-        cli_tbl.assert_called_with(
-            [["Flow", "Description"], ["test_flow", "Test Flow"]],
-            "Testing",
-            wrap_cols=["Description"],
-        )
-
-    @mock.patch("json.dumps")
-    def test_flow_list_json(self, json_):
-        flows = [{"name": "test_flow", "description": "Test Flow"}]
-        runtime = mock.Mock()
-        runtime.get_available_flows.return_value = flows
-        runtime.universal_config.cli__plain_output = None
-
-        run_click_command(cci.flow_list, runtime=runtime, plain=False, print_json=True)
-
-        json_.assert_called_with(flows)
-
-    @mock.patch("click.echo")
-    def test_flow_info(self, echo):
-        runtime = mock.Mock()
-        flow_config = FlowConfig({"description": "Test Flow", "steps": {}})
-        runtime.get_flow.return_value = FlowCoordinator(None, flow_config)
-
-        run_click_command(cci.flow_info, runtime=runtime, flow_name="test")
-
-        echo.assert_called_with("Description: Test Flow")
-
-    def test_flow_info__not_found(self):
-        runtime = mock.Mock()
-        runtime.get_flow.side_effect = FlowNotFoundError
-        with self.assertRaises(click.UsageError):
-            run_click_command(cci.flow_info, runtime=runtime, flow_name="test")
-
-    @mock.patch("cumulusci.cli.cci.group_items")
-    @mock.patch("cumulusci.cli.cci.document_flow")
-    def test_flow_doc__no_flows_rst_file(self, doc_flow, group_items):
-        runtime = mock.Mock()
-        runtime.universal_config.flows = {"test": {}}
-        flow_config = FlowConfig({"description": "Test Flow", "steps": {}})
-        runtime.get_flow.return_value = FlowCoordinator(None, flow_config)
-
-        group_items.return_value = {"Group One": [["test flow", "description"]]}
-
-        run_click_command(cci.flow_doc, runtime=runtime)
-        group_items.assert_called_once()
-        doc_flow.assert_called()
-
-    @mock.patch("cumulusci.cli.cci.click.echo")
-    @mock.patch("cumulusci.cli.cci.cci_safe_load")
-    def test_flow_doc__with_flows_rst_file(self, safe_load, echo):
-        runtime = CliRuntime(
-            config={
-                "flows": {
-                    "Flow1": {
-                        "steps": {},
-                        "description": "Description of Flow1",
-                        "group": "Group1",
-                    }
-                }
-            },
-            load_keychain=False,
-        )
-
-        safe_load.return_value = {
-            "intro_blurb": "opening blurb for flow reference doc",
-            "groups": {
-                "Group1": {"description": "This is a description of group1."},
-            },
-            "flows": {"Flow1": {"rst_text": "Some ``extra`` **pizzaz**!"}},
-        }
-
-        run_click_command(cci.flow_doc, runtime=runtime)
-
-        assert 1 == safe_load.call_count
-
-        expected_call_args = [
-            "Flow Reference\n==========================================\n\nopening blurb for flow reference doc\n.. contents::\n    :depth: 2\n    :local:\n\n",
-            "Group1\n------",
-            "This is a description of group1.",
-            "Flow1\n^^^^^\n\n**Description:** Description of Flow1\n\nSome ``extra`` **pizzaz**!\n**Flow Steps**\n\n.. code-block:: console\n",
-            "",
-        ]
-        expected_call_args = [mock.call(s) for s in expected_call_args]
-        assert echo.call_args_list == expected_call_args
-
-    def test_flow_run(self):
-        org_config = mock.Mock(scratch=True, config={})
-        runtime = CliRuntime(
-            config={
-                "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
-                "tasks": {
-                    "test_task": {
-                        "class_path": "cumulusci.cli.tests.test_cci.DummyTask",
-                        "description": "Test Task",
-                    }
-                },
-            },
-            load_keychain=False,
-        )
-        runtime.get_org = mock.Mock(return_value=("test", org_config))
-        runtime.get_flow = mock.Mock()
-
-        run_click_command(
-            cci.flow_run,
-            runtime=runtime,
-            flow_name="test",
-            org="test",
-            delete_org=True,
-            debug=False,
-            o=[("test_task__color", "blue")],
-            skip=(),
-            no_prompt=True,
-        )
-
-        runtime.get_flow.assert_called_once_with(
-            "test", options={"test_task": {"color": "blue"}}
-        )
-        org_config.delete_org.assert_called_once()
-
-    def test_flow_run_o_error(self):
-        org_config = mock.Mock(scratch=True, config={})
-        runtime = CliRuntime(config={"noop": {}}, load_keychain=False)
-        runtime.get_org = mock.Mock(return_value=("test", org_config))
-
-        with pytest.raises(click.UsageError) as e:
-            run_click_command(
-                cci.flow_run,
-                runtime=runtime,
-                flow_name="test",
-                org="test",
-                delete_org=True,
-                debug=False,
-                o=[("test_task", "blue")],
-                skip=(),
-                no_prompt=True,
-            )
-        assert "-o" in str(e.value)
-
-    def test_flow_run_delete_non_scratch(self):
-        org_config = mock.Mock(scratch=False)
-        runtime = mock.Mock()
-        runtime.get_org.return_value = ("test", org_config)
-
-        with self.assertRaises(click.UsageError):
-            run_click_command(
-                cci.flow_run,
-                runtime=runtime,
-                flow_name="test",
-                org="test",
-                delete_org=True,
-                debug=False,
-                o=None,
-                skip=(),
-                no_prompt=True,
-            )
-
-    @mock.patch("click.echo")
-    def test_flow_run_org_delete_error(self, echo):
-        org_config = mock.Mock(scratch=True, config={})
-        org_config.delete_org.side_effect = Exception
-        org_config.save_if_changed.return_value.__enter__ = lambda *args: ...
-        org_config.save_if_changed.return_value.__exit__ = lambda *args: ...
-        runtime = CliRuntime(
-            config={
-                "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
-                "tasks": {
-                    "test_task": {
-                        "class_path": "cumulusci.cli.tests.test_cci.DummyTask",
-                        "description": "Test Task",
-                    }
-                },
-            },
-            load_keychain=False,
-        )
-        runtime.get_org = mock.Mock(return_value=("test", org_config))
-        DummyTask._run_task = mock.Mock()
-
-        kwargs = {
-            "runtime": runtime,
-            "flow_name": "test",
-            "org": "test",
-            "delete_org": True,
-            "debug": False,
-            "no_prompt": True,
-            "o": (("test_task__color", "blue"),),
-            "skip": (),
-        }
-
-        run_click_command(cci.flow_run, **kwargs)
-
-        echo.assert_any_call(
-            "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
-        )
 
     @mock.patch(
         "cumulusci.cli.runtime.CliRuntime.get_org",

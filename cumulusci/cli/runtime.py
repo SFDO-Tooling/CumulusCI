@@ -7,7 +7,7 @@ import click
 import keyring
 import pkg_resources
 
-from cumulusci import __version__
+from cumulusci.cli.utils import get_installed_version
 from cumulusci.core.runtime import BaseCumulusCI
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import OrgNotFound
@@ -160,11 +160,6 @@ class CliRuntime(BaseCumulusCI):
 
 # for backwards-compatibility
 CliConfig = CliRuntime
-
-
-def get_installed_version():
-    """ returns the version name (e.g. 2.0.0b58) that is installed """
-    return pkg_resources.parse_version(__version__)
 
 
 def pass_runtime(func=None, require_project=True, require_keychain=False):

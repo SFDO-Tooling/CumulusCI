@@ -1,120 +1,35 @@
-from collections import defaultdict
-
 import code
 import json
-import re
-import os
 import pdb
 import sys
-import time
 import traceback
 import runpy
 import contextlib
-from datetime import datetime
-from pathlib import Path
 
 import click
-import pkg_resources
 import requests
 
 import cumulusci
 from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config import UniversalConfig
+from cumulusci.core.debug import set_debug_mode
 from cumulusci.core.exceptions import (
     CumulusCIUsageError,
     ServiceNotConfigured,
-    FlowNotFoundError,
 )
-from cumulusci.utils.http.requests_utils import safe_json_from_response
-from cumulusci.core.debug import set_debug_mode
-
-
-from cumulusci.core.utils import import_global, format_duration
-from cumulusci.cli.utils import group_items
-from cumulusci.cli.runtime import CliRuntime
-from cumulusci.cli.runtime import get_installed_version
-from cumulusci.cli.ui import CliTable
-from cumulusci.utils import document_flow, flow_ref_title_and_intro
+from cumulusci.core.utils import import_global
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.logging import tee_stdout_stderr
-from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 from .logger import init_logger, get_tempfile_logger
-from .runtime import pass_runtime
+from .runtime import pass_runtime, CliRuntime
+from .ui import CliTable
+from .utils import get_installed_version, check_latest_version, get_latest_final_version
 
 from .error import error
+from .flow import flow
 from .org import org
 from .project import project
 from .task import task
-
-
-@contextlib.contextmanager
-def timestamp_file():
-    """Opens a file for tracking the time of the last version check"""
-
-    config_dir = UniversalConfig.default_cumulusci_dir()
-    timestamp_file = os.path.join(config_dir, "cumulus_timestamp")
-
-    try:
-        with open(timestamp_file, "r+") as f:
-            yield f
-    except IOError:  # file does not exist
-        with open(timestamp_file, "w+") as f:
-            yield f
-
-
-FINAL_VERSION_RE = re.compile(r"^[\d\.]+$")
-
-
-def is_final_release(version: str) -> bool:
-    """Returns bool whether version string should be considered a final release.
-
-    cumulusci versions are considered final if they contain only digits and periods.
-    e.g. 1.0.1 is final but 2.0b1 and 2.0.dev0 are not.
-    """
-    return bool(FINAL_VERSION_RE.match(version))
-
-
-def get_latest_final_version():
-    """ return the latest version of cumulusci in pypi, be defensive """
-    # use the pypi json api https://wiki.python.org/moin/PyPIJSON
-    res = safe_json_from_response(
-        requests.get("https://pypi.org/pypi/cumulusci/json", timeout=5)
-    )
-    with timestamp_file() as f:
-        f.write(str(time.time()))
-    versions = []
-    for versionstring in res["releases"].keys():
-        if not is_final_release(versionstring):
-            continue
-        versions.append(pkg_resources.parse_version(versionstring))
-    versions.sort(reverse=True)
-    return versions[0]
-
-
-def check_latest_version():
-    """ checks for the latest version of cumulusci from pypi, max once per hour """
-    check = True
-
-    with timestamp_file() as f:
-        timestamp = float(f.read() or 0)
-    delta = time.time() - timestamp
-    check = delta > 3600
-
-    if check:
-        try:
-            latest_version = get_latest_final_version()
-        except requests.exceptions.RequestException as e:
-            click.echo("Error checking cci version:", err=True)
-            click.echo(str(e), err=True)
-            return
-
-        result = latest_version > get_installed_version()
-        if result:
-            click.echo(
-                f"""An update to CumulusCI is available. To install the update, run this command: {get_cci_upgrade_command()}""",
-                err=True,
-            )
 
 
 SUGGEST_ERROR_COMMAND = (
@@ -275,11 +190,7 @@ cli.add_command(error)
 cli.add_command(project)
 cli.add_command(org)
 cli.add_command(task)
-
-
-@cli.group("flow", help="Commands for finding and running flows for a project")
-def flow():
-    pass
+cli.add_command(flow)
 
 
 @cli.group("service", help="Commands for connecting services to the keychain")
@@ -410,157 +321,3 @@ def service_info(runtime, service_name, plain):
                 service_name
             )
         )
-
-
-@flow.command(name="doc", help="Exports RST format documentation for all flows")
-@pass_runtime(require_project=False)
-def flow_doc(runtime):
-    flow_info_path = Path(__file__, "..", "..", "..", "docs", "flows.yml").resolve()
-    with open(flow_info_path, "r", encoding="utf-8") as f:
-        flow_info = cci_safe_load(f)
-    click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
-    flow_info_groups = list(flow_info["groups"].keys())
-
-    flows = runtime.get_available_flows()
-    flows_by_group = group_items(flows)
-    flow_groups = sorted(
-        flows_by_group.keys(),
-        key=lambda group: flow_info_groups.index(group)
-        if group in flow_info_groups
-        else 100,
-    )
-
-    for group in flow_groups:
-        click.echo(f"{group}\n{'-' * len(group)}")
-        if group in flow_info["groups"]:
-            click.echo(flow_info["groups"][group]["description"])
-
-        for flow in sorted(flows_by_group[group]):
-            flow_name, flow_description = flow
-            try:
-                flow_coordinator = runtime.get_flow(flow_name)
-            except FlowNotFoundError as e:
-                raise click.UsageError(str(e))
-
-            additional_info = None
-            if flow_name in flow_info.get("flows", {}):
-                additional_info = flow_info["flows"][flow_name]["rst_text"]
-
-            click.echo(
-                document_flow(
-                    flow_name,
-                    flow_description,
-                    flow_coordinator,
-                    additional_info=additional_info,
-                )
-            )
-            click.echo("")
-
-
-@flow.command(name="list", help="List available flows for the current context")
-@click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
-@click.option("--json", "print_json", is_flag=True, help="Print a json string")
-@pass_runtime(require_project=False)
-def flow_list(runtime, plain, print_json):
-    plain = plain or runtime.universal_config.cli__plain_output
-    flows = runtime.get_available_flows()
-    if print_json:
-        click.echo(json.dumps(flows))
-        return None
-
-    flow_groups = group_items(flows)
-    for group, flows in flow_groups.items():
-        data = [["Flow", "Description"]]
-        data.extend(sorted(flows))
-        table = CliTable(data, group, wrap_cols=["Description"])
-        table.echo(plain)
-
-    click.echo(
-        "Use "
-        + click.style("cci flow info <flow_name>", bold=True)
-        + " to get more information about a flow."
-    )
-
-
-@flow.command(name="info", help="Displays information for a flow")
-@click.argument("flow_name")
-@pass_runtime(require_keychain=True)
-def flow_info(runtime, flow_name):
-    try:
-        coordinator = runtime.get_flow(flow_name)
-        output = coordinator.get_summary()
-        click.echo(output)
-    except FlowNotFoundError as e:
-        raise click.UsageError(str(e))
-
-
-@flow.command(name="run", help="Runs a flow")
-@click.argument("flow_name")
-@click.option(
-    "--org",
-    help="Specify the target org.  By default, runs against the current default org",
-)
-@click.option(
-    "--delete-org",
-    is_flag=True,
-    help="If set, deletes the scratch org after the flow completes",
-)
-@click.option(
-    "--debug", is_flag=True, help="Drops into pdb, the Python debugger, on an exception"
-)
-@click.option(
-    "-o",
-    nargs=2,
-    multiple=True,
-    help="Pass task specific options for the task as '-o taskname__option value'.  You can specify more than one option by using -o more than once.",
-)
-@click.option(
-    "--skip",
-    multiple=True,
-    help="Specify task names that should be skipped in the flow.  Specify multiple by repeating the --skip option",
-)
-@click.option(
-    "--no-prompt",
-    is_flag=True,
-    help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
-)
-@pass_runtime(require_keychain=True)
-def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
-
-    # Get necessary configs
-    org, org_config = runtime.get_org(org)
-    if delete_org and not org_config.scratch:
-        raise click.UsageError("--delete-org can only be used with a scratch org")
-
-    # Parse command line options
-    options = defaultdict(dict)
-    if o:
-        for key, value in o:
-            if "__" in key:
-                task_name, option_name = key.split("__")
-                options[task_name][option_name] = value
-            else:
-                raise click.UsageError(
-                    "-o option for flows should contain __ to split task name from option name."
-                )
-
-    # Create the flow and handle initialization exceptions
-    try:
-        coordinator = runtime.get_flow(flow_name, options=options)
-        start_time = datetime.now()
-        coordinator.run(org_config)
-        duration = datetime.now() - start_time
-        click.echo(f"Ran {flow_name} in {format_duration(duration)}")
-
-    finally:
-        runtime.alert(f"Flow Complete: {flow_name}")
-
-    # Delete the scratch org if --delete-org was set
-    if delete_org:
-        try:
-            org_config.delete_org()
-        except Exception as e:
-            click.echo(
-                "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
-            )
-            click.echo(str(e))
