@@ -704,7 +704,7 @@ an additional ``options`` section inside the normal task options in
 cumulusci.yml.
 
 For example, one of the most common uses of this inner ``options`` section is to
-use the robot command line option ``--outputdir`` to specify where robot should
+use the Robot command line option ``--outputdir`` to specify where Robot should
 write its report and log files. To configure this option
 for the task, you must remove the leading dashes from the option name
 and then place that option
