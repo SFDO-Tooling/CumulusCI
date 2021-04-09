@@ -28,6 +28,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         self.project_config.config["project"]["git"]["default_branch"] = self.branch
         self.project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",

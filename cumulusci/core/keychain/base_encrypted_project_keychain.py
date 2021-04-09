@@ -7,12 +7,15 @@ from cryptography.hazmat.primitives.ciphers import Cipher
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CBC
 
-from cumulusci.core.config import ConnectedAppOAuthConfig
+from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
-from cumulusci.core.exceptions import ConfigError, KeychainKeyNotFound
-from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.exceptions import (
+    ConfigError,
+    CumulusCIException,
+    KeychainKeyNotFound,
+)
 
 BS = 16
 backend = default_backend()
@@ -27,23 +30,37 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
 
     encrypted = True
 
-    def _get_connected_app(self):
-        if self.app:
-            return self._decrypt_config(
-                ConnectedAppOAuthConfig, self.app, context="connected app config"
+    def set_default_service(
+        self, service_type: str, alias: str, project: bool = False
+    ) -> None:
+        if service_type not in self.services:
+            raise CumulusCIException(f"Service type is not configured: {service_type}")
+        if alias not in self.services[service_type]:
+            raise CumulusCIException(
+                f"No service of type {service_type} configured with the name: {alias}"
             )
 
-    def _get_service(self, name):
-        return self._decrypt_config(
-            ServiceConfig, self.services[name], context=f"service config ({name})"
-        )
+        self._default_services[service_type] = alias
 
-    def _set_service(self, service, service_config, project):
+    def _set_service(self, service_type, alias, service_config):
+        if service_type not in self.services:
+            self.services[service_type] = {}
+            # set the first service of a given type as the global default
+            self._default_services[service_type] = alias
+            self._save_default_service(service_type, alias, project=False)
+
         encrypted = self._encrypt_config(service_config)
-        self._set_encrypted_service(service, encrypted, project)
+        self._set_encrypted_service(service_type, alias, encrypted)
 
-    def _set_encrypted_service(self, service, encrypted, project):
-        self.services[service] = encrypted
+    def _set_encrypted_service(self, service_type, alias, encrypted):
+        self.services[service_type][alias] = encrypted
+
+    def _get_service(self, service_type, alias):
+        return self._decrypt_config(
+            ServiceConfig,
+            self.services[service_type][alias],
+            context=f"service config ({service_type}/{alias})",
+        )
 
     def _set_org(self, org_config, global_org):
         if org_config.keychain:

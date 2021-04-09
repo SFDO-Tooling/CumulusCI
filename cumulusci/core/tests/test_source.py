@@ -32,6 +32,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         self.project_config.repo_info["root"] = pathlib.Path(self.repo_root.name)
         self.project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",

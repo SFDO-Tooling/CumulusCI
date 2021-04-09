@@ -59,8 +59,10 @@ test: ## run tests quickly with the default Python
 test-all: ## run tests on every Python version with tox
 	tox
 
+# Use CLASS_PATH to run coverage for a subset of tests. 
+# $ make coverage CLASS_PATH="cumulusci/core/tests"
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source cumulusci -m pytest
+	coverage run --source cumulusci -m pytest $(CLASS_PATH)
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
