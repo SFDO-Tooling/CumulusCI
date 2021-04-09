@@ -709,7 +709,7 @@ and value in a nested ``options`` section.
                 options:
                     outputdir: robot/my_project/results
 
-Any robot command-line option which takes a value can be specified
+Any Robot command-line option which takes a value can be specified
 this way. For example, to use the robot option ``--name`` along with
 ``--outputdir``, your ``cumulusci.yml`` file should look like
 this:
