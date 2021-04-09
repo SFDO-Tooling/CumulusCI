@@ -250,10 +250,10 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
     def _load_services(self) -> None:
         """Load services (and migrate old ones if present)"""
-        # The following steps occur in a _very_ particular order
-        self._create_default_service_files()
-        self._create_services_dir_structure()
-        self._migrate_services()
+        if not (self.global_config_dir / "services").is_dir():
+            self._create_default_service_files()
+            self._create_services_dir_structure()
+            self._migrate_services()
         self._load_service_files()
 
     def _load_service_files(self, constructor=None) -> None:
@@ -277,7 +277,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                     constructor(config) if constructor else config
                 )
 
-    def _set_encrypted_service(self, service_type, alias, encrypted, project):
+    def _set_encrypted_service(self, service_type, alias, encrypted):
         service_path = Path(
             f"{self.global_config_dir}/services/{service_type}/{alias}.service"
         )
@@ -291,15 +291,15 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         global_default_services = Path(
             f"{self.global_config_dir}/{DEFAULT_SERVICES_FILENAME}"
         )
-        self._set_default_services_for_dir(global_default_services)
+        self._set_default_services_from_dir(global_default_services)
 
         project_default_services = Path(
             f"{self.project_local_dir}/{DEFAULT_SERVICES_FILENAME}"
         )
         # project defaults will overwrite global defaults
-        self._set_default_services_for_dir(project_default_services)
+        self._set_default_services_from_dir(project_default_services)
 
-    def _set_default_services_for_dir(self, default_services_file: Path) -> None:
+    def _set_default_services_from_dir(self, default_services_file: Path) -> None:
         """Sets the keychain._default_services dictionary to the default
         values in the given file.
 

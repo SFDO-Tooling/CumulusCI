@@ -195,7 +195,7 @@ class BaseProjectKeychain(BaseConfig):
     def _load_default_services(self):
         pass
 
-    def set_service(self, service_type, alias, service_config, project=False):
+    def set_service(self, service_type, alias, service_config):
         """Store a ServiceConfig in the keychain"""
         if (
             not self.project_config.services
@@ -204,17 +204,15 @@ class BaseProjectKeychain(BaseConfig):
             self._raise_service_not_valid(service_type)
 
         self._validate_service(service_type, alias, service_config)
-        self._set_service(service_type, alias, service_config, project)
+        self._set_service(service_type, alias, service_config)
         self._load_services()
 
-    def _set_service(self, service_type, alias, service_config, project=False):
+    def _set_service(self, service_type, alias, service_config):
         if service_type not in self.services:
             self.services[service_type] = {}
+            self._default_services[service_type] = alias
 
         self.services[service_type][alias] = service_config
-        # If this is the first service of its type set it as the default
-        if len(self.services[service_type].keys()) == 1:
-            self._default_services[service_type] = alias
 
     def get_service(self, service_type, alias=None):
         """Retrieve a stored ServiceConfig from the keychain.

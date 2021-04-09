@@ -189,21 +189,14 @@ class TestEncryptedFileProjectKeychain:
         github_service = keychain.get_service("github", "alias")
         assert "foo" in github_service.config
 
-    def test_set_service_github__project(self, keychain, service_config):
-        keychain.set_service("github", "alias", service_config, project=True)
+    def test_set_service_github(self, keychain, service_config):
+        keychain.set_service("github", "alias", service_config)
         default_github_service = keychain.get_service("github")
 
         assert default_github_service.config == {
             **service_config.config,
             "token": "test123",
         }
-        #
-        project_default_services_file = Path(
-            f"{keychain.project_local_dir}/DEFAULT_SERVICES.json"
-        )
-        with open(project_default_services_file, "r") as f:
-            project_default_services = json.loads(f.read())
-        assert project_default_services["github"] == "alias"
 
     def test_set_service__first_should_be_default(self, keychain):
         keychain.set_service("github", "foo_github", ServiceConfig({"name": "foo"}))

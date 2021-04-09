@@ -81,7 +81,7 @@ class TestBaseEncryptedProjectKeychain:
     def test_set_encrypted_service(self, keychain, service_config):
         keychain.config["services"] = {"github": {}}
         encrypted = keychain._encrypt_config(service_config)
-        keychain._set_encrypted_service("github", "alias", encrypted, project=False)
+        keychain._set_encrypted_service("github", "alias", encrypted)
         assert keychain.services["github"]["alias"] == encrypted
 
     def test_construct_config(self, keychain):

@@ -44,15 +44,11 @@ class TestBaseProjectKeychain:
     def test_set_non_existant_service(self, project_config, key):
         keychain = BaseProjectKeychain(project_config, key)
         with pytest.raises(ServiceNotValid):
-            keychain.set_service(
-                "doesnotexist", "alias", ServiceConfig({"name": ""}), project=False
-            )
+            keychain.set_service("doesnotexist", "alias", ServiceConfig({"name": ""}))
 
     def test_set_invalid_service(self, keychain):
         with pytest.raises(ServiceNotValid):
-            keychain.set_service(
-                "github", "alias", ServiceConfig({"name": ""}), project=False
-            )
+            keychain.set_service("github", "alias", ServiceConfig({"name": ""}))
 
     def test_get_service_not_in_configuration(self, keychain):
         """This service is not listed as a service type in cumulusci.yml"""
@@ -84,7 +80,7 @@ class TestBaseProjectKeychain:
         )
 
     def test_set_service__github(self, keychain, service_config):
-        keychain.set_service("github", "alias", service_config, project=False)
+        keychain.set_service("github", "alias", service_config)
         assert keychain.get_service("github", "alias").config == service_config.config
 
     def test_get_service__default_service(self, keychain):
@@ -136,7 +132,7 @@ class TestBaseProjectKeychain:
     def test_set_service__private_method(self, keychain, service_config):
         alias = "ziggy"
         keychain.services = {"github": {}}
-        keychain._set_service("github", alias, service_config, project=False)
+        keychain._set_service("github", alias, service_config)
         assert alias in keychain.services["github"].keys()
         assert keychain.services["github"][alias].config == service_config.config
 

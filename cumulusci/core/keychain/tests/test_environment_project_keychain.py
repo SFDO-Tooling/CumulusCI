@@ -57,9 +57,7 @@ class ProjectKeychainTestMixin(unittest.TestCase):
 
     def test_set_service_github(self, project=False):
         keychain = self.keychain_class(self.project_config, self.key)
-        keychain.set_service(
-            "github", "alias", self.services["github"], project=project
-        )
+        keychain.set_service("github", "alias", self.services["github"])
         github_service = keychain.get_service("github", "alias")
         assert github_service.config == self.services["github"].config
 

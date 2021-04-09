@@ -42,16 +42,17 @@ class BaseEncryptedProjectKeychain(BaseProjectKeychain):
 
         self._default_services[service_type] = alias
 
-    def _set_service(self, service_type, alias, service_config, project):
+    def _set_service(self, service_type, alias, service_config):
         if service_type not in self.services:
             self.services[service_type] = {}
+            # set the first service of a given type as the global default
             self._default_services[service_type] = alias
-            self._save_default_service(service_type, alias, project=project)
+            self._save_default_service(service_type, alias, project=False)
 
         encrypted = self._encrypt_config(service_config)
-        self._set_encrypted_service(service_type, alias, encrypted, project)
+        self._set_encrypted_service(service_type, alias, encrypted)
 
-    def _set_encrypted_service(self, service_type, alias, encrypted, project):
+    def _set_encrypted_service(self, service_type, alias, encrypted):
         self.services[service_type][alias] = encrypted
 
     def _get_service(self, service_type, alias):
