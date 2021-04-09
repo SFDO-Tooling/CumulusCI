@@ -359,10 +359,12 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         for item in dir_path.iterdir():
             if item.suffix == ".service":
                 service_type = item.name.replace(".service", "")
-                scope = (
-                    "global" if item.parent.name == ".cumulusci" else item.parent.name
+                alias = (
+                    "global"
+                    if item.parent.name == ".cumulusci"
+                    else Path(self.project_local_dir).name
                 )
-                default_services[service_type] = f"{service_type}__{scope}"
+                default_services[service_type] = f"{alias}"
 
         self._write_default_services(
             dir_path / DEFAULT_SERVICES_FILENAME, default_services
@@ -441,8 +443,12 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
             self.logger.info(f"Skipping migration of unrecognized service: {item.name}")
             return None
 
-        scope = "global" if item.parent.name == ".cumulusci" else "project"
-        new_filename = f"{service_type}__{scope}.service"
+        alias = (
+            "global"
+            if item.parent.name == ".cumulusci"
+            else Path(self.project_local_dir).name
+        )
+        new_filename = f"{alias}.service"
         services_sub_dir = Path(f"{self.global_config_dir}/services/{service_type}")
         return services_sub_dir / new_filename
 

@@ -312,8 +312,8 @@ class TestEncryptedFileProjectKeychain:
             default_services = json.loads(f.read())
 
         assert len(default_services.keys()) == 2  # we shouldn't get connected_app
-        assert default_services["devhub"] == "devhub__global"
-        assert default_services["github"] == "github__global"
+        assert default_services["devhub"] == "global"
+        assert default_services["github"] == "global"
 
         project_default_services_file = Path(
             f"{cci_home_dir}/test-project/DEFAULT_SERVICES.json"
@@ -336,17 +336,20 @@ class TestEncryptedFileProjectKeychain:
         with mock.patch.object(
             EncryptedFileProjectKeychain, "global_config_dir", cci_home_dir
         ):
-            # _create_default_services_files invoked via __init__
-            EncryptedFileProjectKeychain(UniversalConfig(), key)
+            with mock.patch.object(
+                EncryptedFileProjectKeychain, "project_local_dir", project_path
+            ):
+                # _create_default_services_files invoked via __init__
+                EncryptedFileProjectKeychain(UniversalConfig(), key)
 
         global_default_services_file = Path(f"{cci_home_dir}/DEFAULT_SERVICES.json")
         assert global_default_services_file.is_file()
         with open(global_default_services_file, "r") as f:
-            default_services = json.loads(f.read())
+            global_defaults = json.loads(f.read())
 
-        assert len(default_services.keys()) == 2
-        assert default_services["github"] == "github__global"
-        assert default_services["devhub"] == "devhub__global"
+        assert len(global_defaults.keys()) == 2
+        assert global_defaults["github"] == "global"
+        assert global_defaults["devhub"] == "global"
 
         project_default_services_file = project_path / "DEFAULT_SERVICES.json"
         assert project_default_services_file.is_file()
@@ -354,7 +357,7 @@ class TestEncryptedFileProjectKeychain:
             default_services = json.loads(f.read())
 
         assert len(default_services.keys()) == 1
-        assert default_services["github"] == "github__test-project"
+        assert default_services["github"] == "test-project"
 
     def test_create_services_dir_structure(self, key):
         service_types = list(UniversalConfig().config["services"].keys())
@@ -395,13 +398,13 @@ class TestEncryptedFileProjectKeychain:
             EncryptedFileProjectKeychain(project_config, key)
 
         assert not Path.is_file(cci_home_dir / "github.service")
-        assert (cci_home_dir / "services/github/github__global.service").is_file()
-        with open(cci_home_dir / "services/github/github__global.service") as f:
+        assert (cci_home_dir / "services/github/global.service").is_file()
+        with open(cci_home_dir / "services/github/global.service") as f:
             assert f.read() == "github config"
 
         assert not Path.is_file(cci_home_dir / "test-project/devhub.service")
-        assert (cci_home_dir / "services/github/github__project.service").is_file()
-        with open(cci_home_dir / "services/github/github__project.service") as f:
+        assert (cci_home_dir / "services/github/TestProject.service").is_file()
+        with open(cci_home_dir / "services/github/TestProject.service") as f:
             assert f.read() == "github2 config"
 
         # unrecognized services should be left alone
