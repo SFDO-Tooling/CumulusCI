@@ -9,6 +9,12 @@ from cumulusci.core.dependencies.github import (
     get_repo,
 )
 from cumulusci.core.exceptions import DependencyResolutionError
+from github3.exceptions import NotFoundError
+
+
+class DummyResponse(object):
+    status_code = 404
+    content = ""
 
 
 def test_get_remote_project_config():
@@ -31,6 +37,14 @@ def test_get_repo():
 def test_get_repo__failure():
     context = mock.Mock()
     context.get_repo_from_url.return_value = None
+
+    with pytest.raises(DependencyResolutionError):
+        get_repo("test", context)
+
+
+def test_get_repo__404():
+    context = mock.Mock()
+    context.get_repo_from_url.side_effect = NotFoundError(DummyResponse)
 
     with pytest.raises(DependencyResolutionError):
         get_repo("test", context)
