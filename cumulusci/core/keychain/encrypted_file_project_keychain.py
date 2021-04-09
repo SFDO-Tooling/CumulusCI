@@ -169,8 +169,6 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
             raise ServiceNotConfigured(
                 f"No service of type {service_type} configured with name: {alias}"
             )
-        elif alias == self._default_services[service_type]:
-            return  # already the default
 
         self._default_services[service_type] = alias
         self._save_default_service(service_type, alias, project=project)
