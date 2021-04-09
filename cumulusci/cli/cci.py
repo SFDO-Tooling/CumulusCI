@@ -813,27 +813,53 @@ class ConnectServiceCommand(click.MultiCommand):
         req = details["required"]
         return click.Option((f"--{attribute}",), prompt=req, required=req)
 
+    def _get_default_options(self, runtime):
+        options = []
+        options.append(
+            click.Option(
+                ("--default",),
+                is_flag=True,
+                help="Set this service as the global defualt.",
+            )
+        )
+        if runtime.project_config is not None:
+            options.append(
+                click.Option(
+                    ("--project",),
+                    is_flag=True,
+                    help="Set this service as the default for this project only.",
+                )
+            )
+        return options
+
     def get_command(self, ctx, service_type):
         runtime = RUNTIME
         runtime._load_keychain()
         services = self._get_services_config(RUNTIME)
+
         try:
             service_config = services[service_type]
         except KeyError:
             raise click.UsageError(
                 f"Sorry, I don't know about the '{service_type}' service."
             )
-        attributes = service_config["attributes"].items()
 
+        attributes = service_config["attributes"].items()
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
-        if runtime.project_config is not None:
-            params.append(click.Option(("--project",), is_flag=True))
+        params.extend(self._get_default_options(runtime))
 
         def callback(*args, **kwargs):
             if runtime.project_config is None:
-                project = False
+                set_project_default = False
             else:
-                project = kwargs.pop("project", False)
+                set_project_default = kwargs.pop("project", False)
+
+            set_global_default = kwargs.pop("default", False)
+            if set_global_default and set_project_default:
+                raise click.UsageError(
+                    "Cannot specify both --default and --project. Please choose one."
+                )
+
             serv_conf = dict(
                 (k, v) for k, v in list(kwargs.items()) if v is not None
             )  # remove None values
@@ -846,13 +872,27 @@ class ConnectServiceCommand(click.MultiCommand):
 
             service_name = kwargs["service_name"]
             runtime.keychain.set_service(
-                service_type, service_name, ServiceConfig(serv_conf), project
+                service_type,
+                service_name,
+                ServiceConfig(serv_conf),
             )
-            if project:
-                click.echo(f"{service_type} is now configured for this project.")
+
+            if set_global_default:
+                runtime.keychain.set_default_service(
+                    service_type, service_name, project=False
+                )
+            elif set_project_default:
+                runtime.keychain.set_default_service(
+                    service_type, service_name, project=True
+                )
+
+            if set_project_default:
+                click.echo(
+                    f"The {service_type} service named {service_name} is now configured for this project."
+                )
             else:
                 click.echo(
-                    f"{service_type} is now configured for all CumulusCI projects."
+                    f"The {service_type} service named {service_name} is now configured for all CumulusCI projects."
                 )
 
         params.append(click.Argument(["service_name"]))

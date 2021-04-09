@@ -984,6 +984,48 @@ Environment Info: Rossian / x68_46
 
         run_click_command(cmd, project=False, **kwargs)
 
+    @mock.patch("click.echo")
+    def test_service_connect__global_default(self, echo):
+        multi_cmd = cci.ConnectServiceCommand()
+        ctx = mock.Mock()
+        runtime = mock.MagicMock()
+        runtime.project_config.services = {
+            "test": {"attributes": {"attr": {"required": False}}}
+        }
+
+        kwargs = {"service_name": "test-alias", "default": True, "project": False}
+        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
+            cmd = multi_cmd.get_command(ctx, "test")
+            run_click_command(cmd, **kwargs)
+
+        runtime.keychain.set_default_service.assert_called_once_with(
+            "test", "test-alias", project=False
+        )
+        echo.assert_called_once_with(
+            "The test service named test-alias is now configured for all CumulusCI projects."
+        )
+
+    @mock.patch("click.echo")
+    def test_service_connect__project_default(self, echo):
+        multi_cmd = cci.ConnectServiceCommand()
+        ctx = mock.Mock()
+        runtime = mock.MagicMock()
+        runtime.project_config.services = {
+            "test": {"attributes": {"attr": {"required": False}}}
+        }
+
+        kwargs = {"service_name": "test-alias", "default": False, "project": True}
+        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
+            cmd = multi_cmd.get_command(ctx, "test")
+            run_click_command(cmd, **kwargs)
+
+        runtime.keychain.set_default_service.assert_called_once_with(
+            "test", "test-alias", project=True
+        )
+        echo.assert_called_once_with(
+            "The test service named test-alias is now configured for this project."
+        )
+
     def test_service_connect_global_keychain(self):
         multi_cmd = cci.ConnectServiceCommand()
         ctx = mock.Mock()
@@ -1011,6 +1053,23 @@ Environment Info: Rossian / x68_46
         with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
             with pytest.raises(click.UsageError):
                 multi_cmd.get_command(ctx, "test")
+
+    def test_servcice_connect__both_default_flags_specified(self):
+        multi_cmd = cci.ConnectServiceCommand()
+        ctx = mock.Mock()
+        runtime = mock.MagicMock()
+        runtime.project_config.services = {
+            "test": {"attributes": {"attr": {"required": False}}}
+        }
+
+        kwargs = {"service_name": "test-alias"}
+        with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
+            cmd = multi_cmd.get_command(ctx, "test")
+            with pytest.raises(
+                click.UsageError,
+                match="Cannot specify both --default and --project. Please choose one.",
+            ):
+                run_click_command(cmd, default=True, project=True, **kwargs)
 
     def test_service_connect_validator(self):
         multi_cmd = cci.ConnectServiceCommand()
