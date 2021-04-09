@@ -961,7 +961,7 @@ def service_default(runtime, service_type, service_name, project):
     if project:
         project_name = Path(runtime.keychain.project_local_dir).name
         click.echo(
-            f"Service {service_type}:{service_name} is now the default for project {project_name}."
+            f"Service {service_type}:{service_name} is now the default for project '{project_name}''."
         )
     else:
         click.echo(
