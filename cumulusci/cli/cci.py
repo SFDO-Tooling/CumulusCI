@@ -895,7 +895,9 @@ def service_info(runtime, service_name, service_type, plain):
         )
 
 
-@service.command(name="default", help="Show the details of a connected service")
+@service.command(
+    name="default", help="Set the default service for a given service type."
+)
 @click.argument("service_type")
 @click.argument("service_name")
 @pass_runtime(require_project=False, require_keychain=True)
