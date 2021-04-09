@@ -910,10 +910,10 @@ def service_connect():
 
 @service.command(name="info", help="Show the details of a connected service")
 @click.argument("service_type")
-@click.argument("service_name")
+@click.argument("service_name", required=False)
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @pass_runtime(require_project=False, require_keychain=True)
-def service_info(runtime, service_name, service_type, plain):
+def service_info(runtime, service_type, service_name, plain):
     try:
         plain = plain or runtime.universal_config.cli__plain_output
         service_config = runtime.keychain.get_service(service_type, service_name)
@@ -933,7 +933,7 @@ def service_info(runtime, service_name, service_type, plain):
         service_table.echo(plain)
     except ServiceNotConfigured:
         click.echo(
-            f"{service_name} is not configured for this project.  Use service connect {service_name} to configure."
+            f"{service_type} is not configured for this project.  Use service connect {service_type} to configure."
         )
 
 
