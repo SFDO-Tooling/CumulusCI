@@ -678,7 +678,7 @@ CumulusCI includes several tasks for working with Robot Framework tests and keyw
 Configuring the ``robot`` task
 --------------------------
 
-The robot framework command-line test runner supports more than 50
+The Robot Framework command-line test runner supports more than 50
 `command line options
 <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#command-line-options-for-test-execution>`_.
 To make the ``robot`` task simpler to use, we've only exposed a few of the
