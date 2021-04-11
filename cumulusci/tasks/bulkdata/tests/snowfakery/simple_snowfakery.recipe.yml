@@ -11,3 +11,30 @@
       fake: last_name
     AccountId:
       reference: Account
+- object: Opportunity
+  fields:
+    Stagename:
+      random_choice:
+        Prospecting: 50%
+        Qualification: 50%
+    CloseDate: 2022-01-01
+    ContactId:
+      reference: Contact
+    AccountId:
+      reference: Account
+    name: The ${{Contact.Lastname}} Opportunity
+# It seems these don't show up in Storage? Makes it harder to count them.
+
+# - object: OpportunityContactRole
+#   fields:
+#     OpportunityId:
+#       reference: Opportunity
+#     ContactId:
+#       reference: Contact
+#     Role:
+#       random_choice:
+#         Business User: 20%
+#         Decision Maker: 20%
+#         Economic Buyer: 20%
+#         Economic Decision Maker: 20%
+#         Evaluator: 20%

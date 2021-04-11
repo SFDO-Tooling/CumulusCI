@@ -1,11 +1,10 @@
 import shutil
 import time
 import queue
-import os
 import typing as T
 
 from pathlib import Path
-from multiprocessing import Process
+from multiprocessing import Process, Value
 from cumulusci.utils.parallel.queue_workaround import MyQueue, SharedCounter
 from contextlib import contextmanager
 import logging
@@ -30,43 +29,65 @@ class SnowScale(BaseSalesforceApiTask):
 
     task_docs = """
     """
-    default_max_batch_size = 300  # FIXME
-
     task_options = {
-        **GenerateAndLoadDataFromYaml.task_options,
-        "max_batch_size": {},
+        "recipe": {},
         "num_generator_workers": {},
         "num_uploader_workers": {},
+        "loading_rules": {},  # TODO: Impl, Docs
+        "working_directory": {},  # TODO: Impl, Docs
+        "recipe_options": {},  # TODO: Impl, Docs
+        "num_records": {},  # TODO: Docs
+        "num_records_tablename": {},  # TODO : Better name
+        "max_batch_size": {},  # TODO Impl, Docs
     }
 
     def _init_options(self, kwargs):
         args = {"data_generation_task": bulkgen_task, **kwargs}
+
         super()._init_options(args)
 
     def _validate_options(self):
         # long-term solution: psutil.cpu_count(logical=False)
         self.num_generator_workers = int(self.options.get("num_generator_workers", 4))
         self.num_uploader_workers = int(self.options.get("num_uploader_workers", 25))
+        # self.num_uploader_workers = 3  # FIXME
+        # Do not store recipe due to MetaDeploy options freezing
+        recipe = Path(self.options.get("recipe"))
+        assert recipe.exists()
+        assert isinstance(self.options.get("num_records_tablename"), str)
 
     def _run_task(self):
+        self._done = Value("i", False)
+        self.max_batch_size = self.options.get("max_batch_size", 250_000)
+        self.dynamic_max_batch_size = Value(
+            "i",
+        )
+        self.recipe = Path(self.options.get("recipe"))
         self.upload_queue = MyQueue()
         self.job_counter = SharedCounter(0)
-        with self._generate_and_load_initial_batch() as (tempdir, template_path):
-            os.system(f"code {tempdir}")  # FIXME
+        working_directory = self.options.get("working_directory")
+        if working_directory:
+            working_directory = Path(working_directory)
+        with self._generate_and_load_initial_batch(working_directory) as (
+            tempdir,
+            template_path,
+        ):
+            self.logger.info(f"Working directory is {tempdir}")
+            # os.system(f"code {tempdir}")  # FIXME
             assert tempdir.exists()
-            generators_path = Path(tempdir) / "generators"
-            generators_path.mkdir()
-            loaders_path = Path(tempdir) / "loaders"
-            loaders_path.mkdir()
-            self.queue_for_loading_directory = loaders_path / "queue"
+            self.generators_path = Path(tempdir) / "1_generators"
+            self.generators_path.mkdir()
+            self.queue_for_loading_directory = Path(tempdir) / "2_load_queue"
             self.queue_for_loading_directory.mkdir()
-            self.archive_directory = Path(tempdir, "archive")
+            self.loaders_path = Path(tempdir) / "3_loaders"
+            self.loaders_path.mkdir()
+            self.archive_directory = Path(tempdir, "4_finished")
             self.archive_directory.mkdir()
 
             def new_generate_process(idx):
                 idx = idx + 1  # use 1-based indexing
                 args = [
-                    generators_path / str(idx),
+                    self.generators_path / str(idx),
                     template_path,
                     idx,
                 ]
@@ -74,17 +95,44 @@ class SnowScale(BaseSalesforceApiTask):
 
             def new_upload_process(idx):
                 idx = idx + 1  # use 1-based indexing
-                args = [loaders_path, idx]
+                args = [self.loaders_path, idx]
                 return Process(target=self._load_process, args=args)
 
-            self._spawn_processes(new_generate_process, self.num_generator_workers)
-            num_uploader_workers = self._spawn_processes(
+            generator_workers = self._spawn_processes(
+                new_generate_process, self.num_generator_workers
+            )
+            uploader_workers = self._spawn_processes(
                 new_upload_process, self.num_uploader_workers
             )
-            assert tempdir.exists()
-            for worker in num_uploader_workers:
-                assert tempdir.exists()
+            for (
+                max_batch_size,
+                rows_remaining,
+                rows_in_flight,
+            ) in self.generate_max_batch_sizes():
+                time.sleep(10)
+                self.dynamic_max_batch_size.value = min(max_batch_size, 250_000)
+                print(
+                    "********** PROGRESS *********",
+                )
+                print(
+                    "Rows Remaining",
+                    rows_remaining,
+                    "Rows in flight",
+                    rows_in_flight,
+                    "Dynamic max batch size",
+                    self.dynamic_max_batch_size.value,
+                )
+                print(tempdir)
+            print("WAS DONE")
+            self._done.value = True
+
+            # TODO: Perhaps need a timeout and kill?
+            for worker in generator_workers:
                 worker.join()
+
+            for worker in uploader_workers:
+                worker.join()
+
             print("DONE!!!!")  # FIXME
 
             # for worker in num_uploader_workers:
@@ -101,17 +149,26 @@ class SnowScale(BaseSalesforceApiTask):
         self, working_parent_dir: Path, template_path: Path, worker_idx: int
     ):
         working_parent_dir.mkdir(exist_ok=True)
-        batch_size = 10000
-        while 1:  # FIXME
-            while self.upload_queue.qsize() > self.num_uploader_workers:
+        batch_size = 5000
+        while not self.done():  # FIXME
+            increased_batch_size = False
+            while (
+                self.upload_queue.qsize() > self.num_uploader_workers
+                and not self.done()
+            ):
                 print(f"Waiting due to queue size of {self.upload_queue.qsize()}")
-                batch_size = min(batch_size * 2, 250000)
-                print(f"Expanding batch_size to {batch_size}")
-                time.sleep(10)
+                if not increased_batch_size:
+                    batch_size = min(
+                        batch_size * 2,
+                        self.dynamic_max_batch_size.value,
+                        self.max_batch_size,
+                    )
+                    increased_batch_size = True
+                    print(f"Expanding batch_size to {batch_size}")
+                time.sleep(60)
             idx = self.job_counter.increment()
-            working_dir = working_parent_dir / str(idx)
+            working_dir = working_parent_dir / (str(idx) + "_" + str(batch_size))
             shutil.copytree(template_path, working_dir)
-            print(__file__, "Workingdir", working_dir)
             database_file = working_dir / "generated_data.db"
             # not needed once just_once is implemented
             mapping_file = working_dir / "temp_mapping.yml"
@@ -120,6 +177,7 @@ class SnowScale(BaseSalesforceApiTask):
             assert working_dir.exists()
             options = {
                 **self.options,
+                "generator_yaml": str(self.recipe),
                 "database_url": database_url,
                 "working_directory": working_dir,
                 "num_records": batch_size,  # FIXME
@@ -128,14 +186,12 @@ class SnowScale(BaseSalesforceApiTask):
             }
             self._invoke_subtask(GenerateDataFromYaml, options, working_dir)
             assert mapping_file.exists()
-            print("GENERATED", working_dir)
             outdir = shutil.move(working_dir, self.queue_for_loading_directory)
             self.upload_queue.put(outdir)
-            print("Queued", outdir)
 
     def _load_process(self, working_parent_dir: Path, worker_idx: int):
         working_parent_dir.mkdir(exist_ok=True)
-        while 1:  # FIXME
+        while not self.done():
             try:
                 generator_working_directory = self.upload_queue.get(block=False)
             except queue.Empty:
@@ -173,11 +229,72 @@ class SnowScale(BaseSalesforceApiTask):
             stepnum=self.stepnum,
         )
         with self._add_tempfile_logger(working_dir / f"{TaskClass.__name__}.log"):
-            subtask()
+            try:
+                subtask()
+            except Exception as e:
+                print("Exception DONE", TaskClass.__name__, e)
+                self._done.value = True
+                raise e
+
+    def done(self):
+        if self._done.value:
+            return True
+
+    def rows_in_flight(self):
+        dirs = [
+            self.generators_path,
+            self.queue_for_loading_directory,
+            self.loaders_path,
+        ]
+
+        total_inflight_records = 0
+
+        for dir in dirs:
+            subdirs = dir.glob("*_*")
+            for subdir in subdirs:
+                idx, count = subdir.name.split("_")
+                total_inflight_records += int(count)
+
+        return total_inflight_records
+
+    from pysnooper import snoop
+
+    @snoop()
+    def generate_max_batch_sizes(self):
+        batch_size = 1
+        while batch_size > 0:
+            target_number = int(self.options.get("num_records"))
+            rows_in_flight = self.rows_in_flight()
+            count = self.get_org_record_count()
+            rows_remaining = target_number - (count + rows_in_flight)
+            rows_remaining = max(rows_remaining, 0)
+            batch_size = rows_remaining // (self.num_generator_workers * 2)
+            yield batch_size, rows_remaining, rows_in_flight
+
+    def get_org_record_count(self):
+        sobject = self.options.get("num_records_tablename")
+        query = f"select count(Id) from {sobject}"
+        count = self.sf.query(query)["records"][0]["expr0"]
+        return int(count)
+        # I'll probably need this code when I hit big orgs
+
+        # data = self.sf.restful(f"limits/recordCount?sObjects={table}")
+        # count = int(data["sObjects"][0]["count"])
 
     @contextmanager
-    def _generate_and_load_initial_batch(self) -> Path:
-        with TemporaryDirectory() as tempdir:
+    def workingdir_or_tempdir(self, working_directory: T.Optional[Path]):
+        if working_directory:
+            working_directory.mkdir()
+            yield working_directory
+        else:
+            with TemporaryDirectory() as tempdir:
+                yield tempdir
+
+    @contextmanager
+    def _generate_and_load_initial_batch(
+        self, working_directory: T.Optional[Path]
+    ) -> Path:
+        with self.workingdir_or_tempdir(working_directory) as tempdir:
             template_dir = Path(tempdir) / "template"
             template_dir.mkdir()
             # FIXME:
@@ -187,54 +304,6 @@ class SnowScale(BaseSalesforceApiTask):
     def _generate_and_load_batch(self, tempdir, options) -> Path:
         options = {**self.options, **options, "working_directory": tempdir}
         self._invoke_subtask(GenerateAndLoadDataFromYaml, options, tempdir)
-        print("Generated and Loaded")
-
-    # def _generate_batch(self, tempdir, options) -> Path:
-    #     options = {**self.options, **options, "working_directory": tempdir}
-    #     task_config = TaskConfig({"options": options})
-    #     task = GenerateDataFromYaml(
-    #         self.project_config, task_config, org_config=self.org_config
-    #     )
-    #     with self._add_tempfile_logger(working_directory):
-    #         task()
-    #     print("Generated")
-
-    # def _load_batch(self, working_directory, options) -> Path:
-    #     mapping_file = f"{working_directory}/temp_mapping.yml"
-    #     database_url = f"sqlite:///{working_directory}/generated_data.db"
-    #     continuation_file = f"{working_directory}/continuation.yml"
-    #     assert mapping_file.exists()
-    #     subtask_options = {
-    #         **options,
-    #         "continuation_file": str(continuation_file),
-    #         "mapping": str(mapping_file),
-    #         "reset_oids": False,
-    #         "database_url": database_url,
-    #         "working_directory": working_directory,
-    #     }
-
-    #     task_config = TaskConfig({"options": options})
-    #     task = LoadData(
-    #         self.project_config, task_config, org_config=self.org_config
-    #     )
-    #     with self._add_tempfile_logger(working_directory):
-    #         task()
-    #     print("Loaded")
-
-    # def _generate_subsequent_batch(
-    #     self, mytempdir: Path, template_path: Path, worker_index: int
-    # ):
-    #     print(f"Copying {template_path} -> {mytempdir}")
-    #     shutil.copytree(template_path, mytempdir)
-    #     # self.re_init_loggers()
-    #     with self._add_tempfile_logger(mytempdir):
-    #         total_workers = self.num_workers
-    #         max_batch_size = int(
-    #             self.options.get("max_batch_size", self.default_max_batch_size)
-    #         )
-    #         min_batch_size = max_batch_size // self.num_workers
-    #         new_batch_size = min_batch_size * worker_index
-    #         self._generate_batches(mytempdir, {"batch_size": new_batch_size})
 
     @contextmanager
     def _add_tempfile_logger(self, my_log: Path):

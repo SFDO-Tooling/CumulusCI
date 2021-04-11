@@ -9,7 +9,7 @@ tasks:
             suites: cumulusci/robotframework/tests
             options:
                 outputdir: robot/CumulusCI/results
-                noncritical: noncritical    # allows testing failure conditions
+                noncritical: noncritical # allows testing failure conditions
 
     robot_testdoc:
         options:
@@ -18,9 +18,9 @@ tasks:
     robot_lint:
         options:
             path:
-              - cumulusci/robotframework
+                - cumulusci/robotframework
             ignore:
-              - RequireTestDocumentation
+                - RequireTestDocumentation
     robot_libdoc:
         description: Generates html documentation for the Salesorce and CumulusCI libraries and resource files
         class_path: cumulusci.tasks.robotframework.RobotLibDoc
@@ -28,11 +28,19 @@ tasks:
             title: CumulusCI Robot Framework Keywords
             output: docs/robot/Keywords.html
             path:
-              - cumulusci.robotframework.CumulusCI
-              - cumulusci.robotframework.PageObjects
-              - cumulusci.robotframework.Salesforce
-              - cumulusci/robotframework/Salesforce.robot
-              - cumulusci/robotframework/pageobjects/BasePageObjects.py
+                - cumulusci.robotframework.CumulusCI
+                - cumulusci.robotframework.PageObjects
+                - cumulusci.robotframework.Salesforce
+                - cumulusci/robotframework/Salesforce.robot
+                - cumulusci/robotframework/pageobjects/BasePageObjects.py
+
+    test_snowscaler:
+        class_path: cumulusci.tasks.bulkdata.snowscale.SnowScale
+        options:
+            recipe: ./cumulusci/tasks/bulkdata/tests/snowfakery/simple_snowfakery.recipe.yml
+            num_generator_workers: 4
+            num_uploader_workers: 25
+            num_records_tablename: "Opportunity"
 
 flows:
     robot_docs:
@@ -56,7 +64,6 @@ flows:
                 task: robot
                 options:
                     suites: cumulusci/robotframework/perftests
-
 
 orgs:
     scratch:
