@@ -442,6 +442,10 @@ tasks:
     description: Tell SFDX source tracking to ignore previous changes in a scratch org
     class_path: cumulusci.tasks.salesforce.sourcetracking.SnapshotChanges
     group: Salesforce Metadata
+  snowscale:
+    description: Experimental Snowfakery scaling tool
+    class_path: cumulusci.tasks.bulkdata.snowscale.SnowScale
+    group: Data Operations
   revert_managed_src:
     description: Reverts the changes from create_managed_src
     class_path: cumulusci.tasks.metadata.managed_src.RevertManagedSrc
