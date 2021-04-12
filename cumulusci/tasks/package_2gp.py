@@ -479,7 +479,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         return self._convert_ancestor_id(spv_id)
 
     def _convert_ancestor_id(self, ancestor_id: str) -> str:
-        """Given a subscriber package version Id (04t) find
+        """Given a SubscriberPackageVersionId (04t) find
         the corresponding Package2VersionId (05i).
         See: https://github.com/forcedotcom/salesforce-alm/blob/83745351670a701762c6ecc926885564b8853357/src/lib/package/packageUtils.ts#L517
 
