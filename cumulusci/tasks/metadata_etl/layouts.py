@@ -4,6 +4,7 @@ from cumulusci.core.utils import process_list_arg, process_bool_arg
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 
+
 class AddRelatedLists(MetadataSingleEntityTransformTask):
     entity = "Layout"
     task_options = {
@@ -70,14 +71,15 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
 
 class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
     """
-    Inserts the targeted lightning button/action into specified 
+    Inserts the targeted lightning button/action into specified
     layout's PlatformActionList with a'Record' actionListContext.
-    - If the targeted lightning button/action already exists, 
+    - If the targeted lightning button/action already exists,
       the layout metadata is not modified.
     - If there is no 'Record' context PlatformActionList,
       we will generate one and add the specified action
     https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_layouts.htm#PlatformActionList
     """
+
     entity = "Layout"
     task_options = {
         "action_type": {
@@ -87,8 +89,8 @@ class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
         "action_name": {
             "description": "platformActionListItems.actionName. The API name for the action to be added.  See documentation: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_layouts.htm#PlatformActionListItem",  # noqa: E501
             "required": True,
-        },    
-        "place_first":{
+        },
+        "place_first": {
             "description": "When 'True' the specified Record Platform Action List Item will be inserted before any existing on the layout. Default is 'False'",
             "required": False,
         },
@@ -97,29 +99,33 @@ class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        
+
         self._action_type = self.options.get("action_type", "")
         self._action_name = self._inject_namespace(self.options.get("action_name", ""))
         # Default to False if `place_first` option was not set
-        self._place_first = False if not self.options.get("place_first") else process_bool_arg(self.options.get("place_first"))
+        self._place_first = (
+            False
+            if not self.options.get("place_first")
+            else process_bool_arg(self.options.get("place_first"))
+        )
 
     def _transform_entity(
         self, metadata: MetadataElement, api_name: str
     ) -> Optional[MetadataElement]:
         # get or create an existing action list
-        self._existing_action_list = self._get_existing_action_list(metadata)   
+        self._existing_action_list = self._get_existing_action_list(metadata)
 
         # check for existing Platform Action List Item of same name
         #   (i.e. The desired QuickAction to inject already is in the layout)
         if self._existing_action_list.find(
             "platformActionListItems", actionName=self._action_name
         ):
+            #TODO - give more info
             self.logger.info(f"Action already exists")
             return None
-        
+
         self._create_new_action_list_item(self._existing_action_list)
-        self._update_platform_action_list_items_sort_order(self._existing_action_list)
-        self.logger.info(metadata.tostring())
+        self._update_platform_action_list_items_sort_order(self._existing_action_list)        
         return metadata
 
     def _get_existing_action_list(self, metadata: MetadataElement):
@@ -132,17 +138,15 @@ class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
         if not existing_action_list:
             existing_action_list = metadata.append("platformActionList")
             existing_action_list.append("actionListContext", "Record")
-        
+
         return existing_action_list
 
     def _create_new_action_list_item(self, existing_action_list):
         """
         TODO - fill this out
         """
-        
-        if self._place_first and existing_action_list.find(
-            "platformActionListItems"
-        ):
+
+        if self._place_first and existing_action_list.find("platformActionListItems"):
             existing_action_list.insert_after(
                 existing_action_list.find("actionListContext"),
                 "platformActionListItems",
@@ -152,7 +156,7 @@ class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
             action_list_item = existing_action_list.append("platformActionListItems")
 
         action_list_item.append("actionName", self._action_name)
-        action_list_item.append("actionType", self._action_type)        
+        action_list_item.append("actionType", self._action_type)
         action_list_item.append("sortOrder", "place_first:" + str(self._place_first))
 
     def _update_platform_action_list_items_sort_order(self, existing_action_list):
