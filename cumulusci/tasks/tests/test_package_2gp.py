@@ -171,6 +171,7 @@ class TestCreatePackageVersion:
     def test_run_task(self, task, mock_download_extract_github, devhub_config):
         mock_download_extract_github.return_value = zipfile.ZipFile(io.BytesIO(), "w")
 
+        # _get_or_create_package() responses
         responses.add(  # query to find existing package
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
@@ -181,6 +182,15 @@ class TestCreatePackageVersion:
             f"{self.devhub_base_url}/tooling/sobjects/Package2/",
             json={"id": "0Ho6g000000fy4ZCAQ"},
         )
+
+        # _resolve_ancestor_id() responses
+        responses.add(
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 1, "records": [{"Id": "05i000000000000"}]},
+        )
+
+        # _create_version_request() responses
         responses.add(  # query to find existing Package2VersionCreateRequest
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
@@ -595,3 +605,20 @@ class TestCreatePackageVersion:
     def test_get_base_version_number__explicit(self, task):
         version = task._get_base_version_number("1.0", "0Ho6g000000fy4ZCAQ")
         assert version.format() == "1.0.0.0"
+
+    @responses.activate
+    @mock.patch("cumulusci.tasks.package_2gp.get_version_id_from_tag")
+    def test_resolve_ancestor_id(self, get_version_id_from_tag, task):
+        responses.add(
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 1, "records": [{"Id": "05i000000000000"}]},
+        )
+
+        project_config = mock.Mock()
+        task.project_config = project_config
+
+        get_version_id_from_tag.return_value = "04t000000000111"
+
+        actual_id = task._resolve_ancestor_id()
+        assert actual_id == "05i000000000000"

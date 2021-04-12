@@ -236,12 +236,14 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             logger=self.logger,
         )
 
+        ancestor_id = self._resolve_ancestor_id(self.options.get("ancestor_id"))
+
         self.request_id = self._create_version_request(
             self.package_id,
             self.package_config,
             package_zip_builder,
+            ancestor_id,
             self.options["skip_validation"],
-            ancestor_id=self._resolve_ancestor_id(),
         )
         self.return_values["request_id"] = self.request_id
 
@@ -251,9 +253,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
         # get the new version number from Package2Version
         res = self.tooling.query(
-            "SELECT MajorVersion, MinorVersion, PatchVersion, BuildNumber, SubscriberPackageVersionId FROM Package2Version WHERE Id='{}' ".format(
-                self.package_version_id
-            )
+            f"SELECT MajorVersion, MinorVersion, PatchVersion, BuildNumber, SubscriberPackageVersionId FROM Package2Version WHERE Id='{self.package_version_id}'"
         )
         package2_version = res["records"][0]
         self.return_values["subscriber_package_version_id"] = package2_version[
@@ -341,9 +341,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_id: str,
         package_config: PackageConfig,
         package_zip_builder: BasePackageZipBuilder,
+        ancestor_id: str = "",
         skip_validation: bool = False,
         dependencies: list = None,
-        ancestor_id: str = None,
     ):
         # Prepare the VersionInfo file
         version_bytes = io.BytesIO()
@@ -375,13 +375,15 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             version_number = self._get_base_version_number(
                 package_config.version_base, package_id
             ).increment(package_config.version_type)
+
             package_descriptor = {
-                "ancestorId": ancestor_id or "",
                 "id": package_id,
                 "path": "",
                 "versionName": package_config.version_name,
                 "versionNumber": version_number.format(),
+                "ancestorId": ancestor_id,
             }
+
             if package_config.post_install_script:
                 package_descriptor[
                     "postInstallScript"
@@ -450,15 +452,44 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         return response["id"]
 
-    def _resolve_ancestor_id(self) -> str:
-        ancestor_id = self.options.get("ancestor_id")
-        if not ancestor_id:
-            tag_name = self.project_config.get_latest_tag(beta=True)
+    def _resolve_ancestor_id(self, spv_id: str = None) -> str:
+        """
+        If an ancestor_id (04t) is not specified, get it
+        from the latest production release.
+
+        @param spv_id The SubscriberPackageVersionId (04t) that is the ancestor
+        to the version being created.
+        """
+        if not spv_id:
+            tag_name = self.project_config.get_latest_tag(beta=False)
             repo = self.project_config._get_repo()
-            version_id = get_version_id_from_tag(repo, tag_name)
-            self.logger.info(f"Resolved ancestor to version: {version_id}")
+            spv_id = get_version_id_from_tag(repo, tag_name)
+            self.logger.info(f"Resolved ancestor to version: {spv_id}")
             self.logger.info("")
-        return ancestor_id
+
+        return self._convert_ancestor_id(spv_id)
+
+    def _convert_ancestor_id(self, ancestor_id: str) -> str:
+        """Given a subscriber package version Id (04t) find
+        the corresponding Package2VersionId (05i).
+        See: https://github.com/forcedotcom/salesforce-alm/blob/83745351670a701762c6ecc926885564b8853357/src/lib/package/packageUtils.ts#L517
+
+        @param ancestor_id A SubscriberPackageVersionId (04t)
+        @returns the corresponding Package2VersionId (05i) or an empty string
+        if no Package2Version is found.
+        """
+        package_2_version_id = ""
+        res = self.tooling.query(
+            f"SELECT Id FROM Package2Version WHERE SubscriberPackageVersionId='{ancestor_id}'"
+        )
+        if res["size"] > 0:
+            package_2_version_id = res["records"][0]["Id"]
+            self.logger.info(
+                f"Converted ancestor_id to corresponding Package2Version: {package_2_version_id}"
+            )
+            self.logger.info("")
+
+        return package_2_version_id
 
     def _get_base_version_number(
         self, version_base: Optional[str], package_id: str
@@ -628,7 +659,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
     def _create_unlocked_package_from_local(self, path, dependencies):
         """Create an unlocked package version from a local directory."""
-        self.logger.info("Creating package for dependencies in {}".format(path))
+        self.logger.info(f"Creating package for dependencies in {path}")
         package_name = (
             f"{self.project_config.repo_owner}/{self.project_config.repo_name} {path}"
         )
