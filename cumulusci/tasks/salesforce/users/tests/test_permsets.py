@@ -412,7 +412,7 @@ class TestCreatePermissionSet:
             [False, "-", "Delphic exception message"],
         ]
         table.assert_called_once()
-        assert expected_table_data in table.call_args.args
+        assert expected_table_data in table.call_args[0]
 
 
 class TestCreatePermissionSetLicense:
