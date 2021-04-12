@@ -1,3 +1,7 @@
+from collections import defaultdict
+from cumulusci.core.config.OrgConfig import OrgConfig, VersionInfo
+from cumulusci.core.config.universal_config import UniversalConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
 import pytest
 from unittest import mock
 
@@ -277,6 +281,26 @@ class TestPackageUpload:
         assert task.return_values["package_id"] == task.package_id
         assert task.return_values["version_id"] == task.version_id
         assert task.return_values["version_number"] == task.version_number
+
+    def test_set_dependencies(self):
+        project_config = BaseProjectConfig(UniversalConfig())
+        project_config.project__dependencies = [{"namespace": "foo", "version": "1.0"}]
+        org_config = OrgConfig({}, "test")
+        org_config._installed_packages = defaultdict(list)
+        org_config._installed_packages["foo@1.0"] = [
+            VersionInfo("04t000000000000", "1.0")
+        ]
+
+        task = create_task(
+            PackageUpload,
+            {"name": "Test Release"},
+            project_config=project_config,
+            org_config=org_config,
+        )
+
+        task._set_dependencies()
+
+        assert task.return_values["dependencies"] == [{"version_id": "04t000000000000"}]
 
     def test_log_package_upload_success(self):
         task = create_task(PackageUpload, {"name": "Test Release"})

@@ -1,12 +1,17 @@
+from pydantic import ValidationError
+
+from cumulusci.core.dependencies.dependencies import PackageInstallOptions
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.salesforce_api.exceptions import MetadataApiError
-from cumulusci.salesforce_api.package_install import install_package_version
-from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
-from cumulusci.tasks.salesforce.Deploy import Deploy
+from cumulusci.salesforce_api.package_install import (
+    DEFAULT_PACKAGE_RETRY_OPTIONS,
+    install_package_by_namespace_version,
+    install_package_by_version_id,
+)
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 
 
-class InstallPackageVersion(Deploy):
+class InstallPackageVersion(BaseSalesforceApiTask):
     task_options = {
         "name": {
             "description": "The name of the package to install.  Defaults to project__package__name_managed",
@@ -40,75 +45,86 @@ class InstallPackageVersion(Deploy):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        del self.options["namespace_inject"]
+
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
-        if "name" not in self.options:
-            self.options["name"] = (
-                self.project_config.project__package__name_managed
-                or self.project_config.project__package__name
-                or self.options["namespace"]
-            )
-        if "retries" not in self.options:
-            self.options["retries"] = 10
-        if "retry_interval" not in self.options:
-            self.options["retry_interval"] = 5
-        if "retry_interval_add" not in self.options:
-            self.options["retry_interval_add"] = 30
         version = self.options.get("version")
+
+        # `name` is shown in the logs and in MetaDeploy
+        # Populate a reasonable default. Note that if we're deploying a different package
+        # than our own, we should not show the name of this repo's package.
+        if "name" not in self.options:
+            if isinstance(version, str) and version.startswith("04t"):
+                self.options["name"] = "Package"
+            elif (
+                self.options["namespace"]
+                == self.project_config.project__package__namespace
+            ):
+                self.options["name"] = (
+                    self.project_config.project__package__name_managed
+                    or self.project_config.project__package__name
+                    or self.options["namespace"]
+                )
+            else:
+                self.options["name"] = self.options["namespace"]
+
+        self.retry_options = DEFAULT_PACKAGE_RETRY_OPTIONS.copy()
+        if "retries" in self.options:
+            self.retry_options["retries"] = self.options["retries"]
+        if "retry_interval" in self.options:
+            self.retry_options["retry_interval"] = self.options["retry_interval"]
+        if "retry_interval_add" in self.options:
+            self.retry_options["retry_interval_add"] = self.options[
+                "retry_interval_add"
+            ]
+
+        # TODO: This should be centralized somewhere in the `dependencies` module,
+        # along with the same code working with `sources`.
+        # We're not using resolution strategies here - we could be,
+        # and this task could be a thin layer on top of update_dependencies.
         if version == "latest":
             self.options["version"] = self.project_config.get_latest_version()
         elif version == "latest_beta":
             self.options["version"] = self.project_config.get_latest_version(beta=True)
         elif version == "previous":
             self.options["version"] = self.project_config.get_previous_version()
-        self.options["activateRSS"] = process_bool_arg(
-            self.options.get("activateRSS") or False
-        )
-        self.options["security_type"] = self.options.get("security_type", "FULL")
-        if self.options["security_type"] not in ("FULL", "NONE", "PUSH"):
-            raise TaskOptionsError(
-                f"Unsupported value for security_type: {self.options['security_type']}"
-            )
 
-    def _get_api(self, path=None):
-        package_zip = InstallPackageZipBuilder(
-            namespace=self.options["namespace"],
-            version=self.options["version"],
-            activateRSS=self.options["activateRSS"],
-            password=self.options.get("password"),
-            securityType=self.options.get("security_type", "FULL"),
-        )
-        return self.api_class(self, package_zip(), purge_on_delete=False)
+        # Ensure that this option is frozen in case the defaults ever change.
+        self.options["security_type"] = self.options.get("security_type") or "FULL"
+        try:
+            self.install_options = PackageInstallOptions(
+                activate_remote_site_settings=process_bool_arg(
+                    self.options.get("activateRSS") or False
+                ),
+                password=self.options.get("password"),
+                security_type=self.options["security_type"],
+            )
+        except ValidationError as e:
+            raise TaskOptionsError(f"Invalid options: {e}")
 
     def _run_task(self):
         version = self.options["version"]
         self.logger.info(f"Installing {self.options['name']} {version}")
+
         if isinstance(version, str) and version.startswith("04t"):
-            install_options = {**self.options, "version_id": version}
-            retry_options = {
-                "retries": self.options["retries"],
-                "retry_interval": self.options["retry_interval"],
-                "retry_interval_add": self.options["retry_interval_add"],
-            }
-            install_package_version(
-                self.project_config, self.org_config, install_options, retry_options
+            install_package_by_version_id(
+                self.project_config,
+                self.org_config,
+                version,
+                self.install_options,
+                self.retry_options,
             )
         else:
-            self._retry()
+            install_package_by_namespace_version(
+                self.project_config,
+                self.org_config,
+                self.options["namespace"],
+                version,
+                self.install_options,
+                self.retry_options,
+            )
+
         self.org_config.reset_installed_packages()
-
-    def _try(self):
-        api = self._get_api()
-        api()
-
-    def _is_retry_valid(self, e):
-        if isinstance(e, MetadataApiError) and (
-            "This package is not yet available" in str(e)
-            or "InstalledPackage version number" in str(e)
-            or "The requested package doesn't yet exist or has been deleted" in str(e)
-        ):
-            return True
 
     def freeze(self, step):
         options = self.options.copy()
@@ -116,7 +132,7 @@ class InstallPackageVersion(Deploy):
         name = options.pop("name")
         task_config = {"options": options, "checks": self.task_config.checks or []}
         ui_step = {
-            "name": "Install {} {}".format(name, options["version"]),
+            "name": f"Install {name} {options['version']}",
             "kind": "managed",
             "is_required": True,
         }

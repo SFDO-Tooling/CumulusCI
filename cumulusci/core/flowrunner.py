@@ -267,7 +267,12 @@ class TaskRunner(object):
         for key, info in task.task_options.items():
             value = task.options.get(key)
             if value is not None:
-                task.logger.info(f"  {key}: {value}")
+                if type(value) is not list:
+                    task.logger.info(f"  {key}: {value}")
+                else:
+                    task.logger.info(f"  {key}:")
+                    for v in value:
+                        task.logger.info(f"    - {v}")
 
 
 class FlowCoordinator(object):
@@ -396,6 +401,7 @@ class FlowCoordinator(object):
         self.logger.info("Organization:")
         self.logger.info(f"  Username: {org_config.username}")
         self.logger.info(f"    Org Id: {org_config.org_id}")
+        self.logger.info(f"  Instance: {org_config.instance_name}")
         self._rule(fill="-", new_line=True)
 
         # Give pre_flow callback a chance to alter the steps

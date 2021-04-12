@@ -32,6 +32,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         self.project_config.repo_info["root"] = pathlib.Path(self.repo_root.name)
         self.project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",
@@ -441,6 +442,25 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
             "commit": "tag_sha",
             "description": "tags/release/1.0",
         }
+
+    @responses.activate
+    def test_githubsource_init__404(self):
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo",
+            status=404,
+        )
+
+        with pytest.raises(
+            DependencyResolutionError, match="unable to find the repository"
+        ):
+            GitHubSource(
+                self.project_config,
+                {
+                    "github": "https://github.com/TestOwner/TestRepo.git",
+                    "release": "latest",
+                },
+            )
 
 
 class TestLocalFolderSource:
