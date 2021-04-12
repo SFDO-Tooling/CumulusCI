@@ -28,7 +28,9 @@ class TestBaseMetaDeployTask(unittest.TestCase):
 
         project_config = create_project_config()
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig()
         task = BaseMetaDeployTask(project_config, task_config)
@@ -51,7 +53,9 @@ class TestBaseMetaDeployTask(unittest.TestCase):
 
         project_config = create_project_config()
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig()
         task = BaseMetaDeployTask(project_config, task_config)
@@ -83,10 +87,13 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             }
         }
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {"username": "foo", "token": "bar", "email": "foo@example.com"}
             ),
@@ -290,7 +297,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             }
         }
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig({"options": {"tag": "release/1.0"}})
         task = Publish(project_config, task_config)
@@ -319,7 +328,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             }
         }
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig({"options": {"commit": "abcdef"}})
         task = Publish(project_config, task_config)
@@ -339,7 +350,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         project_config = create_project_config()
         project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig({"options": {"tag": "release/1.0"}})
         task = Publish(project_config, task_config)
@@ -350,7 +363,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
     def test_init_task__no_tag_or_commit(self):
         project_config = create_project_config()
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig({"options": {}})
         task = Publish(project_config, task_config)
@@ -371,7 +386,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         }
         project_config.config["plans"] = expected_plans
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig({"options": {"tag": "release/1.0", "plan": "install"}})
         task = Publish(project_config, task_config)
@@ -406,7 +423,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         }
         project_config.config["plans"] = expected_plans
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig({"options": {"tag": "release/1.0"}})
         task = Publish(project_config, task_config)
@@ -421,7 +440,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
     def test_freeze_steps__skip(self):
         project_config = create_project_config()
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         plan_config = {
             "title": "Test Install",

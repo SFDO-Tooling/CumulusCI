@@ -1,16 +1,13 @@
 import json
 import os
 
-from cumulusci.core.config import ConnectedAppOAuthConfig
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.config import ServiceConfig
+from cumulusci.core.config import OrgConfig, ScratchOrgConfig, ServiceConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.utils import import_global
 
 scratch_org_class = os.environ.get("CUMULUSCI_SCRATCH_ORG_CLASS")
 if scratch_org_class:
-    scratch_org_factory = import_global(scratch_org_class)
+    scratch_org_factory = import_global(scratch_org_class)  # pragma: no cover
 else:
     scratch_org_factory = ScratchOrgConfig
 
@@ -32,11 +29,6 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
             env[k] = v
         return list(env.items())
 
-    def _load_app(self):
-        app = os.environ.get(self.app_var)
-        if app:
-            self.app = ConnectedAppOAuthConfig(json.loads(app))
-
     def _load_orgs(self):
         for key, value in self._get_env():
             if key.startswith(self.org_var_prefix):
@@ -55,5 +47,9 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
         for key, value in self._get_env():
             if key.startswith(self.service_var_prefix):
                 service_config = json.loads(value)
-                service_name = key[len(self.service_var_prefix) :].lower()
-                self._set_service(service_name, ServiceConfig(service_config))
+                service_type = key[len(self.service_var_prefix) :].lower()
+                self._set_service(service_type, "env", ServiceConfig(service_config))
+
+    def _load_default_services(self):
+        for service_type in self.services:
+            self._default_services[service_type] = "env"

@@ -487,7 +487,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def get_repo_from_url(self, url):
         owner, name = split_repo_url(url)
-
         return self.get_github_api(owner, name).repository(owner, name)
 
     def get_task(self, name):

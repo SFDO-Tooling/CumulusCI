@@ -19,6 +19,7 @@ def project_config():
     project_config = create_project_config()
     project_config.keychain.set_service(
         "github",
+        "alias",
         ServiceConfig(
             {
                 "username": "TestUser",
