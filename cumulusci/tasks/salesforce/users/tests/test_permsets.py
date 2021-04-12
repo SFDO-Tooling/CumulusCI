@@ -1,4 +1,5 @@
 import json
+from unittest.mock import patch
 
 import pytest
 import responses
@@ -307,7 +308,8 @@ class TestCreatePermissionSet:
             task()
 
     @responses.activate
-    def test_create_permset_partial_success_raises(self):
+    @patch("cumulusci.tasks.salesforce.users.permsets.CliTable", autospec=True)
+    def test_create_permset_partial_success_raises(self, table):
         task = create_task(
             AssignPermissionSets,
             {
@@ -402,6 +404,15 @@ class TestCreatePermissionSet:
 
         with pytest.raises(CumulusCIException):
             task()
+
+        # Check table output
+        expected_table_data = [
+            ["Success", "ID", "Message"],
+            [True, "0Pa000000000000", "-"],
+            [False, "-", "Delphic exception message"],
+        ]
+        table.assert_called_once()
+        assert expected_table_data in table.call_args.args
 
 
 class TestCreatePermissionSetLicense:
