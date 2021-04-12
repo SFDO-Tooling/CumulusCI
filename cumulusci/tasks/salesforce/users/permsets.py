@@ -1,5 +1,6 @@
 import json
 
+from cumulusci.cli.ui import CliTable
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -122,9 +123,40 @@ Assigns Permission Sets whose Names are in ``api_names`` to either the default o
         return assignments
 
     def _insert_assignments(self, records_to_insert):
-        request_body = json.dumps({"allOrNone": False, "records": records_to_insert})
-        result = self.sf.restful("composite/sobjects", method="POST", data=request_body)
-        self.logger.debug(result)
+        result_list = []
+        for i in range(0, len(records_to_insert), 200):
+            request_body = json.dumps(
+                {"allOrNone": False, "records": records_to_insert[i : i + 200]}
+            )
+            result = self.sf.restful(
+                "composite/sobjects", method="POST", data=request_body
+            )
+            self.logger.debug(result)
+            result_list.extend(result)
+        self._process_composite_results(result_list)
+
+    def _process_composite_results(self, api_results):
+        results_table_data = [["Success", "ID", "Message"]]
+        for result in api_results:
+            result_row = [result["success"], result.get("id", "-")]
+            if not result["success"] and result["errors"]:
+                result_row.append(result["errors"][0]["message"])
+            else:
+                result_row.append("-")
+            results_table_data.append(result_row)
+
+        table = CliTable(
+            results_table_data,
+            bool_cols=["Success"],
+            title="Results",
+            wrap_cols=["Message"],
+        )
+        self.logger.info("\n" + str(table))
+
+        if not all([result["success"] for result in api_results]):
+            raise CumulusCIException(
+                f"Not all {self.assignment_child_relationship} were saved."
+            )
 
 
 class AssignPermissionSetLicenses(AssignPermissionSets):
