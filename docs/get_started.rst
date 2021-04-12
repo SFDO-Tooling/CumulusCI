@@ -179,7 +179,7 @@ Next, run the following command and provide your GitHub username and access toke
 
 .. code-block:: console
 
-    $ cci service connect github
+    $ cci service connect github mygithub
 
 Verify the GitHub service is connected by running ``cci service list``:
 

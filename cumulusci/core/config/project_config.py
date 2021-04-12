@@ -1,8 +1,8 @@
 from distutils.version import LooseVersion
-import io
 import json
 import os
 import re
+from io import StringIO
 from pathlib import Path
 from configparser import ConfigParser
 from itertools import chain
@@ -11,13 +11,11 @@ from contextlib import contextmanager
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
 import github3
-import yaml
 
 from cumulusci.core.utils import merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.exceptions import (
     ConfigError,
-    DependencyResolutionError,
     GithubException,
     KeychainNotFound,
     NamespaceNotFoundError,
@@ -26,10 +24,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.github import (
     get_github_api_for_repo,
-    find_latest_release,
     find_previous_release,
-    find_repo_feature_prefix,
-    get_version_id_from_commit,
 )
 from cumulusci.core.source import GitHubSource
 from cumulusci.core.source import LocalFolderSource
@@ -37,14 +32,10 @@ from cumulusci.core.source import NullSource
 from cumulusci.utils.git import (
     current_branch,
     git_path,
-    is_release_branch_or_child,
-    construct_release_branch_name,
-    get_release_identifier,
+    split_repo_url,
 )
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 from cumulusci.utils.fileutils import open_fs_resource
-
-from github3.exceptions import NotFoundError
 
 
 class BaseProjectConfig(BaseTaskFlowConfig):
@@ -107,24 +98,26 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             )
 
         # Load the project's yaml config file
-        with open(self.config_project_path, "r", encoding="utf-8") as f_config:
-            project_config = cci_safe_load(f_config)
+        project_config = cci_safe_load(self.config_project_path, logger=self.logger)
 
         if project_config:
             self.config_project.update(project_config)
 
         # Load the local project yaml config file if it exists
         if self.config_project_local_path:
-            with open(
-                self.config_project_local_path, "r", encoding="utf-8"
-            ) as f_local_config:
-                local_config = cci_safe_load(f_local_config)
+            local_config = cci_safe_load(
+                self.config_project_local_path, logger=self.logger
+            )
             if local_config:
                 self.config_project_local.update(local_config)
 
         # merge in any additional yaml that was passed along
         if self.additional_yaml:
-            additional_yaml_config = yaml.safe_load(self.additional_yaml)
+            additional_yaml_config = cci_safe_load(
+                StringIO(self.additional_yaml),
+                self.config_project_path,
+                logger=self.logger,
+            )
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
 
@@ -212,7 +205,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 self.logger.info(
                     "CUMULUSCI_REPO_URL found, using its value as the repo url, owner, and name"
                 )
-            url_info = self._split_repo_url(repo_url)
+            url_info = {}
+            url_info["owner"], url_info["name"] = split_repo_url(repo_url)
+            url_info["url"] = repo_url
             info.update(url_info)
 
     def _override_repo_env_var(self, repo_env_var, local_var, info):
@@ -250,19 +245,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             self.logger.warning(f"  {key}: {info[key]}")
         self.logger.info("")
 
-    def _split_repo_url(self, url):
-        url_parts = url.rstrip("/").split("/")
-
-        name = url_parts[-1]
-        if name.endswith(".git"):
-            name = name[:-4]
-
-        owner = url_parts[-2]
-        if "git@github.com" in url:  # ssh url
-            owner = owner.split(":")[-1]
-
-        return {"url": url, "owner": owner, "name": name}
-
     def git_config_remote_origin_url(self):
         """Returns the url under the [remote origin]
         section of the .git/config file. Returns None
@@ -298,7 +280,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         url_line = self.git_config_remote_origin_url()
-        return self._split_repo_url(url_line)["name"]
+        return split_repo_url(url_line)[1]
 
     @property
     def repo_url(self):
@@ -322,7 +304,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         url_line = self.git_config_remote_origin_url()
-        return self._split_repo_url(url_line)["owner"]
+        return split_repo_url(url_line)[0]
 
     @property
     def repo_branch(self):
@@ -377,14 +359,16 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         )
 
     def _get_repo(self):
-        gh = self.get_github_api()
-        repo = gh.repository(self.repo_owner, self.repo_name)
+        repo = self.get_github_api(self.repo_owner, self.repo_name).repository(
+            self.repo_owner, self.repo_name
+        )
         if repo is None:
             raise GithubException(
                 f"Github repository not found or not authorized. ({self.repo_url})"
             )
         return repo
 
+    # TODO: These methods are duplicative with `find_latest_release()`
     def get_latest_tag(self, beta=False):
         """ Query Github Releases to find the latest production or beta tag """
         repo = self._get_repo()
@@ -502,365 +486,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             )
 
     def get_repo_from_url(self, url):
-        splits = self._split_repo_url(url)
-        gh = self.get_github_api(splits["owner"], splits["name"])
-        repo = gh.repository(splits["owner"], splits["name"])
-
-        return repo
-
-    def find_matching_2gp_release(self, remote_repo):
-        # To allow us to locate release branches on the remote repo, we need to know its feature branch prefix.
-        # We'll use the cumulusci.yml file from HEAD on the main branch to determine this.
-
-        release_id = get_release_identifier(
-            self.repo_branch, self.project__git__prefix_feature
-        )
-        try:
-            remote_branch_prefix = find_repo_feature_prefix(remote_repo)
-        except Exception:
-            self.logger.info(
-                f"Could not find feature branch prefix for {remote_repo.clone_url}. Falling back to 1GP."
-            )
-            return (None, None)
-        remote_matching_branch = construct_release_branch_name(
-            remote_branch_prefix, release_id
-        )
-
-        # Check the most recent five commits on this release branch looking for a 2GP package to use
-        try:
-            release_branch = remote_repo.branch(remote_matching_branch)
-        except NotFoundError:
-            self.logger.info(
-                f"Release branch {remote_matching_branch} not found on {remote_repo.clone_url}. Falling back to 1GP."
-            )
-            return (None, None)
-
-        version_id = None
-        count = 0
-        commit = release_branch.commit
-        while version_id is None and count < 5:
-            version_id = get_version_id_from_commit(
-                remote_repo, commit.sha, self.project__git__2gp_context
-            )
-            if version_id:
-                self.logger.info(
-                    f"Located 2GP package version {version_id} for release {release_id} on {remote_repo.clone_url} at commit {release_branch.commit.sha}"
-                )
-                break
-            count += 1
-            if commit.parents:
-                commit = remote_repo.commit(commit.parents[0]["sha"])
-            else:
-                break
-
-        if version_id is None:
-            self.logger.warning(
-                f"No 2GP package version located for release {release_id} on {remote_repo.clone_url}. Falling back to 1GP."
-            )
-            return (None, None)
-
-        return version_id, commit.sha
-
-    def get_ref_for_dependency(
-        self,
-        repo,
-        dependency,
-        include_beta=None,
-        match_release_branch=None,
-    ):
-        release = ref = None
-        if "ref" in dependency:
-            ref = dependency["ref"]
-        else:
-            if "tag" in dependency:
-                try:
-                    # Find the github release corresponding to this tag.
-                    release = repo.release_from_tag(dependency["tag"])
-                except NotFoundError:
-                    raise DependencyResolutionError(
-                        f"No release found for tag {dependency['tag']}"
-                    )
-            else:
-                if match_release_branch and is_release_branch_or_child(
-                    self.repo_branch, self.project__git__prefix_feature
-                ):
-                    release, ref = self.find_matching_2gp_release(repo)
-
-                if not release:
-                    release = find_latest_release(repo, include_beta)
-
-            if release and not ref:
-                ref = repo.tag(
-                    repo.ref("tags/" + release.tag_name).object.sha
-                ).object.sha
-
-            if not release:
-                self.logger.info(
-                    f"No release found; using the latest commit from the {repo.default_branch} branch."
-                )
-                ref = repo.branch(repo.default_branch).commit.sha
-
-        return (release, ref)
-
-    def get_static_dependencies(
-        self,
-        dependencies=None,
-        include_beta=None,
-        ignore_deps=None,
-        match_release_branch=None,
-    ):
-        """Resolves the project -> dependencies section of cumulusci.yml
-        to convert dynamic github dependencies into static dependencies
-        by inspecting the referenced repositories.
-
-        Keyword arguments:
-        :param dependencies: a list of dependencies to resolve
-        :param include_beta: when true, return the latest github release, even if pre-release; else return the latest stable release
-        :param ignore_deps: if provided, ignore the specified dependencies wherever found.
-        """
-        if not dependencies:
-            dependencies = self.project__dependencies
-
-        if not dependencies:
-            return []
-
-        static_dependencies = []
-        for dependency in dependencies:
-            if self._should_ignore_dependency(dependency, ignore_deps):
-                continue
-
-            if "github" not in dependency:
-                static_dependencies.append(dependency)
-            else:
-                static = self.process_github_dependency(
-                    dependency,
-                    include_beta=include_beta,
-                    ignore_deps=ignore_deps,
-                    match_release_branch=match_release_branch,
-                )
-                static_dependencies.extend(static)
-        return static_dependencies
-
-    def _should_ignore_dependency(self, dependency, ignore_deps):
-        if not ignore_deps:
-            return False
-
-        if "github" in dependency:
-            return dependency["github"] in [dep.get("github") for dep in ignore_deps]
-        elif "namespace" in dependency:
-            return dependency["namespace"] in [
-                dep.get("namespace") for dep in ignore_deps
-            ]
-
-        return False
-
-    def pretty_dependencies(self, dependencies, indent=None):
-        if not indent:
-            indent = 0
-        pretty = []
-        for dependency in dependencies:
-            prefix = f"{' ' * indent}  - "
-            for key, value in sorted(dependency.items()):
-                extra = []
-                if value is None or value is False:
-                    continue
-                if key == "dependencies":
-                    extra = self.pretty_dependencies(
-                        dependency["dependencies"], indent=indent + 4
-                    )
-                    if not extra:
-                        continue
-                    value = f"\n{' ' * (indent + 4)}"
-
-                pretty.append(f"{prefix}{key}: {value}")
-                if extra:
-                    pretty.extend(extra)
-                prefix = f"{' ' * indent}    "
-        return pretty
-
-    def process_github_dependency(  # noqa: C901
-        self,
-        dependency,
-        indent=None,
-        include_beta=None,
-        ignore_deps=None,
-        match_release_branch=None,
-    ):
-        if not indent:
-            indent = ""
-
-        self.logger.info(
-            f"{indent}Collecting dependencies from Github repo {dependency['github']}"
-        )
-
-        skip = dependency.get("skip")
-        if not isinstance(skip, list):
-            skip = [skip]
-
-        # Initialize github3.py API against repo
-        repo = self.get_repo_from_url(dependency["github"])
-        if repo is None:
-            raise DependencyResolutionError(
-                f"{indent}Github repository {dependency['github']} not found or not authorized."
-            )
-
-        repo_owner = str(repo.owner)
-        repo_name = repo.name
-
-        # Determine the commit
-        release, ref = self.get_ref_for_dependency(
-            repo,
-            dependency,
-            include_beta,
-            match_release_branch=match_release_branch,
-        )
-
-        # Get the cumulusci.yml file
-        contents = repo.file_contents("cumulusci.yml", ref=ref)
-        cumulusci_yml = cci_safe_load(io.StringIO(contents.decoded.decode("utf-8")))
-
-        # Get the namespace from the cumulusci.yml if set
-        package_config = cumulusci_yml.get("project", {}).get("package", {})
-        namespace = package_config.get("namespace")
-        package_name = (
-            package_config.get("name_managed")
-            or package_config.get("name")
-            or namespace
-        )
-
-        # Check for unmanaged flag on a namespaced package
-        unmanaged = namespace and dependency.get("unmanaged") is True
-
-        # Look for subfolders under unpackaged/pre
-        unpackaged_pre = []
-        try:
-            contents = repo.directory_contents(
-                "unpackaged/pre", return_as=dict, ref=ref
-            )
-        except NotFoundError:
-            contents = None
-        if contents:
-            for dirname in list(contents.keys()):
-                subfolder = f"unpackaged/pre/{dirname}"
-                if subfolder in skip:
-                    continue
-                name = f"Deploy {subfolder}"
-
-                unpackaged_pre.append(
-                    {
-                        "name": name,
-                        "repo_owner": repo_owner,
-                        "repo_name": repo_name,
-                        "ref": ref,
-                        "subfolder": subfolder,
-                        "unmanaged": dependency.get("unmanaged"),
-                        "namespace_inject": dependency.get("namespace_inject"),
-                        "namespace_strip": dependency.get("namespace_strip"),
-                    }
-                )
-
-        # Look for metadata under src (deployed if no namespace)
-        unmanaged_src = None
-        if unmanaged or not namespace:
-            contents = repo.directory_contents("src", ref=ref)
-            if contents:
-                subfolder = "src"
-
-                unmanaged_src = {
-                    "name": f"Deploy {package_name or repo_name}",
-                    "repo_owner": repo_owner,
-                    "repo_name": repo_name,
-                    "ref": ref,
-                    "subfolder": subfolder,
-                    "unmanaged": dependency.get("unmanaged"),
-                    "namespace_inject": dependency.get("namespace_inject"),
-                    "namespace_strip": dependency.get("namespace_strip"),
-                }
-
-        # Look for subfolders under unpackaged/post
-        unpackaged_post = []
-        try:
-            contents = repo.directory_contents(
-                "unpackaged/post", return_as=dict, ref=ref
-            )
-        except NotFoundError:
-            contents = None
-        if contents:
-            for dirname in list(contents.keys()):
-                subfolder = f"unpackaged/post/{dirname}"
-                if subfolder in skip:
-                    continue
-                name = f"Deploy {subfolder}"
-
-                dependency = {
-                    "name": name,
-                    "repo_owner": repo_owner,
-                    "repo_name": repo_name,
-                    "ref": ref,
-                    "subfolder": subfolder,
-                    "unmanaged": dependency.get("unmanaged"),
-                    "namespace_inject": dependency.get("namespace_inject"),
-                    "namespace_strip": dependency.get("namespace_strip"),
-                }
-                # By default, we always inject the project's namespace into
-                # unpackaged/post metadata
-                if namespace and not dependency.get("namespace_inject"):
-                    dependency["namespace_inject"] = namespace
-                    dependency["unmanaged"] = unmanaged
-                unpackaged_post.append(dependency)
-
-        # Parse values from the repo's cumulusci.yml
-        project = cumulusci_yml.get("project", {})
-        dependencies = project.get("dependencies")
-        if dependencies:
-            dependencies = self.get_static_dependencies(
-                dependencies, include_beta=include_beta, ignore_deps=ignore_deps
-            )
-
-        # Create the final ordered list of all parsed dependencies
-        repo_dependencies = []
-
-        # unpackaged/pre/*
-        if unpackaged_pre:
-            repo_dependencies.extend(unpackaged_pre)
-
-        if namespace and not unmanaged:
-            if release is None:
-                raise DependencyResolutionError(
-                    f"{indent}Could not find latest release for {namespace}"
-                )
-            if type(release) is str:
-                # 04t 2GP version id
-                dependency = {
-                    "name": f"Install {package_name or namespace} {release}",
-                    "version_id": release,
-                }
-            else:
-                dependency = {
-                    "name": f"Install {package_name or namespace} {release.name}",
-                    "namespace": namespace,
-                    "version": release.name,
-                }
-
-            # If a latest prod version was found, make the dependencies a
-            # child of that install
-            if dependencies:
-                dependency["dependencies"] = dependencies
-            repo_dependencies.append(dependency)
-
-        # Unmanaged metadata from src (if referenced repo doesn't have a
-        # namespace)
-        else:
-            if dependencies:
-                repo_dependencies.extend(dependencies)
-            if unmanaged_src:
-                repo_dependencies.append(unmanaged_src)
-
-        # unpackaged/post/*
-        if unpackaged_post:
-            repo_dependencies.extend(unpackaged_post)
-
-        return repo_dependencies
+        owner, name = split_repo_url(url)
+        return self.get_github_api(owner, name).repository(owner, name)
 
     def get_task(self, name):
         """Get a TaskConfig by task name

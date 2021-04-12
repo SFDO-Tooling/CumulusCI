@@ -14,6 +14,10 @@ import yaml
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
+from cumulusci.core.dependencies.dependencies import (
+    PackageNamespaceVersionDependency,
+    UnmanagedGitHubRefDependency,
+)
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.exceptions import DependencyLookupError, GithubException
 from cumulusci.core.exceptions import PackageUploadFailure
@@ -43,18 +47,16 @@ def repo_root():
                 {
                     "project": {
                         "dependencies": [
+                            {"namespace": "pub", "version": "1.5"},
                             {
-                                "name": "EDA unpackaged/pre/first",
                                 "repo_owner": "SalesforceFoundation",
                                 "repo_name": "EDA",
+                                "ref": "aaaaa",
                                 "subfolder": "unpackaged/pre/first",
                             },
                             {
                                 "namespace": "hed",
                                 "version": "1.99",
-                                "dependencies": [
-                                    {"namespace": "pub", "version": "1.5"}
-                                ],
                             },
                         ]
                     }
@@ -122,6 +124,24 @@ def mock_download_extract_github():
         yield download_extract_github
 
 
+@pytest.fixture
+def mock_get_static_dependencies():
+    with mock.patch(
+        "cumulusci.tasks.package_2gp.get_static_dependencies"
+    ) as get_static_dependencies:
+        get_static_dependencies.return_value = [
+            PackageNamespaceVersionDependency(namespace="pub", version="1.5"),
+            UnmanagedGitHubRefDependency(
+                repo_owner="SalesforceFoundation",
+                repo_name="EDA",
+                subfolder="unpackaged/pre/first",
+                ref="abcdef",
+            ),
+            PackageNamespaceVersionDependency(namespace="hed", version="1.99"),
+        ]
+        yield get_static_dependencies
+
+
 class TestPackageVersionNumber:
     def test_parse_format(self):
         assert PackageVersionNumber.parse("1.2.3.4").format() == "1.2.3.4"
@@ -168,7 +188,13 @@ class TestCreatePackageVersion:
     scratch_base_url = "https://scratch.my.salesforce.com/services/data/v50.0"
 
     @responses.activate
-    def test_run_task(self, task, mock_download_extract_github, devhub_config):
+    def test_run_task(
+        self,
+        task,
+        mock_download_extract_github,
+        mock_get_static_dependencies,
+        devhub_config,
+    ):
         mock_download_extract_github.return_value = zipfile.ZipFile(io.BytesIO(), "w")
 
         # _get_or_create_package() responses
@@ -525,7 +551,7 @@ class TestCreatePackageVersion:
 
     def test_has_1gp_namespace_dependencies__transitive(self, task):
         assert task._has_1gp_namespace_dependency(
-            [{"dependencies": [{"namespace": "foo", "version": "1.0"}]}]
+            [PackageNamespaceVersionDependency(namespace="foo", version="1.5")]
         )
 
     def test_convert_project_dependencies__unrecognized_format(self, task):
