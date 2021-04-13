@@ -115,24 +115,21 @@ class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
         self._existing_action_list = self._get_existing_action_list(metadata)
 
         # check for existing Platform Action List Item of same name
-        #   (i.e. The desired QuickAction to inject already is in the layout)
+        #   (i.e. The desired QuickAction is in this layout already)
         if self._existing_action_list.find(
             "platformActionListItems", actionName=self._action_name
         ):
-            # TODO - give more info
             self.logger.info(
                 f"Action named {self._action_name} already exists in {api_name}, task exiting without modifying layout."
             )
             return None
 
+        # create an action list item
         self._create_new_action_list_item(self._existing_action_list)
         self._update_platform_action_list_items_sort_order(self._existing_action_list)
         return metadata
 
     def _get_existing_action_list(self, metadata: MetadataElement):
-        """
-        TODO - fill this out
-        """
         existing_action_list = metadata.find(
             "platformActionList", actionListContext="Record"
         )
@@ -143,10 +140,6 @@ class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
         return existing_action_list
 
     def _create_new_action_list_item(self, existing_action_list):
-        """
-        TODO - fill this out
-        """
-
         if self._place_first and existing_action_list.find("platformActionListItems"):
             existing_action_list.insert_after(
                 existing_action_list.find("actionListContext"),
@@ -162,9 +155,10 @@ class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
 
     def _update_platform_action_list_items_sort_order(self, existing_action_list):
         """
-        TODO - fill this out
+        Updates the sortOrder element of the platformActionListItems
+            Takes a platformActionList (MetadatataElement) and sets the sortOrder according
+            to platformActionListItem placement relative to siblings
         """
-        # update the sortOrder of the ActionPlanListItem
         for index, child in enumerate(
             existing_action_list.findall("platformActionListItems")
         ):

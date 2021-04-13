@@ -182,9 +182,7 @@ class TestAddRelatedLists:
         assert result is None
 
 
-##### Lightning Action add to Layout tests
-
-# SET MOCK DATA
+##### TestAddRecordPlatformActionListItem
 
 # Mocked empty page layout (no action list)
 #   Included common elements to better emulate a 'real' page layout.
@@ -239,7 +237,7 @@ MOCK_EMPTY_LAYOUT = """<?xml version="1.0" encoding="UTF-8"?>
 
 # Mocked existing action list
 #   For different scenarios change action_list_context (Record, Listview, etc)
-#   and optional_last_action_item for inserting an existing item
+#   and the optional_first/last_action_items for inserting an existing item(s)
 MOCK_EXISTING_ACTION_LIST = """
 <platformActionList>
     <actionListContext>{action_list_context}</actionListContext>
@@ -257,7 +255,7 @@ MOCK_EXISTING_ACTION_LIST = """
     {optional_last_action_item}
 </platformActionList>
 """
-
+# Empty action item and empty action list
 EMPTY_ACTION_ITEM = """
     <platformActionListItems>
         <actionName>{action_name}</actionName>
@@ -286,8 +284,8 @@ class TestAddRecordPlatformActionListItem:
         assert (
             task._place_first is False
         ), "task._place_first should be false when not setting `place_first` task_option"
-        ### MOCK DATA
-        # build our existing action list and create our metadata tree
+
+        # Mocks: build our existing action list and create our metadata tree
         #   "Record" context
         #   default sort order (0, 1)
         #   no optional
@@ -308,8 +306,8 @@ class TestAddRecordPlatformActionListItem:
         )
 
         # Creating expected action item/list xml and metadata
-        #   Context  = "Record"
-        #   our action_list_items <sortOrder> (positional *args) can be dynamically set from the mock_action_list_size range
+        #   Expected context = "Record"
+        #   The action_list_items <sortOrder> (positional *args) can be dynamically set from the mock_action_list_size or range
         #   using our optional_last_action_item to set our expected_action_item placement
         expected_action_item = EMPTY_ACTION_ITEM.format(
             expected_order=mock_action_list_size, **options
@@ -336,8 +334,8 @@ class TestAddRecordPlatformActionListItem:
 
     def test_adds_action_item_to_existing_list_place_first(self):
         # options scenario:
-        #   adding Quick Action to layout with existing action item list
-        #   place_first = true, so should be first in action list
+        #   adding Quick Action to layout with existing Record context action item list
+        #   place_first = true, so new action should end up first in action list
         options = {
             "action_type": "QuickAction",
             "action_name": "pkg__mockObject.TestQuickAction",
@@ -345,8 +343,7 @@ class TestAddRecordPlatformActionListItem:
         }
         task = create_task(AddRecordPlatformActionListItem, options)
 
-        ### MOCK DATA
-        # build our existing action list and create our metadata tree
+        # Mocks: build our existing action list and create our metadata tree
         #   "Record" context
         #   default sort order (0, 1)
         #   no optional
@@ -367,10 +364,10 @@ class TestAddRecordPlatformActionListItem:
         )
 
         # Creating expected action item/list xml and metadata
-        #   Context  = "Record"
-        #   our action_list_items <sortOrder> (positional *args) can be dynamically set from a tuple the mock_action_list_size range
-        #       setting our added item to 0 sortOrder since placement should be first
-        #   using our optional_first_action_item to set our expected_action_item placement
+        #   Expected context = "Record"
+        #   our action_list_items <sortOrder> is being set dynamically from the mock_action_list_size (if we need to change later)
+        #       setting our expected new action item to sortOrder 0 since placement should be first
+        #   using our optional_first_action_item to set our expected_action_item
         expected_action_item = EMPTY_ACTION_ITEM.format(expected_order=0, **options)
         expected_action_list = MOCK_EXISTING_ACTION_LIST.format(
             *tuple([n for n in range(1, mock_action_list_size + 1)]),
@@ -390,7 +387,7 @@ class TestAddRecordPlatformActionListItem:
         # This confirms, action list item size, sortOrder, and record context
         assert (
             actual_metadata.tostring() == expected_metadata.tostring()
-        ), "The transformed actual_metadata should match our expected_metadata"
+        ), "The transformed actual_metadata should match our expected_metadata, with the new action item placed first"
 
     def test_does_not_add_action_if_already_exists(self):
         # options scenario:
@@ -401,8 +398,7 @@ class TestAddRecordPlatformActionListItem:
         }
         task = create_task(AddRecordPlatformActionListItem, options)
 
-        ### MOCK DATA
-        # build our existing action list and create our metadata tree
+        # Mocks: build our existing action list and create our metadata tree
         #   "Record" context
         #   default sort order (0, 1)
         mock_action_item = EMPTY_ACTION_ITEM.format(expected_order=2, **options)
@@ -421,7 +417,7 @@ class TestAddRecordPlatformActionListItem:
 
         # run test
         actual_metadata = task._transform_entity(metadata, "Layout")
-        # should not transform
+        # should not transform, and metadata should be none
         assert (
             actual_metadata is None
         ), "AddRecordPlatformActionListItem should return None when actionListItem already exists in metadata"
@@ -437,18 +433,15 @@ class TestAddRecordPlatformActionListItem:
         }
         task = create_task(AddRecordPlatformActionListItem, options)
 
-        ### MOCK DATA
-        # build our existing action list and create our metadata tree
-        #   "Record" context
-        #   default sort order (0, 1)
-        #   no optional
+        # Mocks: build our existing action list and create our metadata tree
+        #   This is an empty layout without any actionList
         metadata = metadata_tree.fromstring(
             MOCK_EMPTY_LAYOUT.format(action_list_scenario="").encode("utf-8")
         )
 
         # Creating expected action item/list xml and metadata
-        #   Context  = "Record"
-        #   Should only contain one action item
+        #   Expected action list context  = "Record"
+        #   Should only contain one action item, specified in options
         expected_action_item = EMPTY_ACTION_ITEM.format(expected_order=0, **options)
         expected_action_list = EMPTY_ACTION_LIST.format(
             action_list_context="Record", optional_action_item=expected_action_item
@@ -476,11 +469,10 @@ class TestAddRecordPlatformActionListItem:
         }
         task = create_task(AddRecordPlatformActionListItem, options)
 
-        ### MOCK DATA
-        # build our existing action list and create our metadata tree
+        # Mocks: build our existing action list and create our metadata tree
         #   "Listview" context (which should trigger creation of new)
         #   default sort order (0, 1)
-        #   no optional
+        #   no additional action items.
         mock_action_list = MOCK_EXISTING_ACTION_LIST.format(
             0,
             1,
@@ -495,10 +487,11 @@ class TestAddRecordPlatformActionListItem:
         )
 
         # Creating expected action item/list xml and metadata
-        #   Context  = "Record"
-        #   our action_list_items <sortOrder> (positional *args) can be dynamically set from a tuple the mock_action_list_size range
-        #       setting our added item to 0 sortOrder since placement should be first
-        #   using our optional_first_action_item to set our expected_action_item placement
+        #   Our expected metadata includes both the mock_action_list with context "Listview",
+        #       and an actionList of context "Record" created during the transform
+        #   our action_list_items <sortOrder> is being set dynamically from the mock_action_list_size (if we need to change later)
+        #       setting our added item to 0 sortOrder since only item
+        #       using option_action_item to set expected action item
         expected_action_item = EMPTY_ACTION_ITEM.format(expected_order=0, **options)
         expected_action_list = EMPTY_ACTION_LIST.format(
             action_list_context="Record", optional_action_item=expected_action_item
@@ -514,7 +507,4 @@ class TestAddRecordPlatformActionListItem:
         # This confirms, action list item size, sortOrder, and record context
         assert (
             actual_metadata.tostring() == expected_metadata.tostring()
-        ), "The transformed actual_metadata should match our expected_metadata"
-
-
-#   LAYOUT with non record platform action
+        ), "The transformed actual_metadata should match our expected_metadata and include two action lists"
