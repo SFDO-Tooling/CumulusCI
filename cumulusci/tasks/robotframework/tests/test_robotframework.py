@@ -99,40 +99,35 @@ class TestRobot(unittest.TestCase):
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch("cumulusci.tasks.robotframework.robotframework.subprocess.run")
-    def test_process_arg_gt_zero(self, mock_subprocess_run, mock_robot_run):
-        """Verify that setting the process option to a number > 1 runs pabot"""
-        mock_subprocess_run.return_value = mock.Mock(returncode=0)
-        task = create_task(Robot, {"suites": "tests", "processes": "2"})
+    def test_pabot_arg_with_process_eq_one(self, mock_subprocess_run, mock_robot_run):
+        """Verify that pabot-specific arguments are ignored if processes==1"""
+        mock_robot_run.return_value = 0
+        task = create_task(
+            Robot,
+            {
+                "suites": "tests",
+                "process": 1,
+                "ordering": "robot/order.txt",
+                "testlevelsplit": "true",
+            },
+        )
         task()
+        mock_subprocess_run.assert_not_called()
         outputdir = str(Path(".").resolve())
-        expected_cmd = [
-            sys.executable,
-            "-m",
-            "pabot.pabot",
-            "--pabotlib",
-            "--processes",
-            "2",
-            "--pythonpath",
-            task.project_config.repo_root,
-            "--variable",
-            "org:test",
-            "--outputdir",
-            outputdir,
-            "--tagstatexclude",
-            "cci_metric_elapsed_time",
-            "--tagstatexclude",
-            "cci_metric",
+        mock_robot_run.assert_called_once_with(
             "tests",
-        ]
-        mock_robot_run.assert_not_called()
-        mock_subprocess_run.assert_called_once_with(expected_cmd)
+            listener=[],
+            outputdir=outputdir,
+            variable=["org:test"],
+            tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
+        )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch("cumulusci.tasks.robotframework.robotframework.subprocess.run")
-    def test_process_arg_eq_zero(self, mock_subprocess_run, mock_robot_run):
+    def test_process_arg_eq_one(self, mock_subprocess_run, mock_robot_run):
         """Verify that setting the process option to 1 runs robot rather than pabot"""
         mock_robot_run.return_value = 0
-        task = create_task(Robot, {"suites": "tests", "process": 0})
+        task = create_task(Robot, {"suites": "tests", "process": 1})
         task()
         mock_subprocess_run.assert_not_called()
         outputdir = str(Path(".").resolve())
@@ -148,7 +143,7 @@ class TestRobot(unittest.TestCase):
     def test_suites(self, mock_robot_run):
         """Verify that passing a list of suites is handled properly"""
         mock_robot_run.return_value = 0
-        task = create_task(Robot, {"suites": "tests,more_tests", "process": 0})
+        task = create_task(Robot, {"suites": "tests,more_tests", "process": 1})
         task()
         outputdir = str(Path(".").resolve())
         mock_robot_run.assert_called_once_with(

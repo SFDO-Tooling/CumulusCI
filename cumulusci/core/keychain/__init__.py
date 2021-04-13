@@ -7,10 +7,10 @@ from cumulusci.core.keychain.base_project_keychain import (
 )
 
 # inherit from BaseProjectKeychain
-from cumulusci.core.keychain.BaseEncryptedProjectKeychain import (
+from cumulusci.core.keychain.base_encrypted_project_keychain import (
     BaseEncryptedProjectKeychain,
 )
-from cumulusci.core.keychain.EnvironmentProjectKeychain import (
+from cumulusci.core.keychain.environment_project_keychain import (
     EnvironmentProjectKeychain,
 )
 

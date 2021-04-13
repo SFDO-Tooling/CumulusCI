@@ -66,15 +66,15 @@ class BaseFormHandler(abc.ABC):
 
     @abc.abstractmethod
     def set(self, value):
-        pass  # pragma: no cover
+        pass
 
     @abc.abstractmethod
     def get(self):
-        pass  # pragma: no cover
+        pass
 
     @abc.abstractmethod
     def clear(self):
-        pass  # pragma: no cover
+        pass
 
     def focus(self):
         """Set focus to the element

@@ -489,27 +489,32 @@ class OrgConfig(BaseConfig):
             return False
 
     def resolve_04t_dependencies(self, dependencies):
-        """Look up 04t SubscriberPackageVersion ids for 1gp project dependencies"""
+        """Look up 04t SubscriberPackageVersion ids for 1GP project dependencies"""
+        from cumulusci.core.dependencies.dependencies import (
+            PackageNamespaceVersionDependency,
+            PackageVersionIdDependency,
+        )
+
+        # Circular dependency.
+
         new_dependencies = []
         for dependency in dependencies:
-            dependency = {**dependency}
-
-            if "namespace" in dependency:
+            if isinstance(dependency, PackageNamespaceVersionDependency):
                 # get the SubscriberPackageVersion id
-                key = f"{dependency['namespace']}@{dependency['version']}"
+                key = f"{dependency.namespace}@{dependency.version}"
                 version_info = self.installed_packages.get(key)
                 if version_info:
-                    dependency["version_id"] = version_info[0].id
+                    new_dependencies.append(
+                        PackageVersionIdDependency(
+                            version_id=version_info[0].id,
+                            package_name=dependency.package_name,
+                        )
+                    )
                 else:
                     raise DependencyResolutionError(
                         f"Could not find 04t id for package {key} in org {self.name}"
                     )
+            else:
+                new_dependencies.append(dependency)
 
-            # recurse
-            if "dependencies" in dependency:
-                dependency["dependencies"] = self.resolve_04t_dependencies(
-                    dependency["dependencies"]
-                )
-
-            new_dependencies.append(dependency)
         return new_dependencies

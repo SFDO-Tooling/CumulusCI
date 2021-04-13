@@ -8,9 +8,8 @@ from cumulusci.core.tasks import BaseTask
 def run_click_command(cmd, *args, **kw):
     """Run a click command with a mock context and injected CCI runtime object."""
     runtime = kw.pop("runtime", mock.Mock())
-    with mock.patch("cumulusci.cli.cci.RUNTIME", runtime):
-        with click.Context(command=mock.Mock()):
-            return cmd.callback(*args, **kw)
+    with click.Context(command=mock.Mock(), obj=runtime):
+        return cmd.callback(*args, **kw)
 
 
 def recursive_list_files(d="."):

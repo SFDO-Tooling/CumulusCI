@@ -19,6 +19,7 @@ def project_config():
     project_config = create_project_config()
     project_config.keychain.set_service(
         "github",
+        "alias",
         ServiceConfig(
             {
                 "username": "TestUser",
@@ -55,6 +56,30 @@ def task(project_config, devhub_config, org_config):
 class TestPromotePackageVersion(GithubApiTestMixin):
     devhub_base_url = "https://devhub.my.salesforce.com/services/data/v50.0"
 
+    def _mock_target_package_api_calls(self):
+        responses.add(  # query for main package's Package2Version info
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={
+                "size": 1,
+                "records": [
+                    {
+                        "BuildNumber": 0,
+                        "Id": "main_package",
+                        "IsReleased": False,
+                        "MajorVersion": 1,
+                        "MinorVersion": 0,
+                        "PatchVersion": 0,
+                    }
+                ],
+                "done": True,
+            },
+        )
+        responses.add(  # Promote the Package2Version
+            "PATCH",
+            f"{self.devhub_base_url}/tooling/sobjects/Package2Version/main_package",
+        )
+
     def _mock_dependencies(
         self, total_deps: int, num_2gp: int, num_unpromoted: int
     ) -> None:
@@ -89,20 +114,6 @@ class TestPromotePackageVersion(GithubApiTestMixin):
         # mock promoted 2GP dependencies
         for i in range(num_2gp - num_unpromoted):
             self._mock_dependency(i + 1, is_two_gp=True, is_promoted=True)
-
-        responses.add(  # query for main package's Package2Version
-            "GET",
-            f"{self.devhub_base_url}/tooling/query/",
-            json={
-                "size": 1,
-                "records": [{"Id": "main_package", "IsReleased": False}],
-                "done": True,
-            },
-        )
-        responses.add(
-            "PATCH",
-            f"{self.devhub_base_url}/tooling/sobjects/Package2Version/main_package",
-        )
 
     def _mock_dependency(
         self, dependency_num: int, is_two_gp: bool = False, is_promoted: bool = False
@@ -164,6 +175,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
     def test_run_task(self, task, devhub_config):
         # 20 dependencies, 10 are 2GP, 5 of those are not yet promoted
         self._mock_dependencies(20, 10, 5)
+        self._mock_target_package_api_calls()
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
@@ -173,6 +185,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
     @responses.activate
     def test_run_task__no_dependencies(self, task, devhub_config):
         self._mock_dependencies(0, 0, 0)
+        self._mock_target_package_api_calls()
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
@@ -182,6 +195,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
     @responses.activate
     def test_run_task__promote_dependencies(self, task, devhub_config):
         self._mock_dependencies(2, 1, 1)
+        self._mock_target_package_api_calls()
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
@@ -189,9 +203,17 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             task.options["promote_dependencies"] = True
             task()
 
+        assert task.return_values["version_id"] == "04t000000000000"
+        assert task.return_values["version_number"] == "1.0.0.0"
+        assert task.return_values["dependencies"] == [
+            "04t000000000001",
+            "04t000000000002",
+        ]
+
     @responses.activate
     def test_run_task__all_deps_promoted(self, task, devhub_config):
         self._mock_dependencies(4, 4, 4)
+        self._mock_target_package_api_calls()
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
@@ -234,6 +256,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             status=200,
         )
         self._mock_dependencies(2, 1, 0)
+        self._mock_target_package_api_calls()
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
@@ -276,6 +299,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             status=200,
         )
         self._mock_dependencies(2, 1, 0)
+        self._mock_target_package_api_calls()
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,
@@ -321,6 +345,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
             status=200,
         )
         self._mock_dependencies(2, 1, 0)
+        self._mock_target_package_api_calls()
         with mock.patch(
             "cumulusci.tasks.salesforce.promote_package_version.get_devhub_config",
             return_value=devhub_config,

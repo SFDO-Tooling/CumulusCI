@@ -263,6 +263,67 @@ and :doc:`Connect Persistent Orgs <connected_orgs>`.
 
 
 
+Manage Services 
+---------------
+Services represent external resources used by CumulusCI automation, such as access to a GitHub account or a MetaDeploy instance.
+
+List Services
+*************
+You can have CumulusCI show you a list of all possible services supported.
+Services that are not currently configured will be displayed in a dimmed row.
+
+.. code-block:: console
+
+    $ cci service list
+
+Connect A Service
+*****************
+To connect a service to the global keychain (which we recommend for almost all situations) you can use:
+
+.. code-block:: console
+
+    $ cci service connect <service_type> <service_name>
+
+If you wanted to connect to your personal GitHub account as a service you could use:
+
+.. code-block:: console
+
+    $ cci service connect github personal 
+
+CumulusCI will prompt you for the required information for the given service type.
+
+If you want a service to onlye be available to a given project you can pass the ``--project`` flag.
+
+.. code-block:: console
+
+    $ cci service connect <service_type> <service_name> --project 
+
+
+Set a Default Service
+*********************
+The first service connected for a given service type is automatically set as the default service for that type.
+If you have multiple services connected for a given type and would like to set a new default use:
+
+.. code-block:: console
+
+    $ cci service default <service_type> <service_name> 
+
+Rename a Service
+****************
+To rename a service use:
+
+.. code-block:: console
+
+    $ cci service rename <service_type> <old_name> <new_name>
+
+Remove a Service
+****************
+To remove a service use:
+
+.. code-block:: console
+
+    $ cci service remove <service_type> <service_name>
+
 Troubleshoot Errors
 -------------------
 
