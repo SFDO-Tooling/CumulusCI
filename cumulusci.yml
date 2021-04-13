@@ -37,9 +37,8 @@ tasks:
     test_snowscaler:
         class_path: cumulusci.tasks.bulkdata.snowscale.SnowScale
         options:
-            recipe: ./cumulusci/tasks/bulkdata/tests/snowfakery/simple_snowfakery.recipe.yml
+            recipe: cumulusci/tasks/bulkdata/tests/snowfakery/simple_snowfakery.recipe.yml
             num_generator_workers: 4
-            num_uploader_workers: 25
             num_records_tablename: "Opportunity"
 
 flows:

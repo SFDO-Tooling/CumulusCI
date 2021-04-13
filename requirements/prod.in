@@ -27,3 +27,4 @@ snowfakery
 SQLAlchemy<1.4
 terminaltables
 xmltodict
+dataclasses
