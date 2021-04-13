@@ -120,12 +120,12 @@ class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
         if self._existing_action_list.find(
             "platformActionListItems", actionName=self._action_name
         ):
-            #TODO - give more info
+            # TODO - give more info
             self.logger.info(f"Action already exists")
             return None
 
         self._create_new_action_list_item(self._existing_action_list)
-        self._update_platform_action_list_items_sort_order(self._existing_action_list)        
+        self._update_platform_action_list_items_sort_order(self._existing_action_list)
         return metadata
 
     def _get_existing_action_list(self, metadata: MetadataElement):
