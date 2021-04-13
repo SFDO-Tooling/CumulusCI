@@ -10,7 +10,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.github import get_tag_by_name
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.tasks.package_2gp import PackageVersionNumber
+from cumulusci.tasks.create_package_version import PackageVersionNumber
 
 
 class PromotePackageVersion(BaseSalesforceApiTask):

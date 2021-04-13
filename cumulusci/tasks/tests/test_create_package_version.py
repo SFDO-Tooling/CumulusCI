@@ -23,7 +23,7 @@ from cumulusci.core.exceptions import DependencyLookupError, GithubException
 from cumulusci.core.exceptions import PackageUploadFailure
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
-from cumulusci.tasks.package_2gp import (
+from cumulusci.tasks.create_package_version import (
     CreatePackageVersion,
     PackageConfig,
     PackageTypeEnum,
@@ -109,7 +109,8 @@ def task(project_config, devhub_config, org_config):
         org_config,
     )
     with mock.patch(
-        "cumulusci.tasks.package_2gp.get_devhub_config", return_value=devhub_config
+        "cumulusci.tasks.create_package_version.get_devhub_config",
+        return_value=devhub_config,
     ):
         task._init_task()
     return task
@@ -118,7 +119,7 @@ def task(project_config, devhub_config, org_config):
 @pytest.fixture
 def mock_download_extract_github():
     with mock.patch(
-        "cumulusci.tasks.package_2gp.download_extract_github"
+        "cumulusci.tasks.create_package_version.download_extract_github"
     ) as download_extract_github:
         yield download_extract_github
 
@@ -126,7 +127,7 @@ def mock_download_extract_github():
 @pytest.fixture
 def mock_get_static_dependencies():
     with mock.patch(
-        "cumulusci.tasks.package_2gp.get_static_dependencies"
+        "cumulusci.tasks.create_package_version.get_static_dependencies"
     ) as get_static_dependencies:
         get_static_dependencies.return_value = [
             PackageNamespaceVersionDependency(namespace="pub", version="1.5"),
@@ -422,7 +423,8 @@ class TestCreatePackageVersion:
         )
 
         with mock.patch(
-            "cumulusci.tasks.package_2gp.get_devhub_config", return_value=devhub_config
+            "cumulusci.tasks.create_package_version.get_devhub_config",
+            return_value=devhub_config,
         ):
             task()
 
@@ -456,7 +458,8 @@ class TestCreatePackageVersion:
         )
 
         with mock.patch(
-            "cumulusci.tasks.package_2gp.get_devhub_config", return_value=devhub_config
+            "cumulusci.tasks.create_package_version.get_devhub_config",
+            return_value=devhub_config,
         ):
             task._init_task()
 
@@ -492,7 +495,8 @@ class TestCreatePackageVersion:
             org_config,
         )
         with mock.patch(
-            "cumulusci.tasks.package_2gp.get_devhub_config", return_value=devhub_config
+            "cumulusci.tasks.create_package_version.get_devhub_config",
+            return_value=devhub_config,
         ):
             task._init_task()
         with pytest.raises(PackageUploadFailure):
@@ -620,3 +624,28 @@ class TestCreatePackageVersion:
     def test_get_base_version_number__explicit(self, task):
         version = task._get_base_version_number("1.0", "0Ho6g000000fy4ZCAQ")
         assert version.format() == "1.0.0.0"
+
+    @responses.activate
+    def test_increment_major_version__no_version_base_specified(self, task):
+        """Test incrementing version from 0.0.0.12 -> 1.0.0.0"""
+        responses.add(  # query to find base version
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={
+                "size": 1,
+                "records": [
+                    {
+                        "Id": "04t000000000002AAA",
+                        "MajorVersion": 0,
+                        "MinorVersion": 0,
+                        "PatchVersion": 0,
+                        "BuildNumber": 12,
+                        "IsReleased": False,
+                    }
+                ],
+            },
+        )
+        version_base = None
+        version = task._get_base_version_number(version_base, "a package 2 Id")
+        next_version = version.increment(VersionTypeEnum.major)
+        assert next_version.format() == "1.0.0.NEXT"

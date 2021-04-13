@@ -88,16 +88,16 @@ class PackageVersionNumber(BaseModel):
             "BuildNumber": "NEXT",
             "IsReleased": False,
         }
-        if self.IsReleased:
-            if version_type == VersionTypeEnum.major:
-                parts["MajorVersion"] += 1
-                parts["MinorVersion"] = 0
-                parts["PatchVersion"] = 0
-            if version_type == VersionTypeEnum.minor:
-                parts["MinorVersion"] += 1
-                parts["PatchVersion"] = 0
-            elif version_type == VersionTypeEnum.patch:
-                parts["PatchVersion"] += 1
+        if version_type == VersionTypeEnum.major:
+            parts["MajorVersion"] += 1
+            parts["MinorVersion"] = 0
+            parts["PatchVersion"] = 0
+        if version_type == VersionTypeEnum.minor:
+            parts["MinorVersion"] += 1
+            parts["PatchVersion"] = 0
+        elif version_type == VersionTypeEnum.patch:
+            parts["PatchVersion"] += 1
+
         return PackageVersionNumber(**parts)
 
 
@@ -198,7 +198,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             or self.project_config.project__package__namespace,
             version_name=self.options.get("version_name") or "Release",
             version_base=self.options.get("version_base"),
-            version_type=self.options.get("version_type") or "minor",
+            version_type=self.options.get("version_type") or "patch",
         )
         self.options["skip_validation"] = process_bool_arg(
             self.options.get("skip_validation") or False
