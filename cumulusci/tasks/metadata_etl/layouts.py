@@ -1,5 +1,4 @@
 from typing import Optional
-from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_list_arg, process_bool_arg
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
@@ -121,7 +120,9 @@ class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
             "platformActionListItems", actionName=self._action_name
         ):
             # TODO - give more info
-            self.logger.info(f"Action already exists")
+            self.logger.info(
+                f"Action named {self._action_name} already exists in {api_name}, task exiting without modifying layout."
+            )
             return None
 
         self._create_new_action_list_item(self._existing_action_list)
