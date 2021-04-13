@@ -35,6 +35,9 @@ class CreateRelease(BaseGithubTask):
         "resolution_strategy": {
             "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies. Defaults to 'production'."
         },
+        "package_type": {
+            "description": "The package type of the project (either 1GP or 2GP)"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -68,6 +71,8 @@ class CreateRelease(BaseGithubTask):
         message = self.options.get("message", "Release of version {}".format(version))
         if self.options.get("version_id"):
             message += f"\n\nversion_id: {self.options['version_id']}"
+        if self.options.get("package_type"):
+            message += f"\npackage_type: {self.options['package_type']}"
         dependencies = get_static_dependencies(
             self.project_config,
             dependencies=parse_dependencies(
