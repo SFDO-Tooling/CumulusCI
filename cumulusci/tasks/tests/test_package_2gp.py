@@ -648,3 +648,17 @@ class TestCreatePackageVersion:
 
         actual_id = task._resolve_ancestor_id()
         assert actual_id == "05i000000000000"
+
+    def test_resolve_ancestor_id__unlocked_package(self, task):
+        task.package_config = PackageConfig(
+            package_name="test_package",
+            package_type="Unlocked",
+            org_dependent=False,
+            post_install_script=None,
+            uninstall_script=None,
+            namespace="test",
+            version_name="Release",
+            version_base=None,
+            version_type="patch",
+        )
+        assert task._resolve_ancestor_id() == ""

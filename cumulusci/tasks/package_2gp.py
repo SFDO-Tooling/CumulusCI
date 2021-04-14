@@ -469,6 +469,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         @param spv_id The SubscriberPackageVersionId (04t) that is the ancestor
         to the version being created.
         """
+        if self.package_config.package_type == PackageTypeEnum.unlocked:
+            return ""
+
         if not spv_id:
             tag_name = self.project_config.get_latest_tag(beta=False)
             repo = self.project_config._get_repo()
