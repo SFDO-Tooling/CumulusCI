@@ -131,7 +131,6 @@ Assigns Permission Sets whose Names are in ``api_names`` to either the default o
             result = self.sf.restful(
                 "composite/sobjects", method="POST", data=request_body
             )
-            self.logger.debug(result)
             result_list.extend(result)
         self._process_composite_results(result_list)
 
