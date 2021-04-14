@@ -111,7 +111,7 @@ jobs:
         run: |
           mkdir sfdx
           wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
-          echo sfdx >> $GITHUB_PATH
+          echo $(realpath sfdx/bin) >> $GITHUB_PATH
       - name: Authenticate Dev Hub
         run: |
           sfdx plugins --core
@@ -165,7 +165,7 @@ jobs:
         run: |
           mkdir sfdx
           wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
-          echo sfdx >> $GITHUB_PATH
+          echo $(realpath sfdx/bin) >> $GITHUB_PATH
       - name: Authenticate Dev Hub
         run: |
           sfdx plugins --core
@@ -219,7 +219,7 @@ jobs:
         run: |
           mkdir sfdx
           wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
-          echo sfdx >> $GITHUB_PATH
+          echo $(realpath sfdx/bin) >> $GITHUB_PATH
       - name: Authenticate Dev Hub
         run: |
           sfdx plugins --core
@@ -273,7 +273,7 @@ jobs:
         run: |
           mkdir sfdx
           wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
-          echo sfdx >> $GITHUB_PATH
+          echo $(realpath sfdx/bin) >> $GITHUB_PATH
       - name: Authenticate Dev Hub
         run: |
           sfdx plugins --core
