@@ -114,7 +114,13 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         task = CreateRelease(
             self.project_config,
             TaskConfig(
-                {"options": {"version": "1.0", "version_id": "04t000000000000"}}
+                {
+                    "options": {
+                        "version": "1.0",
+                        "version_id": "04t000000000000",
+                        "package_type": "1GP",
+                    }
+                }
             ),
         )
         with self.assertRaises(GithubException):
