@@ -27,7 +27,7 @@ cryptography==3.4.7
     #   jwcrypto
 docutils==0.16
     # via -r requirements/prod.in
-faker==7.0.1
+faker==8.1.0
     # via
     #   -r requirements/prod.in
     #   snowfakery
@@ -41,7 +41,7 @@ humanfriendly==9.1
     # via coloredlogs
 idna==2.10
     # via requests
-importlib-metadata==3.10.0
+importlib-metadata==3.10.1
     # via keyring
 jinja2==2.11.3
     # via
@@ -146,5 +146,5 @@ zipp==3.4.1
     # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==54.2.0
+setuptools==56.0.0
     # via fs
