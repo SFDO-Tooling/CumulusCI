@@ -649,6 +649,14 @@ class TestCreatePackageVersion:
         actual_id = task._resolve_ancestor_id()
         assert actual_id == "05i000000000000"
 
+    @responses.activate
+    def test_resolve_ancestor_id__no_release_found(self, task):
+        project_config = mock.Mock()
+        project_config.get_latest_tag.side_effect = GithubException
+        task.project_config = project_config
+
+        assert task._resolve_ancestor_id() == ""
+
     def test_resolve_ancestor_id__unlocked_package(self, task):
         task.package_config = PackageConfig(
             package_name="test_package",

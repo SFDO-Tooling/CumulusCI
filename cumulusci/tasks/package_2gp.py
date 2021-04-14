@@ -473,7 +473,11 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             return ""
 
         if not spv_id:
-            tag_name = self.project_config.get_latest_tag(beta=False)
+            try:
+                tag_name = self.project_config.get_latest_tag(beta=False)
+            except GithubException:
+                # No release found
+                return ""
             repo = self.project_config._get_repo()
             spv_id = get_version_id_from_tag(repo, tag_name)
             self.logger.info(f"Resolved ancestor to version: {spv_id}")
