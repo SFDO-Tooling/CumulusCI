@@ -5,20 +5,19 @@ import tempfile
 from pathlib import Path
 from unittest import mock
 
-from cumulusci.core.exceptions import (
-    CumulusCIException,
-    CumulusCIUsageError,
-    OrgNotFound,
-    ServiceNotConfigured,
-)
+from cumulusci.core.config import BaseConfig
+from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.config import ServiceConfig
+from cumulusci.core.config import UniversalConfig
+from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIUsageError
+from cumulusci.core.exceptions import KeychainKeyNotFound
+from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.core.keychain.encrypted_file_project_keychain import GlobalOrg
-from cumulusci.core.config import (
-    BaseConfig,
-    OrgConfig,
-    ServiceConfig,
-    UniversalConfig,
-)
 
 
 @pytest.fixture()
@@ -632,3 +631,34 @@ class TestEncryptedFileProjectKeychain:
         filepath = Path("DEFAULT_THINGS.json")
         with pytest.raises(CumulusCIException):
             keychain._write_default_services(filepath, {})
+
+    def test_decrypt_config__no_config(self, keychain):
+        config = keychain._decrypt_config(OrgConfig, None, extra=["test", keychain])
+        assert config.__class__ == OrgConfig
+        assert config.config == {}
+        assert config.keychain == keychain
+
+    def test_decrypt_config__no_config_2(self, keychain):
+        config = keychain._decrypt_config(BaseConfig, None)
+        assert config.__class__ == BaseConfig
+        assert config.config == {}
+
+    def test_decrypt_config__wrong_key(self, keychain, org_config):
+        keychain.set_org(org_config, False)
+        keychain.key = "x" * 16
+        with pytest.raises(KeychainKeyNotFound):
+            keychain.get_org("test")
+
+    def test_validate_key__not_set(self, project_config):
+        with pytest.raises(KeychainKeyNotFound):
+            EncryptedFileProjectKeychain(project_config, None)
+
+    def test_validate_key__wrong_length(self, project_config):
+        with pytest.raises(ConfigError):
+            EncryptedFileProjectKeychain(project_config, "1")
+
+    def test_construct_config(self, keychain):
+        result = keychain._construct_config(
+            None, [{"scratch": "scratch org"}, "org_name"]
+        )
+        assert isinstance(result, ScratchOrgConfig)

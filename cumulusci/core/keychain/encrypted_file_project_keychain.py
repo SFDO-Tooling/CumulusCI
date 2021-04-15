@@ -1,18 +1,34 @@
+import base64
 import json
+import os
+import pickle
 import typing as T
 
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher
+from cryptography.hazmat.primitives.ciphers.algorithms import AES
+from cryptography.hazmat.primitives.ciphers.modes import CBC
 from pathlib import Path
 
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.exceptions import (
-    CumulusCIException,
-    CumulusCIUsageError,
-    OrgNotFound,
-    ServiceNotConfigured,
-)
-from cumulusci.core.keychain import BaseEncryptedProjectKeychain
+from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.config import ServiceConfig
+from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIUsageError
+from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.exceptions import KeychainKeyNotFound
+from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.keychain import BaseProjectKeychain
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
+
+BS = 16
+backend = default_backend()
+
+
+def pad(s):
+    return s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode("ascii")
 
 
 """
@@ -38,7 +54,9 @@ the default org for that project.
 """
 
 
-class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
+class EncryptedFileProjectKeychain(BaseProjectKeychain):
+    encrypted = True
+
     @property
     def global_config_dir(self):
         try:
@@ -53,6 +71,67 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
     @property
     def project_local_dir(self):
         return self.project_config.project_local_dir
+
+    #######################################
+    #             Encryption              #
+    #######################################
+
+    def _get_cipher(self, iv=None):
+        key = self.key
+        if not isinstance(key, bytes):
+            key = key.encode()
+        if iv is None:
+            iv = os.urandom(16)
+        cipher = Cipher(AES(key), CBC(iv), backend=backend)
+        return cipher, iv
+
+    def _encrypt_config(self, config):
+        pickled = pickle.dumps(config.config, protocol=2)
+        pickled = pad(pickled)
+        cipher, iv = self._get_cipher()
+        return base64.b64encode(iv + cipher.encryptor().update(pickled))
+
+    def _decrypt_config(self, config_class, encrypted_config, extra=None, context=None):
+        if not encrypted_config:
+            if extra:
+                return config_class(None, *extra)
+            else:
+                return config_class()
+        encrypted_config = base64.b64decode(encrypted_config)
+        iv = encrypted_config[:16]
+        cipher, iv = self._get_cipher(iv)
+        pickled = cipher.decryptor().update(encrypted_config[16:])
+        try:
+            unpickled = pickle.loads(pickled, encoding="bytes")
+        except Exception:
+            raise KeychainKeyNotFound(
+                f"Unable to decrypt{' ' + context if context else ''}. "
+                "It was probably stored using a different CUMULUSCI_KEY."
+            )
+        # Convert bytes created in Python 2
+        config_dict = {}
+        for k, v in unpickled.items():
+            if isinstance(k, bytes):
+                k = k.decode("utf-8")
+            if isinstance(v, bytes):
+                v = v.decode("utf-8")
+            config_dict[k] = v
+        args = [config_dict]
+        if extra:
+            args += extra
+        return self._construct_config(config_class, args)
+
+    def _construct_config(self, config_class, args):
+        if args[0].get("scratch"):
+            config_class = ScratchOrgConfig
+
+        return config_class(*args)
+
+    def _validate_key(self):
+        if not self.key:
+            raise KeychainKeyNotFound("The keychain key was not found.")
+        if len(self.key) != 16:
+            raise ConfigError("The keychain key must be 16 characters long.")
 
     #######################################
     #               Orgs                  #
@@ -114,6 +193,15 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 self.config["orgs"][name] = (
                     constructor(config) if constructor else config
                 )
+
+    def _set_org(self, org_config, global_org):
+        if org_config.keychain:
+            assert org_config.keychain is self
+        assert org_config.global_org == global_org
+        org_config.keychain = self
+        org_config.global_org = global_org
+        encrypted = self._encrypt_config(org_config)
+        self._set_encrypted_org(org_config.name, encrypted, global_org)
 
     def _set_encrypted_org(self, name, encrypted, global_org):
         if global_org:
@@ -303,6 +391,30 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
             self._migrate_services()
         self._load_service_files()
 
+    def _set_service(self, service_type, alias, service_config):
+        if service_type not in self.services:
+            self.services[service_type] = {}
+            # set the first service of a given type as the global default
+            self._default_services[service_type] = alias
+            self._save_default_service(service_type, alias, project=False)
+
+        encrypted = self._encrypt_config(service_config)
+        self._set_encrypted_service(service_type, alias, encrypted)
+
+    def _set_encrypted_service(self, service_type, alias, encrypted):
+        service_path = Path(
+            f"{self.global_config_dir}/services/{service_type}/{alias}.service"
+        )
+        with open(service_path, "wb") as f:
+            f.write(encrypted)
+
+    def _get_service(self, service_type, alias):
+        return self._decrypt_config(
+            ServiceConfig,
+            self.services[service_type][alias],
+            context=f"service config ({service_type}/{alias})",
+        )
+
     def _load_service_files(self, constructor=None) -> None:
         """
         Load configured services onto the keychain.
@@ -323,13 +435,6 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 self.config["services"][service_type][name] = (
                     constructor(config) if constructor else config
                 )
-
-    def _set_encrypted_service(self, service_type, alias, encrypted):
-        service_path = Path(
-            f"{self.global_config_dir}/services/{service_type}/{alias}.service"
-        )
-        with open(service_path, "wb") as f:
-            f.write(encrypted)
 
     def _load_default_services(self) -> None:
         """Init self._default_services on the keychain so that
