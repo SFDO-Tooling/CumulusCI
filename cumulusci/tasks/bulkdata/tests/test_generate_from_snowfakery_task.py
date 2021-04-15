@@ -191,9 +191,9 @@ class TestGenerateFromDataTask(unittest.TestCase):
         task()
         assert len(_dataload.mock_calls) == 1
 
-    @mock.patch("cumulusci.tasks.bulkdata.generate_from_yaml.generate")
-    def test_exception_handled_cleanly(self, generate):
-        generate.side_effect = AssertionError("Foo")
+    @mock.patch("cumulusci.tasks.bulkdata.generate_from_yaml.generate_data")
+    def test_exception_handled_cleanly(self, generate_data):
+        generate_data.side_effect = AssertionError("Foo")
         with pytest.raises(AssertionError) as e:
             task = _make_task(
                 GenerateAndLoadDataFromYaml,
@@ -207,7 +207,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
             )
             task()
             assert "Foo" in str(e.value)
-        assert len(generate.mock_calls) == 1
+        assert len(generate_data.mock_calls) == 1
 
     @mock.patch(
         "cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml._dataload"
