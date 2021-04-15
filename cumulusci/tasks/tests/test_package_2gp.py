@@ -1,35 +1,34 @@
-from unittest import mock
 import io
 import json
 import os
 import pathlib
+import pytest
+import re
+import responses
 import shutil
+import yaml
 import zipfile
 
 from pydantic import ValidationError
-import pytest
-import responses
-import yaml
+from unittest import mock
 
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.dependencies.dependencies import (
-    PackageNamespaceVersionDependency,
-    UnmanagedGitHubRefDependency,
-)
+from cumulusci.core.dependencies.dependencies import PackageNamespaceVersionDependency
+from cumulusci.core.dependencies.dependencies import UnmanagedGitHubRefDependency
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.exceptions import DependencyLookupError, GithubException
+from cumulusci.core.exceptions import CumulusCIUsageError
+from cumulusci.core.exceptions import DependencyLookupError
+from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import PackageUploadFailure
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
-from cumulusci.tasks.package_2gp import (
-    CreatePackageVersion,
-    PackageConfig,
-    PackageTypeEnum,
-    PackageVersionNumber,
-    VersionTypeEnum,
-)
+from cumulusci.tasks.package_2gp import CreatePackageVersion
+from cumulusci.tasks.package_2gp import PackageConfig
+from cumulusci.tasks.package_2gp import PackageTypeEnum
+from cumulusci.tasks.package_2gp import PackageVersionNumber
+from cumulusci.tasks.package_2gp import VersionTypeEnum
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import touch
 
@@ -634,7 +633,9 @@ class TestCreatePackageVersion:
 
     @responses.activate
     @mock.patch("cumulusci.tasks.package_2gp.get_version_id_from_tag")
-    def test_resolve_ancestor_id(self, get_version_id_from_tag, task):
+    def test_resolve_ancestor_id__latest_github_release(
+        self, get_version_id_from_tag, task
+    ):
         responses.add(
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
@@ -646,7 +647,34 @@ class TestCreatePackageVersion:
 
         get_version_id_from_tag.return_value = "04t000000000111"
 
-        actual_id = task._resolve_ancestor_id()
+        actual_id = task._resolve_ancestor_id("latest_github_release")
+        assert actual_id == "05i000000000000"
+
+    @responses.activate
+    def test_resolve_ancestor_id__no_ancestor_specified(self, task):
+        project_config = mock.Mock()
+        project_config.get_latest_tag.side_effect = GithubException
+        task.project_config = project_config
+
+        assert task._resolve_ancestor_id() == ""
+
+    @responses.activate
+    @mock.patch("cumulusci.tasks.package_2gp.get_version_id_from_tag")
+    def test_resolve_ancestor_id__ancestor_explicitly_specified(
+        self, get_version_id_from_tag, task
+    ):
+        responses.add(
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 1, "records": [{"Id": "05i000000000000"}]},
+        )
+
+        project_config = mock.Mock()
+        task.project_config = project_config
+
+        get_version_id_from_tag.return_value = "04t000000000111"
+
+        actual_id = task._resolve_ancestor_id("04t000000000000")
         assert actual_id == "05i000000000000"
 
     @responses.activate
@@ -655,7 +683,7 @@ class TestCreatePackageVersion:
         project_config.get_latest_tag.side_effect = GithubException
         task.project_config = project_config
 
-        assert task._resolve_ancestor_id() == ""
+        assert task._resolve_ancestor_id("latest_github_release") == ""
 
     def test_resolve_ancestor_id__unlocked_package(self, task):
         task.package_config = PackageConfig(
@@ -669,4 +697,15 @@ class TestCreatePackageVersion:
             version_base=None,
             version_type="patch",
         )
-        assert task._resolve_ancestor_id() == ""
+        with pytest.raises(
+            CumulusCIUsageError,
+            match="Cannot specify an ancestor for Unlocked packages.",
+        ):
+            task._resolve_ancestor_id("04t000000000000")
+
+    def test_resolve_ancestor_id__invalid_option_value(self, task):
+        with pytest.raises(
+            TaskOptionsError,
+            match=re.escape("Unrecognized value for ancestor_id: 001001001001001"),
+        ):
+            task._resolve_ancestor_id("001001001001001")

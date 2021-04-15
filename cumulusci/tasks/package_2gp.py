@@ -10,12 +10,12 @@ import zipfile
 from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
-from cumulusci.core.dependencies.dependencies import (
-    PackageNamespaceVersionDependency,
-    PackageVersionIdDependency,
-    UnmanagedGitHubRefDependency,
-)
+from cumulusci.core.config.util import get_devhub_config
+from cumulusci.core.dependencies.dependencies import PackageNamespaceVersionDependency
+from cumulusci.core.dependencies.dependencies import PackageVersionIdDependency
+from cumulusci.core.dependencies.dependencies import UnmanagedGitHubRefDependency
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
+from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import DependencyLookupError
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import PackageUploadFailure
@@ -28,7 +28,7 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils import download_extract_github
-from cumulusci.core.config.util import get_devhub_config
+
 
 VERSION_RE = re.compile(
     r"^(?P<MajorVersion>\d+)"
@@ -175,11 +175,17 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "description": "If true, force creating a new package version even if one with the same contents already exists"
         },
         "static_resource_path": {
-            "description": "The path where decompressed static resources are stored. Any subdirectories found will be zipped and added to the staticresources directory of the build."
+            "description": "The path where decompressed static resources are stored. "
+            "Any subdirectories found will be zipped and added to the staticresources directory of the build."
         },
-        "ancestor_id": {"description": "The 04t Id of the ancestor of this package."},
+        "ancestor_id": {
+            "description": "The 04t Id to use for the ancestor of this package. "
+            "Optional; defaults to no ancestor specified. "
+            "Can be set to ``latest_github_release`` to use the most recent production version published to GitHub."
+        },
         "resolution_strategy": {
-            "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies. Defaults to 'production'."
+            "description": "The name of a sequence of resolution_strategy "
+            "(from project__dependency_resolutions) to apply to dynamic dependencies. Defaults to 'production'."
         },
     }
 
@@ -469,10 +475,15 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         @param spv_id The SubscriberPackageVersionId (04t) that is the ancestor
         to the version being created.
         """
-        if self.package_config.package_type == PackageTypeEnum.unlocked:
-            return ""
-
         if not spv_id:
+            return ""
+        elif self.package_config.package_type == PackageTypeEnum.unlocked:
+            raise CumulusCIUsageError(
+                "Cannot specify an ancestor for Unlocked packages."
+            )
+        elif spv_id.startswith("04t"):
+            return self._convert_ancestor_id(spv_id)
+        elif spv_id == "latest_github_release":
             try:
                 tag_name = self.project_config.get_latest_tag(beta=False)
             except GithubException:
@@ -483,7 +494,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             self.logger.info(f"Resolved ancestor to version: {spv_id}")
             self.logger.info("")
 
-        return self._convert_ancestor_id(spv_id)
+            return self._convert_ancestor_id(spv_id)
+        else:
+            raise TaskOptionsError(f"Unrecognized value for ancestor_id: {spv_id}")
 
     def _convert_ancestor_id(self, ancestor_id: str) -> str:
         """Given a SubscriberPackageVersionId (04t) find
