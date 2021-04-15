@@ -106,7 +106,7 @@ Make the necessary changes to prepare the new release:
 #. Update the release notes in ``HISTORY.rst`` 
     #. Navigate to the latest commits on the ``main`` branch `here <https://github.com/SFDO-Tooling/CumulusCI/commits/main>`_.
     #. Open all merge commits dating back to the previous release.
-    #. Aggregate all content under the "Changes" headings of each of the pull requests under the new entry in the ``HISTORY.rst`` file. 
+    #. Aggregate all content under the "Changes" heading of each of the pull requests under the new entry in the ``HISTORY.rst`` file. 
    
 
 
