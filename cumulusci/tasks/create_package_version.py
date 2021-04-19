@@ -198,7 +198,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             or self.project_config.project__package__namespace,
             version_name=self.options.get("version_name") or "Release",
             version_base=self.options.get("version_base"),
-            version_type=self.options.get("version_type") or "patch",
+            version_type=self.options.get("version_type") or "build",
         )
         self.options["skip_validation"] = process_bool_arg(
             self.options.get("skip_validation") or False
