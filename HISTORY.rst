@@ -2,6 +2,102 @@
 History
 =======
 
+3.33.0 (2021-04-19)
+-------------------
+
+Critical Changes:
+
+-  CumulusCI's dependency management modules have been rewritten. This
+   grants new capabilities and removes some existing features.
+  -  All package installations now perform retries if the package is not
+    yet available.
+  -  Package installations are also retried on common row locking errors.
+  -  You can now obtain fine-grained control over how your projects
+    resolve dependencies. It's much easier to control where your
+    application uses beta managed packages and second-generation packages
+    to satisfy dependencies.
+  -  You can now execute 2GP builds that use 2GPs from upstream feature
+    branches matching your current branch, not just release branches.
+-  The ``update_dependencies`` task no longer supports uninstalling
+   managed packages in a persistent org as part of the dependency
+   installation process.
+-  The ``update_dependencies`` task no longer supports the
+   ``allow_newer`` option, which is always True.
+-  The install order ``update_dependencies`` changes slightly where
+   multiple levels of upstream dependency have ``unpackaged/pre``
+   metadata. Where previously one package's ``unpackaged/pre`` might be
+   installed prior to its own upstream dependency, ``unpackaged/pre``
+   will now always be installed immediately prior to the repo's package.
+-  Projects using unmanaged dependencies that reference GitHub
+   subfolders will see a change in resolution behavior. Previously, a
+   dependency specified like this:
+
+    dependencies:
+        - github: https://github.com/SalesforceFoundation/NPSP
+          subfolder: unpackaged/config/trial
+
+would always deploy from the latest commit on the default branch. Now,
+this dependency will be resolved to a GitHub commit just like a
+dependency without a subfolder, selecting the latest beta or production
+release as determined by the chosen resolution strategy.
+
+-  The ``project__dependencies`` section in ``cumulusci.yml`` no longer
+   supports nested dependencies specified like this:
+
+    dependencies:
+        - namespace: "test"
+           version: "1.0"
+           dependencies:
+             - namespace: "parent"
+               version: "2.2"
+
+All dependencies should be listed in install order. (#2456)
+
+
+Changes:
+
+* CumulusCI now supports named services! This means you can configure multiple services of the same *type* under different names. If you run ``cci service list`` you will note that your existing global services will have the name ``service_type__global``, and any project specific services will have the name ``service_type__project_name``. (#2499)
+  
+  * CumulusCI has a new command: ``cci service default``. This command sets the default service for a given type.
+  * CumulusCI has a new command: ``cci service rename``. This command renames a given service.
+  * CumulusCI has a new command: ``cci service remove``. This command removes a given service.
+  
+* The ``update_package_xml`` task now supports additional metadata types. (#2549)
+
+* The ``make coverage`` target now supports a ``CLASS_PATH`` argument to allow running coverage for a subset of tests. (#2499)
+
+* Added a friendly error message when a repository cannot be found when set as a Dependency or Source. (#2535)
+
+* The Pydantic-based CumulusCI.yml linter validates CumulusCI.yml files now. If they do not match the pattern, it will generate a warning. (#1624)
+
+* We made some adjustments to the ``push_sandbox`` and ``push_all`` tasks. (#2338)
+
+* Tasks now get access to the --debug-mode option and can output debugging information conditional on it. (#2481)
+
+* We cleaned up the documentation a bit. (#2524)
+
+* Ensured that CCI is able to connect to scratch orgs running in a local build environment by not removing the instance port. (#2501, with thanks to @force2b)
+
+* Task option command line arguments can now be specified with either an underscore or a dash: e.g. ``clean_meta_xml`` can be specified as either ``--clean_meta_xml`` or ``--clean-meta-xml`` or ``-o clean-meta-xml`` (#2504)
+
+* Data generation with Snowfakery:
+
+  * Updated to `Snowfakery 1.9 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.9>`__ (#2538)
+  * Uses the new Snowfakery API instead of duplicating code from the Snowfakery CLI. (#2538)
+
+* Robot Framework:
+
+  * The ``run task`` keyword now captures all task output in the robot log instead of printing it to stdout. (#2453)
+  * The command task now sets the ``return_values`` to a dictionary that contains the return code of the command that was run. (#2453)
+  * Documented the use of the options/options section of CumulusCI for the ``robot`` task. (#2536)
+  * Fixed a bug when passing robot logger as the task logger. (#2551)
+
+Issues Closed:
+
+* The ``load_custom_settings`` task now resolves a relative ``settings_path`` correctly when used in a cross-project flow. (#2523)
+
+* Fixed the ``min_version`` option for the ``push_sandbox`` and ``push_all`` tasks to include the ``min_version`` and not only versions greater than it. (#2338)
+
 3.32.1 (2021-04-01)
 -------------------
 
