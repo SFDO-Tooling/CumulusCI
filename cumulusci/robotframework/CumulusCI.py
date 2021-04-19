@@ -221,6 +221,12 @@ class CumulusCI(object):
     def _init_task(self, class_path, options, task_config):
         task_class = import_global(class_path)
         task_config = self._parse_task_options(options, task_class, task_config)
+        # Python deprecated the logger method "warn" in favor of
+        # "warning". Robot didn't get the memo and only has a "warn"
+        # method. Some tasks use "warning", so this makes sure the
+        # robot logger can handle that.
+        if not hasattr(robot.api.logger, "warning"):
+            robot.api.logger.warning = robot.api.logger.warn
         task = task_class(
             task_config.project_config or self.project_config,
             task_config,
