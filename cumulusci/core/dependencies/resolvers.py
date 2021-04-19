@@ -7,6 +7,7 @@ from github3.exceptions import NotFoundError
 
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.github import (
+    get_2gp_version_id_from_tag,
     get_package_data,
     get_remote_project_config,
     get_repo,
@@ -84,7 +85,8 @@ class GitHubTagResolver(Resolver):
             # Find the github release corresponding to this tag.
             repo = get_repo(dep.github, context)
             release = repo.release_from_tag(dep.tag)
-            ref = repo.tag(repo.ref(f"tags/{release.tag_name}").object.sha).object.sha
+            tag = repo.tag(repo.ref(f"tags/{release.tag_name}").object.sha)
+            ref = tag.object.sha
             package_config = get_remote_project_config(repo, ref)
             package_name, namespace = get_package_data(package_config)
 
@@ -94,14 +96,21 @@ class GitHubTagResolver(Resolver):
                 )
 
             if not dep.is_unmanaged:
-                return (
-                    ref,
-                    PackageNamespaceVersionDependency(
+                version_id = get_2gp_version_id_from_tag(tag)
+
+                if version_id:
+                    package_dep = PackageVersionIdDependency(
+                        version_id=version_id,
+                        package_name=package_name,
+                    )
+                else:
+                    package_dep = PackageNamespaceVersionDependency(
                         namespace=namespace,
                         version=release.name,
                         package_name=package_name,
-                    ),
-                )
+                    )
+
+                return (ref, package_dep)
             else:
                 return ref, None
         except NotFoundError:
@@ -123,16 +132,24 @@ class GitHubReleaseTagResolver(Resolver):
         repo = get_repo(dep.github, context)
         release = find_latest_release(repo, include_beta=self.include_beta)
         if release:
-            ref = repo.tag(repo.ref(f"tags/{release.tag_name}").object.sha).object.sha
+            tag = repo.tag(repo.ref(f"tags/{release.tag_name}").object.sha)
+            version_id = get_2gp_version_id_from_tag(tag)
+
+            ref = tag.object.sha
             package_config = get_remote_project_config(repo, ref)
             package_name, namespace = get_package_data(package_config)
 
-            return (
-                ref,
-                PackageNamespaceVersionDependency(
+            if version_id:
+                package_dep = PackageVersionIdDependency(
+                    version_id=version_id,
+                    package_name=package_name,
+                )
+            else:
+                package_dep = PackageNamespaceVersionDependency(
                     namespace=namespace, version=release.name, package_name=package_name
-                ),
-            )
+                )
+
+            return (ref, package_dep)
 
         return (None, None)
 

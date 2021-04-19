@@ -44,10 +44,6 @@ class ConcreteDynamicDependency(DynamicDependency):
     def name(self):
         return ""
 
-    @property
-    def description(self):
-        return ""
-
 
 class MockResolver(Resolver):
     def __init__(
