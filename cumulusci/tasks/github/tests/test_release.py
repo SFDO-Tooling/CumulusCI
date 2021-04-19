@@ -97,6 +97,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             },
             task.return_values,
         )
+        assert "package_type: 1GP" in responses.calls._calls[3].request.body
 
     @responses.activate
     def test_run_task__release_already_exists(self):
