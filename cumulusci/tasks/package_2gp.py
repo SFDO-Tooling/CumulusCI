@@ -10,16 +10,17 @@ import zipfile
 from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
-from cumulusci.core.dependencies.dependencies import (
-    PackageNamespaceVersionDependency,
-    PackageVersionIdDependency,
-    UnmanagedGitHubRefDependency,
-)
+from cumulusci.core.config.util import get_devhub_config
+from cumulusci.core.dependencies.dependencies import PackageNamespaceVersionDependency
+from cumulusci.core.dependencies.dependencies import PackageVersionIdDependency
+from cumulusci.core.dependencies.dependencies import UnmanagedGitHubRefDependency
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
+from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import DependencyLookupError
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import PackageUploadFailure
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.github import get_version_id_from_tag
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
@@ -27,7 +28,7 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils import download_extract_github
-from cumulusci.core.config.util import get_devhub_config
+
 
 VERSION_RE = re.compile(
     r"^(?P<MajorVersion>\d+)"
@@ -174,10 +175,17 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "description": "If true, force creating a new package version even if one with the same contents already exists"
         },
         "static_resource_path": {
-            "description": "The path where decompressed static resources are stored. Any subdirectories found will be zipped and added to the staticresources directory of the build."
+            "description": "The path where decompressed static resources are stored. "
+            "Any subdirectories found will be zipped and added to the staticresources directory of the build."
+        },
+        "ancestor_id": {
+            "description": "The 04t Id to use for the ancestor of this package. "
+            "Optional; defaults to no ancestor specified. "
+            "Can be set to ``latest_github_release`` to use the most recent production version published to GitHub."
         },
         "resolution_strategy": {
-            "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies. Defaults to 'production'."
+            "description": "The name of a sequence of resolution_strategy "
+            "(from project__dependency_resolutions) to apply to dynamic dependencies. Defaults to 'production'."
         },
     }
 
@@ -242,10 +250,14 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             options=options,
             logger=self.logger,
         )
+
+        ancestor_id = self._resolve_ancestor_id(self.options.get("ancestor_id"))
+
         self.request_id = self._create_version_request(
             self.package_id,
             self.package_config,
             package_zip_builder,
+            ancestor_id,
             self.options["skip_validation"],
         )
         self.return_values["request_id"] = self.request_id
@@ -256,9 +268,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
         # get the new version number from Package2Version
         res = self.tooling.query(
-            "SELECT MajorVersion, MinorVersion, PatchVersion, BuildNumber, SubscriberPackageVersionId FROM Package2Version WHERE Id='{}' ".format(
-                self.package_version_id
-            )
+            f"SELECT MajorVersion, MinorVersion, PatchVersion, BuildNumber, SubscriberPackageVersionId FROM Package2Version WHERE Id='{self.package_version_id}'"
         )
         package2_version = res["records"][0]
         self.return_values["subscriber_package_version_id"] = package2_version[
@@ -346,6 +356,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_id: str,
         package_config: PackageConfig,
         package_zip_builder: BasePackageZipBuilder,
+        ancestor_id: str = "",
         skip_validation: bool = False,
         dependencies: list = None,
     ):
@@ -379,13 +390,15 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             version_number = self._get_base_version_number(
                 package_config.version_base, package_id
             ).increment(package_config.version_type)
+
             package_descriptor = {
-                "ancestorId": "",  # @@@ need to add this for Managed 2gp
                 "id": package_id,
                 "path": "",
                 "versionName": package_config.version_name,
                 "versionNumber": version_number.format(),
+                "ancestorId": ancestor_id,
             }
+
             if package_config.post_install_script:
                 package_descriptor[
                     "postInstallScript"
@@ -453,6 +466,59 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             f"Package2VersionCreateRequest created with id {response['id']}"
         )
         return response["id"]
+
+    def _resolve_ancestor_id(self, spv_id: str = None) -> str:
+        """
+        If an ancestor_id (04t) is not specified, get it
+        from the latest production release.
+
+        @param spv_id The SubscriberPackageVersionId (04t) that is the ancestor
+        to the version being created.
+        """
+        if not spv_id:
+            return ""
+        elif self.package_config.package_type == PackageTypeEnum.unlocked:
+            raise CumulusCIUsageError(
+                "Cannot specify an ancestor for Unlocked packages."
+            )
+        elif spv_id.startswith("04t"):
+            return self._convert_ancestor_id(spv_id)
+        elif spv_id == "latest_github_release":
+            try:
+                tag_name = self.project_config.get_latest_tag(beta=False)
+            except GithubException:
+                # No release found
+                return ""
+            repo = self.project_config._get_repo()
+            spv_id = get_version_id_from_tag(repo, tag_name)
+            self.logger.info(f"Resolved ancestor to version: {spv_id}")
+            self.logger.info("")
+
+            return self._convert_ancestor_id(spv_id)
+        else:
+            raise TaskOptionsError(f"Unrecognized value for ancestor_id: {spv_id}")
+
+    def _convert_ancestor_id(self, ancestor_id: str) -> str:
+        """Given a SubscriberPackageVersionId (04t) find
+        the corresponding Package2VersionId (05i).
+        See: https://github.com/forcedotcom/salesforce-alm/blob/83745351670a701762c6ecc926885564b8853357/src/lib/package/packageUtils.ts#L517
+
+        @param ancestor_id A SubscriberPackageVersionId (04t)
+        @returns the corresponding Package2VersionId (05i) or an empty string
+        if no Package2Version is found.
+        """
+        package_2_version_id = ""
+        res = self.tooling.query(
+            f"SELECT Id FROM Package2Version WHERE SubscriberPackageVersionId='{ancestor_id}'"
+        )
+        if res["size"] > 0:
+            package_2_version_id = res["records"][0]["Id"]
+            self.logger.info(
+                f"Converted ancestor_id to corresponding Package2Version: {package_2_version_id}"
+            )
+            self.logger.info("")
+
+        return package_2_version_id
 
     def _get_base_version_number(
         self, version_base: Optional[str], package_id: str
@@ -608,7 +674,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
     def _create_unlocked_package_from_local(self, path, dependencies):
         """Create an unlocked package version from a local directory."""
-        self.logger.info("Creating package for dependencies in {}".format(path))
+        self.logger.info(f"Creating package for dependencies in {path}")
         package_name = (
             f"{self.project_config.repo_owner}/{self.project_config.repo_name} {path}"
         )
