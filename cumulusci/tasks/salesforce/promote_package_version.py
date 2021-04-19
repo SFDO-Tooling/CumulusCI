@@ -4,10 +4,9 @@ from simple_salesforce.exceptions import SalesforceMalformedRequest
 from cumulusci.core.config.util import get_devhub_config
 from cumulusci.core.exceptions import (
     CumulusCIException,
-    DependencyLookupError,
     TaskOptionsError,
 )
-from cumulusci.core.github import get_tag_by_name
+from cumulusci.core.github import get_version_id_from_tag
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.package_2gp import PackageVersionNumber
@@ -104,21 +103,10 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         )
         tag_name = self.project_config.get_latest_tag(beta=True)
         repo = self.project_config._get_repo()
-        tag = get_tag_by_name(repo, tag_name)
-
-        for line in tag.message.split("\n"):
-            if line.startswith("version_id:"):
-                version_id = line.split("version_id: ")[1]
-                if not version_id.startswith("04t"):
-                    self.logger.error(
-                        f"Found malformed version_id on tag ({tag_name}): {version_id}"
-                    )
-                    continue
-                self.logger.info(f"Resolved to version: {version_id}")
-                self.logger.info("")
-                return version_id
-
-        raise DependencyLookupError(f"Could not find version_id for tag {tag_name}")
+        version_id = get_version_id_from_tag(repo, tag_name)
+        self.logger.info(f"Resolved to version: {version_id}")
+        self.logger.info("")
+        return version_id
 
     def _get_dependency_info(self, spv_id: str) -> Optional[List[Dict]]:
         """
