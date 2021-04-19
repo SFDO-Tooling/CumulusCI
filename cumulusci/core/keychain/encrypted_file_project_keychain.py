@@ -352,10 +352,9 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
 
         @param default_services_file path to a DEFAULT_SERVICES.json file
         """
-        if default_services_file.is_file():
-            default_services = self._read_default_services(default_services_file)
-            for s_type, alias in default_services.items():
-                self._default_services[s_type] = alias
+        default_services = self._read_default_services(default_services_file)
+        for s_type, alias in default_services.items():
+            self._default_services[s_type] = alias
 
     def _save_default_service(
         self, service_type: str, alias: str, project: bool = False
@@ -504,12 +503,9 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
         @raises CumulusCIException if the file does not exist
         """
         if not file_path.is_file() or file_path.name != DEFAULT_SERVICES_FILENAME:
-            raise CumulusCIException(
-                f"No {DEFAULT_SERVICES_FILENAME} file found at: {file_path}"
-            )
-
-        with open(file_path, "r") as f:
-            return json.loads(f.read())
+            return {}
+        else:
+            return json.loads(file_path.read_text(encoding="utf-8"))
 
     def _write_default_services(
         self, file_path: Path, default_services: T.Dict[str, str]
@@ -525,7 +521,7 @@ class EncryptedFileProjectKeychain(BaseEncryptedProjectKeychain):
                 f"No {DEFAULT_SERVICES_FILENAME} file found at: {file_path}"
             )
 
-        with open(file_path, "w") as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(json.dumps(default_services))
 
     def _iter_local_project_dirs(self):
