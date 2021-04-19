@@ -1,35 +1,34 @@
-from unittest import mock
 import io
 import json
 import os
 import pathlib
+import pytest
+import re
+import responses
 import shutil
+import yaml
 import zipfile
 
 from pydantic import ValidationError
-import pytest
-import responses
-import yaml
+from unittest import mock
 
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.dependencies.dependencies import (
-    PackageNamespaceVersionDependency,
-    UnmanagedGitHubRefDependency,
-)
+from cumulusci.core.dependencies.dependencies import PackageNamespaceVersionDependency
+from cumulusci.core.dependencies.dependencies import UnmanagedGitHubRefDependency
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.exceptions import DependencyLookupError, GithubException
+from cumulusci.core.exceptions import CumulusCIUsageError
+from cumulusci.core.exceptions import DependencyLookupError
+from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import PackageUploadFailure
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
-from cumulusci.tasks.create_package_version import (
-    CreatePackageVersion,
-    PackageConfig,
-    PackageTypeEnum,
-    PackageVersionNumber,
-    VersionTypeEnum,
-)
+from cumulusci.tasks.create_package_version import CreatePackageVersion
+from cumulusci.tasks.create_package_version import PackageConfig
+from cumulusci.tasks.create_package_version import PackageTypeEnum
+from cumulusci.tasks.create_package_version import PackageVersionNumber
+from cumulusci.tasks.create_package_version import VersionTypeEnum
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import touch
 
@@ -103,6 +102,7 @@ def task(project_config, devhub_config, org_config):
                     "org_dependent": False,
                     "package_name": "Test Package",
                     "static_resource_path": "static-resources",
+                    "ancestor_id": "04t000000000000",
                 }
             }
         ),
@@ -197,6 +197,7 @@ class TestCreatePackageVersion:
     ):
         mock_download_extract_github.return_value = zipfile.ZipFile(io.BytesIO(), "w")
 
+        # _get_or_create_package() responses
         responses.add(  # query to find existing package
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
@@ -207,6 +208,15 @@ class TestCreatePackageVersion:
             f"{self.devhub_base_url}/tooling/sobjects/Package2/",
             json={"id": "0Ho6g000000fy4ZCAQ"},
         )
+
+        # _resolve_ancestor_id() responses
+        responses.add(
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 1, "records": [{"Id": "05i000000000000"}]},
+        )
+
+        # _create_version_request() responses
         responses.add(  # query to find existing Package2VersionCreateRequest
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
@@ -649,3 +659,81 @@ class TestCreatePackageVersion:
         version = task._get_base_version_number(version_base, "a package 2 Id")
         next_version = version.increment(VersionTypeEnum.major)
         assert next_version.format() == "1.0.0.NEXT"
+
+    @mock.patch("cumulusci.tasks.package_2gp.get_version_id_from_tag")
+    def test_resolve_ancestor_id__latest_github_release(
+        self, get_version_id_from_tag, task
+    ):
+        responses.add(
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 1, "records": [{"Id": "05i000000000000"}]},
+        )
+
+        project_config = mock.Mock()
+        task.project_config = project_config
+
+        get_version_id_from_tag.return_value = "04t000000000111"
+
+        actual_id = task._resolve_ancestor_id("latest_github_release")
+        assert actual_id == "05i000000000000"
+
+    @responses.activate
+    def test_resolve_ancestor_id__no_ancestor_specified(self, task):
+        project_config = mock.Mock()
+        project_config.get_latest_tag.side_effect = GithubException
+        task.project_config = project_config
+
+        assert task._resolve_ancestor_id() == ""
+
+    @responses.activate
+    @mock.patch("cumulusci.tasks.package_2gp.get_version_id_from_tag")
+    def test_resolve_ancestor_id__ancestor_explicitly_specified(
+        self, get_version_id_from_tag, task
+    ):
+        responses.add(
+            "GET",
+            f"{self.devhub_base_url}/tooling/query/",
+            json={"size": 1, "records": [{"Id": "05i000000000000"}]},
+        )
+
+        project_config = mock.Mock()
+        task.project_config = project_config
+
+        get_version_id_from_tag.return_value = "04t000000000111"
+
+        actual_id = task._resolve_ancestor_id("04t000000000000")
+        assert actual_id == "05i000000000000"
+
+    @responses.activate
+    def test_resolve_ancestor_id__no_release_found(self, task):
+        project_config = mock.Mock()
+        project_config.get_latest_tag.side_effect = GithubException
+        task.project_config = project_config
+
+        assert task._resolve_ancestor_id("latest_github_release") == ""
+
+    def test_resolve_ancestor_id__unlocked_package(self, task):
+        task.package_config = PackageConfig(
+            package_name="test_package",
+            package_type="Unlocked",
+            org_dependent=False,
+            post_install_script=None,
+            uninstall_script=None,
+            namespace="test",
+            version_name="Release",
+            version_base=None,
+            version_type="patch",
+        )
+        with pytest.raises(
+            CumulusCIUsageError,
+            match="Cannot specify an ancestor for Unlocked packages.",
+        ):
+            task._resolve_ancestor_id("04t000000000000")
+
+    def test_resolve_ancestor_id__invalid_option_value(self, task):
+        with pytest.raises(
+            TaskOptionsError,
+            match=re.escape("Unrecognized value for ancestor_id: 001001001001001"),
+        ):
+            task._resolve_ancestor_id("001001001001001")
