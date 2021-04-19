@@ -377,7 +377,11 @@ Specify unmanaged metadata to be deployed by specifying a ``zip_url`` or a ``git
 When the ``update_dependencies`` task runs, it downloads the zip file or GitHub subdirectory and deploys it via the Metadata API.
 The zip file must contain valid metadata for use with a deploy, including a ``package.xml`` file in the root.
 
-Unmanaged metadata dependencies from GitHub must specify the ``ref`` to download.
+Unmanaged metadata dependencies from GitHub may optionally specify the ``ref`` to download. If they do not, unmanaged GitHub dependencies are resolved like other GitHub references. See `Controlling GitHub Dependency Resolution`_ for more details on resolution of dynamic dependencies.
+
+.. note:: 
+
+    In previous versions of CumulusCI, unmanaged GitHub dependencies always deployed the most recent commit on the default branch.
 
 Specify a Subfolder
 *******************
