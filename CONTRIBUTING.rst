@@ -52,35 +52,35 @@ Get Started!
 
 Ready to contribute? Here's how to set up CumulusCI for local development.
 
-1. Fork the CumulusCI repo on GitHub.
-2. Clone your fork to your local workspace.
-3. Create a fresh Python 3 virtual environment and activate it (to keep this isolated from other Python software on your machine). Here is one way::
+#. Fork the CumulusCI repo on GitHub.
+#. Clone your fork to your local workspace.
+#. Create a fresh Python 3 virtual environment and activate it (to keep this isolated from other Python software on your machine). Here is one way::
 
     $ python3 -m venv cci_venv
     $ source cci_venv/bin/activate
 
-4. Install the development requirements::
+#. Install the development requirements::
 
     $ make dev-install
 
-5. Install ``pre-commit`` hooks for ``black`` and ``flake8``::
+#. Install ``pre-commit`` hooks for ``black`` and ``flake8``::
 
     $ pre-commit install --install-hooks
 
-6. After making changes, run the tests and make sure they all pass::
+#. After making changes, run the tests and make sure they all pass::
 
     $ pytest
 
-7. Your new code should also have meaningful tests. One way to double check that
+#. Your new code should also have meaningful tests. One way to double check that
    your tests cover everything is to ensure that your new code has test code coverage::
 
    $ make coverage
 
-8. Push your changes to GitHub and submit a Pull Request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to main.
+#. Push your changes to GitHub and submit a Pull Request. The base branch should be a new feature branch that we create to receive the changes (contact us to create the branch). This allows us to test the changes using our build system before merging to main.
 
-Note that we enable typeguard with pytest so if you add type declarations to your 
-code, those declarations will be treated as runtime assertions in your Python
-tests.
+.. note:: 
+
+    We enable typeguard with pytest so if you add type declarations to your code, those declarations will be treated as runtime assertions in your Python tests.
 
 Pull Request Guidelines
 -----------------------
@@ -102,17 +102,25 @@ It's easy to release a version of CumulusCI to GitHub and PyPI! First, create a 
 
 Make the necessary changes to prepare the new release:
 
-    1. Update the version in ``cumulusci/version.txt``
-    2. Update the release notes in ``HISTORY.rst``. Information in our project history is derived from Pull Request notes found in GitHub and dating back to our previous release.
+#. Update the version in ``cumulusci/version.txt``
+#. Update the release notes in ``HISTORY.rst`` 
+    #. Navigate to the latest commits on the ``main`` branch `here <https://github.com/SFDO-Tooling/CumulusCI/commits/main>`_.
+    #. Open all merge commits dating back to the previous release.
+    #. Content under the "Critical Changes", "Changes", and "Issues Closed" headings of each of the pull request should be aggregated into the same sections under a new entry in the ``HISTORY.rst`` file. 
+   
+
 
 Commit the changes, open a Pull Request on GitHub and request approval from another committer.
 Once your PR has been merged, a GitHub action will automatically create the release tag and push the artifacts to PyPI.
 
 After a couple minutes, check for the new release's appearance at `PyPI <https://pypi.org/project/cumulusci/>`_.
 
-Next, head to the tag that was autocreated in the GitHub repository and edit it. Populate the version number and paste in the changelog notes from ``HISTORY.rst``. Note that some formatting, such as reStructuredText links, need to be converted to Markdown. Publish the release.
+Next, head to the tag that was autocreated in the GitHub repository and edit it.
+Populate the version number and paste in the changelog notes from ``HISTORY.rst``.
+Note that some formatting, such as reStructuredText links, need to be converted to Markdown. Publish the release.
 
 .. note::
+
     If pandoc is installed on macOS, you can run ``pbpaste | pandoc -f rst -t gfm | pbcopy`` to convert from RST to GitHub Flavored Markdown.
 
 You can then create a pull request to update the `Homebrew Tap`_ by running this locally (note, it's important to do this as soon as possible after the release is published on PyPI, because PyPI is the source CumulusCI checks to see if a new version is available)::
@@ -122,6 +130,7 @@ You can then create a pull request to update the `Homebrew Tap`_ by running this
     $ make release-homebrew
 
 .. note::
+
     The ``release-homebrew`` build step depends on the `jq`_ command line utility which is available via Homebrew.
 
 That will create a new pull request in the ``SFDO-Tooling/homebrew-sfdo`` repository, which can be merged if its tests pass.
