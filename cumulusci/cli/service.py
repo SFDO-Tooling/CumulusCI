@@ -126,7 +126,11 @@ class ConnectServiceCommand(click.MultiCommand):
 
         def callback(*args, **kwargs):
             service_name = kwargs["service_name"]
-            if service_name in runtime.keychain.list_services()[service_type]:
+            configured_services = runtime.keychain.list_services()
+            if (
+                service_type in configured_services
+                and service_name in configured_services[service_type]
+            ):
                 click.confirm(
                     f"There is already a {service_type}:{service_name} service. Do you want to overwrite it?",
                     abort=True,
@@ -263,10 +267,9 @@ def service_rename(runtime, service_type, current_name, new_name):
 @pass_runtime(require_project=False, require_keychain=True)
 def service_remove(runtime, service_type, service_name):
     new_default = None
-    if (
-        len(runtime.keychain.services[service_type].keys()) > 2
-        and service_name == runtime.keychain._default_services[service_type]
-    ):
+    if len(
+        runtime.keychain.services.get(service_type, {}).keys()
+    ) > 2 and service_name == runtime.keychain._default_services.get(service_type):
         click.echo(
             f"The service you would like to remove is currently the default for {service_type} services."
         )
