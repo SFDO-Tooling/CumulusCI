@@ -69,7 +69,7 @@ class TestGitHubTagResolver:
             ),
         )
 
-    def test_github_release_tag_resolver__2gp(self, project_config):
+    def test_github_tag_resolver__2gp(self, project_config):
         tag = mock.Mock()
         tag.return_value.object.sha = "tag_sha"
         tag.return_value.message = """

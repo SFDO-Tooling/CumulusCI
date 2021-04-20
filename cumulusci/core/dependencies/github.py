@@ -13,7 +13,7 @@ from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 PACKAGE_TYPE_RE = re.compile(r"^package_type: (.*)$", re.MULTILINE)
-VERSION_ID_RE = re.compile(r"^version_id: ([a-zA-Z0-9]{15,18})$", re.MULTILINE)
+VERSION_ID_RE = re.compile(r"^version_id: (04t[a-zA-Z0-9]{12,15})$", re.MULTILINE)
 
 
 def get_repo(github: str, context: BaseProjectConfig) -> Repository:
