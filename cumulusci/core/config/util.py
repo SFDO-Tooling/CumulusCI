@@ -1,5 +1,5 @@
 from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.exceptions import CumulusCIException, ServiceNotConfigured
 from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 from cumulusci.core.sfdx import get_default_devhub_username
 
@@ -11,7 +11,7 @@ def get_devhub_config(project_config: BaseProjectConfig) -> SfdxOrgConfig:
     """
     try:
         devhub_service = project_config.keychain.get_service("devhub")
-    except ServiceNotConfigured:
+    except (ServiceNotConfigured, CumulusCIException):
         devhub_username = get_default_devhub_username()
     else:
         devhub_username = devhub_service.username
