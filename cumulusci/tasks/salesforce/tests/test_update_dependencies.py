@@ -364,8 +364,6 @@ def test_freeze(get_static_dependencies):
                         {
                             "ref": "abcdef",
                             "github": "https://github.com/SFDO-Tooling/CumulusCI-Test",
-                            "repo_name": "CumulusCI-Test",
-                            "repo_owner": "SFDO-Tooling",
                             "subfolder": "src",
                         }
                     ],
