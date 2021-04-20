@@ -1,3 +1,4 @@
+import functools
 import io
 import re
 from typing import Optional
@@ -28,9 +29,12 @@ def get_repo(github: str, context: BaseProjectConfig) -> Repository:
     return repo
 
 
+@functools.lru_cache(50)
 def get_remote_project_config(repo: Repository, ref: str) -> BaseConfig:
     contents = repo.file_contents("cumulusci.yml", ref=ref)
-    return BaseConfig(cci_safe_load(io.StringIO(contents.decoded.decode("utf-8"))))
+    contents_io = io.StringIO(contents.decoded.decode("utf-8"))
+    contents_io.url = f"cumulusci.yml from {repo.owner}/{repo.name}"  # for logging
+    return BaseConfig(cci_safe_load(contents_io))
 
 
 def get_package_data(config: BaseConfig):

@@ -556,8 +556,6 @@ class TestUnmanagedGitHubRefDependency:
         u = UnmanagedGitHubRefDependency(
             github="https://github.com/Test/TestRepo", ref="aaaaaaaa"
         )
-        assert u.repo_owner == "Test"
-        assert u.repo_name == "TestRepo"
 
         u = UnmanagedGitHubRefDependency(
             repo_owner="Test", repo_name="TestRepo", ref="aaaaaaaa"

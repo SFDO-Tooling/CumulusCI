@@ -90,12 +90,9 @@ class GitHubTagResolver(Resolver):
             package_config = get_remote_project_config(repo, ref)
             package_name, namespace = get_package_data(package_config)
 
-            if not dep.is_unmanaged and not namespace:
-                raise DependencyResolutionError(
-                    f"The tag {dep.tag} in {dep.github} does not identify a managed release"
-                )
-
-            if not dep.is_unmanaged:
+            if dep.is_unmanaged or not namespace:
+                return ref, None
+            else:
                 version_id = get_2gp_version_id_from_tag(tag)
 
                 if version_id:
@@ -111,8 +108,6 @@ class GitHubTagResolver(Resolver):
                     )
 
                 return (ref, package_dep)
-            else:
-                return ref, None
         except NotFoundError:
             raise DependencyResolutionError(f"No release found for tag {dep.tag}")
 
@@ -139,17 +134,21 @@ class GitHubReleaseTagResolver(Resolver):
             package_config = get_remote_project_config(repo, ref)
             package_name, namespace = get_package_data(package_config)
 
-            if version_id:
-                package_dep = PackageVersionIdDependency(
-                    version_id=version_id,
-                    package_name=package_name,
-                )
+            if dep.is_unmanaged or not namespace:
+                return ref, None
             else:
-                package_dep = PackageNamespaceVersionDependency(
-                    namespace=namespace, version=release.name, package_name=package_name
-                )
-
-            return (ref, package_dep)
+                if version_id:
+                    package_dep = PackageVersionIdDependency(
+                        version_id=version_id,
+                        package_name=package_name,
+                    )
+                else:
+                    package_dep = PackageNamespaceVersionDependency(
+                        namespace=namespace,
+                        version=release.name,
+                        package_name=package_name,
+                    )
+                return (ref, package_dep)
 
         return (None, None)
 

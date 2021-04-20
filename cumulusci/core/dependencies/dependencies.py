@@ -522,16 +522,13 @@ class UnmanagedGitHubRefDependency(UnmanagedDependency):
             values.get("github"),
         ], "Must specify `repo_owner` or `github`, but not both."
 
-        # Populate the `github` and `repo_name, `repo_owner` properties if not already populated.
-        if (not values.get("repo_name") or not values.get("repo_owner")) and values.get(
-            "github"
-        ):
-            values["repo_owner"], values["repo_name"] = split_repo_url(values["github"])
-
+        # Populate the `github` property if not already populated.
         if not values.get("github") and values.get("repo_name"):
             values[
                 "github"
             ] = f"https://github.com/{values['repo_owner']}/{values['repo_name']}"
+            values.pop("repo_owner")
+            values.pop("repo_name")
 
         return values
 
@@ -582,10 +579,12 @@ def parse_dependencies(deps: Optional[List[dict]]) -> List[Dependency]:
     (as defined in `cumulusci.yml`) and parse each into a concrete Dependency subclass.
 
     Throws DependencyParseError if a dict cannot be parsed."""
-    parsed_deps = [parse_dependency(d) for d in deps or []]
-    if None in parsed_deps:
-        raise DependencyParseError("Unable to parse dependencies")
-
+    parsed_deps = []
+    for dep in deps or []:
+        parsed = parse_dependency(dep)
+        if parsed is None:
+            raise DependencyParseError(f"Unable to parse dependency: {dep}")
+        parsed_deps.append(parsed)
     return parsed_deps
 
 

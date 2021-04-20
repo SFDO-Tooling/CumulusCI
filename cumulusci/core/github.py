@@ -249,3 +249,21 @@ def get_ref_for_tag(repo: Repository, tag_name: str) -> Reference:
         raise DependencyLookupError(
             f"Could not find reference for 'tags/{tag_name}' on GitHub"
         )
+
+
+def get_version_id_from_tag(repo: Repository, tag_name: str) -> str:
+    """Given the name of a tag, return the version_id in the tag's message.
+
+    @param tag_name: the name of the tag
+    @param repo: the repository of the package to look for a release in
+    @returns: the 04tid in the tag's messages
+    """
+    tag = get_tag_by_name(repo, tag_name)
+    for line in tag.message.split("\n"):
+        if line.startswith("version_id:"):
+            version_id = line.split("version_id: ")[1]
+            if not version_id.startswith("04t"):
+                continue
+            return version_id
+
+    raise DependencyLookupError(f"Could not find version_id for tag {tag_name}")
