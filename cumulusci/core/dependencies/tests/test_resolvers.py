@@ -82,7 +82,7 @@ class TestGitHubTagResolver:
             None,
         )
 
-    def test_exception_no_managed_release(self, project_config):
+    def test_no_managed_release(self, project_config):
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/UnmanagedRepo",  # This repo has no namespace
             tag="release/1.0",
@@ -90,9 +90,10 @@ class TestGitHubTagResolver:
         )
         resolver = GitHubTagResolver()
 
-        with pytest.raises(DependencyResolutionError) as e:
-            resolver.resolve(dep, project_config)
-        assert "does not identify a managed release" in str(e.value)
+        assert resolver.resolve(dep, project_config) == (
+            "tag_sha",
+            None,
+        )
 
     def test_can_resolve_negative(self, project_config):
         dep = GitHubDynamicDependency(
@@ -146,6 +147,19 @@ class TestGitHubReleaseTagResolver:
                 version="2.1 Beta 1",
                 package_name="CumulusCI-Test-Dep",
             ),
+        )
+
+    def test_no_managed_release(self, project_config):
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/UnmanagedRepo",  # This repo has no namespace
+            tag="release/1.0",
+            unmanaged=False,
+        )
+        resolver = GitHubTagResolver()
+
+        assert resolver.resolve(dep, project_config) == (
+            "tag_sha",
+            None,
         )
 
     def test_not_found(self, project_config):
