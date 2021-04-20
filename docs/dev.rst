@@ -381,7 +381,7 @@ Unmanaged metadata dependencies from GitHub may optionally specify the ``ref`` t
 
 .. note:: 
 
-    In previous versions of CumulusCI, unmanaged GitHub dependencies always deployed the most recent commit on the default branch.
+    In versions of CumulusCI prior to 3.33.0, unmanaged GitHub dependencies always deployed the most recent commit on the default branch.
 
 Specify a Subfolder
 *******************
