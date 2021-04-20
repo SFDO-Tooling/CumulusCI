@@ -88,12 +88,9 @@ class GitHubTagResolver(Resolver):
             package_config = get_remote_project_config(repo, ref)
             package_name, namespace = get_package_data(package_config)
 
-            if not dep.is_unmanaged and not namespace:
-                raise DependencyResolutionError(
-                    f"The tag {dep.tag} in {dep.github} does not identify a managed release"
-                )
-
-            if not dep.is_unmanaged:
+            if dep.is_unmanaged or not namespace:
+                return ref, None
+            else:
                 return (
                     ref,
                     PackageNamespaceVersionDependency(
@@ -102,8 +99,6 @@ class GitHubTagResolver(Resolver):
                         package_name=package_name,
                     ),
                 )
-            else:
-                return ref, None
         except NotFoundError:
             raise DependencyResolutionError(f"No release found for tag {dep.tag}")
 
@@ -127,12 +122,17 @@ class GitHubReleaseTagResolver(Resolver):
             package_config = get_remote_project_config(repo, ref)
             package_name, namespace = get_package_data(package_config)
 
-            return (
-                ref,
-                PackageNamespaceVersionDependency(
-                    namespace=namespace, version=release.name, package_name=package_name
-                ),
-            )
+            if dep.is_unmanaged or not namespace:
+                return ref, None
+            else:
+                return (
+                    ref,
+                    PackageNamespaceVersionDependency(
+                        namespace=namespace,
+                        version=release.name,
+                        package_name=package_name,
+                    ),
+                )
 
         return (None, None)
 
