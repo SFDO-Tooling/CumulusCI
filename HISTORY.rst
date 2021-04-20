@@ -2,6 +2,26 @@
 History
 =======
 
+3.33.1 (2021-04-20)
+-------------------
+
+Changes:
+
+- The ``create_package_version`` task now accepts an ``--ancestor-id`` option to specify the 04t Id of the package version that should be considered the ancestor of a new managed package version. The option can also be set to ``latest_github_release`` to look up the 04t Id of the project's most recent release on GitHub. (#2540)
+
+Issues closed:
+
+- Fixed a regression where the ``release_beta`` flow would throw an error if the project has unmanaged github dependencies. (#2566)
+
+- Fixed a regression where the ``cci service connect`` command could no longer connect a service without giving it a name. Now a default name will be assigned. (#2568)
+
+- Fixed a regression when resolving unpackaged dependencies from GitHub releases. (#2571)
+
+- Fixed a regression with creating a scratch org if the devhub service was configured but not set as the default. (#2570)
+
+- Improved the formatting of ``cumulusci.yml`` validation warnings. (#2567)
+
+
 3.33.0 (2021-04-19)
 -------------------
 
