@@ -203,6 +203,7 @@ def github():
         name: CumulusCI-2GP-Test
         package:
             name: CumulusCI-2GP-Test
+            namespace: test_2gp
         git:
             2gp_context: "Nonstandard Package Status"
     """
