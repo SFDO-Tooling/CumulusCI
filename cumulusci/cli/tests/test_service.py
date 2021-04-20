@@ -177,11 +177,9 @@ def test_service_connect__no_name_given(echo):
         )
 
     # service_name is None, so the alias when setting the service should be 'default'
-    # assert "test-type" in runtime.keychain.set_service.call_args_list[0].args
-    args = runtime.keychain.set_service.call_args_list[0].args
-    assert "default" in args
+    assert "default" in runtime.keychain.set_service.call_args_list[0][0]
     assert (
-        echo.call_args_list[0].args[0]
+        echo.call_args_list[0][0][0]
         == "No service name specified. Using 'default' as the service name."
     )
 
