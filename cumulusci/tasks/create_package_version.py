@@ -28,6 +28,7 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils import download_extract_github
+from cumulusci.utils.git import split_repo_url
 
 
 VERSION_RE = re.compile(
@@ -630,13 +631,12 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         return dependencies
 
     def _create_unlocked_package_from_github(self, dependency, dependencies):
-        gh_for_repo = self.project_config.get_github_api(
-            dependency.repo_owner, dependency.repo_name
-        )
+        repo_owner, repo_name = split_repo_url(dependency.github)
+        gh_for_repo = self.project_config.get_github_api(repo_owner, repo_name)
         zip_src = download_extract_github(
             gh_for_repo,
-            dependency.repo_owner,
-            dependency.repo_name,
+            repo_owner,
+            repo_name,
             dependency.subfolder,
             ref=dependency.ref,
         )
@@ -648,7 +648,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
 
         package_config = PackageConfig(
-            package_name=f"{dependency.repo_owner}/{dependency.repo_name} {dependency.subfolder}",
+            package_name=f"{repo_owner}/{repo_name} {dependency.subfolder}",
             version_name="Auto",
             package_type="Unlocked",
             # Ideally we'd do this without a namespace,

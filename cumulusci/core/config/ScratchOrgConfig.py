@@ -6,6 +6,7 @@ import re
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
 from cumulusci.core.config import SfdxOrgConfig
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import ScratchOrgException
 from cumulusci.core.exceptions import ServiceNotConfigured
 
@@ -133,7 +134,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
             # Otherwise see if one is configured via the "devhub" service
             try:
                 devhub_service = self.keychain.get_service("devhub")
-            except ServiceNotConfigured:
+            except (ServiceNotConfigured, CumulusCIException):
                 pass
             else:
                 devhub = devhub_service.username

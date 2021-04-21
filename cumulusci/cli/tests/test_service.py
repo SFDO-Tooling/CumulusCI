@@ -157,6 +157,34 @@ def test_service_connect__alias_already_exists(confirm):
 
 
 @mock.patch("click.echo")
+def test_service_connect__no_name_given(echo):
+    multi_cmd = service.ConnectServiceCommand()
+    ctx = mock.Mock()
+    runtime = mock.MagicMock()
+    runtime.project_config.services = {
+        "test-type": {"attributes": {"attr": {"required": False}}}
+    }
+    runtime.services = {"test-type": {}}
+    runtime.keychain.list_services.return_value = {"test-type": []}
+
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        cmd = multi_cmd.get_command(ctx, "test-type")
+        cmd.callback(
+            runtime,
+            service_type="test-type",
+            service_name=None,
+            project=True,
+        )
+
+    # service_name is None, so the alias when setting the service should be 'default'
+    assert "default" in runtime.keychain.set_service.call_args_list[0][0]
+    assert (
+        echo.call_args_list[0][0][0]
+        == "No service name specified. Using 'default' as the service name."
+    )
+
+
+@mock.patch("click.echo")
 def test_service_connect__global_default(echo):
     multi_cmd = service.ConnectServiceCommand()
     ctx = mock.Mock()
