@@ -425,7 +425,6 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             # exclusive search.
             # Add exclusion of all orgs running on newer releases
             newer_versions = version.get_newer_released_version_objs()
-            older_versions = version.get_older_released_version_objs()
             excluded_versions = [str(version.sf_id)]
             for newer in newer_versions:
                 excluded_versions.append(str(newer.sf_id))
