@@ -660,7 +660,7 @@ class TestCreatePackageVersion:
         next_version = version.increment(VersionTypeEnum.major)
         assert next_version.format() == "1.0.0.NEXT"
 
-    @mock.patch("cumulusci.tasks.package_2gp.get_version_id_from_tag")
+    @mock.patch("cumulusci.tasks.create_package_version.get_version_id_from_tag")
     def test_resolve_ancestor_id__latest_github_release(
         self, get_version_id_from_tag, task
     ):
@@ -687,7 +687,7 @@ class TestCreatePackageVersion:
         assert task._resolve_ancestor_id() == ""
 
     @responses.activate
-    @mock.patch("cumulusci.tasks.package_2gp.get_version_id_from_tag")
+    @mock.patch("cumulusci.tasks.create_package_version.get_version_id_from_tag")
     def test_resolve_ancestor_id__ancestor_explicitly_specified(
         self, get_version_id_from_tag, task
     ):
