@@ -69,28 +69,42 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
 
 
 class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
-    """
-    Inserts the targeted lightning button/action into specified
-    layout's PlatformActionList with a'Record' actionListContext.
-    - If the targeted lightning button/action already exists,
-      the layout metadata is not modified.
-    - If there is no 'Record' context PlatformActionList,
-      we will generate one and add the specified action
-    https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_layouts.htm#PlatformActionList
-    """
+    task_docs = """
+        Inserts the targeted lightning button/action into specified
+        layout's PlatformActionList with a 'Record' actionListContext.
+        - If the targeted lightning button/action already exists,
+            the layout metadata is not modified.
+        - If there is no 'Record' context PlatformActionList,
+            we will generate one and add the specified action
+
+        Task definition example:
+
+            dev_inject_apply_quick_action_into_account_layout:
+            group: "Demo config and storytelling"
+            description: Adds an Apply Quick Action button to the beggining of the button list on the Experiences Account Layout.
+            class_path: tasks.layouts.InsertRecordPlatformActionListItem
+            options:
+                api_names: "Account-%%%NAMESPACE%%%Experiences Account Layout"
+                action_name: "Account.Apply"
+                action_type: QuickAction
+                place_first: True
+
+        Reference Documentation:
+        https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_layouts.htm#PlatformActionList
+        """
 
     entity = "Layout"
     task_options = {
         "action_type": {
-            "description": "platformActionListItems.actionType like 'QuickAction' or 'CustomButton'  See documentation: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_layouts.htm#PlatformActionListItem",  # noqa: E501
+            "description": "platformActionListItems.actionType like 'QuickAction' or 'CustomButton'",
             "required": True,
         },
         "action_name": {
-            "description": "platformActionListItems.actionName. The API name for the action to be added.  See documentation: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_layouts.htm#PlatformActionListItem",  # noqa: E501
+            "description": "platformActionListItems.actionName. The API name for the action to be added.",
             "required": True,
         },
         "place_first": {
-            "description": "When 'True' the specified Record Platform Action List Item will be inserted before any existing on the layout. Default is 'False'",
+            "description": "When 'True' the specified Record platformActionListItem will be inserted before any existing on the layout. Default is 'False'",
             "required": False,
         },
         **MetadataSingleEntityTransformTask.task_options,
@@ -102,11 +116,7 @@ class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
         self._action_type = self.options.get("action_type", "")
         self._action_name = self._inject_namespace(self.options.get("action_name", ""))
         # Default to False if `place_first` option was not set
-        self._place_first = (
-            False
-            if not self.options.get("place_first")
-            else process_bool_arg(self.options.get("place_first"))
-        )
+        self._place_first = process_bool_arg(self.options.get("place_first") or False)
 
     def _transform_entity(
         self, metadata: MetadataElement, api_name: str

@@ -281,9 +281,7 @@ class TestAddRecordPlatformActionListItem:
             "action_name": "pkg__mockObject.TestQuickAction",
         }
         task = create_task(AddRecordPlatformActionListItem, options)
-        assert (
-            task._place_first is False
-        ), "task._place_first should be false when not setting `place_first` task_option"
+        assert not task._place_first
 
         # Mocks: build our existing action list and create our metadata tree
         #   "Record" context
@@ -313,7 +311,7 @@ class TestAddRecordPlatformActionListItem:
             expected_order=mock_action_list_size, **options
         )
         expected_action_list = MOCK_EXISTING_ACTION_LIST.format(
-            *tuple([n for n in range(mock_action_list_size)]),
+            *range(0, mock_action_list_size + 1),
             action_list_context="Record",
             optional_first_action_item="",
             optional_last_action_item=expected_action_item,
@@ -328,9 +326,7 @@ class TestAddRecordPlatformActionListItem:
         actual_metadata = task._transform_entity(metadata, "Layout")
         # Assert our transformed metadata is the same as our expected
         # This confirms, action list item size, sortOrder, and record context
-        assert (
-            actual_metadata.tostring() == expected_metadata.tostring()
-        ), "The transformed actual_metadata should match our expected_metadata"
+        assert actual_metadata.tostring() == expected_metadata.tostring()
 
     def test_adds_action_item_to_existing_list_place_first(self):
         # options scenario:
@@ -370,7 +366,7 @@ class TestAddRecordPlatformActionListItem:
         #   using our optional_first_action_item to set our expected_action_item
         expected_action_item = EMPTY_ACTION_ITEM.format(expected_order=0, **options)
         expected_action_list = MOCK_EXISTING_ACTION_LIST.format(
-            *tuple([n for n in range(1, mock_action_list_size + 1)]),
+            *range(1, mock_action_list_size + 1),
             action_list_context="Record",
             optional_first_action_item=expected_action_item,
             optional_last_action_item="",
@@ -385,9 +381,7 @@ class TestAddRecordPlatformActionListItem:
         actual_metadata = task._transform_entity(metadata, "Layout")
         # Assert our transformed metadata is the same as our expected
         # This confirms, action list item size, sortOrder, and record context
-        assert (
-            actual_metadata.tostring() == expected_metadata.tostring()
-        ), "The transformed actual_metadata should match our expected_metadata, with the new action item placed first"
+        assert actual_metadata.tostring() == expected_metadata.tostring()
 
     def test_does_not_add_action_if_already_exists(self):
         # options scenario:
@@ -418,9 +412,7 @@ class TestAddRecordPlatformActionListItem:
         # run test
         actual_metadata = task._transform_entity(metadata, "Layout")
         # should not transform, and metadata should be none
-        assert (
-            actual_metadata is None
-        ), "AddRecordPlatformActionListItem should return None when actionListItem already exists in metadata"
+        assert actual_metadata is None
 
     def test_creates_new_action_list_when_none_present(self):
         # options scenario:
@@ -456,9 +448,7 @@ class TestAddRecordPlatformActionListItem:
         actual_metadata = task._transform_entity(metadata, "Layout")
         # Assert our transformed metadata is the same as our expected
         # This confirms, action list item size, sortOrder, and record context
-        assert (
-            actual_metadata.tostring() == expected_metadata.tostring()
-        ), "The actual_metadata should match our expected_metadata, including the creation of a new platformActionItemList"
+        assert actual_metadata.tostring() == expected_metadata.tostring()
 
     def test_adds_new_action_list_when_existing_list_is_not_record_context(self):
         # options scenario:
@@ -505,6 +495,4 @@ class TestAddRecordPlatformActionListItem:
         actual_metadata = task._transform_entity(metadata, "Layout")
         # Assert our transformed metadata is the same as our expected
         # This confirms, action list item size, sortOrder, and record context
-        assert (
-            actual_metadata.tostring() == expected_metadata.tostring()
-        ), "The transformed actual_metadata should match our expected_metadata and include two action lists"
+        assert actual_metadata.tostring() == expected_metadata.tostring()
