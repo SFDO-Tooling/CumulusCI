@@ -65,11 +65,11 @@ filelock==3.0.12
     # via
     #   tox
     #   virtualenv
-flake8==3.9.0
+flake8==3.9.1
     # via -r requirements/dev.in
 furo==2021.4.11b34
     # via -r requirements/dev.in
-identify==2.2.3
+identify==2.2.4
     # via pre-commit
 idna==2.10
     # via
@@ -80,7 +80,7 @@ imagesize==1.2.0
     # via sphinx
 immutables==0.15
     # via contextvars
-importlib-metadata==3.10.1
+importlib-metadata==4.0.1
     # via
     #   -c requirements/prod.txt
     #   keyring
@@ -125,7 +125,7 @@ pluggy==0.13.1
     # via
     #   pytest
     #   tox
-pre-commit==2.12.0
+pre-commit==2.12.1
     # via -r requirements/dev.in
 py==1.10.0
     # via
@@ -248,7 +248,7 @@ vcrpy==4.1.1
     # via
     #   -r requirements/dev.in
     #   pytest-vcr
-virtualenv==20.4.3
+virtualenv==20.4.4
     # via
     #   pre-commit
     #   tox
