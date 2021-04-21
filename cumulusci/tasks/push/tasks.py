@@ -425,6 +425,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             # exclusive search.
             # Add exclusion of all orgs running on newer releases
             newer_versions = version.get_newer_released_version_objs()
+            breakpoint()
             excluded_versions = [str(version.sf_id)]
             for newer in newer_versions:
                 excluded_versions.append(str(newer.sf_id))
@@ -443,5 +444,4 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
 
             for subscriber in push_api.get_subscribers():
                 orgs.append(subscriber["OrgKey"])
-
         return orgs
