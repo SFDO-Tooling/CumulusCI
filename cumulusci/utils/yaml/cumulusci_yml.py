@@ -204,20 +204,26 @@ class ErrorDict(TypedDict):
     type: str
 
 
+has_shown_yaml_error_message = False
+
+
 def _log_yaml_errors(logger, errors: List[ErrorDict]):
     "Format and log a Pydantic-style error dictionary"
+    global has_shown_yaml_error_message
     plural = "" if len(errors) <= 1 else "s"
     logger.warning(f"CumulusCI Configuration Warning{plural}:")
     for error in errors:
         loc = " -> ".join(repr(x) for x in error["loc"] if x != "__root__")
         logger.warning("  %s\n    %s", loc, error["msg"])
-    logger.error(
-        "NOTE: These warnings may become errors in future versions of CumulusCI."
-    )
-    logger.error(
-        "If you think your YAML has no error, please report the bug to the CumulusCI team."
-    )
-    logger.error("https://github.com/SFDO-Tooling/CumulusCI/issues/\n")
+    if not has_shown_yaml_error_message:
+        logger.error(
+            "NOTE: These warnings may become errors in future versions of CumulusCI."
+        )
+        logger.error(
+            "If you think your YAML has no error, please report the bug to the CumulusCI team."
+        )
+        logger.error("https://github.com/SFDO-Tooling/CumulusCI/issues/\n")
+        has_shown_yaml_error_message = True
 
 
 def cci_safe_load(

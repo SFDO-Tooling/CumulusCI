@@ -609,8 +609,7 @@ class TestEncryptedFileProjectKeychain:
         assert actual_defaults == expected_defaults
 
     def test_read_default_services__file_does_not_exist(self, keychain):
-        with pytest.raises(CumulusCIException):
-            keychain._read_default_services(Path("not-a-valid-filepath"))
+        assert keychain._read_default_services(Path("not-a-valid-filepath")) == {}
 
     def test_write_default_services(self, keychain):
         expected_defaults = {
