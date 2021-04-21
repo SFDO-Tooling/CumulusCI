@@ -85,7 +85,6 @@ class MetadataPackageVersion(BasePushApiObject):
         return self.package.get_package_version_objs(where)
 
     def get_older_released_version_objs(self, greater_than_version=None):
-        # breakpoint()
         where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released' AND "
         version_info = {"major": self.major, "minor": self.minor, "patch": self.patch}
         where += f"MajorVersion < {version_info['major']} OR (MajorVersion = {version_info['major']} AND MinorVersion < {version_info['minor']})"
