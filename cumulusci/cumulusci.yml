@@ -143,7 +143,7 @@ tasks:
     group: Salesforce Packages
   create_package_version:
     description: Uploads a 2nd-generation package (2GP) version
-    class_path: cumulusci.tasks.package_2gp.CreatePackageVersion
+    class_path: cumulusci.tasks.create_package_version.CreatePackageVersion
     group: Salesforce Packages
   create_managed_src:
     description: Modifies the src directory for managed deployment.  Strips //cumulusci-managed from all Apex code
