@@ -33,6 +33,10 @@ tasks:
     class_path: cumulusci.tasks.metadata_etl.AddPermissionSetPermissions
     options:
       namespace_inject: $project_config.project__package__namespace
+  add_record_action_list_item:
+    group: Metadata Transformations
+    description: "Adds the specified 'Record' context Lightning button/action to the provided page layout."
+    class_path: cumulusci.tasks.metadata_etl.layouts.AddRecordPlatformActionListItem
   assign_compact_layout:
     group: Metadata Transformations
     description: "Assigns the Compact Layout specified in the 'value' option to the Custom Objects in 'api_names' option."
