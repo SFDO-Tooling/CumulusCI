@@ -148,7 +148,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Set up chromedriver
         run: |
-          wget -qO- https://chromedriver.storage.googleapis.com/89.0.4389.23/chromedriver_linux64.zip
+          wget -q https://chromedriver.storage.googleapis.com/89.0.4389.23/chromedriver_linux64.zip
           unzip -o -q chromedriver_linux64.zip
           sudo mv chromedriver /usr/local/bin/chromedriver
       - name: Set up Python 3.8
