@@ -2251,3 +2251,43 @@ class TestLoadData(unittest.TestCase):
                 15 * MEGABYTE
             ):
                 task()
+
+    def test_set_viewed(self):
+        base_path = os.path.dirname(__file__)
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "sql_path": "test.sql",
+                    "mapping": os.path.join(base_path, self.mapping_file),
+                    "set_recently_viewed": True,
+                }
+            },
+        )
+        queries = []
+
+        def _query_all(query):
+            queries.append(query)
+            return {
+                "records": [
+                    {
+                        "SobjectName": "Account",
+                    },
+                    {
+                        "SobjectName": "Custom__c",
+                    },
+                ],
+            }
+
+        task.sf = mock.Mock()
+        task.sf.query_all = _query_all
+        task.mapping = {}
+        task.mapping["Insert Households"] = MappingStep(sf_object="Account", fields={})
+        task.mapping["Insert Custom__c"] = MappingStep(sf_object="Custom__c", fields={})
+        task._set_viewed()
+
+        assert queries == [
+            "SELECT SObjectName FROM TabDefinition WHERE IsCustom = true AND SObjectName IN ('Custom__c')",
+            "SELECT Id FROM Account FOR VIEW LIMIT 1000",
+            "SELECT Id FROM Custom__c FOR VIEW LIMIT 1000",
+        ], queries

@@ -642,7 +642,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _set_viewed(self):
         """Set items as recently viewed. Filter out custom objects without custom tabs."""
-
         object_names = set()
         custom_objects = set()
 
@@ -654,12 +653,13 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             else:
                 object_names.add(object_name)
         # collect SobjectName that have custom tabs
-        for record in self.sf.query_all(
-            "SELECT SObjectName FROM TabDefinition WHERE IsCustom = true AND SObjectName IN ('{}')".format(
-                "','".join(custom_objects)
-            )
-        )["records"]:
-            object_names.add(record["SobjectName"])
+        if custom_objects:
+            for record in self.sf.query_all(
+                "SELECT SObjectName FROM TabDefinition WHERE IsCustom = true AND SObjectName IN ('{}')".format(
+                    "','".join(sorted(custom_objects))
+                )
+            )["records"]:
+                object_names.add(record["SobjectName"])
 
-        for mapped_item in object_names:
-            self.sf.query_all(f"SELECT Id FROM {mapped_item} FOR VIEW")
+        for mapped_item in sorted(object_names):
+            self.sf.query_all(f"SELECT Id FROM {mapped_item} FOR VIEW LIMIT 1000")
