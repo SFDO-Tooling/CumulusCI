@@ -127,7 +127,7 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
                 sfdx(
                     "force:source:convert",
                     args=args,
-                    capture_output=False,
+                    capture_output=True,
                     check_return=True,
                 )
 
