@@ -69,7 +69,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
         },
         "set_recently_viewed": {
-            "description": "If True, inserted records will show as recently viewed.",
+            "description": "If True, inserted records will show as recently viewed when inserted via the Bulk API.",
         },
     }
     row_warning_limit = 10
@@ -662,4 +662,4 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 object_names.add(record["SobjectName"])
 
         for mapped_item in sorted(object_names):
-            self.sf.query_all(f"SELECT Id FROM {mapped_item} FOR VIEW LIMIT 1000")
+            self.sf.query_all(f"SELECT Id FROM {mapped_item} LIMIT 1000 FOR VIEW")

@@ -2284,10 +2284,11 @@ class TestLoadData(unittest.TestCase):
         task.mapping = {}
         task.mapping["Insert Households"] = MappingStep(sf_object="Account", fields={})
         task.mapping["Insert Custom__c"] = MappingStep(sf_object="Custom__c", fields={})
+
         task._set_viewed()
 
         assert queries == [
             "SELECT SObjectName FROM TabDefinition WHERE IsCustom = true AND SObjectName IN ('Custom__c')",
-            "SELECT Id FROM Account FOR VIEW LIMIT 1000",
-            "SELECT Id FROM Custom__c FOR VIEW LIMIT 1000",
+            "SELECT Id FROM Account LIMIT 1000 FOR VIEW",
+            "SELECT Id FROM Custom__c LIMIT 1000 FOR VIEW",
         ], queries
