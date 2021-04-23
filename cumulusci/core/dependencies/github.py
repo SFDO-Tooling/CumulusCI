@@ -1,6 +1,9 @@
 import functools
 import io
+import re
+from typing import Optional
 
+from github3.git import Tag
 from github3.repos.repo import Repository
 from github3.exceptions import NotFoundError
 
@@ -8,6 +11,9 @@ from cumulusci.core.config import BaseConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+
+PACKAGE_TYPE_RE = re.compile(r"^package_type: (.*)$", re.MULTILINE)
+VERSION_ID_RE = re.compile(r"^version_id: (04t[a-zA-Z0-9]{12,15})$", re.MULTILINE)
 
 
 def get_repo(github: str, context: BaseProjectConfig) -> Repository:
@@ -40,3 +46,16 @@ def get_package_data(config: BaseConfig):
     )
 
     return package_name, namespace
+
+
+def get_2gp_version_id_from_tag(tag: Tag) -> Optional[str]:
+    message = tag.message
+    version_id = VERSION_ID_RE.search(message)
+    if version_id:
+        version_id = version_id.group(1)
+    package_type = PACKAGE_TYPE_RE.search(message)
+    if package_type:
+        package_type = package_type.group(1)
+
+    if package_type == "2GP" and version_id:
+        return version_id
