@@ -69,7 +69,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
         },
         "set_recently_viewed": {
-            "description": "If True, inserted records will show as recently viewed when inserted via the Bulk API.",
+            "description": "By default, the first 1000 records inserted via the Bulk API will be set as recently viewed. If less than 1000 records are inserted, existing objects of the same type being inserted will also be set as recently viewed.",
         },
     }
     row_warning_limit = 10
@@ -105,7 +105,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self.options.get("drop_missing_schema") or False
         )
         self.options["set_recently_viewed"] = process_bool_arg(
-            self.options.get("set_recently_viewed") or False
+            self.options.get("set_recently_viewed", True)
         )
 
     def _run_task(self):
@@ -662,4 +662,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 object_names.add(record["SobjectName"])
 
         for mapped_item in sorted(object_names):
-            self.sf.query_all(f"SELECT Id FROM {mapped_item} LIMIT 1000 FOR VIEW")
+            self.sf.query_all(
+                f"SELECT Id FROM {mapped_item} ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW"
+            )
