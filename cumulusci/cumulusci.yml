@@ -1208,6 +1208,24 @@ services:
       token:
         description: Your API token to the MetaDeploy site (get from SITE_URL/admin/authtoken/token)
         required: True
+  oauth2_client:
+    description: Connect an oauth2 client
+    attributes:
+      client_id:
+        description: client id
+        required: True
+      client_secret:
+        description: client secret
+        required: False
+      auth_uri:
+        description: authentication uri to be found in API integrtation
+        required: True
+      token_uri:
+        description: once oauth2 calls back, what URI do we need to hit to exchange auth code for access token
+        required: True
+      callback_uri:
+        description: Where the resource owner (the user) is redirected after authentication is completed.
+        required: True
 
 project:
   name:

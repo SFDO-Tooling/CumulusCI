@@ -23,10 +23,6 @@ class FlowConfig(BaseConfig):
 from cumulusci.core.config.OrgConfig import OrgConfig
 
 
-class ServiceConfig(BaseConfig):
-    pass
-
-
 class TaskConfig(BaseConfig):
     """ A task with its configuration merged """
 
