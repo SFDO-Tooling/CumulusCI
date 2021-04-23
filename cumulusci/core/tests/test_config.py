@@ -167,6 +167,7 @@ class DummyRepository(mock.Mock):
     def tag(self, sha):
         tag = mock.Mock()
         tag.object.sha = "tag_sha"
+        tag.message = ""
         return tag
 
     def ref(self, s):

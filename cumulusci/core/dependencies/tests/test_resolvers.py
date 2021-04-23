@@ -69,6 +69,31 @@ class TestGitHubTagResolver:
             ),
         )
 
+    def test_github_tag_resolver__2gp(self, project_config):
+        tag = mock.Mock()
+        tag.return_value.object.sha = "tag_sha"
+        tag.return_value.message = """
+package_type: 2GP
+
+version_id: 04t000000000000"""
+        project_config.get_repo_from_url(
+            "https://github.com/SFDO-Tooling/ReleasesRepo"
+        ).tag = tag
+
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/ReleasesRepo",
+            tag="release/1.0",  # Not the most recent release
+        )
+        resolver = GitHubTagResolver()
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (
+            "tag_sha",
+            PackageVersionIdDependency(
+                version_id="04t000000000000", package_name="CumulusCI-Test-Dep"
+            ),
+        )
+
     def test_github_tag_resolver__unmanaged(self, project_config):
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/ReleasesRepo",
@@ -133,6 +158,30 @@ class TestGitHubReleaseTagResolver:
             ),
         )
 
+    def test_github_release_tag_resolver__2gp(self, project_config):
+        tag = mock.Mock()
+        tag.return_value.object.sha = "tag_sha"
+        tag.return_value.message = """
+package_type: 2GP
+
+version_id: 04t000000000000"""
+        project_config.get_repo_from_url(
+            "https://github.com/SFDO-Tooling/TwoGPRepo"
+        ).tag = tag
+
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/TwoGPRepo"
+        )
+        resolver = GitHubReleaseTagResolver()
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (
+            "tag_sha",
+            PackageVersionIdDependency(
+                version_id="04t000000000000", package_name="CumulusCI-2GP-Test"
+            ),
+        )
+
     def test_beta_release_tag(self, project_config):
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/ReleasesRepo"
@@ -164,7 +213,7 @@ class TestGitHubReleaseTagResolver:
 
     def test_not_found(self, project_config):
         dep = GitHubDynamicDependency(
-            github="https://github.com/SFDO-Tooling/TwoGPRepo"  # This mock repo contains no releases
+            github="https://github.com/SFDO-Tooling/NoReleasesRepo"
         )
         resolver = GitHubReleaseTagResolver()
 
