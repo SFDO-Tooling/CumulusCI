@@ -179,7 +179,7 @@ class MergeBranch(BaseGithubTask):
         NOTE: We assume that once a release branch is merged that it will be deleted.
         """
         release_nums = [
-            int(branch.name.split("/")[1])
+            int(self._get_base_branch(branch.name))
             for branch in repo_branches
             if self._is_release_branch(branch.name)
         ]
@@ -202,7 +202,8 @@ class MergeBranch(BaseGithubTask):
         if (
             self.options["update_future_releases"]
             and self._is_release_branch(self.options["source_branch"])
-            and next_release == int(self.options["source_branch"].split("/")[1])
+            and next_release
+            == int(self._get_base_branch(self.options["source_branch"]))
         ):
             update_future_releases = True
         return update_future_releases
@@ -210,6 +211,10 @@ class MergeBranch(BaseGithubTask):
     def _is_release_branch(self, branch_name):
         """A release branch begins with the given prefix"""
         return is_release_branch(branch_name, self.options["branch_prefix"])
+
+    def _get_base_branch(self, branch_name):
+        """Strip branch_prefix from branch name, returning the base branch"""
+        return branch_name.lstrip(self.options["branch_prefix"])
 
     def _merge(self, branch_name, source, commit):
         """Attempt to merge a commit from source to branch with branch_name"""
