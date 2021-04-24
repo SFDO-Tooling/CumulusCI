@@ -214,7 +214,7 @@ class MergeBranch(BaseGithubTask):
 
     def _get_base_branch(self, branch_name):
         """Strip branch_prefix from branch name, returning the base branch"""
-        return branch_name.lstrip(self.options["branch_prefix"])
+        return branch_name.split(self.options["branch_prefix"])[1]
 
     def _merge(self, branch_name, source, commit):
         """Attempt to merge a commit from source to branch with branch_name"""
