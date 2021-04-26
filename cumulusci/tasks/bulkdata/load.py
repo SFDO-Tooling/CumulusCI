@@ -68,6 +68,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         "drop_missing_schema": {
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
         },
+        "set_recently_viewed": {
+            "description": "By default, the first 1000 records inserted via the Bulk API will be set as recently viewed. If less than 1000 records are inserted, existing objects of the same type being inserted will also be set as recently viewed.",
+        },
     }
     row_warning_limit = 10
 
@@ -101,6 +104,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.options["drop_missing_schema"] = process_bool_arg(
             self.options.get("drop_missing_schema") or False
         )
+        self.options["set_recently_viewed"] = process_bool_arg(
+            self.options.get("set_recently_viewed", True)
+        )
 
     def _run_task(self):
         self._init_mapping()
@@ -132,6 +138,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                             raise BulkDataException(
                                 f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
                             )
+        if self.options["set_recently_viewed"]:
+            self._set_viewed()
 
     def _execute_step(
         self, mapping: MappingStep
@@ -631,3 +639,29 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
                 # Join maps together to get tuple (Contact ID, Contact SF ID) to insert into step's ID Table.
                 yield (contact_id, contact_sf_id)
+
+    def _set_viewed(self):
+        """Set items as recently viewed. Filter out custom objects without custom tabs."""
+        object_names = set()
+        custom_objects = set()
+
+        # Separate standard and custom objects
+        for mapping in self.mapping.values():
+            object_name = mapping.sf_object
+            if object_name.endswith("__c"):
+                custom_objects.add(object_name)
+            else:
+                object_names.add(object_name)
+        # collect SobjectName that have custom tabs
+        if custom_objects:
+            for record in self.sf.query_all(
+                "SELECT SObjectName FROM TabDefinition WHERE IsCustom = true AND SObjectName IN ('{}')".format(
+                    "','".join(sorted(custom_objects))
+                )
+            )["records"]:
+                object_names.add(record["SobjectName"])
+
+        for mapped_item in sorted(object_names):
+            self.sf.query_all(
+                f"SELECT Id FROM {mapped_item} ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW"
+            )

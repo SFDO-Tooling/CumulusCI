@@ -151,6 +151,26 @@ def github():
         ],
     )
 
+    # This repo contains no releases at all
+    NO_RELEASES_REPO = DummyRepository(
+        "SFDO-Tooling",
+        "NoReleasesRepo",
+        {
+            "cumulusci.yml": DummyContents(
+                b"""
+    project:
+        name: CumulusCI-Test
+        package:
+            name: CumulusCI-Test
+    """
+            ),
+            "unpackaged/pre": {"pre": {}, "skip": {}},
+            "src": {"src": ""},
+            "unpackaged/post": {"post": {}, "skip": {}},
+        },
+        [],
+    )
+
     # This repo contains a release, but no namespace
     UNMANAGED_REPO = DummyRepository(
         "SFDO-Tooling",
@@ -183,6 +203,7 @@ def github():
         name: CumulusCI-2GP-Test
         package:
             name: CumulusCI-2GP-Test
+            namespace: test_2gp
         git:
             2gp_context: "Nonstandard Package Status"
     """
@@ -191,7 +212,7 @@ def github():
             "src": {"src": ""},
             "unpackaged/post": {"post": {}, "skip": {}},
         },
-        releases=[],
+        releases=[DummyRelease("release/1.0", "1.0")],
         commits={
             "main_sha": mock.Mock(sha="main_sha"),
             "feature/232_sha": mock.Mock(
@@ -287,6 +308,7 @@ def github():
             "ReleasesRepo": RELEASES_REPO,
             "TwoGPRepo": TWO_GP_REPO,
             "TwoGPMissingRepo": TWO_GP_MISSING_REPO,
+            "NoReleasesRepo": NO_RELEASES_REPO,
         }
     )
 
