@@ -248,7 +248,7 @@ class GitHubDynamicDependency(BaseGitHubDependency):
             contents = None
 
         if contents:
-            for dirname in list(contents.keys()):
+            for dirname in sorted(list(contents.keys())):
                 this_subfolder = f"{subfolder}/{dirname}"
                 if this_subfolder in skip:
                     continue
