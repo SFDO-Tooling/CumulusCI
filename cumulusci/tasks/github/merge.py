@@ -28,8 +28,11 @@ class MergeBranch(BaseGithubTask):
         "branch_prefix": {
             "description": "A list of prefixes of branches that should receive the merge.  Defaults to project__git__prefix_feature"
         },
+        "skip_future_releases": {
+            "description": "If true, then exclude branches that start with the branch prefix if they are not for the lowest release number. Defaults to True."
+        },
         "update_future_releases": {
-            "description": "If source_branch is a release branch, then merge all future release branches that exist. Defaults to False."
+            "description": "If true, then include release branches that are not the lowest release number even if they are not child branches. Defaults to False."
         },
     }
 
@@ -46,6 +49,9 @@ class MergeBranch(BaseGithubTask):
             self.options[
                 "source_branch"
             ] = self.project_config.project__git__default_branch
+        self.options["skip_future_releases"] = process_bool_arg(
+            self.options.get("skip_future_releases") or True
+        )
         self.options["update_future_releases"] = process_bool_arg(
             self.options.get("update_future_releases") or False
         )
@@ -86,8 +92,8 @@ class MergeBranch(BaseGithubTask):
         """
         If source_branch is the default branch (or a branch that doesn't start with a prefix), we
         gather all branches with branch_prefix that are not child branches.
-        NOTE: We only include the _next_ closes release branch when automerging from main.
-        A change on main may conflict with teh current contents of the lowest release branch.
+        NOTE: We only include the _next_ closest release branch when automerging from main.
+        A change on main may conflict with the current contents of the lowest release branch.
         In this case, we would like for that conflict to only need to be resolved once
         (not once for each release branch).
 
@@ -99,6 +105,7 @@ class MergeBranch(BaseGithubTask):
         """
         repo_branches = list(self.repo.branches())
         next_release = self._get_next_release(repo_branches)
+        skip_future_releases = self.options["skip_future_releases"]
         update_future_releases = self._update_future_releases(next_release)
 
         child_branches = []
@@ -134,7 +141,9 @@ class MergeBranch(BaseGithubTask):
             ):
                 # only merge to the lowest numbered release branch
                 # when merging from a branch without a prefix (e.g. main)
-                if self._is_future_release_branch(branch.name, next_release):
+                if skip_future_releases and self._is_future_release_branch(
+                    branch.name, next_release
+                ):
                     continue
                 main_descendents.append(branch)
 
@@ -179,7 +188,7 @@ class MergeBranch(BaseGithubTask):
         NOTE: We assume that once a release branch is merged that it will be deleted.
         """
         release_nums = [
-            int(self._get_base_branch(branch.name))
+            self._get_release_number(branch.name)
             for branch in repo_branches
             if self._is_release_branch(branch.name)
         ]
@@ -202,8 +211,7 @@ class MergeBranch(BaseGithubTask):
         if (
             self.options["update_future_releases"]
             and self._is_release_branch(self.options["source_branch"])
-            and next_release
-            == int(self._get_base_branch(self.options["source_branch"]))
+            and next_release == self._get_release_number(self.options["source_branch"])
         ):
             update_future_releases = True
         return update_future_releases
@@ -212,9 +220,12 @@ class MergeBranch(BaseGithubTask):
         """A release branch begins with the given prefix"""
         return is_release_branch(branch_name, self.options["branch_prefix"])
 
-    def _get_base_branch(self, branch_name):
-        """Strip branch_prefix from branch name, returning the base branch"""
-        return branch_name.split(self.options["branch_prefix"])[1]
+    def _get_release_number(self, branch_name) -> int:
+        """Get the release number from a release branch name.
+
+        Assumes we already know it is a release branch.
+        """
+        return int(branch_name.split(self.options["branch_prefix"])[1])
 
     def _merge(self, branch_name, source, commit):
         """Attempt to merge a commit from source to branch with branch_name"""
