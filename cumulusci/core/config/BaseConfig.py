@@ -2,7 +2,7 @@ import logging
 
 
 class BaseConfig(object):
-    """ BaseConfig provides a common interface for nested access for all Config objects in CCI. """
+    """BaseConfig provides a common interface for nested access for all Config objects in CCI."""
 
     defaults = {}
 
@@ -15,11 +15,11 @@ class BaseConfig(object):
         self._load_config()
 
     def _init_logger(self):
-        """ Initializes self.logger """
+        """Initializes self.logger"""
         self.logger = logging.getLogger(__name__)
 
     def _load_config(self):
-        """ Subclasses may override this method to initialize :py:attr:`~config` """
+        """Subclasses may override this method to initialize :py:attr:`~config`"""
         pass
 
     def __getattr__(self, name):

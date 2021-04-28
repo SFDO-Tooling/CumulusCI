@@ -14,7 +14,7 @@ nl = "\n"  # fstrings can't contain backslashes
 
 
 class ScratchOrgConfig(SfdxOrgConfig):
-    """ Salesforce DX Scratch org configuration """
+    """Salesforce DX Scratch org configuration"""
 
     @property
     def scratch_info(self):
@@ -50,7 +50,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
             return delta.days + 1
 
     def create_org(self):
-        """ Uses sfdx force:org:create to create the org """
+        """Uses sfdx force:org:create to create the org"""
         if not self.config_file:
             raise ScratchOrgException(
                 f"Scratch org config {self.name} is missing a config_file"
@@ -141,7 +141,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
         return devhub
 
     def generate_password(self):
-        """Generates an org password with the sfdx utility. """
+        """Generates an org password with the sfdx utility."""
 
         if self.password_failed:
             self.logger.warning("Skipping resetting password since last attempt failed")
@@ -177,7 +177,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
         return bool(self.date_created)
 
     def delete_org(self):
-        """ Uses sfdx force:org:delete to delete the org """
+        """Uses sfdx force:org:delete to delete the org"""
         if not self.created:
             self.logger.info(
                 "Skipping org deletion: the scratch org has not been created"

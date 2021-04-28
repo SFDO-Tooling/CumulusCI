@@ -1,4 +1,3 @@
-import csv
 import itertools
 from contextlib import contextmanager
 
@@ -266,7 +265,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 self.metadata.tables[m.get_sf_id_table()].drop()
 
     def _get_mapping_for_table(self, table):
-        """Return the first mapping for a table name """
+        """Return the first mapping for a table name"""
         for mapping in self.mapping.values():
             if mapping["table"] == table:
                 return mapping

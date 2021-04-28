@@ -88,7 +88,7 @@ class StepVersion(LooseVersion):
 
 
 class StepSpec(object):
-    """ simple namespace to describe what the flowrunner should do each step """
+    """simple namespace to describe what the flowrunner should do each step"""
 
     __slots__ = (
         "step_num",  # type: str
@@ -669,7 +669,7 @@ class FlowCoordinator(object):
                 flow_stack.pop()
 
     def _init_org(self):
-        """ Test and refresh credentials to the org specified. """
+        """Test and refresh credentials to the org specified."""
         self.logger.info(
             f"Verifying and refreshing credentials for the specified org: {self.org_config.name}."
         )
