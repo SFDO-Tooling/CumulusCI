@@ -122,7 +122,7 @@ six==1.15.0
     #   fs
     #   python-dateutil
     #   salesforce-bulk
-snowfakery==1.9
+snowfakery==1.10
     # via -r requirements/prod.in
 sqlalchemy==1.4.11
     # via
