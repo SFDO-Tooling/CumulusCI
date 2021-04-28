@@ -1,6 +1,8 @@
+from typing import List
 from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
+    Dependency,
     parse_dependencies,
 )
 from cumulusci.core.dependencies.resolvers import (
@@ -49,6 +51,9 @@ class UpdateDependencies(BaseSalesforceTask):
         "resolution_strategy": {
             "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies."
         },
+        "packages_only": {
+            "description": "Install only packaged dependencies. Ignore all unmanaged metadata. Defaults to False."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -58,6 +63,9 @@ class UpdateDependencies(BaseSalesforceTask):
             or self.project_config.project__dependencies
         )
 
+        self.options["packages_only"] = process_bool_arg(
+            self.options.get("packages_only") or False
+        )
         self.options["security_type"] = self.options.get("security_type", "FULL")
         if self.options["security_type"] not in ("FULL", "NONE", "PUSH"):
             raise TaskOptionsError(
@@ -150,17 +158,29 @@ class UpdateDependencies(BaseSalesforceTask):
             security_type=self.options.get("security_type", "FULL"),
         )
 
+    def _filter_dependencies(self, deps: List[Dependency]) -> List[Dependency]:
+        return [
+            dep
+            for dep in deps
+            if isinstance(
+                dep, (PackageNamespaceVersionDependency, PackageVersionIdDependency)
+            )
+            or not self.options["packages_only"]
+        ]
+
     def _run_task(self):
         if not self.dependencies:
             self.logger.info("Project has no dependencies, doing nothing")
             return
 
         self.logger.info("Resolving dependencies...")
-        dependencies = get_static_dependencies(
-            self.project_config,
-            dependencies=self.dependencies,
-            strategies=self.resolution_strategy,
-            ignore_deps=self.options.get("ignore_dependencies"),
+        dependencies = self._filter_dependencies(
+            get_static_dependencies(
+                self.project_config,
+                dependencies=self.dependencies,
+                strategies=self.resolution_strategy,
+                ignore_deps=self.options.get("ignore_dependencies"),
+            )
         )
         self.logger.info("Collected dependencies:")
 
@@ -184,11 +204,13 @@ class UpdateDependencies(BaseSalesforceTask):
 
     def freeze(self, step):
         ui_options = self.task_config.config.get("ui_options", {})
-        dependencies = get_static_dependencies(
-            self.project_config,
-            dependencies=self.dependencies,
-            strategies=self.resolution_strategy,
-            ignore_deps=self.options.get("ignore_dependencies"),
+        dependencies = self._filter_dependencies(
+            get_static_dependencies(
+                self.project_config,
+                dependencies=self.dependencies,
+                strategies=self.resolution_strategy,
+                ignore_deps=self.options.get("ignore_dependencies"),
+            )
         )
 
         steps = []

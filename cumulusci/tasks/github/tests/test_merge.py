@@ -663,6 +663,35 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         assert 2 == len(responses.calls)
 
     @responses.activate
+    def test_merge_to_future_release_branches_missing_slash(self):
+        """Tests that commits to the main branch are merged to the expected feature branches"""
+        self._setup_mocks(
+            [
+                "main",
+                "prefix-no-slash230",
+                "prefix-no-slash232",
+                "prefix-no-slash300",
+                "prefix-no-slashwork-item",
+            ]
+        )
+
+        task = self._create_task(
+            task_config={
+                "options": {
+                    "source_branch": "prefix-no-slash230",
+                    "branch_prefix": "prefix-no-slash",
+                    "update_future_releases": True,
+                }
+            }
+        )
+        task._init_task()
+
+        actual_branches = [branch.name for branch in task._get_branches_to_merge()]
+
+        assert ["prefix-no-slash232", "prefix-no-slash300"] == actual_branches
+        assert 2 == len(responses.calls)
+
+    @responses.activate
     def test_branches_to_merge__future_release_branches_and_children(self):
         """Tests that commits to the upcoming release branch
         are merged to future release branches and direct child descendents."""
