@@ -69,7 +69,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
         },
         "set_recently_viewed": {
-            "description": "By default, the first 1000 records inserted via the Bulk API will be set as recently viewed. If less than 1000 records are inserted, existing objects of the same type being inserted will also be set as recently viewed.",
+            "description": "By default, the first 1000 records inserted via the Bulk API will be set as recently viewed. If fewer than 1000 records are inserted, existing objects of the same type being inserted will also be set as recently viewed.",
         },
     }
     row_warning_limit = 10
