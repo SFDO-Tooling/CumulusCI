@@ -80,7 +80,7 @@ class ConnectServiceCommand(click.MultiCommand):
         )
 
     def list_commands(self, ctx):
-        """ list the services that can be configured """
+        """list the services that can be configured"""
         runtime = ctx.obj
         services = self._get_services_config(runtime)
         return sorted(services.keys())

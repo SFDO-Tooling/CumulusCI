@@ -144,7 +144,7 @@ class BatchApexWait(BaseSalesforceApiTask):
         return rc
 
     def elapsed_time(self, subjobs: Sequence[dict]):
-        """ returns the time (in seconds) that the subjobs took, if complete """
+        """returns the time (in seconds) that the subjobs took, if complete"""
         completed_dates = [
             subjob["CompletedDate"] for subjob in subjobs if subjob.get("CompletedDate")
         ]
