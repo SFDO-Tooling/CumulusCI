@@ -13,7 +13,7 @@ else:
 
 
 class EnvironmentProjectKeychain(BaseProjectKeychain):
-    """ A project keychain that stores org credentials in environment variables """
+    """A project keychain that stores org credentials in environment variables"""
 
     encrypted = False
     org_var_prefix = "CUMULUSCI_ORG_"
@@ -21,7 +21,7 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
     service_var_prefix = "CUMULUSCI_SERVICE_"
 
     def _get_env(self):
-        """ loads the environment variables as unicode if ascii """
+        """loads the environment variables as unicode if ascii"""
         env = {}
         for k, v in os.environ.items():
             k = k.decode() if isinstance(k, bytes) else k

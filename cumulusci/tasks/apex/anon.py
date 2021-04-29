@@ -9,7 +9,7 @@ from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 class AnonymousApexTask(BaseSalesforceApiTask):
-    """ Executes anonymous apex from a file or string."""
+    """Executes anonymous apex from a file or string."""
 
     task_docs = """
     Use the `apex` option to run a string of anonymous Apex.

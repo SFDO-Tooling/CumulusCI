@@ -218,6 +218,38 @@ def test_run_task_gets_static_dependencies_and_installs():
     )
 
 
+def test_run_task_gets_static_dependencies_and_installs__packages_only():
+    task = create_task(
+        UpdateDependencies,
+        {
+            "dependencies": [
+                {
+                    "namespace": "ns",
+                    "version": "1.0",
+                },
+                {
+                    "github": "https://github.com/TestRepo/Test",
+                    "ref": "aaaa",
+                    "subfolder": "foo",
+                },
+            ],
+            "resolution_strategy": "production",
+            "security_type": "PUSH",
+            "packages_only": True,
+        },
+    )
+
+    task._install_dependency = mock.Mock()
+    task()
+
+    assert task._install_dependency.call_count == 1
+    task._install_dependency.assert_has_calls(
+        [
+            mock.call(PackageNamespaceVersionDependency(namespace="ns", version="1.0")),
+        ]
+    )
+
+
 def test_run_task_exits_no_dependencies():
     task = create_task(
         UpdateDependencies,
@@ -346,6 +378,7 @@ def test_freeze(get_static_dependencies):
                 "options": {
                     "dependencies": [{"namespace": "ns", "version": "1.0"}],
                     "security_type": "FULL",
+                    "packages_only": False,
                 },
                 "checks": [],
             },
@@ -368,8 +401,60 @@ def test_freeze(get_static_dependencies):
                         }
                     ],
                     "security_type": "FULL",
+                    "packages_only": False,
                 },
                 "checks": [],
             },
         },
+    ] == steps
+
+
+@mock.patch("cumulusci.tasks.salesforce.update_dependencies.get_static_dependencies")
+def test_freeze__packages_only(get_static_dependencies):
+    get_static_dependencies.return_value = [
+        PackageNamespaceVersionDependency(namespace="ns", version="1.0"),
+        UnmanagedGitHubRefDependency(
+            github="https://github.com/SFDO-Tooling/CumulusCI-Test",
+            ref="abcdef",
+            subfolder="src",
+        ),
+    ]
+    task = create_task(
+        UpdateDependencies,
+        {
+            "dependencies": [
+                {
+                    "namespace": "ns",
+                    "version": "1.0",
+                },
+                {
+                    "github": "https://github.com/SFDO-Tooling/CumulusCI-Test",
+                    "ref": "abcdef",
+                    "subfolder": "src",
+                },
+            ],
+            "packages_only": True,
+        },
+    )
+    step = StepSpec(1, "test_task", task.task_config, None, task.project_config)
+    steps = task.freeze(step)
+
+    assert [
+        {
+            "is_required": True,
+            "kind": "managed",
+            "name": "Install ns 1.0",
+            "path": "test_task.1",
+            "step_num": "1.1",
+            "source": None,
+            "task_class": None,
+            "task_config": {
+                "options": {
+                    "dependencies": [{"namespace": "ns", "version": "1.0"}],
+                    "security_type": "FULL",
+                    "packages_only": True,
+                },
+                "checks": [],
+            },
+        }
     ] == steps

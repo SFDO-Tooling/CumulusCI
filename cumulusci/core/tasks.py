@@ -84,14 +84,14 @@ class BaseTask(object):
         self._validate_options()
 
     def _init_logger(self):
-        """ Initializes self.logger """
+        """Initializes self.logger"""
         if self.flow:
             self.logger = self.flow.logger.getChild(self.__class__.__name__)
         else:
             self.logger = logging.getLogger(__name__)
 
     def _init_options(self, kwargs):
-        """ Initializes self.options """
+        """Initializes self.options"""
         if self.task_config.options is None:
             self.options = {}
         else:
@@ -124,11 +124,11 @@ class BaseTask(object):
             )
 
     def _update_credentials(self):
-        """ Override to do any logic to refresh credentials """
+        """Override to do any logic to refresh credentials"""
         pass
 
     def _init_task(self):
-        """ Override to implement dynamic logic for initializing the task. """
+        """Override to implement dynamic logic for initializing the task."""
         pass
 
     def __call__(self):
@@ -150,11 +150,11 @@ class BaseTask(object):
                 return self.return_values
 
     def _run_task(self):
-        """ Subclasses should override to provide their implementation """
+        """Subclasses should override to provide their implementation"""
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     def _log_begin(self):
-        """ Log the beginning of the task execution """
+        """Log the beginning of the task execution"""
         self.logger.info(f"Beginning task: {self.__class__.__name__}")
         if self.salesforce_task and not self.flow:
             self.logger.info(f"As user: {self.org_config.username}")
@@ -196,7 +196,7 @@ class BaseTask(object):
         self.poll_interval_s = 1
 
     def _poll(self):
-        """ poll for a result in a loop """
+        """poll for a result in a loop"""
         while True:
             self.poll_count += 1
             self._poll_action()
@@ -213,7 +213,7 @@ class BaseTask(object):
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     def _poll_update_interval(self):
-        """ update the polling interval to be used next iteration """
+        """update the polling interval to be used next iteration"""
         # Increase by 1 second every 3 polls
         if self.poll_count // 3 > self.poll_interval_level:
             self.poll_interval_level += 1

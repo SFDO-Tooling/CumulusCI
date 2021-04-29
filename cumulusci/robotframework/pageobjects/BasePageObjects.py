@@ -65,7 +65,7 @@ class ModalMixin:
 
     @capture_screenshot_on_error
     def close_the_modal(self):
-        """ Closes the open modal """
+        """Closes the open modal"""
 
         locator = "css: button.slds-modal__close"
         self.selenium.wait_until_element_is_enabled(locator)
