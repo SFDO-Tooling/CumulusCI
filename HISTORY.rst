@@ -3,7 +3,7 @@ History
 =======
 
 3.34.0 (2021-04-29)
------------------
+-------------------
 
 Critical Changes:
 
@@ -32,6 +32,8 @@ Changes:
 
 - The ``create_package_version`` task can now increment package version numbers when the package is not in a released state. (#2547)
 
+- Includes `Snowfakery 1.10 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.10>`_ with upgrades to its Fake data functions.
+
 
 Issues Closed
 
@@ -40,8 +42,6 @@ Issues Closed
 - Fixed logic in the ``push_sandbox`` and ``push_all`` tasks which was selecting the wrong package versions. (#2577)
 
 - Improved logging of errors from sfdx while converting sfdx format metadata to deploy via the Metadata API, so that they are not lost when CumulusCI is embedded in another system like MetaCI or Metecho. (#2574)
-
-- Includes Snowfakery 1.10 with upgrades to its Fake data functions. (https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.10)
 
 
 3.33.1 (2021-04-20)
