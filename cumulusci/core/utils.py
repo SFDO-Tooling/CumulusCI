@@ -17,7 +17,7 @@ from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 
 
 def import_global(path):
-    """ Import a class from a string module class path """
+    """Import a class from a string module class path"""
     components = path.split(".")
     module = components[:-1]
     module = ".".join(module)
@@ -99,7 +99,7 @@ def process_glob_list_arg(arg):
 
 
 def process_list_arg(arg):
-    """ Parse a string into a list separated by commas with whitespace stripped """
+    """Parse a string into a list separated by commas with whitespace stripped"""
     if isinstance(arg, list):
         return arg
     elif isinstance(arg, str):
@@ -130,7 +130,7 @@ def process_list_of_pairs_dict_arg(arg):
 
 
 def decode_to_unicode(content):
-    """ decode ISO-8859-1 to unicode, when using sf api """
+    """decode ISO-8859-1 to unicode, when using sf api"""
     if content and not isinstance(content, str):
         try:
             # Try to decode ISO-8859-1 to unicode
@@ -142,7 +142,7 @@ def decode_to_unicode(content):
 
 
 def merge_config(configs):
-    """ recursively deep-merge the configs into one another (highest priority comes first) """
+    """recursively deep-merge the configs into one another (highest priority comes first)"""
     new_config = {}
 
     for name, config in configs.items():

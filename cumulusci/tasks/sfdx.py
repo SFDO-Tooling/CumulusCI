@@ -20,7 +20,7 @@ SFDX_CLI = "sfdx"
 
 
 class SFDXBaseTask(Command):
-    """ Call the sfdx cli with params and no org """
+    """Call the sfdx cli with params and no org"""
 
     task_options = {
         "command": {
@@ -40,7 +40,7 @@ class SFDXBaseTask(Command):
 
 
 class SFDXOrgTask(SFDXBaseTask):
-    """ Call the sfdx cli with a workspace username """
+    """Call the sfdx cli with a workspace username"""
 
     salesforce_task = True
 

@@ -110,7 +110,7 @@ def elementtree_parse_file(path):
 
 
 def remove_xml_element_directory(name, directory, file_pattern, logger=None):
-    """ Recursively walk a directory and remove XML elements """
+    """Recursively walk a directory and remove XML elements"""
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, file_pattern):
             filepath = os.path.join(path, filename)
@@ -125,7 +125,7 @@ removeXmlElement = remove_xml_element_directory
 
 
 def remove_xml_element_file(name, path):
-    """ Remove XML elements from a single file """
+    """Remove XML elements from a single file"""
     ET.register_namespace("", "http://soap.sforce.com/2006/04/metadata")
     tree = elementtree_parse_file(path)
     tree = remove_xml_element(name, tree)
@@ -133,7 +133,7 @@ def remove_xml_element_file(name, path):
 
 
 def remove_xml_element_string(name, content):
-    """ Remove XML elements from a string """
+    """Remove XML elements from a string"""
     ET.register_namespace("", "http://soap.sforce.com/2006/04/metadata")
     tree = ET.fromstring(content)
     tree = remove_xml_element(name, tree)
@@ -142,7 +142,7 @@ def remove_xml_element_string(name, content):
 
 
 def remove_xml_element(name, tree):
-    """ Removes XML elements from an ElementTree content tree """
+    """Removes XML elements from an ElementTree content tree"""
     # root = tree.getroot()
     remove = tree.findall(
         ".//{{http://soap.sforce.com/2006/04/metadata}}{}".format(name)
@@ -370,7 +370,7 @@ def zip_clean_metaxml(zip_src, logger=None):
 
 
 def doc_task(task_name, task_config, project_config=None, org_config=None):
-    """ Document a (project specific) task configuration in RST format. """
+    """Document a (project specific) task configuration in RST format."""
     from cumulusci.core.utils import import_global
 
     doc = []

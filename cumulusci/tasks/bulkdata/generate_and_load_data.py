@@ -14,7 +14,7 @@ from cumulusci.core.exceptions import TaskOptionsError
 
 
 class GenerateAndLoadData(BaseSalesforceApiTask):
-    """ Orchestrate creating tempfiles, generating data, loading data, cleaning up tempfiles and batching."""
+    """Orchestrate creating tempfiles, generating data, loading data, cleaning up tempfiles and batching."""
 
     task_docs = """
     Orchestrate creating tempfiles, generating data, loading data, cleaning up tempfiles and batching.

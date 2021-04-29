@@ -39,7 +39,7 @@ from cumulusci.utils.fileutils import open_fs_resource
 
 
 class BaseProjectConfig(BaseTaskFlowConfig):
-    """ Base class for a project's configuration which extends the global config """
+    """Base class for a project's configuration which extends the global config"""
 
     config_filename = "cumulusci.yml"
 
@@ -77,7 +77,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return str(path)
 
     def _load_config(self):
-        """ Loads the configuration from YAML, if no override config was passed in initially. """
+        """Loads the configuration from YAML, if no override config was passed in initially."""
 
         if (
             self.config
@@ -370,7 +370,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     # TODO: These methods are duplicative with `find_latest_release()`
     def get_latest_tag(self, beta=False):
-        """ Query Github Releases to find the latest production or beta tag """
+        """Query Github Releases to find the latest production or beta tag"""
         repo = self._get_repo()
         if not beta:
             try:
@@ -394,7 +394,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         )
 
     def get_latest_version(self, beta=False):
-        """ Query Github Releases to find the latest production or beta release """
+        """Query Github Releases to find the latest production or beta release"""
         tag = self.get_latest_tag(beta)
         version = self.get_version_for_tag(tag)
         if version is not None:

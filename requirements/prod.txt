@@ -27,7 +27,7 @@ cryptography==3.4.7
     #   jwcrypto
 docutils==0.16
     # via -r requirements/prod.in
-faker==8.1.0
+faker==8.1.1
     # via
     #   -r requirements/prod.in
     #   snowfakery
@@ -63,7 +63,7 @@ pydantic==1.8.1
     # via
     #   -r requirements/prod.in
     #   snowfakery
-pyjwt==2.0.1
+pyjwt==2.1.0
     # via -r requirements/prod.in
 python-dateutil==2.8.1
     # via
@@ -88,11 +88,11 @@ requests==2.25.1
     #   simple-salesforce
 robotframework-lint==1.1
     # via -r requirements/prod.in
-robotframework-pabot==1.12.1
+robotframework-pabot==1.13
     # via -r requirements/prod.in
 robotframework-pythonlibcore==2.2.1
     # via robotframework-seleniumlibrary
-robotframework-requests==0.9
+robotframework-requests==0.9.1
     # via -r requirements/prod.in
 robotframework-seleniumlibrary==4.5.0
     # via -r requirements/prod.in
@@ -122,9 +122,9 @@ six==1.15.0
     #   fs
     #   python-dateutil
     #   salesforce-bulk
-snowfakery==1.9
+snowfakery==1.10
     # via -r requirements/prod.in
-sqlalchemy==1.4.10
+sqlalchemy==1.4.11
     # via
     #   -r requirements/prod.in
     #   snowfakery

@@ -169,7 +169,7 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
         super(TestEnvironmentProjectKeychain, self).test_get_default_org()
 
     def test_set_default_org(self):
-        """ The EnvironmentProjectKeychain does not persist default org settings """
+        """The EnvironmentProjectKeychain does not persist default org settings"""
         org_config = self.org_config.config.copy()
         self.env.set(
             f"{self.keychain_class.org_var_prefix}test", json.dumps(org_config)
