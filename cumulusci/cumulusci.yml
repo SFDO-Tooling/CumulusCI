@@ -1187,6 +1187,13 @@ services:
         description: The email address to used by Github tasks when an operation requires an email address.
         required: True
     validator: cumulusci.core.github.validate_service
+  marketing_cloud:
+    description: Configure a connection to a Marketing Cloud instance
+    class_path: cumulusci.core.config.MarketingCloudServiceConfig
+    attributes:
+      oauth_client:
+        description: The oauth client service with which to establish a connection to marketing cloud
+        required: False
   metaci:
     description: Connect with a MetaCI site to run builds of projects from this repository
     attributes:
@@ -1207,6 +1214,21 @@ services:
         required: True
       token:
         description: Your API token to the MetaDeploy site (get from SITE_URL/admin/authtoken/token)
+        required: True
+  oauth_client:
+    description:
+    attributes:
+      client_id:
+        description: The client Id
+        required: True
+      client_secret:
+        description: The client secret
+        required: True
+      auth_uri:
+        description: The URI for where user's are directed to login
+        required: True
+      token_uri:
+        description: The URI for where we request an access token
         required: True
 
 project:
