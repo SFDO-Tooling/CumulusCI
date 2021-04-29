@@ -1,29 +1,29 @@
 class CumulusCIException(Exception):
-    """ Base class for all CumulusCI Exceptions """
+    """Base class for all CumulusCI Exceptions"""
 
     pass
 
 
 class CumulusCIUsageError(CumulusCIException):
-    """ An exception thrown due to improper usage which should be resolvable by proper usage """
+    """An exception thrown due to improper usage which should be resolvable by proper usage"""
 
     pass
 
 
 class CumulusCIFailure(CumulusCIException):
-    """ An exception representing a failure such as a Metadata deployment failure or a test failure.  CI systems can handle these to determine fail vs error status """
+    """An exception representing a failure such as a Metadata deployment failure or a test failure.  CI systems can handle these to determine fail vs error status"""
 
     pass
 
 
 class NotInProject(CumulusCIUsageError):
-    """ Raised when no project can be found in the current context """
+    """Raised when no project can be found in the current context"""
 
     pass
 
 
 class ProjectConfigNotFound(CumulusCIUsageError):
-    """ Raised when a project is found in the current context but no configuration was found for the project """
+    """Raised when a project is found in the current context but no configuration was found for the project"""
 
     pass
 
@@ -33,49 +33,49 @@ class ProjectMinimumVersionError(CumulusCIException):
 
 
 class KeychainNotFound(CumulusCIException):
-    """ Raised when no keychain could be found """
+    """Raised when no keychain could be found"""
 
     pass
 
 
 class KeychainKeyNotFound(CumulusCIUsageError):
-    """ Raised when the keychain key couldn't be found """
+    """Raised when the keychain key couldn't be found"""
 
     pass
 
 
 class OrgNotFound(CumulusCIUsageError):
-    """ Raised when no org could be found by a given name in the project keychain """
+    """Raised when no org could be found by a given name in the project keychain"""
 
     pass
 
 
 class ServiceNotConfigured(CumulusCIUsageError):
-    """ Raised when no service configuration could be found by a given name in the project keychain """
+    """Raised when no service configuration could be found by a given name in the project keychain"""
 
     pass
 
 
 class ServiceNotValid(CumulusCIUsageError):
-    """ Raised when no service configuration could be found by a given name in the project configuration """
+    """Raised when no service configuration could be found by a given name in the project configuration"""
 
     pass
 
 
 class DependencyResolutionError(CumulusCIException):
-    """ Raised when an issue is encountered while resolving a static dependency map """
+    """Raised when an issue is encountered while resolving a static dependency map"""
 
     pass
 
 
 class DependencyParseError(CumulusCIException):
-    """ Raised when CumulusCI cannot parse a dependency specification. """
+    """Raised when CumulusCI cannot parse a dependency specification."""
 
     pass
 
 
 class ConfigError(CumulusCIException):
-    """ Raised when a configuration enounters an error """
+    """Raised when a configuration enounters an error"""
 
     def __init__(self, message=None, config_name=None):
         super(ConfigError, self).__init__(message)
@@ -87,43 +87,43 @@ class ConfigError(CumulusCIException):
 
 
 class ConfigMergeError(ConfigError):
-    """ Raised when merging configuration fails. """
+    """Raised when merging configuration fails."""
 
     pass
 
 
 class AntTargetException(CumulusCIException):
-    """ Raised when a generic Ant target error occurs """
+    """Raised when a generic Ant target error occurs"""
 
     pass
 
 
 class DeploymentException(CumulusCIFailure):
-    """ Raised when a metadata api deployment error occurs """
+    """Raised when a metadata api deployment error occurs"""
 
     pass
 
 
 class ApexTestException(CumulusCIFailure):
-    """ Raised when a build fails because of an Apex test failure """
+    """Raised when a build fails because of an Apex test failure"""
 
     pass
 
 
 class SalesforceCredentialsException(CumulusCIException):
-    """ Raise when Salesforce credentials are invalid """
+    """Raise when Salesforce credentials are invalid"""
 
     pass
 
 
 class TaskRequiresSalesforceOrg(CumulusCIUsageError):
-    """ Raise when a task that requires a Salesforce org_config is not initialized with an org_config """
+    """Raise when a task that requires a Salesforce org_config is not initialized with an org_config"""
 
     pass
 
 
 class TaskOptionsError(CumulusCIUsageError):
-    """ Raise when a task's options are invalid """
+    """Raise when a task's options are invalid"""
 
     pass
 
@@ -133,31 +133,31 @@ class NamespaceNotFoundError(CumulusCIUsageError):
 
 
 class TaskNotFoundError(CumulusCIUsageError):
-    """ Raise when task is not found in project config """
+    """Raise when task is not found in project config"""
 
     pass
 
 
 class FlowInfiniteLoopError(CumulusCIUsageError):
-    """ Raised when a flow configuration creates a infinite loop """
+    """Raised when a flow configuration creates a infinite loop"""
 
     pass
 
 
 class FlowConfigError(CumulusCIException):
-    """ Raised when a flow configuration encounters an error """
+    """Raised when a flow configuration encounters an error"""
 
     pass
 
 
 class FlowNotFoundError(CumulusCIUsageError):
-    """ Raise when flow is not found in project config """
+    """Raise when flow is not found in project config"""
 
     pass
 
 
 class FlowNotReadyError(CumulusCIException):
-    """ Raise when flow is called before it has been prepared """
+    """Raise when flow is called before it has been prepared"""
 
     pass
 
@@ -167,13 +167,13 @@ class SfdxOrgException(CumulusCIException):
 
 
 class ScratchOrgException(SfdxOrgException):
-    """ Raise for errors related to scratch orgs """
+    """Raise for errors related to scratch orgs"""
 
     pass
 
 
 class GithubException(CumulusCIException):
-    """ Raise for errors related to GitHub """
+    """Raise for errors related to GitHub"""
 
     pass
 
@@ -195,37 +195,37 @@ class GithubApiUnauthorized(CumulusCIException):
 
 
 class SalesforceException(CumulusCIException):
-    """ Raise for errors related to Salesforce """
+    """Raise for errors related to Salesforce"""
 
     pass
 
 
 class SalesforceDXException(CumulusCIException):
-    """ Raise for errors related to Salesforce DX """
+    """Raise for errors related to Salesforce DX"""
 
     pass
 
 
 class SOQLQueryException(CumulusCIFailure):
-    """ Raise for errors related to Salesforce DX """
+    """Raise for errors related to Salesforce DX"""
 
     pass
 
 
 class CommandException(CumulusCIFailure):
-    """ Raise for errors coming from spawned CLI subprocesses """
+    """Raise for errors coming from spawned CLI subprocesses"""
 
     pass
 
 
 class BrowserTestFailure(CumulusCIFailure):
-    """ Raise when browser tests fail """
+    """Raise when browser tests fail"""
 
     pass
 
 
 class ApexCompilationException(CumulusCIFailure):
-    """ Raise when apex compilation fails """
+    """Raise when apex compilation fails"""
 
     def __str__(self):
         line, problem = self.args
@@ -233,7 +233,7 @@ class ApexCompilationException(CumulusCIFailure):
 
 
 class ApexException(CumulusCIFailure):
-    """ Raise when an Apex Exception is raised in an org """
+    """Raise when an Apex Exception is raised in an org"""
 
     def __str__(self):
         message, stacktrace = self.args
@@ -242,31 +242,31 @@ class ApexException(CumulusCIFailure):
 
 
 class PushApiObjectNotFound(CumulusCIException):
-    """ Raise when Salesforce Push API object is not found """
+    """Raise when Salesforce Push API object is not found"""
 
     pass
 
 
 class RobotTestFailure(CumulusCIFailure):
-    """ Raise when a robot test fails in a test suite """
+    """Raise when a robot test fails in a test suite"""
 
     pass
 
 
 class BulkDataException(CumulusCIFailure):
-    """ Raise for errors from bulkdata tasks """
+    """Raise for errors from bulkdata tasks"""
 
     pass
 
 
 class DependencyLookupError(CumulusCIFailure):
-    """ Raise for errors looking up the PackageVersionId for a managed package dependency """
+    """Raise for errors looking up the PackageVersionId for a managed package dependency"""
 
     pass
 
 
 class PackageUploadFailure(CumulusCIFailure):
-    """ Raise for errors in uploading a 2GP package version """
+    """Raise for errors in uploading a 2GP package version"""
 
     pass
 

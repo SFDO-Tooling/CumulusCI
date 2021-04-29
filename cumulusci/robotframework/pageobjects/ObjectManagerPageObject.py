@@ -114,7 +114,7 @@ class ObjectManagerPage(BasePage):
 
     @capture_screenshot_on_error
     def create_formula_field(self, field_name, formula):
-        """ Creates a formula field by providing the field_name, formula and forumla fields"""
+        """Creates a formula field by providing the field_name, formula and forumla fields"""
         self.selenium.wait_until_page_contains_element(formula_locator, 60)
         self.selenium.click_element(formula_locator)
         self.selenium.wait_until_page_contains_element(next_button, 60)
@@ -165,7 +165,7 @@ class ObjectManagerPage(BasePage):
 
     @capture_screenshot_on_error
     def is_field_present(self, field_name):
-        """Searches for the field name (field_name) and asserts the field got created """
+        """Searches for the field name (field_name) and asserts the field got created"""
         self.selenium.wait_until_page_contains_element(search_button)
         self.selenium.clear_element_text(search_button)
         self.selenium.press_keys(search_button, field_name, "ENTER")

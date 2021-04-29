@@ -13,11 +13,11 @@ appdirs==1.4.4
     #   virtualenv
 attrs==20.3.0
     # via pytest
-babel==2.9.0
+babel==2.9.1
     # via sphinx
 beautifulsoup4==4.9.3
     # via furo
-black==20.8b1
+black==21.4b2
     # via -r requirements/dev.in
 bleach==3.3.0
     # via readme-renderer
@@ -57,7 +57,7 @@ docutils==0.16
     #   sphinx
 factory-boy==3.2.0
     # via -r requirements/dev.in
-faker==8.1.0
+faker==8.1.1
     # via
     #   -c requirements/prod.txt
     #   factory-boy
@@ -177,7 +177,7 @@ requests==2.25.1
     #   responses
     #   sphinx
     #   twine
-responses==0.13.2
+responses==0.13.3
     # via -r requirements/dev.in
 rfc3986==1.4.0
     # via twine
@@ -231,14 +231,8 @@ tqdm==4.60.0
     # via twine
 twine==3.4.1
     # via -r requirements/dev.in
-typed-ast==1.4.3
-    # via black
 typeguard==2.10.0
     # via -r requirements/dev.in
-typing-extensions==3.7.4.3
-    # via
-    #   -c requirements/prod.txt
-    #   black
 urllib3==1.26.4
     # via
     #   -c requirements/prod.txt
@@ -266,7 +260,7 @@ zipp==3.4.1
     #   importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
-pip==21.0.1
+pip==21.1
     # via pip-tools
 setuptools==56.0.0
     # via

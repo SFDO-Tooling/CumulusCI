@@ -233,7 +233,7 @@ class PackageSubscriber(object):
 
 
 class SalesforcePushApi(object):
-    """ API Wrapper for the Salesforce Push API """
+    """API Wrapper for the Salesforce Push API"""
 
     def __init__(
         self, sf, logger, lazy=None, default_where=None, batch_size=None, bulk=None

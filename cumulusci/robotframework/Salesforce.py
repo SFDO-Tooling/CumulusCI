@@ -338,12 +338,12 @@ class Salesforce(object):
         self.wait_until_loading_is_complete()
 
     def close_modal(self):
-        """ Closes the open modal """
+        """Closes the open modal"""
         locator = lex_locators["modal"]["close"]
         self._jsclick(locator)
 
     def current_app_should_be(self, app_name):
-        """ Validates the currently selected Salesforce App """
+        """Validates the currently selected Salesforce App"""
         locator = lex_locators["app_launcher"]["current_app"].format(app_name)
         elem = self.selenium.get_webelement(locator)
         assert app_name == elem.text, "Expected app to be {} but found {}".format(
@@ -456,14 +456,14 @@ class Salesforce(object):
         return int(count)
 
     def go_to_object_home(self, obj_name):
-        """ Navigates to the Home view of a Salesforce Object """
+        """Navigates to the Home view of a Salesforce Object"""
         url = self.cumulusci.org.lightning_base_url
         url = "{}/lightning/o/{}/home".format(url, obj_name)
         self.selenium.go_to(url)
         self.wait_until_loading_is_complete(lex_locators["actions"])
 
     def go_to_object_list(self, obj_name, filter_name=None):
-        """ Navigates to the Home view of a Salesforce Object """
+        """Navigates to the Home view of a Salesforce Object"""
         url = self.cumulusci.org.lightning_base_url
         url = "{}/lightning/o/{}/list".format(url, obj_name)
         if filter_name:
@@ -472,20 +472,20 @@ class Salesforce(object):
         self.wait_until_loading_is_complete(lex_locators["actions"])
 
     def go_to_record_home(self, obj_id):
-        """ Navigates to the Home view of a Salesforce Object """
+        """Navigates to the Home view of a Salesforce Object"""
         url = self.cumulusci.org.lightning_base_url
         url = "{}/lightning/r/{}/view".format(url, obj_id)
         self.selenium.go_to(url)
         self.wait_until_loading_is_complete(lex_locators["actions"])
 
     def go_to_setup_home(self):
-        """ Navigates to the Home tab of Salesforce Setup """
+        """Navigates to the Home tab of Salesforce Setup"""
         url = self.cumulusci.org.lightning_base_url
         self.selenium.go_to(url + "/lightning/setup/SetupOneHome/home")
         self.wait_until_loading_is_complete()
 
     def go_to_setup_object_manager(self):
-        """ Navigates to the Object Manager tab of Salesforce Setup """
+        """Navigates to the Object Manager tab of Salesforce Setup"""
         url = self.cumulusci.org.lightning_base_url
         self.selenium.go_to(url + "/lightning/setup/ObjectManager/home")
         self.wait_until_loading_is_complete()
@@ -505,12 +505,12 @@ class Salesforce(object):
         self.selenium.page_should_not_contain_element(locator)
 
     def header_field_should_have_link(self, label):
-        """ Validates that a field in the record header has a link as its value """
+        """Validates that a field in the record header has a link as its value"""
         locator = lex_locators["record"]["header"]["field_value_link"].format(label)
         self.selenium.page_should_contain_element(locator)
 
     def header_field_should_not_have_link(self, label):
-        """ Validates that a field in the record header does not have a link as its value """
+        """Validates that a field in the record header does not have a link as its value"""
         locator = lex_locators["record"]["header"]["field_value_link"].format(label)
         self.selenium.page_should_not_contain_element(locator)
 
@@ -520,12 +520,12 @@ class Salesforce(object):
         self._jsclick(locator)
 
     def header_field_should_be_checked(self, label):
-        """ Validates that a checkbox field in the record header is checked """
+        """Validates that a checkbox field in the record header is checked"""
         locator = lex_locators["record"]["header"]["field_value_checked"].format(label)
         self.selenium.page_should_contain_element(locator)
 
     def header_field_should_be_unchecked(self, label):
-        """ Validates that a checkbox field in the record header is unchecked """
+        """Validates that a checkbox field in the record header is unchecked"""
         locator = lex_locators["record"]["header"]["field_value_unchecked"].format(
             label
         )
@@ -728,7 +728,7 @@ class Salesforce(object):
 
     @capture_screenshot_on_error
     def select_app_launcher_app(self, app_name):
-        """Navigates to a Salesforce App via the App Launcher """
+        """Navigates to a Salesforce App via the App Launcher"""
         locator = lex_locators["app_launcher"]["app_link"].format(app_name)
         self.open_app_launcher()
         self.selenium.wait_until_page_contains_element(locator, timeout=30)
@@ -1099,7 +1099,7 @@ class Salesforce(object):
 
     @capture_screenshot_on_error
     def wait_until_modal_is_open(self):
-        """ Wait for modal to open """
+        """Wait for modal to open"""
         self.selenium.wait_until_page_contains_element(
             lex_locators["modal"]["is_open"],
             timeout=15,
@@ -1107,7 +1107,7 @@ class Salesforce(object):
         )
 
     def wait_until_modal_is_closed(self):
-        """ Wait for modal to close """
+        """Wait for modal to close"""
         self.selenium.wait_until_page_does_not_contain_element(
             lex_locators["modal"]["is_open"], timeout=15
         )
