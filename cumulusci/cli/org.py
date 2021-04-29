@@ -11,7 +11,7 @@ from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.utils import cleanup_org_cache_dirs
-from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
+from cumulusci.oauth.client import OAuth2Client, SalesforceOAuthClientInfo
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import parse_api_datetime
 from .runtime import pass_runtime
@@ -141,17 +141,13 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
         )
 
     connected_app = runtime.keychain.get_service("connected_app")
-    if sandbox:
-        login_url = "https://test.salesforce.com"
 
-    oauth_capture = CaptureSalesforceOAuth(
-        client_id=connected_app.client_id,
-        client_secret=connected_app.client_secret,
-        callback_url=connected_app.callback_url,
-        auth_site=login_url,
-        scope="web full refresh_token",
+    sf_client_info = SalesforceOAuthClientInfo(
+        scope="web full refresh_token", is_sandbox=sandbox, **connected_app.config
     )
-    oauth_dict = oauth_capture()
+    sf_client = OAuth2Client(sf_client_info)
+    oauth_dict = sf_client.auth_code_flow()
+
     global_org = global_org or runtime.project_config is None
     org_config = OrgConfig(oauth_dict, org_name, runtime.keychain, global_org)
     org_config.load_userinfo()
