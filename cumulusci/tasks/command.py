@@ -17,7 +17,7 @@ from cumulusci.core.utils import process_bool_arg
 
 
 class Command(BaseTask):
-    """ Execute a shell command in a subprocess """
+    """Execute a shell command in a subprocess"""
 
     task_docs = """
         **Example Command-line Usage:**

@@ -10,7 +10,7 @@ __location__ = os.path.dirname(os.path.realpath(__file__))
 
 
 class UniversalConfig(BaseTaskFlowConfig):
-    """ Base class for the global config which contains all configuration not specific to projects """
+    """Base class for the global config which contains all configuration not specific to projects"""
 
     config = None
     config_filename = "cumulusci.yml"
@@ -58,7 +58,7 @@ class UniversalConfig(BaseTaskFlowConfig):
         )
 
     def _load_config(self):
-        """ Loads the local configuration """
+        """Loads the local configuration"""
         # avoid loading multiple times
         if UniversalConfig.config is not None:
             return

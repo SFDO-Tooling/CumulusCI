@@ -29,7 +29,7 @@ def retry(
 
 
 def poll(action):
-    """ poll for a result in a loop """
+    """poll for a result in a loop"""
     count = 0
     interval = 1
     while True:
