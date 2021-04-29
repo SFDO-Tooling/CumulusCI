@@ -18,7 +18,7 @@ Changes:
     - ``release_2gp_beta`` (2GP) 
     - ``release_2gp_production`` (2GP)
 
-(#2546)
+  (#2546)
 
 - The ``update_dependencies`` task now supports a ``packages_only`` option, which suppresses the installation of unpackaged metadata dependencies. This option is intended to support building update-only or idempotent installers. (#2587)
 
