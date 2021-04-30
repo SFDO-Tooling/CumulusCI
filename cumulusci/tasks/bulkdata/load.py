@@ -666,9 +666,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 )
                 for record in custom_tab_objects["records"]:
                     object_names.add(record["SobjectName"])
-            except Exception:
+            except Exception as e:
                 self.logger.warning(
-                    "Cannot get the list of custom tabs to set recently viewed status on them."
+                    f"Cannot get the list of custom tabs to set recently viewed status on them. Error: {e}"
                 )
         with get_org_schema(self.sf, self.org_config) as org_schema:
             for mapped_item in sorted(object_names):
@@ -677,7 +677,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                         self.sf.query_all(
                             f"SELECT Id FROM {mapped_item} ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW"
                         )
-                    except Exception:
+                    except Exception as e:
                         self.logger.warning(
-                            f"Cannot set recently viewed status for {mapped_item}"
+                            f"Cannot set recently viewed status for {mapped_item}. Error: {e}"
                         )
