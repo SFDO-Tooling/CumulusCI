@@ -13,7 +13,7 @@ PyJWT
 pytz
 requests
 requests-futures
-robotframework<4
+robotframework<5
 robotframework-lint
 robotframework-pabot
 robotframework-requests
