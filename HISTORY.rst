@@ -2,6 +2,14 @@
 History
 =======
 
+3.34.1 (2021-04-29)
+-------------------
+
+Issues Closed
+
+Some SObjects could not be loaded without explicitly turning off the new
+``set_recently_viewed`` behavior.
+
 3.34.0 (2021-04-29)
 -------------------
 
