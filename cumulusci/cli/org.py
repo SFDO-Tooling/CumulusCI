@@ -309,7 +309,8 @@ def org_list(runtime, json_flag, plain):
     rows_to_dim = []
     default_org_name, _ = runtime.keychain.get_default_org()
     for org, org_config in org_configs.items():
-        row = [org, org == default_org_name]
+        is_org_default = org == default_org_name
+        row = [org, is_org_default]
         if isinstance(org_config, ScratchOrgConfig):
             org_days = org_config.format_org_days()
             if org_config.expired:
@@ -323,12 +324,12 @@ def org_list(runtime, json_flag, plain):
                 [org_days, not org_config.active, org_config.config_name, domain]
             )
             scratch_data.append(row)
-            json_data[row[0]] = {
-                "isDefault": row[1],
-                "days": row[2],
-                "expired": row[3],
-                "config": row[4],
-                "domain": row[5],
+            json_data[org] = {
+                "isDefault": is_org_default,
+                "days": org_days,
+                "expired": not org_config.active,
+                "config": org_config.config_name,
+                "domain": domain,
                 "isScratch": True,
             }
         else:
@@ -338,7 +339,7 @@ def org_list(runtime, json_flag, plain):
             row.append(username)
             row.append(org_config.expires or "Unknown")
             persistent_data.append(row)
-            json_data[row[0]] = {"isDefault": row[1], "isScratch": False}
+            json_data[org] = {"isDefault": is_org_default, "isScratch": False}
 
     if json_flag:
         click.echo(json.dumps(json_data))
