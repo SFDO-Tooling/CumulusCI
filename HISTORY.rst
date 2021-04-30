@@ -2,6 +2,13 @@
 History
 =======
 
+3.34.1 (2021-04-30)
+-------------------
+
+Issues Closed
+
+- Fixed a regression in the ``load_dataset`` task where some sObjects could not be loaded without explicitly turning off the new ``set_recently_viewed`` option.
+
 3.34.0 (2021-04-29)
 -------------------
 
