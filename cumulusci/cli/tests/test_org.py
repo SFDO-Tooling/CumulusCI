@@ -1,13 +1,14 @@
+import click
+import io
+import json
+import pytest
+import responses
+
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
 from unittest import mock
-import io
-
-import click
-import pytest
-import responses
 
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
@@ -468,7 +469,7 @@ class TestOrgCommands:
             ),
         )
 
-        run_click_command(org.org_list, runtime=runtime, plain=False)
+        run_click_command(org.org_list, runtime=runtime, json_flag=False, plain=False)
 
         scratch_table_call = mock.call(
             [
@@ -497,6 +498,89 @@ class TestOrgCommands:
         assert scratch_table_call in cli_tbl.call_args_list
         assert connected_table_call in cli_tbl.call_args_list
         cleanup_org_cache_dirs.assert_called_once()
+
+    @mock.patch("cumulusci.cli.org.click.echo")
+    def test_org_list__json(self, echo):
+        runtime = mock.Mock()
+        runtime.universal_config.cli__plain_output = None
+        org_configs = {
+            "test0": ScratchOrgConfig(
+                {
+                    "default": True,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=8),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test0@example.com",
+                },
+                "test0",
+            ),
+            "test1": ScratchOrgConfig(
+                {
+                    "default": False,
+                    "scratch": True,
+                    "date_created": datetime.now(),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test1@example.com",
+                    "instance_url": "https://sneaky-master-2330-dev-ed.cs22.my.salesforce.com",
+                },
+                "test1",
+            ),
+            "test2": OrgConfig(
+                {
+                    "default": False,
+                    "scratch": False,
+                    "expires": "Persistent",
+                    "expired": False,
+                    "config_name": "dev",
+                    "username": "test2@example.com",
+                    "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
+                },
+                "test2",
+            ),
+        }
+
+        runtime.keychain.list_orgs.return_value = list(org_configs.keys())
+        runtime.keychain.get_org = lambda orgname: org_configs[orgname]
+        runtime.project_config.cache_dir = Path("does_not_possibly_exist")
+
+        runtime.keychain.get_default_org.return_value = (
+            "test0",
+            ScratchOrgConfig(
+                {
+                    "default": True,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=8),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test0@example.com",
+                },
+                "test0",
+            ),
+        )
+
+        run_click_command(org.org_list, runtime=runtime, json_flag=True, plain=False)
+        expected = {
+            "test0": {
+                "isDefault": True,
+                "days": "7",
+                "expired": True,
+                "config": "dev",
+                "domain": "",
+                "isScratch": True,
+            },
+            "test1": {
+                "isDefault": False,
+                "days": "1/7",
+                "expired": False,
+                "config": "dev",
+                "domain": "sneaky-master-2330-dev-ed.cs22",
+                "isScratch": True,
+            },
+            "test2": {"isDefault": False, "isScratch": False},
+        }
+        echo.assert_called_once_with(json.dumps(expected))
 
     @mock.patch("click.echo")
     def test_org_prune(self, echo):
