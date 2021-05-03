@@ -403,6 +403,8 @@ When tokenized, all occurrences of the namespace prefix, are replaced with ``%%%
 
 For more on this topic see :ref:`namespace injection`. 
 
+.. dependency-resolution:
+
 Controlling GitHub Dependency Resolution
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
