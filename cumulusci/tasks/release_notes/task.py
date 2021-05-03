@@ -93,8 +93,7 @@ class GithubReleaseNotes(BaseGithubTask):
 
 class ParentPullRequestNotes(BaseGithubTask):
     task_docs = """
-    Aggregate change notes from child pull request(s) to its corresponding
-    parent's pull request.
+    Aggregate change notes from child pull request(s) to a corresponding parent pull request.
 
     When given the branch_name option, this task will: (1) check if the base branch
     of the corresponding pull request starts with the feature branch prefix and if so (2) attempt
@@ -106,9 +105,9 @@ class ParentPullRequestNotes(BaseGithubTask):
     is not detected on the parent pull request then a link to the child pull request
     is placed under the "Unaggregated Pull Requests" header.
 
-    When given the parent_branch_name option, this task will query for a corresponding pull request.
-    If a pull request is not found, the task exits. If a pull request is found, then all notes
-    from child pull requests are re-aggregated and the body of the parent is replaced entirely.
+    If you have a pull request on branch feature/myFeature that you would like to rebuild notes
+    for use the branch_name and force options:
+        cci task run github_parent_pr_notes --branch-name feature/myFeature --force True
     """
     UNAGGREGATED_PR_HEADER = "\r\n\r\n# Unaggregated Pull Requests"
 

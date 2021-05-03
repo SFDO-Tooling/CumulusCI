@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+from cumulusci.core.dependencies.dependencies import (
+    PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
+)
 from distutils.version import StrictVersion
 import json
 import os
@@ -109,17 +113,19 @@ class DummyResponse(object):
         self.status_code = status_code
 
 
-class DummyRepository(object):
+class DummyRepository(mock.Mock):
     default_branch = "main"
     _api = "http://"
 
-    def __init__(self, owner, name, contents, releases=None):
+    def __init__(self, owner, name, contents, releases=None, commits=None):
+        super().__init__()
         self.owner = owner
         self.name = name
         self.html_url = f"https://github.com/{owner}/{name}"
         self.clone_url = self.html_url
         self._contents = contents
         self._releases = releases or []
+        self._commits = commits or []
 
     def file_contents(self, path, **kw):
         try:
@@ -161,6 +167,7 @@ class DummyRepository(object):
     def tag(self, sha):
         tag = mock.Mock()
         tag.object.sha = "tag_sha"
+        tag.message = ""
         return tag
 
     def ref(self, s):
@@ -168,7 +175,11 @@ class DummyRepository(object):
         ref.object.sha = "ref_sha"
         return ref
 
-    default_branch = "main"
+    def commit(self, c):
+        if c in self._commits:
+            return self._commits[c]
+
+        raise NotFoundError(DummyResponse("", 404))
 
 
 class DummyRelease(object):
@@ -407,6 +418,22 @@ class TestBaseProjectConfig(unittest.TestCase):
 
             self.assertIsNotNone(config.repo_commit)
 
+    def test_get_repo_from_url(self):
+        config = BaseProjectConfig(
+            UniversalConfig(),
+            {},
+        )
+
+        config.get_github_api = mock.Mock()
+
+        assert config.get_repo_from_url("https://github.com/Test/TestRepo") == (
+            config.get_github_api.return_value.repository.return_value
+        )
+        config.get_github_api.assert_called_once_with("Test", "TestRepo")
+        config.get_github_api.return_value.repository.assert_called_once_with(
+            "Test", "TestRepo"
+        )
+
     def test_get_latest_tag(self):
         config = BaseProjectConfig(
             UniversalConfig(),
@@ -553,572 +580,6 @@ class TestBaseProjectConfig(unittest.TestCase):
         with self.assertRaises(KeychainNotFound):
             config._check_keychain()
 
-    def test_get_static_dependencies(self):
-        dep = {"namespace": "npsp", "version": "3"}
-        config = BaseProjectConfig(
-            UniversalConfig(), {"project": {"dependencies": [dep]}}
-        )
-        self.assertEqual([dep], config.get_static_dependencies())
-
-    def test_get_static_dependencies_no_dependencies(self):
-        config = BaseProjectConfig(UniversalConfig())
-        self.assertEqual([], config.get_static_dependencies())
-
-    def test_get_static_dependencies__skipped_dependencies(self):
-        config = BaseProjectConfig(UniversalConfig())
-        deps = [
-            {"namespace": "npsp", "version": "3"},
-            {"namespace": "foo", "version": "1"},
-        ]
-        config = BaseProjectConfig(
-            UniversalConfig(), {"project": {"dependencies": deps}}
-        )
-        self.assertEqual(
-            deps[1:],
-            config.get_static_dependencies(ignore_deps=[{"namespace": "npsp"}]),
-        )
-
-    def test_should_ignore_dependency(self):
-        ignore_deps = [{"namespace": "npsp"}, {"github": "https://test/"}]
-        config = BaseProjectConfig(UniversalConfig(), {})
-
-        assert config._should_ignore_dependency(
-            {"namespace": "npsp", "version": "3"}, ignore_deps
-        )
-        assert not config._should_ignore_dependency(
-            {"namespace": "foo", "version": "1"}, ignore_deps
-        )
-        assert config._should_ignore_dependency(
-            {"github": "https://test/"}, ignore_deps
-        )
-        assert not config._should_ignore_dependency(
-            {"github": "https://example/"}, ignore_deps
-        )
-        assert not config._should_ignore_dependency({}, ignore_deps)
-
-    def test_pretty_dependencies(self):
-        dep = {
-            "namespace": "npsp",
-            "version": "3",
-            "boolean": False,
-            "dependencies": [{"repo_name": "TestRepo", "dependencies": []}],
-        }
-        config = BaseProjectConfig(UniversalConfig())
-        result = "\n".join(config.pretty_dependencies([dep]))
-        self.assertEqual(
-            """  - dependencies: \n    \n      - repo_name: TestRepo\n    namespace: npsp\n    version: 3""",
-            result,
-        )
-
-    def test_process_github_dependency(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.get_github_api = mock.Mock(return_value=self._make_github())
-        config.keychain = DummyKeychain()
-
-        result = config.process_github_dependency(
-            {
-                "github": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
-                "unmanaged": True,
-                "skip": ["unpackaged/pre/skip", "unpackaged/post/skip"],
-            }
-        )
-        self.assertEqual(
-            result,
-            [
-                {
-                    "name": "Deploy unpackaged/pre/pre",
-                    "repo_owner": "SFDO-Tooling",
-                    "repo_name": "CumulusCI-Test",
-                    "ref": "commit_sha",
-                    "subfolder": "unpackaged/pre/pre",
-                    "unmanaged": True,
-                    "namespace_inject": None,
-                    "namespace_strip": None,
-                },
-                {
-                    "name": "Install CumulusCI-Test-Dep 2.0",
-                    "version": "2.0",
-                    "namespace": "ccitestdep",
-                },
-                {
-                    "name": "Deploy CumulusCI-Test",
-                    "repo_owner": "SFDO-Tooling",
-                    "repo_name": "CumulusCI-Test",
-                    "ref": "commit_sha",
-                    "subfolder": "src",
-                    "unmanaged": True,
-                    "namespace_inject": None,
-                    "namespace_strip": None,
-                },
-                {
-                    "name": "Deploy unpackaged/post/post",
-                    "repo_owner": "SFDO-Tooling",
-                    "repo_name": "CumulusCI-Test",
-                    "ref": "commit_sha",
-                    "subfolder": "unpackaged/post/post",
-                    "unmanaged": True,
-                    "namespace_inject": "ccitest",
-                    "namespace_strip": None,
-                },
-            ],
-        )
-
-    def test_process_github_dependency_no_unpackaged(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        github = self._make_github()
-        del github.repositories["CumulusCI-Test"]._contents["unpackaged/pre"]
-        del github.repositories["CumulusCI-Test"]._contents["unpackaged/post"]
-        config.get_github_api = mock.Mock(return_value=github)
-        config.keychain = DummyKeychain()
-        result = config.process_github_dependency(
-            {
-                "github": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
-                "unmanaged": True,
-            }
-        )
-        self.assertEqual(
-            result,
-            [
-                {
-                    "name": "Install CumulusCI-Test-Dep 2.0",
-                    "version": "2.0",
-                    "namespace": "ccitestdep",
-                },
-                {
-                    "name": "Deploy CumulusCI-Test",
-                    "repo_owner": "SFDO-Tooling",
-                    "repo_name": "CumulusCI-Test",
-                    "ref": "commit_sha",
-                    "subfolder": "src",
-                    "unmanaged": True,
-                    "namespace_inject": None,
-                    "namespace_strip": None,
-                },
-            ],
-        )
-
-    def test_process_github_dependency_with_tag(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        github = self._make_github()
-        github.repositories["CumulusCI-Test"]._releases = [
-            DummyRelease("release/1.0", "1.0")
-        ]
-        config.get_github_api = mock.Mock(return_value=github)
-        config.keychain = DummyKeychain()
-
-        result = config.process_github_dependency(
-            {
-                "github": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
-                "tag": "release/1.0",
-            }
-        )
-        self.assertIn(
-            {
-                "name": "Install CumulusCI-Test 1.0",
-                "namespace": "ccitest",
-                "version": "1.0",
-                "dependencies": [
-                    {
-                        "name": "Install CumulusCI-Test-Dep 2.0",
-                        "namespace": "ccitestdep",
-                        "version": "2.0",
-                    }
-                ],
-            },
-            result,
-        )
-
-    def test_process_github_dependency_latest(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        github = self._make_github()
-        github.repositories["CumulusCI-Test-Dep"]._releases = [
-            DummyRelease("beta/1.1-Beta_1", "1.1 (Beta 1)"),
-            DummyRelease("release/1.0", "1.0"),
-        ]
-        config.get_github_api = mock.Mock(return_value=github)
-
-        result = config.process_github_dependency(
-            {
-                "github": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
-                "unmanaged": True,
-                "skip": ["unpackaged/pre/skip", "unpackaged/post/skip"],
-            },
-            "",
-            include_beta=True,
-        )
-        self.assertEqual(
-            result,
-            [
-                {
-                    "name": "Deploy unpackaged/pre/pre",
-                    "repo_owner": "SFDO-Tooling",
-                    "repo_name": "CumulusCI-Test",
-                    "ref": "commit_sha",
-                    "subfolder": "unpackaged/pre/pre",
-                    "unmanaged": True,
-                    "namespace_inject": None,
-                    "namespace_strip": None,
-                },
-                {
-                    "name": "Install CumulusCI-Test-Dep 1.1 (Beta 1)",
-                    "version": "1.1 (Beta 1)",
-                    "namespace": "ccitestdep",
-                },
-                {
-                    "name": "Deploy CumulusCI-Test",
-                    "repo_owner": "SFDO-Tooling",
-                    "repo_name": "CumulusCI-Test",
-                    "ref": "commit_sha",
-                    "subfolder": "src",
-                    "unmanaged": True,
-                    "namespace_inject": None,
-                    "namespace_strip": None,
-                },
-                {
-                    "name": "Deploy unpackaged/post/post",
-                    "repo_owner": "SFDO-Tooling",
-                    "repo_name": "CumulusCI-Test",
-                    "ref": "commit_sha",
-                    "subfolder": "unpackaged/post/post",
-                    "unmanaged": True,
-                    "namespace_inject": "ccitest",
-                    "namespace_strip": None,
-                },
-            ],
-        )
-
-    def test_process_github_dependency_ref(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        config.get_github_api = mock.Mock(return_value=self._make_github())
-
-        result = config.process_github_dependency(
-            {
-                "github": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
-                "unmanaged": True,
-                "ref": "other_commit_sha",
-                "skip": ["unpackaged/pre/skip", "unpackaged/post/skip"],
-            },
-            "",
-        )
-        self.assertEqual(
-            result,
-            [
-                {
-                    "name": "Deploy unpackaged/pre/pre",
-                    "repo_owner": "SFDO-Tooling",
-                    "repo_name": "CumulusCI-Test",
-                    "ref": "other_commit_sha",
-                    "subfolder": "unpackaged/pre/pre",
-                    "unmanaged": True,
-                    "namespace_inject": None,
-                    "namespace_strip": None,
-                },
-                {
-                    "name": "Install CumulusCI-Test-Dep 2.0",
-                    "version": "2.0",
-                    "namespace": "ccitestdep",
-                },
-                {
-                    "name": "Deploy CumulusCI-Test",
-                    "repo_owner": "SFDO-Tooling",
-                    "repo_name": "CumulusCI-Test",
-                    "ref": "other_commit_sha",
-                    "subfolder": "src",
-                    "unmanaged": True,
-                    "namespace_inject": None,
-                    "namespace_strip": None,
-                },
-                {
-                    "name": "Deploy unpackaged/post/post",
-                    "repo_owner": "SFDO-Tooling",
-                    "repo_name": "CumulusCI-Test",
-                    "ref": "other_commit_sha",
-                    "subfolder": "unpackaged/post/post",
-                    "unmanaged": True,
-                    "namespace_inject": "ccitest",
-                    "namespace_strip": None,
-                },
-            ],
-        )
-
-    def test_process_github_dependency__with_skipped_deps(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.get_github_api = mock.Mock(return_value=self._make_github())
-        config.keychain = DummyKeychain()
-
-        result = config.process_github_dependency(
-            {
-                "github": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
-                "unmanaged": True,
-                "skip": ["unpackaged/pre/skip", "unpackaged/post/skip"],
-            },
-            ignore_deps=[
-                {"github": "https://github.com/SFDO-Tooling/CumulusCI-Test-Dep"}
-            ],
-        )
-        self.assertEqual(
-            result,
-            [
-                {
-                    "name": "Deploy unpackaged/pre/pre",
-                    "repo_owner": "SFDO-Tooling",
-                    "repo_name": "CumulusCI-Test",
-                    "ref": "commit_sha",
-                    "subfolder": "unpackaged/pre/pre",
-                    "unmanaged": True,
-                    "namespace_inject": None,
-                    "namespace_strip": None,
-                },
-                {
-                    "name": "Deploy CumulusCI-Test",
-                    "repo_owner": "SFDO-Tooling",
-                    "repo_name": "CumulusCI-Test",
-                    "ref": "commit_sha",
-                    "subfolder": "src",
-                    "unmanaged": True,
-                    "namespace_inject": None,
-                    "namespace_strip": None,
-                },
-                {
-                    "name": "Deploy unpackaged/post/post",
-                    "repo_owner": "SFDO-Tooling",
-                    "repo_name": "CumulusCI-Test",
-                    "ref": "commit_sha",
-                    "subfolder": "unpackaged/post/post",
-                    "unmanaged": True,
-                    "namespace_inject": "ccitest",
-                    "namespace_strip": None,
-                },
-            ],
-        )
-
-    def test_process_github_dependency__cannot_find_repo(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        github = self._make_github()
-        github.repositories["CumulusCI-Test-Dep"] = None
-        config.get_github_api = mock.Mock(return_value=github)
-
-        with self.assertRaises(DependencyResolutionError):
-            config.process_github_dependency(
-                {"github": "https://github.com/SFDO-Tooling/CumulusCI-Test-Dep.git"}
-            )
-
-    def test_process_github_dependency_cannot_find_latest(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        github = self._make_github()
-        github.repositories["CumulusCI-Test-Dep"]._releases = []
-        config.get_github_api = mock.Mock(return_value=github)
-
-        with self.assertRaises(DependencyResolutionError):
-            config.process_github_dependency(
-                {"github": "https://github.com/SFDO-Tooling/CumulusCI-Test-Dep.git"}
-            )
-
-    def test_process_github_dependency_tag_not_found(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        config.get_github_api = mock.Mock(return_value=self._make_github())
-
-        with self.assertRaises(DependencyResolutionError):
-            config.process_github_dependency(
-                {
-                    "github": "https://github.com/SFDO-Tooling/CumulusCI-Test-Dep.git",
-                    "tag": "bogus",
-                }
-            )
-
-    @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
-    def test_find_matching_2gp_release(self, get_version_id):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        github = self._make_github()
-        config.get_github_api = mock.Mock(return_value=github)
-        config.project__git__prefix_feature = "feature/"
-        get_version_id.return_value = "04t000000000000"
-        config.repo_info["branch"] = "feature/230"
-
-        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
-
-        assert config.find_matching_2gp_release(repo) == (
-            "04t000000000000",
-            "commit_sha",
-        )
-
-    @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
-    def test_find_matching_2gp_release__found_previous_commit(self, get_version_id):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        github = self._make_github()
-        config.get_github_api = mock.Mock(return_value=github)
-        config.project__git__prefix_feature = "feature/"
-        get_version_id.side_effect = [None, "04t000000000000"]
-        config.repo_info["branch"] = "feature/230"
-
-        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
-        repo.branch = mock.Mock()
-        repo.branch.return_value.commit.parents = [
-            {"sha": "000"},
-            {"sha": "001"},
-        ]
-        repo.commit = mock.Mock()
-
-        assert config.find_matching_2gp_release(repo) == (
-            "04t000000000000",
-            repo.commit.return_value.sha,
-        )
-
-        get_version_id.assert_has_calls(
-            [
-                mock.call(
-                    repo,
-                    repo.branch.return_value.commit.sha,
-                    config.project__git__2gp_context,
-                ),
-                mock.call(
-                    repo, repo.commit.return_value.sha, config.project__git__2gp_context
-                ),
-            ]
-        )
-
-    @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
-    def test_find_matching_2gp_release__not_found(self, get_version_id):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        github = self._make_github()
-        config.get_github_api = mock.Mock(return_value=github)
-        config.project__git__prefix_feature = "feature/"
-        get_version_id.return_value = None
-        config.repo_info["branch"] = "feature/230"
-
-        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
-        repo.branch = mock.Mock()
-        repo.branch.return_value.commit.parents = [
-            {"sha": "000"},
-            {"sha": "001"},
-        ]
-        repo.commit = mock.Mock()
-        repo.commit.return_value.parents = [
-            {"sha": "000"},
-            {"sha": "001"},
-        ]
-
-        assert config.find_matching_2gp_release(repo) == (None, None)
-
-    @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
-    def test_find_matching_2gp_release__less_than_5_commits(self, get_version_id):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        github = self._make_github()
-        config.get_github_api = mock.Mock(return_value=github)
-        config.project__git__prefix_feature = "feature/"
-        get_version_id.return_value = None
-        config.repo_info["branch"] = "feature/230"
-
-        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
-        repo.branch = mock.Mock()
-        repo.branch.return_value.commit.parents = [
-            {"sha": "000"},
-            {"sha": "001"},
-        ]
-        commit_mock_first = mock.Mock()
-        commit_mock_first.parents = [
-            {"sha": "000"},
-            {"sha": "001"},
-        ]
-        commit_mock_second = mock.Mock()
-        commit_mock_second.parents = []
-        repo.commit = mock.Mock()
-        repo.commit.side_effect = [commit_mock_first, commit_mock_second]
-
-        assert config.find_matching_2gp_release(repo) == (None, None)
-        repo.commit.assert_has_calls([mock.call("000"), mock.call("000")])
-
-    def test_find_matching_2gp_release__release_branch_not_found(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        github = self._make_github()
-        config.get_github_api = mock.Mock(return_value=github)
-        config.project__git__prefix_feature = "feature/"
-        config.repo_info["branch"] = "feature/230"
-
-        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
-        ex = NotFoundError(mock.Mock())
-        repo.branch = mock.Mock(side_effect=[mock.Mock(), ex])
-        assert config.find_matching_2gp_release(repo) == (None, None)
-
-    def test_find_matching_2gp_release__feature_branch_prefix_not_found(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        github = self._make_github()
-        # remove cumulusci.yml
-        github.repositories["CumulusCI-Test-Dep"]._contents = {}
-        config.get_github_api = mock.Mock(return_value=github)
-        config.project__git__prefix_feature = "feature/"
-        config.repo_info["branch"] = "feature/230"
-
-        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
-        assert config.find_matching_2gp_release(repo) == (None, None)
-
-    @mock.patch("cumulusci.core.config.project_config.get_version_id_from_commit")
-    def test_get_ref_for_dependency_uses_2gp(self, get_version_id):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        github = self._make_github()
-        config.get_github_api = mock.Mock(return_value=github)
-        config.project__git__prefix_feature = "feature/"
-        get_version_id.return_value = "04t000000000000"
-        config.repo_info["branch"] = "feature/230"
-
-        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
-
-        assert config.get_ref_for_dependency(
-            repo, {"github": "https://github.com/Test/Test"}, match_release_branch=True
-        ) == ("04t000000000000", "commit_sha")
-
-    def test_get_ref_for_dependency_falls_back_from_2gp_to_1gp(self):
-        universal_config = UniversalConfig()
-        config = BaseProjectConfig(universal_config)
-        config.keychain = DummyKeychain()
-        github = self._make_github()
-        config.get_github_api = mock.Mock(return_value=github)
-        config.project__git__prefix_feature = "feature/"
-        config.find_matching_2gp_release = mock.Mock(return_value=(None, None))
-        config.find_latest_release = mock.Mock()
-        config.repo_info["branch"] = "feature/230"
-
-        repo = github.repository("SalesforceFoundation", "CumulusCI-Test-Dep")
-
-        print(
-            config.get_ref_for_dependency(
-                repo,
-                {"github": "https://github.com/Test/Test"},
-                match_release_branch=True,
-            )
-        )
-        assert config.get_ref_for_dependency(
-            repo, {"github": "https://github.com/Test/Test"}, match_release_branch=True
-        ) == (repo.latest_release(), "tag_sha")
-
     def test_get_task__included_source(self):
         universal_config = UniversalConfig()
         with temporary_dir() as d:
@@ -1239,23 +700,6 @@ class TestBaseProjectConfig(unittest.TestCase):
         os.remove(git_config_file)
         actual_line = project_config.git_config_remote_origin_url()
         assert actual_line is None  # no config file present
-
-    def test_split_repo_url(self):
-        name = "Cumulusci"
-        owner = "SFDO-Tooling"
-        project_config = BaseProjectConfig(UniversalConfig())
-
-        https_url = f"https://github.com/{owner}/{name}.git"
-        info = project_config._split_repo_url(https_url)
-        assert info["name"] == name
-        assert info["owner"] == owner
-        assert info["url"] == https_url
-
-        ssh_url = f"git@github.com:{owner}/{name}.git"
-        info = project_config._split_repo_url(ssh_url)
-        assert info["name"] == name
-        assert info["owner"] == owner
-        assert info["url"] == ssh_url
 
     def test_default_package_path(self):
         config = BaseProjectConfig(UniversalConfig())
@@ -2131,19 +1575,15 @@ class TestOrgConfig(unittest.TestCase):
             "dep@1.0": [VersionInfo("04t000000000001AAA", "1.0")]
         }
         result = config.resolve_04t_dependencies(
-            [{"namespace": "dep", "version": "1.0", "dependencies": []}]
+            [PackageNamespaceVersionDependency(namespace="dep", version="1.0")]
         )
-        assert result == [
-            {
-                "namespace": "dep",
-                "version": "1.0",
-                "version_id": "04t000000000001AAA",
-                "dependencies": [],
-            }
-        ]
+        print(result)
+        assert result == [PackageVersionIdDependency(version_id="04t000000000001AAA")]
 
     def test_resolve_04t_dependencies__not_installed(self):
         config = OrgConfig({}, "test")
         config._installed_packages = {}
         with pytest.raises(DependencyResolutionError):
-            config.resolve_04t_dependencies([{"namespace": "dep", "version": "1.0"}])
+            config.resolve_04t_dependencies(
+                [PackageNamespaceVersionDependency(namespace="dep", version="1.0")]
+            )

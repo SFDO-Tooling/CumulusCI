@@ -320,14 +320,14 @@ For example, let's examine the definition of the ``ci_master`` flow from the uni
                 flow: dependencies
                 options:
                     update_dependencies:
-                        include_beta: False
+                        resolution_strategy: production
             2:
                 flow: deploy_packaging
             3:
                 flow: config_packaging
 
 
-This flow specifies that when the subflow ``dependencies`` runs, the ``include_beta`` option passes a value of ``False`` to the ``update_dependencies`` task (which itself executes in the ``dependencies`` subflow).
+This flow specifies that when the subflow ``dependencies`` runs, the ``resolution_strategy`` option has a value of ``production`` for the ``update_dependencies`` task (which itself executes in the ``dependencies`` subflow).
 
 
 

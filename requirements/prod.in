@@ -1,6 +1,7 @@
 click
 coloredlogs
 cryptography
+docutils<0.17
 Faker
 fs
 github3.py
@@ -23,6 +24,6 @@ sarge
 selenium
 simple-salesforce
 snowfakery
-SQLAlchemy<1.4
+SQLAlchemy
 terminaltables
 xmltodict

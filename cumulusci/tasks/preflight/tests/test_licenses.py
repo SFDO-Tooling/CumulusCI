@@ -4,7 +4,7 @@ import unittest
 from cumulusci.tasks.preflight.licenses import (
     GetAvailableLicenses,
     GetAvailablePermissionSetLicenses,
-    GetAvailablePermissionSets
+    GetAvailablePermissionSets,
 )
 from cumulusci.tasks.salesforce.tests.util import create_task
 

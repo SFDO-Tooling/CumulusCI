@@ -61,6 +61,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
         project_config = create_project_config(repo_commit="abcdef")
         project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",
@@ -96,6 +97,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
         project_config = create_project_config(repo_commit="abcdef")
         project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",
@@ -142,6 +144,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
         project_config = create_project_config(repo_commit="abcdef")
         project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",
@@ -173,6 +176,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
         project_config = create_project_config(repo_commit="abcdef")
         project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",

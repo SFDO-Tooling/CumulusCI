@@ -38,7 +38,7 @@ class BaseReleaseNotesGenerator(object):
         return []
 
     def init_parsers(self):
-        """ Initializes the parser instances as the list self.parsers """
+        """Initializes the parser instances as the list self.parsers"""
         self.parsers = []
         self._init_parsers()
 
@@ -67,7 +67,7 @@ class BaseReleaseNotesGenerator(object):
             self.empty_change_notes.append(change_note)
 
     def render(self):
-        """ Returns the rendered release notes from all parsers as a string """
+        """Returns the rendered release notes from all parsers as a string"""
         release_notes = []
         for parser in self.parsers:
             parser_content = parser.render()

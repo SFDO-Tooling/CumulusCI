@@ -2,6 +2,7 @@ import json
 from functools import lru_cache
 
 from simple_salesforce import SalesforceMalformedRequest
+from cumulusci.tasks.bulkdata.step import BulkApiQueryOperation
 
 
 def batch_list(data, batch_size):
@@ -74,29 +75,14 @@ class MetadataPackageVersion(BasePushApiObject):
             version_number += " (Beta %s)" % self.build
         return version_number
 
-    def get_newer_released_version_objs(self, less_than_version=None):
+    def get_newer_released_version_objs(self):
         where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released' AND "
         version_info = {"major": self.major, "minor": self.minor, "patch": self.patch}
         where += f"(MajorVersion > {version_info['major']} OR (MajorVersion = {version_info['major']} AND MinorVersion > {version_info['minor']}))"
         if self.patch:
-            patch_where = f" OR (MajorVersion = {version_info['major']} AND MinorVersion = {version_info['minor']} AND PatchVersion > {version_info['patch']})"
+            patch_where = f" OR (MajorVersion = {version_info['major']} AND MinorVersion = {version_info['minor']} AND PatchVersion >= {version_info['patch']})"
             where = where[:-1] + patch_where + where[-1:]
-
-        if less_than_version:
-            version_info = {
-                "major": less_than_version.major,
-                "minor": less_than_version.minor,
-                "patch": less_than_version.patch,
-            }
-            less_than_where = f" AND (MajorVersion < {version_info['major']} OR (MajorVersion = {version_info['major']} AND MinorVersion < {version_info['minor']}))"
-            if less_than_version.patch:
-                patch_where = f" OR (MajorVersion = {version_info['major']} AND MinorVersion = {version_info['minor']} AND PatchVersion < {version_info['patch']})"
-                less_than_where = (
-                    less_than_where[:-1] + patch_where + less_than_where[-1:]
-                )
-            where += less_than_where
-
-        return self.package.get_package_version_objs(where)  # versions
+        return self.package.get_package_version_objs(where)
 
     def get_older_released_version_objs(self, greater_than_version=None):
         where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released' AND "
@@ -115,13 +101,13 @@ class MetadataPackageVersion(BasePushApiObject):
             }
             greater_than_where = f" AND (MajorVersion > {version_info['major']} OR (MajorVersion = {version_info['major']} AND MinorVersion > {version_info['minor']}))"
             if greater_than_version.patch:
-                patch_where = f" OR (MajorVersion = {version_info['major']} AND MinorVersion = {version_info['minor']} AND PatchVersion > {version_info['patch']})"
+                patch_where = f" OR (MajorVersion = {version_info['major']} AND MinorVersion = {version_info['minor']} AND PatchVersion >= {version_info['patch']})"
                 greater_than_where = (
                     greater_than_where[:-1] + patch_where + greater_than_where[-1:]
                 )
             where += greater_than_where
 
-        return self.package.get_package_version_objs(where)  # versions
+        return self.package.get_package_version_objs(where)
 
     def get_subscribers(self, where=None, limit=None):
         where = self.format_where("MetadataPackageVersionId", where)
@@ -247,9 +233,11 @@ class PackageSubscriber(object):
 
 
 class SalesforcePushApi(object):
-    """ API Wrapper for the Salesforce Push API """
+    """API Wrapper for the Salesforce Push API"""
 
-    def __init__(self, sf, logger, lazy=None, default_where=None, batch_size=None):
+    def __init__(
+        self, sf, logger, lazy=None, default_where=None, batch_size=None, bulk=None
+    ):
         self.sf = sf
         self.logger = logger
 
@@ -265,12 +253,24 @@ class SalesforcePushApi(object):
             batch_size = 200
         self.batch_size = batch_size
 
-    def return_query_records(self, query):
-        res = self.sf.query_all(query)
-        if res["totalSize"] > 0:
-            return res["records"]
+        self.bulk = bulk
+
+    def return_query_records(self, query, field_names=None, sobject=None):
+        res = []
+        if self.bulk and field_names and sobject:
+            step = BulkApiQueryOperation(
+                sobject=sobject, api_options={}, context=self, query=query
+            )
+            step.query()
+            for row in step.get_results():
+                res.append(dict(zip(field_names, row)))
+            return res
         else:
-            return []
+            res = self.sf.query_all(query)
+            if res["totalSize"] > 0:
+                return res["records"]
+            else:
+                return []
 
     def format_where_clause(self, where, obj=None):
         if obj and obj in self.default_where:
@@ -359,12 +359,21 @@ class SalesforcePushApi(object):
     @lru_cache(32)
     def get_subscribers(self, where=None, limit=None):
         where = self.format_where_clause(where, obj="PackageSubscriber")
-        query = (
-            "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber%s"
-            % where
-        )
+        field_names = [
+            "Id",
+            "MetadataPackageVersionId",
+            "InstalledStatus",
+            "OrgName",
+            "OrgKey",
+            "OrgStatus",
+            "OrgType",
+        ]
+        query = f"SELECT {', '.join(field_names)} from PackageSubscriber{where}"
         query = self.add_query_limit(query, limit)
-        return self.return_query_records(query)
+
+        return self.return_query_records(
+            query, field_names=field_names, sobject="PackageSubscriber"
+        )
 
     @lru_cache(32)
     def get_subscriber_objs(self, where=None, limit=None):
@@ -394,13 +403,14 @@ class SalesforcePushApi(object):
 
     @lru_cache(32)
     def get_push_requests(self, where=None, limit=None):
-        where = self.format_where_clause(where, obj="PackagePushRequest")
-        query = (
-            "SELECT Id, PackageVersionId, ScheduledStartTime, Status FROM PackagePushRequest%s ORDER BY ScheduledStartTime DESC"
-            % where
-        )
+        sobject = "PackagePushRequest"
+        field_names = ["Id", "PackageVersionId", "ScheduledStartTime", "Status"]
+        where = self.format_where_clause(where, obj=sobject)
+        query = f"SELECT {', '.join(field_names)} FROM {sobject}{where} ORDER BY ScheduledStartTime DESC"
         query = self.add_query_limit(query, limit)
-        return self.return_query_records(query)
+        return self.return_query_records(
+            query, field_names=field_names, sobject=sobject
+        )
 
     @lru_cache(32)
     def get_push_request_objs(self, where=None, limit=None):
@@ -428,12 +438,17 @@ class SalesforcePushApi(object):
     @lru_cache(32)
     def get_push_jobs(self, where=None, limit=None):
         where = self.format_where_clause(where)
-        query = (
-            "SELECT Id, PackagePushRequestId, SubscriberOrganizationKey, Status FROM PackagePushJob%s"
-            % where
-        )
+        field_names = [
+            "Id",
+            "PackagePushRequestId",
+            "SubscriberOrganizationKey",
+            "Status",
+        ]
+        query = f"SELECT {', '.join(field_names)} FROM PackagePushJob{where}"
         query = self.add_query_limit(query, limit)
-        return self.return_query_records(query)
+        return self.return_query_records(
+            query, field_names=field_names, sobject="PackagePushJob"
+        )
 
     @lru_cache(32)
     def get_push_job_objs(self, where=None, limit=None):
@@ -476,13 +491,22 @@ class SalesforcePushApi(object):
 
     @lru_cache(32)
     def get_push_errors(self, where=None, limit=None):
+        sobject = "PackagePushError"
         where = self.format_where_clause(where)
-        query = (
-            "SELECT Id, PackagePushJobId, ErrorSeverity, ErrorType, ErrorTitle, ErrorMessage, ErrorDetails FROM PackagePushError%s"
-            % where
-        )
+        field_names = [
+            "Id",
+            "PackagePushJobId",
+            "ErrorSeverity",
+            "ErrorType",
+            "ErrorTitle",
+            "ErrorMessage",
+            "ErrorDetails",
+        ]
+        query = f"SELECT {', '.join(field_names)} FROM {sobject}{where}"
         query = self.add_query_limit(query, limit)
-        return self.return_query_records(query)
+        return self.return_query_records(
+            query, field_names=field_names, sobject=sobject
+        )
 
     @lru_cache(32)
     def get_push_error_objs(self, where=None, limit=None):

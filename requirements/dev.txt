@@ -13,11 +13,11 @@ appdirs==1.4.4
     #   virtualenv
 attrs==20.3.0
     # via pytest
-babel==2.9.0
+babel==2.9.1
     # via sphinx
 beautifulsoup4==4.9.3
     # via furo
-black==20.8b1
+black==21.4b2
     # via -r requirements/dev.in
 bleach==3.3.0
     # via readme-renderer
@@ -38,6 +38,8 @@ click==7.1.2
     #   pip-tools
 colorama==0.4.4
     # via twine
+contextvars==2.4
+    # via -r requirements/dev.in
 coverage[toml]==5.5
     # via
     #   -r requirements/dev.in
@@ -50,11 +52,12 @@ docopt==0.6.2
     # via coveralls
 docutils==0.16
     # via
+    #   -c requirements/prod.txt
     #   readme-renderer
     #   sphinx
 factory-boy==3.2.0
     # via -r requirements/dev.in
-faker==7.0.1
+faker==8.1.1
     # via
     #   -c requirements/prod.txt
     #   factory-boy
@@ -62,11 +65,11 @@ filelock==3.0.12
     # via
     #   tox
     #   virtualenv
-flake8==3.9.0
+flake8==3.9.1
     # via -r requirements/dev.in
-furo==2021.3.20b30
+furo==2021.4.11b34
     # via -r requirements/dev.in
-identify==2.2.2
+identify==2.2.4
     # via pre-commit
 idna==2.10
     # via
@@ -75,7 +78,9 @@ idna==2.10
     #   yarl
 imagesize==1.2.0
     # via sphinx
-importlib-metadata==3.10.0
+immutables==0.15
+    # via contextvars
+importlib-metadata==4.0.1
     # via
     #   -c requirements/prod.txt
     #   keyring
@@ -100,7 +105,7 @@ multidict==5.1.0
     # via yarl
 mypy-extensions==0.4.3
     # via black
-nodeenv==1.5.0
+nodeenv==1.6.0
     # via pre-commit
 packaging==20.9
     # via
@@ -112,7 +117,7 @@ pathspec==0.8.1
     # via black
 pep517==0.10.0
     # via pip-tools
-pip-tools==6.0.1
+pip-tools==6.1.0
     # via -r requirements/dev.in
 pkginfo==1.7.0
     # via twine
@@ -120,7 +125,7 @@ pluggy==0.13.1
     # via
     #   pytest
     #   tox
-pre-commit==2.11.1
+pre-commit==2.12.1
     # via -r requirements/dev.in
 py==1.10.0
     # via
@@ -140,7 +145,7 @@ pytest-random-order==1.0.4
     # via -r requirements/dev.in
 pytest-vcr==1.0.2
     # via -r requirements/dev.in
-pytest==6.2.2
+pytest==6.2.3
     # via
     #   -r requirements/dev.in
     #   pytest-random-order
@@ -160,7 +165,7 @@ pyyaml==5.4.1
     #   vcrpy
 readme-renderer==29.0
     # via twine
-regex==2021.3.17
+regex==2021.4.4
     # via black
 requests-toolbelt==0.9.1
     # via twine
@@ -172,7 +177,7 @@ requests==2.25.1
     #   responses
     #   sphinx
     #   twine
-responses==0.13.2
+responses==0.13.3
     # via -r requirements/dev.in
 rfc3986==1.4.0
     # via twine
@@ -190,7 +195,7 @@ snowballstemmer==2.1.0
     # via sphinx
 soupsieve==2.2.1
     # via beautifulsoup4
-sphinx==3.5.3
+sphinx==3.5.4
     # via
     #   -r requirements/dev.in
     #   furo
@@ -222,18 +227,12 @@ toml==0.10.2
     #   tox
 tox==3.23.0
     # via -r requirements/dev.in
-tqdm==4.59.0
+tqdm==4.60.0
     # via twine
 twine==3.4.1
     # via -r requirements/dev.in
-typed-ast==1.4.2
-    # via black
 typeguard==2.10.0
     # via -r requirements/dev.in
-typing-extensions==3.7.4.3
-    # via
-    #   -c requirements/prod.txt
-    #   black
 urllib3==1.26.4
     # via
     #   -c requirements/prod.txt
@@ -243,7 +242,7 @@ vcrpy==4.1.1
     # via
     #   -r requirements/dev.in
     #   pytest-vcr
-virtualenv==20.4.3
+virtualenv==20.4.4
     # via
     #   pre-commit
     #   tox
@@ -261,9 +260,9 @@ zipp==3.4.1
     #   importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
-pip==21.0.1
+pip==21.1
     # via pip-tools
-setuptools==54.2.0
+setuptools==56.0.0
     # via
     #   -c requirements/prod.txt
     #   sphinx

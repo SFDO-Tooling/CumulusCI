@@ -215,6 +215,21 @@ def find_repo_feature_prefix(repo: Repository) -> str:
     )
 
 
+def find_repo_2gp_context(repo: Repository) -> str:
+    contents = repo.file_contents(
+        "cumulusci.yml",
+        ref=repo.branch(repo.default_branch).commit.sha,
+    )
+    head_cumulusci_yml = cci_safe_load(io.StringIO(contents.decoded.decode("utf-8")))
+    return (
+        head_cumulusci_yml.get("project", {})
+        .get("git", {})
+        .get(
+            "2gp_context", "Build Feature Test Package"
+        )  # TODO: source default from our `cumulusci.yml`
+    )
+
+
 def get_tag_by_name(repo: Repository, tag_name: str) -> Tag:
     """Fetches a tag by name from the given repository"""
     ref = get_ref_for_tag(repo, tag_name)
@@ -234,3 +249,21 @@ def get_ref_for_tag(repo: Repository, tag_name: str) -> Reference:
         raise DependencyLookupError(
             f"Could not find reference for 'tags/{tag_name}' on GitHub"
         )
+
+
+def get_version_id_from_tag(repo: Repository, tag_name: str) -> str:
+    """Given the name of a tag, return the version_id in the tag's message.
+
+    @param tag_name: the name of the tag
+    @param repo: the repository of the package to look for a release in
+    @returns: the 04tid in the tag's messages
+    """
+    tag = get_tag_by_name(repo, tag_name)
+    for line in tag.message.split("\n"):
+        if line.startswith("version_id:"):
+            version_id = line.split("version_id: ")[1]
+            if not version_id.startswith("04t"):
+                continue
+            return version_id
+
+    raise DependencyLookupError(f"Could not find version_id for tag {tag_name}")

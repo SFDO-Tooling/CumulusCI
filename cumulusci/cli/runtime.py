@@ -1,3 +1,4 @@
+import functools
 import os
 import sys
 from subprocess import call
@@ -6,7 +7,7 @@ import click
 import keyring
 import pkg_resources
 
-from cumulusci import __version__
+from cumulusci.cli.utils import get_installed_version
 from cumulusci.core.runtime import BaseCumulusCI
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import OrgNotFound
@@ -161,6 +162,22 @@ class CliRuntime(BaseCumulusCI):
 CliConfig = CliRuntime
 
 
-def get_installed_version():
-    """ returns the version name (e.g. 2.0.0b58) that is installed """
-    return pkg_resources.parse_version(__version__)
+def pass_runtime(func=None, require_project=True, require_keychain=False):
+    """Decorator which passes the CCI runtime object as the first arg to a click command."""
+
+    def decorate(func):
+        @click.pass_context
+        def new_func(ctx, *args, **kw):
+            runtime = ctx.obj
+            if require_project and runtime.project_config is None:
+                raise runtime.project_config_error
+            if require_keychain:
+                runtime._load_keychain()
+            func(runtime, *args, **kw)
+
+        return functools.update_wrapper(new_func, func)
+
+    if func is None:
+        return decorate
+    else:
+        return decorate(func)

@@ -84,7 +84,7 @@ create_task_fixture = fixture(create_task_fixture, scope="function")
 # TODO: This should also chdir to a temp directory which
 #       can represent the repo-root, but that will require
 #       test case changes.
-@pytest.fixture(autouse=True, scope="session")
+@pytest.fixture(autouse=True)
 def patch_home_and_env(request):
     "Patch the default home directory and $HOME environment for all tests at once."
     with TemporaryDirectory(prefix="fake_home_") as home, mock_env(home):

@@ -36,7 +36,7 @@ class TestFileutils:
             raise
 
     def test_binary_becomes_string(self):
-        with load_from_source(BytesIO(b"foo")) as (path, file):
+        with load_from_source(BytesIO(b"foo")) as (file, path):
             data = file.read()
             assert isinstance(data, str)
             assert data == "foo"
@@ -45,37 +45,37 @@ class TestFileutils:
         with temporary_dir():
             with open("writable", "wt") as t:
                 with pytest.raises(UnsupportedOperation):
-                    with load_from_source(t) as (filename, data):
+                    with load_from_source(t) as (data, filename):
                         pass
 
     @responses.activate
     def test_load_from_url(self):
         html = "<!DOCTYPE HTML ..."
         responses.add("GET", "http://www.salesforce.com", body=html)
-        with load_from_source("http://www.salesforce.com") as (filename, data):
+        with load_from_source("http://www.salesforce.com") as (data, filename):
             assert data.read() == html
 
     def test_load_from_Path(self):
         p = Path(cumulusci.__file__).parent / "cumulusci.yml"
-        with load_from_source(p) as (filename, data):
+        with load_from_source(p) as (data, filename):
             assert "tasks:" in data.read()
 
     def test_load_from_path_string(self):
         p = Path(cumulusci.__file__).parent / "cumulusci.yml"
-        with load_from_source(str(p)) as (filename, data):
+        with load_from_source(str(p)) as (data, filename):
             assert "tasks:" in data.read()
 
     def test_load_from_open_file(self):
         p = Path(cumulusci.__file__).parent / "cumulusci.yml"
         with open(p) as f:
-            with load_from_source(f) as (filename, data):
+            with load_from_source(f) as (data, filename):
                 assert "tasks:" in data.read()
                 assert str(p) == filename
 
     def test_load_from_fs_resource(self):
         p = Path(cumulusci.__file__).parent / "cumulusci.yml"
         with open_fs_resource(p) as p2:
-            with load_from_source(p2) as (filename, data):
+            with load_from_source(p2) as (data, filename):
                 assert "tasks:" in data.read()
 
 

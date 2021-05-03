@@ -197,7 +197,7 @@ class SfdxOrgConfig(OrgConfig):
             raise SfdxOrgException(message)
 
     def refresh_oauth_token(self, keychain):
-        """ Use sfdx force:org:describe to refresh token instead of built in OAuth handling """
+        """Use sfdx force:org:describe to refresh token instead of built in OAuth handling"""
         if hasattr(self, "_sfdx_info"):
             # Cache the sfdx_info for 1 hour to avoid unnecessary calls out to sfdx CLI
             delta = datetime.datetime.utcnow() - self._sfdx_info_date

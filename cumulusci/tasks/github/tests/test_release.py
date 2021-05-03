@@ -27,6 +27,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
         self.project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",
@@ -82,6 +83,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
                         "version": "1.0",
                         "version_id": "04t000000000000",
                         "dependencies": [{"namespace": "foo", "version": "1.0"}],
+                        "package_type": "1GP",
                     }
                 }
             ),
@@ -95,6 +97,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             },
             task.return_values,
         )
+        assert "package_type: 1GP" in responses.calls._calls[3].request.body
 
     @responses.activate
     def test_run_task__release_already_exists(self):
@@ -112,7 +115,13 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         task = CreateRelease(
             self.project_config,
             TaskConfig(
-                {"options": {"version": "1.0", "version_id": "04t000000000000"}}
+                {
+                    "options": {
+                        "version": "1.0",
+                        "version_id": "04t000000000000",
+                        "package_type": "1GP",
+                    }
+                }
             ),
         )
         with self.assertRaises(GithubException):

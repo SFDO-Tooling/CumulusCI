@@ -5,6 +5,7 @@ from cumulusci.core.config import UniversalConfig, BaseProjectConfig
 from cumulusci.core.exceptions import NotInProject, ProjectConfigNotFound
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.flowrunner import FlowCallback, FlowCoordinator
+from cumulusci.core.debug import get_debug_mode
 
 
 # pylint: disable=assignment-from-none
@@ -18,6 +19,7 @@ class BaseCumulusCI(object):
         self.universal_config = None
         self.project_config = None
         self.keychain = None
+        self.debug_mode = get_debug_mode()
 
         self._load_universal_config()
 
@@ -85,7 +87,7 @@ class BaseCumulusCI(object):
             self.project_config.keychain = self.keychain
 
     def get_flow(self, name, options=None):
-        """ Get a primed and readytogo flow coordinator. """
+        """Get a primed and readytogo flow coordinator."""
         flow_config = self.project_config.get_flow(name)
         callbacks = self.callback_class()
         coordinator = FlowCoordinator(
