@@ -31,9 +31,9 @@ from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import KeychainNotFound
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.exceptions import NamespaceNotFoundError
-from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.source import LocalFolderSource
+from cumulusci.oauth.exceptions import OAuthError
 from cumulusci.utils import temporary_dir
 from cumulusci.utils import touch
 from cumulusci.tests.util import DummyKeychain
@@ -775,13 +775,22 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
 
 
 class TestOrgConfig(unittest.TestCase):
-    @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
-    def test_refresh_oauth_token(self, SalesforceOAuth2):
-        config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
+    @mock.patch("cumulusci.core.config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token(self, OAuth2Client):
+        config = OrgConfig(
+            {
+                "refresh_token": mock.sentinel.refresh_token,
+                "instance_url": "http://instance_url_111.com",
+            },
+            "test",
+        )
+        keychain = mock.Mock()
+        keychain.get_service.return_value = mock.Mock(
+            client_id="asdf", client_secret="asdf"
+        )
         config._load_userinfo = mock.Mock()
         config._load_orginfo = mock.Mock()
-        keychain = mock.Mock()
-        SalesforceOAuth2.return_value = oauth = mock.Mock()
+        OAuth2Client.return_value = oauth = mock.Mock()
         oauth.refresh_token.return_value = resp = mock.Mock(status_code=200)
         resp.json.return_value = {}
 
@@ -789,12 +798,21 @@ class TestOrgConfig(unittest.TestCase):
 
         oauth.refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
 
-    @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
-    def test_refresh_oauth_token__bad_refresh_json(self, SalesforceOAuth2):
-        config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
-        SalesforceOAuth2.return_value = oauth = mock.Mock()
-        oauth.refresh_token.return_value = resp = mock.Mock(status_code=200)
+    @mock.patch("cumulusci.core.config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__bad_refresh_json(self, OAuth2Client):
+        config = OrgConfig(
+            {
+                "refresh_token": mock.sentinel.refresh_token,
+                "instance_url": "http://instance_url_111.com",
+            },
+            "test",
+        )
         keychain = mock.Mock()
+        keychain.get_service.return_value = mock.Mock(
+            client_id="asdf", client_secret="asdf"
+        )
+        OAuth2Client.return_value = oauth = mock.Mock()
+        oauth.refresh_token.return_value = resp = mock.Mock(status_code=200)
         resp.json.side_effect = json.JSONDecodeError("blah", "Blah", 0)
 
         with pytest.raises(CumulusCIException) as e:
@@ -813,6 +831,9 @@ class TestOrgConfig(unittest.TestCase):
             "test",
         )
         keychain = mock.Mock()
+        keychain.get_service.return_value = mock.Mock(
+            client_id="asdf", client_secret="asdf"
+        )
 
         responses.add(
             responses.POST, "http://instance_url_111.com/services/oauth2/token"
@@ -826,14 +847,27 @@ class TestOrgConfig(unittest.TestCase):
         with self.assertRaises(AttributeError):
             config.refresh_oauth_token(None)
 
-    @mock.patch("cumulusci.core.config.OrgConfig.SalesforceOAuth2")
-    def test_refresh_oauth_token_error(self, SalesforceOAuth2):
-        config = OrgConfig({"refresh_token": mock.sentinel.refresh_token}, "test")
+    @mock.patch("cumulusci.core.config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token_error(self, OAuth2Client):
+        config = OrgConfig(
+            {
+                "refresh_token": mock.sentinel.refresh_token,
+                "instance_url": "http://instance_url_111.com",
+            },
+            "test",
+        )
         keychain = mock.Mock()
-        SalesforceOAuth2.return_value = oauth = mock.Mock()
-        oauth.refresh_token.return_value = mock.Mock(status_code=400, text=":(")
+        keychain.get_service.return_value = mock.Mock(
+            client_id="asdf", client_secret="asdf"
+        )
 
-        with self.assertRaises(SalesforceCredentialsException):
+        client_instance = mock.Mock()
+        client_instance.refresh_token.return_value = mock.Mock(
+            status_code=400, text=":("
+        )
+        OAuth2Client.return_value = client_instance
+
+        with self.assertRaises(OAuthError):
             config.refresh_oauth_token(keychain)
 
     @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))

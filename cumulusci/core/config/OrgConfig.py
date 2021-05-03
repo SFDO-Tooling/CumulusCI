@@ -1,5 +1,8 @@
 from collections import defaultdict
 from collections import namedtuple
+from cumulusci.oauth.exceptions import OAuthError
+from cumulusci.oauth.client import OAuth2Client
+from cumulusci.oauth.client_info import OAuthClientInfo
 from distutils.version import StrictVersion
 import os
 import re
@@ -13,8 +16,6 @@ from simple_salesforce.exceptions import SalesforceError, SalesforceResourceNotF
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import DependencyResolutionError
-from cumulusci.core.exceptions import SalesforceCredentialsException
-from cumulusci.oauth.salesforce import SalesforceOAuth2
 from cumulusci.oauth.salesforce import jwt_session
 from cumulusci.utils.fileutils import open_fs_resource
 from cumulusci.utils.http.requests_utils import safe_json_from_response
@@ -32,7 +33,7 @@ class OrgConfig(BaseConfig):
     """ Salesforce org configuration (i.e. org credentials) """
 
     # make sure it can be mocked for tests
-    SalesforceOAuth2 = SalesforceOAuth2
+    OAuth2Client = OAuth2Client
 
     def __init__(self, config: dict, name: str, keychain=None, global_org=False):
         self.keychain = keychain
@@ -95,19 +96,20 @@ class OrgConfig(BaseConfig):
         if not client_id:
             client_id = connected_app.client_id
             client_secret = connected_app.client_secret
-        sf_oauth = self.SalesforceOAuth2(
-            client_id,
-            client_secret,
-            connected_app.callback_url,  # Callback url isn't really used for this call
-            auth_site=self.instance_url,
-        )
 
-        resp = sf_oauth.refresh_token(self.refresh_token)
-        if resp.status_code != 200:
-            raise SalesforceCredentialsException(
-                f"Error refreshing OAuth token: {resp.text}"
-            )
-        return safe_json_from_response(resp)
+        sf_oauth_info = OAuthClientInfo(
+            client_id=client_id,
+            client_secret=client_secret,
+            auth_uri=f"{self.instance_url}/services/oauth2/authorize",
+            token_uri=f"{self.instance_url}/services/oauth2/token",
+            revoke_uri=f"{self.instance_url}/services/oauth2/revoke",
+            scope="web full refresh_token",
+        )
+        sf_oauth = self.OAuth2Client(sf_oauth_info)
+        response = sf_oauth.refresh_token(self.refresh_token)
+        if response.status_code != 200:
+            raise OAuthError(f"Error refreshing OAuth token: {response.text}")
+        return safe_json_from_response(response)
 
     @property
     def lightning_base_url(self):

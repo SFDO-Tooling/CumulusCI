@@ -27,6 +27,11 @@ class ServiceConfig(BaseConfig):
     pass
 
 
+from cumulusci.core.config.marketing_cloud_service_config import (
+    MarketingCloudServiceConfig,
+)
+
+
 class TaskConfig(BaseConfig):
     """ A task with its configuration merged """
 
@@ -56,6 +61,7 @@ __all__ = (
     "FlowConfig",
     "OrgConfig",
     "ServiceConfig",
+    "MarketingCloudServiceConfig",
     "TaskConfig",
     "BaseTaskFlowConfig",
     "BaseProjectConfig",
