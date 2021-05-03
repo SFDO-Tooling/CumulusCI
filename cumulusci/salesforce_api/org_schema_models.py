@@ -88,6 +88,7 @@ class SObject(OrgSchemaModelMixin, Base):
     fields = relationship(
         "Field",
         collection_class=attribute_mapped_collection("name"),
+        back_populates="parent",
     )
     hasSubtypes = Column(Boolean)
     label = Column(String)
@@ -136,7 +137,7 @@ class Field(OrgSchemaModelMixin, Base):
     )
 
     sobject = Column(String, ForeignKey("sobjects.name"), nullable=False)
-    parent = relationship("SObject")
+    parent = relationship("SObject", back_populates="fields")
     name = Column(String, nullable=False)
     aggregatable = Column(Boolean)
     aiPredictionField = Column(Boolean)
