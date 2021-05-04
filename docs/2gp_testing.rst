@@ -2,17 +2,23 @@ Testing with Second-Generation Packaging
 ========================================
 
 CumulusCI and the CumulusCI Flow make it easy to harness the power of second-generation
-managed packages to enhance testing of first- and second-generation managed package products.
-Not only does this give us the ability to perform end-to-end testing for packages with more complex
-dependency structures sooner in the development lifecycle, but it also allows us to build our entire
-2GP testing and development framework *before* we migrate our products from 1GP to 2GP. When we
-do migrate, we can do so with complete confidence as we will have already been testing our
-products as 2GP packages for many months.
+managed packages to implement an advanced, comprehensive testing process for *both* 
+first- and second-generation managed package products.
+
+This process yields multiple benefits:
+
+* You can test managed packages before merging code.
+* You gain the ability to perform end-to-end testing for packages with more complex
+dependency structures earlier in the development lifecycle.
+* For existing 1GP products, it also allows for the creation of a full-scale
+  2GP testing and development framework *before* migrating products from 1GP to 2GP. 
+  Migration, when generally available, will be much easier because products are already
+  being tested as 2GPs.
 
 Salesforce.org is actively using this process for feature-level testing and end-to-end testing of
 dozens of existing first-generation packages, while preparing for the migration into second-
-generation packaging. This process is also applicable for testing second-generation package
-products.
+generation packaging. This process is also applicable for testing products that started
+as second-generation packages.
 
 
 Building 2GP Beta Packages in Continuous Integration
@@ -27,7 +33,8 @@ role in supporting feature-branch testing) but with the same namespace as the ma
 The 2GP test package is also built using the ``Skip Validation`` option, which defers
 validation of the package until install time. Skipping validation ensures that feature test
 packages build extremely quickly, and also avoids locking in dependency versions - making
-it easy to achieve complex end-to-end testing workflows, as described in `2GP Testing for Quality Assurance`_.
+it easy to achieve complex end-to-end testing workflows, as described in
+`2GP Testing for Quality Assurance`_.
 
 CumulusCI stores data about feature test packages in GitHub commit-status messages. When the
 ``build_feature_test_package`` flow completes successfully, the ``04t`` id of the created
@@ -62,24 +69,31 @@ main branch or deployed to a 1GP packaging org.
     may use components with differing behaviors. Consult the `Metadata Coverage Report <https://developer.salesforce.com/docs/metadata-coverage>`_
     with any questions.
 
+Manual QA can be executed on feature branches via the flow ``qa_org_2gp``, which operates just like
+``ci_feature_2gp`` but which also executes ``config_qa`` to prepare an org for manual testing.
+Similarly, Robot tests may be executed against 2GP orgs by running ``qa_org_2gp`` instead of
+``qa_org`` before invoking ``robot``.
 
-2GP Testing for Quality Assurance on 1GP Packages
--------------------------------------------------
 
-The ``qa_org_2gp`` flow allows for performing manual and automated end-to-end tests of products sooner
-in the development lifecycle then was possible before for first-generation managed packages. 
+End-to-End Testing with Second-Generation Packages
+--------------------------------------------------
+
+The ``qa_org_2gp`` flow allows for performing manual and automated end-to-end tests of 
+multi-package products sooner in the development lifecycle then was previously possible. 
 Take the following example:
 
 * Product B has a dependency on Product A.
-* Product B is developing a new feature that are dependent on a new feature that is being developed for Product A.
+* Product B is developing a new feature that is dependent on a new feature 
+  being developed for Product A.
 
 Prior to testing with 2GP, end-to-end testing on Product A and B's linked features could only occur 
 once both products have moved significantly forward in the development lifecycle:
 
 * Both A and B merge their feature work into their main branch in a source control system.
-* New feature metadata is uploaded to the packaging org.
+* New feature metadata is uploaded to the packaging org, if the products are 1GPs.
 * New beta versions for both Product A and B are created
-* In many cases, a production release for Product A must also be created to satisfy B's dependency.
+* In many cases, a production release for Product A must also be created to satisfy B's dependency,
+  if the packages are 1GPs.
 
 Once all of the steps above have occurred, end-to-end testing with new managed package versions can take place.
 However, if *any* errors are found at this point the entire process has to start over again, and first-generation
@@ -89,7 +103,9 @@ Instead, a tester may execute the ``qa_org_2gp`` flow from a feature branch in t
 The following will occur:
 
 #. CumulusCI resolves dependencies as they are defined Product B's ``cumulusci.yml`` file,
-   using the ``commit_status`` resolution strategy. See dependency-resolution_ for more details.
+   using the ``commit_status`` resolution strategy. CumulusCI matches the current branch and release
+   against branches in the upstream dependencies to locate the most relevant 2GP packages for this testing process.
+   See dependency-resolution_ for more details.
 #. CumulusCI installs suitable 2GP feature test packages for Product A and any other dependencies, if found,
    or falls back to 1GP packages if not found.
 #. CumulusCI installs a Project B 2GP feature test package, sourced from a GitHub commit status
