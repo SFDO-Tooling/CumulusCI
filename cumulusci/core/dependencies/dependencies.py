@@ -370,9 +370,12 @@ class PackageNamespaceVersionDependency(StaticDependency):
         context: BaseProjectConfig,
         org: OrgConfig,
         options: PackageInstallOptions = None,
+        retry_options=None,
     ):
         if not options:
             options = PackageInstallOptions()
+        if not retry_options:
+            retry_options = DEFAULT_PACKAGE_RETRY_OPTIONS
 
         if "Beta" in self.version:
             version_string = self.version.split(" ")[0]
@@ -397,7 +400,7 @@ class PackageNamespaceVersionDependency(StaticDependency):
             self.namespace,
             self.version,
             options,
-            retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
+            retry_options=retry_options,
         )
 
     @property
@@ -424,9 +427,12 @@ class PackageVersionIdDependency(StaticDependency):
         context: BaseProjectConfig,
         org: OrgConfig,
         options: PackageInstallOptions = None,
+        retry_options=None,
     ):
         if not options:
             options = PackageInstallOptions()
+        if not retry_options:
+            retry_options = DEFAULT_PACKAGE_RETRY_OPTIONS
 
         if any(
             self.version_id == v.id
@@ -443,7 +449,7 @@ class PackageVersionIdDependency(StaticDependency):
             org,
             self.version_id,
             options,
-            retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
+            retry_options=retry_options,
         )
 
     @property
