@@ -1,6 +1,10 @@
 from pydantic import ValidationError
 
-from cumulusci.core.dependencies.dependencies import PackageInstallOptions
+from cumulusci.core.dependencies.dependencies import (
+    PackageInstallOptions,
+    PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
+)
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_install import (
@@ -83,11 +87,13 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         # We're not using resolution strategies here - we could be,
         # and this task could be a thin layer on top of update_dependencies.
         if version == "latest":
-            self.options["version"] = self.project_config.get_latest_version()
+            self.options["version"] = str(self.project_config.get_latest_version())
         elif version == "latest_beta":
-            self.options["version"] = self.project_config.get_latest_version(beta=True)
+            self.options["version"] = str(
+                self.project_config.get_latest_version(beta=True)
+            )
         elif version == "previous":
-            self.options["version"] = self.project_config.get_previous_version()
+            self.options["version"] = str(self.project_config.get_previous_version())
 
         # Ensure that this option is frozen in case the defaults ever change.
         self.options["security_type"] = self.options.get("security_type") or "FULL"
@@ -106,20 +112,21 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         version = self.options["version"]
         self.logger.info(f"Installing {self.options['name']} {version}")
 
-        if isinstance(version, str) and version.startswith("04t"):
-            install_package_by_version_id(
+        if version.startswith("04t"):
+            dep = PackageVersionIdDependency(version_id=version)
+            dep.install(
                 self.project_config,
                 self.org_config,
-                version,
                 self.install_options,
                 self.retry_options,
             )
         else:
-            install_package_by_namespace_version(
+            dep = PackageNamespaceVersionDependency(
+                namespace=self.options["namespace"], version=version
+            )
+            dep.install(
                 self.project_config,
                 self.org_config,
-                self.options["namespace"],
-                version,
                 self.install_options,
                 self.retry_options,
             )
