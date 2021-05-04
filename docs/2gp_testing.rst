@@ -1,7 +1,7 @@
 Testing with Second-Generation Packaging
 ========================================
 
-CumulusCI and the CumulusCI Flow make it easy to harnessing the power of second-generation
+CumulusCI and the CumulusCI Flow make it easy to harness the power of second-generation
 managed packages to enhance testing of first- and second-generation managed package products.
 Not only does this give us the ability to perform end-to-end testing for packages with more complex
 dependency structures sooner in the development lifecycle, but it also allows us to build our entire
