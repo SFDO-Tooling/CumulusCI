@@ -325,12 +325,12 @@ def org_list(runtime, json_flag, plain):
             )
             scratch_data.append(row)
             json_data[org] = {
-                "isDefault": is_org_default,
+                "is_default": is_org_default,
                 "days": org_days,
                 "expired": not org_config.active,
                 "config": org_config.config_name,
                 "domain": domain,
-                "isScratch": True,
+                "is_scratch": True,
             }
         else:
             username = org_config.config.get(
@@ -339,7 +339,7 @@ def org_list(runtime, json_flag, plain):
             row.append(username)
             row.append(org_config.expires or "Unknown")
             persistent_data.append(row)
-            json_data[org] = {"isDefault": is_org_default, "isScratch": False}
+            json_data[org] = {"is_default": is_org_default, "is_scratch": False}
 
     if json_flag:
         click.echo(json.dumps(json_data))

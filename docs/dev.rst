@@ -282,13 +282,13 @@ This is an example of listing Salesforce.org's `EDA <https://github.com/Salesfor
 When ``update_dependencies`` runs, these steps are taken against the referenced repository.
 
 * Look for the ``cumulusci.yml`` file and parse if found.
-* Determine if the project has subfolders under ``unpackaged/pre``.  If found, deploy them first.
+* Determine if the project has subfolders under ``unpackaged/pre``.  If found, deploy them first, in alphabetical order.
 * Determine if the project specifies any dependencies in the ``cumulusci.yml`` file.  If found, recursively resolve those dependencies and any dependencies belonging to them.
 * Determine whether to install the project as as a managed package or unmanaged metadata:
     * If the project has a namespace configured in the ``cumulusci.yml`` file, treat the project as a managed package unless the ``unmanaged`` option is set to ``True`` in the dependency.
     * If the project has a namespace and is *not* configured as unmanaged, use the GitHub API to locate the latest managed release of the project and install it.
 * If the project is an unmanaged dependency, the main source directory is deployed as unmanaged metadata.
-* Determine if the project has subfolders under ``unpackaged/post``. If found, deploy them next. Namespace tokens are replaced with ``<namespace>__`` if the project is being installed as a managed package, or an empty string otherwise.
+* Determine if the project has subfolders under ``unpackaged/post``. If found, deploy them next, in alphabetical order. Namespace tokens are replaced with ``<namespace>__`` if the project is being installed as a managed package, or an empty string otherwise.
 
 
 
