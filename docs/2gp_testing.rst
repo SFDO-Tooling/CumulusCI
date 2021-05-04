@@ -9,7 +9,7 @@ This process yields multiple benefits:
 
 * You can test managed packages before merging code.
 * You gain the ability to perform end-to-end testing for packages with more complex
-dependency structures earlier in the development lifecycle.
+  dependency structures earlier in the development lifecycle.
 * For existing 1GP products, it also allows for the creation of a full-scale
   2GP testing and development framework *before* migrating products from 1GP to 2GP. 
   Migration, when generally available, will be much easier because products are already
