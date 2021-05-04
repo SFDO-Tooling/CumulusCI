@@ -563,22 +563,22 @@ class TestOrgCommands:
         run_click_command(org.org_list, runtime=runtime, json_flag=True, plain=False)
         expected = {
             "test0": {
-                "isDefault": True,
+                "is_default": True,
                 "days": "7",
                 "expired": True,
                 "config": "dev",
                 "domain": "",
-                "isScratch": True,
+                "is_scratch": True,
             },
             "test1": {
-                "isDefault": False,
+                "is_default": False,
                 "days": "1/7",
                 "expired": False,
                 "config": "dev",
                 "domain": "sneaky-master-2330-dev-ed.cs22",
-                "isScratch": True,
+                "is_scratch": True,
             },
-            "test2": {"isDefault": False, "isScratch": False},
+            "test2": {"is_default": False, "is_scratch": False},
         }
         echo.assert_called_once_with(json.dumps(expected))
 
