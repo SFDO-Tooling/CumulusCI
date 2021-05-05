@@ -569,3 +569,56 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             commit_dir.assert_called_once()
             expected_commit_message = "Published content from ref feature/publish"
             assert commit_dir.call_args[1]["commit_message"] == expected_commit_message
+
+    def test_included_dirs_match(self):
+        test_includes = [
+            "orgs/",
+            "public/public_readme.md",
+            "scripts/anon.cls",
+            "scripts/public",
+            "tasks/move_me.py",
+        ]
+        test_namelist = [
+            "orgs/",
+            "orgs/dev.json",
+            "orgs/feature.json",
+            "orgs/prerelease.json",
+            "orgs/release.json",
+            "orgs/trial.json",
+            "public/public_readme.md",
+            "scripts/",
+            "scripts/anon.cls",
+            "scripts/more_anon.cls",
+            "scripts/public/",
+            "scripts/public/anon.cls",
+            "scripts/public_to_global.cls",
+            "tasks/",
+            "tasks/move_me.py",
+            "tasks/unmoved.py",
+        ]
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "branch": "master",
+                    "ref": "some-branch-name",
+                    "repo_url": self.public_repo_url,
+                    "include": test_includes,
+                }
+            }
+        )
+        task = PublishSubtree(self.project_config, task_config)
+        expected_namelist = [
+            "orgs/",
+            "orgs/dev.json",
+            "orgs/feature.json",
+            "orgs/prerelease.json",
+            "orgs/release.json",
+            "orgs/trial.json",
+            "public/public_readme.md",
+            "scripts/anon.cls",
+            "scripts/public/",
+            "scripts/public/anon.cls",
+            "tasks/move_me.py",
+        ]
+        actual_namelist = task._filter_namelist(test_includes, test_namelist)
+        assert sorted(expected_namelist) == sorted(actual_namelist)
