@@ -1,4 +1,5 @@
 import json
+from packaging import version
 from functools import lru_cache
 
 from simple_salesforce import SalesforceMalformedRequest
@@ -76,38 +77,53 @@ class MetadataPackageVersion(BasePushApiObject):
         return version_number
 
     def get_newer_released_version_objs(self):
-        where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released' AND "
-        version_info = {"major": self.major, "minor": self.minor, "patch": self.patch}
-        where += f"(MajorVersion > {version_info['major']} OR (MajorVersion = {version_info['major']} AND MinorVersion > {version_info['minor']}))"
-        if self.patch:
-            patch_where = f" OR (MajorVersion = {version_info['major']} AND MinorVersion = {version_info['minor']} AND PatchVersion >= {version_info['patch']})"
-            where = where[:-1] + patch_where + where[-1:]
-        return self.package.get_package_version_objs(where)
+        where = (
+            f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released'"
+        )
+        result = [
+            package_version
+            for package_version in self.package.get_package_version_objs(where)
+            if version.parse(
+                f"{package_version.major}.{package_version.minor}.{package_version.patch}"
+            )
+            > version.parse(
+                f"{self.major}.{self.minor}.{self.patch}"
+            )  # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
+        ]
+        return result
 
     def get_older_released_version_objs(self, greater_than_version=None):
-        where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released' AND "
-        version_info = {"major": self.major, "minor": self.minor, "patch": self.patch}
-        where += f"(MajorVersion < {version_info['major']} OR (MajorVersion = {version_info['major']} AND MinorVersion < {version_info['minor']}))"
-
-        if self.patch:
-            patch_where = f" OR (MajorVersion = {version_info['major']} AND MinorVersion = {version_info['minor']} AND PatchVersion < {version_info['patch']})"
-            where = where[:-1] + patch_where + where[-1:]
-
         if greater_than_version:
-            version_info = {
-                "major": greater_than_version.major,
-                "minor": greater_than_version.minor,
-                "patch": greater_than_version.patch,
-            }
-            greater_than_where = f" AND (MajorVersion > {version_info['major']} OR (MajorVersion = {version_info['major']} AND MinorVersion > {version_info['minor']}))"
-            if greater_than_version.patch:
-                patch_where = f" OR (MajorVersion = {version_info['major']} AND MinorVersion = {version_info['minor']} AND PatchVersion >= {version_info['patch']})"
-                greater_than_where = (
-                    greater_than_where[:-1] + patch_where + greater_than_where[-1:]
+            greater_version = version.parse(
+                f"{greater_than_version.major}.{greater_than_version.minor}.{greater_than_version.patch}"
+            )
+        where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released'"  # AND "
+        if greater_than_version:
+            result = [
+                package_version
+                for package_version in self.package.get_package_version_objs(where)
+                if version.parse(
+                    f"{package_version.major}.{package_version.minor}.{package_version.patch}"
                 )
-            where += greater_than_where
+                < version.parse(f"{self.major}.{self.minor}.{self.patch}")
+                and version.parse(
+                    f"{package_version.major}.{package_version.minor}.{package_version.patch}"
+                )
+                >= greater_version  # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
+            ]
 
-        return self.package.get_package_version_objs(where)
+        else:
+            result = [
+                package_version
+                for package_version in self.package.get_package_version_objs(where)
+                if version.parse(
+                    f"{package_version.major}.{package_version.minor}.{package_version.patch}"
+                )
+                < version.parse(f"{self.major}.{self.minor}.{self.patch}")
+                # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
+            ]
+
+        return result
 
     def get_subscribers(self, where=None, limit=None):
         where = self.format_where("MetadataPackageVersionId", where)
@@ -233,7 +249,7 @@ class PackageSubscriber(object):
 
 
 class SalesforcePushApi(object):
-    """API Wrapper for the Salesforce Push API"""
+    """ API Wrapper for the Salesforce Push API """
 
     def __init__(
         self, sf, logger, lazy=None, default_where=None, batch_size=None, bulk=None
