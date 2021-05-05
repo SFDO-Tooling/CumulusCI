@@ -7,9 +7,9 @@ first- and second-generation managed package products.
 
 This process yields multiple benefits:
 
-* You can test managed packages before merging code.
-* You gain the ability to perform end-to-end testing for packages with more complex
-  dependency structures earlier in the development lifecycle.
+* You can test managed packages *as* managed packages, but before merging code.
+* You gain the ability to perform end-to-end testing across applications that span multiple packages
+  earlier in the development lifecycle.
 * For existing 1GP products, it also allows for the creation of a full-scale
   2GP testing and development framework *before* migrating products from 1GP to 2GP. 
   Migration, when generally available, will be much easier because products are already
@@ -34,7 +34,7 @@ The 2GP test package is also built using the ``Skip Validation`` option, which d
 validation of the package until install time. Skipping validation ensures that feature test
 packages build extremely quickly, and also avoids locking in dependency versions - making
 it easy to achieve complex end-to-end testing workflows, as described in
-`2GP Testing for Quality Assurance`_.
+`End-to-End Testing with Second-Generation Packages`_.
 
 CumulusCI stores data about feature test packages in GitHub commit-status messages. When the
 ``build_feature_test_package`` flow completes successfully, the ``04t`` id of the created
@@ -105,7 +105,7 @@ The following will occur:
 #. CumulusCI resolves dependencies as they are defined Product B's ``cumulusci.yml`` file,
    using the ``commit_status`` resolution strategy. CumulusCI matches the current branch and release
    against branches in the upstream dependencies to locate the most relevant 2GP packages for this testing process.
-   See dependency-resolution_ for more details.
+   See :ref:`dependency-resolution` for more details.
 #. CumulusCI installs suitable 2GP feature test packages for Product A and any other dependencies, if found,
    or falls back to 1GP packages if not found.
 #. CumulusCI installs a Project B 2GP feature test package, sourced from a GitHub commit status
