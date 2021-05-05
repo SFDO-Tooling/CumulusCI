@@ -1,7 +1,7 @@
 Testing with Second-Generation Packaging
 ========================================
 
-CumulusCI and the CumulusCI Flow make it easy to harness the power of second-generation
+CumulusCI makes it easy to harness the power of second-generation
 managed packages to implement an advanced, comprehensive testing process for *both* 
 first- and second-generation managed package products.
 
@@ -58,7 +58,7 @@ tests.
     this is implemented by using a Commit Status trigger to run ``ci_feature_2gp``; on other CI systems,
     a ``ci_feature_2gp`` build may be made dependent on a ``build_feature_test_package`` build.
 
-2GP tests run in CI can replace the use of namespaced scratch orgs for most automated testing objectives. 
+Running 2GP tests in CI can replace the use of namespaced scratch orgs for most automated testing objectives. 
 2GP testing orgs provide a more accurate representation of how namespaces are applied and how metadata will 
 behave once packaged, making it possible to catch packaging-related issues *before* code is merged to the
 main branch or deployed to a 1GP packaging org. 
@@ -86,7 +86,7 @@ Take the following example:
 * Product B is developing a new feature that is dependent on a new feature 
   being developed for Product A.
 
-Prior to testing with 2GP, end-to-end testing on Product A and B's linked features could only occur 
+Without the ability to test with 2GP packages, end-to-end testing on Product A and B's linked features could only occur 
 once both products have moved significantly forward in the development lifecycle:
 
 * Both A and B merge their feature work into their main branch in a source control system.
