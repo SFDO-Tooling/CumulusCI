@@ -5,7 +5,7 @@ import click
 
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.utils import import_global
+from cumulusci.core.utils import import_global, import_class
 from .runtime import pass_runtime
 from .ui import CliTable
 
@@ -159,10 +159,21 @@ class ConnectServiceCommand(click.MultiCommand):
                 validator = import_global(validator_path)
                 validator(serv_conf)
 
+            ConfigClass = ServiceConfig
+            if "class_path" in service_config:
+                ConfigClass = import_class(service_config["class_path"])
+                if "connect" in dir(ConfigClass):
+                    client_info = runtime.keychain.get_service(
+                        "oauth-client", kwargs["oauth_client"]
+                    )
+                    oauth_dict = ConfigClass.connect(client_info)
+                    for k, v in oauth_dict.items():
+                        serv_conf[k] = v
+
             runtime.keychain.set_service(
                 service_type,
                 service_name,
-                ServiceConfig(serv_conf),
+                ConfigClass(serv_conf, runtime.keychain),
             )
             click.echo(f"Service {service_type}:{service_name} is now connected")
 

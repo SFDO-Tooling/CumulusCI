@@ -1,5 +1,5 @@
-from pydantic import BaseModel
 from pydantic import AnyUrl
+from pydantic import BaseModel
 from typing import Optional
 
 
@@ -10,8 +10,8 @@ class OAuthClientInfo(BaseModel):
     client_secret: Optional[str]
     auth_uri: AnyUrl
     token_uri: AnyUrl
-    revoke_uri: AnyUrl
+    revoke_uri: Optional[AnyUrl]
     callback_url: AnyUrl = "http://localhost:8080/callback"
-    scope: str
+    scope: Optional[str]
     prompt: Optional[str]  # required for SF
     state: Optional[str]

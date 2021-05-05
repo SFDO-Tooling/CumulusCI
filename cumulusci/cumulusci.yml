@@ -626,6 +626,9 @@ tasks:
     group: NPSP/EDA
     options:
       restore: True
+  mc:
+    class_path: cumulusci.tasks.marketing_cloud.base.BaseMarketingCloudTask
+    description: "This is only a test"
 
 flows:
   ci_beta:
@@ -1187,7 +1190,7 @@ services:
         description: The email address to used by Github tasks when an operation requires an email address.
         required: True
     validator: cumulusci.core.github.validate_service
-  marketing_cloud:
+  marketing-cloud:
     description: Configure a connection to a Marketing Cloud instance
     class_path: cumulusci.core.config.MarketingCloudServiceConfig
     attributes:
@@ -1215,8 +1218,9 @@ services:
       token:
         description: Your API token to the MetaDeploy site (get from SITE_URL/admin/authtoken/token)
         required: True
-  oauth_client:
-    description:
+  oauth-client:
+    description: Holds information pertaining to a single OAuth client
+    class_path: cumulusci.oauth.client_info.OAuthClientInfo
     attributes:
       client_id:
         description: The client Id
@@ -1229,6 +1233,9 @@ services:
         required: True
       token_uri:
         description: The URI for where we request an access token
+        required: True
+      callback_url:
+        description: The URL that the auth server will callback to after authentication of the user
         required: True
 
 project:

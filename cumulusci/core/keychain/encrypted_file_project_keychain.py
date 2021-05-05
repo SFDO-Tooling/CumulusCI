@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import pickle
+import pydantic
 import typing as T
 
 from cryptography.hazmat.backends import default_backend
@@ -20,6 +21,7 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.utils import import_class
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
 
@@ -125,7 +127,10 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         if args[0].get("scratch"):
             config_class = ScratchOrgConfig
 
-        return config_class(*args)
+        if issubclass(config_class, pydantic.BaseModel):
+            return config_class(**args[0])
+        else:
+            return config_class(*args)
 
     def _validate_key(self):
         if not self.key:
@@ -405,13 +410,27 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         service_path = Path(
             f"{self.global_config_dir}/services/{service_type}/{alias}.service"
         )
+        if not service_path.parent.is_dir():
+            service_path.parent.mkdir()
         with open(service_path, "wb") as f:
             f.write(encrypted)
 
     def _get_service(self, service_type, alias):
+        ConfigClass = ServiceConfig
+        if "class_path" in self.project_config.config["services"][service_type]:
+            ConfigClass = import_class(
+                self.project_config.services[service_type]["class_path"]
+            )
+        extra = []
+        # MarketingCloudServiceConfig requires a keychain
+        # so that it can load its configured oauth-client service
+        if service_type == "marketing-cloud":
+            extra = [self]
+
         return self._decrypt_config(
-            ServiceConfig,
+            ConfigClass,
             self.services[service_type][alias],
+            extra=extra,
             context=f"service config ({service_type}/{alias})",
         )
 
