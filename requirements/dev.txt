@@ -17,7 +17,7 @@ babel==2.9.1
     # via sphinx
 beautifulsoup4==4.9.3
     # via furo
-black==21.4b2
+black==21.5b0
     # via -r requirements/dev.in
 bleach==3.3.0
     # via readme-renderer
@@ -57,7 +57,7 @@ docutils==0.16
     #   sphinx
 factory-boy==3.2.0
     # via -r requirements/dev.in
-faker==8.1.1
+faker==8.1.2
     # via
     #   -c requirements/prod.txt
     #   factory-boy
@@ -135,7 +135,7 @@ pycodestyle==2.7.0
     # via flake8
 pyflakes==2.3.1
     # via flake8
-pygments==2.8.1
+pygments==2.9.0
     # via
     #   readme-renderer
     #   sphinx
@@ -145,7 +145,7 @@ pytest-random-order==1.0.4
     # via -r requirements/dev.in
 pytest-vcr==1.0.2
     # via -r requirements/dev.in
-pytest==6.2.3
+pytest==6.2.4
     # via
     #   -r requirements/dev.in
     #   pytest-random-order
@@ -181,7 +181,7 @@ responses==0.13.3
     # via -r requirements/dev.in
 rfc3986==1.4.0
     # via twine
-six==1.15.0
+six==1.16.0
     # via
     #   -c requirements/prod.txt
     #   bleach
@@ -225,7 +225,7 @@ toml==0.10.2
     #   pre-commit
     #   pytest
     #   tox
-tox==3.23.0
+tox==3.23.1
     # via -r requirements/dev.in
 tqdm==4.60.0
     # via twine
@@ -242,7 +242,7 @@ vcrpy==4.1.1
     # via
     #   -r requirements/dev.in
     #   pytest-vcr
-virtualenv==20.4.4
+virtualenv==20.4.6
     # via
     #   pre-commit
     #   tox
@@ -260,9 +260,9 @@ zipp==3.4.1
     #   importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
-pip==21.1
+pip==21.1.1
     # via pip-tools
-setuptools==56.0.0
+setuptools==56.1.0
     # via
     #   -c requirements/prod.txt
     #   sphinx

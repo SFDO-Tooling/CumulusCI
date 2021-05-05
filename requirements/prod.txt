@@ -117,7 +117,7 @@ simple-salesforce==1.11.1
     # via
     #   -r requirements/prod.in
     #   salesforce-bulk
-six==1.15.0
+six==1.16.0
     # via
     #   fs
     #   python-dateutil
