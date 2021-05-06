@@ -1192,7 +1192,7 @@ services:
     validator: cumulusci.core.github.validate_service
   marketing-cloud:
     description: Configure a connection to a Marketing Cloud instance
-    class_path: cumulusci.core.config.MarketingCloudServiceConfig
+    class_path: cumulusci.core.config.marketing_cloud_service_config.MarketingCloudServiceConfig
     attributes:
       oauth_client:
         description: The oauth client service with which to establish a connection to marketing cloud
