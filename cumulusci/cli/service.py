@@ -164,7 +164,7 @@ class ConnectServiceCommand(click.MultiCommand):
                 class_path = service_config["class_path"]
                 try:
                     ConfigClass = import_class(class_path)
-                except Exception:
+                except AttributeError:
                     raise CumulusCIException(
                         f"Unrecognized class_path for service: {class_path}"
                     )
