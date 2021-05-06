@@ -1,6 +1,7 @@
 import http.client
 import pytest
 import responses
+import ssl
 import threading
 import time
 import urllib.error
@@ -12,6 +13,7 @@ from unittest import mock
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.client import OAuth2Client
 from cumulusci.oauth.client_info import OAuthClientInfo
+from cumulusci.oauth.exceptions import OAuthError
 from cumulusci.oauth.salesforce import jwt_session
 
 
@@ -42,6 +44,7 @@ def client_info():
         token_uri="https://login.salesforce.com/services/oauth2/token",
         revoke_uri="https://login.salesforce.com/services/oauth2/revoke",
         scope="web full refresh_token",
+        prompt="login",
     )
 
 
@@ -51,9 +54,11 @@ def client(client_info):
 
 
 @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
-def start_httpd_thread(tester_class, oauth_client):
+def start_httpd_thread(tester_class, oauth_client, use_https):
     # call OAuth object on another thread - this spawns local httpd
-    thread = threading.Thread(target=oauth_client.auth_code_flow)
+    thread = threading.Thread(
+        target=oauth_client.auth_code_flow, kwargs={"use_https": use_https}
+    )
     thread.start()
     while thread.is_alive():
         if oauth_client.httpd:
@@ -90,7 +95,7 @@ class TestOAuth2Client:
         assert response.status_code == 200
 
     @responses.activate
-    def test_auth_code_flow(self, client):
+    def test_auth_code_flow___http(self, client):
         expected_response = {
             "access_token": "abc123",
             "id_token": "abc123",
@@ -110,9 +115,47 @@ class TestOAuth2Client:
         )
 
         # call OAuth object on another thread - this spawns local httpd
-        oauth_client, thread = start_httpd_thread(self, client)
+        oauth_client, thread = start_httpd_thread(self, client, use_https=False)
         # simulate callback from browser
         response = urllib.request.urlopen(client.client_info.callback_url + "?code=123")
+
+        # wait for thread to complete
+        thread.join()
+
+        assert oauth_client.response.json() == expected_response
+        assert b"Congratulations" in response.read()
+
+    @responses.activate
+    def test_auth_code_flow___https(self, client):
+        expected_response = {
+            "access_token": "abc123",
+            "id_token": "abc123",
+            "token_type": "Bearer",
+            "signature": "abc123",
+            "issued_at": "12345",
+            "scope": "web full refresh_token",
+            "instance_url": "https://na15.salesforce.com",
+            "id": "https://login.salesforce.com/id/abc/xyz",
+            "refresh_token": "abc123",
+        }
+        responses.add(
+            responses.POST,
+            "https://login.salesforce.com/services/oauth2/token",
+            status=http.client.OK,
+            json=expected_response,
+        )
+        # use https for callback
+        client.client_info.callback_url = "https://localhost:8080/callback"
+        # squash CERTIFICATE_VERIFY_FAILED from urllib
+        # https://stackoverflow.com/questions/49183801/ssl-certificate-verify-failed-with-urllib
+        ssl._create_default_https_context = ssl._create_unverified_context
+
+        # call OAuth object on another thread - this spawns local httpd
+        oauth_client, thread = start_httpd_thread(self, client, use_https=True)
+        # simulate callback from browser
+        response = urllib.request.urlopen(
+            oauth_client.client_info.callback_url + "?code=123"
+        )
 
         # wait for thread to complete
         thread.join()
@@ -142,7 +185,7 @@ class TestOAuth2Client:
         )
 
         # call OAuth object on another thread - this spawns local httpd
-        oauth_client, thread = start_httpd_thread(self, client)
+        oauth_client, thread = start_httpd_thread(self, client, use_https=False)
 
         # simulate callback from browser
         with pytest.raises(urllib.error.HTTPError):
@@ -163,7 +206,7 @@ class TestOAuth2Client:
         )
 
         # call OAuth object on another thread - this spawns local httpd
-        o, thread = start_httpd_thread(self, client)
+        o, thread = start_httpd_thread(self, client, use_https=False)
 
         # simulate callback from browser
         with pytest.raises(urllib.error.HTTPError):
@@ -171,3 +214,8 @@ class TestOAuth2Client:
 
         # wait for thread to complete
         thread.join()
+
+    def test_validate_resposne__raises_error(self, client):
+        response = mock.Mock(status_code=503)
+        with pytest.raises(OAuthError):
+            client.validate_response(response)

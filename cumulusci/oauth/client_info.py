@@ -13,5 +13,5 @@ class OAuthClientInfo(BaseModel):
     revoke_uri: Optional[AnyUrl]
     callback_url: AnyUrl = "http://localhost:8080/callback"
     scope: Optional[str]
-    prompt: Optional[str]  # required for SF
+    prompt: Optional[str]  # 'login' value required for OAuth to SF Org
     state: Optional[str]

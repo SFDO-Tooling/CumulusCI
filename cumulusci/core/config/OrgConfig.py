@@ -1,17 +1,16 @@
+import os
+import re
+import requests
+
+from contextlib import contextmanager
 from collections import defaultdict
 from collections import namedtuple
-from cumulusci.oauth.exceptions import OAuthError
 from cumulusci.oauth.client import OAuth2Client
 from cumulusci.oauth.client_info import OAuthClientInfo
 from distutils.version import StrictVersion
-import os
-import re
-from contextlib import contextmanager
-from urllib.parse import urlparse
-
-import requests
 from simple_salesforce import Salesforce
 from simple_salesforce.exceptions import SalesforceError, SalesforceResourceNotFound
+from urllib.parse import urlparse
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.exceptions import CumulusCIException
@@ -106,10 +105,7 @@ class OrgConfig(BaseConfig):
             scope="web full refresh_token",
         )
         sf_oauth = self.OAuth2Client(sf_oauth_info)
-        response = sf_oauth.refresh_token(self.refresh_token)
-        if response.status_code != 200:
-            raise OAuthError(f"Error refreshing OAuth token: {response.text}")
-        return safe_json_from_response(response)
+        return sf_oauth.refresh_token(self.refresh_token)
 
     @property
     def lightning_base_url(self):

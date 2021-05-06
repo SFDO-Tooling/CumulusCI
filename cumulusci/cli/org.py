@@ -154,6 +154,7 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
         token_uri=token_uri,
         revoke_uri=revoke_uri,
         scope="web full refresh_token",
+        prompt="login",
     )
     sf_client = OAuth2Client(sf_client_info)
     oauth_dict = sf_client.auth_code_flow()

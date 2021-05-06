@@ -109,6 +109,7 @@ class OAuth2Client(object):
             "scope":"create"
         }
         """
+        print("auth_code_flow()")
         auth_uri_with_params = self._get_auth_uri()
         # Open a browser and direct the user to login
         webbrowser.open(auth_uri_with_params, new=1)
@@ -163,6 +164,7 @@ class OAuth2Client(object):
     def _create_httpd(self, use_https=False):
         """Create an http deamon process to listen
         for the callback from the auth server"""
+        print(f"_create_httpd(use_https={use_https})")
         url_parts = urlparse(self.client_info.callback_url)
         server_address = (url_parts.hostname, url_parts.port)
         OAuthCallbackHandler.parent = self
@@ -206,8 +208,7 @@ class OAuth2Client(object):
             self.client_info.token_uri, headers=HTTP_HEADERS, data=data
         )
         self.validate_response(response)
-        info = safe_json_from_response(response)
-        return info
+        return safe_json_from_response(response)
 
     def revoke_token(self, access_token):
         data = {"token": quote(access_token)}
@@ -247,7 +248,8 @@ class HTTPDTimeout(threading.Thread):
             if not self.httpd:
                 break
 
-        if self.httpd:  # extremely minor race condition
+        # extremely minor race condition
+        if self.httpd:  # pragma: no cover
             self.httpd.shutdown()
 
     def quit(self):
