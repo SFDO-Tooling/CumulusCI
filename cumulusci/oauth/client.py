@@ -109,7 +109,6 @@ class OAuth2Client(object):
             "scope":"create"
         }
         """
-        print("auth_code_flow()")
         auth_uri_with_params = self._get_auth_uri()
         # Open a browser and direct the user to login
         webbrowser.open(auth_uri_with_params, new=1)
