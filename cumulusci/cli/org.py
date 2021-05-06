@@ -149,7 +149,8 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
     revoke_uri = base_uri + "/services/oauth2/revoke"
 
     sf_client_info = OAuthClientInfo(
-        **connected_app.config,  # client_id, client_secret
+        client_id=connected_app.client_id,
+        client_secret=connected_app.client_secret,
         auth_uri=auth_uri,
         token_uri=token_uri,
         revoke_uri=revoke_uri,
