@@ -182,7 +182,7 @@ class OAuth2Client(object):
         httpd.timeout = self.httpd_timeout
         return httpd
 
-    def get_access_token(self, auth_code):
+    def auth_code_grant(self, auth_code):
         """Exchange an auth code for an access token"""
         data = {
             "client_id": self.client_info.client_id,
@@ -271,7 +271,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
             <h1 style="font-size: large">{emoji}</h1>
             <p>Congratulations! Your authentication succeeded.</p>"""
             auth_code = args["code"]
-            self.parent.response = self.parent.get_access_token(auth_code)
+            self.parent.response = self.parent.auth_code_grant(auth_code)
             if self.parent.response.status_code >= http.client.BAD_REQUEST:
                 http_status = self.parent.response.status_code
                 http_body = self.parent.response.text
