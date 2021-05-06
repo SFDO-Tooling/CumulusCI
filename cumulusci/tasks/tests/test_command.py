@@ -18,7 +18,7 @@ from cumulusci.tasks.command import CommandException
 
 
 class TestCommandTask(MockLoggerMixin, unittest.TestCase):
-    """ Tests for the basic command task """
+    """Tests for the basic command task"""
 
     def setUp(self):
         self.universal_config = UniversalConfig()

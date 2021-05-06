@@ -64,7 +64,7 @@ class BaseProjectKeychain(BaseConfig):
             self.create_scratch_org(config_name, config_name)
 
     def create_scratch_org(self, org_name, config_name, days=None, set_password=True):
-        """ Adds/Updates a scratch org config to the keychain from a named config """
+        """Adds/Updates a scratch org config to the keychain from a named config"""
         scratch_config = getattr(self.project_config, f"orgs__scratch__{config_name}")
         if days is not None:
             # Allow override of scratch config's default days
@@ -94,7 +94,7 @@ class BaseProjectKeychain(BaseConfig):
         self.orgs[org_config.name] = org_config
 
     def set_default_org(self, name):
-        """ set the default org for tasks and flows by name """
+        """set the default org for tasks and flows by name"""
         org = self.get_org(name)
         self.unset_default_org()
         org.config["default"] = True
@@ -107,7 +107,7 @@ class BaseProjectKeychain(BaseConfig):
             )
 
     def unset_default_org(self):
-        """ unset the default orgs for tasks """
+        """unset the default orgs for tasks"""
         for org in self.list_orgs():
             org_config = self.get_org(org)
             if org_config.default:
@@ -116,7 +116,7 @@ class BaseProjectKeychain(BaseConfig):
         sfdx("force:config:set defaultusername=")
 
     def get_org(self, name: str):
-        """ retrieve an org configuration by name key """
+        """retrieve an org configuration by name key"""
         if name not in self.orgs:
             self._raise_org_not_found(name)
         org = self._get_org(name)
@@ -135,7 +135,7 @@ class BaseProjectKeychain(BaseConfig):
     # persist across multiple invocations of cci, so we should consider getting rid of this.
 
     def get_default_org(self):
-        """ retrieve the name and configuration of the default org """
+        """retrieve the name and configuration of the default org"""
         for org in self.list_orgs():
             org_config = self.get_org(org)
             if org_config.default:
@@ -152,7 +152,7 @@ class BaseProjectKeychain(BaseConfig):
         self._load_orgs()
 
     def list_orgs(self):
-        """ list the orgs configured in the keychain """
+        """list the orgs configured in the keychain"""
         orgs = list(self.orgs.keys())
         orgs.sort()
         return orgs

@@ -109,7 +109,7 @@ class TestMergedConfig(unittest.TestCase):
 
 
 class TestDictMerger(unittest.TestCase):
-    """ some stuff that didnt get covered by usual usage  """
+    """some stuff that didnt get covered by usual usage"""
 
     def test_merge_into_list(self):
         combo = utils.dictmerge([1, 2], 3)

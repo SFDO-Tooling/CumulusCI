@@ -28,6 +28,7 @@ class TestDeployBundles(unittest.TestCase):
         task._get_api.assert_not_called()
 
     def test_freeze(self):
+        self.maxDiff = None
         with temporary_dir() as path:
             os.mkdir(".git")
             os.makedirs("unpackaged/test")
@@ -55,8 +56,7 @@ class TestDeployBundles(unittest.TestCase):
                                 "dependencies": [
                                     {
                                         "ref": task.project_config.repo_commit,
-                                        "repo_name": "TestRepo",
-                                        "repo_owner": "TestOwner",
+                                        "github": "https://github.com/TestOwner/TestRepo",
                                         "subfolder": "unpackaged/test",
                                         "namespace_inject": None,
                                     }
