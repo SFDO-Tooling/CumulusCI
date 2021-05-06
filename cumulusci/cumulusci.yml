@@ -626,9 +626,6 @@ tasks:
     group: NPSP/EDA
     options:
       restore: True
-  mc:
-    class_path: cumulusci.tasks.marketing_cloud.base.BaseMarketingCloudTask
-    description: "This is only a test"
 
 flows:
   ci_beta:
