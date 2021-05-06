@@ -169,10 +169,7 @@ class ConnectServiceCommand(click.MultiCommand):
                         f"Unrecognized class_path for service: {class_path}"
                     )
                 if "connect" in dir(ConfigClass):
-                    client_info = runtime.keychain.get_service(
-                        "oauth-client", kwargs["oauth_client"]
-                    )
-                    oauth_dict = ConfigClass.connect(client_info)
+                    oauth_dict = ConfigClass.connect(runtime.keychain, kwargs)
                     serv_conf.update(oauth_dict)
 
             runtime.keychain.set_service(

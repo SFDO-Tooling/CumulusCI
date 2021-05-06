@@ -1,6 +1,8 @@
+from typing import Dict
+
 from cumulusci.core.config import ServiceConfig
+from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.oauth.client import OAuth2Client
-from cumulusci.oauth.client_info import OAuthClientInfo
 
 
 class MarketingCloudServiceConfig(ServiceConfig):
@@ -8,7 +10,13 @@ class MarketingCloudServiceConfig(ServiceConfig):
         super().__init__(config=config)
         self._client_info = keychain.get_service("oauth-client", config["oauth_client"])
 
-    def connect(client_info: OAuthClientInfo):
+    def connect(keychain: EncryptedFileProjectKeychain, kwargs: Dict):
+        """This method is called when a service is connected.
+
+        @param keychain -
+        @param kwargs - Any keyword arguments passed to `cci service connect`
+        """
+        client_info = keychain.get_service("oauth-client", kwargs["oauth_client"])
         oauth_client = OAuth2Client(client_info)
         return oauth_client.auth_code_flow(use_https=True)
 
