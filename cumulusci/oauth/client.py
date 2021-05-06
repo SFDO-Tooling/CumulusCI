@@ -163,7 +163,6 @@ class OAuth2Client(object):
     def _create_httpd(self, use_https=False):
         """Create an http daemon process to listen
         for the callback from the auth server"""
-        print(f"_create_httpd(use_https={use_https})")
         url_parts = urlparse(self.client_info.callback_url)
         server_address = (url_parts.hostname, url_parts.port)
         OAuthCallbackHandler.parent = self
