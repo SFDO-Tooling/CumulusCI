@@ -428,18 +428,11 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             excluded_versions = [str(version.sf_id)]
             for newer in newer_versions:
                 excluded_versions.append(str(newer.sf_id))
-            if len(excluded_versions) == 1:
-                push_api.default_where[
-                    "PackageSubscriber"
-                ] += " AND MetadataPackageVersionId != '{}'".format(
-                    excluded_versions[0]
-                )
-            else:
-                push_api.default_where[
-                    "PackageSubscriber"
-                ] += " AND MetadataPackageVersionId NOT IN {}".format(
-                    "('" + "','".join(excluded_versions) + "')"
-                )
+            push_api.default_where[
+                "PackageSubscriber"
+            ] += " AND MetadataPackageVersionId NOT IN {}".format(
+                "('" + "','".join(excluded_versions) + "')"
+            )
 
             for subscriber in push_api.get_subscribers():
                 orgs.append(subscriber["OrgKey"])

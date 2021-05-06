@@ -90,6 +90,7 @@ class MetadataPackageVersion(BasePushApiObject):
                 f"{self.major}.{self.minor}.{self.patch}"
             )  # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
         ]
+        breakpoint()
         return result
 
     def get_older_released_version_objs(self, greater_than_version=None):
@@ -97,6 +98,7 @@ class MetadataPackageVersion(BasePushApiObject):
             greater_version = version.parse(
                 f"{greater_than_version.major}.{greater_than_version.minor}.{greater_than_version.patch}"
             )
+
         where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released'"  # AND "
         if greater_than_version:
             result = [
@@ -111,6 +113,7 @@ class MetadataPackageVersion(BasePushApiObject):
                 )
                 >= greater_version  # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
             ]
+            breakpoint()
 
         else:
             result = [
@@ -122,6 +125,7 @@ class MetadataPackageVersion(BasePushApiObject):
                 < version.parse(f"{self.major}.{self.minor}.{self.patch}")
                 # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
             ]
+        breakpoint()
 
         return result
 
