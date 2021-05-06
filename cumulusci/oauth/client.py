@@ -112,7 +112,7 @@ class OAuth2Client(object):
         auth_uri_with_params = self._get_auth_uri()
         # Open a browser and direct the user to login
         webbrowser.open(auth_uri_with_params, new=1)
-        # Open up an http deamon to listen for the
+        # Open up an http daemon to listen for the
         # callback from the auth server
         self.httpd = self._create_httpd(use_https=use_https)
         logger.info(
@@ -161,7 +161,7 @@ class OAuth2Client(object):
         return url
 
     def _create_httpd(self, use_https=False):
-        """Create an http deamon process to listen
+        """Create an http daemon process to listen
         for the callback from the auth server"""
         print(f"_create_httpd(use_https={use_https})")
         url_parts = urlparse(self.client_info.callback_url)
