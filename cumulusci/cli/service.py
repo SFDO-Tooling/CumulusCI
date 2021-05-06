@@ -4,7 +4,7 @@ import json
 import click
 
 from cumulusci.core.config import ServiceConfig
-from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.exceptions import CumulusCIException, ServiceNotConfigured
 from cumulusci.core.utils import import_global, import_class
 from .runtime import pass_runtime
 from .ui import CliTable
@@ -161,7 +161,13 @@ class ConnectServiceCommand(click.MultiCommand):
 
             ConfigClass = ServiceConfig
             if "class_path" in service_config:
-                ConfigClass = import_class(service_config["class_path"])
+                class_path = service_config["class_path"]
+                try:
+                    ConfigClass = import_class(class_path)
+                except Exception:
+                    raise CumulusCIException(
+                        f"Unrecognized class_path for service: {class_path}"
+                    )
                 if "connect" in dir(ConfigClass):
                     client_info = runtime.keychain.get_service(
                         "oauth-client", kwargs["oauth_client"]
