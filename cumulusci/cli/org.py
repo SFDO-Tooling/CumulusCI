@@ -143,7 +143,7 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
 
     connected_app = runtime.keychain.get_service("connected_app")
     base_uri = "https://{}.salesforce.com"
-    base_uri = base_uri.format("test" if sandbox else "login")
+    base_uri = login_url or base_uri.format("test" if sandbox else "login")
     auth_uri = base_uri + "/services/oauth2/authorize"
     token_uri = base_uri + "/services/oauth2/token"
     revoke_uri = base_uri + "/services/oauth2/revoke"
