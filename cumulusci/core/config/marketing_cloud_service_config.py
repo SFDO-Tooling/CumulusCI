@@ -13,7 +13,7 @@ class MarketingCloudServiceConfig(ServiceConfig):
     def connect(keychain: EncryptedFileProjectKeychain, kwargs: Dict):
         """This method is called when a service is connected.
 
-        @param keychain -
+        @param keychain - A keychain for accessing services
         @param kwargs - Any keyword arguments passed to `cci service connect`
         """
         client_info = keychain.get_service("oauth-client", kwargs["oauth_client"])
@@ -26,7 +26,6 @@ class MarketingCloudServiceConfig(ServiceConfig):
 
     def _refresh_token(self):
         """Gets a fresh access token for the user.
-        This will prompt the user to login to their MC account.
 
         The info dict passed back from the OAuth flow includes:
         * access_token
