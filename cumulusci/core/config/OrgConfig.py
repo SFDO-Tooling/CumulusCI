@@ -29,7 +29,7 @@ VersionInfo = namedtuple("VersionInfo", ["id", "number"])
 
 
 class OrgConfig(BaseConfig):
-    """ Salesforce org configuration (i.e. org credentials) """
+    """Salesforce org configuration (i.e. org credentials)"""
 
     # make sure it can be mocked for tests
     OAuth2Client = OAuth2Client
@@ -160,7 +160,7 @@ class OrgConfig(BaseConfig):
 
     @property
     def username(self):
-        """ Username for the org connection. """
+        """Username for the org connection."""
         username = self.config.get("username")
         if not username:
             username = self.userinfo__preferred_username

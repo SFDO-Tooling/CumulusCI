@@ -2274,6 +2274,7 @@ class TestLoadData(unittest.TestCase):
             ):
                 task()
 
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock.MagicMock())
     def test_set_viewed(self):
         base_path = os.path.dirname(__file__)
         task = _make_task(
@@ -2313,3 +2314,56 @@ class TestLoadData(unittest.TestCase):
             "SELECT Id FROM Account ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW",
             "SELECT Id FROM Custom__c ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW",
         ], queries
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock.MagicMock())
+    def test_set_viewed__SOQL_error_1(self):
+        base_path = os.path.dirname(__file__)
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "sql_path": "test.sql",
+                    "mapping": os.path.join(base_path, self.mapping_file),
+                }
+            },
+        )
+
+        def _query_all(query):
+            assert 0
+
+        task.sf = mock.Mock()
+        task.sf.query_all = _query_all
+        task.mapping = {}
+        task.mapping["Insert Households"] = MappingStep(sf_object="Account", fields={})
+        task.mapping["Insert Custom__c"] = MappingStep(sf_object="Custom__c", fields={})
+
+        with mock.patch.object(task.logger, "warning") as warning:
+            task._set_viewed()
+
+        assert "custom tabs" in str(warning.mock_calls[0])
+        assert "Account" in str(warning.mock_calls[1])
+
+    def test_set_viewed__exception(self):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": "mapping.yml",
+                    "set_recently_viewed": True,
+                }
+            },
+        )
+        task._init_db = mock.Mock(return_value=nullcontext())
+        task._init_mapping = mock.Mock()
+        task.mapping = {}
+        task.after_steps = {}
+
+        def raise_exception():
+            assert 0, "xyzzy"
+
+        task._set_viewed = raise_exception
+
+        with mock.patch.object(task.logger, "warning") as warning:
+            task()
+        assert "xyzzy" in str(warning.mock_calls[0])

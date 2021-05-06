@@ -143,7 +143,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
     #######################################
 
     def get_default_org(self):
-        """ Retrieve the name and configuration of the default org """
+        """Retrieve the name and configuration of the default org"""
         # first look for a file with the default org in it
         default_org_path = self._default_org_path
         if default_org_path and default_org_path.exists():
@@ -161,12 +161,12 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         return org_name, org_config
 
     def set_default_org(self, name: str):
-        """ Set the default org for tasks and flows by name """
+        """Set the default org for tasks and flows by name"""
         super().set_default_org(name)
         self._default_org_path.write_text(name)
 
     def unset_default_org(self):
-        """Unset the default orgs for tasks and flows """
+        """Unset the default orgs for tasks and flows"""
         super().unset_default_org()
         if self._default_org_path:
             try:

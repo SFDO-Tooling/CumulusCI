@@ -9,7 +9,7 @@ from cumulusci.tasks.push.pushfails import ReportPushFailures
 
 
 def error_record(gack=False, ErrorTitle="Unexpected Error"):  # type: (bool) -> dict
-    """ a record that looks like the object returned from the sobject api query we use """
+    """a record that looks like the object returned from the sobject api query we use"""
     return {
         "attributes": {"type": "job"},
         "SubscriberOrganizationKey": "00Dxxx000000001",

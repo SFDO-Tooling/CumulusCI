@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 from typing import Union
 import tempfile
 from contextlib import contextmanager
+from cumulusci.salesforce_api.org_schema import get_org_schema
 
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text, func
 from sqlalchemy.orm import aliased, Session
@@ -69,7 +70,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
         },
         "set_recently_viewed": {
-            "description": "By default, the first 1000 records inserted via the Bulk API will be set as recently viewed. If less than 1000 records are inserted, existing objects of the same type being inserted will also be set as recently viewed.",
+            "description": "By default, the first 1000 records inserted via the Bulk API will be set as recently viewed. If fewer than 1000 records are inserted, existing objects of the same type being inserted will also be set as recently viewed.",
         },
     }
     row_warning_limit = 10
@@ -139,7 +140,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                                 f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
                             )
         if self.options["set_recently_viewed"]:
-            self._set_viewed()
+            try:
+                self._set_viewed()
+            except Exception as e:
+                self.logger.warning(f"Could not set recently viewed because {e}")
 
     def _execute_step(
         self, mapping: MappingStep
@@ -654,14 +658,26 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 object_names.add(object_name)
         # collect SobjectName that have custom tabs
         if custom_objects:
-            for record in self.sf.query_all(
-                "SELECT SObjectName FROM TabDefinition WHERE IsCustom = true AND SObjectName IN ('{}')".format(
-                    "','".join(sorted(custom_objects))
+            try:
+                custom_tab_objects = self.sf.query_all(
+                    "SELECT SObjectName FROM TabDefinition WHERE IsCustom = true AND SObjectName IN ('{}')".format(
+                        "','".join(sorted(custom_objects))
+                    )
                 )
-            )["records"]:
-                object_names.add(record["SobjectName"])
-
-        for mapped_item in sorted(object_names):
-            self.sf.query_all(
-                f"SELECT Id FROM {mapped_item} ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW"
-            )
+                for record in custom_tab_objects["records"]:
+                    object_names.add(record["SobjectName"])
+            except Exception as e:
+                self.logger.warning(
+                    f"Cannot get the list of custom tabs to set recently viewed status on them. Error: {e}"
+                )
+        with get_org_schema(self.sf, self.org_config) as org_schema:
+            for mapped_item in sorted(object_names):
+                if org_schema[mapped_item].mruEnabled:
+                    try:
+                        self.sf.query_all(
+                            f"SELECT Id FROM {mapped_item} ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW"
+                        )
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Cannot set recently viewed status for {mapped_item}. Error: {e}"
+                        )

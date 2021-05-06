@@ -53,7 +53,7 @@ def is_final_release(version: str) -> bool:
 
 
 def get_latest_final_version():
-    """ return the latest version of cumulusci in pypi, be defensive """
+    """return the latest version of cumulusci in pypi, be defensive"""
     # use the pypi json api https://wiki.python.org/moin/PyPIJSON
     res = safe_json_from_response(
         requests.get("https://pypi.org/pypi/cumulusci/json", timeout=5)
@@ -70,7 +70,7 @@ def get_latest_final_version():
 
 
 def check_latest_version():
-    """ checks for the latest version of cumulusci from pypi, max once per hour """
+    """checks for the latest version of cumulusci from pypi, max once per hour"""
     check = True
 
     with timestamp_file() as f:
@@ -95,5 +95,5 @@ def check_latest_version():
 
 
 def get_installed_version():
-    """ returns the version name (e.g. 2.0.0b58) that is installed """
+    """returns the version name (e.g. 2.0.0b58) that is installed"""
     return pkg_resources.parse_version(__version__)

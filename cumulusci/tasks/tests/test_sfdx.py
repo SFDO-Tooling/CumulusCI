@@ -22,7 +22,7 @@ from cumulusci.tasks.sfdx import SFDXJsonTask
 
 
 class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
-    """ Tests for the Base Task type """
+    """Tests for the Base Task type"""
 
     def setUp(self):
         self.universal_config = UniversalConfig()
@@ -38,7 +38,7 @@ class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
         self.task_log = self._task_log_handler.messages
 
     def test_base_task(self):
-        """ The command is prefixed w/ sfdx """
+        """The command is prefixed w/ sfdx"""
 
         self.task_config.config["options"] = {"command": "force:org", "extra": "--help"}
         task = SFDXBaseTask(self.project_config, self.task_config)
@@ -57,7 +57,7 @@ class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
     )
     @patch("cumulusci.tasks.command.Command._run_task", MagicMock(return_value=None))
     def test_keychain_org_creds(self):
-        """ Keychain org creds are passed by env var """
+        """Keychain org creds are passed by env var"""
 
         self.task_config.config["options"] = {"command": "force:org --help"}
         access_token = "00d123"
@@ -81,7 +81,7 @@ class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
         self.assertIn(access_token, task._get_env()["SFDX_DEFAULTUSERNAME"])
 
     def test_scratch_org_username(self):
-        """ Scratch Org credentials are passed by -u flag """
+        """Scratch Org credentials are passed by -u flag"""
         self.task_config.config["options"] = {"command": "force:org --help"}
         org_config = ScratchOrgConfig({"username": "test@example.com"}, "test")
 

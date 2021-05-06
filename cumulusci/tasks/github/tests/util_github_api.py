@@ -9,7 +9,7 @@ date_format = "%Y-%m-%dT%H:%M:%SZ"
 
 
 class GithubApiTestMixin(object):
-    """ Mixin that provide common values and mocked http responses for tests of code that talks to the Github API """
+    """Mixin that provide common values and mocked http responses for tests of code that talks to the Github API"""
 
     def init_github(self):
         self.repo_api_url = "https://api.github.com/repos/TestOwner/TestRepo"

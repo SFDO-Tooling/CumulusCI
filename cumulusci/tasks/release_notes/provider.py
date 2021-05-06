@@ -126,7 +126,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
         raise ValueError("Could not determine version number from tag {}".format(tag))
 
     def _get_last_tag(self):
-        """ Gets the last release tag before self.current_tag """
+        """Gets the last release tag before self.current_tag"""
 
         current_version = LooseVersion(
             self._get_version_from_tag(self.release_notes_generator.current_tag)
