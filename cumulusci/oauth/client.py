@@ -157,7 +157,7 @@ class OAuth2Client(object):
         if self.client_info.scope:
             url += f"&scope={quote(self.client_info.scope)}"
         if self.client_info.prompt:
-            url += f"&prompt={quote('login')}"
+            url += f"&prompt={quote(self.client_info.prompt)}"
         return url
 
     def _create_httpd(self, use_https=False):
