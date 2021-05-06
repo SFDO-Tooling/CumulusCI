@@ -85,9 +85,10 @@ class TestRobot(unittest.TestCase):
                 "include": "foo, bar",
                 "exclude": "a,  b",
                 "vars": "uno, dos, tres",
+                "skip": "xyzzy,plugh",
             },
         )
-        for option in ("test", "include", "exclude", "vars", "suites"):
+        for option in ("test", "include", "exclude", "vars", "suites", "skip"):
             assert isinstance(task.options[option], list)
 
     def test_process_arg_requires_int(self):
