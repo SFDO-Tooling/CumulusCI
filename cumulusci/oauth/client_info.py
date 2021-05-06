@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 
-class OAuthClientInfo(BaseModel):
+class OAuth2ClientInfo(BaseModel):
     """Holds info for an OAuth client"""
 
     client_id: str

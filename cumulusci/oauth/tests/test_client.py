@@ -12,7 +12,7 @@ from unittest import mock
 
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.client import OAuth2Client
-from cumulusci.oauth.client_info import OAuthClientInfo
+from cumulusci.oauth.client_info import OAuth2ClientInfo
 from cumulusci.oauth.exceptions import OAuthError
 from cumulusci.oauth.salesforce import jwt_session
 
@@ -37,7 +37,7 @@ def test_jwt_session(encode):
 
 @pytest.fixture
 def client_info():
-    return OAuthClientInfo(
+    return OAuth2ClientInfo(
         client_id="foo_id",
         client_secret="foo_secret",
         auth_uri="https://login.salesforce.com/services/oauth2/authorize",

@@ -12,7 +12,7 @@ from cumulusci.core.config import OrgConfig, ScratchOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.utils import cleanup_org_cache_dirs
 from cumulusci.oauth.client import OAuth2Client
-from cumulusci.oauth.client_info import OAuthClientInfo
+from cumulusci.oauth.client_info import OAuth2ClientInfo
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import parse_api_datetime
 from .runtime import pass_runtime
@@ -148,7 +148,7 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
     token_uri = base_uri + "/services/oauth2/token"
     revoke_uri = base_uri + "/services/oauth2/revoke"
 
-    sf_client_info = OAuthClientInfo(
+    sf_client_info = OAuth2ClientInfo(
         client_id=connected_app.client_id,
         client_secret=connected_app.client_secret,
         auth_uri=auth_uri,

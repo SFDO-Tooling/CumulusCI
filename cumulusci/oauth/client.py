@@ -25,7 +25,7 @@ from urllib.parse import quote
 from urllib.parse import urlparse
 
 from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.oauth.client_info import OAuthClientInfo
+from cumulusci.oauth.client_info import OAuth2ClientInfo
 from cumulusci.oauth.exceptions import OAuthError
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
@@ -82,10 +82,10 @@ class OAuth2Client(object):
         (1) Authorization Code - via auth_code_flow()
 
     To instantiate, just provide an instance or subclass
-    of OAuthClientInfo to the contructor.
+    of OAuth2ClientInfo to the contructor.
     """
 
-    def __init__(self, client_info: OAuthClientInfo):
+    def __init__(self, client_info: OAuth2ClientInfo):
         self.client_info = client_info
         self.response = None
         self.httpd = None
