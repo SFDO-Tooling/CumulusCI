@@ -418,20 +418,19 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
     def _get_service(self, service_type, alias):
         ConfigClass = ServiceConfig
         if "class_path" in self.project_config.config["services"][service_type]:
-            ConfigClass = import_class(
-                self.project_config.services[service_type]["class_path"]
-            )
-        extra = []
-        # MarketingCloudServiceConfig requires a keychain
-        # so that it can load its configured oauth-client service
-        if service_type == "marketing-cloud":
-            extra = [self]
+            class_path = self.project_config.services[service_type]["class_path"]
+            try:
+                ConfigClass = import_class(class_path)
+            except AttributeError:
+                raise CumulusCIException(
+                    f"Unrecognized class_path for service: {class_path}"
+                )
 
         return self._decrypt_config(
             ConfigClass,
             self.services[service_type][alias],
-            extra=extra,
-            context=f"service config ({service_type}/{alias})",
+            extra=[self],
+            context=f"service config ({service_type}:{alias})",
         )
 
     def _load_service_files(self, constructor=None) -> None:
