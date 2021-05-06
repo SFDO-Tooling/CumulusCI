@@ -13,7 +13,7 @@ from unittest import mock
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.client import OAuth2Client
 from cumulusci.oauth.client_info import OAuth2ClientInfo
-from cumulusci.oauth.exceptions import OAuthError
+from cumulusci.oauth.exceptions import OAuth2Error
 from cumulusci.oauth.salesforce import jwt_session
 
 
@@ -217,5 +217,5 @@ class TestOAuth2Client:
 
     def test_validate_resposne__raises_error(self, client):
         response = mock.Mock(status_code=503)
-        with pytest.raises(OAuthError):
+        with pytest.raises(OAuth2Error):
             client.validate_response(response)

@@ -26,7 +26,7 @@ from urllib.parse import urlparse
 
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.oauth.client_info import OAuth2ClientInfo
-from cumulusci.oauth.exceptions import OAuthError
+from cumulusci.oauth.exceptions import OAuth2Error
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 logger = logging.getLogger(__name__)
@@ -221,7 +221,7 @@ class OAuth2Client(object):
             raise CumulusCIUsageError("Authentication timed out or otherwise failed.")
         elif response.status_code == http.client.OK:
             return
-        raise OAuthError(
+        raise OAuth2Error(
             f"OAuth failed\nstatus_code: {response.status_code}\ncontent: {response.content}"
         )
 

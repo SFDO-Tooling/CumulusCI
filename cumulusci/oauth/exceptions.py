@@ -1,9 +1,9 @@
 from cumulusci.core.exceptions import CumulusCIException
 
 
-class OAuthError(CumulusCIException):
+class OAuth2Error(CumulusCIException):
     pass
 
 
-class SalesforceOAuthError(CumulusCIException):
+class SalesforceOAuth2Error(CumulusCIException):
     pass
