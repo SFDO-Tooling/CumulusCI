@@ -41,7 +41,7 @@ SANDBOX_LOGIN_URL = (
 PROD_LOGIN_URL = os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforce.com"
 
 
-def create_pem_files():
+def create_key_and_self_signed_cert():
     """Create both a localhost.pem and key.pem file"""
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     subject = issuer = x509.Name(
@@ -172,7 +172,7 @@ class OAuth2Client(object):
         httpd = HTTPServer(server_address, OAuthCallbackHandler)
         if use_https:
             if not Path("localhost.pem").is_file() or not Path("key.pem").is_file():
-                create_pem_files()
+                create_key_and_self_signed_cert()
             httpd.socket = ssl.wrap_socket(
                 httpd.socket,
                 server_side=True,
