@@ -101,10 +101,8 @@ class TestOrgCommands:
         oauth2client.return_value = client_instance
         runtime = mock.Mock()
         runtime.keychain.get_service.return_value = mock.Mock(
-            config={
-                "client_id": "asdfasdf",
-                "client_secret": "asdfasdf",
-            }
+            client_id="asdfasdf",
+            client_secret="asdfasdf",
         )
         responses.add(
             method="GET",
@@ -153,10 +151,8 @@ class TestOrgCommands:
         oauth2client.return_value = client_instance
         runtime = mock.Mock()
         runtime.keychain.get_service.return_value = mock.Mock(
-            config={
-                "client_id": "asdfasdf",
-                "client_secret": "asdfasdf",
-            }
+            client_id="asdfasdf",
+            client_secret="asdfasdf",
         )
         responses.add(
             method="GET",
