@@ -11,4 +11,4 @@ class TestBaseMarketingCloudTask:
         task = BaseMarketingCloudTask(project_config, task_config)
         task._init_task()
 
-        project_config.keychain.get_service.assert_called_once_with("marketing-cloud")
+        project_config.keychain.get_service.assert_called_once_with("marketing_cloud")

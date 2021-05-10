@@ -12,7 +12,6 @@ from unittest import mock
 
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.client import OAuth2Client
-from cumulusci.oauth.client_info import OAuth2ClientInfo
 from cumulusci.oauth.exceptions import OAuth2Error
 from cumulusci.oauth.salesforce import jwt_session
 
@@ -36,21 +35,21 @@ def test_jwt_session(encode):
 
 
 @pytest.fixture
-def client_info():
-    return OAuth2ClientInfo(
-        client_id="foo_id",
-        client_secret="foo_secret",
-        auth_uri="https://login.salesforce.com/services/oauth2/authorize",
-        token_uri="https://login.salesforce.com/services/oauth2/token",
-        revoke_uri="https://login.salesforce.com/services/oauth2/revoke",
-        scope="web full refresh_token",
-        prompt="login",
-    )
+def client_config():
+    return {
+        "client_id": "foo_id",
+        "client_secret": "foo_secret",
+        "auth_uri": "https://login.salesforce.com/services/oauth2/authorize",
+        "token_uri": "https://login.salesforce.com/services/oauth2/token",
+        "callback_url": "https://localhost:8080/callback",
+        "scope": "web full refresh_token",
+        "prompt": "login",
+    }
 
 
 @pytest.fixture
-def client(client_info):
-    return OAuth2Client(client_info)
+def client(client_config):
+    return OAuth2Client(client_config)
 
 
 @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
@@ -85,16 +84,6 @@ class TestOAuth2Client:
         assert "SENTINEL" == info["message"]
 
     @responses.activate
-    def test_revoke_token(self, client):
-        responses.add(
-            responses.POST,
-            "https://login.salesforce.com/services/oauth2/revoke",
-            status=http.client.OK,
-        )
-        response = client.revoke_token("token")
-        assert response.status_code == 200
-
-    @responses.activate
     def test_auth_code_flow___http(self, client):
         expected_response = {
             "access_token": "abc123",
@@ -117,7 +106,9 @@ class TestOAuth2Client:
         # call OAuth object on another thread - this spawns local httpd
         oauth_client, thread = start_httpd_thread(self, client, use_https=False)
         # simulate callback from browser
-        response = urllib.request.urlopen(client.client_info.callback_url + "?code=123")
+        response = urllib.request.urlopen(
+            client.client_config["callback_url"] + "?code=123"
+        )
 
         # wait for thread to complete
         thread.join()
@@ -145,7 +136,7 @@ class TestOAuth2Client:
             json=expected_response,
         )
         # use https for callback
-        client.client_info.callback_url = "https://localhost:8080/callback"
+        client.client_config["callback_url"] = "https://localhost:8080/callback"
         # squash CERTIFICATE_VERIFY_FAILED from urllib
         # https://stackoverflow.com/questions/49183801/ssl-certificate-verify-failed-with-urllib
         ssl._create_default_https_context = ssl._create_unverified_context
@@ -154,7 +145,7 @@ class TestOAuth2Client:
         oauth_client, thread = start_httpd_thread(self, client, use_https=True)
         # simulate callback from browser
         response = urllib.request.urlopen(
-            oauth_client.client_info.callback_url + "?code=123"
+            oauth_client.client_config["callback_url"] + "?code=123"
         )
 
         # wait for thread to complete
@@ -190,7 +181,8 @@ class TestOAuth2Client:
         # simulate callback from browser
         with pytest.raises(urllib.error.HTTPError):
             urllib.request.urlopen(
-                client.client_info.callback_url + "?error=123&error_description=broken"
+                client.client_config["callback_url"]
+                + "?error=123&error_description=broken"
             )
 
         # wait for thread to complete
@@ -210,7 +202,7 @@ class TestOAuth2Client:
 
         # simulate callback from browser
         with pytest.raises(urllib.error.HTTPError):
-            urllib.request.urlopen(client.client_info.callback_url + "?code=123")
+            urllib.request.urlopen(client.client_config["callback_url"] + "?code=123")
 
         # wait for thread to complete
         thread.join()

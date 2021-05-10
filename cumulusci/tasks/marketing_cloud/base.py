@@ -12,4 +12,7 @@ class BaseMarketingCloudTask(BaseTask):
 
     def _init_task(self):
         super()._init_task()
-        self.mc_config = self.project_config.keychain.get_service("marketing-cloud")
+        self.mc_config = self.project_config.keychain.get_service("marketing_cloud")
+
+    def _run_task(self):
+        self.logger.info(self.mc_config.access_token)

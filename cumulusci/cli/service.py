@@ -1,9 +1,10 @@
-from pathlib import Path
+import click
 import json
 
-import click
+from pathlib import Path
 
 from cumulusci.core.config import ServiceConfig
+from cumulusci.core.config.oauth2_service_config import OAuth2ServiceConfig
 from cumulusci.core.exceptions import CumulusCIException, ServiceNotConfigured
 from cumulusci.core.utils import import_global, import_class
 from .runtime import pass_runtime
@@ -168,14 +169,17 @@ class ConnectServiceCommand(click.MultiCommand):
                     raise CumulusCIException(
                         f"Unrecognized class_path for service: {class_path}"
                     )
-                if "connect" in dir(ConfigClass):
+                # Establish OAuth2 connection if required by this service
+                if issubclass(ConfigClass, OAuth2ServiceConfig):
                     oauth_dict = ConfigClass.connect(runtime.keychain, kwargs)
                     serv_conf.update(oauth_dict)
+
+            config_instance = ConfigClass(serv_conf, runtime.keychain)
 
             runtime.keychain.set_service(
                 service_type,
                 service_name,
-                ConfigClass(serv_conf, runtime.keychain),
+                config_instance,
             )
             click.echo(f"Service {service_type}:{service_name} is now connected")
 

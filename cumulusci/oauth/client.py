@@ -20,12 +20,12 @@ from datetime import timedelta
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
 from pathlib import Path
+from typing import Dict
 from urllib.parse import parse_qs
 from urllib.parse import quote
 from urllib.parse import urlparse
 
 from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.oauth.client_info import OAuth2ClientInfo
 from cumulusci.oauth.exceptions import OAuth2Error
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
@@ -85,8 +85,9 @@ class OAuth2Client(object):
     of OAuth2ClientInfo to the contructor.
     """
 
-    def __init__(self, client_info: OAuth2ClientInfo):
-        self.client_info = client_info
+    def __init__(self, client_config: Dict):
+        # the config for and oauth2_client service
+        self.client_config = client_config
         self.response = None
         self.httpd = None
         self.httpd_timeout = 300
@@ -116,7 +117,7 @@ class OAuth2Client(object):
         # callback from the auth server
         self.httpd = self._create_httpd(use_https=use_https)
         logger.info(
-            f"Spawning HTTP server at {self.client_info.callback_url}"
+            f"Spawning HTTP server at {self.client_config['callback_url']}"
             f" with timeout of {self.httpd.timeout} seconds.\n"
             "If you are unable to log in to Salesforce you can"
             " press <Ctrl+C> to kill the server and return to the command line."
@@ -150,20 +151,20 @@ class OAuth2Client(object):
         return safe_json_from_response(self.response)
 
     def _get_auth_uri(self):
-        url = self.client_info.auth_uri
+        url = self.client_config["auth_uri"]
         url += "?response_type=code"
-        url += f"&client_id={self.client_info.client_id}"
-        url += f"&redirect_uri={self.client_info.callback_url}"
-        if self.client_info.scope:
-            url += f"&scope={quote(self.client_info.scope)}"
-        if self.client_info.prompt:
-            url += f"&prompt={quote(self.client_info.prompt)}"
+        url += f"&client_id={self.client_config['client_id']}"
+        url += f"&redirect_uri={self.client_config['callback_url']}"
+        if "scope" in self.client_config:
+            url += f"&scope={quote(self.client_config['scope'])}"
+        if "prompt" in self.client_config:
+            url += f"&prompt={quote(self.client_config['prompt'])}"
         return url
 
     def _create_httpd(self, use_https=False):
         """Create an http daemon process to listen
         for the callback from the auth server"""
-        url_parts = urlparse(self.client_info.callback_url)
+        url_parts = urlparse(self.client_config["callback_url"])
         server_address = (url_parts.hostname, url_parts.port)
         OAuthCallbackHandler.parent = self
 
@@ -185,35 +186,28 @@ class OAuth2Client(object):
     def auth_code_grant(self, auth_code):
         """Exchange an auth code for an access token"""
         data = {
-            "client_id": self.client_info.client_id,
-            "client_secret": self.client_info.client_secret,
+            "client_id": self.client_config["client_id"],
+            "client_secret": self.client_config["client_secret"],
             "grant_type": "authorization_code",
-            "redirect_uri": self.client_info.callback_url,
+            "redirect_uri": self.client_config["callback_url"],
             "code": auth_code,
         }
         return requests.post(
-            self.client_info.token_uri, headers=HTTP_HEADERS, data=data
+            self.client_config["token_uri"], headers=HTTP_HEADERS, data=data
         )
 
     def refresh_token(self, refresh_token):
         data = {
-            "client_id": self.client_info.client_id,
-            "client_secret": self.client_info.client_secret,
+            "client_id": self.client_config["client_id"],
+            "client_secret": self.client_config["client_secret"],
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
         }
         response = requests.post(
-            self.client_info.token_uri, headers=HTTP_HEADERS, data=data
+            self.client_config["token_uri"], headers=HTTP_HEADERS, data=data
         )
         self.validate_response(response)
         return safe_json_from_response(response)
-
-    def revoke_token(self, access_token):
-        data = {"token": quote(access_token)}
-        revoke_uri = self.client_info.revoke_uri
-        response = requests.post(revoke_uri, headers=HTTP_HEADERS, data=data)
-        response.raise_for_status()
-        return response
 
     def validate_response(self, response):
         """Subclasses can implement custom response validation"""

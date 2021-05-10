@@ -1191,7 +1191,7 @@ services:
     description: Configure a connection to a Marketing Cloud instance
     class_path: cumulusci.core.config.marketing_cloud_service_config.MarketingCloudServiceConfig
     attributes:
-      oauth_client:
+      oauth2_client:
         description: The name of the oauth2_client service with which to establish a connection to Marketing Cloud
         required: True
   metaci:
@@ -1217,7 +1217,6 @@ services:
         required: True
   oauth2_client:
     description: Holds information pertaining to a single OAuth2 client
-    class_path: cumulusci.oauth.client_info.OAuthClientInfo
     attributes:
       client_id:
         description: The client Id

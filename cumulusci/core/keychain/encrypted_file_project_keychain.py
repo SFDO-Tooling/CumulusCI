@@ -2,7 +2,6 @@ import base64
 import json
 import os
 import pickle
-import pydantic
 import typing as T
 
 from cryptography.hazmat.backends import default_backend
@@ -127,10 +126,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         if args[0].get("scratch"):
             config_class = ScratchOrgConfig
 
-        if issubclass(config_class, pydantic.BaseModel):
-            return config_class(**args[0])
-        else:
-            return config_class(*args)
+        return config_class(*args)
 
     def _validate_key(self):
         if not self.key:
@@ -418,7 +414,9 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
     def _get_service(self, service_type, alias):
         ConfigClass = ServiceConfig
         if "class_path" in self.project_config.config["services"][service_type]:
-            class_path = self.project_config.services[service_type]["class_path"]
+            class_path = self.project_config.config["services"][service_type][
+                "class_path"
+            ]
             try:
                 ConfigClass = import_class(class_path)
             except AttributeError:

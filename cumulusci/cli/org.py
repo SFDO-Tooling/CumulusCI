@@ -12,7 +12,6 @@ from cumulusci.core.config import OrgConfig, ScratchOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.utils import cleanup_org_cache_dirs
 from cumulusci.oauth.client import OAuth2Client
-from cumulusci.oauth.client_info import OAuth2ClientInfo
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import parse_api_datetime
 from .runtime import pass_runtime
@@ -146,18 +145,16 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
     base_uri = login_url or base_uri.format("test" if sandbox else "login")
     auth_uri = base_uri + "/services/oauth2/authorize"
     token_uri = base_uri + "/services/oauth2/token"
-    revoke_uri = base_uri + "/services/oauth2/revoke"
 
-    sf_client_info = OAuth2ClientInfo(
-        client_id=connected_app.client_id,
-        client_secret=connected_app.client_secret,
-        auth_uri=auth_uri,
-        token_uri=token_uri,
-        revoke_uri=revoke_uri,
-        scope="web full refresh_token",
-        prompt="login",
-    )
-    sf_client = OAuth2Client(sf_client_info)
+    sf_client_config = {
+        "client_id": connected_app.client_id,
+        "client_secret": connected_app.client_secret,
+        "auth_uri": auth_uri,
+        "token_uri": token_uri,
+        "scope": "web full refresh_token",
+        "prompt": "login",
+    }
+    sf_client = OAuth2Client(sf_client_config)
     oauth_dict = sf_client.auth_code_flow()
 
     global_org = global_org or runtime.project_config is None

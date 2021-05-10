@@ -6,7 +6,6 @@ from contextlib import contextmanager
 from collections import defaultdict
 from collections import namedtuple
 from cumulusci.oauth.client import OAuth2Client
-from cumulusci.oauth.client_info import OAuth2ClientInfo
 from distutils.version import StrictVersion
 from simple_salesforce import Salesforce
 from simple_salesforce.exceptions import SalesforceError, SalesforceResourceNotFound
@@ -96,15 +95,14 @@ class OrgConfig(BaseConfig):
             client_id = connected_app.client_id
             client_secret = connected_app.client_secret
 
-        sf_oauth_info = OAuth2ClientInfo(
-            client_id=client_id,
-            client_secret=client_secret,
-            auth_uri=f"{self.instance_url}/services/oauth2/authorize",
-            token_uri=f"{self.instance_url}/services/oauth2/token",
-            revoke_uri=f"{self.instance_url}/services/oauth2/revoke",
-            scope="web full refresh_token",
-        )
-        sf_oauth = self.OAuth2Client(sf_oauth_info)
+        sf_oauth_config = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "auth_uri": f"{self.instance_url}/services/oauth2/authorize",
+            "token_uri": f"{self.instance_url}/services/oauth2/token",
+            "scope": "web full refresh_token",
+        }
+        sf_oauth = self.OAuth2Client(sf_oauth_config)
         return sf_oauth.refresh_token(self.refresh_token)
 
     @property
