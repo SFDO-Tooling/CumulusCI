@@ -55,6 +55,7 @@ Further Reading
    :maxdepth: 1
 
    cumulusci_flow.rst
+   2gp_testing.rst
    github_actions.rst
 
 

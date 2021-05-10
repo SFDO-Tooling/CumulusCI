@@ -134,9 +134,28 @@ class PublishSubtree(BaseGithubTask):
         zf.extractall(path=path, members=included_members)
 
     def _filter_namelist(self, includes, namelist):
-        dirs = tuple(name for name in includes if name.endswith("/"))
+        """
+        Filter a zipfile namelist, handling any included directory filenames missing
+        a trailing slash.
+        """
+        included_dirs = []
+        zip_dirs = [
+            filename.rstrip("/") for filename in namelist if filename.endswith("/")
+        ]
+
+        for name in includes:
+            if name.endswith("/"):
+                included_dirs.append(name)
+            elif name in zip_dirs:
+                # append a trailing slash to avoid partial matches
+                included_dirs.append(name + "/")
+
         return list(
-            {name for name in namelist if name.startswith(dirs) or name in includes}
+            {
+                name
+                for name in namelist
+                if name.startswith(tuple(included_dirs)) or name in includes
+            }
         )
 
     def _rename_files(self, zip_dir):
