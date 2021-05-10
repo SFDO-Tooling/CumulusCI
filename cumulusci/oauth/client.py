@@ -92,14 +92,12 @@ class OAuth2Client(object):
         self.httpd = None
         self.httpd_timeout = 300
 
-    def auth_code_flow(self, use_https=False) -> None:
+    def auth_code_flow(self) -> None:
         """Completes the flow for the OAuth2 auth code grant type.
         For more info on the auth code flow see:
         https://www.oauth.com/oauth2-servers/server-side-apps/authorization-code/
 
         @param auth_info instanace of OAuthInfo to use in the flow
-        @param use_https wether or not the http daemon receiving the callback
-        should be using https.
         @returns a dict of values returned from the auth server.
         It will be similar in shape to:
         {
@@ -115,7 +113,7 @@ class OAuth2Client(object):
         webbrowser.open(auth_uri_with_params, new=1)
         # Open up an http daemon to listen for the
         # callback from the auth server
-        self.httpd = self._create_httpd(use_https=use_https)
+        self.httpd = self._create_httpd()
         logger.info(
             f"Spawning HTTP server at {self.client_config['callback_url']}"
             f" with timeout of {self.httpd.timeout} seconds.\n"
@@ -141,7 +139,7 @@ class OAuth2Client(object):
         finally:
             socket.setdefaulttimeout(old_timeout)
 
-        if use_https:
+        if self.client_config["callback_url"].startswith("https:"):
             Path("key.pem").unlink()
             Path("localhost.pem").unlink()
 
@@ -161,10 +159,11 @@ class OAuth2Client(object):
             url += f"&prompt={quote(self.client_config['prompt'])}"
         return url
 
-    def _create_httpd(self, use_https=False):
+    def _create_httpd(self):
         """Create an http daemon process to listen
         for the callback from the auth server"""
         url_parts = urlparse(self.client_config["callback_url"])
+        use_https = url_parts.scheme == "https"
         server_address = (url_parts.hostname, url_parts.port)
         OAuthCallbackHandler.parent = self
 

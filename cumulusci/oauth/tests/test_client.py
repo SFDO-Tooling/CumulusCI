@@ -1,3 +1,4 @@
+import contextlib
 import http.client
 import pytest
 import responses
@@ -52,23 +53,32 @@ def client(client_config):
     return OAuth2Client(client_config)
 
 
+@pytest.fixture
+def http_client(client_config):
+    client_config = client_config.copy()
+    client_config["callback_url"] = "http://localhost:8080/callback"
+    return OAuth2Client(client_config)
+
+
+@contextlib.contextmanager
 @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
-def start_httpd_thread(tester_class, oauth_client, use_https):
+def httpd_thread(tester_class, oauth_client):
     # call OAuth object on another thread - this spawns local httpd
-    thread = threading.Thread(
-        target=oauth_client.auth_code_flow, kwargs={"use_https": use_https}
-    )
+    thread = threading.Thread(target=oauth_client.auth_code_flow)
     thread.start()
     while thread.is_alive():
         if oauth_client.httpd:
             break
-        print("waiting for o.httpd")
         time.sleep(0.01)
 
     assert (
         oauth_client.httpd
     ), "HTTPD did not start. Perhaps port 8080 cannot be accessed."
-    return oauth_client, thread
+    try:
+        yield oauth_client, thread
+    finally:
+        oauth_client.httpd.shutdown()
+        thread.join()
 
 
 @mock.patch("webbrowser.open", mock.MagicMock(return_value=None))
@@ -84,7 +94,7 @@ class TestOAuth2Client:
         assert "SENTINEL" == info["message"]
 
     @responses.activate
-    def test_auth_code_flow___http(self, client):
+    def test_auth_code_flow___http(self, http_client):
         expected_response = {
             "access_token": "abc123",
             "id_token": "abc123",
@@ -104,14 +114,11 @@ class TestOAuth2Client:
         )
 
         # call OAuth object on another thread - this spawns local httpd
-        oauth_client, thread = start_httpd_thread(self, client, use_https=False)
-        # simulate callback from browser
-        response = urllib.request.urlopen(
-            client.client_config["callback_url"] + "?code=123"
-        )
-
-        # wait for thread to complete
-        thread.join()
+        with httpd_thread(self, http_client) as (oauth_client, thread):
+            # simulate callback from browser
+            response = urllib.request.urlopen(
+                http_client.client_config["callback_url"] + "?code=123"
+            )
 
         assert oauth_client.response.json() == expected_response
         assert b"Congratulations" in response.read()
@@ -142,14 +149,11 @@ class TestOAuth2Client:
         ssl._create_default_https_context = ssl._create_unverified_context
 
         # call OAuth object on another thread - this spawns local httpd
-        oauth_client, thread = start_httpd_thread(self, client, use_https=True)
-        # simulate callback from browser
-        response = urllib.request.urlopen(
-            oauth_client.client_config["callback_url"] + "?code=123"
-        )
-
-        # wait for thread to complete
-        thread.join()
+        with httpd_thread(self, client) as (oauth_client, thread):
+            # simulate callback from browser
+            response = urllib.request.urlopen(
+                oauth_client.client_config["callback_url"] + "?code=123"
+            )
 
         assert oauth_client.response.json() == expected_response
         assert b"Congratulations" in response.read()
@@ -176,14 +180,13 @@ class TestOAuth2Client:
         )
 
         # call OAuth object on another thread - this spawns local httpd
-        oauth_client, thread = start_httpd_thread(self, client, use_https=False)
-
-        # simulate callback from browser
-        with pytest.raises(urllib.error.HTTPError):
-            urllib.request.urlopen(
-                client.client_config["callback_url"]
-                + "?error=123&error_description=broken"
-            )
+        with httpd_thread(self, client) as (oauth_client, thread):
+            # simulate callback from browser
+            with pytest.raises(urllib.error.HTTPError):
+                urllib.request.urlopen(
+                    client.client_config["callback_url"]
+                    + "?error=123&error_description=broken"
+                )
 
         # wait for thread to complete
         thread.join()
@@ -198,14 +201,12 @@ class TestOAuth2Client:
         )
 
         # call OAuth object on another thread - this spawns local httpd
-        o, thread = start_httpd_thread(self, client, use_https=False)
-
-        # simulate callback from browser
-        with pytest.raises(urllib.error.HTTPError):
-            urllib.request.urlopen(client.client_config["callback_url"] + "?code=123")
-
-        # wait for thread to complete
-        thread.join()
+        with httpd_thread(self, client) as (oauth_client, thread):
+            # simulate callback from browser
+            with pytest.raises(urllib.error.HTTPError):
+                urllib.request.urlopen(
+                    client.client_config["callback_url"] + "?code=123"
+                )
 
     def test_validate_resposne__raises_error(self, client):
         response = mock.Mock(status_code=503)
