@@ -25,6 +25,7 @@ from cumulusci.core.config.OrgConfig import OrgConfig
 
 class ServiceConfig(BaseConfig):
     def __init__(self, config, name, keychain):
+        """Services need access to a keychain and the alias of their service."""
         self.name = name
         super().__init__(config, keychain)
 

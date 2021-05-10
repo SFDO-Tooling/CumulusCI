@@ -183,6 +183,10 @@ tasks:
     options:
       path: src
     group: Salesforce Metadata
+  deploy_marketing_cloud_package:
+    class_path: cumulusci.tasks.marketing_cloud.deploy.MarketingCloudDeployTask
+    description: Deploys a package zip file to a Marketing Cloud tenant via the Marketing Cloud Package manager API.
+    group: Marketing Cloud
   deploy_pre:
     description: Deploys all metadata bundles under unpackaged/pre/
     class_path: cumulusci.tasks.salesforce.DeployBundles

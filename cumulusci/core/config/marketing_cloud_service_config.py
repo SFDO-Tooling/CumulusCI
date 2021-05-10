@@ -1,4 +1,5 @@
 from typing import Dict
+from urllib.parse import urlparse
 
 from cumulusci.core.config.oauth2_service_config import OAuth2ServiceConfig
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
@@ -24,6 +25,14 @@ class MarketingCloudServiceConfig(OAuth2ServiceConfig):
         return oauth_client.auth_code_flow(use_https=True)
 
     @property
+    def tssd(self):
+        """A dynamic value that represents the end user's subdomain.
+        We can derive this value from either soap_instance_url or rest_instance_url
+        which are present upon successful completion of an OAuth2 flow."""
+        result = urlparse(self.config["rest_instance_url"])
+        return result.netloc.split(".")[0]
+
+    @property
     def access_token(self):
         return self._refresh_token()
 
@@ -37,9 +46,9 @@ class MarketingCloudServiceConfig(OAuth2ServiceConfig):
         oauth_client = OAuth2Client(self._client_config.config)
         info = oauth_client.refresh_token(self.refresh_token)
         self.config.update(info)
-        self.save()
+        self._save()
         return info["access_token"]
 
-    def save(self):
+    def _save(self):
         assert self._keychain, "Keychain not set on MarketingCloudServiceConfig"
         self._keychain.set_service("marketing_cloud", self.name, self)
