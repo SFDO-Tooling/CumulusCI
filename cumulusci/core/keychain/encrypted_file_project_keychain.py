@@ -419,7 +419,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             ]
             try:
                 ConfigClass = import_class(class_path)
-            except AttributeError:
+            except (AttributeError, ModuleNotFoundError):
                 raise CumulusCIException(
                     f"Unrecognized class_path for service: {class_path}"
                 )

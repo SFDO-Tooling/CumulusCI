@@ -56,7 +56,6 @@ __all__ = (
     "FlowConfig",
     "OrgConfig",
     "ServiceConfig",
-    "MarketingCloudServiceConfig",
     "TaskConfig",
     "BaseTaskFlowConfig",
     "BaseProjectConfig",
