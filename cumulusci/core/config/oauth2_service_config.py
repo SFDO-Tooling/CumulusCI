@@ -15,4 +15,3 @@ class OAuth2ServiceConfig(ServiceConfig, ABC):
         via `cci service connect`. This method should perform the necessary
         OAuth flow and return a dict of values that the service would like
         stored in the services `config` dict."""
-        raise NotImplementedError()
