@@ -24,7 +24,9 @@ from cumulusci.core.config.OrgConfig import OrgConfig
 
 
 class ServiceConfig(BaseConfig):
-    pass
+    def __init__(self, config, name, keychain):
+        self.name = name
+        super().__init__(config, keychain)
 
 
 class TaskConfig(BaseConfig):

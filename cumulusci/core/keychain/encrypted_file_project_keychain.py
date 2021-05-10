@@ -427,7 +427,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         return self._decrypt_config(
             ConfigClass,
             self.services[service_type][alias],
-            extra=[self],
+            extra=[alias, self],
             context=f"service config ({service_type}:{alias})",
         )
 

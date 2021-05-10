@@ -6,8 +6,9 @@ from cumulusci.oauth.client import OAuth2Client
 
 
 class MarketingCloudServiceConfig(OAuth2ServiceConfig):
-    def __init__(self, config, keychain):
-        super().__init__(config=config)
+    def __init__(self, config, name, keychain):
+        super().__init__(config, name, keychain)
+        self._keychain = keychain
         self._client_config = keychain.get_service(
             "oauth2_client", config["oauth2_client"]
         )
@@ -35,4 +36,10 @@ class MarketingCloudServiceConfig(OAuth2ServiceConfig):
         """
         oauth_client = OAuth2Client(self._client_config.config)
         info = oauth_client.refresh_token(self.refresh_token)
+        self.config.update(info)
+        self.save()
         return info["access_token"]
+
+    def save(self):
+        assert self._keychain, "Keychain not set on MarketingCloudServiceConfig"
+        self._keychain.set_service("marketing_cloud", self.name, self)

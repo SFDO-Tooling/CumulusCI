@@ -174,7 +174,7 @@ class ConnectServiceCommand(click.MultiCommand):
                     oauth_dict = ConfigClass.connect(runtime.keychain, kwargs)
                     serv_conf.update(oauth_dict)
 
-            config_instance = ConfigClass(serv_conf, runtime.keychain)
+            config_instance = ConfigClass(serv_conf, service_name, runtime.keychain)
 
             runtime.keychain.set_service(
                 service_type,
