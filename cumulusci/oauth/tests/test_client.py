@@ -41,7 +41,7 @@ def client_config():
         "client_secret": "foo_secret",
         "auth_uri": "https://login.salesforce.com/services/oauth2/authorize",
         "token_uri": "https://login.salesforce.com/services/oauth2/token",
-        "callback_url": "https://localhost:8080/callback",
+        "callback_url": "http://localhost:8080/callback",
         "scope": "web full refresh_token",
         "prompt": "login",
     }
