@@ -20,6 +20,7 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.utils import import_class
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
 
@@ -405,14 +406,29 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         service_path = Path(
             f"{self.global_config_dir}/services/{service_type}/{alias}.service"
         )
+        if not service_path.parent.is_dir():
+            service_path.parent.mkdir()
         with open(service_path, "wb") as f:
             f.write(encrypted)
 
     def _get_service(self, service_type, alias):
+        ConfigClass = ServiceConfig
+        if "class_path" in self.project_config.config["services"][service_type]:
+            class_path = self.project_config.config["services"][service_type][
+                "class_path"
+            ]
+            try:
+                ConfigClass = import_class(class_path)
+            except (AttributeError, ModuleNotFoundError):
+                raise CumulusCIException(
+                    f"Unrecognized class_path for service: {class_path}"
+                )
+
         return self._decrypt_config(
-            ServiceConfig,
+            ConfigClass,
             self.services[service_type][alias],
-            context=f"service config ({service_type}/{alias})",
+            extra=[alias, self],
+            context=f"service config ({service_type}:{alias})",
         )
 
     def _load_service_files(self, constructor=None) -> None:
