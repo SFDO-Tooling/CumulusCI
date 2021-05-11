@@ -142,18 +142,17 @@ class OAuth2Client(object):
         # 1. Get a callback from Salesforce.
         # 2. Timeout
 
-        # for some reason this is required for Safari (checked Feb 2021)
-        # https://github.com/SFDO-Tooling/CumulusCI/pull/2373
         old_timeout = socket.getdefaulttimeout()
         try:
+            # for some reason this is required for Safari (checked Feb 2021)
+            # https://github.com/SFDO-Tooling/CumulusCI/pull/2373
             socket.setdefaulttimeout(3)
             self.httpd.serve_forever()
         finally:
             socket.setdefaulttimeout(old_timeout)
-
-        if self.client_config.redirect_uri.startswith("https:"):
-            Path("key.pem").unlink()
-            Path("localhost.pem").unlink()
+            if self.client_config.redirect_uri.startswith("https:"):
+                Path("key.pem").unlink()
+                Path("localhost.pem").unlink()
 
         # timeout thread can stop polling and just finish
         timeout_thread.quit()
