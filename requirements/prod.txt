@@ -124,7 +124,7 @@ six==1.16.0
     #   salesforce-bulk
 snowfakery==1.10
     # via -r requirements/prod.in
-sqlalchemy==1.4.15
+sqlalchemy==1.4.11
     # via
     #   -r requirements/prod.in
     #   snowfakery
