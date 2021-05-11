@@ -56,9 +56,14 @@ class TestMarketingCloudDeployTask:
         task._run_task()
 
         assert task.logger.info.call_count == 0
-        task.logger.warn.assert_called_once_with("Skipped deploying entity: assets/1")
-        task.logger.error.assert_called_once_with(
-            "Failed to deploy assets/0: ['A problem occurred']"
+        assert task.logger.error.call_count == 2
+        assert (
+            task.logger.error.call_args_list[0][0][0]
+            == "Failed to deploy assets/0. Status: FAILED. Issues: ['A problem occurred']"
+        )
+        assert (
+            task.logger.error.call_args_list[1][0][0]
+            == "Failed to deploy assets/1. Status: SKIPPED. Issues: ['A problem occurred']"
         )
 
     def test_zipfile_not_valid(self, task):

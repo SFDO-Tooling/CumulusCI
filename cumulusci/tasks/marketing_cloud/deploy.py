@@ -92,14 +92,11 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
                 continue
 
             for entity_id, info in info.items():
-                if info["status"] == "FAILED":
+                if info["status"] != "SUCCESS":
                     has_error = True
                     self.logger.error(
-                        f"Failed to deploy {entity}/{entity_id}: {info['issues']}"
+                        f"Failed to deploy {entity}/{entity_id}. Status: {info['status']}. Issues: {info['issues']}"
                     )
-                elif info["status"] == "SKIPPED":
-                    has_error = True
-                    self.logger.warn(f"Skipped deploying entity: {entity}/{entity_id}")
 
         if not has_error:
             self.logger.info("Deployment completed successfully.")
