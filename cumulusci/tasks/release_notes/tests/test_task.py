@@ -23,7 +23,9 @@ class TestGithubReleaseNotes:
                     "username": "TestUser",
                     "token": "TestPass",
                     "email": "testuser@testdomain.com",
-                }
+                },
+                "test_alias",
+                project_config.keychain,
             ),
         )
         project_config.project__git__default_branch = "main"
