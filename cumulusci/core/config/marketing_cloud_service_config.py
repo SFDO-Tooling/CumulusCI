@@ -23,7 +23,9 @@ class MarketingCloudServiceConfig(OAuth2ServiceConfig):
         @param kwargs - Any keyword arguments passed to `cci service connect`
         """
         client_config = keychain.get_service("oauth2_client", kwargs["oauth2_client"])
-        oauth2_client = OAuth2Client(client_config.config)
+        config = client_config.config.copy()
+        config["redirect_uri"] = config["callback_url"]
+        oauth2_client = OAuth2Client(config)
         return oauth2_client.auth_code_flow()
 
     @property
