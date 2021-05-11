@@ -25,7 +25,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
     task_options = {
         "package_zip_file": {
-            "description": "The unzipped contents of the package to deploy.",
+            "description": "Path to the package zipfile that will be deployed.",
             "required": True,
         }
     }
