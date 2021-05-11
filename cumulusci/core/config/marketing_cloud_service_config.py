@@ -2,27 +2,29 @@ from typing import Dict
 from urllib.parse import urlparse
 
 from cumulusci.core.config.oauth2_service_config import OAuth2ServiceConfig
-from cumulusci.core.keychain import EncryptedFileProjectKeychain
+from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.oauth.client import OAuth2Client
 
 
 class MarketingCloudServiceConfig(OAuth2ServiceConfig):
     def __init__(self, config, name, keychain):
         super().__init__(config, name, keychain)
+        self._name = name
         self._keychain = keychain
         self._client_config = keychain.get_service(
             "oauth2_client", config["oauth2_client"]
         )
 
-    def connect(keychain: EncryptedFileProjectKeychain, kwargs: Dict):
+    @classmethod
+    def connect(cls, keychain: BaseProjectKeychain, kwargs: Dict):
         """This is called when a service is connected via `cci service connect`
 
         @param keychain - A keychain for accessing services
         @param kwargs - Any keyword arguments passed to `cci service connect`
         """
         client_config = keychain.get_service("oauth2_client", kwargs["oauth2_client"])
-        oauth_client = OAuth2Client(client_config.config)
-        return oauth_client.auth_code_flow(use_https=True)
+        oauth2_client = OAuth2Client(client_config.config)
+        return oauth2_client.auth_code_flow()
 
     @property
     def tssd(self):
@@ -46,9 +48,9 @@ class MarketingCloudServiceConfig(OAuth2ServiceConfig):
         oauth_client = OAuth2Client(self._client_config.config)
         info = oauth_client.refresh_token(self.refresh_token)
         self.config.update(info)
-        self._save()
+        self.save()
         return info["access_token"]
 
-    def _save(self):
+    def save(self):
         assert self._keychain, "Keychain not set on MarketingCloudServiceConfig"
-        self._keychain.set_service("marketing_cloud", self.name, self)
+        self._keychain.set_service("marketing_cloud", self._name, self)
