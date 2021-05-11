@@ -1,4 +1,3 @@
-from cumulusci.utils import temporary_dir
 import json
 import requests
 import zipfile
@@ -7,6 +6,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.utils import temporary_dir
 from .base import BaseMarketingCloudTask
 
 MC_DEPLOY_ENDPOINT = "https://mc-package-manager.herokuapp.com/api/spm/deploy"
@@ -32,6 +32,10 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
     def _run_task(self):
         pkg_zip_file = Path(self.options["package_zip_file"])
+        if not pkg_zip_file.is_file():
+            self.logger.error(f"Package zip file not valid: {pkg_zip_file.name}")
+            return
+
         with temporary_dir() as temp_dir:
             with zipfile.ZipFile(pkg_zip_file) as zf:
                 zf.extractall(temp_dir)
@@ -47,6 +51,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
                 "SFMC-TSSD": self.mc_config.tssd,
             },
         )
+
         self._validate_response(response)
 
     def _construct_payload(self, dir_path):
@@ -86,13 +91,15 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             if not info:
                 continue
 
-            for info in info.values():
+            for entity_id, info in info.items():
                 if info["status"] == "FAILED":
                     has_error = True
-                    self.logger.error(f"Failed to deploy {entity}: {info['issues']}")
+                    self.logger.error(
+                        f"Failed to deploy {entity}/{entity_id}: {info['issues']}"
+                    )
                 elif info["status"] == "SKIPPED":
                     has_error = True
-                    self.logger.warn(f"Skipped deploying entity: {entity}")
+                    self.logger.warn(f"Skipped deploying entity: {entity}/{entity_id}")
 
         if not has_error:
             self.logger.info("Deployment completed successfully.")
