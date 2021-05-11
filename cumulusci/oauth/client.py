@@ -159,14 +159,14 @@ class OAuth2Client(object):
         self.validate_response(self.response)
         return safe_json_from_response(self.response)
 
-    def _get_auth_uri(self, **kwargs: Dict[str, str]):
+    def _get_auth_uri(self, **kwargs):
         url = self.client_config.auth_uri
         url += "?response_type=code"
         url += f"&client_id={self.client_config.client_id}"
         url += f"&redirect_uri={self.client_config.redirect_uri}"
         if self.client_config.scope:
             url += f"&scope={quote(self.client_config.scope)}"
-        for k, v in kwargs:
+        for k, v in kwargs.items():
             url += f"&{k}={quote(v)}"
         return url
 
