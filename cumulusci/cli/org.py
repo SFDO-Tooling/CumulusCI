@@ -11,7 +11,7 @@ from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.utils import cleanup_org_cache_dirs
-from cumulusci.oauth.client import OAuth2Client
+from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import parse_api_datetime
 from .runtime import pass_runtime
@@ -146,16 +146,16 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
     auth_uri = base_uri + "/services/oauth2/authorize"
     token_uri = base_uri + "/services/oauth2/token"
 
-    sf_client_config = {
-        "client_id": connected_app.client_id,
-        "client_secret": connected_app.client_secret,
-        "auth_uri": auth_uri,
-        "token_uri": token_uri,
-        "scope": "web full refresh_token",
-        "prompt": "login",
-    }
+    sf_client_config = OAuth2ClientConfig(
+        client_id=connected_app.client_id,
+        client_secret=connected_app.client_secret,
+        redirect_uri=connected_app.callback_url,
+        auth_uri=auth_uri,
+        token_uri=token_uri,
+        scope="web full refresh_token",
+    )
     sf_client = OAuth2Client(sf_client_config)
-    oauth_dict = sf_client.auth_code_flow()
+    oauth_dict = sf_client.auth_code_flow(prompt="login")
 
     global_org = global_org or runtime.project_config is None
     org_config = OrgConfig(oauth_dict, org_name, runtime.keychain, global_org)

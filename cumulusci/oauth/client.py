@@ -1,3 +1,4 @@
+from typing import Dict, Optional, Union
 import http.client
 import logging
 import os
@@ -20,7 +21,7 @@ from datetime import timedelta
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
 from pathlib import Path
-from typing import Dict
+from pydantic import BaseModel
 from urllib.parse import parse_qs
 from urllib.parse import quote
 from urllib.parse import urlparse
@@ -75,24 +76,34 @@ def create_key_and_self_signed_cert():
         )
 
 
+class OAuth2ClientConfig(BaseModel):
+    client_id: str
+    client_secret: Optional[str] = None
+    auth_uri: str
+    token_uri: str
+    redirect_uri: Optional[str] = None
+    scope: Optional[str] = None
+
+
 class OAuth2Client(object):
     """Represents an OAuth2 client with the ability to
     execute different grant types.
-    Currenntly supported grant types include:
+    Currently supported grant types include:
         (1) Authorization Code - via auth_code_flow()
-
-    To instantiate, just provide an instance or subclass
-    of OAuth2ClientInfo to the contructor.
+        (2) Refresh Token - via refresh_token()
     """
 
-    def __init__(self, client_config: Dict):
-        # the config for and oauth2_client service
+    response: Optional[requests.Response]
+
+    def __init__(self, client_config: Union[OAuth2ClientConfig, Dict]):
+        if isinstance(client_config, dict):
+            client_config = OAuth2ClientConfig(**client_config)
         self.client_config = client_config
         self.response = None
         self.httpd = None
         self.httpd_timeout = 300
 
-    def auth_code_flow(self) -> None:
+    def auth_code_flow(self, **kwargs) -> dict:
         """Completes the flow for the OAuth2 auth code grant type.
         For more info on the auth code flow see:
         https://www.oauth.com/oauth2-servers/server-side-apps/authorization-code/
@@ -101,21 +112,22 @@ class OAuth2Client(object):
         @returns a dict of values returned from the auth server.
         It will be similar in shape to:
         {
-            "access_token":"<acces_token>",
+            "access_token":"<access_token>",
             "token_type":"bearer",
             "expires_in":3600,
             "refresh_token":"<refresh_token>",
             "scope":"create"
         }
         """
-        auth_uri_with_params = self._get_auth_uri()
+        assert self.client_config.redirect_uri
+        auth_uri_with_params = self._get_auth_uri(**kwargs)
         # Open a browser and direct the user to login
         webbrowser.open(auth_uri_with_params, new=1)
         # Open up an http daemon to listen for the
         # callback from the auth server
         self.httpd = self._create_httpd()
         logger.info(
-            f"Spawning HTTP server at {self.client_config['callback_url']}"
+            f"Spawning HTTP server at {self.client_config.redirect_uri}"
             f" with timeout of {self.httpd.timeout} seconds.\n"
             "If you are unable to log in to Salesforce you can"
             " press <Ctrl+C> to kill the server and return to the command line."
@@ -130,39 +142,38 @@ class OAuth2Client(object):
         # 1. Get a callback from Salesforce.
         # 2. Timeout
 
+        old_timeout = socket.getdefaulttimeout()
         try:
             # for some reason this is required for Safari (checked Feb 2021)
             # https://github.com/SFDO-Tooling/CumulusCI/pull/2373
-            old_timeout = socket.getdefaulttimeout()
             socket.setdefaulttimeout(3)
             self.httpd.serve_forever()
         finally:
             socket.setdefaulttimeout(old_timeout)
-
-        if self.client_config["callback_url"].startswith("https:"):
-            Path("key.pem").unlink()
-            Path("localhost.pem").unlink()
+            if self.client_config.redirect_uri.startswith("https:"):
+                Path("key.pem").unlink()
+                Path("localhost.pem").unlink()
 
         # timeout thread can stop polling and just finish
         timeout_thread.quit()
         self.validate_response(self.response)
         return safe_json_from_response(self.response)
 
-    def _get_auth_uri(self):
-        url = self.client_config["auth_uri"]
+    def _get_auth_uri(self, **kwargs: Dict[str, str]):
+        url = self.client_config.auth_uri
         url += "?response_type=code"
-        url += f"&client_id={self.client_config['client_id']}"
-        url += f"&redirect_uri={self.client_config['callback_url']}"
-        if "scope" in self.client_config:
-            url += f"&scope={quote(self.client_config['scope'])}"
-        if "prompt" in self.client_config:
-            url += f"&prompt={quote(self.client_config['prompt'])}"
+        url += f"&client_id={self.client_config.client_id}"
+        url += f"&redirect_uri={self.client_config.redirect_uri}"
+        if self.client_config.scope:
+            url += f"&scope={quote(self.client_config.scope)}"
+        for k, v in kwargs:
+            url += f"&{k}={quote(v)}"
         return url
 
     def _create_httpd(self):
         """Create an http daemon process to listen
         for the callback from the auth server"""
-        url_parts = urlparse(self.client_config["callback_url"])
+        url_parts = urlparse(self.client_config.redirect_uri)
         use_https = url_parts.scheme == "https"
         server_address = (url_parts.hostname, url_parts.port)
         OAuthCallbackHandler.parent = self
@@ -185,25 +196,25 @@ class OAuth2Client(object):
     def auth_code_grant(self, auth_code):
         """Exchange an auth code for an access token"""
         data = {
-            "client_id": self.client_config["client_id"],
-            "client_secret": self.client_config["client_secret"],
+            "client_id": self.client_config.client_id,
+            "client_secret": self.client_config.client_secret,
             "grant_type": "authorization_code",
-            "redirect_uri": self.client_config["callback_url"],
+            "redirect_uri": self.client_config.redirect_uri,
             "code": auth_code,
         }
         return requests.post(
-            self.client_config["token_uri"], headers=HTTP_HEADERS, data=data
+            self.client_config.token_uri, headers=HTTP_HEADERS, data=data
         )
 
     def refresh_token(self, refresh_token):
         data = {
-            "client_id": self.client_config["client_id"],
-            "client_secret": self.client_config["client_secret"],
+            "client_id": self.client_config.client_id,
+            "client_secret": self.client_config.client_secret,
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
         }
         response = requests.post(
-            self.client_config["token_uri"], headers=HTTP_HEADERS, data=data
+            self.client_config.token_uri, headers=HTTP_HEADERS, data=data
         )
         self.validate_response(response)
         return safe_json_from_response(response)
@@ -249,7 +260,7 @@ class HTTPDTimeout(threading.Thread):
 
 
 class OAuthCallbackHandler(BaseHTTPRequestHandler):
-    parent = None
+    parent: Optional[OAuth2Client] = None
 
     def do_GET(self):
         args = parse_qs(urlparse(self.path).query, keep_blank_values=True)

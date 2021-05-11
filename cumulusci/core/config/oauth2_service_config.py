@@ -1,15 +1,15 @@
 from abc import ABC
-from abc import abstractmethod
+from abc import abstractclassmethod
 from typing import Dict
 
 from cumulusci.core.config import ServiceConfig
 
 
 class OAuth2ServiceConfig(ServiceConfig, ABC):
-    """Base class for services that require and OAuth2 Client
+    """Base class for services that require an OAuth2 Client
     for establishing a connection."""
 
-    @abstractmethod
+    @abstractclassmethod
     def connect(self) -> Dict:
         """This method is called when the service is first connected
         via `cci service connect`. This method should perform the necessary

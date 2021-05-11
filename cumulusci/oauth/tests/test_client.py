@@ -42,7 +42,7 @@ def client_config():
         "client_secret": "foo_secret",
         "auth_uri": "https://login.salesforce.com/services/oauth2/authorize",
         "token_uri": "https://login.salesforce.com/services/oauth2/token",
-        "callback_url": "http://localhost:8080/callback",
+        "redirect_uri": "http://localhost:8080/callback",
         "scope": "web full refresh_token",
         "prompt": "login",
     }
@@ -56,7 +56,7 @@ def client(client_config):
 @pytest.fixture
 def http_client(client_config):
     client_config = client_config.copy()
-    client_config["callback_url"] = "http://localhost:8080/callback"
+    client_config["redirect_uri"] = "http://localhost:8080/callback"
     return OAuth2Client(client_config)
 
 
@@ -117,7 +117,7 @@ class TestOAuth2Client:
         with httpd_thread(self, http_client) as (oauth_client, thread):
             # simulate callback from browser
             response = urllib.request.urlopen(
-                http_client.client_config["callback_url"] + "?code=123"
+                http_client.client_config.redirect_uri + "?code=123"
             )
 
         assert oauth_client.response.json() == expected_response
@@ -143,7 +143,7 @@ class TestOAuth2Client:
             json=expected_response,
         )
         # use https for callback
-        client.client_config["callback_url"] = "https://localhost:8080/callback"
+        client.client_config.redirect_uri = "https://localhost:8080/callback"
         # squash CERTIFICATE_VERIFY_FAILED from urllib
         # https://stackoverflow.com/questions/49183801/ssl-certificate-verify-failed-with-urllib
         ssl._create_default_https_context = ssl._create_unverified_context
@@ -152,7 +152,7 @@ class TestOAuth2Client:
         with httpd_thread(self, client) as (oauth_client, thread):
             # simulate callback from browser
             response = urllib.request.urlopen(
-                oauth_client.client_config["callback_url"] + "?code=123"
+                oauth_client.client_config.redirect_uri + "?code=123"
             )
 
         assert oauth_client.response.json() == expected_response
@@ -184,7 +184,7 @@ class TestOAuth2Client:
             # simulate callback from browser
             with pytest.raises(urllib.error.HTTPError):
                 urllib.request.urlopen(
-                    client.client_config["callback_url"]
+                    client.client_config.redirect_uri
                     + "?error=123&error_description=broken"
                 )
 
@@ -204,9 +204,7 @@ class TestOAuth2Client:
         with httpd_thread(self, client) as (oauth_client, thread):
             # simulate callback from browser
             with pytest.raises(urllib.error.HTTPError):
-                urllib.request.urlopen(
-                    client.client_config["callback_url"] + "?code=123"
-                )
+                urllib.request.urlopen(client.client_config.redirect_uri + "?code=123")
 
     def test_validate_resposne__raises_error(self, client):
         response = mock.Mock(status_code=503)

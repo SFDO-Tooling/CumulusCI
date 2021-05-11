@@ -104,6 +104,7 @@ class TestOrgCommands:
         runtime.keychain.get_service.return_value = mock.Mock(
             client_id="asdfasdf",
             client_secret="asdfasdf",
+            callback_url="http://localhost:8080/callback",
         )
         responses.add(
             method="GET",
@@ -154,6 +155,7 @@ class TestOrgCommands:
         runtime.keychain.get_service.return_value = mock.Mock(
             client_id="asdfasdf",
             client_secret="asdfasdf",
+            callback_url="http://localhost:8080/callback",
         )
         responses.add(
             method="GET",
