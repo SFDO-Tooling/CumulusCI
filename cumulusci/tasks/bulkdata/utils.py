@@ -49,8 +49,9 @@ class SqlAlchemyMixin:
         dict_iterable = (dict(zip(columns, row)) for row in record_iterable)
         for group in iterate_in_chunks(10000, dict_iterable):
             with connection.begin():
-                yield connection.execute(table.insert(), group)
+                connection.execute(table.insert(), group)
             self.session.flush()
+            yield
 
     def _create_record_type_table(self, table_name):
         """Create a table to store mapping between Record Type Ids and Developer Names."""
