@@ -31,7 +31,7 @@ chardet==4.0.0
     # via
     #   -c requirements/prod.txt
     #   requests
-click==8.0.0
+click==7.1.2
     # via
     #   -c requirements/prod.txt
     #   black
