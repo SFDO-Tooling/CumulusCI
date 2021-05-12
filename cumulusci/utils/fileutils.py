@@ -77,7 +77,7 @@ def load_from_source(source: DataInput) -> ContextManager[Tuple[IO[Text], Text]]
             source = TextIOWrapper(source, "utf-8")
         yield source, path
     elif hasattr(source, "open"):  # pathlib.Path-like
-        with source.open("rt") as f:
+        with source.open("rt", encoding="utf-8") as f:
             path = str(source)
             yield f, path
     elif "://" in source:  # URL string-like
@@ -87,7 +87,7 @@ def load_from_source(source: DataInput) -> ContextManager[Tuple[IO[Text], Text]]
         yield StringIO(resp.text), url
     else:  # path-string-like
         path = source
-        with open(path, "rt") as f:
+        with open(path, "rt", encoding="utf-8") as f:
             yield f, path
 
 
