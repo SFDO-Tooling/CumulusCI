@@ -5,9 +5,10 @@ docutils<0.17
 Faker
 fs
 github3.py
-jinja2
+jinja2<3
 keyring
 lxml
+MarkupSafe<2
 pydantic
 PyJWT
 pytz

@@ -90,17 +90,22 @@ class TestOrgCommands:
         click_echo.assert_called_once_with(start_url)
         org_config.save.assert_called_once_with()
 
-    @mock.patch("cumulusci.cli.org.CaptureSalesforceOAuth")
+    @mock.patch("cumulusci.cli.org.OAuth2Client")
     @responses.activate
-    def test_org_connect(self, oauth):
-        oauth.return_value = mock.Mock(
-            return_value={
-                "instance_url": "https://instance",
-                "access_token": "BOGUS",
-                "id": "OODxxxxxxxxxxxx/user",
-            }
-        )
+    def test_org_connect(self, oauth2client):
+        client_instance = mock.Mock()
+        client_instance.auth_code_flow.return_value = {
+            "instance_url": "https://instance",
+            "access_token": "BOGUS",
+            "id": "OODxxxxxxxxxxxx/user",
+        }
+        oauth2client.return_value = client_instance
         runtime = mock.Mock()
+        runtime.keychain.get_service.return_value = mock.Mock(
+            client_id="asdfasdf",
+            client_secret="asdfasdf",
+            callback_url="http://localhost:8080/callback",
+        )
         responses.add(
             method="GET",
             url="https://instance/services/oauth2/userinfo",
@@ -136,17 +141,22 @@ class TestOrgCommands:
         assert org_config.expires == "Persistent"
         runtime.keychain.set_default_org.assert_called_once_with("test")
 
-    @mock.patch("cumulusci.cli.org.CaptureSalesforceOAuth")
+    @mock.patch("cumulusci.cli.org.OAuth2Client")
     @responses.activate
-    def test_org_connect_expires(self, oauth):
-        oauth.return_value = mock.Mock(
-            return_value={
-                "instance_url": "https://instance",
-                "access_token": "BOGUS",
-                "id": "OODxxxxxxxxxxxx/user",
-            }
-        )
+    def test_org_connect_expires(self, oauth2client):
+        client_instance = mock.Mock()
+        client_instance.auth_code_flow.return_value = {
+            "instance_url": "https://instance",
+            "access_token": "BOGUS",
+            "id": "OODxxxxxxxxxxxx/user",
+        }
+        oauth2client.return_value = client_instance
         runtime = mock.Mock()
+        runtime.keychain.get_service.return_value = mock.Mock(
+            client_id="asdfasdf",
+            client_secret="asdfasdf",
+            callback_url="http://localhost:8080/callback",
+        )
         responses.add(
             method="GET",
             url="https://instance/services/oauth2/userinfo",

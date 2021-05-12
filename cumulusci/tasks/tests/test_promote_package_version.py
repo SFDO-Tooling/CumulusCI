@@ -25,7 +25,9 @@ def project_config():
                 "username": "TestUser",
                 "token": "TestPass",
                 "email": "testuser@testdomain.com",
-            }
+            },
+            "alias",
+            project_config.keychain,
         ),
     )
     return project_config

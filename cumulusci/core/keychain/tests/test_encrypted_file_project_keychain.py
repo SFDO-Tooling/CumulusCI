@@ -661,3 +661,20 @@ class TestEncryptedFileProjectKeychain:
             None, [{"scratch": "scratch org"}, "org_name"]
         )
         assert isinstance(result, ScratchOrgConfig)
+
+    def test_new_service_type_creates_expected_directory(
+        self, keychain, service_config
+    ):
+        home_dir = tempfile.mkdtemp()
+        cci_home_dir = Path(f"{home_dir}/.cumulusci")
+        cci_home_dir.mkdir()
+        services_dir = cci_home_dir / "services"
+        services_dir.mkdir()
+
+        encrypted = keychain._encrypt_config(service_config)
+        with mock.patch.object(
+            EncryptedFileProjectKeychain, "global_config_dir", cci_home_dir
+        ):
+            keychain._set_encrypted_service("new_service_type", "alias", encrypted)
+
+        assert (services_dir / "new_service_type").is_dir()
