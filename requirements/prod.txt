@@ -56,10 +56,12 @@ keyring==23.0.1
 lxml==4.6.3
     # via -r requirements/prod.in
 markupsafe==1.1.1
-    # via jinja2
+    # via
+    #   -r requirements/prod.in
+    #   jinja2
 pycparser==2.20
     # via cffi
-pydantic==1.8.1
+pydantic==1.8.2
     # via
     #   -r requirements/prod.in
     #   snowfakery
@@ -96,7 +98,7 @@ robotframework-requests==0.9.1
     # via -r requirements/prod.in
 robotframework-seleniumlibrary==4.5.0
     # via -r requirements/prod.in
-robotframework==3.2.2
+robotframework==4.0.2
     # via
     #   -r requirements/prod.in
     #   robotframework-lint
@@ -122,9 +124,9 @@ six==1.16.0
     #   fs
     #   python-dateutil
     #   salesforce-bulk
-snowfakery==1.10
+snowfakery==1.11
     # via -r requirements/prod.in
-sqlalchemy==1.4.11
+sqlalchemy==1.4.15
     # via
     #   -r requirements/prod.in
     #   snowfakery
