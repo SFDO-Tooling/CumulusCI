@@ -47,7 +47,7 @@ class MarketingCloudServiceConfig(OAuth2ServiceConfig):
         oauth2_client_config = self._keychain.get_service(
             "oauth2_client", self.oauth2_client
         )
-        oauth2_client = OAuth2Client(oauth2_client_config.config)
+        oauth2_client = OAuth2Client(oauth2_client_config)
         info = oauth2_client.refresh_token(self.refresh_token)
         self.config.update(info)
         self.save()
