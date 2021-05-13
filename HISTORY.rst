@@ -7,7 +7,7 @@ History
 
 Critical Changes
 
-- Upgraded robot framework to 4.x. For information about new features and some backward incompatibilities see the `Robot Framework 4.0 release notes <https://github.com/robotframework/robotframework/blob/master/doc/releasenotes/rf-4.0.rst>`_.
+- Upgraded Robot Framework to 4.x. For information about new features and some backward incompatibilities see the `Robot Framework 4.0 release notes <https://github.com/robotframework/robotframework/blob/master/doc/releasenotes/rf-4.0.rst>`_.
 
 - ``update_dependencies`` now guarantees to resolve unpackaged metadata directories (subdirectories of ``unpackaged/pre`` and ``unpackaged/post``) in alphabetical order, matching the behavior of ``deploy_pre`` and ``deploy_post``. ``unpackaged/pre/bar`` will deploy prior to ``unpackaged/pre/foo``. The previous behavior was undefined, which caused rare problems. This change is critical only for projects that have deployment-order dependencies between unpackaged directories located in upstream dependencies and rely on the current undefined load order.
 
