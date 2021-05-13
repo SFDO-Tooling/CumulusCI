@@ -18,7 +18,7 @@ Changes
 
 - CumulusCI has two new service types: ``oauth2_client`` & ``marketing_cloud``. These are considered experimental.
  
-- The ``marketing_cloud`` service allows users to connect to a marketing cloud tenant via OAuth so that future tasks that work with Marketing cloud can make API calls on the user's behalf.
+- The ``marketing_cloud`` service allows users to connect to a Marketing Cloud tenant via OAuth so that tasks that work with Marketing Cloud can make API calls on the user's behalf.
  
 - The ``oauth2_client`` service takes information for an individual OAuth2 client which can then be used in place of the default client. This currently applies only to the marketing-cloud service. To setup a marketing cloud service with a custom oauth-client use: ``cci service connect marketing-cloud <name-of-service> --oauth_client <name-of-oauth-client>``.
 
