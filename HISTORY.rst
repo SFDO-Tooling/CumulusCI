@@ -24,7 +24,7 @@ Changes
 
 - CumulusCI has a new task: ``deploy_marketing_cloud_package``. This task allows a user to pass the path to a .zip file to a Marketing Cloud package (downloaded from the Marketing Cloud Package Manager) and deploy the package via a ``marketing_cloud`` service (see above). Note that successfully deploying a package using this task may require permissions that are not generally available.
   
-- The ``DeployBundles`` task avoids warnings by freezing installer steps that match current expectations.
+- The ``deploy_pre`` and ``deploy_post`` tasks avoid warnings by freezing installer steps that match current expectations.
 
 - The ``install_managed`` and ``install_managed_beta`` tasks now take no action if the specified package is already installed in the target org.
 
