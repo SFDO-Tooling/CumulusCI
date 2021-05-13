@@ -57,7 +57,7 @@ class TestUniversalConfig(unittest.TestCase):
         # clear cache
         UniversalConfig.config = None
         config = UniversalConfig()
-        with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
+        with open(__location__ + "/../../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
 
@@ -67,7 +67,7 @@ class TestUniversalConfig(unittest.TestCase):
         UniversalConfig.config = None
         mock_class.return_value = self.tempdir_home
         config = UniversalConfig()
-        with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
+        with open(__location__ + "/../../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)
         self.assertEqual(config.config, expected_config)
 
@@ -80,7 +80,7 @@ class TestUniversalConfig(unittest.TestCase):
         UniversalConfig.config = None
 
         config = UniversalConfig()
-        with open(__location__ + "/../../cumulusci.yml", "r") as f_expected_config:
+        with open(__location__ + "/../../../cumulusci.yml", "r") as f_expected_config:
             expected_config = yaml.safe_load(f_expected_config)
         expected_config["tasks"]["newtesttask"] = {}
         expected_config["tasks"]["newtesttask"]["description"] = "test description"
