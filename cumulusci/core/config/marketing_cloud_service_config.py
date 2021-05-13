@@ -11,9 +11,6 @@ class MarketingCloudServiceConfig(OAuth2ServiceConfig):
         super().__init__(config, name, keychain)
         self._name = name
         self._keychain = keychain
-        self._client_config = keychain.get_service(
-            "oauth2_client", config["oauth2_client"]
-        )
 
     @classmethod
     def connect(cls, keychain: BaseProjectKeychain, kwargs: Dict):
@@ -47,8 +44,11 @@ class MarketingCloudServiceConfig(OAuth2ServiceConfig):
         * access_token
         * refresh_token
         """
-        oauth_client = OAuth2Client(self._client_config.config)
-        info = oauth_client.refresh_token(self.refresh_token)
+        oauth2_client_config = self._keychain.get_service(
+            "oauth2_client", self.oauth2_client
+        )
+        oauth2_client = OAuth2Client(oauth2_client_config.config)
+        info = oauth2_client.refresh_token(self.refresh_token)
         self.config.update(info)
         self.save()
         return info["access_token"]
