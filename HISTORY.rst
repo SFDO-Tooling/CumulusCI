@@ -22,7 +22,7 @@ Changes
  
 - The ``oauth2_client`` service takes information for an individual OAuth2 client which can then be used in place of the default client. This currently applies only to the marketing-cloud service. To setup a marketing cloud service with a custom oauth-client use: ``cci service connect marketing-cloud <name-of-service> --oauth_client <name-of-oauth-client>``.
 
-- CumulusCI has a new task: ``deploy_marketing_cloud_package``. This task allows a user to pass the path to a .zip file to a marketing cloud package (downloaded from the Marketing Cloud package manager) and deploy the package via a ``marketing_cloud`` service (see above).
+- CumulusCI has a new task: ``deploy_marketing_cloud_package``. This task allows a user to pass the path to a .zip file to a Marketing Cloud package (downloaded from the Marketing Cloud Package Manager) and deploy the package via a ``marketing_cloud`` service (see above). Note that successfully deploying a package using this task may require permissions that are not generally available.
   
 - The ``DeployBundles`` task avoids warnings by freezing installer steps that match current expectations.
 
