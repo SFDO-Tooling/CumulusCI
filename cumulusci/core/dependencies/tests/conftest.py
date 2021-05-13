@@ -3,7 +3,7 @@ import functools
 
 import pytest
 
-from cumulusci.core.tests.test_config import (
+from cumulusci.core.config.tests.test_config import (
     DummyContents,
     DummyGithub,
     DummyRelease,
