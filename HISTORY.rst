@@ -16,7 +16,7 @@ Changes
 
 - The CumulusCI documentation has a new section: `Testing with Second-Generation Packaging <https://cumulusci.readthedocs.io/en/latest/2gp_testing.html>`_
 
-- CumulusCI has two new service types: ``oauth2_client`` & ``marketing_cloud``
+- CumulusCI has two new service types: ``oauth2_client`` & ``marketing_cloud``. These are considered experimental.
  
 - The ``marketing_cloud`` service allows users to connect to a marketing cloud tenant via OAuth so that future tasks that work with Marketing cloud can make API calls on the user's behalf.
  
