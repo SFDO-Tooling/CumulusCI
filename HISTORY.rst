@@ -2,6 +2,43 @@
 History
 =======
 
+3.35.0 (2021-05-13)
+-------------------
+
+Critical Changes
+
+- Upgraded robot framework to 4.x. For information about new features and some backward incompatibilities see the `Robot Framework 4.0 release notes <https://github.com/robotframework/robotframework/blob/master/doc/releasenotes/rf-4.0.rst>`_.
+
+- ``update_dependencies`` now guarantees to resolve unpackaged metadata directories (subdirectories of ``unpackaged/pre`` and ``unpackaged/post``) in alphabetical order, matching the behavior of ``deploy_pre`` and ``deploy_post``. ``unpackaged/pre/bar`` will deploy prior to ``unpackaged/pre/foo``. The previous behavior was undefined, which caused rare problems. This change is critical only for projects that have deployment-order dependencies between unpackaged directories located in upstream dependencies and rely on the current undefined load order.
+
+
+Changes
+
+- The CumulusCI documentation has a new section: `Testing with Second-Generation Packaging <https://cumulusci.readthedocs.io/en/latest/2gp_testing.html>`_
+
+- CumulusCI has two new service types: ``oauth2_client`` & ``marketing_cloud``
+ 
+- The ``marketing_cloud`` service allows users to connect to a marketing cloud tenant via OAuth so that future tasks that work with Marketing cloud can make API calls on the user's behalf.
+ 
+- The ``oauth2_client`` service takes information for an individual OAuth2 client which can then be used in place of the default client. This currently applies only to the marketing-cloud service. To setup a marketing cloud service with a custom oauth-client use: ``cci service connect marketing-cloud <name-of-service> --oauth_client <name-of-oauth-client>``.
+
+- CumulusCI has a new task: ``deploy_marketing_cloud_package``. This task allows a user to pass the path to a .zip file to a marketing cloud package (downloaded from the Marketing Cloud package manager) and deploy the package via a ``marketing_cloud`` service (see above).
+  
+- The ``DeployBundles`` task avoids warnings by freezing installer steps that match current expectations.
+
+- The ``install_managed`` and ``install_managed_beta`` tasks now take no action if the specified package is already installed in the target org.
+
+- The ``cci org list`` command can now output in ``JSON`` format by passing it the ``--json`` flag.
+
+
+Issues Closed
+
+- Fixed an issue parsing ``cumulusci.yml`` files that contained Unicode characters on Windows.
+
+- Fixed an issue in the ``github_copy_subtree`` task where CumulusCI would silently generate incorrect or truncated commits when a directory was passed to the ``include`` task option.
+
+
+
 3.34.1 (2021-04-30)
 -------------------
 
