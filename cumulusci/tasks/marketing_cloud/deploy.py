@@ -39,9 +39,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         with temporary_dir(chdir=False) as temp_dir:
             with zipfile.ZipFile(pkg_zip_file) as zf:
                 zf.extractall(temp_dir)
-                payload = self._construct_payload(
-                    Path(f"{temp_dir}/{zf.namelist()[0]}")
-                )
+                payload = self._construct_payload(Path(temp_dir))
 
         response = requests.post(
             MC_DEPLOY_ENDPOINT,
