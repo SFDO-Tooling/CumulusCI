@@ -80,9 +80,7 @@ class TestMarketingCloudDeployTask:
         with temporary_dir() as temp_dir:
             with zipfile.ZipFile(pkg_zip_file) as zf:
                 zf.extractall(temp_dir)
-                actual_payload = task._construct_payload(
-                    Path(f"{temp_dir}/{pkg_zip_file.stem}")
-                )
+                actual_payload = task._construct_payload(Path(temp_dir))
 
         expected_payload_file = (
             Path(__file__).parent.absolute() / "expected-payload.json"
