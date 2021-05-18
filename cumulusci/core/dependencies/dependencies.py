@@ -380,7 +380,6 @@ class PackageNamespaceVersionDependency(StaticDependency):
         if not options:
             options = PackageInstallOptions()
         if self.password_env_name:
-            breakpoint()
             options.password = os.environ.get(self.password_env_name)
         if not retry_options:
             retry_options = DEFAULT_PACKAGE_RETRY_OPTIONS
