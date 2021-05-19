@@ -337,7 +337,8 @@ If the referenced repository has unpackaged metadata under ``unpackaged/pre`` or
     project:
         dependencies:
             - github: https://github.com/SalesforceFoundation/EDA
-              skip: unpackaged/post/course_connection_record_types
+              skip: 
+                - unpackaged/post/course_connection_record_types
 
 
 
