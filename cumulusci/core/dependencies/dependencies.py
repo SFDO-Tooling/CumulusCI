@@ -224,6 +224,12 @@ class GitHubDynamicDependency(BaseGitHubDependency):
     def is_unmanaged(self):
         return self.unmanaged
 
+    @pydantic.validator("skip", pre=True)
+    def listify_skip(cls, v):
+        if v and not isinstance(v, list):
+            v = [v]
+        return v
+
     @pydantic.root_validator
     def check_unmanaged_values(cls, values):
         if not values.get("unmanaged") and (
