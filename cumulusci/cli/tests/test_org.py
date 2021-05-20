@@ -132,7 +132,7 @@ class TestOrgCommands:
             runtime=runtime,
             org_name="test",
             sandbox=False,
-            login_url="https://login.salesforce.com",
+            login_url=None,
             default=True,
             global_org=False,
         )
@@ -184,7 +184,7 @@ class TestOrgCommands:
             runtime=runtime,
             org_name="test",
             sandbox=True,
-            login_url="https://test.salesforce.com",
+            login_url=None,
             default=True,
             global_org=False,
         )
@@ -205,7 +205,7 @@ class TestOrgCommands:
                 runtime=runtime,
                 org_name="test",
                 sandbox=True,
-                login_url="https://login.salesforce.com",
+                login_url=None,
                 default=True,
                 global_org=False,
             )
