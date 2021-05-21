@@ -5,6 +5,7 @@ import zipfile
 from collections import defaultdict
 from pathlib import Path
 
+from cumulusci.core.exceptions import DeploymentException
 from cumulusci.utils import temporary_dir
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from .base import BaseMarketingCloudTask
@@ -108,5 +109,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
                         f"Failed to deploy {entity}/{entity_id}. Status: {info['status']}. Issues: {info['issues']}"
                     )
 
-        if not has_error:
-            self.logger.info("Deployment completed successfully.")
+        if has_error:
+            raise DeploymentException("Marketing Cloud reported deployment failures.")
+
+        self.logger.info("Deployment completed successfully.")

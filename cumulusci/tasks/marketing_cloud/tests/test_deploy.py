@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest import mock
 
 from cumulusci.core.config import TaskConfig
+from cumulusci.core.exceptions import DeploymentException
 from cumulusci.tasks.marketing_cloud.deploy import MarketingCloudDeployTask
 from cumulusci.tasks.marketing_cloud.deploy import MCPM_ENDPOINT
 from cumulusci.utils import temporary_dir
@@ -67,7 +68,8 @@ class TestMarketingCloudDeployTask:
             },
         )
         task.logger = mock.Mock()
-        task._run_task()
+        with pytest.raises(DeploymentException):
+            task._run_task()
 
         assert task.logger.error.call_count == 2
         assert (
