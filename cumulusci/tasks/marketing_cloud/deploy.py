@@ -5,11 +5,11 @@ import zipfile
 from collections import defaultdict
 from pathlib import Path
 
-from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.utils import temporary_dir
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 from .base import BaseMarketingCloudTask
 
-MC_DEPLOY_ENDPOINT = "https://mc-package-manager.herokuapp.com/api/spm/deploy"
+MCPM_ENDPOINT = "https://mc-package-manager.herokuapp.com"
 
 PAYLOAD_CONFIG_VALUES = {"preserveCategories": True}
 
@@ -41,16 +41,33 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
                 zf.extractall(temp_dir)
                 payload = self._construct_payload(Path(temp_dir))
 
+        self.headers = {
+            "Authorization": f"Bearer {self.mc_config.access_token}",
+            "SFMC-TSSD": self.mc_config.tssd,
+        }
         response = requests.post(
-            MC_DEPLOY_ENDPOINT,
+            f"{MCPM_ENDPOINT}/deployments",
             json=payload,
-            headers={
-                "Authorization": f"Bearer {self.mc_config.access_token}",
-                "SFMC-TSSD": self.mc_config.tssd,
-            },
+            headers=self.headers,
         )
+        result = safe_json_from_response(response)
+        self.job_id = result["info"]["id"]
+        self.logger.info(f"Started job {self.job_id}")
+        self._poll()
 
-        self._validate_response(response)
+    def _poll_action(self):
+        """
+        Poll something and process the response.
+        Set `self.poll_complete = True` to break polling loop.
+        """
+        response = requests.get(
+            f"{MCPM_ENDPOINT}/deployments/{self.job_id}", headers=self.headers
+        )
+        result = safe_json_from_response(response)
+        self.logger.info(f"Waiting [{result['status']}]...")
+        if result["status"] == "DONE":
+            self.poll_complete = True
+            self._validate_response(result)
 
     def _construct_payload(self, dir_path):
         dir_path = Path(dir_path)
@@ -76,15 +93,10 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
         return payload
 
-    def _validate_response(self, response: requests.Response):
+    def _validate_response(self, deploy_info: dict):
         """Checks for any errors present in the response to the deploy request.
         Displays errors if present, else informs use that the deployment was successful."""
-
-        if response.status_code != 200:
-            raise CumulusCIException(response.text)
-
         has_error = False
-        deploy_info = json.loads(response.text)
         for entity, info in deploy_info["entities"].items():
             if not info:
                 continue
