@@ -1,21 +1,13 @@
 """
-Attempt to prove that I can add keywords to a library dynamically.
+Load UTAM page objects
 
-Unfortunately, get_keyword_names appears to be called exactly once
-rather than every time a keyword is called. Kinda makes sense, but
-it's a bummer.
+Page objects can be loaded with `Get UTAM Object` keyword. This will
+dynamically create a new keyword named after the page object (eg:
+`Get UTAM Object  lwc-home` creates a keyword named `lwc-home`.
 
-Question: can I call 'import library' to force get_keyword_names
-to be called again?
-
-or what if I have a companion library that can be reloaded, but
-which pulls its keywords from this library?
-
-Note: from a UTAM presentation:
-"every public element becomes public method that returns actionable UI element or other Page Object"
-What's the difference between "page object" and "actionable UI element"?
-Is the latter just a WebElement?
-
+Every page object can have nested elements. UTAM page objects create
+a getter for each element. So, this code will dynamically create instance
+methods for every element.
 """
 
 from robot.libraries.BuiltIn import BuiltIn
@@ -28,56 +20,6 @@ import types
 import functools
 
 
-class UTAMBaseObject(BaseLibrary):
-    def __init__(self, name, path=None):
-        self.name = name
-        self.__annotations__ = self.__call__.__annotations__
-        self._json = None
-        self._method_names = []
-
-        if path:
-            with open(path, "r") as f:
-                self._json = json.load(f)
-
-            for element_def in self._json["elements"]:
-                if element_def.get("public", False):
-                    fnName = f"get{element_def['name'].title()}"
-                    getElement = functools.partial(self._getElement, element_def, None)
-                    getElement.__name__ = fnName
-                    getElement.__doc__ = "get the element '{element_def['name']} / '{element_def['selector']}'"
-                    setattr(self, fnName, types.MethodType(getElement, self))
-                    self._method_names.append(fnName)
-
-    def _getter_name(self, element_name):
-        # foo -> getFoo; foo-bar: getFooBar
-        element_name = element_name.replace("-", "_")
-        getter_name = "get" + "".join(
-            [word.title() for word in element_name.split("_")]
-        )
-        return getter_name
-
-    def _getElement(self, element_def, *args, **kwargs):
-        root_css = element_def["selector"]["css"]
-        js = f"return document.querySelector('{root_css}')"
-        return self.selenium.execute_javascript(js)
-
-    def __name__(self):
-        return self.name
-
-    def __call__(self, method, *args, **kwargs):
-        func = getattr(self, method, None)
-        if func is None:
-            if len(self._method_names) > 1:
-                method_names = ",".join(self._method_names)
-                message = f"Must be one of: {method_names}."
-            elif len(self._method_names) == 1:
-                message = f"Must be '{self._method_names[0]}'."
-            else:
-                message = ""
-            raise Exception(f"Unknown method name '{method}'. {message}")
-        return func(*args, **kwargs)
-
-
 class UTAMLibrary(BaseLibrary):
     ROBOT_LIBRARY_SCOPE = "TEST"
     keywords = {}
@@ -86,7 +28,6 @@ class UTAMLibrary(BaseLibrary):
         super().__init__()
         self.utam_repositories = [
             Path(__file__).parent / "utam",
-            Path("/Users/boakley/dev/utam-js-wdio-boilerplate/src/__utam__"),
         ] + [Path(path) for path in paths]
 
         try:
@@ -120,6 +61,62 @@ class UTAMLibrary(BaseLibrary):
                     return self.keywords[name]
                 else:
                     raise Exception(f"utam object definition not found: {name}")
+
+
+class UTAMBaseObject(BaseLibrary):
+    def __init__(self, name, path=None):
+        self.name = name
+        # __annotations__ is required to use an object as a keyword
+        # as is __name__, which we define a little later.
+        self.__annotations__ = self.__call__.__annotations__
+        self._json = None
+        self._method_names = []
+
+        if path:
+            with open(path, "r") as f:
+                self._json = json.load(f)
+
+            for element_def in self._json["elements"]:
+                if element_def.get("public", False):
+                    fnName = f"get{element_def['name'].title()}"
+                    getElement = functools.partial(self._getElement, element_def, None)
+                    getElement.__name__ = fnName
+                    getElement.__doc__ = "get the element '{element_def['name']} / '{element_def['selector']}'"
+                    setattr(self, fnName, types.MethodType(getElement, self))
+                    self._method_names.append(fnName)
+
+    def _getter_name(self, element_name):
+        """Convert element name to a valid method name
+
+        eg: foo -> getFoo; foo-bar: getFooBar
+        """
+        element_name = element_name.replace("-", "_")
+        getter_name = "get" + "".join(
+            [word.title() for word in element_name.split("_")]
+        )
+        return getter_name
+
+    def _getElement(self, element_def, *args, **kwargs):
+        """Return a web element"""
+        root_css = element_def["selector"]["css"]
+        js = f"return document.querySelector('{root_css}')"
+        return self.selenium.execute_javascript(js)
+
+    def __name__(self):
+        return self.name
+
+    def __call__(self, method, *args, **kwargs):
+        func = getattr(self, method, None)
+        if func is None:
+            if len(self._method_names) > 1:
+                method_names = ",".join(self._method_names)
+                message = f"Must be one of: {method_names}."
+            elif len(self._method_names) == 1:
+                message = f"Must be '{self._method_names[0]}'."
+            else:
+                message = ""
+            raise Exception(f"Unknown method name '{method}'. {message}")
+        return func(*args, **kwargs)
 
 
 # robot insists that keywords are methods or functions, not callable
