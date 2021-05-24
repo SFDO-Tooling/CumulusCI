@@ -1,0 +1,108 @@
+# Hard-coded objects
+- object: Account
+  nickname: bluth_co
+  fields:
+    Name: The Bluth Company
+    Description: Solid as a rock
+    NumberOfEmployees: 6
+
+- object: Contact
+  nickname: Michael
+  fields:
+    FirstName: Michael
+    LastName: Bluth
+    AccountId:
+      reference: bluth_co
+
+# Highly randomized objects
+- object: Account
+  fields:
+    Name:
+      fake: Company
+    Description:
+      fake: catch_phrase
+    BillingStreet:
+      fake: street_address
+    BillingCity:
+      fake: city
+    BillingState:
+      fake: state
+    BillingPostalCode:
+      fake: postalcode
+    BillingCountry: Canada
+    ShippingStreet:
+      fake: street_address
+    ShippingCity:
+      fake: city
+    ShippingState:
+      fake: state
+    ShippingPostalCode:
+      fake: postalcode
+    ShippingCountry:
+      fake: country
+    Phone:
+      fake: phone_number
+    Fax:
+      fake: phone_number
+    Website:
+      fake: uri
+    NumberOfEmployees:
+      random_number:
+        min: 0
+        max: 200000
+    AccountNumber:
+      random_number:
+        min: 0
+        max: 10000000
+
+- object: Contact
+  fields:
+    Salutation:
+      fake: prefix
+    FirstName:
+      fake: FirstName
+    LastName:
+      fake: LastName
+    Email:
+      fake: email
+    Phone:
+      fake: phone_number
+    MobilePhone:
+      fake: phone_number
+    Title:
+      fake: job
+    Birthdate:
+      fake.date_between:
+        start_date: -50y
+        end_date: -20y
+    AccountId:
+      reference: Account
+
+- object: Opportunity
+  count:
+    random_number:
+      min: 3
+      max: 5
+  fields:
+    Name: ${{fake.word}} Opportunity
+    CloseDate:
+      date_between:
+        start_date: -30d
+        end_date: +180d
+    Amount:
+      random_number:
+        min: 10
+        max: 200
+    StageName:
+      random_choice:
+        - choice:
+            probability: 60%
+            pick: Closed Won
+        - choice:
+            probability: 20%
+            pick: In Progress
+        - choice:
+            probability: 60%
+            pick: New
+    AccountId:
+      reference: Account
