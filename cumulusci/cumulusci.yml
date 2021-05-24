@@ -314,6 +314,16 @@ tasks:
     description: Creates a Github release for a given managed package version number
     class_path: cumulusci.tasks.github.CreateRelease
     group: GitHub
+  display_release_notes:
+    description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
+    class_path: cumulusci.tasks.release_notes.task.AllGithubReleaseNotes
+    group: GitHub
+    options:
+      repos:
+        - owner: "SalesforceFoundation"
+          repo: "PMM"
+        - owner: "SalesforceFoundation"
+          repo: "sal"
   github_release_notes:
     description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
     class_path: cumulusci.tasks.release_notes.task.GithubReleaseNotes
