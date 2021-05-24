@@ -1,0 +1,13 @@
+{
+    "root": true,
+    "selector": {
+        "css": "body"
+    },
+    "elements": [{
+        "name": "header",
+        "selector": {
+            "css": "h1.title"
+        },
+        "public": true
+    }]
+}
