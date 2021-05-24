@@ -282,6 +282,14 @@ def inject_namespace(
             f'  {name}: Replaced {namespace_or_c_token} with "{namespace_or_c}"'
         )
 
+    if name == 'package.xml':
+        prev_content = content
+        content = content.replace(filename_token, namespace_prefix)
+        if logger and content != prev_content:
+            logger.info(
+                f'  {name}: Replaced {filename_token} with "{namespace_prefix}"'
+            )
+
     prev_content = content
     content = content.replace(namespaced_org_token, namespaced_org)
     if logger and content != prev_content:
