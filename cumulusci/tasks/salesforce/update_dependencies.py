@@ -7,6 +7,8 @@ from cumulusci.core.dependencies.dependencies import (
 )
 from cumulusci.core.dependencies.resolvers import (
     DependencyResolutionStrategy,
+    dependency_filter_ignore_deps,
+    dependency_filter_packages_only,
     get_static_dependencies,
     get_resolver_stack,
 )
@@ -173,13 +175,27 @@ class UpdateDependencies(BaseSalesforceTask):
             self.logger.info("Project has no dependencies, doing nothing")
             return
 
+        def filter_function(some_dep: Dependency):
+            filters = []
+            if "ignore_dependencies" in self.options:
+                filters.append(
+                    dependency_filter_ignore_deps(self.options["ignore_dependencies"])
+                )
+            if self.options["packages_only"]:
+                filters.append(dependency_filter_packages_only)
+
+            if filters:
+                return all(map(lambda f: f(some_dep), filters))
+
+            return True
+
         self.logger.info("Resolving dependencies...")
         dependencies = self._filter_dependencies(
             get_static_dependencies(
                 self.project_config,
                 dependencies=self.dependencies,
                 strategies=self.resolution_strategy,
-                ignore_deps=self.options.get("ignore_dependencies"),
+                filter_function=filter_function,
             )
         )
         self.logger.info("Collected dependencies:")

@@ -256,7 +256,7 @@ def get_version_id_from_tag(repo: Repository, tag_name: str) -> str:
 
     @param tag_name: the name of the tag
     @param repo: the repository of the package to look for a release in
-    @returns: the 04tid in the tag's messages
+    @returns: the 04t id in the tag's messages
     """
     tag = get_tag_by_name(repo, tag_name)
     for line in tag.message.split("\n"):
