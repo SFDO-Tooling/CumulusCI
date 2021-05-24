@@ -417,6 +417,7 @@ class PackageVersionIdDependency(StaticDependency):
 
     version_id: str
     package_name: Optional[str]
+    version_number: Optional[str]
 
     @property
     def package(self):
@@ -454,7 +455,7 @@ class PackageVersionIdDependency(StaticDependency):
 
     @property
     def name(self):
-        return f"Install {self.package} {self.version_id}"
+        return f"Install {self.package} {self.version_number or self.version_id}"
 
     @property
     def description(self):
@@ -523,10 +524,9 @@ class UnmanagedGitHubRefDependency(UnmanagedDependency):
             logger.warning(
                 "The repo_name and repo_owner keys are deprecated. Please use the github key."
             )
-        assert None in [
-            values.get("repo_owner"),
-            values.get("github"),
-        ], "Must specify `repo_owner` or `github`, but not both."
+        assert None in [values.get("repo_owner"), values.get("github")] and (
+            values.get("repo_owner") or values.get("github")
+        ), "Must specify `repo_owner` or `github`, but not both."
 
         # Populate the `github` property if not already populated.
         if not values.get("github") and values.get("repo_name"):

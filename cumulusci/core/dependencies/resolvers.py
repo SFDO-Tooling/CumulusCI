@@ -98,6 +98,7 @@ class GitHubTagResolver(Resolver):
                 if version_id:
                     package_dep = PackageVersionIdDependency(
                         version_id=version_id,
+                        version_number=release.name,
                         package_name=package_name,
                     )
                 else:
@@ -140,6 +141,7 @@ class GitHubReleaseTagResolver(Resolver):
                 if version_id:
                     package_dep = PackageVersionIdDependency(
                         version_id=version_id,
+                        version_number=release.name,
                         package_name=package_name,
                     )
                 else:

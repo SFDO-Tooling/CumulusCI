@@ -1,17 +1,16 @@
+from cumulusci.core.dependencies.resolvers import get_resolver_stack
+from cumulusci.core.github import find_previous_release
 from pydantic import ValidationError
 
 from cumulusci.core.dependencies.dependencies import (
+    GitHubDynamicDependency,
     PackageInstallOptions,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
 )
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.salesforce_api.package_install import (
-    DEFAULT_PACKAGE_RETRY_OPTIONS,
-    install_package_by_namespace_version,
-    install_package_by_version_id,
-)
+from cumulusci.salesforce_api.package_install import DEFAULT_PACKAGE_RETRY_OPTIONS
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 
 
@@ -82,18 +81,42 @@ class InstallPackageVersion(BaseSalesforceApiTask):
                 "retry_interval_add"
             ]
 
-        # TODO: This should be centralized somewhere in the `dependencies` module,
-        # along with the same code working with `sources`.
-        # We're not using resolution strategies here - we could be,
-        # and this task could be a thin layer on top of update_dependencies.
-        if version == "latest":
-            self.options["version"] = str(self.project_config.get_latest_version())
-        elif version == "latest_beta":
-            self.options["version"] = str(
-                self.project_config.get_latest_version(beta=True)
+        dependency = None
+        if version in ["latest", "latest_beta"]:
+            strategy = "include_beta" if version == "latest_beta" else "production"
+            dependency = GitHubDynamicDependency(
+                github=self.project_config.project__git__repo_url
+            )
+            dependency.resolve(
+                self.project_config, get_resolver_stack(self.project_config, strategy)
             )
         elif version == "previous":
-            self.options["version"] = str(self.project_config.get_previous_version())
+            release = find_previous_release(
+                self.project_config.get_repo(),
+                self.project_config.project__git__prefix_release,
+            )
+            dependency = GitHubDynamicDependency(
+                github=self.project_config.project__git__repo_url, tag=release.tag_name
+            )
+            dependency.resolve(
+                self.project_config,
+                get_resolver_stack(self.project_config, "production"),
+            )
+        else:
+            raise TaskOptionsError(f"Invalid version key {version}")
+
+        if dependency.managed_dependency:
+            # Handle 2GP and 1GP releases in a backwards-compatible way.
+            if isinstance(
+                dependency.managed_dependency, PackageNamespaceVersionDependency
+            ):
+                self.options["version"] = dependency.managed_dependency.version
+            elif isinstance(dependency.managed_dependency, PackageVersionIdDependency):
+                self.options["version"] = dependency.managed_dependency.version_id
+        else:
+            raise CumulusCIException(
+                f"The release for {version} does not identify a managed package."
+            )
 
         # Ensure that this option is frozen in case the defaults ever change.
         self.options["security_type"] = self.options.get("security_type") or "FULL"
