@@ -107,6 +107,7 @@ class Publish(BaseMetaDeployTask):
         # Check out the specified tag
         repo_owner = self.project_config.repo_owner
         repo_name = self.project_config.repo_name
+        repo_url = f"https://github.com/{repo_owner}/{repo_name}"
         gh = self.project_config.get_github_api()
         repo = gh.repository(repo_owner, repo_name)
         if self.tag:
@@ -126,7 +127,7 @@ class Publish(BaseMetaDeployTask):
                     "root": project_dir,
                     "owner": repo_owner,
                     "name": repo_name,
-                    "url": self.project_config.repo_url,
+                    "url": repo_url,
                     "branch": self.tag or self.commit,
                     "commit": self.commit,
                 },
