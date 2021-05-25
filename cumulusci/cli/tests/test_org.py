@@ -9,11 +9,13 @@ from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
 from unittest import mock
+from contextlib import contextmanager
 
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ScratchOrgException
+from cumulusci.cli import cci
 
 from .. import org
 from .utils import run_click_command
@@ -140,6 +142,72 @@ class TestOrgCommands:
         org_config = runtime.keychain.set_org.call_args[0][0]
         assert org_config.expires == "Persistent"
         runtime.keychain.set_default_org.assert_called_once_with("test")
+
+    @contextmanager
+    def mock_main_context(self):
+        with mock.patch(  # side effects break other tests
+            "cumulusci.cli.cci.init_logger", mock.Mock()
+        ), mock.patch(
+            "cumulusci.cli.cci.get_tempfile_logger",
+            mock.MagicMock(return_value=(None, "")),
+        ), mock.patch(
+            "cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock()
+        ), mock.patch(
+            "cumulusci.cli.cci.CliRuntime", mock.Mock()
+        ):
+            yield
+
+    @responses.activate
+    def test_org_connect_sandbox(self):
+        def check_and_quit_function_halfway_through(auth_uri, token_uri, **kwargs):
+            assert "test.salesforce" in auth_uri
+            assert "test.salesforce" in token_uri
+            raise StopIteration("Done!")
+
+        with mock.patch(
+            "cumulusci.cli.org.OAuth2ClientConfig",
+            check_and_quit_function_halfway_through,
+        ), pytest.raises(StopIteration, match="Done!"), self.mock_main_context():
+            cci.main(["cci", "org", "connect", "blah", "--sandbox"])
+
+    @responses.activate
+    def test_org_connect_prod_default(self):
+        def check_and_quit_function_halfway_through(auth_uri, token_uri, **kwargs):
+            assert "login.salesforce" in auth_uri
+            assert "login.salesforce" in token_uri
+            raise StopIteration("Done!")
+
+        with mock.patch(
+            "cumulusci.cli.org.OAuth2ClientConfig",
+            check_and_quit_function_halfway_through,
+        ), pytest.raises(StopIteration, match="Done!"), self.mock_main_context():
+            cci.main(["cci", "org", "connect", "blah"])
+
+    @responses.activate
+    def test_org_connect_prod_login(self):
+        def check_and_quit_function_halfway_through(auth_uri, token_uri, **kwargs):
+            assert (
+                "https://abc.def.ghi.com/services/oauth2/authorize" in auth_uri
+            ), auth_uri
+            assert (
+                "https://abc.def.ghi.com/services/oauth2/token" in token_uri
+            ), token_uri
+            raise StopIteration("Done!")
+
+        with mock.patch(
+            "cumulusci.cli.org.OAuth2ClientConfig",
+            check_and_quit_function_halfway_through,
+        ), pytest.raises(StopIteration, match="Done!"), self.mock_main_context():
+            cci.main(
+                [
+                    "cci",
+                    "org",
+                    "connect",
+                    "blah",
+                    "--login-url",
+                    "https://abc.def.ghi.com",
+                ]
+            )
 
     @mock.patch("cumulusci.cli.org.OAuth2Client")
     @responses.activate

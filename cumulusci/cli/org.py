@@ -118,7 +118,6 @@ def org_browser(runtime, org_name, path, url_only):
 @click.option(
     "--login-url",
     help="If set, login to this hostname.",
-    default="https://login.salesforce.com",
 )
 @click.option(
     "--default",
@@ -134,7 +133,7 @@ def org_browser(runtime, org_name, path, url_only):
 def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
     runtime.check_org_overwrite(org_name)
 
-    if "lightning.force.com" in login_url:
+    if login_url and "lightning.force.com" in login_url:
         raise click.UsageError(
             "Connecting an org with a lightning.force.com URL does not work. "
             "Use the my.salesforce.com version instead"
