@@ -39,6 +39,10 @@ class CreateRelease(BaseGithubTask):
             "description": "The package type of the project (either 1GP or 2GP)",
             "required": True,
         },
+        "is_beta": {
+            "description": "Indicates if the release is for a beta version. Defaults to True.",
+            "required": False,
+        },
     }
 
     def _init_options(self, kwargs):
@@ -56,7 +60,8 @@ class CreateRelease(BaseGithubTask):
         repo = self.get_repo()
 
         version = self.options["version"]
-        tag_name = self.project_config.get_tag_for_version(version)
+        is_beta = self.options.get("is_beta", True)
+        tag_name = self.project_config.get_tag_for_version(version, is_beta=is_beta)
 
         # Make sure release doesn't already exist
         try:

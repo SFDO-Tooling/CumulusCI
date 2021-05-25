@@ -451,10 +451,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             config = json.load(f)
         return config
 
-    def get_tag_for_version(self, version):
+    def get_tag_for_version(self, version, is_beta=False):
         if "(Beta" in version:
             tag_version = version.replace(" (", "-").replace(")", "").replace(" ", "_")
             tag_name = self.project__git__prefix_beta + tag_version
+        elif is_beta:
+            tag_name = self.project__git__prefix_beta + version
         else:
             tag_name = self.project__git__prefix_release + version
         return tag_name
