@@ -1042,6 +1042,7 @@ flows:
           ancestor_id: latest_github_release
           version_base: latest_github_release
           version_type: minor
+          tag_prefix: $project_config.project__git__prefix_beta
       2:
         task: github_release
         options:

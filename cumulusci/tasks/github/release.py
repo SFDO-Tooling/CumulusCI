@@ -39,6 +39,9 @@ class CreateRelease(BaseGithubTask):
             "description": "The package type of the project (either 1GP or 2GP)",
             "required": True,
         },
+        "tag_prefix": {
+            "description": "The prefix to use for the release tag created in github."
+        },
     }
 
     def _init_options(self, kwargs):
@@ -54,9 +57,9 @@ class CreateRelease(BaseGithubTask):
 
     def _run_task(self):
         repo = self.get_repo()
-
         version = self.options["version"]
-        tag_name = self.project_config.get_tag_for_version(version)
+        tag_prefix = self.options.get("tag_prefix")
+        tag_name = self.project_config.get_tag_for_version(version, prefix=tag_prefix)
 
         # Make sure release doesn't already exist
         try:
