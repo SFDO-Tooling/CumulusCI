@@ -5,7 +5,7 @@ import pytest
 
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.core.config import FlowConfig
-from cumulusci.core.exceptions import FlowNotFoundError
+from cumulusci.core.exceptions import CumulusCIException, FlowNotFoundError
 from cumulusci.core.flowrunner import FlowCoordinator
 
 from .. import flow
@@ -147,7 +147,44 @@ def test_flow_run():
     org_config.delete_org.assert_called_once()
 
 
-def test_flow_run_o_error():
+def test_flow_run__delete_org_when_error_occurs_in_flow():
+    org_config = mock.Mock(scratch=True, config={})
+    runtime = CliRuntime(
+        config={
+            "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
+            "tasks": {
+                "test_task": {
+                    "class_path": "cumulusci.cli.tests.test_flow.DummyTask",
+                    "description": "Test Task",
+                }
+            },
+        },
+        load_keychain=False,
+    )
+    runtime.get_org = mock.Mock(return_value=("test", org_config))
+    coordinator = mock.Mock()
+    coordinator.run.side_effect = CumulusCIException
+    runtime.get_flow = mock.Mock(return_value=coordinator)
+
+    run_click_command(
+        flow.flow_run,
+        runtime=runtime,
+        flow_name="test",
+        org="test",
+        delete_org=True,
+        debug=False,
+        o=[("test_task__color", "blue")],
+        skip=(),
+        no_prompt=True,
+    )
+
+    runtime.get_flow.assert_called_once_with(
+        "test", options={"test_task": {"color": "blue"}}
+    )
+    org_config.delete_org.assert_called_once()
+
+
+def test_flow_run__option_error():
     org_config = mock.Mock(scratch=True, config={})
     runtime = CliRuntime(config={"noop": {}}, load_keychain=False)
     runtime.get_org = mock.Mock(return_value=("test", org_config))
@@ -166,7 +203,7 @@ def test_flow_run_o_error():
         )
 
 
-def test_flow_run_delete_non_scratch():
+def test_flow_run__delete_non_scratch():
     org_config = mock.Mock(scratch=False)
     runtime = mock.Mock()
     runtime.get_org.return_value = ("test", org_config)
@@ -186,7 +223,7 @@ def test_flow_run_delete_non_scratch():
 
 
 @mock.patch("click.echo")
-def test_flow_run_org_delete_error(echo):
+def test_flow_run__org_delete_error(echo):
     org_config = mock.Mock(scratch=True, config={})
     org_config.delete_org.side_effect = Exception
     org_config.save_if_changed.return_value.__enter__ = lambda *args: ...
