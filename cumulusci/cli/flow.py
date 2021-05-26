@@ -159,8 +159,6 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
         duration = datetime.now() - start_time
         click.echo(f"Ran {flow_name} in {format_duration(duration)}")
     finally:
-        runtime.alert(f"Flow Complete: {flow_name}")
-
         # Delete the scratch org if --delete-org was set
         if delete_org:
             try:
@@ -170,3 +168,5 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
                     "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
                 )
                 click.echo(str(e))
+
+    runtime.alert(f"Flow Complete: {flow_name}")
