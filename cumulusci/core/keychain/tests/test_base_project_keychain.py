@@ -231,11 +231,13 @@ class TestBaseProjectKeychain:
         assert services["devhub"] == ["bar_alias", "foo_alias"]
         assert services["github"] == ["zed_alias", "zoo_alias"]
 
-    @mock.patch("cumulusci.core.keychain.base_project_keychain.cleanup_org_cache_dirs")
+    @mock.patch(
+        "cumulusci.core.keychain.encrypted_file_project_keychain.EncryptedFileProjectKeychain.cleanup_org_cache_dirs"
+    )
     def test_remove_org(
         self, cleanup_org_cache_dirs, keychain, org_config, project_config
     ):
         keychain.set_org(org_config)
-        keychain.remove_org("test")
+        with pytest.raises(NotImplementedError):
+            keychain.remove_org("test")
         assert "test" not in keychain.orgs
-        assert cleanup_org_cache_dirs.called_once_with(keychain, project_config)
