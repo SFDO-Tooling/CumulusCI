@@ -158,20 +158,15 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
         coordinator.run(org_config)
         duration = datetime.now() - start_time
         click.echo(f"Ran {flow_name} in {format_duration(duration)}")
-    except Exception as e:
-        click.echo(
-            click.style(f"An error occurred while running the flow: {e}", fg="red"),
-            err=True,
-        )
-    else:
+    finally:
         runtime.alert(f"Flow Complete: {flow_name}")
 
-    # Delete the scratch org if --delete-org was set
-    if delete_org:
-        try:
-            org_config.delete_org()
-        except Exception as e:
-            click.echo(
-                "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
-            )
-            click.echo(str(e))
+        # Delete the scratch org if --delete-org was set
+        if delete_org:
+            try:
+                org_config.delete_org()
+            except Exception as e:
+                click.echo(
+                    "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
+                )
+                click.echo(str(e))

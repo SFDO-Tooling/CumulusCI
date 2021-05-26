@@ -166,17 +166,18 @@ def test_flow_run__delete_org_when_error_occurs_in_flow():
     coordinator.run.side_effect = CumulusCIException
     runtime.get_flow = mock.Mock(return_value=coordinator)
 
-    run_click_command(
-        flow.flow_run,
-        runtime=runtime,
-        flow_name="test",
-        org="test",
-        delete_org=True,
-        debug=False,
-        o=[("test_task__color", "blue")],
-        skip=(),
-        no_prompt=True,
-    )
+    with pytest.raises(CumulusCIException):
+        run_click_command(
+            flow.flow_run,
+            runtime=runtime,
+            flow_name="test",
+            org="test",
+            delete_org=True,
+            debug=False,
+            o=[("test_task__color", "blue")],
+            skip=(),
+            no_prompt=True,
+        )
 
     runtime.get_flow.assert_called_once_with(
         "test", options={"test_task": {"color": "blue"}}
