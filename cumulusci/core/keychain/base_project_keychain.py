@@ -160,7 +160,7 @@ class BaseProjectKeychain(BaseConfig):
         raise OrgNotFound(f"Org named {name} was not found in keychain")
 
     def cleanup_org_cache_dirs(self):
-        raise NotImplementedError("Subclasses must implement this method.")
+        pass
 
     #######################################
     #              Services               #
