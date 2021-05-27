@@ -18,7 +18,7 @@ class AllGithubReleaseNotes(BaseGithubTask):
     task_options = {
         "repos": {
             "description": (
-                "The list of owner, repo key pairs to generate release notes for." + " Ex: 'owner': SalesforceFoundation \
+                "The list of owner, repo key pairs for which to generate release notes." + " Ex: 'owner': SalesforceFoundation \
                                                                                            'repo': 'NPSP'"
             ),
             "required": False,
