@@ -27,7 +27,7 @@ class AllGithubReleaseNotes(BaseGithubTask):
     }
 
     def _run_task(self):
-        table_of_contents = "<h1>Table Of Contents</h1><ul>"
+        table_of_contents = "<h1>Table of Contents</h1><ul>"
         body = ""
         for project in self.options["repos"]:
             print(f"Owner: {project['owner']}")
