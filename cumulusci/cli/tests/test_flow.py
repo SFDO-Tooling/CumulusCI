@@ -74,8 +74,8 @@ def test_flow_doc__no_flows_rst_file(doc_flow, group_items):
 
 
 @mock.patch("click.echo")
-@mock.patch("cumulusci.cli.flow.cci_safe_load")
-def test_flow_doc__with_flows_rst_file(safe_load, echo):
+@mock.patch("cumulusci.cli.flow.load_yaml_data")
+def test_flow_doc__with_flows_rst_file(load_yaml_data, echo):
     runtime = CliRuntime(
         config={
             "flows": {
@@ -89,7 +89,7 @@ def test_flow_doc__with_flows_rst_file(safe_load, echo):
         load_keychain=False,
     )
 
-    safe_load.return_value = {
+    load_yaml_data.return_value = {
         "intro_blurb": "opening blurb for flow reference doc",
         "groups": {
             "Group1": {"description": "This is a description of group1."},
@@ -99,10 +99,10 @@ def test_flow_doc__with_flows_rst_file(safe_load, echo):
 
     run_click_command(flow.flow_doc, runtime=runtime)
 
-    assert 1 == safe_load.call_count
+    assert 1 == load_yaml_data.call_count
 
     expected_call_args = [
-        "Flow Reference\n==========================================\n\nopening blurb for flow reference doc\n.. contents::\n    :depth: 2\n    :local:\n\n",
+        "Flow Reference\n==========================================\n\nopening blurb for flow reference doc\n\n",
         "Group1\n------",
         "This is a description of group1.",
         "Flow1\n^^^^^\n\n**Description:** Description of Flow1\n\nSome ``extra`` **pizzaz**!\n**Flow Steps**\n\n.. code-block:: console\n",
