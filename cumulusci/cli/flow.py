@@ -8,7 +8,7 @@ import click
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import format_duration
 from cumulusci.utils import document_flow, flow_ref_title_and_intro
-from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+from cumulusci.utils.yaml.safer_loader import load_yaml_data
 from .runtime import pass_runtime
 from .ui import CliTable
 from .utils import group_items
@@ -24,7 +24,7 @@ def flow():
 def flow_doc(runtime):
     flow_info_path = Path(__file__, "..", "..", "..", "docs", "flows.yml").resolve()
     with open(flow_info_path, "r", encoding="utf-8") as f:
-        flow_info = cci_safe_load(f)
+        flow_info = load_yaml_data(f)
     click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
     flow_info_groups = list(flow_info["groups"].keys())
 
