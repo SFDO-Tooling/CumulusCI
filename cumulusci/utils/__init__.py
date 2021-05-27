@@ -282,7 +282,7 @@ def inject_namespace(
             f'  {name}: Replaced {namespace_or_c_token} with "{namespace_or_c}"'
         )
 
-    if name == 'package.xml':
+    if name == "package.xml":
         prev_content = content
         content = content.replace(filename_token, namespace_prefix)
         if logger and content != prev_content:
@@ -491,9 +491,6 @@ def flow_ref_title_and_intro(intro_blurb):
     return f"""Flow Reference
 ==========================================
 \n{intro_blurb}
-.. contents::
-    :depth: 2
-    :local:
 
 """
 
