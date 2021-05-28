@@ -21,17 +21,6 @@ from .. import org
 from .utils import run_click_command
 
 
-@pytest.fixture(autouse=True)
-def cleanup_org_cache_dirs():
-    cleanup_org_cache_dirs = mock.Mock(name="cleanup_org_cache_dirs")
-    with mock.patch(
-        "cumulusci.cli.org.cleanup_org_cache_dirs", cleanup_org_cache_dirs
-    ), mock.patch(
-        "cumulusci.core.utils.cleanup_org_cache_dirs", cleanup_org_cache_dirs
-    ):
-        yield cleanup_org_cache_dirs
-
-
 class TestOrgCommands:
     @mock.patch("webbrowser.open")
     def test_org_browser(self, browser_open):
@@ -430,7 +419,7 @@ class TestOrgCommands:
         org_config.save.assert_called_once_with()
 
     @mock.patch("cumulusci.cli.org.CliTable")
-    def test_org_list(self, cli_tbl, cleanup_org_cache_dirs):
+    def test_org_list(self, cli_tbl):
         runtime = mock.Mock()
         runtime.universal_config.cli__plain_output = None
         org_configs = {
@@ -564,7 +553,7 @@ class TestOrgCommands:
 
         assert scratch_table_call in cli_tbl.call_args_list
         assert connected_table_call in cli_tbl.call_args_list
-        cleanup_org_cache_dirs.assert_called_once()
+        runtime.keychain.cleanup_org_cache_dirs.assert_called_once()
 
     @mock.patch("cumulusci.cli.org.click.echo")
     def test_org_list__json(self, echo):
