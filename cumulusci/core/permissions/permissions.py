@@ -1,48 +1,71 @@
-from typing import Any, List, Dict, Optional
-from enum import Enum
-from cumulusci.utils.yaml.model_parser import CCIDictModel
+from typing import List, Dict, Optional, Union
+from cumulusci.utils.yaml.model_parser import CCIModel
+
+from pydantic import Field, validator
 
 
-class SystemPermOption(str, Enum):
-    user_permissions = "user_permissions"
-    custom_applications = "custom_applications"
-    apex_classes = "apex_classes"
-    custom_metadata_types = "custom_metadata_types"
-    custom_settings = "custom_settings"
-    custom_permissions = "custom_permissions"
-    data_sources = "data_sources"
-    flows = "flows"
-    visualforce_pages = "visualforce_pages"
-    custom_tabs = "custom_tabs"
+class MetadataPermission(CCIModel):
+    # Optional root level class. Do these need to be accounted for?
+    data: List[str]
 
 
-class PermObject(CCIDictModel):
+class PermissionsSobject(CCIModel):
     create: bool = False
     read: bool = False
     edit: bool = False
     delete: bool = False
     view_all: bool = False
     modify_all: bool = False
-    default: Optional[bool] = None
+    default: Optional[str] = None
 
 
-class PermField(CCIDictModel):
+class PermField(CCIModel):
     read: bool = False
     edit: bool = False
 
 
-class SchemaDefault(CCIDictModel):
-    object_permission: PermObject
-    field_permission: PermField
+class SchemaDefaultDetail(CCIModel):
+    object_permissions: PermissionsSobject
+    field_permissions: PermField
 
 
-class SchemaObject(PermObject):
-    fields: Dict[str, PermField] = None
+class SchemaSobject(PermissionsSobject):
+    fields_: Dict[str, PermField] = Field({}, alias="fields")
+
+    # Profile Properties
+    record_types: List[str] = []
+    unmanaged_record_types: List[str] = []
+    default_record_type: Optional[str]
+    default_person_account_record_type: Optional[str]
+
+    @validator("fields_")
+    def defaults_typo_check(cls, fields_):
+        if "defaults" in fields_:
+            raise ValueError('Did you mean "default"?')
+        return fields_
+
+
+class Schema(CCIModel):
+    defaults: Optional[Dict[str, SchemaDefaultDetail]]
+    sobjects: Dict[str, SchemaSobject]
 
 
 # Adding new root node to limit what is available. Is this too restrictive?
-class PermissionRoot(CCIDictModel):
-    # Add new root node ?
-    metadata: Dict[SystemPermOption, List[str]] = {}
-    # SchemaDefault || SchemaObject
-    schema: Dict[str, Any] = {}
+class PermissionsRoot(CCIModel):
+
+    apex_classes: List[str]
+    user_permissions: List[str]
+    custom_applications: List[str]
+    custom_metadata_types: List[str]
+    custom_permissions: List[str]
+    custom_settings: List[str]
+    custom_tabs: List[str]
+    data_sources: List[str]
+    flows: List[str]
+    visualforce_pages: List[str]
+
+    schema_: Schema = Field({}, alias="schema")
+
+
+class PermissionsFile(CCIModel):
+    __root__: Union[PermissionsRoot, None]

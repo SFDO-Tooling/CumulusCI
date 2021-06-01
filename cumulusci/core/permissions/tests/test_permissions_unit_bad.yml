@@ -1,0 +1,71 @@
+user_permissions:
+  - HardDelete
+custom_applications:
+  - MyManagedApp
+apex_classes:
+  - MyApexClass
+custom_metadata_types:
+  - My_CMT__mdt
+custom_settings:
+  - My_Setting__c
+custom_permissions:
+  - My_Perm
+data_sources:
+  - My_DS
+flows:
+  - My_Flow
+visualforce_pages:
+  - Page
+custom_tabs:
+  - VF_Tab
+schema:
+  defaults:
+    read_all:
+      object_permissions:
+        create: True
+        read: True
+        edit: False
+        delete: False
+        view_all: True
+        modify_all: False
+      field_permissions:
+        read: True
+        edit: False
+  sobjects:
+    Payment__c:
+      default: read_all
+      view_all: False
+    My_Object__c:
+      create: True
+      read: True
+      edit: True
+      delete: True
+      view_all: True
+      modify_all: False
+      fields:
+        default:
+          read: True
+          edit: True
+        test__c:
+          read: True
+          edit: False
+    Special_Object__c:
+      create: True
+      read: True
+      edit: True
+      delete: False
+      view_all: False
+      modify_all: False
+      record_types:
+        - Security
+        - Compliance
+      unmanaged_record_types: # Unique to Profile
+        - Organizational
+      default_record_type: Security # Unique to Profile
+      default_person_account_record_type: Security # Unique to Profile + Account
+      fields:
+        defaults: # RAISE ValueError
+          read: True
+          edit: False
+        Description__c:
+          edit: True
