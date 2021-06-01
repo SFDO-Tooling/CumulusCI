@@ -12,12 +12,12 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
             "Each standardValue should contain the keys 'fullName', the API name of the entry, "
             "and 'label', the user-facing label. OpportunityStage entries require the additional "
             "keys 'closed', 'won', 'forecastCategory', and 'probability'; CaseStatus entries "
-            "require 'closed'.",
+            "require 'closed'; LeadStatus entries require 'converted'.",
             "required": True,
         },
         "api_names": {
             "description": "List of API names of StandardValueSets to affect, "
-            "such as 'OpportunityStage', 'AccountType', 'CaseStatus'",
+            "such as 'OpportunityStage', 'AccountType', 'CaseStatus', 'LeadStatus'",
             "required": True,
         },
     }
@@ -29,7 +29,7 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
                     "Standard value set entries must contain the 'fullName' and 'label' keys."
                 )
 
-            # Check for extra metadata on CaseStatus and OpportunityStage
+            # Check for extra metadata on CaseStatus, OpportunityStage and LeadStatus
             if api_name == "OpportunityStage":
                 if not all(
                     [
@@ -47,6 +47,11 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
                 if "closed" not in entry:
                     raise TaskOptionsError(
                         "CaseStatus standard value set entries require the key 'closed'"
+                    )
+            if api_name == "LeadStatus":
+                if "converted" not in entry:
+                    raise TaskOptionsError(
+                        "LeadStatus standard value set entries require the key 'converted'"
                     )
 
             existing_entry = metadata.findall(
@@ -69,5 +74,8 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
                     elem.append("won", str(entry["won"]).lower())
                     elem.append("probability", str(entry["probability"]))
                     elem.append("forecastCategory", entry["forecastCategory"])
+
+                if api_name == "LeadStatus":
+                    elem.append("converted", str(entry["converted"]).lower())
 
         return metadata
