@@ -423,18 +423,12 @@ def dependency_filter_ignore_deps(ignore_deps: List[dict]):
     return should_include
 
 
-def dependency_filter_packages_only(some_dep: Dependency):
-    return isinstance(
-        some_dep, (PackageNamespaceVersionDependency, PackageVersionIdDependency)
-    )
-
-
 def get_static_dependencies(
     context: BaseProjectConfig,
     dependencies: List[Dependency] = None,
     resolution_strategy: str = None,
     strategies: List[DependencyResolutionStrategy] = None,
-    filter_function: Callable = lambda x: True,
+    filter_function: Callable = None,
 ):
     """Resolves the dependencies of a CumulusCI project
     to convert dynamic GitHub dependencies into static dependencies
@@ -447,7 +441,9 @@ def get_static_dependencies(
     :param resolution_strategy: name of a resolution strategy or stack
     :param strategies: list of resolution strategies to use
                        (specify this or resolution_strategy but not both)
-    :param ignore_deps: if provided, ignore the specified dependencies wherever found.
+    :param filter_function: if provided, call the function with each dependency
+                            (including transitive ones) encountered, and include
+                            those for which True is returned.
     """
     if dependencies is None:
         dependencies = parse_dependencies(context.project__dependencies)
@@ -456,6 +452,8 @@ def get_static_dependencies(
     ), "Expected resolution_strategy or strategies but not both"
     if resolution_strategy:
         strategies = get_resolver_stack(context, resolution_strategy)
+    if filter_function is None:
+        filter_function = lambda x: True
 
     while any(not d.is_flattened or not d.is_resolved for d in dependencies):
         for d in dependencies:
