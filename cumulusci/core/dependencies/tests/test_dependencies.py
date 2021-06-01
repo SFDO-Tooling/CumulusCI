@@ -259,7 +259,7 @@ class TestGitHubDynamicDependency:
     def test_flatten__skip(self, project_config):
         gh = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/RootRepo",
-            skip=["unpackaged/pre/first"],
+            skip="unpackaged/pre/first",
         )
         gh.ref = "aaaaa"
         gh.managed_dependency = PackageNamespaceVersionDependency(

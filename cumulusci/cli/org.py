@@ -10,7 +10,6 @@ import click
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.utils import cleanup_org_cache_dirs
 from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import parse_api_datetime
@@ -118,7 +117,6 @@ def org_browser(runtime, org_name, path, url_only):
 @click.option(
     "--login-url",
     help="If set, login to this hostname.",
-    default="https://login.salesforce.com",
 )
 @click.option(
     "--default",
@@ -134,7 +132,7 @@ def org_browser(runtime, org_name, path, url_only):
 def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
     runtime.check_org_overwrite(org_name)
 
-    if "lightning.force.com" in login_url:
+    if login_url and "lightning.force.com" in login_url:
         raise click.UsageError(
             "Connecting an org with a lightning.force.com URL does not work. "
             "Use the my.salesforce.com version instead"
@@ -365,7 +363,7 @@ def org_list(runtime, json_flag, plain):
         bool_cols=["Default"],
     )
     persistent_table.echo(plain)
-    cleanup_org_cache_dirs(runtime.keychain, runtime.project_config)
+    runtime.keychain.cleanup_org_cache_dirs()
 
 
 @org.command(
