@@ -1042,6 +1042,7 @@ flows:
           ancestor_id: latest_github_release
           version_base: latest_github_release
           version_type: minor
+          force_upload: True
       2:
         task: github_release
         options:
@@ -1049,6 +1050,7 @@ flows:
           version_id: ^^create_package_version.subscriber_package_version_id
           dependencies: ^^create_package_version.dependencies
           package_type: 2GP
+          tag_prefix: $project_config.project__git__prefix_beta
       3:
         task: github_release_notes
         ignore_failure: True # Attempt to generate release notes but don't fail build

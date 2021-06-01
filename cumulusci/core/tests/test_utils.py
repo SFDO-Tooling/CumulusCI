@@ -1,19 +1,13 @@
 import datetime
 import os
-import unittest
-from unittest import mock
-from tempfile import TemporaryDirectory
-from pathlib import Path
-
 import pytz
 import pytest
+import unittest
 
 from .. import utils
 
 from cumulusci.core.exceptions import ConfigMergeError
 from cumulusci.utils import temporary_dir, touch
-from cumulusci.core.utils import cleanup_org_cache_dirs
-from cumulusci.core.config import OrgConfig
 
 
 class TestUtils(unittest.TestCase):
@@ -122,68 +116,3 @@ class TestDictMerger(unittest.TestCase):
     def test_cant_merge_nonsense(self):
         with self.assertRaises(ConfigMergeError):
             utils.dictmerge(pytz, 2)
-
-
-class TestCleanupCacheDir:
-    def test_cleanup_cache_dir(self):
-        keychain = mock.Mock()
-        keychain.list_orgs.return_value = ["qa", "dev"]
-        org = mock.Mock()
-        org.config.get.return_value = "http://foo.my.salesforce.com/"
-        keychain.get_org.return_value = org
-        project_config = mock.Mock()
-        with TemporaryDirectory() as temp_for_global:
-            keychain.global_config_dir = Path(temp_for_global)
-            global_org_dir = _touch_test_org_file(keychain.global_config_dir)
-            with TemporaryDirectory() as temp_for_project:
-                cache_dir = project_config.cache_dir = Path(temp_for_project)
-                project_org_dir = _touch_test_org_file(cache_dir)
-                with mock.patch("cumulusci.core.utils.rmtree") as rmtree:
-                    cleanup_org_cache_dirs(keychain, project_config)
-                    rmtree.assert_has_calls(
-                        [mock.call(global_org_dir), mock.call(project_org_dir)],
-                        any_order=True,
-                    )
-
-    def test_cleanup_cache_dir_nothing_to_cleanup(self):
-        keychain = mock.Mock()
-        keychain.list_orgs.return_value = ["qa", "dev"]
-        org = OrgConfig(
-            config={"instance_url": "http://foo.my.salesforce.com/"},
-            name="qa",
-            keychain=keychain,
-            global_org=False,
-        )
-        keychain.get_org.return_value = org
-        project_config = mock.Mock()
-        with TemporaryDirectory() as temp_for_global:
-            keychain.global_config_dir = Path(temp_for_global)
-            with TemporaryDirectory() as temp_for_project:
-                cache_dir = project_config.cache_dir = Path(temp_for_project)
-                org_dir = cache_dir / "orginfo/foo.my.salesforce.com"
-                org_dir.mkdir(parents=True)
-                (org_dir / "schema.json").touch()
-                with mock.patch("cumulusci.core.utils.rmtree") as rmtree:
-                    cleanup_org_cache_dirs(keychain, project_config)
-                    assert not rmtree.mock_calls, rmtree.mock_calls
-
-    duration = (
-        (59, "59s"),
-        (70, "1m:10s"),
-        (119, "1m:59s"),
-        (65, "1m:5s"),
-        (4000, "1h:6m:40s"),
-        (7199, "1h:59m:59s"),
-    )
-
-    @pytest.mark.parametrize("val,expected", duration)
-    def test_time_delta(self, val, expected):
-        formatted = utils.format_duration(datetime.timedelta(seconds=val))
-        assert formatted == expected, (formatted, expected)
-
-
-def _touch_test_org_file(directory):
-    org_dir = directory / "orginfo/something.something.saleforce.com"
-    org_dir.mkdir(parents=True)
-    (org_dir / "testfile.json").touch()
-    return org_dir
