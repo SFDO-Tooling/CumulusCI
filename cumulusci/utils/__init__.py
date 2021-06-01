@@ -491,9 +491,6 @@ def flow_ref_title_and_intro(intro_blurb):
     return f"""Flow Reference
 ==========================================
 \n{intro_blurb}
-.. contents::
-    :depth: 2
-    :local:
 
 """
 
