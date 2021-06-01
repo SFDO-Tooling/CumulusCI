@@ -151,7 +151,7 @@ class GenerateDataDictionary(BaseGithubTask):
                 Package(
                     repo,
                     package_name,
-                    f"{namespace}__",
+                    f"{namespace}__" if namespace else "",
                     config.project__git__prefix_release or "release/",
                 )
             )
@@ -187,7 +187,9 @@ class GenerateDataDictionary(BaseGithubTask):
             )
         if "additional_dependencies" in self.options:
             # init_options() required these to all be GitHubDynamicDependencies
-            dependencies.extend(self.options["additional_dependencies"])
+            dependencies.extend(
+                parse_dependencies(self.options["additional_dependencies"])
+            )
 
         if dependencies:
             repos.extend(self._get_repo_dependencies(dependencies))
