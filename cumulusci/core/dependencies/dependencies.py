@@ -307,7 +307,7 @@ class GitHubDynamicDependency(BaseGitHubDependency):
             deps.extend([parse_dependency(d) for d in dependencies])
             if None in deps:
                 raise DependencyResolutionError(
-                    "Unable to flatten dependency {self} because a transitive dependency could not be parsed."
+                    f"Unable to flatten dependency {self} because a transitive dependency could not be parsed."
                 )
 
         # Check for unmanaged flag on a namespaced package
