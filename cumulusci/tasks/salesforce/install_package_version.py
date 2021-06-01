@@ -82,11 +82,13 @@ class InstallPackageVersion(BaseSalesforceApiTask):
             ]
 
         dependency = None
+        github = (
+            self.project_config.repo_url
+            or f"https://github.com/{self.project_config.repo_owner}/{self.project_config.repo_name}"
+        )
         if version in ["latest", "latest_beta"]:
             strategy = "include_beta" if version == "latest_beta" else "production"
-            dependency = GitHubDynamicDependency(
-                github=self.project_config.project__git__repo_url
-            )
+            dependency = GitHubDynamicDependency(github=github)
             dependency.resolve(
                 self.project_config, get_resolver_stack(self.project_config, strategy)
             )
@@ -95,28 +97,27 @@ class InstallPackageVersion(BaseSalesforceApiTask):
                 self.project_config.get_repo(),
                 self.project_config.project__git__prefix_release,
             )
-            dependency = GitHubDynamicDependency(
-                github=self.project_config.project__git__repo_url, tag=release.tag_name
-            )
+            dependency = GitHubDynamicDependency(github=github, tag=release.tag_name)
             dependency.resolve(
                 self.project_config,
                 get_resolver_stack(self.project_config, "production"),
             )
-        else:
-            raise TaskOptionsError(f"Invalid version key {version}")
 
-        if dependency.managed_dependency:
-            # Handle 2GP and 1GP releases in a backwards-compatible way.
-            if isinstance(
-                dependency.managed_dependency, PackageNamespaceVersionDependency
-            ):
-                self.options["version"] = dependency.managed_dependency.version
-            elif isinstance(dependency.managed_dependency, PackageVersionIdDependency):
-                self.options["version"] = dependency.managed_dependency.version_id
-        else:
-            raise CumulusCIException(
-                f"The release for {version} does not identify a managed package."
-            )
+        if dependency:
+            if dependency.managed_dependency:
+                # Handle 2GP and 1GP releases in a backwards-compatible way.
+                if isinstance(
+                    dependency.managed_dependency, PackageNamespaceVersionDependency
+                ):
+                    self.options["version"] = dependency.managed_dependency.version
+                elif isinstance(
+                    dependency.managed_dependency, PackageVersionIdDependency
+                ):
+                    self.options["version"] = dependency.managed_dependency.version_id
+            else:
+                raise CumulusCIException(
+                    f"The release for {version} does not identify a managed package."
+                )
 
         # Ensure that this option is frozen in case the defaults ever change.
         self.options["security_type"] = self.options.get("security_type") or "FULL"
