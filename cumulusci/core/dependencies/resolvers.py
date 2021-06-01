@@ -408,10 +408,7 @@ def dependency_filter_ignore_deps(ignore_deps: List[dict]) -> Callable:
 
     def should_include(some_dep: Dependency) -> bool:
 
-        if (
-            isinstance(some_dep, PackageNamespaceVersionDependency)
-            and some_dep.namespace
-        ):
+        if isinstance(some_dep, PackageNamespaceVersionDependency):
             return some_dep.namespace not in ignore_namespace
         if isinstance(some_dep, BaseGitHubDependency):
             return some_dep.github not in ignore_github
