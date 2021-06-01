@@ -280,7 +280,7 @@ class Salesforce(object):
         locator = lex_locators["record"]["related"]["card"].format(heading)
         for i in range(tries):
             try:
-                self.selenium.scroll_element_into_view(locator)
+                self.scroll_element_into_view(locator)
                 return
             except (ElementNotFound, JavascriptException, WebDriverException):
                 self.builtin.log(
