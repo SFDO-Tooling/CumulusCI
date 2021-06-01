@@ -658,9 +658,8 @@ class Salesforce(object):
         In addition to merely setting the focus, we click the mouse
         to the field in case there are functions tied to that event.
         """
-        actions = ActionChains(self.selenium.driver)
-        actions.move_to_element(element).click().perform()
         self.selenium.set_focus_to_element(element)
+        element.click()
 
     def _clear(self, element):
         """Clear the field, using any means necessary
