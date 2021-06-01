@@ -508,7 +508,7 @@ def resolve_dependency(
                         dependency.managed_dependency.password_env_name = (
                             dependency.password_env_name
                         )
-                    except AttributeError:
+                    except AttributeError:  # pragma: no cover
                         pass
                 if dependency.ref:
                     break
