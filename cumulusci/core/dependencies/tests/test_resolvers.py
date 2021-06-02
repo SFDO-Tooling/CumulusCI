@@ -23,6 +23,7 @@ from cumulusci.core.dependencies.resolvers import (
     GitHubReleaseTagResolver,
     GitHubTagResolver,
     GitHubUnmanagedHeadResolver,
+    dependency_filter_ignore_deps,
     get_resolver,
     get_resolver_stack,
     get_static_dependencies,
@@ -550,7 +551,7 @@ class TestStaticDependencyResolution:
             project_config,
             dependencies=[gh],
             strategies=[DependencyResolutionStrategy.RELEASE_TAG],
-            ignore_deps=[{"namespace": "foo"}],
+            filter_function=dependency_filter_ignore_deps([{"namespace": "foo"}]),
         ) == [
             UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/DependencyRepo",
@@ -596,7 +597,9 @@ class TestStaticDependencyResolution:
             project_config,
             dependencies=[gh],
             strategies=[DependencyResolutionStrategy.RELEASE_TAG],
-            ignore_deps=[{"github": "https://github.com/SFDO-Tooling/DependencyRepo"}],
+            filter_function=dependency_filter_ignore_deps(
+                [{"github": "https://github.com/SFDO-Tooling/DependencyRepo"}]
+            ),
         ) == [
             UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
