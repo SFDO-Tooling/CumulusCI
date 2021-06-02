@@ -64,12 +64,11 @@ def shell_quote(s: str):
             result = '""'
         elif '"' not in s:
             result = s
+            if " " in result:
+                result = f'"{result}"'
         else:
             escaped = s.replace('"', r"\"")
             result = f'"{escaped}"'
-
-        if " " in result:
-            result = f'"{result}"'
 
         return result
     else:
