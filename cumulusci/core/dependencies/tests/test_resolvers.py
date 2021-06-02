@@ -508,7 +508,10 @@ class TestStaticDependencyResolution:
                 ref="tag_sha",
             ),
             PackageNamespaceVersionDependency(
-                namespace="foo", version="1.1", package_name="DependencyRepo"
+                namespace="foo",
+                version="1.1",
+                package_name="DependencyRepo",
+                password_env_name="DEP_PW",
             ),
             UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/DependencyRepo",

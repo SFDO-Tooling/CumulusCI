@@ -501,6 +501,13 @@ def resolve_dependency(
                 dependency.ref, dependency.managed_dependency = resolver.resolve(
                     dependency, context
                 )
+                if dependency.managed_dependency:
+                    try:
+                        dependency.managed_dependency.password_env_name = (
+                            dependency.password_env_name
+                        )
+                    except AttributeError:  # pragma: no cover
+                        pass
                 if dependency.ref:
                     break
             except DependencyResolutionError:
