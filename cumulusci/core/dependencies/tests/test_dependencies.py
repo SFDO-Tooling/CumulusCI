@@ -1,6 +1,7 @@
 from distutils.version import StrictVersion
 from typing import List, Optional, Tuple
 from unittest import mock
+import os
 
 import pytest
 from pydantic import ValidationError
@@ -232,7 +233,8 @@ class TestGitHubDynamicDependency:
 
         assert gh.flatten(project_config) == [
             GitHubDynamicDependency(
-                github="https://github.com/SFDO-Tooling/DependencyRepo"
+                github="https://github.com/SFDO-Tooling/DependencyRepo",
+                password_env_name="DEP_PW",
             ),
             UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
@@ -268,7 +270,8 @@ class TestGitHubDynamicDependency:
 
         assert gh.flatten(project_config) == [
             GitHubDynamicDependency(
-                github="https://github.com/SFDO-Tooling/DependencyRepo"
+                github="https://github.com/SFDO-Tooling/DependencyRepo",
+                password_env_name="DEP_PW",
             ),
             UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
@@ -326,7 +329,8 @@ class TestGitHubDynamicDependency:
 
         assert gh.flatten(project_config) == [
             GitHubDynamicDependency(
-                github="https://github.com/SFDO-Tooling/DependencyRepo"
+                github="https://github.com/SFDO-Tooling/DependencyRepo",
+                password_env_name="DEP_PW",
             ),
             UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
@@ -455,6 +459,24 @@ class TestPackageNamespaceVersionDependency:
             retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
         )
 
+    @mock.patch(
+        "cumulusci.core.dependencies.dependencies.install_package_by_namespace_version"
+    )
+    def test_install__key_from_env(self, install_package_by_namespace_version):
+        m = PackageNamespaceVersionDependency(
+            namespace="foo", version="1.0", password_env_name="PW"
+        )
+
+        context = mock.Mock()
+        org = OrgConfig({}, "dev")
+        org._installed_packages = {}
+
+        with mock.patch.dict(os.environ, PW="testpw"):
+            m.install(context, org)
+
+        opts = install_package_by_namespace_version.call_args[0][4]
+        assert opts.password == "testpw"
+
     def test_name(self):
         assert (
             PackageNamespaceVersionDependency(namespace="foo", version="1.0").name
@@ -532,6 +554,24 @@ class TestPackageVersionIdDependency:
             opts,
             retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
         )
+
+    @mock.patch(
+        "cumulusci.core.dependencies.dependencies.install_package_by_version_id"
+    )
+    def test_install__key_from_env(self, install_package_by_version_id):
+        m = PackageVersionIdDependency(
+            version_id="04t000000000000", password_env_name="PW"
+        )
+
+        context = mock.Mock()
+        org = OrgConfig({}, "dev")
+        org._installed_packages = {}
+
+        with mock.patch.dict(os.environ, PW="testpw"):
+            m.install(context, org)
+
+        opts = install_package_by_version_id.call_args[0][3]
+        assert opts.password == "testpw"
 
     def test_name(self):
         assert (

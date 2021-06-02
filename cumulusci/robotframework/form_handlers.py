@@ -1,6 +1,5 @@
 import abc
 from robot.libraries.BuiltIn import BuiltIn
-from selenium.webdriver.common.action_chains import ActionChains
 from cumulusci.utils.classutils import get_all_subclasses
 
 """
@@ -83,8 +82,7 @@ class BaseFormHandler(abc.ABC):
         on the element in case there are functions tied to that event.
         """
         self.selenium.set_focus_to_element(self.element)
-        actions = ActionChains(self.selenium.driver)
-        actions.move_to_element(self.element).click().perform()
+        self.element.click()
 
 
 class HTMLInputHandler(BaseFormHandler):
