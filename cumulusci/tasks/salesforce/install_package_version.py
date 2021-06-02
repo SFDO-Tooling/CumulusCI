@@ -28,6 +28,10 @@ class InstallPackageVersion(BaseSalesforceApiTask):
             "description": 'The version of the package to install.  "latest" and "latest_beta" can be used to trigger lookup via Github Releases on the repository.',
             "required": True,
         },
+        "version_number": {
+            "description": "If installing a package using an 04t version Id, display this version "
+            "number to the user and in logs. Has no effect otherwise."
+        },
         "activateRSS": {
             "description": "If True, preserve the isActive state of "
             "Remote Site Settings and Content Security Policy "
@@ -82,10 +86,8 @@ class InstallPackageVersion(BaseSalesforceApiTask):
             ]
 
         dependency = None
-        github = (
-            self.project_config.repo_url
-            or f"https://github.com/{self.project_config.repo_owner}/{self.project_config.repo_name}"
-        )
+        github = f"https://github.com/{self.project_config.repo_owner}/{self.project_config.repo_name}"
+
         if version in ["latest", "latest_beta"]:
             strategy = "include_beta" if version == "latest_beta" else "production"
             dependency = GitHubDynamicDependency(github=github)
@@ -114,9 +116,12 @@ class InstallPackageVersion(BaseSalesforceApiTask):
                     dependency.managed_dependency, PackageVersionIdDependency
                 ):
                     self.options["version"] = dependency.managed_dependency.version_id
+                    self.options[
+                        "version_number"
+                    ] = dependency.managed_dependency.version_number
             else:
                 raise CumulusCIException(
-                    f"The release for {version} does not identify a managed package."
+                    f"The release for {version} does not identify a package version."
                 )
 
         # Ensure that this option is frozen in case the defaults ever change.
@@ -134,10 +139,13 @@ class InstallPackageVersion(BaseSalesforceApiTask):
 
     def _run_task(self):
         version = self.options["version"]
-        self.logger.info(f"Installing {self.options['name']} {version}")
 
         if version.startswith("04t"):
-            dep = PackageVersionIdDependency(version_id=version)
+            dep = PackageVersionIdDependency(
+                version_id=version, package_name=self.options["name"]
+            )
+            if "version_number" in self.options:
+                dep.version_number = self.options["version_number"]
             dep.install(
                 self.project_config,
                 self.org_config,
@@ -146,7 +154,9 @@ class InstallPackageVersion(BaseSalesforceApiTask):
             )
         else:
             dep = PackageNamespaceVersionDependency(
-                namespace=self.options["namespace"], version=version
+                namespace=self.options["namespace"],
+                version=version,
+                package_name=self.options["name"],
             )
             dep.install(
                 self.project_config,

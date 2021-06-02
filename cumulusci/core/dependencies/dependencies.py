@@ -481,11 +481,11 @@ class PackageVersionIdDependency(StaticDependency):
 
     @property
     def name(self):
-        return f"Install {self.package} {self.version_number or self.version_id}"
+        return f"Install {self.description}"
 
     @property
     def description(self):
-        return f"{self.package} {self.version_id}"
+        return f"{self.package} {self.version_number or self.version_id}"
 
 
 class UnmanagedDependency(StaticDependency, abc.ABC):
