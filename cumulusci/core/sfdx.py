@@ -68,8 +68,8 @@ def shell_quote(s: str):
             escaped = s.replace('"', r"\"")
             result = f'"{escaped}"'
 
-        # if " " in result:
-        # result = f'"{result}"'
+        if " " in result:
+            result = f'"{result}"'
 
         return result
     else:
