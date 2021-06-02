@@ -1,5 +1,8 @@
 from cumulusci.core.dependencies.resolvers import get_resolver_stack
-from cumulusci.core.dependencies.dependencies import PackageNamespaceVersionDependency
+from cumulusci.core.dependencies.dependencies import (
+    PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
+)
 from unittest import mock
 
 import pytest
@@ -37,7 +40,9 @@ def test_install_1gp(install_package_by_namespace_version):
 
 @mock.patch("cumulusci.core.dependencies.dependencies.install_package_by_version_id")
 def test_install_2gp(install_package_by_version_id):
-    task = create_task(InstallPackageVersion, {"version": "04t000000000000"})
+    task = create_task(
+        InstallPackageVersion, {"version": "04t000000000000", "version_number": "1.0"}
+    )
     task.org_config._installed_packages = {}
 
     task._run_task()
@@ -96,6 +101,33 @@ def test_init_options__dynamic_version_latest(mock_GitHubDynamicDependency):
         project_config=project_config,
     )
     assert task.options["version"] == "2.0"
+
+    mock_GitHubDynamicDependency.assert_called_once_with(github=project_config.repo_url)
+    mock_GitHubDynamicDependency.return_value.resolve.assert_called_once_with(
+        project_config, get_resolver_stack(project_config, "production")
+    )
+
+
+@mock.patch(
+    "cumulusci.tasks.salesforce.install_package_version.GitHubDynamicDependency"
+)
+def test_init_options__dynamic_version_latest__2gp(mock_GitHubDynamicDependency):
+    project_config = create_project_config()
+    project_config.config["project"]["package"]["namespace"] = "ns"
+
+    mock_GitHubDynamicDependency.return_value.managed_dependency = (
+        PackageVersionIdDependency(
+            version_id="04t000000000000", package_name="Test", version_number="2.0"
+        )
+    )
+
+    task = create_task(
+        InstallPackageVersion,
+        {"version": "latest"},
+        project_config=project_config,
+    )
+    assert task.options["version"] == "04t000000000000"
+    assert task.options["version_number"] == "2.0"
 
     mock_GitHubDynamicDependency.assert_called_once_with(github=project_config.repo_url)
     mock_GitHubDynamicDependency.return_value.resolve.assert_called_once_with(
