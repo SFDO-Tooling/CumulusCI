@@ -1,10 +1,12 @@
-from unittest import mock
 import io
-
 import pytest
+import sys
+
+from unittest import mock
 
 from cumulusci.core.exceptions import SfdxOrgException
 from cumulusci.core.sfdx import get_default_devhub_username
+from cumulusci.core.sfdx import shell_quote
 from cumulusci.core.sfdx import sfdx
 
 
@@ -22,6 +24,15 @@ class TestSfdx:
         sfdx("cmd", args=['a"b'], access_token="token")
         cmd = Command.call_args[0][0]
         assert cmd == r'sfdx cmd "a\"b" -u token'
+
+    @mock.patch("platform.system", mock.Mock(return_value="Windows"))
+    @pytest.mark.skipif(
+        not sys.platform.startswith("win"),
+        reason="Special handling of shell quotes on windows",
+    )
+    def test_shell_quote__str_with_space(self):
+        actual = shell_quote("pkg-name Managed Feature Test")
+        assert '"pkg-name Managed Feature Test"' == actual
 
     @mock.patch("sarge.Command")
     def test_check_return(self, Command):

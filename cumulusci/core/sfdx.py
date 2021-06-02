@@ -67,6 +67,10 @@ def shell_quote(s: str):
         else:
             escaped = s.replace('"', r"\"")
             result = f'"{escaped}"'
+
+        if " " in result:
+            result = f'"{result}"'
+
         return result
     else:
         return sarge.shell_quote(s)
