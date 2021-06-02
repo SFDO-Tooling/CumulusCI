@@ -11,13 +11,12 @@ from pathlib import Path
 from unittest import mock
 from contextlib import contextmanager
 
+from cumulusci.cli import cci
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ScratchOrgException
-from cumulusci.cli import cci
-from cumulusci.oauth.client import OAuth2ClientConfig
 
 from .. import org
 from .utils import run_click_command
@@ -154,62 +153,50 @@ class TestOrgCommands:
             mock.MagicMock(return_value=(None, "")),
         ), mock.patch(
             "cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock()
-        ), mock.patch(
-            "cumulusci.cli.cci.CliRuntime", mock.Mock()
         ):
             yield
 
-    @responses.activate
-    def test_org_connect_sandbox(self):
-        def check_and_quit_function_halfway_through(auth_uri, token_uri, **kwargs):
-            assert "test.salesforce" in auth_uri
-            assert "test.salesforce" in token_uri
-            raise StopIteration("Done!")
+    @mock.patch("cumulusci.cli.org.connect_org_to_keychain")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_org_connect__sandbox(self, cli_runtime, connect_to_keychain):
+        mocked_connected_app = mock.Mock()
+        mocked_connected_app.client_id = "foo"
+        mocked_connected_app.client_secret = "bar"
+        mocked_connected_app.callback_url = "https://foo.bar.baz/"
 
-        with mock.patch(
-            "cumulusci.cli.org.OAuth2ClientConfig",
-            check_and_quit_function_halfway_through,
-        ), pytest.raises(StopIteration, match="Done!"), self.mock_main_context():
+        runtime = mock.Mock()
+        runtime.keychain.get_service.return_value = mocked_connected_app
+
+        cli_runtime.return_value = runtime
+
+        with self.mock_main_context():
             cci.main(["cci", "org", "connect", "blah", "--sandbox"])
 
-    @responses.activate
-    def test_org_connect_prod_default(self):
-        def check_and_quit_function_halfway_through(auth_uri, token_uri, **kwargs):
-            assert "login.salesforce" in auth_uri
-            assert "login.salesforce" in token_uri
-            raise StopIteration("Done!")
+        actual_client_config = connect_to_keychain.call_args_list[0][0][0].client_config
+        assert actual_client_config.auth_uri.startswith("https://test.salesforce.com/")
+        assert actual_client_config.token_uri.startswith("https://test.salesforce.com/")
 
-        with mock.patch(
-            "cumulusci.cli.org.OAuth2ClientConfig",
-            check_and_quit_function_halfway_through,
-        ), pytest.raises(StopIteration, match="Done!"), self.mock_main_context():
+    @mock.patch("cumulusci.cli.org.connect_org_to_keychain")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_org_connect__prod_default(self, cli_runtime, connect_to_keychain):
+        mocked_connected_app = mock.Mock()
+        mocked_connected_app.client_id = "foo"
+        mocked_connected_app.client_secret = "bar"
+        mocked_connected_app.callback_url = "https://foo.bar.baz/"
+
+        runtime = mock.Mock()
+        runtime.keychain.get_service.return_value = mocked_connected_app
+
+        cli_runtime.return_value = runtime
+
+        with self.mock_main_context():
             cci.main(["cci", "org", "connect", "blah"])
 
-    @responses.activate
-    def test_org_connect_prod_login(self):
-        def check_and_quit_function_halfway_through(auth_uri, token_uri, **kwargs):
-            assert (
-                "https://abc.def.ghi.com/services/oauth2/authorize" in auth_uri
-            ), auth_uri
-            assert (
-                "https://abc.def.ghi.com/services/oauth2/token" in token_uri
-            ), token_uri
-            raise StopIteration("Done!")
-
-        with mock.patch(
-            "cumulusci.cli.org.OAuth2ClientConfig",
-            check_and_quit_function_halfway_through,
-        ), pytest.raises(StopIteration, match="Done!"), self.mock_main_context():
-            cci.main(
-                [
-                    "cci",
-                    "org",
-                    "connect",
-                    "blah",
-                    "--login-url",
-                    "https://abc.def.ghi.com",
-                ]
-            )
+        actual_client_config = connect_to_keychain.call_args_list[0][0][0].client_config
+        assert actual_client_config.auth_uri.startswith("https://login.salesforce.com/")
+        assert actual_client_config.token_uri.startswith(
+            "https://login.salesforce.com/"
+        )
 
     @mock.patch("cumulusci.cli.org.OAuth2Client")
     @responses.activate
@@ -291,61 +278,6 @@ class TestOrgCommands:
                 default=True,
                 global_org=False,
             )
-
-    @mock.patch("cumulusci.cli.org.OAuth2Client")
-    @responses.activate
-    def test_org_connect__sandbox_option_gives_correct_uris(self, oauth2client):
-        client_instance = mock.Mock()
-        client_instance.auth_code_flow.return_value = {
-            "instance_url": "https://instance",
-            "access_token": "BOGUS",
-            "id": "OODxxxxxxxxxxxx/user",
-        }
-        oauth2client.return_value = client_instance
-        runtime = mock.Mock()
-        runtime.keychain.get_service.return_value = mock.Mock(
-            client_id="asdfasdf",
-            client_secret="asdfasdf",
-            callback_url="http://localhost:8080/callback",
-        )
-        responses.add(
-            method="GET",
-            url="https://instance/services/oauth2/userinfo",
-            body=b"{}",
-            status=200,
-        )
-        responses.add(
-            method="GET",
-            url="https://instance/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
-            json={
-                "TrialExpirationDate": None,
-                "OrganizationType": "Developer Edition",
-                "IsSandbox": False,
-                "InstanceName": "CS420",
-                "NamespacePrefix": None,
-            },
-            status=200,
-        )
-        responses.add("GET", "https://instance/services/data", json=[{"version": 45.0}])
-        run_click_command(
-            org.org_connect,
-            runtime=runtime,
-            org_name="test",
-            sandbox=True,  # Test we get correct auth uri when this is set
-            login_url=None,
-            default=True,
-            global_org=False,
-        )
-
-        client_config = OAuth2ClientConfig(
-            client_id="asdfasdf",
-            client_secret="asdfasdf",
-            redirect_uri="http://localhost:8080/callback",
-            auth_uri="https://test.salesforce.com/services/oauth2/authorize",
-            token_uri="https://test.salesforce.com/services/oauth2/token",
-            scope="web full refresh_token",
-        )
-        oauth2client.assert_called_once_with(client_config)
 
     def test_org_default(self):
         runtime = mock.Mock()
