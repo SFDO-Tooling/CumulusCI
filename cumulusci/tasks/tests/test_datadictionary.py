@@ -1145,7 +1145,6 @@ project:
         results = task._get_repo_dependencies(
             parse_dependencies(project_config.project__dependencies)
         )
-        print(results)
 
         assert results == [
             Package(get_repo.return_value, "Test 1", "test1__", "release/"),

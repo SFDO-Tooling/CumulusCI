@@ -404,16 +404,13 @@ def get_resolver_stack(
     raise CumulusCIException(f"Resolver stack {name} was not found.")
 
 
-def dependency_filter_ignore_deps(ignore_deps: List[dict]):
+def dependency_filter_ignore_deps(ignore_deps: List[dict]) -> Callable:
     ignore_github = [d["github"] for d in ignore_deps if "github" in d]
     ignore_namespace = [d["namespace"] for d in ignore_deps if "namespace" in d]
 
-    def should_include(some_dep: Dependency):
+    def should_include(some_dep: Dependency) -> bool:
 
-        if (
-            isinstance(some_dep, PackageNamespaceVersionDependency)
-            and some_dep.namespace
-        ):
+        if isinstance(some_dep, PackageNamespaceVersionDependency):
             return some_dep.namespace not in ignore_namespace
         if isinstance(some_dep, BaseGitHubDependency):
             return some_dep.github not in ignore_github
@@ -429,7 +426,7 @@ def get_static_dependencies(
     resolution_strategy: str = None,
     strategies: List[DependencyResolutionStrategy] = None,
     filter_function: Callable = None,
-):
+) -> List[StaticDependency]:
     """Resolves the dependencies of a CumulusCI project
     to convert dynamic GitHub dependencies into static dependencies
     by inspecting the referenced repositories.
