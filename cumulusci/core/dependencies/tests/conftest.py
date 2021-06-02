@@ -29,6 +29,7 @@ def github():
             repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test
         dependencies:
             - github: https://github.com/SFDO-Tooling/DependencyRepo
+              password_env_name: DEP_PW
     """
             ),
             "unpackaged/pre": {"first": {}, "second": {}},
