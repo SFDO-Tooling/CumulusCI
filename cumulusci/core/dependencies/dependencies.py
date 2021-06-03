@@ -1,6 +1,7 @@
 import abc
 import itertools
 import logging
+import os
 from typing import List, Optional
 
 import pydantic
@@ -103,6 +104,7 @@ class DynamicDependency(Dependency, abc.ABC):
     These dependencies must be resolved and flattened before they can be installed."""
 
     managed_dependency: Optional[StaticDependency]
+    password_env_name: Optional[str]
 
     @property
     def is_flattened(self):
@@ -214,6 +216,7 @@ class GitHubDynamicDependency(BaseGitHubDependency):
     unmanaged: bool = False
     namespace_inject: Optional[str]
     namespace_strip: Optional[str]
+    password_env_name: Optional[str]
 
     skip: List[str] = []
 
@@ -304,7 +307,7 @@ class GitHubDynamicDependency(BaseGitHubDependency):
             deps.extend([parse_dependency(d) for d in dependencies])
             if None in deps:
                 raise DependencyResolutionError(
-                    "Unable to flatten dependency {self} because a transitive dependency could not be parsed."
+                    f"Unable to flatten dependency {self} because a transitive dependency could not be parsed."
                 )
 
         # Check for unmanaged flag on a namespaced package
@@ -367,6 +370,8 @@ class PackageNamespaceVersionDependency(StaticDependency):
     version: str
     package_name: Optional[str]
 
+    password_env_name: Optional[str]
+
     @property
     def package(self):
         return self.package_name or self.namespace or "Unknown Package"
@@ -380,6 +385,8 @@ class PackageNamespaceVersionDependency(StaticDependency):
     ):
         if not options:
             options = PackageInstallOptions()
+        if self.password_env_name:
+            options.password = os.environ.get(self.password_env_name)
         if not retry_options:
             retry_options = DEFAULT_PACKAGE_RETRY_OPTIONS
 
@@ -424,6 +431,8 @@ class PackageVersionIdDependency(StaticDependency):
     version_id: str
     package_name: Optional[str]
 
+    password_env_name: Optional[str]
+
     @property
     def package(self):
         return self.package_name or "Unknown Package"
@@ -437,6 +446,8 @@ class PackageVersionIdDependency(StaticDependency):
     ):
         if not options:
             options = PackageInstallOptions()
+        if self.password_env_name:
+            options.password = os.environ.get(self.password_env_name)
         if not retry_options:
             retry_options = DEFAULT_PACKAGE_RETRY_OPTIONS
 

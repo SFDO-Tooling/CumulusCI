@@ -7,9 +7,9 @@ from pathlib import Path
 from unittest import mock
 
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import DeploymentException
 from cumulusci.tasks.marketing_cloud.deploy import MarketingCloudDeployTask
-from cumulusci.tasks.marketing_cloud.deploy import MC_DEPLOY_ENDPOINT
+from cumulusci.tasks.marketing_cloud.deploy import MCPM_ENDPOINT
 from cumulusci.utils import temporary_dir
 
 
@@ -29,11 +29,20 @@ def task(project_config):
 class TestMarketingCloudDeployTask:
     @responses.activate
     def test_run_task__deploy_succeeds(self, task):
-        responses.add("POST", MC_DEPLOY_ENDPOINT, json={"entities": {}})
+        responses.add(
+            "POST",
+            f"{MCPM_ENDPOINT}/deployments",
+            json={"info": {"id": "JOBID", "status": "IN_PROGRESS"}},
+        )
+        responses.add(
+            "GET",
+            f"{MCPM_ENDPOINT}/deployments/JOBID",
+            json={"status": "DONE", "entities": {}},
+        )
 
         task.logger = mock.Mock()
         task._run_task()
-        task.logger.info.assert_called_once_with("Deployment completed successfully.")
+        task.logger.info.assert_called_with("Deployment completed successfully.")
         assert task.logger.error.call_count == 0
         assert task.logger.warn.call_count == 0
 
@@ -41,21 +50,27 @@ class TestMarketingCloudDeployTask:
     def test_run_task__deploy_fails(self, task):
         responses.add(
             "POST",
-            MC_DEPLOY_ENDPOINT,
+            f"{MCPM_ENDPOINT}/deployments",
+            json={"info": {"id": "JOBID", "status": "IN_PROGRESS"}},
+        )
+        responses.add(
+            "GET",
+            f"{MCPM_ENDPOINT}/deployments/JOBID",
             json={
+                "status": "DONE",
                 "entities": {
                     "assets": {
                         0: {"status": "FAILED", "issues": ["A problem occurred"]},
                         1: {"status": "SKIPPED", "issues": ["A problem occurred"]},
                     },
                     "categories": {},
-                }
+                },
             },
         )
         task.logger = mock.Mock()
-        task._run_task()
+        with pytest.raises(DeploymentException):
+            task._run_task()
 
-        assert task.logger.info.call_count == 0
         assert task.logger.error.call_count == 2
         assert (
             task.logger.error.call_args_list[0][0][0]
@@ -89,8 +104,3 @@ class TestMarketingCloudDeployTask:
             expected_payload = json.load(f)
 
         assert expected_payload == actual_payload
-
-    def test_validate_response__bad_status_code(self, task):
-        response = mock.Mock(status_code=503)
-        with pytest.raises(CumulusCIException):
-            task._validate_response(response)

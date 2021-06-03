@@ -165,3 +165,66 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             CreateRelease(
                 self.project_config, TaskConfig({"options": {"version": "1.0"}})
             )
+
+    @responses.activate
+    def test_run_task__with_custom_prefix(self):
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url,
+            json=self._get_expected_repo(owner=self.repo_owner, name=self.repo_name),
+        )
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + "/releases/tags/custom/1.0",
+            status=404,
+        )
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + "/git/refs/tags/custom/1.0",
+            status=404,
+        )
+        responses.add(
+            method=responses.POST,
+            url=self.repo_api_url + "/git/tags",
+            json=self._get_expected_tag(
+                "release/1.0", "21e04cfe480f5293e2f7103eee8a5cbdb94f7982"
+            ),
+            status=201,
+        )
+        responses.add(
+            method=responses.POST,
+            url=self.repo_api_url + "/git/refs",
+            json={},
+            status=201,
+        )
+        responses.add(
+            method=responses.POST,
+            url=self.repo_api_url + "/releases",
+            json=self._get_expected_release("release"),
+            status=201,
+        )
+
+        task = CreateRelease(
+            self.project_config,
+            TaskConfig(
+                {
+                    "options": {
+                        "version": "1.0",
+                        "version_id": "04t000000000000",
+                        "dependencies": [{"namespace": "foo", "version": "1.0"}],
+                        "package_type": "2GP",
+                        "tag_prefix": "custom/",
+                    }
+                }
+            ),
+        )
+        task()
+        self.assertEqual(
+            {
+                "tag_name": "custom/1.0",
+                "name": "1.0",
+                "dependencies": [{"namespace": "foo", "version": "1.0"}],
+            },
+            task.return_values,
+        )
+        assert "package_type: 2GP" in responses.calls._calls[3].request.body

@@ -10,7 +10,6 @@ import click
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.utils import cleanup_org_cache_dirs
 from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import parse_api_datetime
@@ -377,7 +376,7 @@ def org_list(runtime, json_flag, plain):
         bool_cols=["Default"],
     )
     persistent_table.echo(plain)
-    cleanup_org_cache_dirs(runtime.keychain, runtime.project_config)
+    runtime.keychain.cleanup_org_cache_dirs()
 
 
 @org.command(

@@ -1,3 +1,9 @@
+from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+from cumulusci.core.config import BaseConfig
+from cumulusci.core.dependencies.dependencies import (
+    GitHubDynamicDependency,
+    parse_dependencies,
+)
 import io
 import unittest
 from unittest.mock import Mock, call, patch, mock_open
@@ -13,7 +19,10 @@ from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils.xml import metadata_tree
 from distutils.version import StrictVersion
-from cumulusci.core.exceptions import DependencyResolutionError, TaskOptionsError
+from cumulusci.core.exceptions import (
+    DependencyParseError,
+    DependencyResolutionError,
+)
 from cumulusci.utils import temporary_dir
 
 
@@ -894,11 +903,13 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config.project__package__name = "Project"
         project_config.project__name = "Project"
         project_config.project__package__namespace = "test"
-        project_config.project__dependencies = [{"github": "http://example"}]
+        project_config.project__dependencies = [
+            {"github": "https://github.com/test/test"}
+        ]
 
         task = create_task(
             GenerateDataDictionary,
-            {"additional_dependencies": [{"github": "http://test"}]},
+            {"additional_dependencies": [{"github": "https://github.com/test/test"}]},
             project_config=project_config,
         )
         task.get_repo = Mock()
@@ -915,8 +926,12 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._get_repo_dependencies.assert_has_calls(
             [
-                call([{"github": "http://test"}], include_beta=False),
-                call(project_config.project__dependencies, include_beta=False),
+                call(
+                    [
+                        GitHubDynamicDependency(github="https://github.com/test/test"),
+                        GitHubDynamicDependency(github="https://github.com/test/test"),
+                    ]
+                ),
             ]
         )
 
@@ -930,8 +945,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
                         "release/",
                     )
                 ),
-                call(1),
-                call(2),
                 call(1),
                 call(2),
             ]
@@ -1020,7 +1033,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config = create_project_config()
         project_config.project__name = "Project"
 
-        with self.assertRaises(TaskOptionsError):
+        with self.assertRaises(DependencyParseError):
             create_task(
                 GenerateDataDictionary,
                 {"additional_dependencies": [{"namespace": "foo"}]},
@@ -1054,54 +1067,86 @@ class test_GenerateDataDictionary(unittest.TestCase):
             project_config=project_config,
         )
 
-        project_config.project__dependencies = [{"github": "test"}]
+        project_config.project__dependencies = [
+            {"github": "https://github.com/test/test"}
+        ]
         project_config.get_repo_from_url = Mock(return_value=None)
 
         with self.assertRaises(DependencyResolutionError):
-            task._get_repo_dependencies(project_config.project__dependencies)
+            task._get_repo_dependencies(
+                parse_dependencies(project_config.project__dependencies)
+            )
 
-    def test_get_repo_dependencies__success(self):
+    @patch("cumulusci.tasks.datadictionary.get_static_dependencies")
+    @patch("cumulusci.tasks.datadictionary.get_repo")
+    @patch("cumulusci.tasks.datadictionary.get_remote_project_config")
+    def test_get_repo_dependencies__success(
+        self, get_remote_project_config, get_repo, get_static_dependencies
+    ):
         project_config = create_project_config()
         project_config.project__git__prefix_release = "rel/"
         project_config.project__name = "Project"
 
         task = create_task(GenerateDataDictionary, {}, project_config=project_config)
 
-        project_config.project__dependencies = [{"github": "test"}]
-        first_repo = Mock()
-        second_repo = Mock()
-        project_config.get_repo_from_url = Mock(
-            side_effect=[first_repo, second_repo, first_repo]
-        )
-        project_config.get_ref_for_dependency = Mock(return_value=(Mock(), Mock()))
+        project_config.project__dependencies = [
+            {"github": "https://github.com/test/test"}
+        ]
 
-        first_repo.owner = "Test"
-        first_repo.name = "Repo1"
-        second_repo.owner = "Test"
-        second_repo.name = "Repo2"
-
-        cumulusci_yml_one = b"""
+        cumulusci_yml_one = io.StringIO(
+            """
 project:
     name: Test 1
     package:
         name: Test 1
         namespace: test1
     dependencies:
-        - github: "test2"
+        - github: "https://github.com/test1/test1"
 """
-        cumulusci_yml_two = b"""
+        )
+        cumulusci_yml_two = io.StringIO(
+            """
 project:
     name: Test 2
+    package:
+        name: Test 2
     dependencies:
         - github: "test1"
     git:
         prefix_release: "rel/"
 """
+        )
 
-        first_repo.file_contents.return_value.decoded = cumulusci_yml_one
-        second_repo.file_contents.return_value.decoded = cumulusci_yml_two
+        def fake_get_static_dependencies(
+            context,
+            dependencies=None,
+            resolution_strategy=None,
+            strategies=None,
+            filter_function=None,
+        ):
+            filter_function(
+                GitHubDynamicDependency(github="https://github.com/test/test")
+            ),
+            filter_function(
+                GitHubDynamicDependency(github="https://github.com/test1/test1")
+            )
+            return [
+                GitHubDynamicDependency(github="https://github.com/test/test"),
+                GitHubDynamicDependency(github="https://github.com/test1/test1"),
+            ]
 
-        assert task._get_repo_dependencies(project_config.project__dependencies) == [
-            Package(first_repo, "Test 1", "test1__", "release/"),
-            Package(second_repo, "Test/Repo2", "", "rel/"),
+        get_static_dependencies.side_effect = fake_get_static_dependencies
+
+        get_remote_project_config.side_effect = [
+            BaseConfig(cci_safe_load(cumulusci_yml_one)),
+            BaseConfig(cci_safe_load(cumulusci_yml_two)),
+        ]
+
+        results = task._get_repo_dependencies(
+            parse_dependencies(project_config.project__dependencies)
+        )
+
+        assert results == [
+            Package(get_repo.return_value, "Test 1", "test1__", "release/"),
+            Package(get_repo.return_value, "Test 2", "", "rel/"),
         ]
