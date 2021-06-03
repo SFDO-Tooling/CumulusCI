@@ -25,7 +25,6 @@ class TestSfdx:
         cmd = Command.call_args[0][0]
         assert cmd == r'sfdx cmd "a\"b" -u token'
 
-    @mock.patch("platform.system", mock.Mock(return_value="Windows"))
     @pytest.mark.skipif(
         not sys.platform.startswith("win"),
         reason="Special handling of shell quotes on windows",
