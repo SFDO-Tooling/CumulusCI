@@ -203,14 +203,12 @@ def test_init_options__dynamic_version_no_managed_release(mock_GitHubDynamicDepe
 
     mock_GitHubDynamicDependency.return_value.managed_dependency = None
 
-    with pytest.raises(CumulusCIException) as e:
+    with pytest.raises(CumulusCIException, match="does not identify"):
         create_task(
             InstallPackageVersion,
             {"version": "latest_beta"},
             project_config=project_config,
         )
-
-        assert "does not identify a managed package" in str(e)
 
 
 def test_init_options__name_inference():
