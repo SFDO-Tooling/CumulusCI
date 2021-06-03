@@ -267,7 +267,12 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 
         if "error" in args:
             http_status = http.client.BAD_REQUEST
-            http_body = f"error: {args['error'][0]}\nerror description: {args['error_description'][0]}"
+            description = (
+                "none"
+                if "error_description" not in args
+                else args["error_description"][0]
+            )
+            http_body = f"error: {args['error'][0]}\nerror description: {description}"
         else:
             http_status = http.client.OK
             emoji = random.choice(["🎉", "👍", "👍🏿", "🥳", "🎈"])

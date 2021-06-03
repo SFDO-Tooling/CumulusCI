@@ -1229,7 +1229,7 @@ services:
         required: True
       client_secret:
         description: The client secret
-        required: True
+        required: False
       auth_uri:
         description: The URI for where users are directed to login
         required: True
@@ -1239,6 +1239,14 @@ services:
       callback_url:
         description: The URL that the auth server will callback to after authentication of the user
         required: True
+  tubular:
+    description: Service for running CumulusCI automation
+    class_path: cumulusci.core.config.oauth2_service_config.OAuth2ServiceConfig
+    attributes:
+      oauth2_client:
+        description: The name of the oauth2_client service with which to connect
+        required: True
+
 
 project:
   name:

@@ -71,6 +71,14 @@ def service_list(runtime, plain, print_json):
     table.echo(plain)
 
 
+class OptionalSentinel:
+    def __str__(self):
+        return "optional"
+
+
+BLANK = OptionalSentinel()
+
+
 class ConnectServiceCommand(click.MultiCommand):
     def _get_services_config(self, runtime):
         return (
@@ -87,7 +95,12 @@ class ConnectServiceCommand(click.MultiCommand):
 
     def _build_param(self, attribute, details):
         req = details["required"]
-        return click.Option((f"--{attribute}",), prompt=req, required=req)
+        return click.Option(
+            (f"--{attribute}",),
+            prompt=True,
+            required=req,
+            default=BLANK if not req else None,
+        )
 
     def _get_default_options(self, runtime):
         options = []
@@ -150,7 +163,7 @@ class ConnectServiceCommand(click.MultiCommand):
             set_global_default = kwargs.pop("default", False)
 
             serv_conf = dict(
-                (k, v) for k, v in list(kwargs.items()) if v is not None
+                (k, v) for k, v in list(kwargs.items()) if v not in (None, BLANK)
             )  # remove None values
 
             # A service can define a callable to validate the service config
@@ -173,7 +186,9 @@ class ConnectServiceCommand(click.MultiCommand):
                     oauth_dict = ConfigClass.connect(runtime.keychain, kwargs)
                     serv_conf.update(oauth_dict)
 
-            config_instance = ConfigClass(serv_conf, service_name, runtime.keychain)
+            config_instance = ConfigClass(
+                serv_conf, service_type, service_name, runtime.keychain
+            )
 
             runtime.keychain.set_service(
                 service_type,
