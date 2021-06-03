@@ -1,6 +1,5 @@
 import io
 import pytest
-import sys
 
 from unittest import mock
 
@@ -25,10 +24,7 @@ class TestSfdx:
         cmd = Command.call_args[0][0]
         assert cmd == r'sfdx cmd "a\"b" -u token'
 
-    @pytest.mark.skipif(
-        not sys.platform.startswith("win"),
-        reason="Special handling of shell quotes on windows",
-    )
+    @mock.patch("platform.system", mock.Mock(return_value="Windows"))
     def test_shell_quote__str_with_space(self):
         actual = shell_quote("pkg-name Managed Feature Test")
         assert '"pkg-name Managed Feature Test"' == actual
