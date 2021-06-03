@@ -36,6 +36,27 @@ from cumulusci.utils.yaml.model_parser import CCIModel
 logger = logging.getLogger(__name__)
 
 
+def _validate_github_parameters(values):
+    if values.get("repo_owner") or values.get("repo_name"):
+        logger.warning(
+            "The repo_name and repo_owner keys are deprecated. Please use the github key."
+        )
+
+    assert values.get("github") or (
+        values.get("repo_owner") and values.get("repo_name")
+    ), "Must specify `github` or `repo_owner` and `repo_name`"
+
+    # Populate the `github` property if not already populated.
+    if not values.get("github") and values.get("repo_name"):
+        values[
+            "github"
+        ] = f"https://github.com/{values['repo_owner']}/{values['repo_name']}"
+        values.pop("repo_owner")
+        values.pop("repo_name")
+
+    return values
+
+
 class HashableBaseModel(CCIModel):
     """Base Pydantic model class that has a functional `hash()` method.
     Requires that model can be converted to JSON."""
@@ -148,21 +169,9 @@ class BaseGitHubDependency(DynamicDependency, abc.ABC):
 
     @pydantic.root_validator
     def check_complete(cls, values):
-        assert values.get("github") or (
-            values.get("repo_owner") and values.get("repo_name")
-        ), "Must specify `github` or `repo_owner` and `repo_name`"
         assert values["ref"] is None, "Must not specify `ref` at creation."
 
-        # Populate the `github` and `repo_name`, `repo_owner` properties if not already populated.
-        if not values.get("repo_name"):
-            values["repo_owner"], values["repo_name"] = split_repo_url(values["github"])
-
-        if not values.get("github"):
-            values[
-                "github"
-            ] = f"https://github.com/{values['repo_owner']}/{values['repo_name']}"
-
-        return values
+        return _validate_github_parameters(values)
 
     @property
     def name(self):
@@ -430,6 +439,7 @@ class PackageVersionIdDependency(StaticDependency):
 
     version_id: str
     package_name: Optional[str]
+    version_number: Optional[str]
 
     password_env_name: Optional[str]
 
@@ -471,11 +481,11 @@ class PackageVersionIdDependency(StaticDependency):
 
     @property
     def name(self):
-        return f"Install {self.package} {self.version_id}"
+        return f"Install {self.description}"
 
     @property
     def description(self):
-        return f"{self.package} {self.version_id}"
+        return f"{self.package} {self.version_number or self.version_id}"
 
 
 class UnmanagedDependency(StaticDependency, abc.ABC):
@@ -536,24 +546,7 @@ class UnmanagedGitHubRefDependency(UnmanagedDependency):
 
     @pydantic.root_validator
     def validate(cls, values):
-        if values.get("repo_owner") or values.get("repo_name"):
-            logger.warning(
-                "The repo_name and repo_owner keys are deprecated. Please use the github key."
-            )
-        assert None in [
-            values.get("repo_owner"),
-            values.get("github"),
-        ], "Must specify `repo_owner` or `github`, but not both."
-
-        # Populate the `github` property if not already populated.
-        if not values.get("github") and values.get("repo_name"):
-            values[
-                "github"
-            ] = f"https://github.com/{values['repo_owner']}/{values['repo_name']}"
-            values.pop("repo_owner")
-            values.pop("repo_name")
-
-        return values
+        return _validate_github_parameters(values)
 
     def _get_zip_src(self, context):
         return download_extract_github_from_repo(
