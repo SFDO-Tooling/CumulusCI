@@ -528,7 +528,7 @@ class GithubApiTestMixin(object):
             "draft": False,
             "html_url": "",
             "id": 1,
-            "name": "release",
+            "name": "1.0",
             "prerelease": False,
             "published_at": now,
             "tag_name": tag_name,

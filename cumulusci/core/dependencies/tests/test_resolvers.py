@@ -91,7 +91,9 @@ version_id: 04t000000000000"""
         assert resolver.resolve(dep, project_config) == (
             "tag_sha",
             PackageVersionIdDependency(
-                version_id="04t000000000000", package_name="CumulusCI-Test-Dep"
+                version_id="04t000000000000",
+                version_number="1.0",
+                package_name="CumulusCI-Test-Dep",
             ),
         )
 
@@ -179,7 +181,9 @@ version_id: 04t000000000000"""
         assert resolver.resolve(dep, project_config) == (
             "tag_sha",
             PackageVersionIdDependency(
-                version_id="04t000000000000", package_name="CumulusCI-2GP-Test"
+                version_id="04t000000000000",
+                version_number="1.0",
+                package_name="CumulusCI-2GP-Test",
             ),
         )
 

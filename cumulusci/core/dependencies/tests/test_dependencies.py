@@ -201,11 +201,6 @@ class TestGitHubDynamicSubfolderDependency:
 
 
 class TestGitHubDynamicDependency:
-    def test_create_repo_url(self):
-        gh = GitHubDynamicDependency(github="https://github.com/Test/TestRepo")
-        assert gh.repo_owner == "Test"
-        assert gh.repo_name == "TestRepo"
-
     def test_create_repo_name(self):
         gh = GitHubDynamicDependency(repo_owner="Test", repo_name="TestRepo")
         assert gh.github == "https://github.com/Test/TestRepo"
@@ -591,7 +586,7 @@ class TestPackageVersionIdDependency:
 class TestUnmanagedGitHubRefDependency:
     def test_validation(self):
         with pytest.raises(ValidationError):
-            UnmanagedGitHubRefDependency(github="http://github.com", repo_owner="Test")
+            UnmanagedGitHubRefDependency(github="http://github.com")
 
         u = UnmanagedGitHubRefDependency(
             github="https://github.com/Test/TestRepo", ref="aaaaaaaa"

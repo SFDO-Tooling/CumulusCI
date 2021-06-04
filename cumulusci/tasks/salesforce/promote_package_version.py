@@ -102,7 +102,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
             "No version_id specified. Automatically resolving to latest available Beta version."
         )
         tag_name = self.project_config.get_latest_tag(beta=True)
-        repo = self.project_config._get_repo()
+        repo = self.project_config.get_repo()
         version_id = get_version_id_from_tag(repo, tag_name)
         self.logger.info(f"Resolved to version: {version_id}")
         self.logger.info("")

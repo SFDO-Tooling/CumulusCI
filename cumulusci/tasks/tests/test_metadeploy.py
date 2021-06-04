@@ -1,3 +1,4 @@
+from base64 import b64encode
 from pathlib import Path
 import io
 import json
@@ -154,6 +155,35 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             "GET",
             "https://api.github.com/repos/TestOwner/TestRepo/releases/latest",
             json=self._get_expected_release("release/1.0"),
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+            json={
+                "url": "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+                "download_url": "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+                "git_url": "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+                "html_url": "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+                "_links": {},
+                "name": "cumulusci.yml",
+                "path": "cumulusci.yml",
+                "sha": "commit_sha",
+                "size": 100,
+                "type": "yaml",
+                "encoding": "base64",
+                "content": b64encode(
+                    yaml.dump(
+                        {
+                            "project": {
+                                "package": {
+                                    "name_managed": "Test Product",
+                                    "namespace": "ns",
+                                }
+                            }
+                        }
+                    ).encode("utf-8")
+                ).decode("utf-8"),
+            },
         )
         responses.add(
             "GET",

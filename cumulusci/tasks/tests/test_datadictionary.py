@@ -22,6 +22,7 @@ from distutils.version import StrictVersion
 from cumulusci.core.exceptions import (
     DependencyParseError,
     DependencyResolutionError,
+    TaskOptionsError,
 )
 from cumulusci.utils import temporary_dir
 
@@ -1037,6 +1038,17 @@ class test_GenerateDataDictionary(unittest.TestCase):
             create_task(
                 GenerateDataDictionary,
                 {"additional_dependencies": [{"namespace": "foo"}]},
+                project_config,
+            )
+
+    def test_init_options__non_github_deps(self):
+        project_config = create_project_config()
+        project_config.project__name = "Project"
+
+        with self.assertRaises(TaskOptionsError):
+            create_task(
+                GenerateDataDictionary,
+                {"additional_dependencies": [{"namespace": "foo", "version": "1.0"}]},
                 project_config,
             )
 
