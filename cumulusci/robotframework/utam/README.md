@@ -3,9 +3,10 @@ Hello!
 This contains some prototype code for integrating UTAM page objects
 with robot. The cornerstone of the code is the UTAM class, which
 can read in UTAM page object definitions. The code can be used both
-in python as one would expect, and as a robot keyword.
+in python as one would expect, as a robot keyword, and as a custom
+location strategy for SeleniumLibrary keywords.
 
-## Using the UTAM class from robot
+## Using UTAM objects as keywords
 
 The following robot code will import the lwc-home page
 object (lwc-home.utam.json) and create a keyword named "lwc-home":
@@ -34,6 +35,15 @@ can be used like so:
 
 ```robotframework
 Should be equal  ${header.getText()}  Lightning Web Components
+```
+
+## Using UTAM objects as a SeleniumLibrary location strategy
+
+The following shows that we can use the UTAM page object as a location
+strategy, so that we can use the locators with UTAM-unaware keywords
+
+```robotframework
+Element text should be  lwc-home:header  Lightning Web Components
 ```
 
 ## Using the UTAM class from python

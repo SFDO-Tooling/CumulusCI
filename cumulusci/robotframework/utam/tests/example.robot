@@ -18,3 +18,7 @@ Example
     # Assert the header text is what we expect
     # this part isn't very human-readable :-\
     Should be equal  ${header.getText()}  Lightning Web Components
+
+    # Let's use the page object as a location strategy
+    # with a standard keyword:
+    Element text should be  lwc-home:header  Lightning Web Components
