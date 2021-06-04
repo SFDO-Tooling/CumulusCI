@@ -18,4 +18,3 @@ typeguard==2.10.0
 vcrpy
 wheel
 factory-boy
-contextvars
