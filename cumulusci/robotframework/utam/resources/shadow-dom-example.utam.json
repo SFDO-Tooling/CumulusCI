@@ -1,0 +1,33 @@
+{
+    "root": true,
+    "selector": {
+        "css": "body"
+    },
+    "elements": [
+        {
+            "name": "header",
+            "selector": {
+                "css": "h1"
+            },
+            "public": true
+        },
+        {
+            "name": "my_paragraph",
+            "selector": {
+                "css": "my-paragraph"
+            },
+            "shadow": {
+                "elements": [
+                    {
+                        "name": "my-paragraph",
+                        "selector": {
+                            "css": "slot[name='my-text']"
+
+                        },
+                        "public": true
+                    }
+                ]
+            }
+        }
+    ]
+}
