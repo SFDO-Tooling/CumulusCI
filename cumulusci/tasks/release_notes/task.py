@@ -35,8 +35,8 @@ class AllGithubReleaseNotes(BaseGithubTask):
                     .latest_release()
                     .body
                 )
-                table_of_contents += f"<a href=#{project['repo']}><li name={project['repo']}>{project['repo']}</li></a>"
-                release_project_header = f"<h1 id={project['repo']} name={project['repo']}>{project['repo']}</h1>"
+                table_of_contents += f'''<a href=#{project['repo']}><li name="{project['repo']}">{project['repo']}</li></a>'''
+                release_project_header = f'''<h1 id="{project['repo']}" name="{project['repo']}">{project['repo']}</h1>'''
                 release_html = self.github.markdown(
                     release,
                     mode="gfm",
@@ -44,7 +44,9 @@ class AllGithubReleaseNotes(BaseGithubTask):
                 )
                 body += f"{release_project_header}<hr>{release_html}<hr>"
         table_of_contents += "</ul><br><hr>"
-        result = f"<html>{table_of_contents}<body>{body}</body></html>"
+        head = "<head><title>Release Notes</title></head>"
+        body = f"<body>{table_of_contents}{body}</body>"
+        result = f"<html>{head}{body}</html>"
         with open("github_release_notes.html", "w") as f:
             f.write(result)
 
