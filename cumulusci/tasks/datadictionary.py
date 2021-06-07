@@ -1,5 +1,18 @@
 import csv
-import io
+from cumulusci.core.dependencies.github import (
+    get_package_data,
+    get_remote_project_config,
+    get_repo,
+)
+from typing import List
+from cumulusci.core.dependencies.resolvers import (
+    get_static_dependencies,
+)
+from cumulusci.core.dependencies.dependencies import (
+    Dependency,
+    GitHubDynamicDependency,
+    parse_dependencies,
+)
 from pathlib import PurePosixPath
 from collections import defaultdict, namedtuple
 
@@ -9,8 +22,7 @@ from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.utils import download_extract_github_from_repo
 from cumulusci.utils.xml import metadata_tree
-from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
-from cumulusci.core.exceptions import DependencyResolutionError, TaskOptionsError
+from cumulusci.core.exceptions import TaskOptionsError
 
 Package = namedtuple("Package", ["repo", "package_name", "namespace", "prefix_release"])
 PackageVersion = namedtuple("PackageVersion", ["package", "version"])
@@ -101,72 +113,56 @@ class GenerateDataDictionary(BaseGithubTask):
             True if include_dependencies is None else include_dependencies
         )
 
-        if "additional_dependencies" in self.options and not all(
-            ["github" in dep for dep in self.options["additional_dependencies"]]
-        ):
-            raise TaskOptionsError("Only GitHub dependencies are currently supported.")
+        if "additional_dependencies" in self.options:
+            additional_deps = parse_dependencies(
+                self.options["additional_dependencies"]
+            )
+            if not all(isinstance(d, GitHubDynamicDependency) for d in additional_deps):
+                raise TaskOptionsError(
+                    "Only GitHub dependencies are currently supported."
+                )
 
     def _get_repo_dependencies(
-        self, dependencies=None, include_beta=None, visited_repos=None
-    ):
+        self, dependencies: List[GitHubDynamicDependency]
+    ) -> List[Package]:
         """Return a list of Package objects representing all of the GitHub repositories
         in this project's dependency tree. Ignore all non-GitHub dependencies."""
-        deps = []
-        visited = visited_repos or set()
+        github_deps = set()
+        packages = []
 
-        for dependency in dependencies:
-            if "github" in dependency:
-                repo = self.project_config.get_repo_from_url(dependency["github"])
-                if repo is None:
-                    raise DependencyResolutionError(
-                        f"Github repository {dependency['github']} not found or not authorized."
-                    )
-                _, ref = self.project_config.get_ref_for_dependency(
-                    repo, dependency, include_beta
+        def log_github(some_dep: Dependency):
+            if isinstance(some_dep, GitHubDynamicDependency):
+                github_deps.add(some_dep)
+
+            return True
+
+        _ = get_static_dependencies(
+            self.project_config,
+            dependencies,
+            resolution_strategy="production",
+            filter_function=log_github,
+        )
+
+        for dependency in github_deps:
+            repo = get_repo(dependency.github, self.project_config)
+            config = get_remote_project_config(repo, dependency.ref)
+            package_name, namespace = get_package_data(config)
+            packages.append(
+                Package(
+                    repo,
+                    package_name,
+                    f"{namespace}__" if namespace else "",
+                    config.project__git__prefix_release or "release/",
                 )
+            )
 
-                contents = repo.file_contents("cumulusci.yml", ref=ref)
-                cumulusci_yml = cci_safe_load(
-                    io.StringIO(contents.decoded.decode("utf-8"))
-                )
-                project = cumulusci_yml.get("project", {})
-                namespace = project.get("package", {}).get("namespace", "")
-                if namespace:
-                    namespace = f"{namespace}__"
-                else:
-                    namespace = ""
-
-                if f"{repo.owner}/{repo.name}" in visited:
-                    continue
-
-                deps.append(
-                    Package(
-                        repo,
-                        project.get("package", {}).get(
-                            "name", f"{repo.owner}/{repo.name}"
-                        ),
-                        namespace,
-                        project.get("git", {}).get("prefix_release", "release/"),
-                    )
-                )
-                visited.add(f"{repo.owner}/{repo.name}")
-
-                deps.extend(
-                    self._get_repo_dependencies(
-                        cumulusci_yml.get("project", {}).get("dependencies", []),
-                        visited_repos=visited,
-                    )
-                )
-
-        return deps
+        return packages
 
     def _run_task(self):
         self.logger.info("Starting data dictionary generation")
 
         self._init_schema()
 
-        # Find all of our dependencies, if we're processing dependencies.
-        dependencies = self.project_config.project__dependencies or []
         namespace = self.project_config.project__package__namespace
         if namespace:
             namespace = f"{namespace}__"
@@ -178,12 +174,25 @@ class GenerateDataDictionary(BaseGithubTask):
                 self.project_config.project__git__prefix_release,
             )
         ]
-        if "additional_dependencies" in self.options:
-            repos += self._get_repo_dependencies(
-                self.options["additional_dependencies"], include_beta=False
+
+        # Find all of our dependencies, if we're processing dependencies.
+        dependencies = []
+        if (
+            self.options["include_dependencies"]
+            and self.project_config.project__dependencies
+        ):
+            parsed_deps = parse_dependencies(self.project_config.project__dependencies)
+            dependencies.extend(
+                d for d in parsed_deps if isinstance(d, GitHubDynamicDependency)
             )
-        if self.options["include_dependencies"]:
-            repos += self._get_repo_dependencies(dependencies, include_beta=False)
+        if "additional_dependencies" in self.options:
+            # init_options() required these to all be GitHubDynamicDependencies
+            dependencies.extend(
+                parse_dependencies(self.options["additional_dependencies"])
+            )
+
+        if dependencies:
+            repos.extend(self._get_repo_dependencies(dependencies))
 
         for package in repos:
             self._walk_releases(package)
