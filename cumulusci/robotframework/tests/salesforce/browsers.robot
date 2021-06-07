@@ -120,3 +120,23 @@ Initializing selenium speed via global variable
 
     Open test browser
     Assert keyword status  PASS  SeleniumLibrary.Set Selenium Speed  \${SELENIUM_SPEED}
+
+Select Window calls Switch Window
+    [Documentation]  Verify that 'Select Window' calls 'Switch Window'
+    ...              and also that it logs a deprecation warning
+    [Setup]          Run keywords
+    ...  Open test browser
+    ...  AND  execute javascript  window.open("about:blank", "window1")
+    [Teardown]       Close all browsers
+
+    ${main location}=  get location
+
+    Reset test listener message log
+    Select Window       window1
+    Assert robot log    'Select Window' is deprecated; use 'Switch Window' instead  WARN
+    location should be  about:blank
+
+    Reset test listener message log
+    Select Window       # defaults to the original window
+    Assert robot log    'Select Window' is deprecated; use 'Switch Window' instead  WARN
+    location should be  ${main location}
