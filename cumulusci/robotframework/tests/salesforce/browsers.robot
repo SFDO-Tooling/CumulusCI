@@ -41,7 +41,7 @@ Open Test Browser Twice
 
     Assert active browser count  0
     Open test browser
-    Open test browser
+    Open test browser  alias=browser2
     Assert active browser count  2
 
 Browser aliases
