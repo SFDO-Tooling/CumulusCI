@@ -21,7 +21,7 @@ class AllGithubReleaseNotes(BaseGithubTask):
                 "The list of owner, repo key pairs for which to generate release notes."
                 + " Ex: 'owner': SalesforceFoundation 'repo': 'NPSP'"
             ),
-            "required": False,
+            "required": True,
         },
     }
 
@@ -35,18 +35,16 @@ class AllGithubReleaseNotes(BaseGithubTask):
                     .latest_release()
                     .body
                 )
-                table_of_contents += f"<a href=#{project['repo']}><li><slot name={project['repo']} />{project['repo']}</li></a>"
-                release_project_header = f"<h1 slot id={project['repo']} name={project['repo']}>{project['repo']}</h1><br>"
+                table_of_contents += f"<a href=#{project['repo']}><li name={project['repo']}>{project['repo']}</li></a>"
+                release_project_header = f"<h1 id={project['repo']} name={project['repo']}>{project['repo']}</h1>"
                 release_html = self.github.markdown(
                     release,
                     mode="gfm",
                     context="{}/{}".format(project["owner"], project["repo"]),
                 )
-                body += f"{release_project_header}{release_html}"
-        table_of_contents += "</ul>"
-
-        result = table_of_contents + body
-        result = result.replace("\n", "<br>")  # fixing newline issue
+                body += f"{release_project_header}<hr>{release_html}<hr>"
+        table_of_contents += "</ul><br><hr>"
+        result = f"<html>{table_of_contents}<body>{body}</body></html>"
         with open("github_release_notes.html", "w") as f:
             f.write(result)
 
