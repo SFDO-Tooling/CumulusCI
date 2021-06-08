@@ -117,7 +117,11 @@ tasks:
     description: Execute a series of REST API requests in a single call
     class_path: cumulusci.tasks.salesforce.composite.CompositeApi
     group: Data Operations
-  connected_app:
+  create_community:
+    description: Creates a Community in the target org using the Connect API
+    class_path: cumulusci.tasks.salesforce.CreateCommunity
+    group: Salesforce Communities
+  create_connected_app:
     description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
     class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
     group: Setup
@@ -125,10 +129,6 @@ tasks:
       label: CumulusCI
       connect: True
       overwrite: False
-  create_community:
-    description: Creates a Community in the target org using the Connect API
-    class_path: cumulusci.tasks.salesforce.CreateCommunity
-    group: Salesforce Communities
   create_network_member_groups:
     description: Creates NetworkMemberGroup records which grant access to an Experience Site (Community) for specified Profiles or Permission Sets
     class_path: cumulusci.tasks.salesforce.network_member_group.CreateNetworkMemberGroups
