@@ -13,7 +13,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.sfdx import sfdx
 
-DEFAULT_CONNECTED_APP_NAME = "cci_default"
+DEFAULT_CONNECTED_APP_NAME = "built-in"
 DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig(
     {
         "client_id": "3MVG9i1HRpGLXp.or6OVlWVWyn8DXi9xueKNM4npq_AWh.yqswojK9sE5WY7f.biP0w7bNJIENfXc7JMDZGO1",
