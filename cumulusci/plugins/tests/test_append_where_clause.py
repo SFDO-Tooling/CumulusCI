@@ -1,6 +1,6 @@
 import unittest
 
-from cumulusci.plugins.apply_where_clause import append_where_clause
+from cumulusci.plugins.append_where_clause import append_where_clause
 from cumulusci.tasks.bulkdata.mapping_parser import MappingStep
 
 
