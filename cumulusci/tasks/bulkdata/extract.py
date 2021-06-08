@@ -29,6 +29,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     validate_and_inject_mapping,
 )
 from cumulusci.tasks.bulkdata.utils import consume
+from cumulusci.plugins.append_where_clause import append_where_clause
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -142,6 +143,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _run_query(self, soql, mapping):
         """Execute a Bulk or REST API query job and store the results."""
+
+        soql = append_where_clause(soql=soql, object_config=mapping)
+
         step = get_query_operation(
             sobject=mapping.sf_object,
             api=mapping.api,
