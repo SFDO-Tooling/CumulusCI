@@ -6,9 +6,9 @@
 #
 appdirs==1.4.4
     # via fs
-authlib==0.15.3
+authlib==0.15.4
     # via simple-salesforce
-certifi==2020.12.5
+certifi==2021.5.30
     # via requests
 cffi==1.14.5
     # via cryptography
@@ -25,9 +25,11 @@ cryptography==3.4.7
     #   -r requirements/prod.in
     #   authlib
     #   jwcrypto
+deprecated==1.2.12
+    # via jwcrypto
 docutils==0.16
     # via -r requirements/prod.in
-faker==8.2.1
+faker==8.6.0
     # via
     #   -r requirements/prod.in
     #   snowfakery
@@ -43,13 +45,13 @@ humanfriendly==9.1
     # via coloredlogs
 idna==2.10
     # via requests
-importlib-metadata==4.0.1
+importlib-metadata==4.5.0
     # via keyring
 jinja2==2.11.3
     # via
     #   -r requirements/prod.in
     #   snowfakery
-jwcrypto==0.8
+jwcrypto==0.9
     # via github3.py
 keyring==23.0.1
     # via -r requirements/prod.in
@@ -90,7 +92,7 @@ requests==2.25.1
     #   simple-salesforce
 robotframework-lint==1.1
     # via -r requirements/prod.in
-robotframework-pabot==1.13
+robotframework-pabot==2.0.0
     # via -r requirements/prod.in
 robotframework-pythonlibcore==2.2.1
     # via robotframework-seleniumlibrary
@@ -98,6 +100,8 @@ robotframework-requests==0.9.1
     # via -r requirements/prod.in
 robotframework-seleniumlibrary==5.1.3
     # via -r requirements/prod.in
+robotframework-stacktrace==0.4.0
+    # via robotframework-pabot
 robotframework==4.0.3
     # via
     #   -r requirements/prod.in
@@ -105,6 +109,7 @@ robotframework==4.0.3
     #   robotframework-pabot
     #   robotframework-requests
     #   robotframework-seleniumlibrary
+    #   robotframework-stacktrace
 rst2ansi==0.1.5
     # via -r requirements/prod.in
 salesforce-bulk==2.2.0
@@ -122,11 +127,12 @@ simple-salesforce==1.11.1
 six==1.16.0
     # via
     #   fs
+    #   jwcrypto
     #   python-dateutil
     #   salesforce-bulk
 snowfakery==1.12
     # via -r requirements/prod.in
-sqlalchemy==1.4.15
+sqlalchemy==1.4.17
     # via
     #   -r requirements/prod.in
     #   snowfakery
@@ -142,10 +148,12 @@ unicodecsv==0.14.1
     # via salesforce-bulk
 uritemplate==3.0.1
     # via github3.py
-urllib3==1.26.4
+urllib3==1.26.5
     # via
     #   requests
     #   selenium
+wrapt==1.12.1
+    # via deprecated
 xmltodict==0.12.0
     # via -r requirements/prod.in
 zipp==3.4.1
