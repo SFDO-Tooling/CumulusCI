@@ -229,8 +229,13 @@ def service_info(runtime, service_type, service_name, plain):
             ]
         )
         wrap_cols = ["Value"] if not plain else None
+        service_name = (
+            runtime.keychain._default_services[service_type]
+            if not service_name
+            else service_name
+        )
         service_table = CliTable(
-            service_data, title=f"{service_type}/{service_name}", wrap_cols=wrap_cols
+            service_data, title=f"{service_type}:{service_name}", wrap_cols=wrap_cols
         )
         service_table._table.inner_heading_row_border = False
         service_table.echo(plain)
