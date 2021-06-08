@@ -236,7 +236,12 @@ class BaseProjectKeychain(BaseConfig):
         return service
 
     def _get_service(self, service_type, alias):
-        return self.services[service_type][alias]
+        try:
+            return self.services[service_type][alias]
+        except KeyError:
+            raise ServiceNotConfigured(
+                f"No service of type {service_type} configured with name: {alias}"
+            )
 
     def _validate_service(self, service_type, alias, config):
         if (
