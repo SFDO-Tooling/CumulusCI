@@ -104,7 +104,10 @@ def gist(runtime):
             "CumulusCI Error Output",
             files,
         )
-    except github3.exceptions.NotFoundError:
+    except github3.exceptions.NotFoundError as exc:
+        scopes = exc.response.headers["X-OAuth-Scopes"]
+        if "gist" not in scopes:
+            GIST_404_ERR_MSG += f"\nMissing 'gist' scope! Available scopes: {scopes}."
         raise CumulusCIException(GIST_404_ERR_MSG)
     except Exception as e:
         raise CumulusCIException(
