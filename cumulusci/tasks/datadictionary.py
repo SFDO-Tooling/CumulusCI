@@ -1,4 +1,5 @@
 import csv
+from unittest.mock import Mock
 from zipfile import ZipFile
 
 from github3.repos.repo import Repository
@@ -7,7 +8,7 @@ from cumulusci.core.dependencies.github import (
     get_remote_project_config,
     get_repo,
 )
-from typing import List, Optional
+from typing import List, Optional, Union
 from cumulusci.core.dependencies.resolvers import (
     get_static_dependencies,
 )
@@ -30,15 +31,24 @@ from cumulusci.core.exceptions import TaskOptionsError
 
 
 class Package(BaseModel):
-    repo: Repository
+    repo: Optional[Union[Repository, Mock]]
     package_name: str
     namespace: str
     prefix_release: str
+
+    def __hash__(self) -> int:
+        return self.repo.__hash__()
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class PackageVersion(BaseModel):
     package: Package
     version: StrictVersion
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class SObjectDetail(BaseModel):
@@ -319,7 +329,10 @@ class GenerateDataDictionary(BaseGithubTask):
                 )
 
     def _should_process_object(
-        self, namespace: str, sobject_name: str, element: metadata_tree.MetadataElement
+        self,
+        namespace: str,
+        sobject_name: str,
+        element: Optional[metadata_tree.MetadataElement],
     ):
         """Determine if we should track this object in the object dictionary.
         Fields may be included regardless.
@@ -577,7 +590,7 @@ class GenerateDataDictionary(BaseGithubTask):
                         f"{first_version.version.package.package_name} {self._get_version_name(first_version.version)}",
                         ""
                         if deleted_version is None
-                        else f"{first_version.version.package.package_name} {self._get_version_name(deleted_version.version)}",
+                        else f"{first_version.version.package.package_name} {deleted_version}",
                     ]
                 )
 
@@ -660,7 +673,7 @@ class GenerateDataDictionary(BaseGithubTask):
                     last_version.help_text,
                     last_version.description,
                     f"{first_version.version.package.package_name} {self._get_version_name(first_version.version)}",
-                    f"{first_version.version.package.package_name} {self._get_version_name(first_version.version)}"
+                    f"{first_version.version.package.package_name} {self._get_version_name(valid_values_version.version)}"
                     if valid_values_version
                     else "",
                     f"{first_version.version.package.package_name} {self._get_version_name(help_text_version.version)}"
@@ -668,7 +681,7 @@ class GenerateDataDictionary(BaseGithubTask):
                     else "",
                     ""
                     if deleted_version is None
-                    else f"{first_version.version.package.package_name} {self._get_version_name(deleted_version.version)}",
+                    else f"{first_version.version.package.package_name} {deleted_version}",
                 ]
             )
 
