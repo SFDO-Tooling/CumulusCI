@@ -976,23 +976,22 @@ class test_GenerateDataDictionary(unittest.TestCase):
         repo = Mock()
         release_draft = Mock()
         release_draft.draft = False
-        release_draft.prerelease = True
-        release_draft.tag_name = "rel/1.1_Beta_1"
+        release_draft.prerelease = False
+        release_draft.tag_name = "uat/1.1_Beta_1"
         release_real = Mock()
         release_real.draft = False
         release_real.prerelease = False
         release_real.tag_name = "rel/1.1"
 
         repo.releases.return_value = [release_draft, release_real]
-        task._process_mdapi_release = Mock()
-        extract_github.return_value.namelist.return_value = ["src/objects/"]
+        task._process_zipfile = Mock()
         p = Package(
             repo=repo, package_name="Test", namespace="test__", prefix_release="rel/"
         )
 
         task._walk_releases(p)
 
-        task._process_mdapi_release.assert_called_once()
+        task._process_zipfile.assert_called_once()
 
     @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
     def test_walk_releases__prerelease(self, extract_github):
