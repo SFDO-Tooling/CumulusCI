@@ -15,6 +15,7 @@ from cumulusci.tasks.datadictionary import (
     PackageVersion,
     FieldDetail,
     SObjectDetail,
+    PRERELEASE_SIGIL,
 )
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tests.util import create_project_config
@@ -992,6 +993,49 @@ class test_GenerateDataDictionary(unittest.TestCase):
         task._walk_releases(p)
 
         task._process_mdapi_release.assert_called_once()
+
+    @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
+    def test_walk_releases__prerelease(self, extract_github):
+        project_config = create_project_config()
+        project_config.project__git__prefix_release = "rel/"
+        project_config.project__name = "Project"
+        project_config.repo_info["branch"] = "feature/foo"
+        task = create_task(
+            GenerateDataDictionary,
+            {"include_prerelease": True},
+            project_config=project_config,
+        )
+        task._init_schema()
+
+        repo = Mock()
+        release = Mock()
+        release.draft = False
+        release.prerelease = False
+        release.tag_name = "rel/1.1"
+        repo.releases.return_value = [release]
+        task._process_mdapi_release = Mock()
+        extract_github.return_value.namelist.return_value = ["src/objects/"]
+        p = Package(
+            repo=repo, package_name="Test", namespace="test__", prefix_release="rel/"
+        )
+
+        task._walk_releases(p)
+
+        extract_github.assert_has_calls(
+            [call(repo, ref="rel/1.1"), call(repo, ref="feature/foo")], any_order=True
+        )
+        task._process_mdapi_release.assert_has_calls(
+            [
+                call(
+                    extract_github.return_value,
+                    PackageVersion(package=p, version=StrictVersion("1.1")),
+                ),
+                call(
+                    extract_github.return_value,
+                    PackageVersion(package=p, version=PRERELEASE_SIGIL),
+                ),
+            ]
+        )
 
     def test_init_schema(self):
         task = create_task(GenerateDataDictionary, {})
