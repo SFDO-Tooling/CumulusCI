@@ -1,3 +1,10 @@
+POSSIBLE EXAMPLE: OPEN APP LAUNCHER
+
+
+Should we worry about functions vs keywords? So why keywords: HUMAN READABILITY
+
+
+
 Robot & CumulusCI
 -----------------
 
