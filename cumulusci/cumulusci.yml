@@ -1042,6 +1042,7 @@ flows:
           ancestor_id: latest_github_release
           version_base: latest_github_release
           version_type: minor
+          force_upload: True
       2:
         task: github_release
         options:
@@ -1049,6 +1050,7 @@ flows:
           version_id: ^^create_package_version.subscriber_package_version_id
           dependencies: ^^create_package_version.dependencies
           package_type: 2GP
+          tag_prefix: $project_config.project__git__prefix_beta
       3:
         task: github_release_notes
         ignore_failure: True # Attempt to generate release notes but don't fail build
@@ -1161,7 +1163,7 @@ flows:
 
 services:
   connected_app:
-    description: A Connected App is required to connect to and run commands against persistent orgs. See http://cumulusci.readthedocs.io/en/latest/tutorial.html#creating-a-connected-app for more info.
+    description: A Connected App is required to connect to and run commands against persistent orgs. See https://cumulusci.readthedocs.io/en/latest/connected_orgs.html#use-a-custom-connected-app for more info.
     attributes:
       callback_url:
         description: Callback URL configured on the Connected App

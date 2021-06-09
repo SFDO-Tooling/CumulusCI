@@ -490,7 +490,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             except GithubException:
                 # No release found
                 return ""
-            repo = self.project_config._get_repo()
+            repo = self.project_config.get_repo()
             spv_id = get_version_id_from_tag(repo, tag_name)
             self.logger.info(f"Resolved ancestor to version: {spv_id}")
             self.logger.info("")

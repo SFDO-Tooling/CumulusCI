@@ -280,7 +280,7 @@ class Salesforce(object):
         locator = lex_locators["record"]["related"]["card"].format(heading)
         for i in range(tries):
             try:
-                self.selenium.scroll_element_into_view(locator)
+                self.scroll_element_into_view(locator)
                 return
             except (ElementNotFound, JavascriptException, WebDriverException):
                 self.builtin.log(
@@ -658,9 +658,8 @@ class Salesforce(object):
         In addition to merely setting the focus, we click the mouse
         to the field in case there are functions tied to that event.
         """
-        actions = ActionChains(self.selenium.driver)
-        actions.move_to_element(element).click().perform()
         self.selenium.set_focus_to_element(element)
+        element.click()
 
     def _clear(self, element):
         """Clear the field, using any means necessary
@@ -1523,6 +1522,19 @@ class Salesforce(object):
             elements = browser.find_elements_by_xpath(xpath)
 
         return elements
+
+    def select_window(self, locator="MAIN", timeout=None):
+        """Alias for SeleniuimLibrary 'Switch Window'
+
+        This keyword was removed from SeleniumLibrary 5.x, but some of our
+        tests still use this keyword. You can continue to use this,
+        but should replace any calls to this keyword with calls to
+        'Switch Window' instead.
+        """
+        self.builtin.log(
+            "'Select Window' is deprecated; use 'Switch Window' instead", "WARN"
+        )
+        self.selenium.switch_window(locator=locator, timeout=timeout)
 
 
 def _duration(start_date: str, end_date: str, record: dict):

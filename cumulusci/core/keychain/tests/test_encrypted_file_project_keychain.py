@@ -1,10 +1,12 @@
 import json
 import pytest
 import tempfile
+import datetime
 
 from pathlib import Path
 from unittest import mock
 
+from cumulusci.core import utils
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
@@ -72,14 +74,10 @@ class TestEncryptedFileProjectKeychain:
         assert "foo" in keychain.get_org("test").config
         assert keychain.get_org("test").keychain == keychain
 
-    @mock.patch("cumulusci.core.utils.cleanup_org_cache_dirs")
-    def test_remove_org(
-        self, cleanup_org_cache_dirs, keychain, org_config, project_config
-    ):
+    def test_remove_org(self, keychain, org_config):
         keychain.set_org(org_config)
         keychain.remove_org("test")
         assert "test" not in keychain.orgs
-        assert cleanup_org_cache_dirs.called_once_with(keychain, project_config)
 
     def test_remove_org__not_found(self, keychain):
         keychain.orgs["test"] = mock.Mock()
@@ -678,3 +676,74 @@ class TestEncryptedFileProjectKeychain:
             keychain._set_encrypted_service("new_service_type", "alias", encrypted)
 
         assert (services_dir / "new_service_type").is_dir()
+
+
+def _touch_test_org_file(directory):
+    org_dir = directory / "orginfo/something.something.saleforce.com"
+    org_dir.mkdir(parents=True)
+    (org_dir / "testfile.json").touch()
+    return org_dir
+
+
+class TestCleanupOrgCacheDir:
+    def test_cleanup_cache_dir(self, keychain):
+        keychain.set_org(
+            OrgConfig({"instance_url": "http://foo.my.salesforce.com/"}, "dev"), False
+        )
+        keychain.set_org(
+            OrgConfig({"instance_url": "http://bar.my.salesforce.com/"}, "qa"), False
+        )
+
+        temp_for_global = tempfile.mkdtemp()
+        with mock.patch.object(
+            EncryptedFileProjectKeychain, "global_config_dir", Path(temp_for_global)
+        ):
+            global_org_dir = _touch_test_org_file(keychain.global_config_dir)
+            temp_for_project = tempfile.mkdtemp()
+            keychain.project_config = mock.Mock()
+
+            cache_dir = keychain.project_config.cache_dir = Path(temp_for_project)
+            project_org_dir = _touch_test_org_file(cache_dir)
+            with mock.patch(
+                "cumulusci.core.keychain.encrypted_file_project_keychain.rmtree"
+            ) as rmtree:
+                keychain.cleanup_org_cache_dirs()
+                rmtree.assert_has_calls(
+                    [mock.call(global_org_dir), mock.call(project_org_dir)],
+                    any_order=True,
+                )
+
+    def test_cleanup_cache_dir_nothing_to_cleanup(self, keychain):
+        keychain.set_org(
+            OrgConfig({"instance_url": "http://foo.my.salesforce.com/"}, "dev"), False
+        )
+
+        keychain.project_config = mock.Mock()
+        temp_for_global = tempfile.mkdtemp()
+        with mock.patch.object(
+            EncryptedFileProjectKeychain, "global_config_dir", Path(temp_for_global)
+        ):
+            temp_for_project = tempfile.mkdtemp()
+            cache_dir = keychain.project_config.cache_dir = Path(temp_for_project)
+            org_dir = cache_dir / "orginfo/foo.my.salesforce.com"
+            org_dir.mkdir(parents=True)
+            (org_dir / "schema.json").touch()
+            with mock.patch(
+                "cumulusci.core.keychain.encrypted_file_project_keychain.rmtree"
+            ) as rmtree:
+                keychain.cleanup_org_cache_dirs()
+                assert not rmtree.mock_calls, rmtree.mock_calls
+
+    duration = (
+        (59, "59s"),
+        (70, "1m:10s"),
+        (119, "1m:59s"),
+        (65, "1m:5s"),
+        (4000, "1h:6m:40s"),
+        (7199, "1h:59m:59s"),
+    )
+
+    @pytest.mark.parametrize("val,expected", duration)
+    def test_time_delta(self, val, expected):
+        formatted = utils.format_duration(datetime.timedelta(seconds=val))
+        assert formatted == expected, (formatted, expected)
