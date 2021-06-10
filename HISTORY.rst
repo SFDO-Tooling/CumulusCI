@@ -9,9 +9,8 @@ Changes
 
 - The ``install_managed`` task now supports 2GP releases (#2655).
 - We changed the behavior of the ``release_2gp_beta`` flow to always
-  upload a package version, even if metadata has not changed. We also
-  fixed an issue causing the creation of incorrect 2GP beta tags (#2651).
-- We now support sourcing install keys for managed packages from 
+  upload a package version, even if metadata has not changed (#2651).
+- We now support sourcing install keys for packages from 
   environment variables via the ``password_env_name`` dependency key (#2622).
 
 Robot Framework
@@ -22,14 +21,15 @@ Robot Framework
   SeleniumLibrary 5.x to 'switch window'.
   We will be removing this keyword in a future release;
   tests should use 'switch window' instead.
-- We corrected some JavaScript issues that were occurring with Chrome 91. (#2652)
 
 Issues Closed
 
+- We corrected some JavaScript issues that were occurring with Chrome 91. (#2652)
 - We fixed a bug impacting the ``generate_data_dictionary`` task when used
   with dependencies (#2653).
 - We fixed an issue causing ``sfdx`` commands that had options with spaces
   to fail to execute on Windows (#2656).
+- We fixed an issue causing the creation of incorrect 2GP beta tags (#2651).
 
 3.36.0 (2021-05-27)
 -------------------
