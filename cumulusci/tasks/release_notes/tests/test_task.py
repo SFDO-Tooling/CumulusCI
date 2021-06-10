@@ -1,15 +1,27 @@
 from unittest import mock
 import pytest
+import os.path
 
 from github3.pulls import ShortPullRequest
 
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.tests.util import create_project_config
-from cumulusci.tasks.release_notes.task import GithubReleaseNotes
+from cumulusci.tasks.release_notes.task import GithubReleaseNotes, AllGithubReleaseNotes
 from cumulusci.tasks.release_notes.task import ParentPullRequestNotes
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 
+from cumulusci.tasks.salesforce.tests.util import create_task
+
+class TestAllGithubReleaseNotes:
+    def test_run_AllGithubReleaseNotes_task(
+        self,
+    ):
+        task = create_task(AllGithubReleaseNotes, options={"repos": [{"owner": "SalesforceFoundation", "repo": "NPSP"}]})
+        task.github = mock.Mock()
+        task.get_repo = mock.Mock()
+        task._run_task()
+        assert os.path.isfile("./github_release_notes.html")
 
 class TestGithubReleaseNotes:
     @pytest.fixture
