@@ -98,11 +98,10 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
     ):
         self.options = options or {}
         self.logger = logger or DEFAULT_LOGGER
-        if zf is not None:
-            self.zf = zf
-        elif path is not None:
-            self._open_zip()
-            with self._convert_sfdx_format(path, name) as path:
+
+        if zf is not None or path is not None:
+            with self._convert_sfdx_format(path, zf, name) as path:
+                self._open_zip()
                 self._add_files_to_package(path)
         else:
             self._open_zip()
@@ -114,24 +113,35 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         return cls(zf=zf, options=options, logger=logger)
 
     @contextlib.contextmanager
-    def _convert_sfdx_format(self, path, name):
-        orig_path = path
+    def _convert_sfdx_format(self, path, zf, name):
         with contextlib.ExitStack() as stack:
-            # convert sfdx -> mdapi format if path exists but does not have package.xml
-            if len(os.listdir(path)) and not pathlib.Path(path, "package.xml").exists():
-                self.logger.info("Converting from sfdx to mdapi format")
-                path = stack.enter_context(temporary_dir(chdir=False))
-                args = ["-r", str(orig_path), "-d", path]
-                if name:
-                    args += ["-n", name]
-                sfdx(
-                    "force:source:convert",
-                    args=args,
-                    capture_output=True,
-                    check_return=True,
-                )
+            if zf is not None:
+                source_path = stack.enter_context(temporary_dir(chdir=False))
+                zf.extractall(source_path)
+            else:
+                source_path = path
 
-            yield path
+            return_path = ""
+            if pathlib.Path(source_path, "package.xml").exists():
+                return_path = source_path
+            elif len(os.listdir(source_path)):
+                output_dir = stack.enter_context(temporary_dir(chdir=False))
+                self._call_sfdx(source_path, output_dir, name)
+                return_path = output_dir
+
+            yield return_path
+
+    def _call_sfdx(self, source_path, output_dir, name):
+        self.logger.info("Converting from sfdx to mdapi format")
+        args = ["-r", str(source_path), "-d", output_dir]
+        if name:
+            args += ["-n", name]
+        sfdx(
+            "force:source:convert",
+            args=args,
+            capture_output=True,
+            check_return=True,
+        )
 
     def _add_files_to_package(self, path):
         for file_path in self._find_files_to_package(path):

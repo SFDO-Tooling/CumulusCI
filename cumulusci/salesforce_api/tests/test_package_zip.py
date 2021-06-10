@@ -320,7 +320,7 @@ class TestMetadataPackageZipBuilder:
             touch("README.md")  # make sure there's something in the directory
             with mock.patch("cumulusci.salesforce_api.package_zip.sfdx") as sfdx:
                 builder = MetadataPackageZipBuilder()
-                with builder._convert_sfdx_format(path, "Test Package"):
+                with builder._convert_sfdx_format(path, None, "Test Package"):
                     pass
         sfdx.assert_called_once()
 
@@ -328,8 +328,31 @@ class TestMetadataPackageZipBuilder:
         with temporary_dir() as path:
             with mock.patch("cumulusci.salesforce_api.package_zip.sfdx") as sfdx:
                 builder = MetadataPackageZipBuilder()
-                with builder._convert_sfdx_format(path, "Test Package"):
+                with builder._convert_sfdx_format(path, None, "Test Package"):
                     pass
+        sfdx.assert_not_called()
+
+    def test_convert_sfdx__mdapi_zip(self):
+        with temporary_dir() as path:
+            test_zf = zipfile.ZipFile(io.BytesIO(), "w")
+            test_zf.writestr("package.xml", "<Package/>")
+            with mock.patch("cumulusci.salesforce_api.package_zip.sfdx") as sfdx:
+                builder = MetadataPackageZipBuilder()
+                with builder._convert_sfdx_format(
+                    path, test_zf, "Test Package"
+                ) as new_path:
+                    assert path != new_path
+                    assert pathlib.Path(new_path, "package.xml").exists()
+
+        sfdx.assert_not_called()
+
+    def test_convert_sfdx__mdapi_path(self):
+        with temporary_dir() as path:
+            touch("package.xml")
+            with mock.patch("cumulusci.salesforce_api.package_zip.sfdx") as sfdx:
+                builder = MetadataPackageZipBuilder()
+                with builder._convert_sfdx_format(path, None, "Test Package"):
+                    assert pathlib.Path(path, "package.xml").exists()
         sfdx.assert_not_called()
 
     def test_removes_feature_parameters_from_unlocked_package(self):
