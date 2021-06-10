@@ -20,7 +20,7 @@ def get_github_user():
         CliRuntime().project_config, CliRuntime().get_keychain_key()
     )
     github_config = keychain.get_service("github")
-    return github_config.username, github_config.password
+    return github_config.username, (github_config.password or github_config.token)
 
 
 def get_repo():
