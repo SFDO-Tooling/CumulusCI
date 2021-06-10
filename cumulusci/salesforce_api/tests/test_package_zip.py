@@ -365,6 +365,9 @@ class TestMetadataPackageZipBuilder:
     </types>
 </Package>"""
             )
+            classes = pathlib.Path(path, "classes")
+            classes.mkdir()
+            (classes / "Foo.cls").touch()
             featureParameters = pathlib.Path(path, "featureParameters")
             featureParameters.mkdir()
             (featureParameters / "test.featureParameterInteger").touch()
@@ -375,6 +378,7 @@ class TestMetadataPackageZipBuilder:
                 "featureParameters/test.featureParameterInteger"
                 not in builder.zf.namelist()
             )
+            assert "classes/Foo.cls" in builder.zf.namelist()
             package_xml = builder.zf.read("package.xml")
             assert b"FeatureParameterInteger" not in package_xml
 
