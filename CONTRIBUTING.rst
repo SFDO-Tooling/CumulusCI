@@ -59,9 +59,11 @@ Ready to contribute? Here's how to set up CumulusCI for local development.
     $ python3 -m venv cci_venv
     $ source cci_venv/bin/activate
 
-#. Install the development requirements::
+#. Install the development requirements [*]_ ::
 
     $ make dev-install
+
+.. [*] If ``pip-sync`` isn't yet available, run ``pip install -r requirements_dev.txt``.
 
 #. Install ``pre-commit`` hooks for ``black`` and ``flake8``::
 
