@@ -64,7 +64,9 @@ class TestEncryptedFileProjectKeychain:
         assert list(keychain.orgs.keys()) == ["test"]
         assert keychain.get_org("test").config == org_config.config
 
-    def test_set_and_get_org__universal_config(self, key, org_config):
+    def test_set_and_get_org__non_global_org_without_project_config_should_not_be_saved(
+        self, key, org_config
+    ):
         keychain = EncryptedFileProjectKeychain(UniversalConfig(), key)
         keychain.set_org(org_config, False)
         assert list(keychain.orgs.keys()) == []
@@ -171,6 +173,17 @@ class TestEncryptedFileProjectKeychain:
     def test_get_default_org__outside_project(self, keychain):
         assert keychain.get_default_org() == (None, None)
 
+    def test_load_orgs_from_environment(self, keychain, org_config, env):
+        with env:
+            env.set(
+                f"{keychain.env_org_var_prefix}my_dev",
+                json.dumps(org_config.config),
+            )
+            keychain._load_orgs_from_environment()
+
+        actual_config = keychain.get_org("my_dev")
+        assert actual_config.config == org_config.config
+
     #######################################
     #              Services               #
     #######################################
@@ -194,7 +207,6 @@ class TestEncryptedFileProjectKeychain:
         assert "foo" in github_service.config
 
     def test_load_services__from_env(self, keychain, env):
-        service_prefix = EncryptedFileProjectKeychain.environment_service_var_prefix
         service_config_one = ServiceConfig(
             {"name": "foo1", "password": "1234", "token": "1234"}
         )
@@ -202,10 +214,17 @@ class TestEncryptedFileProjectKeychain:
             {"name": "foo2", "password": "5678", "token": "5678"}
         )
         with env:
-            env.set(f"{service_prefix}github", json.dumps(service_config_one.config))
             env.set(
-                f"{service_prefix}github__other", json.dumps(service_config_two.config)
+                f"{keychain.env_service_var_prefix}github",
+                json.dumps(service_config_one.config),
             )
+            env.set(
+                f"{keychain.env_service_var_prefix}github__other",
+                json.dumps(service_config_two.config),
+            )
+            with pytest.raises(ServiceNotConfigured):
+                keychain.get_service("github")
+
             keychain._load_services_from_environment()
 
         gh_service = keychain.get_service("github")
@@ -214,8 +233,8 @@ class TestEncryptedFileProjectKeychain:
         gh_service = keychain.get_service("github", "env-other")
         assert gh_service.config == service_config_two.config
 
-    def test_laod_services_from_env__same_name_throws_error(self, keychain, env):
-        service_prefix = EncryptedFileProjectKeychain.environment_service_var_prefix
+    def test_load_services_from_env__same_name_throws_error(self, keychain, env):
+        service_prefix = EncryptedFileProjectKeychain.env_service_var_prefix
         service_config = ServiceConfig(
             {"name": "foo", "password": "1234", "token": "1234"}
         )

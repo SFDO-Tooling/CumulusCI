@@ -83,13 +83,12 @@ class BaseProjectKeychain(BaseConfig):
         )
         org_config.save()
 
-    def set_org(self, org_config, global_org=False):
+    def set_org(self, org_config, global_org=False, save=True):
         if isinstance(org_config, ScratchOrgConfig):
             org_config.config["scratch"] = True
-        self._set_org(org_config, global_org)
-        self._load_orgs()
+        self._set_org(org_config, global_org, save=save)
 
-    def _set_org(self, org_config, global_org):
+    def _set_org(self, org_config, global_org, save=True):
         self.orgs[org_config.name] = org_config
 
     def set_default_org(self, name):

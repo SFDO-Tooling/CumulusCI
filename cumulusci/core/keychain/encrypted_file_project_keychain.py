@@ -66,8 +66,8 @@ the default org for that project.
 
 class EncryptedFileProjectKeychain(BaseProjectKeychain):
     encrypted = True
-    environment_service_var_prefix = "CUMULUSCI_SERVICE_"
-    environment_org_var_prefix = "CUMULUSCI_ORG_"
+    env_service_var_prefix = "CUMULUSCI_SERVICE_"
+    env_org_var_prefix = "CUMULUSCI_ORG_"
 
     @property
     def global_config_dir(self):
@@ -201,18 +201,23 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         self._load_org_files(self.project_local_dir, LocalOrg)
 
     def _load_orgs_from_environment(self):
-        for key, value in self._get_env():
-            if key.startswith(self.environment_org_var_prefix):
-                org_config = json.loads(value)
-                org_name = key[len(self.org_var_prefix) :].lower()
-                if org_config.get("scratch"):
-                    self.orgs[org_name] = scratch_org_factory(
-                        json.loads(value), org_name, keychain=self, global_org=False
-                    )
-                else:
-                    self.orgs[org_name] = OrgConfig(
-                        json.loads(value), org_name, keychain=self, global_org=False
-                    )
+        for env_var_name, value in self._get_env():
+            if env_var_name.startswith(self.env_org_var_prefix):
+                self._load_org_from_environment(env_var_name, value)
+
+    def _load_org_from_environment(self, env_var_name, value):
+        org_config = json.loads(value)
+        org_name = env_var_name[len(self.env_org_var_prefix) :].lower()
+        if org_config.get("scratch"):
+            org_config = scratch_org_factory(
+                json.loads(value), org_name, keychain=self, global_org=False
+            )
+        else:
+            org_config = OrgConfig(
+                org_config, org_name, keychain=self, global_org=False
+            )
+
+        self.set_org(org_config, global_org=False, save=False)
 
     def _load_org_files(self, dirname: str, constructor=None):
         """Loads .org files in a given directory onto the keychain"""
@@ -230,16 +235,29 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                     constructor(config) if constructor else config
                 )
 
-    def _set_org(self, org_config, global_org):
+    def _set_org(self, org_config, global_org, save=True):
+        if not global_org and not self.project_local_dir:
+            return
         if org_config.keychain:
             assert org_config.keychain is self
         assert org_config.global_org == global_org
         org_config.keychain = self
         org_config.global_org = global_org
-        encrypted = self._encrypt_config(org_config)
-        self._set_encrypted_org(org_config.name, encrypted, global_org)
 
-    def _set_encrypted_org(self, name, encrypted, global_org):
+        org_name = org_config.name
+        encrypted_config = self._encrypt_config(org_config)
+
+        if global_org:
+            org_config = GlobalOrg(encrypted_config)
+        else:
+            org_config = LocalOrg(encrypted_config)
+
+        self.orgs[org_name] = org_config
+
+        if save:
+            self._save_encrypted_org(org_name, encrypted_config, global_org)
+
+    def _save_encrypted_org(self, name, encrypted, global_org):
         if global_org:
             filename = Path(f"{self.global_config_dir}/{name}.org")
         elif self.project_local_dir is None:
@@ -250,14 +268,19 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             f_org.write(encrypted)
 
     def _get_org(self, name):
+        try:
+            encrypted_config = self.orgs[name].encrypted_data
+            global_org = self.orgs[name].global_org
+        except KeyError:
+            raise OrgNotFound("Org with name '{name}' does not exist.")
+
         org = self._decrypt_config(
             OrgConfig,
-            self.orgs[name].encrypted_data,
+            encrypted_config,
             extra=[name, self],
             context=f"org config ({name})",
         )
-        if self.orgs[name].global_org:
-            org.global_org = True
+        org.global_org = global_org
         return org
 
     def _remove_org(self, name, global_org):
@@ -505,31 +528,28 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
     def _load_services_from_environment(self):
         """Load any services specified by environment variables"""
-        for key, value in self._get_env():
-            if key.startswith(self.environment_service_var_prefix):
-                service_config = ServiceConfig(json.loads(value))
-                service_type, service_name = self._get_env_service_type_and_name(key)
-                if service_type not in self.config["services"]:
-                    self.config["services"][service_type] = {}
+        for env_var_name, value in self._get_env():
+            if env_var_name.startswith(self.env_service_var_prefix):
+                self._load_service_from_environment(env_var_name, value)
 
-                try:
-                    self.get_service(service_type, service_name)
-                except ServiceNotConfigured:
-                    pass
-                else:
-                    self.logger.warning(
-                        f"Detected multiple services with the same name ({service_name}) in the environment. "
-                        "Only one service with this name will be loaded. "
-                        "If you would like all environment services to be loaded, ensure they have unique names. "
-                        "For details on naming environment services see: TODO: link to docs"
-                    )
+    def _load_service_from_environment(self, env_var_name, value):
+        """Given a valid name/value pair, load the
+        service from the environment on to the keychain"""
+        service_config = ServiceConfig(json.loads(value))
+        service_type, service_name = self._get_env_service_type_and_name(env_var_name)
+        try:
+            self.get_service(service_type, service_name)
+        except ServiceNotConfigured:
+            pass
+        else:
+            self.logger.warning(
+                f"Detected multiple services with the same name ({service_name}) in the environment. "
+                "Only one service with this name will be loaded. "
+                "If you would like all environment services to be loaded, ensure they have unique names. "
+                "For details on naming environment services see: TODO: link to docs"
+            )
 
-                self.set_service(service_type, service_name, service_config, save=False)
-
-                if len(self.config["services"][service_type].keys()) == 1:
-                    self.set_default_service(
-                        service_type, service_name, project=False, save=False
-                    )
+        self.set_service(service_type, service_name, service_config, save=False)
 
     def _get_env_service_type_and_name(self, env_service_name):
         return (
@@ -539,9 +559,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
     def _get_env_service_type(self, env_service_name):
         """Parse the service type given the env var name"""
-        post_prefix = env_service_name[
-            len(self.environment_service_var_prefix) :
-        ].lower()
+        post_prefix = env_service_name[len(self.env_service_var_prefix) :].lower()
         return post_prefix.split("__")[0]
 
     def _get_env_service_name(self, env_service_name):
