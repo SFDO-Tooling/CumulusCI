@@ -20,6 +20,12 @@ from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.core.keychain.encrypted_file_project_keychain import GlobalOrg
+from cumulusci.core.tests.utils import EnvironmentVarGuard
+
+
+@pytest.fixture()
+def env():
+    yield EnvironmentVarGuard()
 
 
 @pytest.fixture()
@@ -186,6 +192,44 @@ class TestEncryptedFileProjectKeychain:
             keychain._load_service_files()
         github_service = keychain.get_service("github", "alias")
         assert "foo" in github_service.config
+
+    def test_load_services__from_env(self, keychain, env):
+        service_prefix = EncryptedFileProjectKeychain.environment_service_var_prefix
+        service_config_one = ServiceConfig(
+            {"name": "foo1", "password": "1234", "token": "1234"}
+        )
+        service_config_two = ServiceConfig(
+            {"name": "foo2", "password": "5678", "token": "5678"}
+        )
+        with env:
+            env.set(f"{service_prefix}github", json.dumps(service_config_one.config))
+            env.set(
+                f"{service_prefix}github__other", json.dumps(service_config_two.config)
+            )
+            keychain._load_services_from_environment()
+
+        gh_service = keychain.get_service("github")
+        # this also confirms the default service is set appropriately
+        assert gh_service.config == service_config_one.config
+        gh_service = keychain.get_service("github", "env-other")
+        assert gh_service.config == service_config_two.config
+
+    def test_laod_services_from_env__same_name_throws_error(self, keychain, env):
+        service_prefix = EncryptedFileProjectKeychain.environment_service_var_prefix
+        service_config = ServiceConfig(
+            {"name": "foo", "password": "1234", "token": "1234"}
+        )
+        with env:
+            env.set(f"{service_prefix}github", json.dumps(service_config.config))
+            env.set(f"{service_prefix}github", json.dumps(service_config.config))
+
+            keychain._load_services_from_environment()
+
+    def test_get_service__does_not_exist(self, keychain, service_config):
+        keychain.set_service("github", "alias", service_config)
+        error_message = "No service of type github exists with the name: does-not-exist"
+        with pytest.raises(ServiceNotConfigured, match=error_message):
+            keychain.get_service("github", "does-not-exist")
 
     def test_set_service_github(self, keychain, service_config):
         keychain.set_service("github", "alias", service_config)
@@ -475,7 +519,7 @@ class TestEncryptedFileProjectKeychain:
             keychain.rename_service("github", "old_alias", "new_alias")
 
         # Getting old alias should fail
-        with pytest.raises(KeyError):
+        with pytest.raises(ServiceNotConfigured):
             keychain.get_service("github", "old_alias")
 
         # Validate new alias has same contents as original
@@ -673,9 +717,23 @@ class TestEncryptedFileProjectKeychain:
         with mock.patch.object(
             EncryptedFileProjectKeychain, "global_config_dir", cci_home_dir
         ):
-            keychain._set_encrypted_service("new_service_type", "alias", encrypted)
+            keychain._save_encrypted_service("new_service_type", "alias", encrypted)
 
         assert (services_dir / "new_service_type").is_dir()
+
+    @pytest.mark.parametrize(
+        "val, expected",
+        (
+            ("CUMULUSCI_SERVICE_github", ("github", "env")),
+            ("CUMULUSCI_SERVICE_github__alias", ("github", "env-alias")),
+            ("CUMULUSCI_SERVICE_connected_app", ("connected_app", "env")),
+            ("CUMULUSCI_SERVICE_connected_app__alias", ("connected_app", "env-alias")),
+        ),
+    )
+    def test_get_env_service_type_and_name(self, val, expected, project_config):
+        keychain = EncryptedFileProjectKeychain(project_config, "0123456789abcdef")
+        actual_type, actual_name = keychain._get_env_service_type_and_name(val)
+        assert (actual_type, actual_name) == expected
 
 
 def _touch_test_org_file(directory):

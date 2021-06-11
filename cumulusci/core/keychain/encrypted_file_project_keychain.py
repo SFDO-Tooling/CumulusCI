@@ -22,6 +22,7 @@ from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.utils import import_class
+from cumulusci.core.utils import import_global
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
 
@@ -31,6 +32,13 @@ backend = default_backend()
 
 def pad(s):
     return s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode("ascii")
+
+
+scratch_org_class = os.environ.get("CUMULUSCI_SCRATCH_ORG_CLASS")
+if scratch_org_class:
+    scratch_org_factory = import_global(scratch_org_class)  # pragma: no cover
+else:
+    scratch_org_factory = ScratchOrgConfig
 
 
 """
@@ -58,6 +66,8 @@ the default org for that project.
 
 class EncryptedFileProjectKeychain(BaseProjectKeychain):
     encrypted = True
+    environment_service_var_prefix = "CUMULUSCI_SERVICE_"
+    environment_org_var_prefix = "CUMULUSCI_ORG_"
 
     @property
     def global_config_dir(self):
@@ -73,6 +83,15 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
     @property
     def project_local_dir(self):
         return self.project_config.project_local_dir
+
+    def _get_env(self):
+        """loads the environment variables as unicode if ascii"""
+        env = {}
+        for k, v in os.environ.items():
+            k = k.decode() if isinstance(k, bytes) else k
+            v = v.decode() if isinstance(v, bytes) else v
+            env[k] = v
+        return list(env.items())
 
     #######################################
     #             Encryption              #
@@ -177,8 +196,23 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             return Path(self.project_local_dir) / "DEFAULT_ORG.txt"
 
     def _load_orgs(self) -> None:
+        self._load_orgs_from_environment()
         self._load_org_files(self.global_config_dir, GlobalOrg)
         self._load_org_files(self.project_local_dir, LocalOrg)
+
+    def _load_orgs_from_environment(self):
+        for key, value in self._get_env():
+            if key.startswith(self.environment_org_var_prefix):
+                org_config = json.loads(value)
+                org_name = key[len(self.org_var_prefix) :].lower()
+                if org_config.get("scratch"):
+                    self.orgs[org_name] = scratch_org_factory(
+                        json.loads(value), org_name, keychain=self, global_org=False
+                    )
+                else:
+                    self.orgs[org_name] = OrgConfig(
+                        json.loads(value), org_name, keychain=self, global_org=False
+                    )
 
     def _load_org_files(self, dirname: str, constructor=None):
         """Loads .org files in a given directory onto the keychain"""
@@ -273,18 +307,20 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
     #######################################
 
     def set_default_service(
-        self, service_type: str, alias: str, project: bool = False
+        self, service_type: str, alias: str, project: bool = False, save: bool = True
     ) -> None:
         """Public API for setting a default service e.g. `cci service default`
 
         @param service_type: the type of service
         @param alias: the name of the service
         @param project: Should this be a project default
+        @param save: save the defaults so they are loaded on subsequent executions
         @raises ServiceNotConfigured if service_type or alias are invalid
         """
         self._validate_service_type_and_alias(service_type, alias)
         self._default_services[service_type] = alias
-        self._save_default_service(service_type, alias, project=project)
+        if save:
+            self._save_default_service(service_type, alias, project=project)
 
     def rename_service(
         self, service_type: str, current_alias: str, new_alias: str
@@ -409,23 +445,29 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
     def _load_services(self) -> None:
         """Load services (and migrate old ones if present)"""
+        self._load_services_from_environment()
         if not (self.global_config_dir / "services").is_dir():
             self._create_default_service_files()
             self._create_services_dir_structure()
             self._migrate_services()
         self._load_service_files()
 
-    def _set_service(self, service_type, alias, service_config):
+    def _set_service(self, service_type, alias, service_config, save=True):
         if service_type not in self.services:
             self.services[service_type] = {}
             # set the first service of a given type as the global default
             self._default_services[service_type] = alias
-            self._save_default_service(service_type, alias, project=False)
+            if save:
+                self._save_default_service(service_type, alias, project=False)
 
         encrypted = self._encrypt_config(service_config)
-        self._set_encrypted_service(service_type, alias, encrypted)
+        self.services[service_type][alias] = encrypted
 
-    def _set_encrypted_service(self, service_type, alias, encrypted):
+        if save:
+            self._save_encrypted_service(service_type, alias, encrypted)
+
+    def _save_encrypted_service(self, service_type, alias, encrypted):
+        """Write out the encrypted service to disk."""
         service_path = Path(
             f"{self.global_config_dir}/services/{service_type}/{alias}.service"
         )
@@ -447,12 +489,70 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                     f"Unrecognized class_path for service: {class_path}"
                 )
 
+        try:
+            encrypted_config = self.services[service_type][alias]
+        except KeyError:
+            raise ServiceNotConfigured(
+                f"No service of type {service_type} exists with the name: {alias}"
+            )
+
         return self._decrypt_config(
             ConfigClass,
-            self.services[service_type][alias],
+            encrypted_config,
             extra=[alias, self],
             context=f"service config ({service_type}:{alias})",
         )
+
+    def _load_services_from_environment(self):
+        """Load any services specified by environment variables"""
+        for key, value in self._get_env():
+            if key.startswith(self.environment_service_var_prefix):
+                service_config = ServiceConfig(json.loads(value))
+                service_type, service_name = self._get_env_service_type_and_name(key)
+                if service_type not in self.config["services"]:
+                    self.config["services"][service_type] = {}
+
+                try:
+                    self.get_service(service_type, service_name)
+                except ServiceNotConfigured:
+                    pass
+                else:
+                    self.logger.warning(
+                        f"Detected multiple services with the same name ({service_name}) in the environment. "
+                        "Only one service with this name will be loaded. "
+                        "If you would like all environment services to be loaded, ensure they have unique names. "
+                        "For details on naming environment services see: TODO: link to docs"
+                    )
+
+                self.set_service(service_type, service_name, service_config, save=False)
+
+                if len(self.config["services"][service_type].keys()) == 1:
+                    self.set_default_service(
+                        service_type, service_name, project=False, save=False
+                    )
+
+    def _get_env_service_type_and_name(self, env_service_name):
+        return (
+            self._get_env_service_type(env_service_name),
+            self._get_env_service_name(env_service_name),
+        )
+
+    def _get_env_service_type(self, env_service_name):
+        """Parse the service type given the env var name"""
+        post_prefix = env_service_name[
+            len(self.environment_service_var_prefix) :
+        ].lower()
+        return post_prefix.split("__")[0]
+
+    def _get_env_service_name(self, env_service_name):
+        """
+        Parse the service name given the env var name.
+        Services from the environment can be listed with or without a name:
+        * CUMULUSCI_SERVICE_service_type -> this gets a default name of "env"
+        * CUMULUSCI_SERVICE_service_type__name -> this gets the name "env-name"
+        """
+        parts = env_service_name.split("__")
+        return f"env-{parts[-1]}" if len(parts) > 1 else "env"
 
     def _load_service_files(self, constructor=None) -> None:
         """
