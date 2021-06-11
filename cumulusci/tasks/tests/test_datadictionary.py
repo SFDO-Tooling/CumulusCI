@@ -149,7 +149,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         task._write_field_results(f)
         f.seek(0)
         result = f.read()
-        print(result)
+
         assert result == (
             "Object Label,Object API Name,Field Label,Field API Name,Type,Picklist Values,Help Text,Field Description,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
             "Account,Account,Desc,test__Desc__c,Text,,,,Test 1.2,,,\r\n"
