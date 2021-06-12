@@ -4,6 +4,7 @@ import contextlib
 import html
 import functools
 import io
+import json
 import logging
 import os
 import pathlib
@@ -99,12 +100,12 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         self.options = options or {}
         self.logger = logger or DEFAULT_LOGGER
 
+        self._open_zip()
+
         if zf is not None or path is not None:
             with self._convert_sfdx_format(path, zf, name) as path:
-                self._open_zip()
                 self._add_files_to_package(path)
-        else:
-            self._open_zip()
+
         self._process()
 
     @classmethod
@@ -120,20 +121,31 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
                 zf.extractall(source_path)
             else:
                 source_path = path
+            source_path = pathlib.Path(source_path)
 
             return_path = ""
             if pathlib.Path(source_path, "package.xml").exists():
                 return_path = source_path
-            elif len(os.listdir(source_path)):
-                output_dir = stack.enter_context(temporary_dir(chdir=False))
-                self._call_sfdx(source_path, output_dir, name)
-                return_path = output_dir
+            elif any(source_path.iterdir()):
+                # Because source conversion must be run from project root we
+                # must cd to a temporary directory and generate a dx file
+                stack.enter_context(temporary_dir())
+                pathlib.Path("force-app").symlink_to(
+                    source_path, target_is_directory=True
+                )
+                pathlib.Path("sfdx-project.json").write_text(
+                    json.dumps(
+                        {"packageDirectories": [{"path": "force-app", "default": True}]}
+                    )
+                )
+                return_path = self._call_sfdx(name)
 
             yield return_path
 
-    def _call_sfdx(self, source_path, output_dir, name):
+    def _call_sfdx(self, name):
         self.logger.info("Converting from sfdx to mdapi format")
-        args = ["-r", str(source_path), "-d", output_dir]
+        output_dir = pathlib.Path("metadata_Package")
+        args = ["-r", "force-app", "-d", str(output_dir)]
         if name:
             args += ["-n", name]
         sfdx(
@@ -142,6 +154,8 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
             capture_output=True,
             check_return=True,
         )
+
+        return output_dir.resolve()
 
     def _add_files_to_package(self, path):
         for file_path in self._find_files_to_package(path):
