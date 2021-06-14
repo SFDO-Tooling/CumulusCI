@@ -2,6 +2,78 @@
 History
 =======
 
+3.37.0 (2021-06-10)
+-------------------
+
+Changes
+
+- The ``install_managed`` task now supports 2GP releases (#2655).
+- We changed the behavior of the ``release_2gp_beta`` flow to always
+  upload a package version, even if metadata has not changed (#2651).
+- We now support sourcing install keys for packages from 
+  environment variables via the ``password_env_name`` dependency key (#2622).
+
+Robot Framework
+
+- We upgraded SeleniumLibrary to 5.x (#2660).
+- We added a new keyword "select window" to Salesforce library,
+  to replace the keyword of the same name which was renamed in
+  SeleniumLibrary 5.x to 'switch window'.
+  We will be removing this keyword in a future release;
+  tests should use 'switch window' instead.
+
+Issues Closed
+
+- We corrected some JavaScript issues that were occurring with Chrome 91. (#2652)
+- We fixed a bug impacting the ``generate_data_dictionary`` task when used
+  with dependencies (#2653).
+- We fixed an issue causing ``sfdx`` commands that had options with spaces
+  to fail to execute on Windows (#2656).
+- We fixed an issue causing the creation of incorrect 2GP beta tags (#2651).
+
+3.36.0 (2021-05-27)
+-------------------
+
+Changes
+
+-  Added the option ``tag_prefix`` to the ``github_release`` task. This
+   option can be set to specify what prefix you would like to use when
+   CumulusCI creates a release tag for you in GitHub. (#2642)
+-  The ``deploy_marketing_cloud_package`` task has been updated to match
+   changes to the Marketing Cloud Package Manager API. It also now
+   raises an exception if the deployment failed. (#2632)
+
+Robot Framework
+
+-  Improved the output of the ``robot_libdoc`` task. (#2627)
+
+Data generation with Snowfakery:
+
+-  Updated to `Snowfakery
+   1.12 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v1.12>`__
+   (#2538)
+
+Issues Closed
+
+-  Fixed an issue where flow reference documentation was rendering with
+   an error. (#2646)
+-  CumulusCI will now remove orgs when the ``--delete-org`` option is
+   passed to ``cci flow run``, even if an error occurs while running the
+   flow. (#2644)
+-  Fixed a bug where beta tags created via the ``release_2gp_beta`` flow
+   were not receiving the proper tag prefix. (#2642)
+-  Fixed namespace injection for filenames with a ``___NAMESPACE___``
+   token in sfdx format. (#2631) (Thanks @bethbrains)
+-  Fixed a bug in ``cci org connect`` where the ``--sandbox`` flag was
+   directing users to login at ``login.salesforce.com`` instead of
+   ``test.salesforce.com``. (#2630)
+-  Fixed a regression where the ``skip`` key for a dependency could no
+   longer be specified as a single string instead of a list. (#2629)
+-  Fixed a regression in freezing the ``deploy_pre``/``deploy_post``
+   tasks for MetaDeploy install plans. (#2626)
+-  Fixed bugs in the ``deploy_marketing_cloud_package`` task's payload
+   construction. (#2620, #2621)
+
 3.35.0 (2021-05-13)
 -------------------
 

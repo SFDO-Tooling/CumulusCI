@@ -10,24 +10,15 @@ from datetime import timedelta
 from pathlib import Path
 from unittest import mock
 
-from cumulusci.core.config import OrgConfig, ScratchOrgConfig
+from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ScratchOrgException
+from cumulusci.oauth.client import OAuth2ClientConfig
 
 from .. import org
 from .utils import run_click_command
-
-
-@pytest.fixture(autouse=True)
-def cleanup_org_cache_dirs():
-    cleanup_org_cache_dirs = mock.Mock(name="cleanup_org_cache_dirs")
-    with mock.patch(
-        "cumulusci.cli.org.cleanup_org_cache_dirs", cleanup_org_cache_dirs
-    ), mock.patch(
-        "cumulusci.core.utils.cleanup_org_cache_dirs", cleanup_org_cache_dirs
-    ):
-        yield cleanup_org_cache_dirs
 
 
 class TestOrgCommands:
@@ -130,7 +121,7 @@ class TestOrgCommands:
             runtime=runtime,
             org_name="test",
             sandbox=False,
-            login_url="https://login.salesforce.com",
+            login_url=None,
             default=True,
             global_org=False,
         )
@@ -182,7 +173,7 @@ class TestOrgCommands:
             runtime=runtime,
             org_name="test",
             sandbox=True,
-            login_url="https://test.salesforce.com",
+            login_url=None,
             default=True,
             global_org=False,
         )
@@ -203,7 +194,7 @@ class TestOrgCommands:
                 runtime=runtime,
                 org_name="test",
                 sandbox=True,
-                login_url="https://login.salesforce.com",
+                login_url=None,
                 default=True,
                 global_org=False,
             )
@@ -221,6 +212,61 @@ class TestOrgCommands:
                 default=True,
                 global_org=False,
             )
+
+    @mock.patch("cumulusci.cli.org.OAuth2Client")
+    @responses.activate
+    def test_org_connect__sandbox_option_gives_correct_uris(self, oauth2client):
+        client_instance = mock.Mock()
+        client_instance.auth_code_flow.return_value = {
+            "instance_url": "https://instance",
+            "access_token": "BOGUS",
+            "id": "OODxxxxxxxxxxxx/user",
+        }
+        oauth2client.return_value = client_instance
+        runtime = mock.Mock()
+        runtime.keychain.get_service.return_value = mock.Mock(
+            client_id="asdfasdf",
+            client_secret="asdfasdf",
+            callback_url="http://localhost:8080/callback",
+        )
+        responses.add(
+            method="GET",
+            url="https://instance/services/oauth2/userinfo",
+            body=b"{}",
+            status=200,
+        )
+        responses.add(
+            method="GET",
+            url="https://instance/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            json={
+                "TrialExpirationDate": None,
+                "OrganizationType": "Developer Edition",
+                "IsSandbox": False,
+                "InstanceName": "CS420",
+                "NamespacePrefix": None,
+            },
+            status=200,
+        )
+        responses.add("GET", "https://instance/services/data", json=[{"version": 45.0}])
+        run_click_command(
+            org.org_connect,
+            runtime=runtime,
+            org_name="test",
+            sandbox=True,  # Test we get correct auth uri when this is set
+            login_url=None,
+            default=True,
+            global_org=False,
+        )
+
+        client_config = OAuth2ClientConfig(
+            client_id="asdfasdf",
+            client_secret="asdfasdf",
+            redirect_uri="http://localhost:8080/callback",
+            auth_uri="https://test.salesforce.com/services/oauth2/authorize",
+            token_uri="https://test.salesforce.com/services/oauth2/token",
+            scope="web full refresh_token",
+        )
+        oauth2client.assert_called_once_with(client_config)
 
     def test_org_default(self):
         runtime = mock.Mock()
@@ -373,7 +419,7 @@ class TestOrgCommands:
         org_config.save.assert_called_once_with()
 
     @mock.patch("cumulusci.cli.org.CliTable")
-    def test_org_list(self, cli_tbl, cleanup_org_cache_dirs):
+    def test_org_list(self, cli_tbl):
         runtime = mock.Mock()
         runtime.universal_config.cli__plain_output = None
         org_configs = {
@@ -507,7 +553,7 @@ class TestOrgCommands:
 
         assert scratch_table_call in cli_tbl.call_args_list
         assert connected_table_call in cli_tbl.call_args_list
-        cleanup_org_cache_dirs.assert_called_once()
+        runtime.keychain.cleanup_org_cache_dirs.assert_called_once()
 
     @mock.patch("cumulusci.cli.org.click.echo")
     def test_org_list__json(self, echo):

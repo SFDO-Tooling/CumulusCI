@@ -9,6 +9,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CBC
 from pathlib import Path
+from shutil import rmtree
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
@@ -244,6 +245,28 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         raise OrgNotFound(
             f"Org information could not be found. Expected to find encrypted file at {self.project_local_dir}/{name}.org"
         )
+
+    def cleanup_org_cache_dirs(self):
+        """Cleanup directories that are not associated with a connected/live org."""
+
+        if not self.project_config or not self.project_config.cache_dir:
+            return
+        active_org_domains = set()
+        for org in self.list_orgs():
+            org_config = self.get_org(org)
+            domain = org_config.get_domain()
+            if domain:
+                active_org_domains.add(domain)
+
+        assert self.project_config.cache_dir, "Project cache dir does not exist."
+        assert self.global_config_dir, "Global config directory does not exist."
+
+        project_org_directories = (self.project_config.cache_dir / "orginfo").glob("*")
+        global_org_directories = (self.global_config_dir / "orginfo").glob("*")
+
+        for path in list(project_org_directories) + list(global_org_directories):
+            if path.is_dir() and path.name not in active_org_domains:
+                rmtree(path)
 
     #######################################
     #              Services               #

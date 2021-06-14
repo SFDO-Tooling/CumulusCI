@@ -8,7 +8,7 @@ import click
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import format_duration
 from cumulusci.utils import document_flow, flow_ref_title_and_intro
-from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+from cumulusci.utils.yaml.safer_loader import load_yaml_data
 from .runtime import pass_runtime
 from .ui import CliTable
 from .utils import group_items
@@ -24,7 +24,7 @@ def flow():
 def flow_doc(runtime):
     flow_info_path = Path(__file__, "..", "..", "..", "docs", "flows.yml").resolve()
     with open(flow_info_path, "r", encoding="utf-8") as f:
-        flow_info = cci_safe_load(f)
+        flow_info = load_yaml_data(f)
     click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
     flow_info_groups = list(flow_info["groups"].keys())
 
@@ -158,16 +158,18 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
         coordinator.run(org_config)
         duration = datetime.now() - start_time
         click.echo(f"Ran {flow_name} in {format_duration(duration)}")
-
+    except Exception:
+        runtime.alert(f"Flow error: {flow_name}")
+        raise
     finally:
-        runtime.alert(f"Flow Complete: {flow_name}")
+        # Delete the scratch org if --delete-org was set
+        if delete_org:
+            try:
+                org_config.delete_org()
+            except Exception as e:
+                click.echo(
+                    "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
+                )
+                click.echo(str(e))
 
-    # Delete the scratch org if --delete-org was set
-    if delete_org:
-        try:
-            org_config.delete_org()
-        except Exception as e:
-            click.echo(
-                "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
-            )
-            click.echo(str(e))
+    runtime.alert(f"Flow Complete: {flow_name}")

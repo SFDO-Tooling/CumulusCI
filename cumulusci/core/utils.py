@@ -9,7 +9,6 @@ import copy
 import glob
 import pytz
 import time
-from shutil import rmtree
 import typing as T
 import warnings
 
@@ -197,29 +196,6 @@ def dictmerge(a, b, name=None):
             config_name=name,
         )
     return a
-
-
-def cleanup_org_cache_dirs(keychain, project_config):
-    """Cleanup directories that are not associated with a connected/live org."""
-
-    if not project_config or not project_config.cache_dir:
-        return
-    domains = set()
-    for org in keychain.list_orgs():
-        org_config = keychain.get_org(org)
-        domain = org_config.get_domain()
-        if domain:
-            domains.add(domain)
-
-    assert project_config.cache_dir
-    assert keychain.global_config_dir
-
-    project_org_directories = (project_config.cache_dir / "orginfo").glob("*")
-    global_org_directories = (keychain.global_config_dir / "orginfo").glob("*")
-
-    for path in list(project_org_directories) + list(global_org_directories):
-        if path.is_dir() and path.name not in domains:
-            rmtree(path)
 
 
 def format_duration(duration: timedelta):

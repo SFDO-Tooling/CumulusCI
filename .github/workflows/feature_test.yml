@@ -146,11 +146,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up chromedriver
-        run: |
-          wget -q https://chromedriver.storage.googleapis.com/89.0.4389.23/chromedriver_linux64.zip
-          unzip -o -q chromedriver_linux64.zip
-          sudo mv chromedriver /usr/local/bin/chromedriver
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
@@ -259,11 +254,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up chromedriver
-        run: |
-          wget -q https://chromedriver.storage.googleapis.com/89.0.4389.23/chromedriver_linux64.zip
-          unzip -o -q chromedriver_linux64.zip
-          sudo mv chromedriver /usr/local/bin/chromedriver
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
