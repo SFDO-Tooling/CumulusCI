@@ -121,7 +121,7 @@ tasks:
     description: Creates a Community in the target org using the Connect API
     class_path: cumulusci.tasks.salesforce.CreateCommunity
     group: Salesforce Communities
-  create_connected_app:
+  connected_app:
     description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
     class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
     group: Setup
