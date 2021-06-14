@@ -187,6 +187,14 @@ class BaseProjectKeychain(BaseConfig):
             DEFAULT_CONNECTED_APP_NAME
         ] = DEFAULT_CONNECTED_APP
 
+    def get_default_service_name(self, service_type: str):
+        """Returns the name of the default service for the given type
+        or None if no default is currently set for the given type."""
+        try:
+            return self._default_services[service_type]
+        except KeyError:
+            return None
+
     def set_service(self, service_type, alias, service_config):
         """Store a ServiceConfig in the keychain"""
         self._validate_service(service_type, alias, service_config)
