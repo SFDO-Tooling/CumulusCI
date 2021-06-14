@@ -35,8 +35,8 @@ class AllGithubReleaseNotes(BaseGithubTask):
                     .latest_release()
                     .body
                 )
-                table_of_contents += f'''<a href=#{project['repo']}><li name="{project['repo']}">{project['repo']}</li></a>'''
-                release_project_header = f'''<h1 id="{project['repo']}" name="{project['repo']}">{project['repo']}</h1>'''
+                table_of_contents += f"""<a href=#{project['repo']}><li name="{project['repo']}">{project['repo']}</li></a>"""
+                release_project_header = f"""<h1 id="{project['repo']}" name="{project['repo']}">{project['repo']}</h1>"""
                 release_html = self.github.markdown(
                     release,
                     mode="gfm",

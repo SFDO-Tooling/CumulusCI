@@ -14,18 +14,30 @@ from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 
 from cumulusci.tasks.salesforce.tests.util import create_task
 
+
 class TestAllGithubReleaseNotes:
     def test_run_AllGithubReleaseNotes_task(
         self,
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
-            task = create_task(AllGithubReleaseNotes, options={"repos": [{"owner": "SalesforceFoundation", "repo": "NPSP"}]})
+            task = create_task(
+                AllGithubReleaseNotes,
+                options={"repos": [{"owner": "SalesforceFoundation", "repo": "NPSP"}]},
+            )
             task.github = mock.Mock()
-            task.github.repository("SalesforceFoundation","NPSP").latest_release = mock.MagicMock()
-            task.github.repository("SalesforceFoundation","NPSP").latest_release.body = "NPSP"
             task.get_repo = mock.Mock()
+            task.github.repository(
+                "SalesforceFoundation", "NPSP"
+            ).latest_release = mock.MagicMock(body="NPSP")
+            task.github.repository(
+                "SalesforceFoundation", "NPSP"
+            ).latest_release.body = "NPSP"
+            task.github.markdown.return_value = "<h1>foo</h1>"
             task._run_task()
+            result = f"""<html><head><title>Release Notes</title></head><body><h1>Table of Contents</h1><ul><a href=#NPSP><li name="NPSP">NPSP</li></a></ul><br><hr><h1 id="NPSP" name="NPSP">NPSP</h1><hr>{task.github.markdown.return_value}<hr></body></html>"""
             assert Path("github_release_notes.html").is_file()
+            with open("github_release_notes.html", "r") as f:
+                assert f.read() == result
 
 
 class TestGithubReleaseNotes:
