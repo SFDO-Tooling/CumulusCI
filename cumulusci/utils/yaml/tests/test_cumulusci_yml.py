@@ -28,7 +28,7 @@ class TestCumulusciYml:
 
     def test_cumulusci_cumulusci_yaml(self):
         cciyml = parse_from_yaml("cumulusci/cumulusci.yml")
-        assert cciyml.tasks["create_connected_app"].options["overwrite"] is False
+        assert cciyml.tasks["connected_app"].options["overwrite"] is False
 
     def test_parse_cumulusci_yaml(self):
         yaml = """xyz:
