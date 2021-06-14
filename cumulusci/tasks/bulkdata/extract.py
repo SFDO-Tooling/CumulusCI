@@ -351,7 +351,12 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         # If WHERE keyword is specified by user in mapping file, substitute it with empty string
         if filter_clause:
-            filter_clause = re.sub("WHERE", "", filter_clause, flags=re.IGNORECASE)
+            filter_clause = re.sub(
+                pattern=r"^\s*WHERE\s+",
+                repl="",
+                string=filter_clause,
+                flags=re.IGNORECASE,
+            )
 
         # If WHERE keyword is alreayd in soql query(because of record type filter) add AND clause
         if " WHERE " in soql:
