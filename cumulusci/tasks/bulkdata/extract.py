@@ -1,4 +1,5 @@
 import itertools
+import re
 from contextlib import contextmanager
 
 from sqlalchemy import create_engine
@@ -29,7 +30,6 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     validate_and_inject_mapping,
 )
 from cumulusci.tasks.bulkdata.utils import consume
-from cumulusci.plugins.append_where_clause import append_where_clause
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -139,12 +139,15 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if mapping.record_type:
             soql += f" WHERE RecordType.DeveloperName = '{mapping.record_type}'"
 
+        if mapping.soql_filter is not None:
+            soql = self.append_filter_clause(
+                soql=soql, filter_clause=mapping.soql_filter
+            )
+
         return soql
 
     def _run_query(self, soql, mapping):
         """Execute a Bulk or REST API query job and store the results."""
-
-        soql = append_where_clause(soql=soql, object_config=mapping)
 
         step = get_query_operation(
             sobject=mapping.sf_object,
@@ -339,3 +342,21 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         with open(path, "w", encoding="utf-8") as f:
             for line in self.session.connection().connection.iterdump():
                 f.write(line + "\n")
+
+    def append_filter_clause(self, soql, filter_clause):
+        """Function that applies filter clause to soql if it is defined in mapping yml file"""
+
+        if not filter_clause:
+            return soql
+
+        # If WHERE keyword is specified by user in mapping file, substitute it with empty string
+        if filter_clause:
+            filter_clause = re.sub("WHERE", "", filter_clause, flags=re.IGNORECASE)
+
+        # If WHERE keyword is alreayd in soql query(because of record type filter) add AND clause
+        if " WHERE " in soql:
+            soql = f"{soql} AND {filter_clause}"
+        else:
+            soql = f"{soql} WHERE {filter_clause}"
+
+        return soql
