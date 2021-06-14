@@ -1,6 +1,10 @@
 import sarge
 
-from cumulusci.core.config import BaseConfig, ConnectedAppOAuthConfig, ScratchOrgConfig
+from cumulusci.core.config import (
+    BaseConfig,
+    ConnectedAppOAuthConfig,
+    ScratchOrgConfig,
+)
 from cumulusci.core.exceptions import (
     CumulusCIException,
     OrgNotFound,
@@ -9,6 +13,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.sfdx import sfdx
 
+DEFAULT_CONNECTED_APP_NAME = "built-in"
 DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig(
     {
         "client_id": "3MVG9i1HRpGLXp.or6OVlWVWyn8DXi9xueKNM4npq_AWh.yqswojK9sE5WY7f.biP0w7bNJIENfXc7JMDZGO1",
@@ -37,6 +42,7 @@ class BaseProjectKeychain(BaseConfig):
     def _load_keychain(self):
         self._load_orgs()
         self._load_scratch_orgs()
+        self._load_default_connected_app()
         self._load_services()
         self._load_default_services()
 
@@ -170,7 +176,23 @@ class BaseProjectKeychain(BaseConfig):
         pass
 
     def _load_default_services(self):
-        pass
+        self._default_services["connected_app"] = DEFAULT_CONNECTED_APP_NAME
+
+    def _load_default_connected_app(self):
+        """Load the default connected app as a first class service on the keychain."""
+        if "connected_app" not in self.config["services"]:
+            self.config["services"]["connected_app"] = {}
+        self.config["services"]["connected_app"][
+            DEFAULT_CONNECTED_APP_NAME
+        ] = DEFAULT_CONNECTED_APP
+
+    def get_default_service_name(self, service_type: str):
+        """Returns the name of the default service for the given type
+        or None if no default is currently set for the given type."""
+        try:
+            return self._default_services[service_type]
+        except KeyError:
+            return None
 
     def set_service(self, service_type, alias, service_config):
         """Store a ServiceConfig in the keychain"""
@@ -204,8 +226,6 @@ class BaseProjectKeychain(BaseConfig):
             )
 
         if service_type not in self.services:
-            if service_type == "connected_app":
-                return DEFAULT_CONNECTED_APP
             self._raise_service_not_configured(service_type)
 
         if not alias:
@@ -223,7 +243,12 @@ class BaseProjectKeychain(BaseConfig):
         return service
 
     def _get_service(self, service_type, alias):
-        return self.services[service_type][alias]
+        try:
+            return self.services[service_type][alias]
+        except KeyError:
+            raise ServiceNotConfigured(
+                f"No service of type {service_type} configured with name: {alias}"
+            )
 
     def _validate_service(self, service_type, alias, config):
         if (
@@ -255,6 +280,10 @@ class BaseProjectKeychain(BaseConfig):
         if alias == service_type:
             raise ServiceNotValid(
                 "Service name cannot be the same as the service type."
+            )
+        if service_type == "connected_app" and alias == DEFAULT_CONNECTED_APP_NAME:
+            raise ServiceNotValid(
+                f"You cannot use the name {DEFAULT_CONNECTED_APP_NAME} for a connected app service. Please select a different name."
             )
 
     def _raise_service_not_configured(self, name):
