@@ -21,6 +21,7 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
 from cumulusci.core.utils import import_class
 from cumulusci.core.utils import import_global
 
@@ -356,6 +357,14 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         @throws: ServiceNotValid if no services of the given type are configured,
         or if no service of the given type has the current_alias
         """
+        if (
+            service_type == "connected_app"
+            and current_alias == DEFAULT_CONNECTED_APP_NAME
+        ):
+            raise CumulusCIException(
+                "You cannot rename the connected app service that is provided by CumulusCI."
+            )
+
         self._validate_service_type_and_alias(service_type, current_alias)
         if new_alias in self.services[service_type]:
             raise CumulusCIUsageError(
@@ -401,8 +410,13 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         @param alias the name of the service
         @raises ServiceNotConfigured if the service_type or alias are invalid
         """
-        self._validate_service_type_and_alias(service_type, alias)
+        if service_type == "connected_app" and alias == DEFAULT_CONNECTED_APP_NAME:
+            raise CumulusCIException(
+                f"Unable to remove connected app service: {DEFAULT_CONNECTED_APP_NAME}. "
+                "This connected app is provided by CumulusCI and cannot be removed."
+            )
 
+        self._validate_service_type_and_alias(service_type, alias)
         # remove the loaded service from the keychain
         del self.services[service_type][alias]
 
@@ -504,6 +518,10 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             f.write(encrypted)
 
     def _get_service(self, service_type, alias):
+        if service_type == "connected_app" and alias == DEFAULT_CONNECTED_APP_NAME:
+            # CumulusCI's default connected app is not encrypted, just return it
+            return self.config["services"]["connected_app"][DEFAULT_CONNECTED_APP_NAME]
+
         ConfigClass = ServiceConfig
         if "class_path" in self.project_config.config["services"][service_type]:
             class_path = self.project_config.config["services"][service_type][
@@ -598,6 +616,11 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         """Init self._default_services on the keychain so that
         calls to get_service() that do not pass an alias can
         return the default service for the given type"""
+
+        # set CumulusCI's default connected app as the default first
+        # so it will be overwritten if the user is using a different connected app
+        self._default_services["connected_app"] = DEFAULT_CONNECTED_APP_NAME
+
         global_default_services = Path(
             f"{self.global_config_dir}/{DEFAULT_SERVICES_FILENAME}"
         )
