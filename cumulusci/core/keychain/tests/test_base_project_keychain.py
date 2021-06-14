@@ -107,7 +107,8 @@ class TestBaseProjectKeychain:
             ).config == service_config.config
 
     def test_get_service__DEFAULT_CONNECTED_APP(self, keychain):
-        service = keychain.get_service("connected_app", "alias")
+        keychain._load_default_connected_app()
+        service = keychain.get_service("connected_app")
         assert service is DEFAULT_CONNECTED_APP
 
     def test_set_service__private_method(self, keychain, service_config):
@@ -116,6 +117,13 @@ class TestBaseProjectKeychain:
         keychain._set_service("github", alias, service_config)
         assert alias in keychain.services["github"].keys()
         assert keychain.services["github"][alias].config == service_config.config
+
+    @pytest.mark.parametrize(
+        "service_type,expected", [("github", "foo"), ("connected_app", None)]
+    )
+    def test_get_default_service_name(self, service_type, expected, keychain):
+        keychain._default_services = {"github": "foo"}
+        assert keychain.get_default_service_name(service_type) == expected
 
     def test_set_and_get_org(self, keychain, org_config):
         org_config.global_org = False
