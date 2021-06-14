@@ -179,8 +179,7 @@ class BaseProjectKeychain(BaseConfig):
         self._default_services["connected_app"] = DEFAULT_CONNECTED_APP_NAME
 
     def _load_default_connected_app(self):
-        """Load the default connected app as a first class service on the keychain.
-        Sets this as the default connected app service."""
+        """Load the default connected app as a first class service on the keychain."""
         if "connected_app" not in self.config["services"]:
             self.config["services"]["connected_app"] = {}
         self.config["services"]["connected_app"][
