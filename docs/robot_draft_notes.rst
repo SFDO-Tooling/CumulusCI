@@ -160,3 +160,182 @@ Example: Automated Browser Testing
    cci task run robot --org dev
    open log.html
 
+
+
+
+
+
+
+=================================================
+
+12 JUNE 2021 UPDATE
+
+Robot Tutorial examples
+
+Jason and I talked a bit about what we think would be the best first examples, and here’s the direction we thing we could go. This is a reasonable sequence, though it might make more sense to talk about creating keywords before getting too deep in the weeds with faker. 
+
+What a test looks like
+
+The goal is just to introduce the very basics of a robot test. Keep variable use to a minimum, explain how to import cci keywords, explain what a test case looks like and show an example of a cci keyword, and how to clean up data generated during the test. Unlike an earlier example I provided, this does not test any business logic behind the creation of an object, since that’s something that should be done in an apex test and we don’t want to encourage people to do that sort of testing from robot.
+
+Note: I left out the [teardown] step so that it can be addressed in a separate example
+
+*** Settings ***
+Resource        cumulusci/robotframework/Salesforce.robot
+
+*** Test Cases ***
+Create a contact using the API
+
+    # Create a new Contact
+    ${contact id}=   Salesforce Insert  Contact
+    ...  FirstName=Eleanor
+    ...  LastName=Rigby
+
+    # Get the new Contact and examine the contact object
+    &{contact}=      Salesforce Get  Contact  ${contact id}
+    Should be equal  ${contact}[FirstName]    Eleanor
+    Should be equal  ${contact}[LastName]     Rigby
+
+
+
+Removing test artifacts
+
+When we create an object via the API, that object will continue to live on in the org even after the test dies. We have a way to clean up objects which were created during a test run. This example shows how to do that in a suite teardown, we could also do it in a test teardown and describe the difference between the two.
+
+
+*** Settings ***
+Resource        cumulusci/robotframework/Salesforce.robot
+Suite Teardown  Delete session records
+
+*** Test Cases ***
+Create a contact using the API
+
+    # Create a new Contact
+    ${contact id}=   Salesforce Insert  Contact
+    ...  FirstName=Eleanor
+    ...  LastName=Rigby
+
+    # Get the new Contact and examine the contact object
+    &{contact}=      Salesforce Get  Contact  ${contact id}
+    Should be equal  ${contact}[FirstName]    Eleanor
+    Should be equal  ${contact}[LastName]     Rigby
+
+
+
+Using faker to generate fake data
+
+The goal here is to show that cci provides a way to avoid hard-coding test data. This uses get fake data to generate a name. The Get fake data keyword does much more than just return random strings, it generates strings in an appropriate format. We can ask it for a date, a phone number, a credit card number, and many other things, and the data it returns will be in the proper format. Faker can probably be covered in more depth later
+
+Since the name is going to be random,  we can’t hard-code an assertion on the name of the created contact. Instead, for illustrative purposes this just logs the contact name. This might be a good time to show the difference between log and log to console
+
+
+*** Settings ***
+Resource        cumulusci/robotframework/Salesforce.robot
+Suite Teardown  Delete session records
+
+*** Test Cases ***
+Create a contact with a generated name
+    [Teardown]       Delete session records
+    
+    # Generate a name to use for our contact
+    ${first name}=   Get fake data  first_name
+    ${last name}=    Get fake data  last_name
+
+    # Create a new Contact
+    ${contact id}=   Salesforce Insert  Contact
+    ...  FirstName=${first name}
+    ...  LastName=${last name}
+
+    # Get the new Contact and add their name to the log
+    &{contact}=      Salesforce Get  Contact  ${contact id}
+    Log  Contact name: ${contact}[Name]
+
+Creating custom keywords
+
+The current introduction mentions DSL - domain specific languages. The way to create these domain specific languages is through custom keywords. This example shows how we can move the creation of a test account into a keyword which we can then use as a setup in multiple tests. This example also shows how we can document our keywords through the [Documentation] test setting.
+
+We might want to have two simple test cases here, to illustrate that the same keyword can be shared. 
+
+*** Settings ***
+Resource        cumulusci/robotframework/Salesforce.robot
+Suite Teardown  Delete session records
+
+*** Test Cases ***
+Example of using a custom keyword in a setup step
+    [Setup]      Create a test contact
+
+    # Get the new Contact and add their name to the log
+    &{contact}=      Salesforce Get  Contact  ${contact id}
+    Log  Contact name: ${contact}[Name]
+
+*** Keywords ***
+Create a test contact
+    [Documentation]  Create a temporary contact and return contact object
+    [Return]         ${contact}
+
+    # Generate a name to use for our contact
+    ${first name}=   Get fake data  first_name
+    ${last name}=    Get fake data  last_name
+
+    # Create a new Contact
+    ${contact id}=   Salesforce Insert  Contact
+    ...  FirstName=${first name}
+    ...  LastName=${last name}
+
+    # Fetch the contact object to be returned
+    &{contact} = Salesforce Get Contact ${contact_id}
+
+
+
+This might be a good place to dive into the different characters used for variables ($, &, and a few others)
+
+Using a resource file
+
+Now that we have shown how to create a keyword that is reusable within a test file, we can show how to build up a body of custom keywords that can be shared project-wide
+
+The first step is to create a new file in robot/<project>/resources/<project>.robot (any name will do, this is the convention our teams use). We’ll move the keywords section to this file, but this file also has to import Salesforce.robot since that is where the faker stuff is defined
+
+In other words (and perhaps this is an important point to make): a resource file is just like a normal test suite file, except there are no tests.  
+
+
+*** Settings ***
+Resource        cumulusci/robotframework/Salesforce.robot
+
+*** Keywords ***
+Create a test contact
+    [Documentation]  Create a temporary contact and return the id
+    [Return]         ${contact id}
+
+    # Generate a name to use for our contact
+    ${first name}=   Get fake data  first_name
+    ${last name}=    Get fake data  last_name
+
+    # Create a new Contact
+    ${contact id}=   Salesforce Insert  Contact
+    ...  FirstName=${first name}
+    ...  LastName=${last name}
+
+
+
+The next step is to remove the keywords section from the test file and add in an import statement
+
+
+*** Settings ***
+Resource        cumulusci/robotframework/Salesforce.robot
+Resource        yourprojectname/resources/yourprojectname.robot
+
+Suite Teardown  Delete session records
+
+*** Test Cases ***
+Example of using a custom keyword in a setup step
+    [Setup]      Create a test contact
+
+    # Get the new Contact and add their name to the log
+    &{contact}=      Salesforce Get  Contact  ${contact id}
+    Log  Contact name: ${contact}[Name]
+
+
+First browser test
+
+Now that we know how to create objects using the API, we can dive into how to use those objects in a browser test. As a first example we just want to show how to open the browser and take a screenshot, since screenshots are important for debugging failures.
+
