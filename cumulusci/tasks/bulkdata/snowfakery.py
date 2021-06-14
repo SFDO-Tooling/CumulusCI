@@ -1,7 +1,7 @@
 import time
 import shutil
 from datetime import timedelta
-from cumulusci.core.utils import format_duration
+from cumulusci.core.utils import format_duration, process_bool_arg
 import cumulusci.core.exceptions as exc
 import typing as T
 
@@ -22,11 +22,14 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.tasks.bulkdata.load import LoadData
 from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateDataFromYaml
 
-from .parallel_worker_queue import WorkerQueueConfig, WorkerQueue
+from cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue import (
+    WorkerQueueConfig,
+    WorkerQueue,
+)
 
 
 BASE_BATCH_SIZE = 500  # FIXME
-ERROR_THRESHOLD = 3  # FIXME
+ERROR_THRESHOLD = 0  # TODO: Allow this to be a percentage of recent records instead
 
 
 def clip(value, min_=None, max_=None):
@@ -63,11 +66,8 @@ class OrgRecordCounts(threading.Thread):
     #       If both fail we'll have a problem. :(
     def run(self):
         while 1:
-            print("BEFORE")
             self.main_sobject_count = self.get_org_record_count_for_sobject()
-            print("MIDDLE")
             self.other_inaccurate_record_counts = self.get_org_record_counts()
-            print("AFTER")
             time.sleep(17)
 
     def get_org_record_count_for_sobject(self):
@@ -201,28 +201,36 @@ class Snowfakery(BaseSalesforceApiTask):
     }
 
     def _validate_options(self):
+        # TODO: Implement details from
+        #       https://salesforce.quip.com/toWbAjfKbtSF
         super()._validate_options()
         # long-term solution: psutil.cpu_count(logical=False)
         self.num_generator_workers = int(self.options.get("num_generator_workers", 4))
         self.num_uploader_workers = int(self.options.get("num_uploader_workers", 15))
-        # Do not store recipe due to MetaDeploy options freezing
-        recipe = Path(self.options.get("recipe"))
-        assert recipe.exists()
-        assert isinstance(self.options.get("num_records_tablename"), str)
-        self.num_records_tablename = self.options.get("num_records_tablename")
-        self.num_records = int(self.options.get("num_records"))
-        self.unified_logging = self.options.get("unified_logging")
-        subtask_type_name = (self.options.get("subtask_type") or "process").lower()
 
-        if subtask_type_name == "thread":
+        # Do not store recipe due to MetaDeploy options freezing
+        recipe = self.options.get("recipe")
+        if not recipe:
+            raise exc.TaskOptionsError("No recipe specified")
+        recipe = Path(recipe)
+        if not recipe.exists():
+            raise exc.TaskOptionsError(f"Cannot find recipe `{recipe}`")
+        self.num_records_tablename = self.options.get("num_records_tablename")
+        if not isinstance(self.options.get("num_records_tablename"), (str, type(None))):
+            raise exc.TaskOptionsError("num_records_tablename should be a string")
+        num_records = self.options.get("num_records")
+
+        self.num_records = int(num_records) if num_records is not None else None
+        self.unified_logging = process_bool_arg(self.options.get("unified_logging"))
+        subtask_type_name = self.options.get("subtask_type") or "process"
+        if subtask_type_name.lower() not in ("process", "thread"):
+            raise exc.TaskOptionsError("subtask_type should be 'process' or 'thread'")
+
+        if subtask_type_name.lower() == "thread":
             self.subtask_type = WorkerQueue.Thread
             self.logger.info("Snowfakery is using threads")
-        elif subtask_type_name == "process":
+        elif subtask_type_name.lower() == "process":
             self.subtask_type = WorkerQueue.Process
-        else:
-            raise exc.TaskOptionsError(f"No task type named {subtask_type_name}")
-
-        self.infinite_buffer = self.options.get("infinite_buffer")
 
     def _run_task(self):
         self.start_time = time.time()
@@ -240,7 +248,6 @@ class Snowfakery(BaseSalesforceApiTask):
             template_path,
         ):
             self.logger.info(f"Working directory is {tempdir}")
-            # os.system(f"code {tempdir}")  # FIXME
             assert tempdir.exists()
 
             try:
@@ -368,9 +375,8 @@ class Snowfakery(BaseSalesforceApiTask):
             self.log_failures()
 
         if upload_status.sets_failed > ERROR_THRESHOLD:
-            breakpoint()
             raise exc.BulkDataException(
-                f"Errors exceeded threshold: `{upload_status.sets_failed}` vs `{ERROR_THRESHOLD}`"
+                f"Errors exceeded threshold: {upload_status.sets_failed} vs {ERROR_THRESHOLD}"
             )
 
         for (
@@ -410,12 +416,12 @@ class Snowfakery(BaseSalesforceApiTask):
 
     def log_failures(self):
         return
-        # FIXME!!!!
-        failures = self.failures_dir.glob("*/exception.txt")
-        for failure in failures:
-            text = failure.read_text()
-            self.logger.info(f"Failure from worker: {failure}")
-            self.logger.info(text)
+        # Todo, V2.1: Log the failures better
+        # failures = self.failures_dir.glob("*/exception.txt")
+        # for failure in failures:
+        #     text = failure.read_text()
+        #     self.logger.info(f"Failure from worker: {failure}")
+        #     self.logger.info(text)
 
     def data_loader_opts(self, working_dir: Path):
         mapping_file = working_dir / "temp_mapping.yml"
@@ -567,109 +573,3 @@ class Snowfakery(BaseSalesforceApiTask):
         ]
         if tables_to_drop:
             metadata.drop_all(tables=tables_to_drop)
-
-
-def test():
-    u = UploadStatus(
-        base_batch_size=5000,
-        confirmed_count_in_org=20000,
-        sets_being_generated=5000,
-        sets_being_loaded=20000,
-        sets_queued=0,
-        target_count=30000,
-        upload_queue_backlog=1,
-        user_max_num_generator_workers=4,
-        user_max_num_uploader_workers=15,
-    )
-    assert u.total_needed_generators == 1, u.total_needed_generators
-
-    u = UploadStatus(
-        base_batch_size=5000,
-        confirmed_count_in_org=0,
-        sets_being_generated=5000,
-        sets_being_loaded=20000,
-        sets_queued=0,
-        target_count=30000,
-        upload_queue_backlog=1,
-        user_max_num_generator_workers=4,
-        user_max_num_uploader_workers=15,
-    )
-    assert u.total_needed_generators == 1, u.total_needed_generators
-
-    u = UploadStatus(
-        base_batch_size=5000,
-        confirmed_count_in_org=0,
-        sets_being_generated=5000,
-        sets_being_loaded=15000,
-        sets_queued=0,
-        target_count=30000,
-        upload_queue_backlog=1,
-        user_max_num_generator_workers=4,
-        user_max_num_uploader_workers=15,
-    )
-    assert u.total_needed_generators == 2, u.total_needed_generators
-
-    u = UploadStatus(
-        base_batch_size=5000,
-        confirmed_count_in_org=29000,
-        sets_being_generated=0,
-        sets_being_loaded=0,
-        sets_queued=0,
-        target_count=30000,
-        upload_queue_backlog=0,
-        user_max_num_generator_workers=4,
-        user_max_num_uploader_workers=15,
-    )
-    assert u.total_needed_generators == 1, u.total_needed_generators
-
-    u = UploadStatus(
-        base_batch_size=5000,
-        confirmed_count_in_org=4603,
-        sets_being_generated=5000,
-        sets_being_loaded=20000,
-        sets_queued=0,
-        target_count=30000,
-        upload_queue_backlog=0,
-        user_max_num_generator_workers=4,
-        user_max_num_uploader_workers=15,
-    )
-    assert u.total_needed_generators == 1, u.total_needed_generators
-
-    # TODO: In a situation like this, it is sometimes the case
-    #       that there are not enough records generated to upload.
-    #
-    #       Due to internal striping, the confirmed_count_in_org
-    #       could be correct and yet the org pauses while uploading
-    #       other sobjects for several minutes.
-    #
-    #       Need to get rid of the assumption that every record
-    #       that is created must be uploaded and instead make a
-    #       backlog that can be either uploaded or discarded.
-
-    #       Perhaps the upload queue should always be full and
-    #       throttling should always happen in the uploaders, not
-    #       the generators.
-    u = UploadStatus(
-        base_batch_size=500,
-        confirmed_count_in_org=39800,
-        sets_being_generated=0,
-        sets_being_loaded=5000,
-        sets_queued=0,
-        target_count=30000,
-        upload_queue_backlog=0,
-        user_max_num_generator_workers=4,
-        user_max_num_uploader_workers=15,
-    )
-    assert u.total_needed_generators == 1, u.total_needed_generators
-
-
-if __name__ == "__main__":
-    test()
-
-
-## IDEA:
-#
-# --finish_when "Accounts in org=10_000"
-# --finish_when "Accounts uploaded=10_000"#
-# --finish_when "Copies=10_000"
-#

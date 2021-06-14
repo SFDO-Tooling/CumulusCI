@@ -1,8 +1,4 @@
-""" Utilities for CumulusCI Core
-
-import_global: task class defn import helper
-process_bool_arg: determine true/false for a commandline arg
-decode_to_unicode: get unicode string from sf api """
+""" Utilities for CumulusCI Core"""
 
 from datetime import datetime, timedelta
 import copy

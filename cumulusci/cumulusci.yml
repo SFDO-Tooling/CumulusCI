@@ -453,6 +453,8 @@ tasks:
   snowfakery:
     class_path: cumulusci.tasks.bulkdata.snowfakery.Snowfakery
     group: Data Operations
+    options:
+      recipe: datasets/recipe.yml
   revert_managed_src:
     description: Reverts the changes from create_managed_src
     class_path: cumulusci.tasks.metadata.managed_src.RevertManagedSrc

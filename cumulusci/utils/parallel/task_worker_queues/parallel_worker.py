@@ -18,7 +18,12 @@ from cumulusci.core.config import (
 
 
 def get_annotations(cls: type):
-    "https://stackoverflow.com/questions/64309238/is-there-built-in-method-to-get-all-annotations-from-all-base-classes-in-pyt"
+    """
+    Get annotations from a class. Useful for checking if field
+    values for all fields have been filled in.
+
+    https://stackoverflow.com/questions/64309238/is-there-built-in-method-to-get-all-annotations-from-all-base-classes-in-pyt
+    """
     all_ann = [c.__annotations__ for c in cls.mro()[:-1]]
     all_ann_names = set()
     for aa in all_ann[::-1]:
@@ -46,7 +51,6 @@ class SharedConfig:
             assert hasattr(self, k), f"Did not specify {k}"
 
 
-# TODO: investigate dataclass-json
 class WorkerConfig(SharedConfig):
     connected_app: ServiceConfig
     working_dir: Path
