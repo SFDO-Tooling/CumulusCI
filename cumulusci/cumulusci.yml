@@ -315,7 +315,7 @@ tasks:
     class_path: cumulusci.tasks.github.CreateRelease
     group: GitHub
   gather_release_notes:
-    description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
+    description: Generates release notes by getting the latest release of each repository
     class_path: cumulusci.tasks.release_notes.task.AllGithubReleaseNotes
     group: GitHub
   github_release_notes:
