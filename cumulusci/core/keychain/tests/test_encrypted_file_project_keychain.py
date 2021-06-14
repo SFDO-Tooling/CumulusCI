@@ -192,7 +192,7 @@ class TestEncryptedFileProjectKeychain:
         github_service_path = Path(f"{keychain.global_config_dir}/services/github")
         self._write_file(
             Path(github_service_path / "alias.service"),
-            keychain._encrypt_config(BaseConfig({"foo": "bar"})).decode("utf-8"),
+            keychain._encrypt_config(BaseConfig({"name": "foo"})).decode("utf-8"),
         )
 
         del keychain.config["services"]
@@ -202,7 +202,7 @@ class TestEncryptedFileProjectKeychain:
             "global_config_dir",
             keychain.global_config_dir,
         ):
-            keychain._load_service_files()
+            keychain._load_service_files(constructor=ServiceConfig)
         github_service = keychain.get_service("github", "alias")
         assert "foo" in github_service.config
 

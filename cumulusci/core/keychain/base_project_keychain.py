@@ -1,5 +1,7 @@
 import sarge
 
+from typing import Dict
+
 from cumulusci.core.config import BaseConfig, ConnectedAppOAuthConfig, ScratchOrgConfig
 from cumulusci.core.exceptions import (
     CumulusCIException,
@@ -171,12 +173,39 @@ class BaseProjectKeychain(BaseConfig):
     def _load_default_services(self):
         pass
 
-    def set_service(self, service_type, alias, service_config, save=True):
-        """Store a ServiceConfig in the keychain"""
-        self._validate_service(service_type, alias, service_config)
-        self._set_service(service_type, alias, service_config, save=save)
+    def set_service(
+        self,
+        service_type: str,
+        alias: str,
+        service_config: Dict,
+        save: bool = True,
+        config_encrypted: bool = False,
+    ):
+        """Store a ServiceConfig in the keychain
+        @service_type - type of service
+        @alias - name that the service will be stored under
+        @service_config - dict of service attributes
+        @save - If true, indicates that the service
+        should be saved in some manner (subclasses implement).
+        @config_encrypted - Indicates whether or not the config
+        is already encrypted (as can be the case when reading
+        services back from an encrypted file).
+        """
+        # we only validate attributes when they aren't encrypted
+        # if we are setting a service from an encrypted file then it has already been validated
+        if not config_encrypted:
+            self._validate_service(service_type, alias, service_config)
+        self._set_service(
+            service_type,
+            alias,
+            service_config,
+            save=save,
+            config_encrypted=config_encrypted,
+        )
 
-    def _set_service(self, service_type, alias, service_config, save=True):
+    def _set_service(
+        self, service_type, alias, service_config, save=True, config_encrypted=False
+    ):
         if service_type not in self.services:
             self.services[service_type] = {}
             self._default_services[service_type] = alias

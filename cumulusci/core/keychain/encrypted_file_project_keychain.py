@@ -475,7 +475,9 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             self._migrate_services()
         self._load_service_files()
 
-    def _set_service(self, service_type, alias, service_config, save=True):
+    def _set_service(
+        self, service_type, alias, service_config, save=True, config_encrypted=False
+    ):
         if service_type not in self.services:
             self.services[service_type] = {}
             # set the first service of a given type as the global default
@@ -483,7 +485,9 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             if save:
                 self._save_default_service(service_type, alias, project=False)
 
-        encrypted = self._encrypt_config(service_config)
+        encrypted = service_config
+        if not config_encrypted:
+            encrypted = self._encrypt_config(service_config)
         self.services[service_type][alias] = encrypted
 
         if save:
@@ -572,7 +576,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         parts = env_service_name.split("__")
         return f"env-{parts[-1]}" if len(parts) > 1 else "env"
 
-    def _load_service_files(self, constructor=None) -> None:
+    def _load_service_files(self) -> None:
         """
         Load configured services onto the keychain.
         This method recursively goes through all subdirectories
@@ -583,14 +587,11 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             if item.suffix == ".service":
                 with open(item) as f:
                     config = f.read()
-                if "services" not in self.config:
-                    self.config["services"] = {}
                 name = item.name.replace(".service", "")
                 service_type = item.parent.name
-                if service_type not in self.config["services"]:
-                    self.config["services"][service_type] = {}
-                self.config["services"][service_type][name] = (
-                    constructor(config) if constructor else config
+
+                self.set_service(
+                    service_type, name, config, save=False, config_encrypted=True
                 )
 
     def _load_default_services(self) -> None:
