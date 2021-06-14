@@ -1,8 +1,9 @@
 from unittest import mock
 import pytest
-import os.path
+from pathlib import Path
+import tempfile
 
-from github3.pulls import ShortPullRequest
+
 
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import ServiceConfig
@@ -15,13 +16,17 @@ from cumulusci.tasks.salesforce.tests.util import create_task
 
 class TestAllGithubReleaseNotes:
     def test_run_AllGithubReleaseNotes_task(
-        self,
+        self,tmpdir
     ):
-        task = create_task(AllGithubReleaseNotes, options={"repos": [{"owner": "SalesforceFoundation", "repo": "NPSP"}]})
-        task.github = mock.Mock()
-        task.get_repo = mock.Mock()
-        task._run_task()
-        assert os.path.isfile("./github_release_notes.html")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            task = create_task(AllGithubReleaseNotes, options={"repos": [{"owner": "SalesforceFoundation", "repo": "NPSP"}]})
+            task.github = mock.Mock()
+            task.github.repository("SalesforceFoundation","NPSP").latest_release = mock.MagicMock()
+            task.github.repository("SalesforceFoundation","NPSP").latest_release.body = "NPSP"
+            task.get_repo = mock.Mock()
+            task._run_task()
+            assert Path(f"{tmpdir}/github_release_notes.html").is_file()
+
 
 class TestGithubReleaseNotes:
     @pytest.fixture
