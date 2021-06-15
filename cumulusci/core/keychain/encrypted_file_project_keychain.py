@@ -198,8 +198,13 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
     def _load_orgs(self) -> None:
         self._load_orgs_from_environment()
-        self._load_org_files(self.global_config_dir, GlobalOrg)
-        self._load_org_files(self.project_local_dir, LocalOrg)
+        # TODO: remove this once we complete work to fall back to not encrypting on linux
+        if (
+            os.environ.get("CUMULUSCI_KEYCHAIN_CLASS")
+            != "cumulusci.core.keychain.EnvironmentProjectKeychain"
+        ):
+            self._load_org_files(self.global_config_dir, GlobalOrg)
+            self._load_org_files(self.project_local_dir, LocalOrg)
 
     def _load_orgs_from_environment(self):
         for env_var_name, value in self._get_env():
@@ -487,7 +492,12 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             self._create_default_service_files()
             self._create_services_dir_structure()
             self._migrate_services()
-        self._load_service_files()
+        # TODO: remove this once we complete work to fall back to not encrypting on linux
+        if (
+            os.environ.get("CUMULUSCI_KEYCHAIN_CLASS")
+            != "cumulusci.core.keychain.EnvironmentProjectKeychain"
+        ):
+            self._load_service_files()
 
     def _set_service(
         self, service_type, alias, service_config, save=True, config_encrypted=False
