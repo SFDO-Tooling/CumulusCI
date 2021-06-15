@@ -4,6 +4,7 @@ import logging
 from contextlib import contextmanager
 import shutil
 import json
+
 from traceback import format_exc
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.config import TaskConfig
@@ -32,12 +33,17 @@ def get_annotations(cls: type):
 
 
 class SharedConfig:
+    # this is similar to a dataclass, but inheritance seems
+    # to work better than with a real dataclass. We don't
+    # use dataclasses yet anyhow.
+    """Configuration data shared by Workers and WorkerQueues"""
+
     task_class: type
     project_config: BaseProjectConfig
     org_config: OrgConfig
     failures_dir: Path
     redirect_logging: bool
-    connected_app: ServiceConfig  # can this be computed
+    connected_app: ServiceConfig
 
     def __init__(self, validate: bool = False, **kwargs):
         valid_property_names = get_annotations(self.__class__)
@@ -52,11 +58,11 @@ class SharedConfig:
 
 
 class WorkerConfig(SharedConfig):
-    connected_app: ServiceConfig
     working_dir: Path
     task_options: T.Mapping
 
     def as_dict(self):
+        """Convert to a dict of basic data structures/types, similar to JSON."""
         return {
             "task_class": dotted_class_name(self.task_class),
             "org_config_class": dotted_class_name(self.org_config.__class__),
@@ -77,6 +83,7 @@ class WorkerConfig(SharedConfig):
 
     @staticmethod
     def from_dict(worker_config_json):
+        """Read from a dict of basic data structures/types, similar to JSON."""
         org_config_class = import_global(worker_config_json["org_config_class"])
         org_config = org_config_class(*worker_config_json["org_config"])
 
@@ -107,14 +114,18 @@ def dotted_class_name(cls):
 
 
 class TaskWorker:
+    """This class runs in a sub-thread or sub-process"""
+
     def __init__(self, worker_dict):
         self.worker_config = WorkerConfig.from_dict(worker_dict)
         self.redirect_logging = worker_dict["redirect_logging"]
 
     def __getattr__(self, name):
+        """Easy access to names from the config"""
         return getattr(self.worker_config, name)
 
     def _make_task(self, task_class, logger):
+        """Instantiate a CCI task"""
         if "working_directory" in self.task_class.task_options:
             self.task_options["working_directory"] = self.worker_config.working_dir
         task_config = TaskConfig({"options": self.task_options})
@@ -130,6 +141,7 @@ class TaskWorker:
         )
 
     def save_exception(self, e):
+        """Write an exception to disk for later analysis"""
         exception_file = self.working_dir / "exception.txt"
         exception_file.write_text(format_exc())
 
@@ -182,6 +194,8 @@ def simplify(x):
 
 
 class ParallelWorker:
+    """Representation of the worker in the controller processs"""
+
     def __init__(self, spawn_class, worker_config: WorkerConfig):
         self.spawn_class = spawn_class
         self.worker_config = worker_config
@@ -190,9 +204,11 @@ class ParallelWorker:
         assert json.dumps(worker_config, default=simplify)
 
     def start(self):
+        """Simplify config to 'json'-like datastructure, and pass to sub-process"""
         dct = self.worker_config.as_dict()
         self._validate_worker_config_is_simple(dct)
 
+        # under the covers, Python will pass this as Pickles.
         self.process = self.spawn_class(
             target=run_task_in_worker, args=[dct], daemon=True
         )
@@ -207,7 +223,7 @@ class ParallelWorker:
     def terminate(self):
         # Note that this will throw an exception for threads
         # and should be used carefully for processes because
-        # they won't necesssarily cleanup tempdiirs and other
+        # they won't necesssarily cleanup tempdirs and other
         # resources.
         self.process.terminate()
 
@@ -216,6 +232,8 @@ class ParallelWorker:
 
 
 class SubprocessKeyChain(T.NamedTuple):
+    """A pretend, in-memory keychain that knows about connected apps and nothing else."""
+
     connected_app: T.Any = None
 
     def get_service(self, name):
