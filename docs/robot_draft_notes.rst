@@ -335,7 +335,82 @@ Example of using a custom keyword in a setup step
     Log  Contact name: ${contact}[Name]
 
 
-First browser test
+First browser test example
 
 Now that we know how to create objects using the API, we can dive into how to use those objects in a browser test. As a first example we just want to show how to open the browser and take a screenshot, since screenshots are important for debugging failures.
+
+This shows the absolute minimum in order to do that. It might be too simplistic, but I’ll leave this here as a foundational step. The most important thing to take away from this is that Open test browser comes from the Salesforce.robot file and it does much more than just open the browser. In addition to opening the browser, it logs the user into their org. It also will use the browser defined by the ${BROWSER} variable rather than the test having to declare what browser is to be used. ${BROWSER} defaults to “chrome” but it can be set to “firefox”. 
+
+This might be a good place to point out that variables can be set in cumulusci.yml, or on the command line. For example, to run the test using firefox you could use cci task run robot -o vars BROWSER:firefox ... 
+
+*** Settings ***
+Resource        cumulusci/robotframework/Salesforce.robot
+
+*** Test Cases ***
+Open the browser to our org
+    Open test browser
+    Capture page screenshot
+    Close browser
+
+A better browser example
+
+While the previous example shows how to open and close a browser, it doesn’t show the preferred way to do so. Typically one would open the browser in a suite setup, and close it in a suite teardown. We showed in the previous API tests the importance of deleting test assets created during the test run with Delete session records, but we also have a keyword that does that and also closes the browser.
+
+*** Settings ***
+Resource        cumulusci/robotframework/Salesforce.robot
+
+Suite Setup     Open test browser
+Suite Teardown  Delete records and close browser
+
+*** Test Cases ***
+Take screenshot of landing page
+    Capture page screenshot
+
+Combining the API and browser tests
+
+At some point we want to illustrate how the API keywords and the browser keywords can be used together. This example shows how we can build on the previous tests to create a contact, then open up the browser and see that the contact appears in a list of contacts.
+
+This might also be a good time to re-emphasize that the fake names are random. If the user runs this test twice, the screenshot should show different contact names each time.
+
+
+*** Settings ***
+Resource        cumulusci/robotframework/Salesforce.robot
+
+Suite Setup     Open test browser
+Suite Teardown  Delete records and close browser
+
+*** Test Cases ***
+Take screenshot of list of contacts
+    [Setup]  Create a test contact
+
+    Go to object home  Contact
+    Capture page screenshot
+
+*** Keywords ***
+Create a test contact
+    [Documentation]  Create a temporary contact and return the id
+    [Return]         ${contact id}
+
+    # Generate a name to use for our contact
+    ${first name}=   Get fake data  first_name
+    ${last name}=    Get fake data  last_name
+
+    # Create a new Contact
+    ${contact id}=   Salesforce Insert  Contact
+    ...  FirstName=${first name}
+    ...  LastName=${last name}
+
+Example of the “Run Keywords” keyword
+
+At some point in the discussion of setups and teardowns it might be good to mention how they are designed to call a single keyword, but there is a keyword (Run keywords (http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Run%20Keywords)) that itself can run other keywords. This makes it extremely easy to call multiple keywords in a single setup or teardown (or anywhere else). 
+
+This example doesn’t necessarily have to follow the previous example, it could be used anywhere after first talking about setups and teardowns. It’s important to emphasize that there must be two or more spaces after “AND”, and that “AND” must be capitalized. 
+
+This also illustrates how using the “...” notation can be used to make the code more readable.
+
+
+*** Settings ***
+Suite Setup     Run keywords
+...             Open test browser
+...             AND  create a test contact
 
