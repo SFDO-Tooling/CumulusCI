@@ -19,7 +19,7 @@ class TestAllGithubReleaseNotes:
     def test_run_AllGithubReleaseNotes_task(
         self,
     ):
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory():
             task = create_task(
                 AllGithubReleaseNotes,
                 options={"repos": [{"owner": "SalesforceFoundation", "repo": "NPSP"}]},
@@ -34,7 +34,7 @@ class TestAllGithubReleaseNotes:
             ).latest_release.body = "NPSP"
             task.github.markdown.return_value = "<h1>foo</h1>"
             task._run_task()
-            result = f"""<html><head><title>Release Notes</title></head><body><h1>Table of Contents</h1><ul><a href=#NPSP><li name="NPSP">NPSP</li></a></ul><br><hr><h1 id="NPSP" name="NPSP">NPSP</h1><hr>{task.github.markdown.return_value}<hr></body></html>"""
+            result = f"""<html><head><title>Release Notes</title></head><body><h1>Table of Contents</h1><ul><li><a href="#NPSP">NPSP</a></li></ul><br><hr><h1 id="NPSP">NPSP</h1><hr>{task.github.markdown.return_value}<hr></body></html>"""
             assert Path("github_release_notes.html").is_file()
             with open("github_release_notes.html", "r") as f:
                 assert f.read() == result
