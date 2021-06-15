@@ -55,21 +55,6 @@ class BaseProjectKeychain(BaseConfig):
     #               Orgs                  #
     #######################################
 
-    def _load_orgs(self):
-        pass
-
-    def _load_scratch_orgs(self):
-        """Creates all scratch org configs for the project in the keychain if
-        a keychain org doesn't already exist"""
-        current_orgs = self.list_orgs()
-        if not self.project_config.orgs__scratch:
-            return
-        for config_name in self.project_config.orgs__scratch.keys():
-            if config_name in current_orgs:
-                # Don't overwrite an existing keychain org
-                continue
-            self.create_scratch_org(config_name, config_name)
-
     def create_scratch_org(self, org_name, config_name, days=None, set_password=True):
         """Adds/Updates a scratch org config to the keychain from a named config"""
         scratch_config = getattr(self.project_config, f"orgs__scratch__{config_name}")
@@ -96,9 +81,6 @@ class BaseProjectKeychain(BaseConfig):
             org_config.config["scratch"] = True
         self._set_org(org_config, global_org, save=save)
 
-    def _set_org(self, org_config, global_org, save=True):
-        self.orgs[org_config.name] = org_config
-
     def set_default_org(self, name):
         """set the default org for tasks and flows by name"""
         org = self.get_org(name)
@@ -121,20 +103,6 @@ class BaseProjectKeychain(BaseConfig):
                 org_config.save()
         sfdx("force:config:set defaultusername=")
 
-    def get_org(self, name: str):
-        """retrieve an org configuration by name key"""
-        if name not in self.orgs:
-            self._raise_org_not_found(name)
-        org = self._get_org(name)
-        if org.keychain:
-            assert org.keychain is self
-        else:
-            org.keychain = self
-        return org
-
-    def _get_org(self, name):
-        return self.orgs.get(name)
-
     # This implementation of get_default_org, set_default_org, and unset_default_org
     # is currently kept for backwards compatibility, but EncryptedFileProjectKeychain
     # now stores the default elsewhere, and EnvironmentProjectKeychain doesn't actually
@@ -148,14 +116,14 @@ class BaseProjectKeychain(BaseConfig):
                 return org, org_config
         return None, None
 
-    def remove_org(self, name, global_org=None):
-        if name in self.orgs.keys():
-            self._remove_org(name, global_org)
-        self.cleanup_org_cache_dirs()
-
-    def _remove_org(self, name, global_org):
-        del self.orgs[name]
-        self._load_orgs()
+    def get_org(self, name: str):
+        """retrieve an org configuration by name key"""
+        org = self._get_org(name)
+        if org.keychain:
+            assert org.keychain is self
+        else:
+            org.keychain = self
+        return org
 
     def list_orgs(self):
         """list the orgs configured in the keychain"""
@@ -163,29 +131,44 @@ class BaseProjectKeychain(BaseConfig):
         orgs.sort()
         return orgs
 
-    def _raise_org_not_found(self, name):
-        raise OrgNotFound(f"Org named {name} was not found in keychain")
+    def remove_org(self, name, global_org=None):
+        if name in self.orgs.keys():
+            self._remove_org(name, global_org)
+        self.cleanup_org_cache_dirs()
+
+    def _load_orgs(self):
+        pass
+
+    def _load_scratch_orgs(self):
+        """Creates all scratch org configs for the project in the keychain if
+        a keychain org doesn't already exist"""
+        current_orgs = self.list_orgs()
+        if not self.project_config.orgs__scratch:
+            return
+        for config_name in self.project_config.orgs__scratch.keys():
+            if config_name in current_orgs:
+                # Don't overwrite an existing keychain org
+                continue
+            self.create_scratch_org(config_name, config_name)
+
+    def _set_org(self, org_config, global_org, save=True):
+        self.orgs[org_config.name] = org_config
+
+    def _get_org(self, name):
+        if name not in self.orgs:
+            raise OrgNotFound(f"Org named {name} was not found in keychain")
+        return self.orgs.get(name)
+
+    def _remove_org(self, name, global_org):
+        del self.orgs[name]
+        self._load_orgs()
 
     def cleanup_org_cache_dirs(self):
-        pass
+        pass  # pragma: no cover
 
     #######################################
     #              Services               #
     #######################################
-
-    def _load_services(self):
-        pass
-
-    def _load_default_services(self):
-        self._default_services["connected_app"] = DEFAULT_CONNECTED_APP_NAME
-
-    def _load_default_connected_app(self):
-        """Load the default connected app as a first class service on the keychain."""
-        if "connected_app" not in self.config["services"]:
-            self.config["services"]["connected_app"] = {}
-        self.config["services"]["connected_app"][
-            DEFAULT_CONNECTED_APP_NAME
-        ] = DEFAULT_CONNECTED_APP
 
     def get_default_service_name(self, service_type: str):
         """Returns the name of the default service for the given type
@@ -225,15 +208,6 @@ class BaseProjectKeychain(BaseConfig):
             config_encrypted=config_encrypted,
         )
 
-    def _set_service(
-        self, service_type, alias, service_config, save=True, config_encrypted=False
-    ):
-        if service_type not in self.services:
-            self.services[service_type] = {}
-            self._default_services[service_type] = alias
-
-        self.services[service_type][alias] = service_config
-
     def get_service(self, service_type, alias=None):
         """Retrieve a stored ServiceConfig from the keychain.
         If no alias is specified then the default service for
@@ -269,6 +243,44 @@ class BaseProjectKeychain(BaseConfig):
 
         return service
 
+    def list_services(self):
+        """list the services configured in the keychain"""
+        service_types = list(self.services.keys())
+        service_types.sort()
+
+        services = {}
+        for s_type in service_types:
+            if s_type not in services:
+                services[s_type] = []
+            names = list(self.services[s_type].keys())
+            names.sort()
+            for name in names:
+                services[s_type].append(name)
+        return services
+
+    def _load_services(self):
+        pass
+
+    def _load_default_services(self):
+        self._default_services["connected_app"] = DEFAULT_CONNECTED_APP_NAME
+
+    def _load_default_connected_app(self):
+        """Load the default connected app as a first class service on the keychain."""
+        if "connected_app" not in self.config["services"]:
+            self.config["services"]["connected_app"] = {}
+        self.config["services"]["connected_app"][
+            DEFAULT_CONNECTED_APP_NAME
+        ] = DEFAULT_CONNECTED_APP
+
+    def _set_service(
+        self, service_type, alias, service_config, save=True, config_encrypted=False
+    ):
+        if service_type not in self.services:
+            self.services[service_type] = {}
+            self._default_services[service_type] = alias
+
+        self.services[service_type][alias] = service_config
+
     def _get_service(self, service_type, alias):
         try:
             return self.services[service_type][alias]
@@ -282,7 +294,9 @@ class BaseProjectKeychain(BaseConfig):
             not self.project_config.services
             or service_type not in self.project_config.services
         ):
-            self._raise_service_not_valid(service_type)
+            raise ServiceNotValid(
+                f"Service named {alias} is not valid for this project"
+            )
 
         self._validate_service_alias(service_type, alias)
         self._validate_service_attributes(service_type, config)
@@ -318,24 +332,6 @@ class BaseProjectKeychain(BaseConfig):
         raise ServiceNotConfigured(
             f"Service named {name} is not configured for this project. Configured services are: {services}"
         )
-
-    def _raise_service_not_valid(self, name):
-        raise ServiceNotValid(f"Service named {name} is not valid for this project")
-
-    def list_services(self):
-        """list the services configured in the keychain"""
-        service_types = list(self.services.keys())
-        service_types.sort()
-
-        services = {}
-        for s_type in service_types:
-            if s_type not in services:
-                services[s_type] = []
-            names = list(self.services[s_type].keys())
-            names.sort()
-            for name in names:
-                services[s_type].append(name)
-        return services
 
     @property
     def cache_dir(self):

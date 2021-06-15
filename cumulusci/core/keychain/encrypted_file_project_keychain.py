@@ -273,7 +273,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             encrypted_config = self.orgs[name].encrypted_data
             global_org = self.orgs[name].global_org
         except KeyError:
-            raise OrgNotFound("Org with name '{name}' does not exist.")
+            raise OrgNotFound(f"Org with name '{name}' does not exist.")
 
         org = self._decrypt_config(
             OrgConfig,
@@ -492,6 +492,8 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
     def _set_service(
         self, service_type, alias, service_config, save=True, config_encrypted=False
     ):
+        if "services" not in self.config:
+            self.config["services"] = {}
         if service_type not in self.services:
             self.services[service_type] = {}
             # set the first service of a given type as the global default
@@ -564,6 +566,8 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         except ServiceNotConfigured:
             pass
         else:
+            # In *theory* it shouldn't be possible to have multiple values for an env var
+            # with the same name... you can never be too safe though.
             self.logger.warning(
                 f"Detected multiple services with the same name ({service_name}) in the environment. "
                 "Only one service with this name will be loaded. "

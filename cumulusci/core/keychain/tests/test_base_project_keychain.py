@@ -50,10 +50,15 @@ class TestBaseProjectKeychain:
         with pytest.raises(ServiceNotValid):
             keychain.set_service("github", "alias", ServiceConfig({"name": ""}))
 
-    def test_get_service_not_in_configuration(self, keychain):
+    def test_get_service__type_not_in_configuration(self, keychain):
         """This service is not listed as a service type in cumulusci.yml"""
         with pytest.raises(ServiceNotConfigured):
             keychain.get_service("not_in_configuration")
+
+    def test_get_service__alias_not_found(self, keychain):
+        """This service is not listed as a service type in cumulusci.yml"""
+        with pytest.raises(ServiceNotConfigured):
+            keychain.get_service("connected_app", "not-in-configuration")
 
     def test_get_service_not_configured(self, keychain):
         """This service is supported by CumulusCI but is not currently configured"""

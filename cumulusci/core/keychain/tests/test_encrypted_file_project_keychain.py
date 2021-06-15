@@ -13,6 +13,9 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import UniversalConfig
+from cumulusci.core.config.marketing_cloud_service_config import (
+    MarketingCloudServiceConfig,
+)
 from cumulusci.core.exceptions import ConfigError, ServiceNotValid
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import CumulusCIUsageError
@@ -66,6 +69,20 @@ class TestEncryptedFileProjectKeychain:
         keychain.set_org(org_config, True)
         assert list(keychain.orgs.keys()) == ["test"]
         assert keychain.get_org("test").config == org_config.config
+
+    def test_get_org__not_found(self, keychain):
+        org_name = "mythical"
+        error_message = f"Org with name '{org_name}' does not exist."
+        with pytest.raises(OrgNotFound, match=error_message):
+            keychain.get_org(org_name)
+
+    @mock.patch("cumulusci.core.keychain.encrypted_file_project_keychain.open")
+    def test_save_org_when_no_project_local_dir_present(
+        self, mock_open, keychain, org_config
+    ):
+        with mock.patch.object(EncryptedFileProjectKeychain, "project_local_dir", None):
+            keychain._save_encrypted_org("alias", org_config, global_org=False)
+        assert mock_open.call_count == 0
 
     def test_set_and_get_org__non_global_org_without_project_config_should_not_be_saved(
         self, key, org_config
@@ -177,14 +194,22 @@ class TestEncryptedFileProjectKeychain:
         assert keychain.get_default_org() == (None, None)
 
     def test_load_orgs_from_environment(self, keychain, org_config, env):
+        scratch_config = org_config.config.copy()
+        scratch_config["scratch"] = True
         with env:
             env.set(
-                f"{keychain.env_org_var_prefix}my_dev",
+                f"{keychain.env_org_var_prefix}dev",
+                json.dumps(scratch_config),
+            )
+            env.set(
+                f"{keychain.env_org_var_prefix}devhub",
                 json.dumps(org_config.config),
             )
             keychain._load_orgs_from_environment()
 
-        actual_config = keychain.get_org("my_dev")
+        actual_config = keychain.get_org("dev")
+        assert actual_config.config == scratch_config
+        actual_config = keychain.get_org("devhub")
         assert actual_config.config == org_config.config
 
     #######################################
@@ -205,9 +230,9 @@ class TestEncryptedFileProjectKeychain:
             "global_config_dir",
             keychain.global_config_dir,
         ):
-            keychain._load_service_files(constructor=ServiceConfig)
+            keychain._load_service_files()
         github_service = keychain.get_service("github", "alias")
-        assert "foo" in github_service.config
+        assert "foo" in github_service.config["name"]
 
     def test_load_services__from_env(self, keychain, env):
         service_config_one = ServiceConfig(
@@ -237,6 +262,7 @@ class TestEncryptedFileProjectKeychain:
         assert gh_service.config == service_config_two.config
 
     def test_load_services_from_env__same_name_throws_error(self, keychain, env):
+        keychain.logger = mock.Mock()
         service_prefix = EncryptedFileProjectKeychain.env_service_var_prefix
         service_config = ServiceConfig(
             {"name": "foo", "password": "1234", "token": "1234"}
@@ -244,8 +270,30 @@ class TestEncryptedFileProjectKeychain:
         with env:
             env.set(f"{service_prefix}github", json.dumps(service_config.config))
             env.set(f"{service_prefix}github", json.dumps(service_config.config))
-
             keychain._load_services_from_environment()
+
+        assert 1 == 1
+
+    def test_get_service__built_in_connected_app(self, keychain):
+        built_in_connected_app = keychain.get_service("connected_app")
+        assert built_in_connected_app is DEFAULT_CONNECTED_APP
+
+    def test_get_service__with_class_path(self, keychain, service_config):
+        encrypted = keychain._encrypt_config(service_config)
+        keychain.config["services"]["marketing_cloud"] = {"foo": encrypted}
+        mc_service = keychain._get_service("marketing_cloud", "foo")
+
+        assert isinstance(mc_service, MarketingCloudServiceConfig)
+
+    @mock.patch("cumulusci.core.keychain.encrypted_file_project_keychain.import_class")
+    def test_get_service__bad_class_path(self, import_class, keychain, service_config):
+        import_class.side_effect = AttributeError
+        encrypted = keychain._encrypt_config(service_config)
+        keychain.config["services"]["marketing_cloud"] = {"foo": encrypted}
+
+        error_message = "Unrecognized class_path for service: cumulusci.core.config.marketing_cloud_service_config.MarketingCloudServiceConfig"
+        with pytest.raises(CumulusCIException, match=error_message):
+            keychain._get_service("marketing_cloud", "foo")
 
     def test_get_service__does_not_exist(self, keychain, service_config):
         keychain.set_service("github", "alias", service_config)
@@ -847,6 +895,14 @@ class TestCleanupOrgCacheDir:
                     [mock.call(global_org_dir), mock.call(project_org_dir)],
                     any_order=True,
                 )
+
+    def test_cleanup_cache_dir__no_project_config(self, keychain):
+        keychain.project_config = None
+        with mock.patch(
+            "cumulusci.core.keychain.encrypted_file_project_keychain.rmtree"
+        ) as rmtree:
+            keychain.cleanup_org_cache_dirs()
+            assert not rmtree.mock_calls, rmtree.mock_calls
 
     def test_cleanup_cache_dir_nothing_to_cleanup(self, keychain):
         keychain.set_org(
