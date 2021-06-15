@@ -106,7 +106,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         return payload
 
     def _add_custom_inputs_to_payload(self, custom_inputs, payload):
-        for input_name, value in custom_inputs.items:
+        for input_name, value in custom_inputs.items():
             payload["input"].append({"key": input_name, "value": value})
 
     def _validate_response(self, deploy_info: dict):
