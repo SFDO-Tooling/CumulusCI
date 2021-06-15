@@ -28,7 +28,11 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         "package_zip_file": {
             "description": "Path to the package zipfile that will be deployed.",
             "required": True,
-        }
+        },
+        "custom_inputs": {
+            "description": "Specify custom inputs to the deployment task e.g. a company name. Takes a mapping from input key to input value.",
+            "required": False,
+        },
     }
 
     def _run_task(self):
