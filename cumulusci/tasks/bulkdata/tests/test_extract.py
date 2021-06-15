@@ -1000,7 +1000,7 @@ class TestExtractData:
                 assert output_opportunities[0].AccountId == "2"
                 assert output_opportunities[0].ContactId == "1"
 
-    def test_run_soql_filter_not_none(self):
+    def test_run_soql_filter(self):
         """This test case is to verify when soql_filter is specified with valid filter in the mapping yml"""
 
         base_path = os.path.dirname(__file__)
@@ -1055,7 +1055,7 @@ class TestExtractData:
                 sf_object="Contact",
                 fields={"Id": "Id", "Name": "Name"},
                 record_type="Business",
-                soql_filter="wHeRe Name = 'John Doe'",
+                soql_filter=" wHeRe Name = 'John Doe'",
             )
 
             soql = task._soql_for_mapping(mapping)
@@ -1086,7 +1086,7 @@ class TestExtractData:
             mapping = MappingStep(
                 sf_object="Contact",
                 fields={"Id": "Id", "Name": "Name"},
-                soql_filter="wHeRe Name = 'John Doe'",
+                soql_filter=" wHeRe Name = 'John Doe'",
             )
 
             soql = task._soql_for_mapping(mapping)

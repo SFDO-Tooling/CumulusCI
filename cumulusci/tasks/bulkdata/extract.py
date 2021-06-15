@@ -349,12 +349,13 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if not filter_clause:
             return soql
 
-        # If WHERE keyword is specified by user in mapping file, substitute it with empty string
+        # If WHERE keyword is specified in the maping file replace it with empty string.
+        # match WHERE keyword only at the start of the string and whitespace after it.
         if filter_clause:
             filter_clause = re.sub(
-                pattern=r"^\s*WHERE\s+",
+                pattern=r"^WHERE\s+",
                 repl="",
-                string=filter_clause,
+                string=filter_clause.strip(),
                 flags=re.IGNORECASE,
             )
 
