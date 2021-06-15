@@ -41,10 +41,14 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             self.logger.error(f"Package zip file not valid: {pkg_zip_file.name}")
             return
 
+        custom_inputs = self.options.get("custom_inputs")
+        if custom_inputs:
+            custom_inputs = json.loads(custom_inputs)
+
         with temporary_dir(chdir=False) as temp_dir:
             with zipfile.ZipFile(pkg_zip_file) as zf:
                 zf.extractall(temp_dir)
-                payload = self._construct_payload(Path(temp_dir))
+                payload = self._construct_payload(Path(temp_dir), custom_inputs)
 
         self.headers = {
             "Authorization": f"Bearer {self.mc_config.access_token}",
@@ -74,7 +78,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             self.poll_complete = True
             self._validate_response(result)
 
-    def _construct_payload(self, dir_path):
+    def _construct_payload(self, dir_path, custom_inputs=None):
         dir_path = Path(dir_path)
         assert dir_path.is_dir(), "package_directory must be a directory"
 
@@ -96,7 +100,14 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
                 with open(item, "r") as f:
                     payload["entities"][entity_name][entity_id] = json.load(f)
 
+        if custom_inputs:
+            self._add_custom_inputs_to_payload(custom_inputs, payload)
+
         return payload
+
+    def _add_custom_inputs_to_payload(self, custom_inputs, payload):
+        for input_name, value in custom_inputs.items:
+            payload["input"].append({"key": input_name, "value": value})
 
     def _validate_response(self, deploy_info: dict):
         """Checks for any errors present in the response to the deploy request.
