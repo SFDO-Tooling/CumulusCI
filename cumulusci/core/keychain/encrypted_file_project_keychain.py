@@ -151,6 +151,11 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
     def _validate_key(self):
         if not self.key:
+            if (
+                os.environ.get("CUMULUSCI_KEYCHAIN_CLASS")
+                == "cumulusci.core.keychain.EnvironmentProjectKeychain"
+            ):
+                return
             raise KeychainKeyNotFound("The keychain key was not found.")
         if len(self.key) != 16:
             raise ConfigError("The keychain key must be 16 characters long.")
