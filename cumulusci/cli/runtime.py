@@ -57,7 +57,7 @@ class CliRuntime(BaseCumulusCI):
                 key = random_alphanumeric_underscore(length=16)
             else:
                 logger.warning(
-                    "Unable to store CumulusCI encryption key."
+                    "Unable to store an encryption key. "
                     "Any orgs or services written to disk will not be encrypted."
                 )
 
