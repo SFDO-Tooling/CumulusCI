@@ -12,9 +12,10 @@ from cumulusci.core.utils import import_global
 
 from cumulusci.core.config import (
     UniversalConfig,
-    ServiceConfig,
     BaseProjectConfig,
     OrgConfig,
+    BaseConfig,
+    ConnectedAppOAuthConfig,
 )
 
 
@@ -32,29 +33,31 @@ def get_annotations(cls: type):
     return all_ann_names
 
 
-class SharedConfig:
-    # this is similar to a dataclass, but inheritance seems
-    # to work better than with a real dataclass. We don't
-    # use dataclasses yet anyhow.
-    """Configuration data shared by Workers and WorkerQueues"""
+from pydantic import BaseModel
 
+
+class SharedConfig(BaseModel):
     task_class: type
     project_config: BaseProjectConfig
     org_config: OrgConfig
     failures_dir: Path
     redirect_logging: bool
-    connected_app: ServiceConfig
+    connected_app: T.Optional[BaseConfig]  # send a list of services
+    outbox_dir: Path  # where do jobs go when they are done
 
-    def __init__(self, validate: bool = False, **kwargs):
-        valid_property_names = get_annotations(self.__class__)
-        for k, v in kwargs.items():
-            if validate and k not in valid_property_names:
-                raise AssertionError(
-                    f"Unknown property `{k}`. Should be one of {valid_property_names}"
-                )
-            setattr(self, k, v)
-        for k in self.__class__.__annotations__:
-            assert hasattr(self, k), f"Did not specify {k}"
+    class Config:
+        arbitrary_types_allowed = True
+
+    # def __init__(self, validate: bool = False, **kwargs):
+    #     valid_property_names = get_annotations(self.__class__)
+    #     for k, v in kwargs.items():
+    #         if validate and k not in valid_property_names:
+    #             raise AssertionError(
+    #                 f"Unknown property `{k}`. Should be one of {valid_property_names}"
+    #             )
+    #         setattr(self, k, v)
+    #     for k in self.__class__.__annotations__:
+    #         assert hasattr(self, k), f"Did not specify {k}"
 
 
 class WorkerConfig(SharedConfig):
@@ -63,12 +66,13 @@ class WorkerConfig(SharedConfig):
 
     def as_dict(self):
         """Convert to a dict of basic data structures/types, similar to JSON."""
+        # runs in the parent process
         return {
             "task_class": dotted_class_name(self.task_class),
             "org_config_class": dotted_class_name(self.org_config.__class__),
             "task_options": self.task_options,
             "working_dir": str(self.working_dir),
-            "output_dir": str(self.output_dir),
+            "outbox_dir": str(self.outbox_dir),
             "failures_dir": str(self.failures_dir),
             "org_config": (
                 self.org_config.config,
@@ -82,8 +86,9 @@ class WorkerConfig(SharedConfig):
         }
 
     @staticmethod
-    def from_dict(worker_config_json):
+    def from_dict(worker_config_json):  # todo: rename to `worker_config_dct`
         """Read from a dict of basic data structures/types, similar to JSON."""
+        # runs in the child process
         org_config_class = import_global(worker_config_json["org_config_class"])
         org_config = org_config_class(*worker_config_json["org_config"])
 
@@ -100,9 +105,9 @@ class WorkerConfig(SharedConfig):
             project_config=project_config,
             org_config=org_config,
             working_dir=Path(worker_config_json["working_dir"]),
-            output_dir=Path(worker_config_json["output_dir"]),
+            outbox_dir=Path(worker_config_json["outbox_dir"]),
             failures_dir=Path(worker_config_json["failures_dir"]),
-            connected_app=ServiceConfig(worker_config_json["connected_app"])
+            connected_app=ConnectedAppOAuthConfig(worker_config_json["connected_app"])
             if worker_config_json["connected_app"]
             else None,
             redirect_logging=worker_config_json["redirect_logging"],
@@ -158,8 +163,8 @@ class TaskWorker:
                 raise
 
             try:
-                self.output_dir.mkdir(exist_ok=True)
-                shutil.move(str(self.working_dir), str(self.output_dir))
+                self.outbox_dir.mkdir(exist_ok=True)
+                shutil.move(str(self.working_dir), str(self.outbox_dir))
                 logger.info("SubTask Success!")
             except BaseException as e:
                 logger.info(f"Failure detected: {e}")
@@ -210,7 +215,11 @@ class ParallelWorker:
 
         # under the covers, Python will pass this as Pickles.
         self.process = self.spawn_class(
-            target=run_task_in_worker, args=[dct], daemon=True
+            # think about and add documentation about why this
+            # was here.
+            target=run_task_in_worker,
+            args=[dct],
+            daemon=True,
         )
         self.process.start()
 

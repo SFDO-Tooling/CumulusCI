@@ -26,18 +26,17 @@ class WorkerQueueConfig(SharedConfig):
     name: str
     parent_dir: Path
     failures_dir: Path = None  # where to put failures
-    task_class: T.Callable  # what task class to use
+    task_class: T.Callable  # what task class to use  # probably redundant
     queue_size: int  # how many jobs can be waiting before we start rejecting
     num_workers: int  # how many simultaneous workers?
     spawn_class: T.Callable  # spawner, e.g. threading.Thread, mp.Process, Inline
-    outbox_dir: Path  # where do jobs go when they are done
     # callable to generate task options
     make_task_options: T.Callable[..., T.Mapping[str, T.Any]]
 
     def __init__(self, **kwargs):
         kwargs.setdefault("failures_dir", kwargs["parent_dir"] / "failures")
         kwargs.setdefault("outbox_dir", kwargs["parent_dir"] / "finished")
-        super().__init__(True, **kwargs)
+        super().__init__(**kwargs)
 
 
 class WorkerQueue:
@@ -85,22 +84,22 @@ class WorkerQueue:
         self.outbox_dir = self.parent_dir / f"{self.name}_outbox"
         self.outbox_dir.mkdir()
 
-    def feeds(self, other_queue: "WorkerQueue"):
-        "Establish the relatonship to the next queue"
+    def feeds_data_to(self, other_queue: "WorkerQueue"):
+        "Establish the relationship to the next queue"
         self.next_queue = other_queue
         try:
             # cleanup, but not a problem if it fails
             self.outbox_dir.rmdir()
         except OSError:
-            pass
+            pass  # add some logging here.
         # my output is your input.
-        self.outbox_dir = other_queue.inbox_dir
+        self.outbox_dir = self.config.outbox_dir = other_queue.inbox_dir
 
     @property
     def full(self):
         i_am_full = not self.free_space
-        upstream_is_full = bool(self.next_queue and self.next_queue.full)
-        return i_am_full or upstream_is_full
+        downstream_is_full = bool(self.next_queue and self.next_queue.full)
+        return i_am_full or downstream_is_full
 
     @property
     def free_space(self):
@@ -188,7 +187,6 @@ class WorkerQueue:
         worker_config = WorkerConfig(
             **self.config.__dict__,
             working_dir=working_dir,
-            output_dir=self.outbox_dir,
             task_options=task_options,
         )
 
@@ -214,7 +212,9 @@ class WorkerQueue:
             if worker.is_alive():
                 live_workers.append(worker)
             else:
-                dead_workers.append(worker)
+                dead_workers.append(
+                    worker
+                )  # TODO: Is any logging or checking helpful here?
 
         self.workers = live_workers
 
