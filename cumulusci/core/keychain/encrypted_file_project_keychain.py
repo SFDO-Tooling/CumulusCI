@@ -538,7 +538,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         if self.key:
             config = self._encrypt_config(service_config)
         else:
-            config = bytes(json.dumps(service_config.config), "utf-8")
+            config = pickle.dumps(service_config.config)
 
         self.services[service_type][alias] = config
 
