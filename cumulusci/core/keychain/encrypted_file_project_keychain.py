@@ -67,6 +67,7 @@ the default org for that project.
 
 class EncryptedFileProjectKeychain(BaseProjectKeychain):
     encrypted = True
+    env_service_alias_prefix = "env"
     env_service_var_prefix = "CUMULUSCI_SERVICE_"
     env_org_var_prefix = "CUMULUSCI_ORG_"
 
@@ -312,7 +313,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"org config ({name})",
             )
         else:
-            org = self._construct_config(OrgConfig, [name, self])
+            org = self._construct_config(OrgConfig, [config, name, self])
 
         org.global_org = global_org
         return org
@@ -560,6 +561,10 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             # CumulusCI's default connected app is not encrypted, just return it
             return self.config["services"]["connected_app"][DEFAULT_CONNECTED_APP_NAME]
 
+        if alias.startswith(self.env_service_alias_prefix):
+            # any environment based services aren't encrypted, just return it
+            return self.services[service_type][alias]
+
         ConfigClass = ServiceConfig
         if "class_path" in self.project_config.config["services"][service_type]:
             class_path = self.project_config.config["services"][service_type][
@@ -573,18 +578,23 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 )
 
         try:
-            encrypted_config = self.services[service_type][alias]
+            config = self.services[service_type][alias]
         except KeyError:
             raise ServiceNotConfigured(
                 f"No service of type {service_type} exists with the name: {alias}"
             )
 
-        return self._decrypt_config(
-            ConfigClass,
-            encrypted_config,
-            extra=[alias, self],
-            context=f"service config ({service_type}:{alias})",
-        )
+        if self.key:
+            org = self._decrypt_config(
+                ConfigClass,
+                config,
+                extra=[alias, self],
+                context=f"service config ({service_type}:{alias})",
+            )
+        else:
+            org = self._construct_config(ConfigClass, [config, alias, self])
+
+        return org
 
     def _load_services_from_environment(self):
         """Load any services specified by environment variables"""
