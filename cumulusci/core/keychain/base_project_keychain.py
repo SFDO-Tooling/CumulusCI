@@ -313,8 +313,12 @@ class BaseProjectKeychain(BaseConfig):
                 missing_required.append(atr)
 
         if missing_required:
+            if service_type == "github" and missing_required == ["token"]:
+                service_config.token = service_config.password
+                return
+
             raise ServiceNotValid(
-                f"Missing required attribute(s) for service: {missing_required}"
+                f"Missing required attribute(s) for {service_type} service: {missing_required}"
             )
 
     def _validate_service_alias(self, service_type, alias):
