@@ -54,7 +54,7 @@ jobs:
       - name: Run ci_feature flow
         run: |
           cd CumulusCI-Test
-          coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_feature --org scratch --delete-org
+          coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_feature --org scratch --delete-org --debug
       - name: Run ci_beta flow
         run: |
           cd CumulusCI-Test
