@@ -6,6 +6,8 @@ from collections import defaultdict
 from pathlib import Path
 
 from cumulusci.core.exceptions import DeploymentException
+
+# from cumulusci.core.utils import process_list_of_pairs_dict_arg
 from cumulusci.utils import temporary_dir
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from .base import BaseMarketingCloudTask
@@ -34,6 +36,13 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             "required": False,
         },
     }
+    """
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        self.custom_inputs = process_list_of_pairs_dict_arg(
+            self.options["custom_inputs"]
+        )
+    """
 
     def _run_task(self):
         pkg_zip_file = Path(self.options["package_zip_file"])
@@ -107,7 +116,17 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
     def _add_custom_inputs_to_payload(self, custom_inputs, payload):
         for input_name, value in custom_inputs.items():
-            payload["input"].append({"key": input_name, "value": value})
+            found = False
+            for input in payload["input"]:
+                if input["key"] == input_name:
+                    input["value"] = value
+                    found = True
+                    break
+
+            if not found:
+                raise DeploymentException(
+                    f"Custom input of type {input_name} not found in package."
+                )
 
     def _validate_response(self, deploy_info: dict):
         """Checks for any errors present in the response to the deploy request.
