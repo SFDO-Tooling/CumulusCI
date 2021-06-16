@@ -448,9 +448,7 @@ def test_schedule_push_org_query_get_org_error():
         options={
             "orgs": ORG,
             "version": VERSION,
-            "namespace": NAMESPACE,
             "start_time": None,
-            "batch_size": "200",
             "min_version": "1.1",
         },
     )
