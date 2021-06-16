@@ -109,9 +109,6 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         return cipher, iv
 
     def _encrypt_config(self, config):
-        if not self.key:
-            return config
-
         pickled = pickle.dumps(config.config, protocol=2)
         pickled = pad(pickled)
         cipher, iv = self._get_cipher()
@@ -162,7 +159,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         if self.key:
             org_bytes = self._encrypt_config(config)
         else:
-            org_bytes = bytes(json.dumps(config.config), "utf-8")
+            org_bytes = pickle.dumps(config.config)
 
         assert org_bytes is not None, "org_bytes should have a value"
         return org_bytes
@@ -246,7 +243,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         dir_path = Path(dirname)
         for item in sorted(dir_path.iterdir()):
             if item.suffix == ".org":
-                with open(item, "r") as f:
+                with open(item, "rb") as f:
                     config = f.read()
                 name = item.name.replace(".org", "")
                 if "orgs" not in self.config:
@@ -313,7 +310,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"org config ({name})",
             )
         else:
-            config = json.loads(config)  # convert from bytes to dict
+            config = pickle.loads(config)  # convert from bytes to dict
             org = self._construct_config(OrgConfig, [config, name, self])
 
         org.global_org = global_org
@@ -538,14 +535,15 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             if save:
                 self._save_default_service(service_type, alias, project=False)
 
-        encrypted = service_config
-        if not config_encrypted:
-            encrypted = self._encrypt_config(service_config)
+        if self.key:
+            config = self._encrypt_config(service_config)
+        else:
+            config = bytes(json.dumps(service_config.config), "utf-8")
 
-        self.services[service_type][alias] = encrypted
+        self.services[service_type][alias] = config
 
         if save:
-            self._save_encrypted_service(service_type, alias, encrypted)
+            self._save_encrypted_service(service_type, alias, config)
 
     def _save_encrypted_service(self, service_type, alias, encrypted):
         """Write out the encrypted service to disk."""
@@ -593,6 +591,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"service config ({service_type}:{alias})",
             )
         else:
+            config = pickle.loads(config)
             org = self._construct_config(ConfigClass, [config, alias, self])
 
         return org
@@ -608,20 +607,6 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         service from the environment on to the keychain"""
         service_config = ServiceConfig(json.loads(value))
         service_type, service_name = self._get_env_service_type_and_name(env_var_name)
-        try:
-            self.get_service(service_type, service_name)
-        except ServiceNotConfigured:
-            pass
-        else:
-            # In *theory* it shouldn't be possible to have multiple values for an env var
-            # with the same name... you can never be too safe though.
-            self.logger.warning(
-                f"Detected multiple services with the same name ({service_name}) in the environment. "
-                "Only one service with this name will be loaded. "
-                "If you would like all environment services to be loaded, ensure they have unique names. "
-                "For details on naming environment services see: TODO: link to docs"
-            )
-
         self.set_service(service_type, service_name, service_config, save=False)
 
     def _get_env_service_type_and_name(self, env_service_name):
