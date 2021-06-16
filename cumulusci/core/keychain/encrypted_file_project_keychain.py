@@ -9,6 +9,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CBC
 from pathlib import Path
+from shutil import rmtree
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
@@ -20,6 +21,7 @@ from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
 from cumulusci.core.utils import import_class
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
@@ -245,6 +247,28 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             f"Org information could not be found. Expected to find encrypted file at {self.project_local_dir}/{name}.org"
         )
 
+    def cleanup_org_cache_dirs(self):
+        """Cleanup directories that are not associated with a connected/live org."""
+
+        if not self.project_config or not self.project_config.cache_dir:
+            return
+        active_org_domains = set()
+        for org in self.list_orgs():
+            org_config = self.get_org(org)
+            domain = org_config.get_domain()
+            if domain:
+                active_org_domains.add(domain)
+
+        assert self.project_config.cache_dir, "Project cache dir does not exist."
+        assert self.global_config_dir, "Global config directory does not exist."
+
+        project_org_directories = (self.project_config.cache_dir / "orginfo").glob("*")
+        global_org_directories = (self.global_config_dir / "orginfo").glob("*")
+
+        for path in list(project_org_directories) + list(global_org_directories):
+            if path.is_dir() and path.name not in active_org_domains:
+                rmtree(path)
+
     #######################################
     #              Services               #
     #######################################
@@ -274,6 +298,14 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         @throws: ServiceNotValid if no services of the given type are configured,
         or if no service of the given type has the current_alias
         """
+        if (
+            service_type == "connected_app"
+            and current_alias == DEFAULT_CONNECTED_APP_NAME
+        ):
+            raise CumulusCIException(
+                "You cannot rename the connected app service that is provided by CumulusCI."
+            )
+
         self._validate_service_type_and_alias(service_type, current_alias)
         if new_alias in self.services[service_type]:
             raise CumulusCIUsageError(
@@ -319,8 +351,13 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         @param alias the name of the service
         @raises ServiceNotConfigured if the service_type or alias are invalid
         """
-        self._validate_service_type_and_alias(service_type, alias)
+        if service_type == "connected_app" and alias == DEFAULT_CONNECTED_APP_NAME:
+            raise CumulusCIException(
+                f"Unable to remove connected app service: {DEFAULT_CONNECTED_APP_NAME}. "
+                "This connected app is provided by CumulusCI and cannot be removed."
+            )
 
+        self._validate_service_type_and_alias(service_type, alias)
         # remove the loaded service from the keychain
         del self.services[service_type][alias]
 
@@ -412,6 +449,10 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             f.write(encrypted)
 
     def _get_service(self, service_type, alias):
+        if service_type == "connected_app" and alias == DEFAULT_CONNECTED_APP_NAME:
+            # CumulusCI's default connected app is not encrypted, just return it
+            return self.config["services"]["connected_app"][DEFAULT_CONNECTED_APP_NAME]
+
         ConfigClass = ServiceConfig
         if "class_path" in self.project_config.config["services"][service_type]:
             class_path = self.project_config.config["services"][service_type][
@@ -456,6 +497,11 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         """Init self._default_services on the keychain so that
         calls to get_service() that do not pass an alias can
         return the default service for the given type"""
+
+        # set CumulusCI's default connected app as the default first
+        # so it will be overwritten if the user is using a different connected app
+        self._default_services["connected_app"] = DEFAULT_CONNECTED_APP_NAME
+
         global_default_services = Path(
             f"{self.global_config_dir}/{DEFAULT_SERVICES_FILENAME}"
         )

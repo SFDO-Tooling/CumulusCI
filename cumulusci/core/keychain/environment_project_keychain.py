@@ -53,3 +53,6 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
     def _load_default_services(self):
         for service_type in self.services:
             self._default_services[service_type] = "env"
+
+    def cleanup_org_cache_dirs(self):
+        pass
