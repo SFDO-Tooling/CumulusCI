@@ -1,5 +1,4 @@
 from abc import abstractmethod
-import os
 import sys
 
 from cumulusci.core.config import UniversalConfig, BaseProjectConfig
@@ -81,13 +80,7 @@ class BaseCumulusCI(object):
 
     def _load_keychain(self):
 
-        if (
-            os.environ.get("CUMULUSCI_KEYCHAIN_CLASS")
-            == "cumulusci.core.keychain.EnvironmentProjectKeychain"
-        ):
-            keychain_key = None
-        else:
-            keychain_key = self.keychain_key if self.keychain_cls.encrypted else None
+        keychain_key = self.keychain_key if self.keychain_cls.encrypted else None
 
         if self.project_config is None:
             self.keychain = self.keychain_cls(self.universal_config, keychain_key)

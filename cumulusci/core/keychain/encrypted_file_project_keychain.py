@@ -108,36 +108,41 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         return cipher, iv
 
     def _encrypt_config(self, config):
+        if not self.key:
+            return config
+
         pickled = pickle.dumps(config.config, protocol=2)
         pickled = pad(pickled)
         cipher, iv = self._get_cipher()
         return base64.b64encode(iv + cipher.encryptor().update(pickled))
 
     def _decrypt_config(self, config_class, encrypted_config, extra=None, context=None):
-        if not encrypted_config:
-            if extra:
-                return config_class(None, *extra)
-            else:
-                return config_class()
-        encrypted_config = base64.b64decode(encrypted_config)
-        iv = encrypted_config[:16]
-        cipher, iv = self._get_cipher(iv)
-        pickled = cipher.decryptor().update(encrypted_config[16:])
-        try:
-            unpickled = pickle.loads(pickled, encoding="bytes")
-        except Exception:
-            raise KeychainKeyNotFound(
-                f"Unable to decrypt{' ' + context if context else ''}. "
-                "It was probably stored using a different CUMULUSCI_KEY."
-            )
-        # Convert bytes created in Python 2
-        config_dict = {}
-        for k, v in unpickled.items():
-            if isinstance(k, bytes):
-                k = k.decode("utf-8")
-            if isinstance(v, bytes):
-                v = v.decode("utf-8")
-            config_dict[k] = v
+        if self.key:
+            if not encrypted_config:
+                if extra:
+                    return config_class(None, *extra)
+                else:
+                    return config_class()
+            encrypted_config = base64.b64decode(encrypted_config)
+            iv = encrypted_config[:16]
+            cipher, iv = self._get_cipher(iv)
+            pickled = cipher.decryptor().update(encrypted_config[16:])
+            try:
+                unpickled = pickle.loads(pickled, encoding="bytes")
+            except Exception:
+                raise KeychainKeyNotFound(
+                    f"Unable to decrypt{' ' + context if context else ''}. "
+                    "It was probably stored using a different CUMULUSCI_KEY."
+                )
+            # Convert bytes created in Python 2
+            config_dict = {}
+            for k, v in unpickled.items():
+                if isinstance(k, bytes):
+                    k = k.decode("utf-8")
+                if isinstance(v, bytes):
+                    v = v.decode("utf-8")
+                config_dict[k] = v
+
         args = [config_dict]
         if extra:
             args += extra
@@ -150,13 +155,9 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         return config_class(*args)
 
     def _validate_key(self):
+        # the key can be None when we detect issues using keyring
         if not self.key:
-            if (
-                os.environ.get("CUMULUSCI_KEYCHAIN_CLASS")
-                == "cumulusci.core.keychain.EnvironmentProjectKeychain"
-            ):
-                return
-            raise KeychainKeyNotFound("The keychain key was not found.")
+            return
         if len(self.key) != 16:
             raise ConfigError("The keychain key must be 16 characters long.")
 
@@ -203,13 +204,8 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
     def _load_orgs(self) -> None:
         self._load_orgs_from_environment()
-        # TODO: remove this once we complete work to fall back to not encrypting on linux
-        if (
-            os.environ.get("CUMULUSCI_KEYCHAIN_CLASS")
-            != "cumulusci.core.keychain.EnvironmentProjectKeychain"
-        ):
-            self._load_org_files(self.global_config_dir, GlobalOrg)
-            self._load_org_files(self.project_local_dir, LocalOrg)
+        self._load_org_files(self.global_config_dir, GlobalOrg)
+        self._load_org_files(self.project_local_dir, LocalOrg)
 
     def _load_orgs_from_environment(self):
         for env_var_name, value in self._get_env():
@@ -256,7 +252,11 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         org_config.global_org = global_org
 
         org_name = org_config.name
-        encrypted_config = self._encrypt_config(org_config)
+
+        if self.key:
+            encrypted_config = self._encrypt_config(org_config)
+        else:
+            encrypted_config = org_config
 
         if global_org:
             org_config = GlobalOrg(encrypted_config)
@@ -493,16 +493,13 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
     def _load_services(self) -> None:
         """Load services (and migrate old ones if present)"""
         self._load_services_from_environment()
+
         if not (self.global_config_dir / "services").is_dir():
             self._create_default_service_files()
             self._create_services_dir_structure()
             self._migrate_services()
-        # TODO: remove this once we complete work to fall back to not encrypting on linux
-        if (
-            os.environ.get("CUMULUSCI_KEYCHAIN_CLASS")
-            != "cumulusci.core.keychain.EnvironmentProjectKeychain"
-        ):
-            self._load_service_files()
+
+        self._load_service_files()
 
     def _set_service(
         self, service_type, alias, service_config, save=True, config_encrypted=False
@@ -519,6 +516,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         encrypted = service_config
         if not config_encrypted:
             encrypted = self._encrypt_config(service_config)
+
         self.services[service_type][alias] = encrypted
 
         if save:

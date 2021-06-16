@@ -230,7 +230,7 @@ class BaseProjectKeychain(BaseConfig):
             self._raise_service_not_configured(service_type)
 
         if not alias:
-            alias = self._default_services.get(service_type)
+            alias = self.get_default_service_name(service_type)
             if not alias:
                 raise CumulusCIException(
                     f"No default service currently set for service type: {service_type}"
@@ -327,10 +327,10 @@ class BaseProjectKeychain(BaseConfig):
                 f"You cannot use the name {DEFAULT_CONNECTED_APP_NAME} for a connected app service. Please select a different name."
             )
 
-    def _raise_service_not_configured(self, name):
-        services = ", ".join(list(self.services))
+    def _raise_service_not_configured(self, service_type):
+        service_types = ", ".join(list(self.services))
         raise ServiceNotConfigured(
-            f"Service named {name} is not configured for this project. Configured services are: {services}"
+            f"Service type {service_type} is not configured for this project. Configured services are: {service_types}"
         )
 
     @property
