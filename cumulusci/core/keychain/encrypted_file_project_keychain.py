@@ -313,6 +313,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"org config ({name})",
             )
         else:
+            config = json.loads(config)  # convert from bytes to dict
             org = self._construct_config(OrgConfig, [config, name, self])
 
         org.global_org = global_org
