@@ -1,14 +1,17 @@
 import io
 import os
 import re
+from urllib.parse import urlparse
+from typing import Union
 
 from requests.adapters import HTTPAdapter
+from requests.exceptions import RetryError
 from requests.packages.urllib3.util.retry import Retry
 
 import github3
-from github3 import GitHub
-from github3 import login
-from github3.git import Tag, Reference
+from github3 import GitHub, login
+from github3.exceptions import ResponseError, TransportError
+from github3.git import Reference, Tag
 from github3.pulls import ShortPullRequest
 from github3.repos.repo import Repository
 from github3.session import GitHubSession
@@ -268,3 +271,48 @@ def get_version_id_from_tag(repo: Repository, tag_name: str) -> str:
             return version_id
 
     raise DependencyLookupError(f"Could not find version_id for tag {tag_name}")
+
+
+def format_github3_exception(exc: Union[ResponseError, TransportError]) -> str:
+    """Checks github3 exceptions for the most common GitHub authentication
+    issues, returning a user-friendly message if found.
+
+    @param exc: The exception to process
+    @returns: The formatted exception string
+    """
+    if type(exc) is TransportError:
+        # if RetryError check for 401
+        if type(exc.exception) is RetryError:
+            pass
+        return ""
+    else:
+        scope_error = check_github_scopes(exc)
+        return scope_error
+
+
+def check_github_scopes(exc: ResponseError) -> str:
+    """Parse github3 ResponseError headers for the correct scopes and return a warning if the user is missing."""
+    user_warning = ""
+
+    if exc.response.status_code not in (403, 404):
+        return user_warning
+
+    token_scopes = set(exc.response.headers["X-OAuth-Scopes"].split(", "))
+
+    # Gist POSTs don't return X-Accepted-OAuth-Scopes for some reason, so this
+    # string might be `None`, so we discard the empty string if so.
+    accepted_scopes = set(
+        str(exc.response.headers["X-Accepted-OAuth-Scopes"]).split(", ")
+    )
+    accepted_scopes.discard("")
+    request_url = urlparse(exc.response.url)
+    if not accepted_scopes and request_url.path == "/gists":
+        accepted_scopes = {"gist"}
+
+    missing_scopes = accepted_scopes.difference(token_scopes)
+    if missing_scopes:
+        user_warning = f"Your token may be missing the following scopes: {', '.join(missing_scopes)}\n"
+        # This assumes we're not on enterprise and 'api.github.com' == requestu_url.hostname
+        user_warning += "Visit https://github.com/settings/tokens to add them."
+
+    return user_warning
