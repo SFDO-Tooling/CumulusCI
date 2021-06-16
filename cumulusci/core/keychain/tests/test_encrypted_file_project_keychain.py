@@ -76,12 +76,22 @@ class TestEncryptedFileProjectKeychain:
         with pytest.raises(OrgNotFound, match=error_message):
             keychain.get_org(org_name)
 
+    def test_set_org__no_key_should_save_to_unencrypted_file(
+        self, keychain, org_config
+    ):
+        keychain.key = None
+        keychain.set_org(org_config)
+
+        filepath = Path(keychain.project_local_dir, "test.org")
+        with open(filepath, "rb") as f:
+            assert json.load(f) == org_config.config
+
     @mock.patch("cumulusci.core.keychain.encrypted_file_project_keychain.open")
     def test_save_org_when_no_project_local_dir_present(
         self, mock_open, keychain, org_config
     ):
         with mock.patch.object(EncryptedFileProjectKeychain, "project_local_dir", None):
-            keychain._save_encrypted_org("alias", org_config, global_org=False)
+            keychain._save_org("alias", org_config, global_org=False)
         assert mock_open.call_count == 0
 
     def test_set_and_get_org__non_global_org_without_project_config_should_not_be_saved(
@@ -814,10 +824,6 @@ class TestEncryptedFileProjectKeychain:
         keychain.key = "x" * 16
         with pytest.raises(KeychainKeyNotFound):
             keychain.get_org("test")
-
-    def test_validate_key__not_set(self, project_config):
-        with pytest.raises(KeychainKeyNotFound):
-            EncryptedFileProjectKeychain(project_config, None)
 
     def test_validate_key__wrong_length(self, project_config):
         with pytest.raises(ConfigError):

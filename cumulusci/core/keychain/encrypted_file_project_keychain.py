@@ -154,6 +154,18 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
         return config_class(*args)
 
+    def _get_config_bytes(self, config) -> bytes:
+        """Depending on if a key is present return
+        the bytes that we want to store on the keychain."""
+        org_bytes = None
+        if self.key:
+            org_bytes = self._encrypt_config(config)
+        else:
+            org_bytes = bytes(json.dumps(config.config), "utf-8")
+
+        assert org_bytes is not None, "org_bytes should have a value"
+        return org_bytes
+
     def _validate_key(self):
         # the key can be None when we detect issues using keyring
         if not self.key:
@@ -253,25 +265,28 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
         org_name = org_config.name
 
-        if self.key:
-            org_config = self._encrypt_config(org_config)
+        org_bytes = self._get_config_bytes(org_config)
 
         if global_org:
-            org_config = GlobalOrg(org_config)
+            org_config = GlobalOrg(org_bytes)
         else:
-            org_config = LocalOrg(org_config)
+            org_config = LocalOrg(org_bytes)
 
         self.orgs[org_name] = org_config
 
         if save:
             self._save_org(
                 org_name,
-                org_config.config,
+                org_config.data,
                 global_org,
-                encrypted=True if self.key else False,
             )
 
-    def _save_org(self, name, config, global_org, encrypted=True):
+    def _save_org(self, name, org_bytes, global_org):
+        """
+        @name - name of the org
+        @org_bytes - bytes-like objecte to write to disk
+        @global_org - whether or not this is a global org
+        """
         if global_org:
             filename = Path(f"{self.global_config_dir}/{name}.org")
         elif self.project_local_dir is None:
@@ -279,26 +294,26 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         else:
             filename = Path(f"{self.project_local_dir}/{name}.org")
 
-        contents = config
-        if not encrypted:
-            contents = json.dumps(config)
-
         with open(filename, "wb") as f_org:
-            f_org.write(contents)
+            f_org.write(org_bytes)
 
     def _get_org(self, name):
         try:
-            encrypted_config = self.orgs[name].encrypted_data
+            config = self.orgs[name].data
             global_org = self.orgs[name].global_org
         except KeyError:
             raise OrgNotFound(f"Org with name '{name}' does not exist.")
 
-        org = self._decrypt_config(
-            OrgConfig,
-            encrypted_config,
-            extra=[name, self],
-            context=f"org config ({name})",
-        )
+        if self.key:
+            org = self._decrypt_config(
+                OrgConfig,
+                config,
+                extra=[name, self],
+                context=f"org config ({name})",
+            )
+        else:
+            org = self._construct_config(OrgConfig, [name, self])
+
         org.global_org = global_org
         return org
 
@@ -861,10 +876,10 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
 
 class GlobalOrg(T.NamedTuple):
-    encrypted_data: bytes
+    data: bytes
     global_org: bool = True
 
 
 class LocalOrg(T.NamedTuple):
-    encrypted_data: bytes
+    data: bytes
     global_org: bool = False
