@@ -157,7 +157,7 @@ class ConnectServiceCommand(click.MultiCommand):
             validator_path = service_config.get("validator")
             if validator_path:
                 validator = import_global(validator_path)
-                validator(serv_conf)
+                serv_conf = validator(serv_conf)
 
             ConfigClass = ServiceConfig
             if "class_path" in service_config:
