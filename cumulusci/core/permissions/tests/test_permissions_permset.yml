@@ -1,0 +1,7 @@
+label: Our Permission Set
+license: None
+description: Black holes have hair.
+activation_required: False # Permission Set only.
+include:
+  - Financial.perms
+  - Security.perms

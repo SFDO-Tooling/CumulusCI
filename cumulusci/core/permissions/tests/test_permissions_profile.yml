@@ -1,0 +1,20 @@
+label: Our Profile for New Users
+license: None
+description: Life is full of surprises.
+category_groups: # Unique to Profile
+  - DataCategoryGroup1
+login_ip_ranges: # Unique to Profile
+  - start: 127.0.0.1
+    end: 127.0.0.1
+layouts:
+  Special_Object__c:
+    Security: Special_Object__c-Admin Layout # Unique to Profile
+    Compliance: Special_Object__c-Admin Layout # Unique to Profile
+    Organizational: Special_Object__c-Admin Layout # Unique to Profile
+include:
+  - Financial.schema
+  - Security.schema
+  - Unmanaged.schema
+schema:
+  Payment__c:
+    delete: False # Override included schema elements

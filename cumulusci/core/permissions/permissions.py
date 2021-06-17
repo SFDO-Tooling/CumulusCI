@@ -1,7 +1,11 @@
 from typing import List, Dict, Optional, Union
 from cumulusci.utils.yaml.model_parser import CCIModel
 
-from pydantic import Field, validator
+from pydantic import Field, IPvAnyAddress, validator
+
+#
+# Permissions Unit classes
+#
 
 
 class MetadataPermission(CCIModel):
@@ -51,7 +55,7 @@ class Schema(CCIModel):
 
 
 # Adding new root node to limit what is available. Is this too restrictive?
-class PermissionsRoot(CCIModel):
+class PermissionUnitRoot(CCIModel):
 
     apex_classes: List[str]
     user_permissions: List[str]
@@ -67,5 +71,47 @@ class PermissionsRoot(CCIModel):
     schema_: Schema = Field({}, alias="schema")
 
 
-class PermissionsFile(CCIModel):
-    __root__: Union[PermissionsRoot, None]
+class PermissionsUnitFile(CCIModel):
+    __root__: Union[PermissionUnitRoot, None]
+
+
+#
+# Permissions Unit classes
+#
+
+
+class PermissionsArtifactBase(CCIModel):
+    label: str
+    license: Optional[str]  # Support None?
+    description: Optional[str]
+
+    include: List[str]  # Should we verify these files exist?
+    # schema: Dict[str, SchemaSobject]# This will override what is listed in include.
+
+    schema_: Dict[str, SchemaSobject] = Field(
+        {}, alias="schema"
+    )  # This will override what is listed in the 'include' propert.
+
+
+class PermissionsPermSetRoot(PermissionsArtifactBase):
+    activation_required: Optional[bool]
+
+
+class PermissionsPermSetFile(CCIModel):
+    __root__: Union[PermissionsPermSetRoot, None]
+
+
+class PermissionIpRange(CCIModel):
+    start: IPvAnyAddress
+    end: IPvAnyAddress
+
+
+class PermissionsProfileRoot(PermissionsArtifactBase):
+
+    category_groups: Optional[List[str]]
+    login_ip_ranges: Optional[List[PermissionIpRange]]
+    layouts: Optional[Dict[str, Dict[str, str]]]
+
+
+class PermissionsProfileFile(CCIModel):
+    __root__: Union[PermissionsProfileRoot, None]
