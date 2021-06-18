@@ -180,7 +180,7 @@ class TestWorkerQueue:
             queue_size=3,
             num_workers=2,
         ) as q2:
-            q1.feeds(q2)
+            q1.feeds_data_to(q2)
             q1.push(name="a")
             assert not q1.full
             assert q1.free_workers == 1
@@ -236,7 +236,7 @@ class TestWorkerQueue:
             queue_size=3,
             num_workers=2,
         ) as q2:
-            q1.feeds(q2)
+            q1.feeds_data_to(q2)
             foo = tmpdir / "foo"
             foo.mkdir()
             assert not q1.full

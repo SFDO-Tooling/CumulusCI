@@ -1,5 +1,6 @@
 import time
 import threading
+import typing as T
 
 
 class OrgRecordCounts(threading.Thread):
@@ -7,9 +8,8 @@ class OrgRecordCounts(threading.Thread):
     main_sobject_count = 0
     other_inaccurate_record_counts = {}
 
-    # TODO: is self.sf mutable? I should probably get a copy of it instead.
-    def __init__(self, options, sf):
-        self.options = options
+    def __init__(self, main_sobject: str, sf):
+        self.main_sobject = main_sobject
         self.sf = sf
         super().__init__(daemon=True)
 
@@ -22,12 +22,13 @@ class OrgRecordCounts(threading.Thread):
             self.other_inaccurate_record_counts = self.get_org_record_counts()
             time.sleep(17)
 
-    def get_org_record_count_for_sobject(self):
+    def get_org_record_count_for_sobject(self) -> T.Optional[int]:
         "This lags quite a bit behind the real numbers."
-        sobject = self.options.get("num_records_tablename")
-        query = f"select count(Id) from {sobject}"
-        count = self.sf.query(query)["records"][0]["expr0"]
-        return int(count)
+        sobject = self.main_sobject
+        if sobject:
+            query = f"select count(Id) from {sobject}"
+            count = self.sf.query(query)["records"][0]["expr0"]
+            return int(count)
 
     def get_org_record_counts(self):
         data = self.sf.restful("limits/recordCount")

@@ -32,10 +32,13 @@ class WorkerQueueConfig(SharedConfig):
     spawn_class: T.Callable  # spawner, e.g. threading.Thread, mp.Process, Inline
     # callable to generate task options
     make_task_options: T.Callable[..., T.Mapping[str, T.Any]]
+    rename_directory: T.Optional[T.Callable]
 
     def __init__(self, **kwargs):
         kwargs.setdefault("failures_dir", kwargs["parent_dir"] / "failures")
-        kwargs.setdefault("outbox_dir", kwargs["parent_dir"] / "finished")
+        kwargs.setdefault(
+            "outbox_dir", Path(kwargs["parent_dir"], kwargs["name"] + "_outbox")
+        )
         super().__init__(**kwargs)
 
 
@@ -67,11 +70,17 @@ class WorkerQueue:
     ):
         self.config = queue_config
         # convenience access to names
-        self.__dict__.update(queue_config.__dict__)
-        self.create_dirs()
+        self._create_dirs()
         self.workers = []
 
-    def create_dirs(self):
+    def __getattr__(self, name):
+        """Convenience proxy for config values
+        note that local values will shadow them."""
+
+        return getattr(self.config, name)
+
+    def _create_dirs(self):
+        """Setup my local dirs"""
         # work arrives in here
         self.inbox_dir = self.parent_dir / f"{self.name}_inbox"
         self.inbox_dir.mkdir()
@@ -81,11 +90,10 @@ class WorkerQueue:
         self.inprogress_dir.mkdir()
 
         # And move it here when I am done.
-        self.outbox_dir = self.parent_dir / f"{self.name}_outbox"
         self.outbox_dir.mkdir()
 
     def feeds_data_to(self, other_queue: "WorkerQueue"):
-        "Establish the relationship to the next queue"
+        """Establish the relationship to the next queue"""
         self.next_queue = other_queue
         try:
             # cleanup, but not a problem if it fails
@@ -93,7 +101,7 @@ class WorkerQueue:
         except OSError:
             pass  # add some logging here.
         # my output is your input.
-        self.outbox_dir = self.config.outbox_dir = other_queue.inbox_dir
+        self.outbox_dir = other_queue.inbox_dir
 
     @property
     def full(self):
@@ -179,15 +187,29 @@ class WorkerQueue:
         self.inprogress_dir.mkdir(exist_ok=True)
         working_dir = Path(shutil.move(job_dir, self.inprogress_dir))
 
+        # Jobs can rename their directories in case they store metadata
+        # in directory names.
+        if self.rename_directory:
+            old_working_dir = working_dir
+            working_dir = self.rename_directory(old_working_dir)
+            shutil.move(old_working_dir, working_dir)
+
         # Individual jobs can override or add task options to the ones
         # generic to jobs in this queue. E.g. the number of records to
         # generate in a datagen context.
         task_options = self.make_task_options(working_dir)
 
+        worker_config_data = self.config.__dict__.copy()
+        worker_config_data.update(
+            {
+                "outbox_dir": self.outbox_dir,  # may have changed from default config
+                "working_dir": working_dir,
+                "task_options": task_options,
+            }
+        )
+
         worker_config = WorkerConfig(
-            **self.config.__dict__,
-            working_dir=working_dir,
-            task_options=task_options,
+            **worker_config_data,
         )
 
         worker = ParallelWorker(self.config.spawn_class, worker_config)

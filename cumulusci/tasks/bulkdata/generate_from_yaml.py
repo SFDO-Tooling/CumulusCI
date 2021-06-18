@@ -167,6 +167,6 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                 and Path(new_continuation_file.name).exists()
                 and self.working_directory
             ):
-                shutil.copyfile(
+                shutil.move(
                     new_continuation_file.name, self.default_continuation_file_path()
                 )
