@@ -310,7 +310,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"org config ({name})",
             )
         else:
-            config = pickle.loads(config)  # convert from bytes to dict
+            config = pickle.loads(config)
             org = self._construct_config(OrgConfig, [config, name, self])
 
         org.global_org = global_org
@@ -330,11 +330,6 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
         org_path.unlink()
         del self.orgs[name]
-
-    def _raise_org_not_found(self, name):
-        raise OrgNotFound(
-            f"Org information could not be found. Expected to find encrypted file at {self.project_local_dir}/{name}.org"
-        )
 
     def cleanup_org_cache_dirs(self):
         """Cleanup directories that are not associated with a connected/live org."""
