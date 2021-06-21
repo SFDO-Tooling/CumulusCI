@@ -8,11 +8,16 @@ from datetime import datetime, timedelta
 import copy
 import glob
 import pytz
+import re
 import time
 import typing as T
 import warnings
 
 from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
+
+URI_RE = re.compile(
+    r"(http|https):\/\/([\w\-_]+(?:(?:\.[\w\-_]+)+))([\w\-\.,@?^=%&:/~\+#]*[\w\-\@?^=%&/~\+#])?"
+)
 
 
 def import_global(path):
@@ -116,10 +121,18 @@ def process_list_of_pairs_dict_arg(arg):
         rc = {}
         for key_value in arg.split(","):
             subparts = key_value.split(":")
-            if len(subparts) == 2:
+            # Support URI/IRI in the argument
+            match = URI_RE.search(key_value)
+            if subparts[0] in rc:
+                raise TaskOptionsError(f"Var specified twice: {subparts[0]}")
+            elif match:
+                uri = match.group()
+                if "http" in subparts[0]:
+                    raise TaskOptionsError(f"No name given for URI: {uri}")
+                key = subparts[0]
+                rc[key] = uri
+            elif len(subparts) == 2:
                 key, value = subparts
-                if key in rc:
-                    raise TaskOptionsError(f"Var specified twice: {key}")
                 rc[key] = value
             else:
                 raise TaskOptionsError(f"Var is not a name/value pair: {key_value}")

@@ -2,11 +2,12 @@ import datetime
 import os
 import pytz
 import pytest
+import re
 import unittest
 
 from .. import utils
 
-from cumulusci.core.exceptions import ConfigMergeError
+from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 from cumulusci.utils import temporary_dir, touch
 
 
@@ -75,8 +76,8 @@ class TestUtils(unittest.TestCase):
             self.assertEqual([filename], utils.process_glob_list_arg("**/*.resource"))
 
     def test_decode_to_unicode(self):
-        self.assertEqual(u"\xfc", utils.decode_to_unicode(b"\xfc"))
-        self.assertEqual(u"\u2603", utils.decode_to_unicode(u"\u2603"))
+        self.assertEqual("\xfc", utils.decode_to_unicode(b"\xfc"))
+        self.assertEqual("\u2603", utils.decode_to_unicode("\u2603"))
         self.assertEqual(None, utils.decode_to_unicode(None))
 
 
@@ -116,3 +117,46 @@ class TestDictMerger(unittest.TestCase):
     def test_cant_merge_nonsense(self):
         with self.assertRaises(ConfigMergeError):
             utils.dictmerge(pytz, 2)
+
+
+class TestProcessListOfPairsDictArg:
+    def test_process_list_of_pairs_dict_arg__already_dict(self):
+        expected_dict = {"foo": "bar"}
+        actual_dict = utils.process_list_of_pairs_dict_arg(expected_dict)
+        assert actual_dict is expected_dict
+
+    def test_process_list_of_pairs_dict_arg__valid_values(self):
+        valid_values = "foo:bar,baz:boo"
+        actual_dict = utils.process_list_of_pairs_dict_arg(valid_values)
+        assert actual_dict == {"foo": "bar", "baz": "boo"}
+
+    def test_process_list_of_pairs_dict_arg__uri_values(self):
+        uri_value = "companyWebsite:https://www.salesforce.org:8080"
+        actual_dict = utils.process_list_of_pairs_dict_arg(uri_value)
+        assert actual_dict == {"companyWebsite": "https://www.salesforce.org:8080"}
+
+    def test_process_list_of_pairs_dict_arg__not_dict_or_string(self):
+        unsupported = ("foo", "bar")
+        error_message = re.escape(
+            f"Arg is not a dict or string ({type(unsupported)}): {unsupported}"
+        )
+        with pytest.raises(TaskOptionsError, match=error_message):
+            utils.process_list_of_pairs_dict_arg(unsupported)
+
+    def test_process_list_of_pairs_dict_arg__not_name_value_pair(self):
+        not_pair = "foo:bar,baz"
+        error_message = re.escape("Var is not a name/value pair: baz")
+        with pytest.raises(TaskOptionsError, match=error_message):
+            utils.process_list_of_pairs_dict_arg(not_pair)
+
+    def test_process_list_of_pairs_dict_arg__duplicate_value(self):
+        duplicate = "foo:bar,foo:baz"
+        error_message = re.escape("Var specified twice: foo")
+        with pytest.raises(TaskOptionsError, match=error_message):
+            utils.process_list_of_pairs_dict_arg(duplicate)
+
+    def test_process_list_of_pairs_dict_arg__no_name_for_uri(self):
+        values = "https://salesforce.org"
+        error_message = re.escape("No name given for URI: https://salesforce.org")
+        with pytest.raises(TaskOptionsError, match=error_message):
+            utils.process_list_of_pairs_dict_arg(values)

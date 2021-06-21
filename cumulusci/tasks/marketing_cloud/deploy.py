@@ -7,7 +7,7 @@ from pathlib import Path
 
 from cumulusci.core.exceptions import DeploymentException
 
-# from cumulusci.core.utils import process_list_of_pairs_dict_arg
+from cumulusci.core.utils import process_list_of_pairs_dict_arg
 from cumulusci.utils import temporary_dir
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from .base import BaseMarketingCloudTask
@@ -36,13 +36,12 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             "required": False,
         },
     }
-    """
+
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
         self.custom_inputs = process_list_of_pairs_dict_arg(
             self.options["custom_inputs"]
         )
-    """
 
     def _run_task(self):
         pkg_zip_file = Path(self.options["package_zip_file"])
@@ -50,14 +49,10 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             self.logger.error(f"Package zip file not valid: {pkg_zip_file.name}")
             return
 
-        custom_inputs = self.options.get("custom_inputs")
-        if custom_inputs:
-            custom_inputs = json.loads(custom_inputs)
-
         with temporary_dir(chdir=False) as temp_dir:
             with zipfile.ZipFile(pkg_zip_file) as zf:
                 zf.extractall(temp_dir)
-                payload = self._construct_payload(Path(temp_dir), custom_inputs)
+                payload = self._construct_payload(Path(temp_dir), self.custom_inputs)
 
         self.headers = {
             "Authorization": f"Bearer {self.mc_config.access_token}",
@@ -110,7 +105,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
                     payload["entities"][entity_name][entity_id] = json.load(f)
 
         if custom_inputs:
-            self._add_custom_inputs_to_payload(custom_inputs, payload)
+            payload = self._add_custom_inputs_to_payload(custom_inputs, payload)
 
         return payload
 
@@ -127,6 +122,8 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
                 raise DeploymentException(
                     f"Custom input of type {input_name} not found in package."
                 )
+
+        return payload
 
     def _validate_response(self, deploy_info: dict):
         """Checks for any errors present in the response to the deploy request.
