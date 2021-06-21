@@ -37,7 +37,6 @@ class TestPermissionsPermSetYml:
         assert validated.license == "None"  # Prolly need to convert to None
         assert validated.activation_required is False
         assert validated.description == "Black holes have hair."
-        assert validated.description == "Black holes have hair."
 
     def test_permissions_profile_yml(self):
         validated = PermissionsProfileFile.parse_from_yaml(
@@ -45,6 +44,10 @@ class TestPermissionsPermSetYml:
         )
 
         assert validated.description == "Life is full of surprises."
+        assert (
+            validated.layouts["Special_Object__c"]["Security"]
+            == "Special_Object__c-Admin Layout"
+        )
         assert validated.schema_["Payment__c"].delete is False
         assert validated.login_ip_ranges[0].start == IPv4Address("127.0.0.1")
 
@@ -60,6 +63,21 @@ description: Life is full of surprises.
 category_groups:
     - DataCategoryGroup1
 activation_required: False
+include:
+    - Financial.schema"""
+                    )
+                )
+            )
+
+    def test_unsupported_option_yml(self):
+        """Dont mix perm set properties with profile"""
+        with pytest.raises(ValidationError):
+            PermissionsProfileFile.parse_from_yaml(
+                StringIO(
+                    (
+                        """label: Profile
+licenses: None
+description: Life is full of surprises.
 include:
     - Financial.schema"""
                     )
