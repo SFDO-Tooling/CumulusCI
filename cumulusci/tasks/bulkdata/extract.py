@@ -359,7 +359,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 flags=re.IGNORECASE,
             )
 
-        # If WHERE keyword is alreayd in soql query(because of record type filter) add AND clause
+        # If WHERE keyword is already in soql query(because of record type filter) add AND clause
         if " WHERE " in soql:
             soql = f"{soql} AND {filter_clause}"
         else:
