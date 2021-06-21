@@ -830,6 +830,10 @@ class TestEncryptedFileProjectKeychain:
         with pytest.raises(ConfigError):
             EncryptedFileProjectKeychain(project_config, "1")
 
+    def test_validate_key__no_key(self, project_config):
+        keychain = EncryptedFileProjectKeychain(project_config, None)
+        assert keychain._validate_key() is None
+
     def test_construct_config(self, keychain):
         result = keychain._construct_config(
             None, [{"scratch": "scratch org"}, "org_name"]
