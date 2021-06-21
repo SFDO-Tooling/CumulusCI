@@ -214,9 +214,12 @@ class TestBaseProjectKeychain:
     def test_validate_service_attributes(self, keychain):
         # config is missing the "name" attribute
         service_config = ServiceConfig({"password": "test123"})
+        error_message = re.escape(
+            "Missing required attribute(s) for github service: ['name']"
+        )
         with pytest.raises(
             ServiceNotValid,
-            match=re.escape("Missing required attribute(s) for service: ['name']"),
+            match=error_message,
         ):
             keychain._validate_service_attributes("github", service_config)
 

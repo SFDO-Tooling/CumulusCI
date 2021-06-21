@@ -1,4 +1,5 @@
 import json
+import pickle
 import pytest
 import re
 import tempfile
@@ -84,7 +85,7 @@ class TestEncryptedFileProjectKeychain:
 
         filepath = Path(keychain.project_local_dir, "test.org")
         with open(filepath, "rb") as f:
-            assert json.load(f) == org_config.config
+            assert pickle.load(f) == org_config.config
 
     @mock.patch("cumulusci.core.keychain.encrypted_file_project_keychain.open")
     def test_save_org_when_no_project_local_dir_present(

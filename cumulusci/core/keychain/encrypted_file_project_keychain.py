@@ -535,7 +535,12 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             if save:
                 self._save_default_service(service_type, alias, project=False)
 
-        if self.key:
+        # If the config is already encrypted coming in
+        # (like when were setting services after loading from an encrypted file)
+        # then we don't need to do anything.
+        if self.key and config_encrypted:
+            config = service_config
+        elif self.key and not config_encrypted:
             config = self._encrypt_config(service_config)
         else:
             config = pickle.dumps(service_config.config)
