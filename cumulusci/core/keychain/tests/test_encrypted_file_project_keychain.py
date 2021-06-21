@@ -258,7 +258,7 @@ class TestEncryptedFileProjectKeychain:
                 json.dumps(service_config_one.config),
             )
             env.set(
-                f"{keychain.env_service_var_prefix}github__other",
+                f"{keychain.env_service_var_prefix}github__OTHER",
                 json.dumps(service_config_two.config),
             )
             with pytest.raises(ServiceNotConfigured):
@@ -269,7 +269,7 @@ class TestEncryptedFileProjectKeychain:
         gh_service = keychain.get_service("github")
         # this also confirms the default service is set appropriately
         assert gh_service.config == service_config_one.config
-        gh_service = keychain.get_service("github", "env-other")
+        gh_service = keychain.get_service("github", "env-OTHER")
         assert gh_service.config == service_config_two.config
 
     def test_load_services_from_env__same_name_throws_error(self, keychain, env):
