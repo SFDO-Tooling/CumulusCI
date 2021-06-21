@@ -3,7 +3,7 @@ import functools
 
 import pytest
 
-from cumulusci.core.tests.test_config import (
+from cumulusci.core.config.tests.test_config import (
     DummyContents,
     DummyGithub,
     DummyRelease,
@@ -29,6 +29,7 @@ def github():
             repo_url: https://github.com/SFDO-Tooling/CumulusCI-Test
         dependencies:
             - github: https://github.com/SFDO-Tooling/DependencyRepo
+              password_env_name: DEP_PW
     """
             ),
             "unpackaged/pre": {"first": {}, "second": {}},

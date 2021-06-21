@@ -10,8 +10,7 @@ import click
 from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.utils import cleanup_org_cache_dirs
-from cumulusci.oauth.salesforce import CaptureSalesforceOAuth
+from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import parse_api_datetime
 from .runtime import pass_runtime
@@ -108,6 +107,46 @@ def org_browser(runtime, org_name, path, url_only):
     org_config.save()
 
 
+def setup_client(runtime, login_url=None, sandbox=None) -> OAuth2Client:
+    """Provides an OAuth2Client for Connecting and Org"""
+    connected_app = runtime.keychain.get_service("connected_app")
+    base_uri = "https://{}.salesforce.com"
+    base_uri = login_url or base_uri.format("test" if sandbox else "login")
+    auth_uri = base_uri + "/services/oauth2/authorize"
+    token_uri = base_uri + "/services/oauth2/token"
+
+    sf_client_config = OAuth2ClientConfig(
+        client_id=connected_app.client_id,
+        client_secret=connected_app.client_secret,
+        redirect_uri=connected_app.callback_url,
+        auth_uri=auth_uri,
+        token_uri=token_uri,
+        scope="web full refresh_token",
+    )
+    return OAuth2Client(sf_client_config)
+
+
+def connect_org_to_keychain(
+    client: OAuth2Client, runtime, global_org: bool, org_name: str
+) -> None:
+    """Use the given client to authorize into an org, and save the
+    new OrgConfig to the keychain."""
+    oauth_dict = client.auth_code_flow(prompt="login")
+
+    global_org = global_org or runtime.project_config is None
+    org_config = OrgConfig(oauth_dict, org_name, runtime.keychain, global_org)
+    org_config.load_userinfo()
+    org_config._load_orginfo()
+    if org_config.organization_sobject["TrialExpirationDate"] is None:
+        org_config.config["expires"] = "Persistent"
+    else:
+        org_config.config["expires"] = parse_api_datetime(
+            org_config.organization_sobject["TrialExpirationDate"]
+        ).date()
+
+    org_config.save()
+
+
 @org.command(
     name="connect", help="Connects a new org's credentials using OAuth Web Flow"
 )
@@ -118,7 +157,6 @@ def org_browser(runtime, org_name, path, url_only):
 @click.option(
     "--login-url",
     help="If set, login to this hostname.",
-    default="https://login.salesforce.com",
 )
 @click.option(
     "--default",
@@ -134,36 +172,14 @@ def org_browser(runtime, org_name, path, url_only):
 def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
     runtime.check_org_overwrite(org_name)
 
-    if "lightning.force.com" in login_url:
+    if login_url and "lightning.force.com" in login_url:
         raise click.UsageError(
             "Connecting an org with a lightning.force.com URL does not work. "
             "Use the my.salesforce.com version instead"
         )
 
-    connected_app = runtime.keychain.get_service("connected_app")
-    if sandbox:
-        login_url = "https://test.salesforce.com"
-
-    oauth_capture = CaptureSalesforceOAuth(
-        client_id=connected_app.client_id,
-        client_secret=connected_app.client_secret,
-        callback_url=connected_app.callback_url,
-        auth_site=login_url,
-        scope="web full refresh_token",
-    )
-    oauth_dict = oauth_capture()
-    global_org = global_org or runtime.project_config is None
-    org_config = OrgConfig(oauth_dict, org_name, runtime.keychain, global_org)
-    org_config.load_userinfo()
-    org_config._load_orginfo()
-    if org_config.organization_sobject["TrialExpirationDate"] is None:
-        org_config.config["expires"] = "Persistent"
-    else:
-        org_config.config["expires"] = parse_api_datetime(
-            org_config.organization_sobject["TrialExpirationDate"]
-        ).date()
-
-    org_config.save()
+    sf_client = setup_client(runtime, login_url, sandbox)
+    connect_org_to_keychain(sf_client, runtime, global_org, org_name)
 
     if default and runtime.project_config is not None:
         runtime.keychain.set_default_org(org_name)
@@ -360,7 +376,7 @@ def org_list(runtime, json_flag, plain):
         bool_cols=["Default"],
     )
     persistent_table.echo(plain)
-    cleanup_org_cache_dirs(runtime.keychain, runtime.project_config)
+    runtime.keychain.cleanup_org_cache_dirs()
 
 
 @org.command(

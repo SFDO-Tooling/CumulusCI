@@ -57,7 +57,7 @@ def split_repo_url(url: str) -> Tuple[str, str]:
         name = name[:-4]
 
     owner = url_parts[-2]
-    if "git@github.com" in url:  # ssh url
-        owner = owner.split(":")[-1]
+    # if it's an ssh url we might need to get rid of git@github.com
+    owner = owner.split(":")[-1]
 
     return (owner, name)

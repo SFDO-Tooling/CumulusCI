@@ -9,25 +9,17 @@ from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
 from unittest import mock
+from contextlib import contextmanager
 
-from cumulusci.core.config import OrgConfig, ScratchOrgConfig
+from cumulusci.cli import cci
+from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.exceptions import ScratchOrgException
 
 from .. import org
 from .utils import run_click_command
-
-
-@pytest.fixture(autouse=True)
-def cleanup_org_cache_dirs():
-    cleanup_org_cache_dirs = mock.Mock(name="cleanup_org_cache_dirs")
-    with mock.patch(
-        "cumulusci.cli.org.cleanup_org_cache_dirs", cleanup_org_cache_dirs
-    ), mock.patch(
-        "cumulusci.core.utils.cleanup_org_cache_dirs", cleanup_org_cache_dirs
-    ):
-        yield cleanup_org_cache_dirs
 
 
 class TestOrgCommands:
@@ -90,17 +82,22 @@ class TestOrgCommands:
         click_echo.assert_called_once_with(start_url)
         org_config.save.assert_called_once_with()
 
-    @mock.patch("cumulusci.cli.org.CaptureSalesforceOAuth")
+    @mock.patch("cumulusci.cli.org.OAuth2Client")
     @responses.activate
-    def test_org_connect(self, oauth):
-        oauth.return_value = mock.Mock(
-            return_value={
-                "instance_url": "https://instance",
-                "access_token": "BOGUS",
-                "id": "OODxxxxxxxxxxxx/user",
-            }
-        )
+    def test_org_connect(self, oauth2client):
+        client_instance = mock.Mock()
+        client_instance.auth_code_flow.return_value = {
+            "instance_url": "https://instance",
+            "access_token": "BOGUS",
+            "id": "OODxxxxxxxxxxxx/user",
+        }
+        oauth2client.return_value = client_instance
         runtime = mock.Mock()
+        runtime.keychain.get_service.return_value = mock.Mock(
+            client_id="asdfasdf",
+            client_secret="asdfasdf",
+            callback_url="http://localhost:8080/callback",
+        )
         responses.add(
             method="GET",
             url="https://instance/services/oauth2/userinfo",
@@ -125,7 +122,7 @@ class TestOrgCommands:
             runtime=runtime,
             org_name="test",
             sandbox=False,
-            login_url="https://login.salesforce.com",
+            login_url=None,
             default=True,
             global_org=False,
         )
@@ -136,17 +133,76 @@ class TestOrgCommands:
         assert org_config.expires == "Persistent"
         runtime.keychain.set_default_org.assert_called_once_with("test")
 
-    @mock.patch("cumulusci.cli.org.CaptureSalesforceOAuth")
-    @responses.activate
-    def test_org_connect_expires(self, oauth):
-        oauth.return_value = mock.Mock(
-            return_value={
-                "instance_url": "https://instance",
-                "access_token": "BOGUS",
-                "id": "OODxxxxxxxxxxxx/user",
-            }
-        )
+    @contextmanager
+    def mock_main_context(self):
+        with mock.patch(  # side effects break other tests
+            "cumulusci.cli.cci.init_logger", mock.Mock()
+        ), mock.patch(
+            "cumulusci.cli.cci.get_tempfile_logger",
+            mock.MagicMock(return_value=(None, "")),
+        ), mock.patch(
+            "cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock()
+        ):
+            yield
+
+    @mock.patch("cumulusci.cli.org.connect_org_to_keychain")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_org_connect__sandbox(self, cli_runtime, connect_to_keychain):
+        mocked_connected_app = mock.Mock()
+        mocked_connected_app.client_id = "foo"
+        mocked_connected_app.client_secret = "bar"
+        mocked_connected_app.callback_url = "https://foo.bar.baz/"
+
         runtime = mock.Mock()
+        runtime.keychain.get_service.return_value = mocked_connected_app
+
+        cli_runtime.return_value = runtime
+
+        with self.mock_main_context():
+            cci.main(["cci", "org", "connect", "blah", "--sandbox"])
+
+        actual_client_config = connect_to_keychain.call_args_list[0][0][0].client_config
+        assert actual_client_config.auth_uri.startswith("https://test.salesforce.com/")
+        assert actual_client_config.token_uri.startswith("https://test.salesforce.com/")
+
+    @mock.patch("cumulusci.cli.org.connect_org_to_keychain")
+    @mock.patch("cumulusci.cli.cci.CliRuntime")
+    def test_org_connect__prod_default(self, cli_runtime, connect_to_keychain):
+        mocked_connected_app = mock.Mock()
+        mocked_connected_app.client_id = "foo"
+        mocked_connected_app.client_secret = "bar"
+        mocked_connected_app.callback_url = "https://foo.bar.baz/"
+
+        runtime = mock.Mock()
+        runtime.keychain.get_service.return_value = mocked_connected_app
+
+        cli_runtime.return_value = runtime
+
+        with self.mock_main_context():
+            cci.main(["cci", "org", "connect", "blah"])
+
+        actual_client_config = connect_to_keychain.call_args_list[0][0][0].client_config
+        assert actual_client_config.auth_uri.startswith("https://login.salesforce.com/")
+        assert actual_client_config.token_uri.startswith(
+            "https://login.salesforce.com/"
+        )
+
+    @mock.patch("cumulusci.cli.org.OAuth2Client")
+    @responses.activate
+    def test_org_connect_expires(self, oauth2client):
+        client_instance = mock.Mock()
+        client_instance.auth_code_flow.return_value = {
+            "instance_url": "https://instance",
+            "access_token": "BOGUS",
+            "id": "OODxxxxxxxxxxxx/user",
+        }
+        oauth2client.return_value = client_instance
+        runtime = mock.Mock()
+        runtime.keychain.get_service.return_value = mock.Mock(
+            client_id="asdfasdf",
+            client_secret="asdfasdf",
+            callback_url="http://localhost:8080/callback",
+        )
         responses.add(
             method="GET",
             url="https://instance/services/oauth2/userinfo",
@@ -172,7 +228,7 @@ class TestOrgCommands:
             runtime=runtime,
             org_name="test",
             sandbox=True,
-            login_url="https://test.salesforce.com",
+            login_url=None,
             default=True,
             global_org=False,
         )
@@ -193,7 +249,7 @@ class TestOrgCommands:
                 runtime=runtime,
                 org_name="test",
                 sandbox=True,
-                login_url="https://login.salesforce.com",
+                login_url=None,
                 default=True,
                 global_org=False,
             )
@@ -363,7 +419,7 @@ class TestOrgCommands:
         org_config.save.assert_called_once_with()
 
     @mock.patch("cumulusci.cli.org.CliTable")
-    def test_org_list(self, cli_tbl, cleanup_org_cache_dirs):
+    def test_org_list(self, cli_tbl):
         runtime = mock.Mock()
         runtime.universal_config.cli__plain_output = None
         org_configs = {
@@ -497,7 +553,7 @@ class TestOrgCommands:
 
         assert scratch_table_call in cli_tbl.call_args_list
         assert connected_table_call in cli_tbl.call_args_list
-        cleanup_org_cache_dirs.assert_called_once()
+        runtime.keychain.cleanup_org_cache_dirs.assert_called_once()
 
     @mock.patch("cumulusci.cli.org.click.echo")
     def test_org_list__json(self, echo):

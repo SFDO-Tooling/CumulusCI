@@ -6,7 +6,7 @@ class BaseConfig(object):
 
     defaults = {}
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, keychain=None):
         if config is None:
             self.config = {}
         else:

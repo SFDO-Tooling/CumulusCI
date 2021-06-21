@@ -37,8 +37,15 @@ class Robot(BaseSalesforceTask):
         "test": {
             "description": "Run only tests matching name patterns.  Can be comma separated and use robot wildcards like *"
         },
-        "include": {"description": "Includes tests with a given tag"},
-        "exclude": {"description": "Excludes tests with a given tag"},
+        "include": {"description": "Includes tests with a given tag pattern"},
+        "exclude": {
+            "description": "Excludes tests with a given tag pattern. "
+            "Excluded tests will not appear in the logs and reports."
+        },
+        "skip": {
+            "description": "Do not run tests with the given tag pattern. Similar to 'exclude', "
+            "but skipped tests will appear in the logs and reports  with the status of SKIP."
+        },
         "vars": {
             "description": "Pass values to override variables in the format VAR1:foo,VAR2:bar"
         },
@@ -92,7 +99,15 @@ class Robot(BaseSalesforceTask):
     def _init_options(self, kwargs):
         super(Robot, self)._init_options(kwargs)
 
-        for option in ("test", "include", "exclude", "vars", "sources", "suites"):
+        for option in (
+            "test",
+            "include",
+            "exclude",
+            "vars",
+            "sources",
+            "suites",
+            "skip",
+        ):
             if option in self.options:
                 self.options[option] = process_list_arg(self.options[option])
         if "vars" not in self.options:
@@ -147,7 +162,7 @@ class Robot(BaseSalesforceTask):
     def _run_task(self):
         self.options["vars"].append("org:{}".format(self.org_config.name))
         options = self.options["options"].copy()
-        for option in ("test", "include", "exclude", "xunit", "name"):
+        for option in ("test", "include", "exclude", "xunit", "name", "skip"):
             if option in self.options:
                 options[option] = self.options[option]
         options["variable"] = self.options.get("vars") or []

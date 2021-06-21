@@ -178,10 +178,12 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         }
         task = CreateConnectedApp(self.project_config, self.task_config)
         task._connect_service()
-        connected_app = self.project_config.keychain.get_service("connected_app")
-        self.assertEqual(connected_app.callback_url, "http://localhost:8080/callback")
-        self.assertEqual(connected_app.client_id, task.client_id)
-        self.assertEqual(connected_app.client_secret, task.client_secret)
+        connected_app = self.project_config.keychain.get_service(
+            "connected_app", self.label
+        )
+        assert connected_app.callback_url == "http://localhost:8080/callback"
+        assert connected_app.client_id == task.client_id
+        assert connected_app.client_secret == task.client_secret
 
     def test_validate_service_overwrite_false(self):
         """attempting to overwrite connected_app service without overwrite = True fails"""
@@ -192,7 +194,7 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         }
         self.project_config.keychain.set_service(
             "connected_app",
-            "test_alias",
+            self.label,
             ServiceConfig(
                 {
                     "callback_url": "http://callback",

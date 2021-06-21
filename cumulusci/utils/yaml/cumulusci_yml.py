@@ -139,6 +139,7 @@ class ServiceAttribute(CCIDictModel):
 
 class Service(CCIDictModel):
     description: str = None
+    class_path: Optional[str]
     attributes: Dict[str, ServiceAttribute] = None
     validator: PythonClassPath = None
 

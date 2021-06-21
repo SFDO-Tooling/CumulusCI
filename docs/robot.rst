@@ -683,8 +683,8 @@ The Robot Framework command-line test runner supports more than 50
 <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#command-line-options-for-test-execution>`_.
 To make the ``robot`` task simpler to use, we've only exposed a few of the
 command-line options at the task level. For example, the ``robot`` task
-options ``include`` and ``exclude`` directly map to the Robot CLI
-options ``--include`` and ``--exclude``. These options
+options ``include``, ``exclude``, and ``skip`` directly map to the Robot CLI
+options ``--include``, ``--exclude``, and ``--skip``. These options
 are specified the same way as task options elsewhere in the CumulusCI framework,
 using either command-line options as shown above or by including them in the ``options``
 section of a task configuration in ``cumulusci.yml``::

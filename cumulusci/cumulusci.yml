@@ -117,6 +117,10 @@ tasks:
     description: Execute a series of REST API requests in a single call
     class_path: cumulusci.tasks.salesforce.composite.CompositeApi
     group: Data Operations
+  create_community:
+    description: Creates a Community in the target org using the Connect API
+    class_path: cumulusci.tasks.salesforce.CreateCommunity
+    group: Salesforce Communities
   connected_app:
     description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
     class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
@@ -125,10 +129,6 @@ tasks:
       label: CumulusCI
       connect: True
       overwrite: False
-  create_community:
-    description: Creates a Community in the target org using the Connect API
-    class_path: cumulusci.tasks.salesforce.CreateCommunity
-    group: Salesforce Communities
   create_network_member_groups:
     description: Creates NetworkMemberGroup records which grant access to an Experience Site (Community) for specified Profiles or Permission Sets
     class_path: cumulusci.tasks.salesforce.network_member_group.CreateNetworkMemberGroups
@@ -183,6 +183,10 @@ tasks:
     options:
       path: src
     group: Salesforce Metadata
+  deploy_marketing_cloud_package:
+    class_path: cumulusci.tasks.marketing_cloud.deploy.MarketingCloudDeployTask
+    description: Deploys a package zip file to a Marketing Cloud tenant via the Marketing Cloud Package manager API.
+    group: Marketing Cloud
   deploy_pre:
     description: Deploys all metadata bundles under unpackaged/pre/
     class_path: cumulusci.tasks.salesforce.DeployBundles
@@ -309,6 +313,10 @@ tasks:
   github_release:
     description: Creates a Github release for a given managed package version number
     class_path: cumulusci.tasks.github.CreateRelease
+    group: GitHub
+  gather_release_notes:
+    description: Generates release notes by getting the latest release of each repository
+    class_path: cumulusci.tasks.release_notes.task.AllGithubReleaseNotes
     group: GitHub
   github_release_notes:
     description: Generates release notes by parsing pull request bodies of merged pull requests between two tags
@@ -1038,6 +1046,7 @@ flows:
           ancestor_id: latest_github_release
           version_base: latest_github_release
           version_type: minor
+          force_upload: True
       2:
         task: github_release
         options:
@@ -1045,6 +1054,7 @@ flows:
           version_id: ^^create_package_version.subscriber_package_version_id
           dependencies: ^^create_package_version.dependencies
           package_type: 2GP
+          tag_prefix: $project_config.project__git__prefix_beta
       3:
         task: github_release_notes
         ignore_failure: True # Attempt to generate release notes but don't fail build
@@ -1157,7 +1167,7 @@ flows:
 
 services:
   connected_app:
-    description: A Connected App is required to connect to and run commands against persistent orgs. See http://cumulusci.readthedocs.io/en/latest/tutorial.html#creating-a-connected-app for more info.
+    description: A Connected App is required to connect to and run commands against persistent orgs. See https://cumulusci.readthedocs.io/en/latest/connected_orgs.html#use-a-custom-connected-app for more info.
     attributes:
       callback_url:
         description: Callback URL configured on the Connected App
@@ -1187,6 +1197,13 @@ services:
         description: The email address to used by Github tasks when an operation requires an email address.
         required: True
     validator: cumulusci.core.github.validate_service
+  marketing_cloud:
+    description: Configure a connection to a Marketing Cloud instance
+    class_path: cumulusci.core.config.marketing_cloud_service_config.MarketingCloudServiceConfig
+    attributes:
+      oauth2_client:
+        description: The name of the oauth2_client service with which to establish a connection to Marketing Cloud
+        required: True
   metaci:
     description: Connect with a MetaCI site to run builds of projects from this repository
     attributes:
@@ -1207,6 +1224,24 @@ services:
         required: True
       token:
         description: Your API token to the MetaDeploy site (get from SITE_URL/admin/authtoken/token)
+        required: True
+  oauth2_client:
+    description: Holds information pertaining to a single OAuth2 client
+    attributes:
+      client_id:
+        description: The client Id
+        required: True
+      client_secret:
+        description: The client secret
+        required: True
+      auth_uri:
+        description: The URI for where users are directed to login
+        required: True
+      token_uri:
+        description: The URI for where we request an access token
+        required: True
+      callback_url:
+        description: The URL that the auth server will callback to after authentication of the user
         required: True
 
 project:

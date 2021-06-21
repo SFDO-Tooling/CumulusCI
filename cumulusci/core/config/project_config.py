@@ -358,7 +358,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             self.keychain, owner or self.repo_owner, repo or self.repo_name
         )
 
-    def _get_repo(self):
+    def get_repo(self):
         repo = self.get_github_api(self.repo_owner, self.repo_name).repository(
             self.repo_owner, self.repo_name
         )
@@ -371,7 +371,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     # TODO: These methods are duplicative with `find_latest_release()`
     def get_latest_tag(self, beta=False):
         """Query Github Releases to find the latest production or beta tag"""
-        repo = self._get_repo()
+        repo = self.get_repo()
         if not beta:
             try:
                 release = repo.latest_release()
@@ -402,7 +402,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def get_previous_version(self):
         """Query GitHub releases to find the previous production release"""
-        repo = self._get_repo()
+        repo = self.get_repo()
         release = find_previous_release(repo, self.project__git__prefix_release)
         if release is not None:
             return LooseVersion(self.get_version_for_tag(release.tag_name))
@@ -451,8 +451,13 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             config = json.load(f)
         return config
 
-    def get_tag_for_version(self, version):
-        if "(Beta" in version:
+    def get_tag_for_version(self, version, prefix=None):
+        """Given a version, returns the appropriate tag name to use.
+        If a prefix is not specified, we infer beta vs. release based
+        on 1GP beta version naming conventions."""
+        if prefix:
+            tag_name = prefix + version
+        elif "(Beta" in version:
             tag_version = version.replace(" (", "-").replace(")", "").replace(" ", "_")
             tag_name = self.project__git__prefix_beta + tag_version
         else:

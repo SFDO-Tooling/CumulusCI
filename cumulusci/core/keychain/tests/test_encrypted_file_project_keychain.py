@@ -1,22 +1,27 @@
 import json
 import pytest
+import re
 import tempfile
+import datetime
 
 from pathlib import Path
 from unittest import mock
 
+from cumulusci.core import utils
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import UniversalConfig
-from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.exceptions import ConfigError, ServiceNotValid
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
+from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP
+from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
 from cumulusci.core.keychain.encrypted_file_project_keychain import GlobalOrg
 
 
@@ -72,14 +77,10 @@ class TestEncryptedFileProjectKeychain:
         assert "foo" in keychain.get_org("test").config
         assert keychain.get_org("test").keychain == keychain
 
-    @mock.patch("cumulusci.core.utils.cleanup_org_cache_dirs")
-    def test_remove_org(
-        self, cleanup_org_cache_dirs, keychain, org_config, project_config
-    ):
+    def test_remove_org(self, keychain, org_config):
         keychain.set_org(org_config)
         keychain.remove_org("test")
         assert "test" not in keychain.orgs
-        assert cleanup_org_cache_dirs.called_once_with(keychain, project_config)
 
     def test_remove_org__not_found(self, keychain):
         keychain.orgs["test"] = mock.Mock()
@@ -197,6 +198,16 @@ class TestEncryptedFileProjectKeychain:
             **service_config.config,
             "token": "test123",
         }
+
+    def test_set_service__cannot_overwrite_default_connected_app(self, keychain):
+        connected_app_config = ServiceConfig({"test": "foo"})
+        error_message = re.escape(
+            f"You cannot use the name {DEFAULT_CONNECTED_APP_NAME} for a connected app service. Please select a different name."
+        )
+        with pytest.raises(ServiceNotValid, match=error_message):
+            keychain.set_service(
+                "connected_app", DEFAULT_CONNECTED_APP_NAME, connected_app_config
+            )
 
     def test_set_service__first_should_be_default(self, keychain):
         keychain.set_service("github", "foo_github", ServiceConfig({"name": "foo"}))
@@ -528,6 +539,15 @@ class TestEncryptedFileProjectKeychain:
         with open(filepath, "r") as f:
             assert json.loads(f.read()) == {"saucelabs": "default_alias"}
 
+    def test_cannot_rename_cumulusci_default_connected_app(self, keychain):
+        error_message = (
+            "You cannot rename the connected app service that is provided by CumulusCI."
+        )
+        with pytest.raises(CumulusCIException, match=error_message):
+            keychain.rename_service(
+                "connected_app", DEFAULT_CONNECTED_APP_NAME, "new_alias"
+            )
+
     def test_remove_service(self, keychain, service_config):
         home_dir = tempfile.mkdtemp()
 
@@ -593,10 +613,46 @@ class TestEncryptedFileProjectKeychain:
         # the one other service should be the default
         assert keychain._default_services["github"] == "other-service"
 
+    def test_remove_service__cannot_remove_default_connected_app(self, keychain):
+        error_message = (
+            f"Unable to remove connected app service: {DEFAULT_CONNECTED_APP_NAME}. "
+            "This connected app is provided by CumulusCI and cannot be removed."
+        )
+        with pytest.raises(CumulusCIException, match=error_message):
+            keychain.remove_service("connected_app", DEFAULT_CONNECTED_APP_NAME)
+
+    def test_load_default_connected_app(self, keychain):
+        keychain._load_default_connected_app()
+        assert (
+            DEFAULT_CONNECTED_APP_NAME in keychain.config["services"]["connected_app"]
+        )
+        assert (
+            keychain.config["services"]["connected_app"][DEFAULT_CONNECTED_APP_NAME]
+            == DEFAULT_CONNECTED_APP
+        )
+
+    def test_default_connected_app_should_be_default_after_loading(self, keychain):
+        keychain._load_default_connected_app()
+        assert keychain._default_services["connected_app"] == DEFAULT_CONNECTED_APP_NAME
+
+    def test_load_default_services(self, keychain):
+        expected_defaults = {
+            "github": "github_alias",
+            "metaci": "metaci_alias",
+            "devhub": "devhub_alias",
+            "connected_app": "connected_app__alias",
+        }
+        filepath = Path(f"{keychain.global_config_dir}/DEFAULT_SERVICES.json")
+        with open(filepath, "w") as f:
+            f.write(json.dumps(expected_defaults))
+
+        keychain._load_default_services()
+        assert keychain._default_services["connected_app"] != DEFAULT_CONNECTED_APP_NAME
+        assert keychain._default_services == expected_defaults
+
     def test_read_default_services(self, keychain):
         expected_defaults = {
             "github": "github_alias",
-            "apextestdb": "apextestdb_alias",
             "metaci": "metaci_alias",
             "devhub": "devhub_alias",
             "connected_app": "connected_app__alias",
@@ -661,3 +717,91 @@ class TestEncryptedFileProjectKeychain:
             None, [{"scratch": "scratch org"}, "org_name"]
         )
         assert isinstance(result, ScratchOrgConfig)
+
+    def test_new_service_type_creates_expected_directory(
+        self, keychain, service_config
+    ):
+        home_dir = tempfile.mkdtemp()
+        cci_home_dir = Path(f"{home_dir}/.cumulusci")
+        cci_home_dir.mkdir()
+        services_dir = cci_home_dir / "services"
+        services_dir.mkdir()
+
+        encrypted = keychain._encrypt_config(service_config)
+        with mock.patch.object(
+            EncryptedFileProjectKeychain, "global_config_dir", cci_home_dir
+        ):
+            keychain._set_encrypted_service("new_service_type", "alias", encrypted)
+
+        assert (services_dir / "new_service_type").is_dir()
+
+
+def _touch_test_org_file(directory):
+    org_dir = directory / "orginfo/something.something.saleforce.com"
+    org_dir.mkdir(parents=True)
+    (org_dir / "testfile.json").touch()
+    return org_dir
+
+
+class TestCleanupOrgCacheDir:
+    def test_cleanup_cache_dir(self, keychain):
+        keychain.set_org(
+            OrgConfig({"instance_url": "http://foo.my.salesforce.com/"}, "dev"), False
+        )
+        keychain.set_org(
+            OrgConfig({"instance_url": "http://bar.my.salesforce.com/"}, "qa"), False
+        )
+
+        temp_for_global = tempfile.mkdtemp()
+        with mock.patch.object(
+            EncryptedFileProjectKeychain, "global_config_dir", Path(temp_for_global)
+        ):
+            global_org_dir = _touch_test_org_file(keychain.global_config_dir)
+            temp_for_project = tempfile.mkdtemp()
+            keychain.project_config = mock.Mock()
+
+            cache_dir = keychain.project_config.cache_dir = Path(temp_for_project)
+            project_org_dir = _touch_test_org_file(cache_dir)
+            with mock.patch(
+                "cumulusci.core.keychain.encrypted_file_project_keychain.rmtree"
+            ) as rmtree:
+                keychain.cleanup_org_cache_dirs()
+                rmtree.assert_has_calls(
+                    [mock.call(global_org_dir), mock.call(project_org_dir)],
+                    any_order=True,
+                )
+
+    def test_cleanup_cache_dir_nothing_to_cleanup(self, keychain):
+        keychain.set_org(
+            OrgConfig({"instance_url": "http://foo.my.salesforce.com/"}, "dev"), False
+        )
+
+        keychain.project_config = mock.Mock()
+        temp_for_global = tempfile.mkdtemp()
+        with mock.patch.object(
+            EncryptedFileProjectKeychain, "global_config_dir", Path(temp_for_global)
+        ):
+            temp_for_project = tempfile.mkdtemp()
+            cache_dir = keychain.project_config.cache_dir = Path(temp_for_project)
+            org_dir = cache_dir / "orginfo/foo.my.salesforce.com"
+            org_dir.mkdir(parents=True)
+            (org_dir / "schema.json").touch()
+            with mock.patch(
+                "cumulusci.core.keychain.encrypted_file_project_keychain.rmtree"
+            ) as rmtree:
+                keychain.cleanup_org_cache_dirs()
+                assert not rmtree.mock_calls, rmtree.mock_calls
+
+    duration = (
+        (59, "59s"),
+        (70, "1m:10s"),
+        (119, "1m:59s"),
+        (65, "1m:5s"),
+        (4000, "1h:6m:40s"),
+        (7199, "1h:59m:59s"),
+    )
+
+    @pytest.mark.parametrize("val,expected", duration)
+    def test_time_delta(self, val, expected):
+        formatted = utils.format_duration(datetime.timedelta(seconds=val))
+        assert formatted == expected, (formatted, expected)

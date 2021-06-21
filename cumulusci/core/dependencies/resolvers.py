@@ -1,7 +1,7 @@
 import abc
 import itertools
 from enum import Enum
-from typing import Iterable, List, Optional, Tuple
+from typing import Callable, Iterable, List, Optional, Tuple
 
 from github3.exceptions import NotFoundError
 
@@ -98,6 +98,7 @@ class GitHubTagResolver(Resolver):
                 if version_id:
                     package_dep = PackageVersionIdDependency(
                         version_id=version_id,
+                        version_number=release.name,
                         package_name=package_name,
                     )
                 else:
@@ -140,6 +141,7 @@ class GitHubReleaseTagResolver(Resolver):
                 if version_id:
                     package_dep = PackageVersionIdDependency(
                         version_id=version_id,
+                        version_number=release.name,
                         package_name=package_name,
                     )
                 else:
@@ -402,13 +404,29 @@ def get_resolver_stack(
     raise CumulusCIException(f"Resolver stack {name} was not found.")
 
 
+def dependency_filter_ignore_deps(ignore_deps: List[dict]) -> Callable:
+    ignore_github = [d["github"] for d in ignore_deps if "github" in d]
+    ignore_namespace = [d["namespace"] for d in ignore_deps if "namespace" in d]
+
+    def should_include(some_dep: Dependency) -> bool:
+
+        if isinstance(some_dep, PackageNamespaceVersionDependency):
+            return some_dep.namespace not in ignore_namespace
+        if isinstance(some_dep, BaseGitHubDependency):
+            return some_dep.github not in ignore_github
+
+        return True
+
+    return should_include
+
+
 def get_static_dependencies(
     context: BaseProjectConfig,
     dependencies: List[Dependency] = None,
     resolution_strategy: str = None,
     strategies: List[DependencyResolutionStrategy] = None,
-    ignore_deps: List[dict] = None,
-):
+    filter_function: Callable = None,
+) -> List[StaticDependency]:
     """Resolves the dependencies of a CumulusCI project
     to convert dynamic GitHub dependencies into static dependencies
     by inspecting the referenced repositories.
@@ -420,7 +438,9 @@ def get_static_dependencies(
     :param resolution_strategy: name of a resolution strategy or stack
     :param strategies: list of resolution strategies to use
                        (specify this or resolution_strategy but not both)
-    :param ignore_deps: if provided, ignore the specified dependencies wherever found.
+    :param filter_function: if provided, call the function with each dependency
+                            (including transitive ones) encountered, and include
+                            those for which True is returned.
     """
     if dependencies is None:
         dependencies = parse_dependencies(context.project__dependencies)
@@ -429,6 +449,8 @@ def get_static_dependencies(
     ), "Expected resolution_strategy or strategies but not both"
     if resolution_strategy:
         strategies = get_resolver_stack(context, resolution_strategy)
+    if filter_function is None:
+        filter_function = lambda x: True
 
     while any(not d.is_flattened or not d.is_resolved for d in dependencies):
         for d in dependencies:
@@ -447,36 +469,14 @@ def get_static_dependencies(
             unique(
                 itertools.chain(
                     *list(
-                        d.flatten(context)
-                        for d in dependencies
-                        if not _should_ignore_dependency(d, ignore_deps or [])
+                        d.flatten(context) for d in dependencies if filter_function(d)
                     )
                 ),
             )
         )
 
     # Make sure, if we had no flattening or resolving to do, that we apply the ignore list.
-    return [
-        d for d in dependencies if not _should_ignore_dependency(d, ignore_deps or [])
-    ]
-
-
-def _should_ignore_dependency(dependency: Dependency, ignore_deps: List[dict]):
-    if not ignore_deps:
-        return False
-
-    ignore_github = [d["github"] for d in ignore_deps if "github" in d]
-    ignore_namespace = [d["namespace"] for d in ignore_deps if "namespace" in d]
-
-    if (
-        isinstance(dependency, PackageNamespaceVersionDependency)
-        and dependency.namespace
-    ):
-        return dependency.namespace in ignore_namespace
-    if isinstance(dependency, BaseGitHubDependency):
-        return dependency.github in ignore_github
-
-    return False
+    return [d for d in dependencies if filter_function(d)]
 
 
 def resolve_dependency(
@@ -503,6 +503,13 @@ def resolve_dependency(
                 dependency.ref, dependency.managed_dependency = resolver.resolve(
                     dependency, context
                 )
+                if dependency.managed_dependency:
+                    try:
+                        dependency.managed_dependency.password_env_name = (
+                            dependency.password_env_name
+                        )
+                    except AttributeError:  # pragma: no cover
+                        pass
                 if dependency.ref:
                     break
             except DependencyResolutionError:

@@ -85,9 +85,10 @@ class TestRobot(unittest.TestCase):
                 "include": "foo, bar",
                 "exclude": "a,  b",
                 "vars": "uno, dos, tres",
+                "skip": "xyzzy,plugh",
             },
         )
-        for option in ("test", "include", "exclude", "vars", "suites"):
+        for option in ("test", "include", "exclude", "vars", "suites", "skip"):
             assert isinstance(task.options[option], list)
 
     def test_process_arg_requires_int(self):
@@ -628,7 +629,7 @@ class TestRobotPerformanceKeywords:
                 {
                     "test": test_pattern,
                     "suites": str(suite),
-                    "options": {"outputdir": d, "noncritical": "noncritical"},
+                    "options": {"outputdir": d, "skiponfailure": "noncritical"},
                 },
                 project_config=project_config,
             )
@@ -651,6 +652,18 @@ class TestRobotPerformanceKeywords:
         if pattern in first_arg:
             metrics = first_arg.split("-")[-1].split(",")
             return dict(self.parse_metric(metric) for metric in metrics)
+
+    def test_parser_FOR_and_IF(self):
+        # verify that metrics nested inside a FOR or IF are accounted for
+        pattern = "Test FOR and IF statements"
+        suite_path = Path(self.datadir) / "performance.robot"
+        with self._run_robot_and_parse_xml(
+            pattern, suite_path=suite_path
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            perf_data = list(filter(None, elapsed_times))[0]
+            assert perf_data["plugh"] == 4.0
+            assert perf_data["xyzzy"] == 2.0
 
     def test_elapsed_time_xml(self):
         pattern = "Elapsed Time: "
