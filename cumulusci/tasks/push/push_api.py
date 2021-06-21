@@ -83,50 +83,34 @@ class MetadataPackageVersion(BasePushApiObject):
         result = [
             package_version
             for package_version in self.package.get_package_version_objs(where)
-            if version.parse(
-                f"{package_version.major}.{package_version.minor}.{package_version.patch}"
+            if (
+                package_version.major,package_version.minor,package_version.patch
             )
-            > version.parse(
-                f"{self.major}.{self.minor}.{self.patch}"
-            )  # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
+            > (self.major,self.minor,self.patch) # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
         ]
-        breakpoint()
         return result
 
     def get_older_released_version_objs(self, greater_than_version=None):
         if greater_than_version:
-            greater_version = version.parse(
-                f"{greater_than_version.major}.{greater_than_version.minor}.{greater_than_version.patch}"
-            )
+            greater_version = (greater_than_version.major,greater_than_version.minor,greater_than_version.patch)
 
         where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released'"  # AND "
         if greater_than_version:
             result = [
                 package_version
                 for package_version in self.package.get_package_version_objs(where)
-                if version.parse(
-                    f"{package_version.major}.{package_version.minor}.{package_version.patch}"
-                )
-                < version.parse(f"{self.major}.{self.minor}.{self.patch}")
-                and version.parse(
-                    f"{package_version.major}.{package_version.minor}.{package_version.patch}"
-                )
+                if (package_version.major,package_version.minor,package_version.patch)
+                < (self.major,self.minor,self.patch)
+                and (package_version.major,package_version.minor,package_version.patch)
                 >= greater_version  # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
             ]
-            breakpoint()
-
         else:
             result = [
                 package_version
                 for package_version in self.package.get_package_version_objs(where)
-                if version.parse(
-                    f"{package_version.major}.{package_version.minor}.{package_version.patch}"
-                )
-                < version.parse(f"{self.major}.{self.minor}.{self.patch}")
+                if (package_version.major,package_version.minor,package_version.patch) < (self.major,self.minor,self.patch)
                 # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
             ]
-        breakpoint()
-
         return result
 
     def get_subscribers(self, where=None, limit=None):
