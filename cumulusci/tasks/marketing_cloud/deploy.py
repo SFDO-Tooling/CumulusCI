@@ -6,6 +6,8 @@ from collections import defaultdict
 from pathlib import Path
 
 from cumulusci.core.exceptions import DeploymentException
+
+from cumulusci.core.utils import process_list_of_pairs_dict_arg
 from cumulusci.utils import temporary_dir
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from .base import BaseMarketingCloudTask
@@ -28,8 +30,18 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         "package_zip_file": {
             "description": "Path to the package zipfile that will be deployed.",
             "required": True,
-        }
+        },
+        "custom_inputs": {
+            "description": "Specify custom inputs to the deployment task. Takes a mapping from input key to input value (e.g. 'companyName:Acme,companyWebsite:https://www.salesforce.org:8080').",
+            "required": False,
+        },
     }
+
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        self.custom_inputs = process_list_of_pairs_dict_arg(
+            self.options.get("custom_inputs")
+        )
 
     def _run_task(self):
         pkg_zip_file = Path(self.options["package_zip_file"])
@@ -40,7 +52,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         with temporary_dir(chdir=False) as temp_dir:
             with zipfile.ZipFile(pkg_zip_file) as zf:
                 zf.extractall(temp_dir)
-                payload = self._construct_payload(Path(temp_dir))
+                payload = self._construct_payload(Path(temp_dir), self.custom_inputs)
 
         self.headers = {
             "Authorization": f"Bearer {self.mc_config.access_token}",
@@ -70,7 +82,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             self.poll_complete = True
             self._validate_response(result)
 
-    def _construct_payload(self, dir_path):
+    def _construct_payload(self, dir_path, custom_inputs=None):
         dir_path = Path(dir_path)
         assert dir_path.is_dir(), "package_directory must be a directory"
 
@@ -91,6 +103,25 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
                 entity_id = item.stem
                 with open(item, "r") as f:
                     payload["entities"][entity_name][entity_id] = json.load(f)
+
+        if custom_inputs:
+            payload = self._add_custom_inputs_to_payload(custom_inputs, payload)
+
+        return payload
+
+    def _add_custom_inputs_to_payload(self, custom_inputs, payload):
+        for input_name, value in custom_inputs.items():
+            found = False
+            for input in payload["input"]:
+                if input["key"] == input_name:
+                    input["value"] = value
+                    found = True
+                    break
+
+            if not found:
+                raise DeploymentException(
+                    f"Custom input of key {input_name} not found in package."
+                )
 
         return payload
 
