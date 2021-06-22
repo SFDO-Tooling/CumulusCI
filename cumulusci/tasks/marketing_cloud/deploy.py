@@ -32,7 +32,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             "required": True,
         },
         "custom_inputs": {
-            "description": "Specify custom inputs to the deployment task e.g. a company name. Takes a mapping from input key to input value.",
+            "description": "Specify custom inputs to the deployment task. Takes a mapping from input key to input value (e.g. 'companyName:Acme,companyWebsite:https://www.salesforce.org:8080').",
             "required": False,
         },
     }
