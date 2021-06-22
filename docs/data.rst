@@ -289,7 +289,7 @@ The ``soql_filter`` key allows to specify a WHERE clause that should be used whe
             - Type
           soql_filter: "Industry = 'Higher Education' OR Type = 'Higher Education'"
 
-Note that trying to load data that is extracted using ``soql_filter`` may cause "invalid cross reference id" error if related object records are missing in local database. Use this feature only if you fully understand how `CumulusCI load data task <https://cumulusci.readthedocs.io/en/stable/data.html#load-dataset>`_ resolves references to related records when loading data to Salesforce Org.
+Note that trying to load data that is extracted using ``soql_filter`` may cause "invalid cross reference id" errors if related object records are filtered on extract. Use this feature only if you fully understand how `CumulusCI load data task <https://cumulusci.readthedocs.io/en/stable/data.html#load-dataset>`_ resolves references to related records when loading data to a Salesforce org.
 
 Primary Keys
 ++++++++++++
