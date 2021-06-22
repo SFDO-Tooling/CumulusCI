@@ -5,7 +5,7 @@ import pytest
 import responses
 
 from cumulusci.tasks.salesforce.insert_record import InsertRecord
-from cumulusci.core.exceptions import TaskOptionsError, SalesforceException
+from cumulusci.core.exceptions import SalesforceException
 from simple_salesforce.exceptions import SalesforceError
 from .util import create_task
 
@@ -104,13 +104,3 @@ class TestCreateRecord:
         task._init_task()
         with pytest.raises(SalesforceError):
             task._run_task()
-
-    def test_syntax_errors(self):
-        with pytest.raises(TaskOptionsError):
-            create_task(
-                InsertRecord,
-                {
-                    "object": "PermissionSet",
-                    "values": "Name:Hard:Delete,PermissionsB:ulkApiHardDelete:true",
-                },
-            )
