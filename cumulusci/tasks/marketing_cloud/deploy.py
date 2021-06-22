@@ -39,8 +39,9 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        self.custom_inputs = process_list_of_pairs_dict_arg(
-            self.options.get("custom_inputs")
+        custom_inputs = self.options.get("custom_inputs")
+        self.custom_inputs = (
+            process_list_of_pairs_dict_arg(custom_inputs) if custom_inputs else None
         )
 
     def _run_task(self):
