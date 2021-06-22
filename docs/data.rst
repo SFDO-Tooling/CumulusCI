@@ -278,7 +278,7 @@ The ``static`` key allows individual fields to be populated with a fixed, static
             CustomCheckbox__c: True
             CustomDateField__c: 2019-01-01
 
-The ``soql_filter`` key allows to specify WHERE clause that should be used when extracting data from salesforce org::
+The ``soql_filter`` key allows to specify a WHERE clause that should be used when extracting data from your Salesforce org:
 
         Account:
           sf_object: Account
@@ -760,4 +760,3 @@ at all is the fastest.
 Smaller batch sizes reduce the risk of something going wrong. You
 may need to experiment to find the best batch size for your use
 case.
-
