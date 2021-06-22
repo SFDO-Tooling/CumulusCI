@@ -116,7 +116,7 @@ class TestMarketingCloudDeployTask:
     def test_add_custom_inputs_to_payload__deployment_exception(self, task):
         custom_inputs = {"foo": "bar"}
         payload = {"input": [{"key": "baz"}]}
-        error_message = re.escape("Custom input of type foo not found in package.")
+        error_message = re.escape("Custom input of key foo not found in package.")
         with pytest.raises(DeploymentException, match=error_message):
             task._add_custom_inputs_to_payload(custom_inputs, payload)
 
