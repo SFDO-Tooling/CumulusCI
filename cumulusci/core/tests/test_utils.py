@@ -154,9 +154,3 @@ class TestProcessListOfPairsDictArg:
         error_message = re.escape("Var specified twice: foo")
         with pytest.raises(TaskOptionsError, match=error_message):
             utils.process_list_of_pairs_dict_arg(duplicate)
-
-    def test_process_list_of_pairs_dict_arg__no_name_for_uri(self):
-        values = "https://salesforce.org"
-        error_message = re.escape("No name given for URI: https://salesforce.org")
-        with pytest.raises(TaskOptionsError, match=error_message):
-            utils.process_list_of_pairs_dict_arg(values)
