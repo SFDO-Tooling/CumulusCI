@@ -34,9 +34,29 @@ def task(project_config):
     return task
 
 
+@pytest.fixture
+def task_without_custom_inputs(project_config):
+    test_zip_file = Path(__file__).parent.absolute() / "test-mc-pkg.zip"
+    task = MarketingCloudDeployTask(
+        project_config,
+        TaskConfig(
+            {
+                "options": {
+                    "package_zip_file": test_zip_file.resolve(),
+                    "custom_inputs": None,
+                }
+            }
+        ),
+    )
+    task.mc_config = mock.Mock()
+    task.mc_config.access_token = "foo"
+    task.mc_config.tssd = "bar"
+    return task
+
+
 class TestMarketingCloudDeployTask:
     @responses.activate
-    def test_run_task__deploy_succeeds(self, task):
+    def test_run_task__deploy_succeeds_with_custom_inputs(self, task):
         responses.add(
             "POST",
             f"{MCPM_ENDPOINT}/deployments",
@@ -48,6 +68,27 @@ class TestMarketingCloudDeployTask:
             json={"status": "DONE", "entities": {}},
         )
 
+        task.logger = mock.Mock()
+        task._run_task()
+        task.logger.info.assert_called_with("Deployment completed successfully.")
+        assert task.logger.error.call_count == 0
+        assert task.logger.warn.call_count == 0
+
+    @responses.activate
+    def test_run_task__deploy_succeeds_without_custom_inputs(
+        self, task_without_custom_inputs
+    ):
+        responses.add(
+            "POST",
+            f"{MCPM_ENDPOINT}/deployments",
+            json={"info": {"id": "JOBID", "status": "IN_PROGRESS"}},
+        )
+        responses.add(
+            "GET",
+            f"{MCPM_ENDPOINT}/deployments/JOBID",
+            json={"status": "DONE", "entities": {}},
+        )
+        task = task_without_custom_inputs
         task.logger = mock.Mock()
         task._run_task()
         task.logger.info.assert_called_with("Deployment completed successfully.")
