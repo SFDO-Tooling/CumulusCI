@@ -115,7 +115,7 @@ def process_list_of_pairs_dict_arg(arg):
     elif isinstance(arg, str):
         rc = {}
         for key_value in arg.split(","):
-            subparts = key_value.split(":")
+            subparts = key_value.split(":", 1)
             if len(subparts) == 2:
                 key, value = subparts
                 if key in rc:
