@@ -32,7 +32,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             "required": True,
         },
         "custom_inputs": {
-            "description": "Specify custom inputs to the deployment task e.g. a company name. Takes a mapping from input key to input value.",
+            "description": "Specify custom inputs to the deployment task. Takes a mapping from input key to input value (e.g. 'companyName:Acme,companyWebsite:https://www.salesforce.org:8080').",
             "required": False,
         },
     }
@@ -40,7 +40,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
         self.custom_inputs = process_list_of_pairs_dict_arg(
-            self.options["custom_inputs"]
+            self.options.get("custom_inputs")
         )
 
     def _run_task(self):
@@ -120,7 +120,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
             if not found:
                 raise DeploymentException(
-                    f"Custom input of type {input_name} not found in package."
+                    f"Custom input of key {input_name} not found in package."
                 )
 
         return payload
