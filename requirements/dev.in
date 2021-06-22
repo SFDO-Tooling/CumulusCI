@@ -4,7 +4,6 @@ coverage[toml]
 coveralls
 flake8
 furo
-pip-tools
 pre-commit
 pytest
 pytest-random-order
