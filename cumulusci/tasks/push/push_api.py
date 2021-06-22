@@ -83,32 +83,39 @@ class MetadataPackageVersion(BasePushApiObject):
         result = [
             package_version
             for package_version in self.package.get_package_version_objs(where)
-            if (
-                package_version.major,package_version.minor,package_version.patch
-            )
-            > (self.major,self.minor,self.patch) # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
+            if (package_version.major, package_version.minor, package_version.patch)
+            > (
+                self.major,
+                self.minor,
+                self.patch,
+            )  # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
         ]
         return result
 
     def get_older_released_version_objs(self, min_version=None):
         if min_version:
-            minimum_version = (min_version.major,min_version.minor,min_version.patch)
+            minimum_version = (min_version.major, min_version.minor, min_version.patch)
 
         where = f"MetadataPackageId = '{self.package.sf_id}' AND ReleaseState = 'Released'"  # AND "
         if min_version:
             result = [
                 package_version
                 for package_version in self.package.get_package_version_objs(where)
-                if (package_version.major,package_version.minor,package_version.patch)
-                < (self.major,self.minor,self.patch)
-                and (package_version.major,package_version.minor,package_version.patch)
+                if (package_version.major, package_version.minor, package_version.patch)
+                < (self.major, self.minor, self.patch)
+                and (
+                    package_version.major,
+                    package_version.minor,
+                    package_version.patch,
+                )
                 >= minimum_version  # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
             ]
         else:
             result = [
                 package_version
                 for package_version in self.package.get_package_version_objs(where)
-                if (package_version.major,package_version.minor,package_version.patch) < (self.major,self.minor,self.patch)
+                if (package_version.major, package_version.minor, package_version.patch)
+                < (self.major, self.minor, self.patch)
                 # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
             ]
         return result
@@ -237,7 +244,7 @@ class PackageSubscriber(object):
 
 
 class SalesforcePushApi(object):
-    """ API Wrapper for the Salesforce Push API """
+    """API Wrapper for the Salesforce Push API"""
 
     def __init__(
         self, sf, logger, lazy=None, default_where=None, batch_size=None, bulk=None
