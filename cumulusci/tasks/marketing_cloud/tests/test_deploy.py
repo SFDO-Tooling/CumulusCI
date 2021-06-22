@@ -1,5 +1,6 @@
 import json
 import pytest
+import re
 import responses
 import zipfile
 
@@ -18,7 +19,14 @@ def task(project_config):
     test_zip_file = Path(__file__).parent.absolute() / "test-mc-pkg.zip"
     task = MarketingCloudDeployTask(
         project_config,
-        TaskConfig({"options": {"package_zip_file": test_zip_file.resolve()}}),
+        TaskConfig(
+            {
+                "options": {
+                    "package_zip_file": test_zip_file.resolve(),
+                    "custom_inputs": "companyName:Acme",
+                }
+            }
+        ),
     )
     task.mc_config = mock.Mock()
     task.mc_config.access_token = "foo"
@@ -104,3 +112,16 @@ class TestMarketingCloudDeployTask:
             expected_payload = json.load(f)
 
         assert expected_payload == actual_payload
+
+    def test_add_custom_inputs_to_payload__deployment_exception(self, task):
+        custom_inputs = {"foo": "bar"}
+        payload = {"input": [{"key": "baz"}]}
+        error_message = re.escape("Custom input of key foo not found in package.")
+        with pytest.raises(DeploymentException, match=error_message):
+            task._add_custom_inputs_to_payload(custom_inputs, payload)
+
+    def test_add_custom_inputs_to_payload(self, task):
+        custom_inputs = {"companyName": "Acme"}
+        payload = {"input": [{"key": "companyName"}]}
+        payload = task._add_custom_inputs_to_payload(custom_inputs, payload)
+        assert payload == {"input": [{"key": "companyName", "value": "Acme"}]}
