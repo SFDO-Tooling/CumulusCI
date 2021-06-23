@@ -1,5 +1,6 @@
 click<8
 coloredlogs
+contextvars
 cryptography
 docutils<0.17
 Faker
