@@ -1,4 +1,5 @@
 import json
+import os
 import pickle
 import pytest
 import re
@@ -27,6 +28,9 @@ from cumulusci.core.keychain import EncryptedFileProjectKeychain
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
 from cumulusci.core.keychain.encrypted_file_project_keychain import GlobalOrg
+from cumulusci.core.keychain.encrypted_file_project_keychain import (
+    SERVICE_ORG_FILE_MODE,
+)
 from cumulusci.core.tests.utils import EnvironmentVarGuard
 
 
@@ -141,11 +145,18 @@ class TestEncryptedFileProjectKeychain:
         assert ["test"] == list(keychain.orgs.keys())
         assert isinstance(keychain.orgs["test"], GlobalOrg), keychain.orgs["test"]
         assert org_config.config == keychain.get_org("test").config
-        assert Path(keychain.global_config_dir, "test.org").exists()
+
+        org_filepath = Path(keychain.global_config_dir, "test.org")
+        assert org_filepath.exists()
+
+        # ensure expected file permissions
+        stat_result = os.stat(org_filepath)
+        actual_mode = oct(stat_result.st_mode & 0o777)
+        assert actual_mode == oct(SERVICE_ORG_FILE_MODE)
 
         # check that it saves to the right place
         with mock.patch(
-            "cumulusci.core.keychain.encrypted_file_project_keychain.open"
+            "cumulusci.core.keychain.encrypted_file_project_keychain.os.open"
         ) as o:
             org_config.save()
             opened_file = o.mock_calls[0][1][0]
@@ -315,6 +326,16 @@ class TestEncryptedFileProjectKeychain:
     def test_set_service_github(self, keychain, service_config):
         keychain.set_service("github", "alias", service_config)
         default_github_service = keychain.get_service("github")
+
+        service_filepath = Path(
+            keychain.global_config_dir, "services/github/alias.service"
+        )
+        assert service_filepath.is_file()
+
+        # ensure expected file permissions
+        stat_result = os.stat(service_filepath)
+        actual_mode = oct(stat_result.st_mode & 0o777)
+        assert actual_mode == oct(SERVICE_ORG_FILE_MODE)
 
         assert default_github_service.config == {
             **service_config.config,
@@ -545,7 +566,11 @@ class TestEncryptedFileProjectKeychain:
             EncryptedFileProjectKeychain(project_config, key)
 
         assert not Path.is_file(cci_home_dir / "github.service")
-        assert (cci_home_dir / "services/github/global.service").is_file()
+
+        new_github_service_file = cci_home_dir / "services/github/global.service"
+        assert new_github_service_file.is_file()
+
+        # ensure expected file contents
         with open(cci_home_dir / "services/github/global.service") as f:
             assert f.read() == "github config"
 

@@ -27,6 +27,11 @@ from cumulusci.core.utils import import_global
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
 
+# The file permissions that we want set on all
+# .org and .service files. Equivalent to -rw-------
+SERVICE_ORG_FILE_MODE = 0o600
+
+
 BS = 16
 backend = default_backend()
 
@@ -292,8 +297,9 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         else:
             filename = Path(f"{self.project_local_dir}/{name}.org")
 
-        with open(filename, "wb") as f_org:
-            f_org.write(org_bytes)
+        fd = os.open(filename, os.O_WRONLY | os.O_CREAT, SERVICE_ORG_FILE_MODE)
+        with open(fd, "wb") as f:
+            f.write(org_bytes)
 
     def _get_org(self, name):
         try:
@@ -552,7 +558,9 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         )
         if not service_path.parent.is_dir():
             service_path.parent.mkdir()
-        with open(service_path, "wb") as f:
+
+        fd = os.open(service_path, os.O_WRONLY | os.O_CREAT, SERVICE_ORG_FILE_MODE)
+        with open(fd, "wb") as f:
             f.write(encrypted)
 
     def _get_service(self, service_type, alias):
