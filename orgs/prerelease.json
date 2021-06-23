@@ -4,7 +4,7 @@
   "features": [
     "Communities"
   ],
-  "instance": "cs46",
+  "release": "Preview",
   "settings": {
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true

@@ -13,6 +13,48 @@ from cumulusci.core.github import (
 )
 
 
+class AllGithubReleaseNotes(BaseGithubTask):
+
+    task_options = {
+        "repos": {
+            "description": (
+                "The list of owner, repo key pairs for which to generate release notes."
+                + " Ex: 'owner': SalesforceFoundation 'repo': 'NPSP'"
+            ),
+            "required": True,
+        },
+    }
+
+    def _run_task(self):
+        table_of_contents = "<h1>Table of Contents</h1><ul>"
+        body = ""
+        for project in self.options["repos"]:
+            if project["owner"] and project["repo"]:
+                release = (
+                    self.github.repository(project["owner"], project["repo"])
+                    .latest_release()
+                    .body
+                )
+                table_of_contents += (
+                    f"""<li><a href="#{project['repo']}">{project['repo']}</a></li>"""
+                )
+                release_project_header = (
+                    f"""<h1 id="{project['repo']}">{project['repo']}</h1>"""
+                )
+                release_html = self.github.markdown(
+                    release,
+                    mode="gfm",
+                    context="{}/{}".format(project["owner"], project["repo"]),
+                )
+                body += f"{release_project_header}<hr>{release_html}<hr>"
+        table_of_contents += "</ul><br><hr>"
+        head = "<head><title>Release Notes</title></head>"
+        body = f"<body>{table_of_contents}{body}</body>"
+        result = f"<html>{head}{body}</html>"
+        with open("github_release_notes.html", "w") as f:
+            f.write(result)
+
+
 class GithubReleaseNotes(BaseGithubTask):
 
     task_options = {
