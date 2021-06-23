@@ -1165,7 +1165,7 @@ class TestGetOperationFunctions:
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
-    def test_get_query_operation__old_api(self, rest_query, bulk_query):
+    def test_get_query_operation__old_api_version(self, rest_query, bulk_query):
         context = mock.Mock()
         context.sf.sf_version = "39.0"
         op = get_query_operation(
@@ -1179,6 +1179,40 @@ class TestGetOperationFunctions:
         assert op == bulk_query.return_value
 
         context.sf.restful.assert_not_called()
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
+    def test_get_query_operation__bad_api(self, rest_query, bulk_query):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        with pytest.raises(AssertionError, match="Unknown API"):
+            get_query_operation(
+                sobject="Test",
+                fields=["Id"],
+                api_options={},
+                context=context,
+                query="SELECT Id FROM Test",
+                api="foo",
+            )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
+    def test_get_query_operation__inferred_api(self, rest_query, bulk_query):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        context.sf.restful.return_value = {
+            "sObjects": [{"name": "Test", "count": 10000}]
+        }
+        op = get_query_operation(
+            sobject="Test",
+            fields=["Id"],
+            api_options={},
+            context=context,
+            query="SELECT Id FROM Test",
+        )
+        assert op == bulk_query.return_value
+
+        context.sf.restful.called_once_with("limits/recordCount?sObjects=Test")
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
@@ -1269,7 +1303,24 @@ class TestGetOperationFunctions:
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
-    def test_get_dml_operation__old_api(self, rest_dml, bulk_dml):
+    def test_get_dml_operation__inferred_api(self, rest_dml, bulk_dml):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        assert (
+            get_dml_operation(
+                sobject="Test",
+                operation=DataOperationType.INSERT,
+                fields=["Name"],
+                api_options={},
+                context=context,
+                volume=1,
+            )
+            == rest_dml.return_value
+        )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
+    def test_get_dml_operation__old_api_version(self, rest_dml, bulk_dml):
         context = mock.Mock()
         context.sf.sf_version = "39.0"
         assert (
@@ -1284,3 +1335,19 @@ class TestGetOperationFunctions:
             )
             == bulk_dml.return_value
         )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
+    def test_get_dml_operation__bad_api(self, rest_dml, bulk_dml):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        with pytest.raises(AssertionError, match="Unknown API"):
+            get_dml_operation(
+                sobject="Test",
+                operation=DataOperationType.INSERT,
+                fields=["Name"],
+                api_options={},
+                context=context,
+                api=42,
+                volume=1,
+            )
