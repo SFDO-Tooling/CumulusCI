@@ -244,9 +244,6 @@ class Snowfakery(BaseSalesforceApiTask):
         data_gen_q.feeds_data_to(load_data_q)
         return data_gen_q, load_data_q
 
-    from pysnooper import snoop
-
-    @snoop(depth=2)
     def determine_run_until(self):
         selected_strategies = [
             (strategy, self.options.get(strategy))
@@ -287,8 +284,6 @@ class Snowfakery(BaseSalesforceApiTask):
             if upload_status.done:
                 break
 
-            data_gen_q.tick()
-
             batch_size = self.tick(
                 upload_status, data_gen_q, batches, template_path, tempdir, batch_size
             )
@@ -304,7 +299,7 @@ class Snowfakery(BaseSalesforceApiTask):
         )
 
         upload_status = self.generate_upload_status(
-            data_gen_q, load_data_q, batch_size, org_record_counts_thread
+            data_gen_q, load_data_q, batch_size or 0, org_record_counts_thread
         )
 
         self.logger.info(upload_status._display(detailed=True))
@@ -325,15 +320,18 @@ class Snowfakery(BaseSalesforceApiTask):
     def tick(
         self, upload_status, data_gen_q, batches, template_path, tempdir, batch_size
     ):
+        data_gen_q.tick()
+
         if (
             upload_status.max_needed_generators_to_fill_queue == 0
             and not self.infinite_buffer
         ):
-            self.logger.info("WAITING FOR UPLOAD QUEUE TO CATCH UP")
+            self.logger.info("Waiting for uploads")
         elif data_gen_q.full:
-            self.logger.info("DATA GEN QUEUE IS FULL")
+            self.logger.info("Waiting before datagen (queue full)")
         elif data_gen_q.free_workers <= 0:
-            self.logger.info("NO FREE DATA GEN QUEUE WORKERS")
+            self.logger.info("Waiting before datagen (workers busy)")
+            assert 0  # should never happen?
         else:
             for i in range(data_gen_q.free_workers):
                 self.job_counter += 1
@@ -453,7 +451,7 @@ class Snowfakery(BaseSalesforceApiTask):
         return rc
 
     @contextmanager
-    def workingdir_or_tempdir(self, working_directory: T.Optional[Path]) -> Path:
+    def workingdir_or_tempdir(self, working_directory: T.Optional[Path]):
         if working_directory:
             working_directory.mkdir()
             self.logger.info(f"Working Directory {working_directory}")
@@ -463,9 +461,7 @@ class Snowfakery(BaseSalesforceApiTask):
                 yield Path(tempdir)
 
     @contextmanager
-    def _generate_and_load_initial_batch(
-        self, working_directory: T.Optional[Path]
-    ) -> Path:
+    def _generate_and_load_initial_batch(self, working_directory: T.Optional[Path]):
         template_dir = Path(working_directory) / "template"
         template_dir.mkdir()
         self._generate_and_load_batch(
@@ -473,7 +469,7 @@ class Snowfakery(BaseSalesforceApiTask):
         )
         yield template_dir
 
-    def _generate_and_load_batch(self, tempdir, options) -> Path:
+    def _generate_and_load_batch(self, tempdir, options):
         options = {
             **options,
             "working_directory": tempdir,
@@ -593,7 +589,7 @@ class RunUntilBase:
     target: int = None
     gap: int = None
 
-    def set_target_and_gap(self, sobject_name: str, num_as_str: str):
+    def set_target_and_gap(self, sobject_name: T.Optional[str], num_as_str: str):
         self.sobject_name = sobject_name
         try:
             self.target = self.gap = int(num_as_str)
