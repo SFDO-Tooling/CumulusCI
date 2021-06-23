@@ -363,7 +363,7 @@ class TestEncryptedFileProjectKeychain:
 
         # ensure expected file permissions
         stat_result = os.stat(service_filepath)
-        actual_mode = oct(stat_result.st_mode & 0o777)
+        actual_mode = oct(stat_result.st_mode & 0o666)
         assert actual_mode == "0o666"
 
     def test_set_service__cannot_overwrite_default_connected_app(self, keychain):
