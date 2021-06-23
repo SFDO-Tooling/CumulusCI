@@ -133,6 +133,9 @@ class TestEncryptedFileProjectKeychain:
         with pytest.raises(OrgNotFound):
             keychain.remove_org("test", True)
 
+    @pytest.mark.skipif(
+        sys.platform.startswith("win"), "os.stat() returns a differing value on windows"
+    )
     def test_set_and_get_org_local_should_not_shadow_global(
         self,
         keychain,
