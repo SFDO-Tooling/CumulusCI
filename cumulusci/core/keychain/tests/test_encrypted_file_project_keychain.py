@@ -3,6 +3,7 @@ import os
 import pickle
 import pytest
 import re
+import sys
 import tempfile
 import datetime
 
@@ -323,6 +324,10 @@ class TestEncryptedFileProjectKeychain:
         with pytest.raises(ServiceNotConfigured, match=error_message):
             keychain.get_service("github", "does-not-exist")
 
+    @pytest.mark.skipif(
+        sys.platform.startswith("win"),
+        reason="Windows has a different value returned by os.stat",
+    )
     def test_set_service_github(self, keychain, service_config):
         keychain.set_service("github", "alias", service_config)
         default_github_service = keychain.get_service("github")
@@ -341,6 +346,25 @@ class TestEncryptedFileProjectKeychain:
             **service_config.config,
             "token": "test123",
         }
+
+    @pytest.mark.skipif(
+        not sys.platform.startswith("win"),
+        reason="Windows has a different value returned by os.stat",
+    )
+    def test_set_service_github__windows_has_correct_file_perms(
+        self, keychain, service_config
+    ):
+        keychain.set_service("github", "alias", service_config)
+
+        service_filepath = Path(
+            keychain.global_config_dir, "services/github/alias.service"
+        )
+        assert service_filepath.is_file()
+
+        # ensure expected file permissions
+        stat_result = os.stat(service_filepath)
+        actual_mode = oct(stat_result.st_mode & 0o777)
+        assert actual_mode == "0o666"
 
     def test_set_service__cannot_overwrite_default_connected_app(self, keychain):
         connected_app_config = ServiceConfig({"test": "foo"})
