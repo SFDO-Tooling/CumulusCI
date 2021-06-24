@@ -236,7 +236,6 @@ The following variables defined in ``Salesforce.robot`` are all used by the ``Op
        <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Selenium%20Timeout>`_ keyword.
        Default: ``30 seconds``
 
-
 .. _cumulusci-library-overview:
 
 CumulusCI Library
@@ -307,11 +306,7 @@ job:
 Full Documentation
 ------------------
 
-Full documentation of the keywords in the CumulusCI and Salesforce
-keyword libraries can be found here:
-
-* :download:`CumulusCI and Salesforce Keyword Documentation <../docs/robot/Keywords.html>`
-
+All of the keyword documentation can be found in `Keywords.html <Keywords.html>`_.
 
 .. _salesforce-library-overview:
 
