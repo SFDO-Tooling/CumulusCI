@@ -180,19 +180,19 @@ class WorkerQueue:
 
     def _queue_job(self, job_dir: Path):
         """Enqueue a job"""
-        job_dir = shutil.move(job_dir, self.inbox_dir)
+        shutil.move(str(job_dir), str(self.inbox_dir))
 
     def _start_job(self, job_dir: Path):
         """Start a job"""
         self.inprogress_dir.mkdir(exist_ok=True)
-        working_dir = Path(shutil.move(job_dir, self.inprogress_dir))
+        working_dir = Path(shutil.move(str(job_dir), str(self.inprogress_dir)))
 
         # Jobs can rename their directories in case they store metadata
         # in directory names.
         if self.rename_directory:
             old_working_dir = working_dir
             working_dir = self.rename_directory(old_working_dir)
-            shutil.move(old_working_dir, working_dir)
+            shutil.move(str(old_working_dir), str(working_dir))
 
         # Individual jobs can override or add task options to the ones
         # generic to jobs in this queue. E.g. the number of records to

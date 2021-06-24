@@ -215,10 +215,9 @@ class ParallelWorker:
 
         # under the covers, Python will pass this as Pickles.
         self.process = self.spawn_class(
-            # think about and add documentation about why this
-            # was here.
             target=run_task_in_worker,
             args=[dct],
+            # quit if the parent process decides to exit (e.g. after a timeout)
             daemon=True,
         )
         self.process.start()

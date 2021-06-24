@@ -5,10 +5,10 @@ import typing as T
 
 class OrgRecordCounts(threading.Thread):
     # Getting record count can be slow in big orgs
-    main_sobject_count = 0
+    main_sobject_count = None
     other_inaccurate_record_counts = {}
 
-    def __init__(self, main_sobject: str, sf):
+    def __init__(self, main_sobject: T.Optional[str], sf):
         self.main_sobject = main_sobject
         self.sf = sf
         super().__init__(daemon=True)
@@ -18,7 +18,8 @@ class OrgRecordCounts(threading.Thread):
     #       If both fail we'll have a problem. :(
     def run(self):
         while 1:
-            self.main_sobject_count = self.get_org_record_count_for_sobject()
+            if self.main_sobject:
+                self.main_sobject_count = self.get_org_record_count_for_sobject()
             self.other_inaccurate_record_counts = self.get_org_record_counts()
             time.sleep(17)
 
