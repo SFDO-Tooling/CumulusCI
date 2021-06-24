@@ -31,7 +31,7 @@ deprecated==1.2.12
     # via jwcrypto
 docutils==0.16
     # via -r requirements/prod.in
-faker==8.8.1
+faker==8.8.2
     # via
     #   -r requirements/prod.in
     #   snowfakery
