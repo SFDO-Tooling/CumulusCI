@@ -278,6 +278,19 @@ The ``static`` key allows individual fields to be populated with a fixed, static
             CustomCheckbox__c: True
             CustomDateField__c: 2019-01-01
 
+The ``soql_filter`` key allows to specify a WHERE clause that should be used when extracting data from your Salesforce org:
+
+        Account:
+          sf_object: Account
+          table: Account
+          fields:
+            - Name
+            - Industry
+            - Type
+          soql_filter: "Industry = 'Higher Education' OR Type = 'Higher Education'"
+
+Note that trying to load data that is extracted using ``soql_filter`` may cause "invalid cross reference id" errors if related object records are filtered on extract. Use this feature only if you fully understand how `CumulusCI load data task <https://cumulusci.readthedocs.io/en/stable/data.html#load-dataset>`_ resolves references to related records when loading data to a Salesforce org.
+
 Primary Keys
 ++++++++++++
 
@@ -763,4 +776,3 @@ at all is the fastest.
 Smaller batch sizes reduce the risk of something going wrong. You
 may need to experiment to find the best batch size for your use
 case.
-

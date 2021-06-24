@@ -117,6 +117,10 @@ tasks:
     description: Execute a series of REST API requests in a single call
     class_path: cumulusci.tasks.salesforce.composite.CompositeApi
     group: Data Operations
+  create_community:
+    description: Creates a Community in the target org using the Connect API
+    class_path: cumulusci.tasks.salesforce.CreateCommunity
+    group: Salesforce Communities
   connected_app:
     description: Creates the Connected App needed to use persistent orgs in the CumulusCI keychain
     class_path: cumulusci.tasks.connectedapp.CreateConnectedApp
@@ -125,10 +129,6 @@ tasks:
       label: CumulusCI
       connect: True
       overwrite: False
-  create_community:
-    description: Creates a Community in the target org using the Connect API
-    class_path: cumulusci.tasks.salesforce.CreateCommunity
-    group: Salesforce Communities
   create_network_member_groups:
     description: Creates NetworkMemberGroup records which grant access to an Experience Site (Community) for specified Profiles or Permission Sets
     class_path: cumulusci.tasks.salesforce.network_member_group.CreateNetworkMemberGroups
@@ -313,6 +313,10 @@ tasks:
   github_release:
     description: Creates a Github release for a given managed package version number
     class_path: cumulusci.tasks.github.CreateRelease
+    group: GitHub
+  gather_release_notes:
+    description: Generates release notes by getting the latest release of each repository
+    class_path: cumulusci.tasks.release_notes.task.AllGithubReleaseNotes
     group: GitHub
   github_release_notes:
     description: Generates release notes by parsing pull request bodies of merged pull requests between two tags

@@ -1,5 +1,6 @@
 import json
 import pytest
+import re
 import tempfile
 import datetime
 
@@ -12,13 +13,15 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.config import UniversalConfig
-from cumulusci.core.exceptions import ConfigError
+from cumulusci.core.exceptions import ConfigError, ServiceNotValid
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
+from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP
+from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
 from cumulusci.core.keychain.encrypted_file_project_keychain import GlobalOrg
 
 
@@ -195,6 +198,16 @@ class TestEncryptedFileProjectKeychain:
             **service_config.config,
             "token": "test123",
         }
+
+    def test_set_service__cannot_overwrite_default_connected_app(self, keychain):
+        connected_app_config = ServiceConfig({"test": "foo"})
+        error_message = re.escape(
+            f"You cannot use the name {DEFAULT_CONNECTED_APP_NAME} for a connected app service. Please select a different name."
+        )
+        with pytest.raises(ServiceNotValid, match=error_message):
+            keychain.set_service(
+                "connected_app", DEFAULT_CONNECTED_APP_NAME, connected_app_config
+            )
 
     def test_set_service__first_should_be_default(self, keychain):
         keychain.set_service("github", "foo_github", ServiceConfig({"name": "foo"}))
@@ -526,6 +539,15 @@ class TestEncryptedFileProjectKeychain:
         with open(filepath, "r") as f:
             assert json.loads(f.read()) == {"saucelabs": "default_alias"}
 
+    def test_cannot_rename_cumulusci_default_connected_app(self, keychain):
+        error_message = (
+            "You cannot rename the connected app service that is provided by CumulusCI."
+        )
+        with pytest.raises(CumulusCIException, match=error_message):
+            keychain.rename_service(
+                "connected_app", DEFAULT_CONNECTED_APP_NAME, "new_alias"
+            )
+
     def test_remove_service(self, keychain, service_config):
         home_dir = tempfile.mkdtemp()
 
@@ -591,10 +613,46 @@ class TestEncryptedFileProjectKeychain:
         # the one other service should be the default
         assert keychain._default_services["github"] == "other-service"
 
+    def test_remove_service__cannot_remove_default_connected_app(self, keychain):
+        error_message = (
+            f"Unable to remove connected app service: {DEFAULT_CONNECTED_APP_NAME}. "
+            "This connected app is provided by CumulusCI and cannot be removed."
+        )
+        with pytest.raises(CumulusCIException, match=error_message):
+            keychain.remove_service("connected_app", DEFAULT_CONNECTED_APP_NAME)
+
+    def test_load_default_connected_app(self, keychain):
+        keychain._load_default_connected_app()
+        assert (
+            DEFAULT_CONNECTED_APP_NAME in keychain.config["services"]["connected_app"]
+        )
+        assert (
+            keychain.config["services"]["connected_app"][DEFAULT_CONNECTED_APP_NAME]
+            == DEFAULT_CONNECTED_APP
+        )
+
+    def test_default_connected_app_should_be_default_after_loading(self, keychain):
+        keychain._load_default_connected_app()
+        assert keychain._default_services["connected_app"] == DEFAULT_CONNECTED_APP_NAME
+
+    def test_load_default_services(self, keychain):
+        expected_defaults = {
+            "github": "github_alias",
+            "metaci": "metaci_alias",
+            "devhub": "devhub_alias",
+            "connected_app": "connected_app__alias",
+        }
+        filepath = Path(f"{keychain.global_config_dir}/DEFAULT_SERVICES.json")
+        with open(filepath, "w") as f:
+            f.write(json.dumps(expected_defaults))
+
+        keychain._load_default_services()
+        assert keychain._default_services["connected_app"] != DEFAULT_CONNECTED_APP_NAME
+        assert keychain._default_services == expected_defaults
+
     def test_read_default_services(self, keychain):
         expected_defaults = {
             "github": "github_alias",
-            "apextestdb": "apextestdb_alias",
             "metaci": "metaci_alias",
             "devhub": "devhub_alias",
             "connected_app": "connected_app__alias",

@@ -20,6 +20,8 @@ click==7.1.2
     #   snowfakery
 coloredlogs==15.0.1
     # via -r requirements/prod.in
+contextvars==2.4
+    # via -r requirements/prod.in
 cryptography==3.4.7
     # via
     #   -r requirements/prod.in
@@ -45,6 +47,8 @@ humanfriendly==9.2
     # via coloredlogs
 idna==2.10
     # via requests
+immutables==0.15
+    # via contextvars
 importlib-metadata==4.5.0
     # via keyring
 jinja2==2.11.3

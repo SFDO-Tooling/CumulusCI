@@ -297,7 +297,7 @@ def test_service_info(cli_tbl):
 
     cli_tbl.assert_called_with(
         [["Key", "Value"], ["\x1b[1mdescription\x1b[0m", "Test Service"]],
-        title="test/test-alias",
+        title="test:test-alias",
         wrap_cols=["Value"],
     )
 
