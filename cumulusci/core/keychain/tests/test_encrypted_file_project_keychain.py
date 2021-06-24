@@ -135,7 +135,7 @@ class TestEncryptedFileProjectKeychain:
 
     @pytest.mark.skipif(
         sys.platform.startswith("win"),
-        "os.stat() returns a differing value on windows",
+        reason="os.stat() returns a differing value on windows",
     )
     def test_set_and_get_org_local_should_not_shadow_global(
         self,
