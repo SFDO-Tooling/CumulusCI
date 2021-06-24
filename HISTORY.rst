@@ -2,6 +2,24 @@
 History
 =======
 
+3.38.0 (2021-06-24)
+-------------------
+
+Changes:
+
+* The built-in connected app that CumulusCI uses by default is now visible in the output of the ``cci service list`` command. This makes it possible to switch back and forth between this connected app and another one as the current default when multiple connected_app services are configured. The built-in connected_app service has the name ``built-in`` and cannot be renamed or removed. (#2664)
+* The ``generate_data_dictionary`` task includes a new option, ``include_prerelease``. If set to ``True``, CumulusCI will include unreleased schema in the data dictionary from the current branch on GitHub, with the version listed as "Prerelease". (#2671)
+* Added a new task, ``gather_release_notes``, which generates an HTML file with release notes from multiple repositories. (#2633)
+* The ``deploy_marketing_cloud_package`` task includes a new option, ``custom_inputs``, which can be used to specify values to fill in for inputs in a Marketing Cloud package. (#2683)
+* Mappings for the ``extract_dataset`` task can now specify a ``soql_filter`` to restrict which records are extracted. Thanks @sfdcale (#2663)
+* Robot Framework: The ``Scroll Element Into View`` keyword in the Salesforce library now scrolls the center of the element into view rather than the top. (#2689)
+
+Issues closed:
+
+* Fixed a bug where CumulusCI could not parse the repository owner and name from an ssh git remote URL if it used an ssh alias instead of ``github.com``. (#2684)
+* Fixed a bug where ``cci service info <service_type>`` would display ``None`` as the name for the default service if no name was provided. (#2664)
+* Fixed a missing dependency on the ``contextvars`` Python package in Python 3.6.
+
 3.37.0 (2021-06-10)
 -------------------
 
