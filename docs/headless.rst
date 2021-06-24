@@ -1,14 +1,14 @@
 Run CumulusCI Headlessly
 ========================
 
-CumulusCI can be used for run continuous integration builds in your CI system.
+CumulusCI can be used to run continuous integration builds in your CI system.
 
 This section outlines how to setup services and orgs that can be defined in
 a particular environment such that they will be recognized by CumulusCI.
 
 Register Services
 -----------------
-It is often the case where services you use for local development
+It is often the case that services you use for local development
 will differ from the services that you want to use in your build system.
 For example, devlopers will setup a GitHub service locally that is associated
 with their GitHub User, while an integration build may want to run as 
@@ -16,7 +16,7 @@ an integration user when interacting with GitHub. By providing environment
 variables with specific prefixes, CumulusCI can detect 
 and register those services for use when running tasks and flows. 
 
-Environment variables that define CumulusCI services ahere to the following format:
+Environment variables that define CumulusCI services adhere to the following format:
 
 .. code:: console
 
@@ -29,16 +29,18 @@ unique name for your service by adding a double underscore (``__``) followed
 by the name you wish to use. If a name is specified it is prepended with 
 "env-" to help establish that this service is coming from the environment.
 If a name is not specified, a defualt name of ``env`` is used for that service.
-If multiple services of the same type are registered with the same name,
-only one will be registered with CumulusCI.
 
-Here are some examples of environment variable names and the corresponding names
+Here are some examples of environment variable names along with their
+corresponding service types and names.
 they would be listed with by running ``cci service list``:
 
-* ``CUMULUSCI_SERVICE_github`` --> ``env``
-* ``CUMULUSCI_SERVICE_github__integration-user`` --> ``env-integration-user``
-* ``CUMULUSCI_SERVICE_connected_app`` --> ``env``
-* ``CUMULUSCI_SERVICE_connected_app__sandbox`` --> ``env-sandbox``
+* ``CUMULUSCI_SERVICE_github`` --> A ``github`` service that will have the default name of ``env``
+* ``CUMULUSCI_SERVICE_github__integration-user`` --> A ``github`` service that will have the name ``env-integration-user``
+* ``CUMULUSCI_SERVICE_connected_app`` --> A ``connected_app`` service with the default name of ``env``
+* ``CUMULUSCI_SERVICE_connected_app__sandbox`` --> A ``connected_app`` service with the name ``env-sandbox``
+
+By always prepending `env` to the names of services specified by environment variables,
+it is easy to see which services are currently set by environment variables and which are not.
 
 The value of the environment variables that define a service should be in JSON
 format and provide the required attributes for that particular service. The
