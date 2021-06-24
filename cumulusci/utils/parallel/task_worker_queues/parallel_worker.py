@@ -151,25 +151,25 @@ class TaskWorker:
         exception_file.write_text(format_exc())
 
     def run(self):
-        with self.make_logger() as logger:
+        with self.make_logger() as (logger, logfile):
             try:
                 self.subtask = self._make_task(self.task_class, logger)
                 self.subtask()
-            except BaseException as e:
-                logger.info(f"Failure detected: {e}")
-                self.save_exception(e)
-                self.failures_dir.mkdir(exist_ok=True)
-                shutil.move(str(self.working_dir), str(self.failures_dir))
-                raise
-
-            try:
-                self.outbox_dir.mkdir(exist_ok=True)
-                shutil.move(str(self.working_dir), str(self.outbox_dir))
                 logger.info("SubTask Success!")
             except BaseException as e:
                 logger.info(f"Failure detected: {e}")
                 self.save_exception(e)
+                self.failures_dir.mkdir(exist_ok=True)
+                logfile.close()
+                shutil.move(str(self.working_dir), str(self.failures_dir))
                 raise
+
+        try:
+            self.outbox_dir.mkdir(exist_ok=True)
+            shutil.move(str(self.working_dir), str(self.outbox_dir))
+        except BaseException as e:
+            self.save_exception(e)
+            raise
 
     @contextmanager
     def make_logger(self):
@@ -183,7 +183,7 @@ class TaskWorker:
             handler.setFormatter(formatter)
             logger.addHandler(handler)
             logger.propagate = False
-            yield logger
+            yield logger, f
 
 
 def run_task_in_worker(worker_dict):
