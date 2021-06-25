@@ -3,6 +3,7 @@ from cumulusci.utils.git import (
     is_release_branch_or_child,
     get_release_identifier,
     construct_release_branch_name,
+    split_repo_url,
 )
 
 
@@ -27,3 +28,10 @@ def test_get_release_identifier():
 
 def test_construct_release_branch_name():
     assert construct_release_branch_name("feature/", "230") == "feature/230"
+
+
+def test_split_repo_url():
+    assert split_repo_url("https://github.com/owner/repo") == ("owner", "repo")
+    assert split_repo_url("https://github.com/owner/repo.git") == ("owner", "repo")
+    assert split_repo_url("git@github.com:owner/repo") == ("owner", "repo")
+    assert split_repo_url("git@alias:owner/repo") == ("owner", "repo")

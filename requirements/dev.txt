@@ -17,7 +17,7 @@ babel==2.9.1
     # via sphinx
 beautifulsoup4==4.9.3
     # via furo
-black==21.5b2
+black==21.6b0
     # via -r requirements/dev.in
 bleach==3.3.0
     # via readme-renderer
@@ -35,11 +35,8 @@ click==7.1.2
     # via
     #   -c requirements/prod.txt
     #   black
-    #   pip-tools
 colorama==0.4.4
     # via twine
-contextvars==2.4
-    # via -r requirements/dev.in
 coverage[toml]==5.5
     # via
     #   -r requirements/dev.in
@@ -57,7 +54,7 @@ docutils==0.16
     #   sphinx
 factory-boy==3.2.0
     # via -r requirements/dev.in
-faker==8.6.0
+faker==8.8.2
     # via
     #   -c requirements/prod.txt
     #   factory-boy
@@ -67,7 +64,7 @@ filelock==3.0.12
     #   virtualenv
 flake8==3.9.2
     # via -r requirements/dev.in
-furo==2021.4.11b34
+furo==2021.6.18b36
     # via -r requirements/dev.in
 identify==2.2.10
     # via pre-commit
@@ -78,8 +75,6 @@ idna==2.10
     #   yarl
 imagesize==1.2.0
     # via sphinx
-immutables==0.15
-    # via contextvars
 importlib-metadata==4.5.0
     # via
     #   -c requirements/prod.txt
@@ -115,10 +110,6 @@ packaging==20.9
     #   tox
 pathspec==0.8.1
     # via black
-pep517==0.10.0
-    # via pip-tools
-pip-tools==6.1.0
-    # via -r requirements/dev.in
 pkginfo==1.7.0
     # via twine
 pluggy==0.13.1
@@ -195,7 +186,7 @@ snowballstemmer==2.1.0
     # via sphinx
 soupsieve==2.2.1
     # via beautifulsoup4
-sphinx==3.5.4
+sphinx==4.0.2
     # via
     #   -r requirements/dev.in
     #   furo
@@ -221,13 +212,12 @@ toml==0.10.2
     # via
     #   black
     #   coverage
-    #   pep517
     #   pre-commit
     #   pytest
     #   tox
 tox==3.23.1
     # via -r requirements/dev.in
-tqdm==4.61.0
+tqdm==4.61.1
     # via twine
 twine==3.4.1
     # via -r requirements/dev.in
@@ -262,8 +252,6 @@ zipp==3.4.1
     #   importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
-pip==21.1.2
-    # via pip-tools
 setuptools==57.0.0
     # via
     #   -c requirements/prod.txt

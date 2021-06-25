@@ -264,7 +264,10 @@ class Salesforce(object):
         For more info see https://stackoverflow.com/a/52045231/7432
         """
         element = self.selenium.get_webelement(locator)
-        self.selenium.driver.execute_script("arguments[0].scrollIntoView()", element)
+        self.selenium.driver.execute_script(
+            "arguments[0].scrollIntoView({behavior: 'auto', block: 'center', inline: 'center'})",
+            element,
+        )
 
     @capture_screenshot_on_error
     def load_related_list(self, heading, tries=10):

@@ -4,7 +4,6 @@ coverage[toml]
 coveralls
 flake8
 furo
-pip-tools
 pre-commit
 pytest
 pytest-random-order
@@ -18,4 +17,3 @@ typeguard==2.10.0
 vcrpy
 wheel
 factory-boy
-contextvars

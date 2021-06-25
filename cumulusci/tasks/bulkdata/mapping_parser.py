@@ -99,6 +99,7 @@ class MappingStep(CCIDictModel):
         Literal["Serial", "Parallel"]
     ] = None  # default should come from task options
     anchor_date: Optional[Union[str, date]] = None
+    soql_filter: Optional[str] = None  # soql_filter property
 
     @validator("bulk_mode", "api", "action", pre=True)
     def case_normalize(cls, val):
