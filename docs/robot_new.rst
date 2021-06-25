@@ -175,7 +175,7 @@ Here's the basic Robot test for creating a new Contact object (((previously feat
       Should be equal  ${contact}[LastName]     Rigby
 
 .. TO DISCUSS: WHAT IS BEST PRACTICE? TO PRESUME USER IS WORKING FROM CURRENT DIRECTORY, OR PRESUME THAT THEY NEED TO RUN FROM TEST FOLDER BY DEFAULT?
-To run this test from the command line, and save  run ``cci task run robot --suites create_contact.robot`` (OR cci task run robot --suites robot/myproject/tests/create_contact.robot?).
+To run this test from the command line, and save  run ``cci task run robot --suites create_contact.robot`` (OR ``cci task run robot --suites robot/myproject/tests/create_contact.robot``?).
 
 
 Syntax
@@ -186,7 +186,7 @@ Here's a quick primer for the Robot syntax in the ``Create Contact`` test ``.rob
 .. NOT SURE IF TABLE EVEN WORKS BECAUSE MY FORMATTING FOR VSC ON THIS WORK COMPUTER IS *THE WORST*. THAT SAID, I ALSO MADE A BULLET LIST OF THIS TABLE BELOW, WHICH I THINK MIGHT WORK BETTER ANYWAY.
 
 +--------+------+-----------------------------------------------------------------------------------------+
-| Symbol | Name               | Description & Usage                                                       |
+| Symbol | Name              | Description & Usage                                                        |
 +========+======+=========================================================================================+
 | ***    | Section Heading   | By convention, three stars on both sides of a heading designate a section  |
 |        |                   | heading. Popular sections headings include ``Settings``, ``Test Cases``,   |
@@ -229,7 +229,7 @@ Here's a quick primer for the Robot syntax in the ``Create Contact`` test ``.rob
 * Ellipses (``...``): Ellipses designate the continuation of a single-line command broken up over several lines for easier readability.
 * Spaces (`` ``): Two or more spaces separate arguments from the keyword(s), and arguments from each other. They can also align data for readability.
 
-For more details on Robot syntax, visit the official `Robot syntax documentation (http://robotframework.org/robotframework/2.9.2/RobotFrameworkUserGuide.html#test-data-syntax)`_.
+For more details on Robot syntax, visit the official `Robot syntax documentation <http://robotframework.org/robotframework/2.9.2/RobotFrameworkUserGuide.html#test-data-syntax>`_.
 
 
 
