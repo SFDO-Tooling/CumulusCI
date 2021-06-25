@@ -2,6 +2,7 @@ from unittest import mock
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from contextlib import contextmanager
+from threading import Thread
 
 import pytest
 
@@ -131,12 +132,10 @@ class TestGenerateFromDataTasks:
             _make_task(Snowfakery, {})
 
     @mock.patch("cumulusci.tasks.bulkdata.load.LoadData.__call__")
-    # use threads instead of processors so mocking works.
-    # @mock.patch(
-    #     "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
-    #     wraps=Thread,
-    # )
-    def test_simple(self, load_data, create_task_fixture):
+    @mock.patch(
+        "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
+    )
+    def test_simple(self, create_subprocess, load_data, create_task_fixture):
         task = create_task_fixture(
             Snowfakery,
             {
@@ -145,9 +144,37 @@ class TestGenerateFromDataTasks:
         )
         task()
         assert load_data.mock_calls
-        assert 0
-        # assert not thread.mock_calls
-        # self.assertRowsCreated(database_url)
+        # should not be called for a simple one-rep load
+        assert not create_subprocess.mock_calls
+
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.BASE_BATCH_SIZE", 3)
+    @mock.patch(
+        "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
+        Thread,  # use a thread instead of a process so mocking will work
+    )
+    @mock.patch("cumulusci.tasks.bulkdata.load.LoadData.__call__")
+    def test_small(self, load_data, create_task_fixture):
+        task = create_task_fixture(
+            Snowfakery,
+            {"recipe": sample_yaml, "run_until_recipe_repeated": "6"},
+        )
+        task()
+        # Batch size size ws 3 so 6 records takes two batches
+        assert len(load_data.mock_calls) == 2
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.LoadData.__call__")
+    @mock.patch(
+        "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
+    )
+    def test_multi_part(self, create_subprocess, load_data, create_task_fixture):
+        task = create_task_fixture(
+            Snowfakery,
+            {"recipe": sample_yaml, "run_until_recipe_repeated": 10},
+        )
+        task()
+        assert load_data.mock_calls
+        # should not be called for a small load
+        assert not create_subprocess.mock_calls
 
     # def test_inaccessible_generator_yaml(self):
     #     with pytest.raises(exc.exc.TaskOptionsError):

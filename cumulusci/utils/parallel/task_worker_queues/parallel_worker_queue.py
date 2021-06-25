@@ -184,7 +184,6 @@ class WorkerQueue:
 
     def _start_job(self, job_dir: Path):
         """Start a job"""
-        breakpoint()
         self.inprogress_dir.mkdir(exist_ok=True)
         working_dir = Path(shutil.move(str(job_dir), str(self.inprogress_dir)))
 

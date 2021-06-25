@@ -11,13 +11,11 @@ import psutil
 
 from sqlalchemy import MetaData, create_engine, func, select
 
-from snowfakery import api
-
-print(api.__file__)
 from snowfakery.api import COUNT_REPS
 
 from cumulusci.tasks.bulkdata.snowfakery_utils.snowfakery_run_until import (
     determine_run_until,
+    BatchGenerator,
 )
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -156,6 +154,12 @@ class Snowfakery(BaseSalesforceApiTask):
     def _run_task(self):
         self.setup()
 
+        batches = BatchGenerator(
+            self.run_until.gap,
+            BASE_BATCH_SIZE,
+            self.max_batch_size,
+        )
+
         working_directory = self.options.get("working_directory")
         with self.workingdir_or_tempdir(working_directory) as working_directory:
 
@@ -169,9 +173,8 @@ class Snowfakery(BaseSalesforceApiTask):
                 )
                 return
 
-            with self._generate_and_load_initial_batch(working_directory) as (
-                template_path,
-                records_already_created,
+            with self._generate_and_load_initial_batch(working_directory, batches) as (
+                template_path
             ):
                 upload_status = self._loop(
                     template_path,
@@ -179,7 +182,7 @@ class Snowfakery(BaseSalesforceApiTask):
                     data_gen_q,
                     load_data_q,
                     self.org_record_counts_thread,
-                    records_already_created,
+                    batches,
                 )
                 self.finish(upload_status, data_gen_q, load_data_q)
 
@@ -231,40 +234,59 @@ class Snowfakery(BaseSalesforceApiTask):
         data_gen_q,
         load_data_q,
         org_record_counts_thread,
-        records_already_created,
+        batches,
     ):
-        batch_size = BASE_BATCH_SIZE
+        upload_status = None
 
-        goal_records = self.run_until.gap - records_already_created
-
-        self.logger.info(f"Generating {goal_records:,}.")
-
-        batches = generate_batches(goal_records, BASE_BATCH_SIZE, self.max_batch_size)
-        for i in range(10 ** 10):
+        while not batches.done:
             upload_status = self._report_status(
-                data_gen_q, load_data_q, batch_size, org_record_counts_thread
+                data_gen_q,
+                load_data_q,
+                batches.batch_size,
+                org_record_counts_thread,
+                template_path,
             )
             self.logger.info(f"Working Directory: {tempdir}")
 
-            if upload_status.done:
+            if upload_status.done_generating:
                 break
 
-            batch_size = self.tick(
-                upload_status, data_gen_q, batches, template_path, tempdir, batch_size
+            self.tick(
+                upload_status,
+                data_gen_q,
+                load_data_q,
+                template_path,
+                tempdir,
+                batches,
             )
 
             time.sleep(3)
-        return upload_status
+        return upload_status or self.generate_upload_status(
+            data_gen_q,
+            load_data_q,
+            batches.batch_size,
+            org_record_counts_thread,
+            template_path,
+        )
 
     def _report_status(
-        self, data_gen_q, load_data_q, batch_size, org_record_counts_thread
+        self,
+        data_gen_q,
+        load_data_q,
+        batch_size,
+        org_record_counts_thread,
+        template_path,
     ):
         self.logger.info(
             "\n********** PROGRESS *********",
         )
 
         upload_status = self.generate_upload_status(
-            data_gen_q, load_data_q, batch_size or 0, org_record_counts_thread
+            data_gen_q,
+            load_data_q,
+            batch_size or 0,
+            org_record_counts_thread,
+            template_path,
         )
 
         self.logger.info(upload_status._display(detailed=True))
@@ -285,7 +307,13 @@ class Snowfakery(BaseSalesforceApiTask):
         return upload_status
 
     def tick(
-        self, upload_status, data_gen_q, batches, template_path, tempdir, batch_size
+        self,
+        upload_status,
+        data_gen_q,
+        load_data_q,
+        template_path,
+        tempdir,
+        batches: BatchGenerator,
     ):
         data_gen_q.tick()
 
@@ -301,8 +329,15 @@ class Snowfakery(BaseSalesforceApiTask):
             assert 0  # should never happen?
         else:
             for i in range(data_gen_q.free_workers):
+                upload_status = self.generate_upload_status(
+                    data_gen_q,
+                    load_data_q,
+                    batches.batch_size,
+                    self.org_record_counts_thread,
+                    template_path,
+                )
                 self.job_counter += 1
-                batch_size, total = next(batches, (None, None))
+                batch_size = batches.next_batch(upload_status.total_generated)
                 if not batch_size:
                     self.logger.info(
                         "All scheduled batches generated and being uploaded"
@@ -319,21 +354,17 @@ class Snowfakery(BaseSalesforceApiTask):
             plural = (
                 "" if len(data_gen_q.workers) + len(load_data_q.workers) == 1 else "s"
             )
+            # self.logger.info(
+            #     f"Waiting for {len(data_gen_q.workers) + len(load_data_q.workers)} worker{plural} to finish"
+            # )
             self.logger.info(
-                f"Waiting for {len(data_gen_q.workers) + len(load_data_q.workers)} worker{plural} to finish"
+                f"Waiting for {len(data_gen_q.workers)}, {len(load_data_q.workers)} worker{plural} to finish"
             )
             data_gen_q.tick()
             time.sleep(2)
 
         elapsed = format_duration(timedelta(seconds=time.time() - self.start_time))
 
-        self.logger.info(
-            "Note that Salesforce record counts are sometimes delayed and approximate"
-        )
-
-        upload_status = self._report_status(
-            data_gen_q, load_data_q, 0, self.org_record_counts_thread
-        )
         for (
             char
         ) in (
@@ -416,7 +447,12 @@ class Snowfakery(BaseSalesforceApiTask):
         return sum(int(count) for (idx, count) in idx_and_counts)
 
     def generate_upload_status(
-        self, data_gen_q, load_data_q, batch_size, org_record_counts_thread
+        self,
+        data_gen_q,
+        load_data_q,
+        batch_size,
+        org_record_counts_thread,
+        template_dir,
     ):
         def set_count_from_names(names):
             return sum(int(name.split("_")[1]) for name in names)
@@ -425,7 +461,9 @@ class Snowfakery(BaseSalesforceApiTask):
             # confirmed_count_in_org=org_record_counts_thread.main_sobject_count,
             target_count=self.run_until.gap,
             sets_being_generated=set_count_from_names(data_gen_q.inprogress_jobs)
-            + set_count_from_names(data_gen_q.queued_jobs),
+            + set_count_from_names(data_gen_q.queued_jobs)
+            + set_count_from_names(data_gen_q.queued_jobs)
+            + set_count_from_names([str(template_dir.name)]),
             sets_queued=set_count_from_names(load_data_q.queued_jobs),
             # note that these may count as already imported in the org
             sets_being_loaded=set_count_from_names(load_data_q.inprogress_jobs),
@@ -456,25 +494,32 @@ class Snowfakery(BaseSalesforceApiTask):
                 yield Path(tempdir)
 
     @contextmanager
-    def _generate_and_load_initial_batch(self, working_directory: T.Optional[Path]):
+    def _generate_and_load_initial_batch(
+        self, working_directory: T.Optional[Path], batches: BatchGenerator
+    ):
         """Generate a single batch to set up all just_once (singleton) objects"""
-        template_dir = Path(working_directory) / "template"
+        num_records = batches.next_batch(0)
+        template_dir = Path(working_directory) / f"template_{num_records}"
         template_dir.mkdir()
         self._generate_and_load_batch(
-            template_dir, {"generator_yaml": self.options.get("recipe")}
+            template_dir,
+            {
+                "generator_yaml": self.options.get("recipe"),
+                "num_records": num_records,
+                "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
+            },
         )
+        wd = SnowfakeryWorkingDirectory(template_dir)
+        new_template_dir = self.data_loader_rename_directory(template_dir)
+        shutil.move(template_dir, new_template_dir)
+        template_dir = new_template_dir
+        wd = SnowfakeryWorkingDirectory(template_dir)
 
-        # now many sets were created?
-        if self.run_until.sobject_name:
-            template_data = SnowfakeryWorkingDirectory(template_dir)
+        # don't send data tables to child processes. All they
+        # care about are ID->OID mappings
+        self._cleanup_object_tables(*wd.setup_engine())
 
-            records_already_created = template_data.get_record_count(
-                self.run_until.sobject_name
-            )
-        else:  # counting reps, not records, and we've just done 1 rep
-            records_already_created = 1
-
-        yield template_dir, records_already_created
+        yield template_dir
 
     def _generate_and_load_batch(self, tempdir, options):
         options = {
@@ -483,11 +528,6 @@ class Snowfakery(BaseSalesforceApiTask):
             "set_recently_viewed": False,
         }
         self._invoke_subtask(GenerateAndLoadDataFromYaml, options, tempdir, False)
-        wd = SnowfakeryWorkingDirectory(tempdir)
-
-        # don't send data tables to child processes. All they
-        # care about are ID->OID mappings
-        self._cleanup_object_tables(*wd.setup_engine())
 
     def _cleanup_object_tables(self, engine, metadata):
         """Delete all tables that do not relate to id->OID mapping"""
@@ -529,20 +569,16 @@ class UploadStatus(T.NamedTuple):
         )
 
     @property
-    def total_needed_generators(self):
-        if self.done:
-            return 0
-        else:
-            return 4
-
-    @property
     def total_in_flight(self):
         return self.sets_being_generated + self.sets_queued + self.sets_being_loaded
 
     @property
-    def done(self):
-        return (self.total_in_flight + self.sets_finished) >= self.target_count
-        # return self.confirmed_count_in_org >= self.target_count
+    def total_generated(self):
+        return self.total_in_flight + self.sets_finished
+
+    @property
+    def done_generating(self):
+        return self.total_generated >= self.target_count
 
     def _display(self, detailed=False):
         most_important_stats = [
@@ -590,24 +626,24 @@ class UploadStatus(T.NamedTuple):
         return rc
 
 
-def generate_batches(target: int, min_batch_size, max_batch_size):
-    """Generate enough batches to fulfill a target count.
+# def generate_batches(start_count: int, target: int, min_batch_size, max_batch_size):
+#     """Generate enough batches to fulfill a target count.
 
-    Batch size starts at min_batch_size and grows toward max_batch_size
-    unless the count gets there first.py
+#     Batch size starts at min_batch_size and grows toward max_batch_size
+#     unless the count gets there first
 
-    The reason we grow is to try to engage the org's loader queue earlier
-    than we would if we waited for the first big batch to be available.
-    """
-    count = 0
-    batch_size = min_batch_size
-    while count < target:
-        remaining = target - count
-        batch_size = int(batch_size * 1.1)  # batch size grows over time
-        batch_size = min(batch_size, remaining, max_batch_size)
+#     The reason we grow is to try to engage the org's loader queue earlier
+#     than we would if we waited for the first big batch to be available.
+#     """
+#     count = start_count
+#     batch_size = min_batch_size
+#     while count < target:
+#         remaining = target - count
+#         batch_size = int(batch_size * 1.1)  # batch size grows over time
+#         batch_size = min(batch_size, remaining, max_batch_size)
 
-        count += batch_size
-        yield batch_size, count
+#         count += batch_size
+#         count = yield batch_size
 
 
 class SnowfakeryWorkingDirectory:
