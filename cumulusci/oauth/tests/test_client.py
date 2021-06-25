@@ -1,7 +1,6 @@
 import http.client
 import pytest
 import responses
-import socket
 import ssl
 import threading
 import time
@@ -81,19 +80,7 @@ def httpd_thread(oauth_client):
         yield oauth_client
     finally:
         oauth_client.httpd.shutdown()
-        oauth_client.httpd.server_close()
         thread.join()
-
-
-@contextmanager
-def addr_in_use(hostname, port):
-    """Have a socket bind to the given address to simulate it being in use"""
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind((hostname, port))
-        yield
-    finally:
-        s.close()
 
 
 @mock.patch("webbrowser.open", mock.MagicMock(return_value=None))
@@ -203,8 +190,8 @@ class TestOAuth2Client:
                     + "?error=123&error_description=broken"
                 )
 
-    def test_create_httpd__port_alread_in_use(self, client):
-        with addr_in_use("localhost", 7788):
+    def test_create_httpd__port_already_in_use(self, client):
+        with httpd_thread(client):
             with pytest.raises(OAuth2Error, match=PORT_IN_USE_ERR):
                 client._create_httpd()
 

@@ -41,7 +41,7 @@ SANDBOX_LOGIN_URL = (
 )
 PROD_LOGIN_URL = os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforce.com"
 PORT_IN_USE_ERR = "Cannot listen for callback, as port {} is already in use."
-ADDR_ALREADY_IN_USE = "Address already in use"
+ADDR_IN_USE_ERR_CODES = (48, 10013)  # osx/linux, win
 GENERIC_OAUTH_ERROR = "An error occurred during the OAuth process: {}"
 
 
@@ -186,9 +186,8 @@ class OAuth2Client(object):
 
         try:
             httpd = HTTPServer(server_address, OAuthCallbackHandler)
-            httpd.allow_reuse_address = True
         except OSError as e:
-            if e.strerror == ADDR_ALREADY_IN_USE:
+            if e.errno in ADDR_IN_USE_ERR_CODES:
                 raise OAuth2Error(PORT_IN_USE_ERR)
             else:
                 raise OAuth2Error(GENERIC_OAUTH_ERROR.format(e))
