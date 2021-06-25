@@ -1,7 +1,7 @@
-import contextlib
 import http.client
 import pytest
 import responses
+import socket
 import ssl
 import threading
 import time
@@ -9,11 +9,12 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from contextlib import contextmanager
 from requests.models import Response
 from unittest import mock
 
 from cumulusci.core.exceptions import SalesforceCredentialsException
-from cumulusci.oauth.client import OAuth2Client
+from cumulusci.oauth.client import GENERIC_OAUTH_ERROR, OAuth2Client, PORT_IN_USE_ERR
 from cumulusci.oauth.exceptions import OAuth2Error
 from cumulusci.oauth.salesforce import jwt_session
 
@@ -43,7 +44,7 @@ def client_config():
         "client_secret": "foo_secret",
         "auth_uri": "https://login.salesforce.com/services/oauth2/authorize",
         "token_uri": "https://login.salesforce.com/services/oauth2/token",
-        "redirect_uri": "http://localhost:8080/callback",
+        "redirect_uri": "http://localhost:7788/callback",
         "scope": "web full refresh_token",
         "prompt": "login",
     }
@@ -61,9 +62,9 @@ def http_client(client_config):
     return OAuth2Client(client_config)
 
 
-@contextlib.contextmanager
+@contextmanager
 @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
-def httpd_thread(tester_class, oauth_client):
+def httpd_thread(oauth_client):
     # call OAuth object on another thread - this spawns local httpd
     thread = threading.Thread(target=oauth_client.auth_code_flow)
     thread.start()
@@ -75,11 +76,24 @@ def httpd_thread(tester_class, oauth_client):
     assert (
         oauth_client.httpd
     ), "HTTPD did not start. Perhaps port 8080 cannot be accessed."
+
     try:
-        yield oauth_client, thread
+        yield oauth_client
     finally:
         oauth_client.httpd.shutdown()
+        oauth_client.httpd.server_close()
         thread.join()
+
+
+@contextmanager
+def addr_in_use(hostname, port):
+    """Have a socket bind to the given address to simulate it being in use"""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((hostname, port))
+        yield
+    finally:
+        s.close()
 
 
 @mock.patch("webbrowser.open", mock.MagicMock(return_value=None))
@@ -115,7 +129,7 @@ class TestOAuth2Client:
         )
 
         # call OAuth object on another thread - this spawns local httpd
-        with httpd_thread(self, http_client) as (oauth_client, thread):
+        with httpd_thread(http_client) as oauth_client:
             # simulate callback from browser
             response = urllib.request.urlopen(
                 http_client.client_config.redirect_uri + "?code=123"
@@ -150,7 +164,7 @@ class TestOAuth2Client:
         ssl._create_default_https_context = ssl._create_unverified_context
 
         # call OAuth object on another thread - this spawns local httpd
-        with httpd_thread(self, client) as (oauth_client, thread):
+        with httpd_thread(client) as oauth_client:
             # simulate callback from browser
             response = urllib.request.urlopen(
                 oauth_client.client_config.redirect_uri + "?code=123"
@@ -181,7 +195,7 @@ class TestOAuth2Client:
         )
 
         # call OAuth object on another thread - this spawns local httpd
-        with httpd_thread(self, client) as (oauth_client, thread):
+        with httpd_thread(client):
             # simulate callback from browser
             with pytest.raises(urllib.error.HTTPError):
                 urllib.request.urlopen(
@@ -189,8 +203,17 @@ class TestOAuth2Client:
                     + "?error=123&error_description=broken"
                 )
 
-        # wait for thread to complete
-        thread.join()
+    def test_create_httpd__port_alread_in_use(self, client):
+        with addr_in_use("localhost", 7788):
+            with pytest.raises(OAuth2Error, match=PORT_IN_USE_ERR):
+                client._create_httpd()
+
+    @mock.patch("cumulusci.oauth.client.HTTPServer")
+    def test_create_httpd__different_OSError(self, HTTPServer, client):
+        message = "generic error message"
+        HTTPServer.side_effect = OSError(message)
+        with pytest.raises(OAuth2Error, match=GENERIC_OAUTH_ERROR.format(message)):
+            client._create_httpd()
 
     @responses.activate
     def test_oauth_flow_error_from_token(self, client):
@@ -202,7 +225,7 @@ class TestOAuth2Client:
         )
 
         # call OAuth object on another thread - this spawns local httpd
-        with httpd_thread(self, client) as (oauth_client, thread):
+        with httpd_thread(client):
             # simulate callback from browser
             with pytest.raises(urllib.error.HTTPError):
                 urllib.request.urlopen(client.client_config.redirect_uri + "?code=123")
