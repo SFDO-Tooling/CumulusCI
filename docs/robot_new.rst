@@ -185,37 +185,37 @@ Here's a quick primer for the Robot syntax in the ``Create Contact`` test ``.rob
 
 .. NOT SURE IF TABLE EVEN WORKS BECAUSE MY FORMATTING FOR VSC ON THIS WORK COMPUTER IS *THE WORST*. THAT SAID, I ALSO MADE A BULLET LIST OF THIS TABLE BELOW, WHICH I THINK MIGHT WORK BETTER ANYWAY.
 
-+--------+------+-----------------------------------------------------------------------------------------+
++--------+-------------------+----------------------------------------------------------------------------+
 | Symbol | Name              | Description & Usage                                                        |
-+========+======+=========================================================================================+
++========+===================+============================================================================+
 | ***    | Section Heading   | By convention, three stars on both sides of a heading designate a section  |
 |        |                   | heading. Popular sections headings include ``Settings``, ``Test Cases``,   |
 |        |                   | ``Keywords``, ``Variables``, and ``Tasks``.                                |
-+--------+------+-----------------------------------------------------------------------------------------+
++--------+-------------------+----------------------------------------------------------------------------+
 | #      | Hash              | Designates comments.                                                       |
-+--------+------+-----------------------------------------------------------------------------------------+
++--------+-------------------+----------------------------------------------------------------------------+
 | ${}    | Variable          | Curly brackets with a name placed inside designates a variable.            |
 |        |                   |                                                                            |
 |        |                   | Inside ``{}``, variable names are case-insensitive. Spaces and underscores |
 |        |                   | are treated as the same value, and also optional.                          |
 |        |                   |                                                                            | 
 |        |                   | The leading ``$`` character refers to a single object.                     |
-+--------+------+-----------------------------------------------------------------------------------------+
++--------+-------------------+----------------------------------------------------------------------------+
 | &{}    | Dictionary or Map | The leading ``&`` character refers to a dictionary or map for              |
 |        |                   |   key-value pairs, such as ``&{contact}``, whose keys are ``FirstName``    |
 |        |                   |   and ``LastName``.                                |                       |
-+--------+------+-----------------------------------------------------------------------------------------+
++--------+-------------------+----------------------------------------------------------------------------+
 | =      | Equals            | Equals sign designates the value of a variable. It is allowed up to one    |
 |        |                   | space before its placement but allowed more than two after, which is       |
 |        |                   | helpful in formatting test cases into readable columns. It is entirely     |
 |        |                   | optional.                                                                  |
-+--------+------+-----------------------------------------------------------------------------------------+
++--------+-------------------+----------------------------------------------------------------------------+
 | ...    | Ellipses          | Ellipses designate the continuation of a single-line command broken up     | 
 |        |                   | over several lines for easier readability.                                 |
-+--------+------+-----------------------------------------------------------------------------------------+
++--------+-------------------+----------------------------------------------------------------------------+
 |        | Space             | Two or more spaces separate arguments from the keyword(s), and arguments   |
 |        |                   | from each other. They can also align data for readability.                 |
-+--------+------+-----------------------------------------------------------------------------------------+
++--------+-------------------+----------------------------------------------------------------------------+
 
 .. BULLET LIST VERSION
 
@@ -258,10 +258,10 @@ Suite Setup/Teardown
 --------------------
 
 .. NEED TO REWRITE THIS SECTION TO INCLUDE SETUP
-..
-When an object is created via the API, that object continues to live on in the org even after the test dies. That's why it's best practice to delete objects that were created at the end of a test run. This example shows how to do that using ``Suite Teardown``.
-..
-FIX THIS
+
+.. When an object is created via the API, that object continues to live on in the org even after the test dies. That's why it's best practice to delete objects that were created at the end of a test run. This example shows how to do that using ``Suite Teardown``.
+
+.. FIX THIS
 .. ``Salesforce Insert`` is designed to keep track of the IDs of the objects created, ``Delete session records`` deletes those objects.
 This is the previous ``Create Contact`` test case with ``Suite Teardown`` placed under the ``Settings`` section. The ``records`` in the ``delete session records`` keyword refer to any data records created by the ``Salesforce Insert`` keyword. This makes it possible to create and later clean up temporary data used for a test.
 
