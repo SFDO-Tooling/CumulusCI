@@ -40,6 +40,9 @@ SANDBOX_LOGIN_URL = (
     os.environ.get("SF_SANDBOX_LOGIN_URL") or "https://test.salesforce.com"
 )
 PROD_LOGIN_URL = os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforce.com"
+PORT_IN_USE_ERR = "Cannot listen for callback, as port {} is already in use."
+ADDR_ALREADY_IN_USE = "Address already in use"
+GENERIC_OAUTH_ERROR = "An error occurred during the OAuth process: {}"
 
 
 def create_key_and_self_signed_cert():
@@ -175,10 +178,21 @@ class OAuth2Client(object):
         for the callback from the auth server"""
         url_parts = urlparse(self.client_config.redirect_uri)
         use_https = url_parts.scheme == "https"
-        server_address = (url_parts.hostname, url_parts.port)
+        hostname = url_parts.hostname
+        port = url_parts.port
+
+        server_address = (hostname, port)
         OAuthCallbackHandler.parent = self
 
-        httpd = HTTPServer(server_address, OAuthCallbackHandler)
+        try:
+            httpd = HTTPServer(server_address, OAuthCallbackHandler)
+            httpd.allow_reuse_address = True
+        except OSError as e:
+            if e.strerror == ADDR_ALREADY_IN_USE:
+                raise OAuth2Error(PORT_IN_USE_ERR)
+            else:
+                raise OAuth2Error(GENERIC_OAUTH_ERROR.format(e))
+
         if use_https:
             if not Path("localhost.pem").is_file() or not Path("key.pem").is_file():
                 create_key_and_self_signed_cert()
@@ -192,6 +206,9 @@ class OAuth2Client(object):
 
         httpd.timeout = self.httpd_timeout
         return httpd
+
+    def _port_in_use(self, port):
+        """Detects if the given port is already being used"""
 
     def auth_code_grant(self, auth_code):
         """Exchange an auth code for an access token"""
