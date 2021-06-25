@@ -9,6 +9,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from requests.models import Response
 from unittest import mock
 
 from cumulusci.core.exceptions import SalesforceCredentialsException
@@ -206,7 +207,8 @@ class TestOAuth2Client:
             with pytest.raises(urllib.error.HTTPError):
                 urllib.request.urlopen(client.client_config.redirect_uri + "?code=123")
 
-    def test_validate_resposne__raises_error(self, client):
-        response = mock.Mock(status_code=503)
+    def test_validate_response__raises_error(self, client):
+        response = Response()
+        response.status_code = 400
         with pytest.raises(OAuth2Error):
             client.validate_response(response)
