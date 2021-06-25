@@ -11,7 +11,14 @@ import psutil
 
 from sqlalchemy import MetaData, create_engine, func, select
 
+from snowfakery import api
+
+print(api.__file__)
 from snowfakery.api import COUNT_REPS
+
+from cumulusci.tasks.bulkdata.snowfakery_utils.snowfakery_run_until import (
+    determine_run_until,
+)
 
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
@@ -48,13 +55,13 @@ class Snowfakery(BaseSalesforceApiTask):
             "required": True,
             "description": "A Snowfakery recipe file determining what data to generate and load.",
         },
-        "run-until-records-in-org": {
+        "run_until_records_in_org": {
             "description": """<sobject>,<count>
 
       Run the recipe repeatedly until the count of <sobject>
       in the org matches the given <count>.
 
-      For example, `--run-until-records-in-org Account:50_000` means:
+      For example, `--run_until_records_in_org Account:50_000` means:
 
       Count the Account records in the org. Let’s say the number
       is 20,000. Thus, we must run the recipe over and
@@ -66,13 +73,13 @@ class Snowfakery(BaseSalesforceApiTask):
       is the same as 2_000_000.
         """
         },
-        "run-until-records-loaded": {
+        "run_until_records_loaded": {
             "description": """<sobject>,<count>
 
       Run the recipe repeatedly until the number of records of
       <sobject> uploaded in this task execution matches <count>.
 
-      For example, `--run-until-records-loaded Account:50_000` means:
+      For example, `--run_until_records_loaded Account:50_000` means:
 
       Run the recipe over and over again
       until we generate 50_000 new Account records. If the recipe
@@ -80,7 +87,7 @@ class Snowfakery(BaseSalesforceApiTask):
       generates the appropriate number of them to match.
         """
         },
-        "run-until-recipe-repeated": {
+        "run_until_recipe_repeated": {
             "description": "(coming soon) Run the recipe <count> times, "
             "no matter what data is already in the org."
         },
@@ -136,7 +143,7 @@ class Snowfakery(BaseSalesforceApiTask):
             if get_debug_mode():
                 self.logger.info(f"Using {self.num_generator_workers} workers")
 
-        self.run_until = self.determine_run_until()
+        self.run_until = determine_run_until(self.options, self.sf)
         self.start_time = time.time()
         self.max_batch_size = self.options.get("max_batch_size", 250_000)
         self.recipe = Path(self.options.get("recipe"))
@@ -156,14 +163,15 @@ class Snowfakery(BaseSalesforceApiTask):
             assert working_directory.exists()
             self.logger.info(f"Working directory is {working_directory}")
 
-            if self.run_until.done:
+            if self.run_until.nothing_to_do:
                 self.logger.info(
-                    f"Dataload is finished before it started! {self.run_until.done_because}"
+                    f"Dataload is finished before it started! {self.run_until.nothing_to_do_because}"
                 )
                 return
 
             with self._generate_and_load_initial_batch(working_directory) as (
-                template_path
+                template_path,
+                records_already_created,
             ):
                 upload_status = self._loop(
                     template_path,
@@ -171,37 +179,9 @@ class Snowfakery(BaseSalesforceApiTask):
                     data_gen_q,
                     load_data_q,
                     self.org_record_counts_thread,
+                    records_already_created,
                 )
                 self.finish(upload_status, data_gen_q, load_data_q)
-
-    def finish(self, upload_status, data_gen_q, load_data_q):
-        while data_gen_q.workers + load_data_q.workers:
-            plural = (
-                "" if len(data_gen_q.workers) + len(load_data_q.workers) == 1 else "s"
-            )
-            self.logger.info(
-                f"Waiting for {len(data_gen_q.workers) + len(load_data_q.workers)} worker{plural} to finish"
-            )
-            data_gen_q.tick()
-            time.sleep(2)
-
-        elapsed = format_duration(timedelta(seconds=time.time() - self.start_time))
-
-        self.logger.info(
-            "Note that Salesforce record counts are sometimes delayed and approximate"
-        )
-
-        upload_status = self._report_status(
-            data_gen_q, load_data_q, 0, self.org_record_counts_thread
-        )
-        for (
-            char
-        ) in (
-            f"☃  D ❄ O ❆ N ❉ E ☃     :  {elapsed}, {upload_status.target_count:,} sets"
-        ):
-            print(char, end="", flush=True)
-            time.sleep(0.10)
-        print()
 
     def configure_queues(self, working_directory):
         try:
@@ -244,33 +224,18 @@ class Snowfakery(BaseSalesforceApiTask):
         data_gen_q.feeds_data_to(load_data_q)
         return data_gen_q, load_data_q
 
-    def determine_run_until(self):
-        selected_strategies = [
-            (strategy, self.options.get(strategy))
-            for strategy in COUNT_STRATEGIES.keys()
-            if self.options.get(strategy)
-        ]
-
-        if len(selected_strategies) > 1:
-            raise exc.TaskOptionsError(
-                "Please select only one of " + ", ".join(COUNT_STRATEGIES.keys())
-            )
-        elif not selected_strategies:
-            strategy_choice = ("run_until_recipe_repeated", "1")
-        else:
-            strategy_choice = selected_strategies[0]
-
-        strategy_name, param = strategy_choice
-        strategy_impl = COUNT_STRATEGIES[strategy_name]
-
-        return strategy_impl(self.sf, param)
-
     def _loop(
-        self, template_path, tempdir, data_gen_q, load_data_q, org_record_counts_thread
+        self,
+        template_path,
+        tempdir,
+        data_gen_q,
+        load_data_q,
+        org_record_counts_thread,
+        records_already_created,
     ):
         batch_size = BASE_BATCH_SIZE
 
-        goal_records = self.run_until.gap
+        goal_records = self.run_until.gap - records_already_created
 
         self.logger.info(f"Generating {goal_records:,}.")
 
@@ -305,7 +270,9 @@ class Snowfakery(BaseSalesforceApiTask):
         self.logger.info(upload_status._display(detailed=True))
 
         if upload_status.sets_failed:
-            self.log_failures()
+            self.log_failures(
+                set(load_data_q.failed_job_dirs + data_gen_q.failed_job_dirs)
+            )
 
         if upload_status.sets_failed > ERROR_THRESHOLD:
             raise exc.BulkDataException(
@@ -347,14 +314,42 @@ class Snowfakery(BaseSalesforceApiTask):
                 data_gen_q.push(job_dir)
         return batch_size
 
-    def log_failures(self):
-        return
-        # Todo, V2.1: Log the failures better
-        # failures = self.failures_dir.glob("*/exception.txt")
-        # for failure in failures:
-        #     text = failure.read_text()
-        #     self.logger.info(f"Failure from worker: {failure}")
-        #     self.logger.info(text)
+    def finish(self, upload_status, data_gen_q, load_data_q):
+        while data_gen_q.workers + load_data_q.workers:
+            plural = (
+                "" if len(data_gen_q.workers) + len(load_data_q.workers) == 1 else "s"
+            )
+            self.logger.info(
+                f"Waiting for {len(data_gen_q.workers) + len(load_data_q.workers)} worker{plural} to finish"
+            )
+            data_gen_q.tick()
+            time.sleep(2)
+
+        elapsed = format_duration(timedelta(seconds=time.time() - self.start_time))
+
+        self.logger.info(
+            "Note that Salesforce record counts are sometimes delayed and approximate"
+        )
+
+        upload_status = self._report_status(
+            data_gen_q, load_data_q, 0, self.org_record_counts_thread
+        )
+        for (
+            char
+        ) in (
+            f"☃  D ❄ O ❆ N ❉ E ☃     :  {elapsed}, {upload_status.target_count:,} sets"
+        ):
+            print(char, end="", flush=True)
+            time.sleep(0.10)
+        print()
+
+    def log_failures(self, dirs=T.Sequence[Path]):
+        for failure_dir in dirs:
+            f = Path(failure_dir) / "exception.txt"
+            if not f.exists():
+                continue
+            exception = f.read_text().strip().split("\n")[-1]
+            self.logger.info(exception)
 
     def data_loader_opts(self, working_dir: Path):
         wd = SnowfakeryWorkingDirectory(working_dir)
@@ -421,7 +416,7 @@ class Snowfakery(BaseSalesforceApiTask):
         return sum(int(count) for (idx, count) in idx_and_counts)
 
     def generate_upload_status(
-        self, generator_q, loader_q, batch_size, org_record_counts_thread
+        self, data_gen_q, load_data_q, batch_size, org_record_counts_thread
     ):
         def set_count_from_names(names):
             return sum(int(name.split("_")[1]) for name in names)
@@ -429,24 +424,24 @@ class Snowfakery(BaseSalesforceApiTask):
         rc = UploadStatus(
             # confirmed_count_in_org=org_record_counts_thread.main_sobject_count,
             target_count=self.run_until.gap,
-            sets_being_generated=set_count_from_names(generator_q.inprogress_jobs)
-            + set_count_from_names(generator_q.queued_jobs),
-            sets_queued=set_count_from_names(loader_q.queued_jobs),
+            sets_being_generated=set_count_from_names(data_gen_q.inprogress_jobs)
+            + set_count_from_names(data_gen_q.queued_jobs),
+            sets_queued=set_count_from_names(load_data_q.queued_jobs),
             # note that these may count as already imported in the org
-            sets_being_loaded=set_count_from_names(loader_q.inprogress_jobs),
-            upload_queue_free_space=loader_q.free_space,
-            sets_finished=set_count_from_names(loader_q.outbox_jobs),
+            sets_being_loaded=set_count_from_names(load_data_q.inprogress_jobs),
+            upload_queue_free_space=load_data_q.free_space,
+            sets_finished=set_count_from_names(load_data_q.outbox_jobs),
             base_batch_size=BASE_BATCH_SIZE,  # FIXME
             user_max_num_generator_workers=self.num_generator_workers,
             user_max_num_loader_workers=self.num_loader_workers,
             max_batch_size=self.max_batch_size,
             elapsed_seconds=int(time.time() - self.start_time),
-            sets_failed=len(loader_q.failed_jobs),
+            sets_failed=len(load_data_q.failed_jobs),
             batch_size=batch_size,
-            inprogress_generator_jobs=len(generator_q.inprogress_jobs),
-            inprogress_loader_jobs=len(loader_q.inprogress_jobs),
-            queue_full=generator_q.full,
-            data_gen_free_workers=generator_q.free_workers,
+            inprogress_generator_jobs=len(data_gen_q.inprogress_jobs),
+            inprogress_loader_jobs=len(load_data_q.inprogress_jobs),
+            queue_full=data_gen_q.full,
+            data_gen_free_workers=data_gen_q.free_workers,
         )
         return rc
 
@@ -462,12 +457,24 @@ class Snowfakery(BaseSalesforceApiTask):
 
     @contextmanager
     def _generate_and_load_initial_batch(self, working_directory: T.Optional[Path]):
+        """Generate a single batch to set up all just_once (singleton) objects"""
         template_dir = Path(working_directory) / "template"
         template_dir.mkdir()
         self._generate_and_load_batch(
             template_dir, {"generator_yaml": self.options.get("recipe")}
         )
-        yield template_dir
+
+        # now many sets were created?
+        if self.run_until.sobject_name:
+            template_data = SnowfakeryWorkingDirectory(template_dir)
+
+            records_already_created = template_data.get_record_count(
+                self.run_until.sobject_name
+            )
+        else:  # counting reps, not records, and we've just done 1 rep
+            records_already_created = 1
+
+        yield template_dir, records_already_created
 
     def _generate_and_load_batch(self, tempdir, options):
         options = {
@@ -581,72 +588,6 @@ class UploadStatus(T.NamedTuple):
                 set(dir(self)) - (set(most_important_stats) & set(queue_stats))
             )
         return rc
-
-
-class RunUntilBase:
-    # subclasses need to fill in these two fields
-    sobject_name: str = None
-    target: int = None
-    gap: int = None
-
-    def set_target_and_gap(self, sobject_name: T.Optional[str], num_as_str: str):
-        self.sobject_name = sobject_name
-        try:
-            self.target = self.gap = int(num_as_str)
-        except TypeError:
-            raise exc.TaskOptionsError(f"{num_as_str} is not a number")
-
-    def split_pair(self, param):
-        parts = param.split(":")
-        if len(parts) != 2:
-            raise exc.TaskOptionsError(
-                f"{param} is in the wrong format for {self.option_name}"
-            )
-        return parts
-
-    @property
-    def done(self):
-        return self.gap <= 0
-
-
-class RunUntilRecipeRepeated(RunUntilBase):
-    option_name = "--run-until-recipe-repeated"
-    done_because = "You asked for zero repetitions."
-
-    def __init__(self, sf, param):
-        self.set_target_and_gap(None, param)
-
-
-class RunUntilRecordsLoaded(RunUntilBase):
-    option_name = "--run-until-records-loaded"
-    done_because = "You asked for zero records."
-
-    def __init__(self, sf, param):
-        parts = self.split_pair(param)
-        self.set_target_and_gap(*parts)
-
-
-class RunUntilRecordInOrg(RunUntilRecordsLoaded):
-    option_name = "--run-until-records-in-org"
-
-    def __init__(self, sf, param):
-        parts = self.split_pair(param)
-        self.set_target_and_gap(*parts)
-        query = f"select count(Id) from {self.sobject_name}"
-        self.in_org_count = sf.query(query)["records"][0]["expr0"]
-        gap = self.target - int(self.in_org_count)
-        self.gap = max(gap, 0)
-
-    @property
-    def done_because(self):
-        return f"The org has {self.in_org_count} {self.sobject_name} records. You asked for {self.target}"
-
-
-COUNT_STRATEGIES = {
-    "run_until_recipe_repeated": RunUntilRecipeRepeated,
-    "run_until_records_loaded": RunUntilRecordsLoaded,
-    "run_until_records_in_org": RunUntilRecordInOrg,
-}
 
 
 def generate_batches(target: int, min_batch_size, max_batch_size):
