@@ -202,8 +202,8 @@ Here's a quick primer for the Robot syntax in the ``Create Contact`` test ``.rob
 |        |                   | The leading ``$`` character refers to a single object.                     |
 +--------+-------------------+----------------------------------------------------------------------------+
 | &{}    | Dictionary or Map | The leading ``&`` character refers to a dictionary or map for              |
-|        |                   |   key-value pairs, such as ``&{contact}``, whose keys are ``FirstName``    |
-|        |                   |   and ``LastName``.                                |                       |
+|        |                   | key-value pairs, such as ``&{contact}``, whose keys are ``FirstName``      |
+|        |                   | and ``LastName``.                                                          |
 +--------+-------------------+----------------------------------------------------------------------------+
 | =      | Equals            | Equals sign designates the value of a variable. It is allowed up to one    |
 |        |                   | space before its placement but allowed more than two after, which is       |
