@@ -414,3 +414,32 @@ Suite Setup     Run keywords
 ...             Open test browser
 ...             AND  create a test contact
 
+
+
+
+A More Efficient Robot
+----------------------
+
+Because automated acceptance testing is sometimes a secondary concern for development teams, this Robot documentation is written with that in mind. Ahead are neatly explained examples of Robot tests that leverage the features of CumulusCI, each one written as a foundation test to be run during development, not after.
+
+The goal here is to demystify the testing process for everyone who works with CumulusCI, to give a head start on designing essential Robot tests, and to inspire you to build upon the test cases given here to meet the needs of your project. 
+
+
+Variables defined in resource files are accessible to all tests in a suite that imports the resource file. Variables can be set in the ``cumulusci.yml`` file, or specified with the ``vars`` option under the robot task. Variables need to be referenced without the dollar sign and curly braces. 
+ 
+For example, set the browser to Firefox and the default timeout to 20 seconds in the ``cumulusci.yml`` file:
+ 
+.. code-block:: yaml
+ 
+  tasks:
+    robot:
+      options:
+        vars:
+          - BROWSER:firefox
+          - TIMEOUT:20 seconds
+ 
+These variables can be set from the command line to override the config file for a single test run.
+ 
+.. code-block:: console
+ 
+    $ cci task run robot --vars browser:firefox,timeout:20
