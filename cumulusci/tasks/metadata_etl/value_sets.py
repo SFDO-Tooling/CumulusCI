@@ -2,6 +2,16 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 
+CASE_STATUS_ERR = "CaseStatus standard value set entries require the key 'closed'"
+LEAD_STATUS_ERR = "LeadStatus standard value set entries require the key 'converted'"
+FULL_NAME_AND_LABEL_ERR = (
+    "Standard value set entries must contain the 'fullName' and 'label' keys."
+)
+OPP_STAGE_ERR = (
+    "OpportunityStage standard value set entries require the keys "
+    "'closed', 'forecastCategory', 'probability', and 'won'"
+)
+
 
 class AddValueSetEntries(MetadataSingleEntityTransformTask):
     entity = "StandardValueSet"
@@ -25,9 +35,7 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
     def _transform_entity(self, metadata: MetadataElement, api_name: str):
         for entry in self.options.get("entries", []):
             if "fullName" not in entry or "label" not in entry:
-                raise TaskOptionsError(
-                    "Standard value set entries must contain the 'fullName' and 'label' keys."
-                )
+                raise TaskOptionsError(FULL_NAME_AND_LABEL_ERR)
 
             # Check for extra metadata on CaseStatus, OpportunityStage and LeadStatus
             if api_name == "OpportunityStage":
@@ -39,20 +47,13 @@ class AddValueSetEntries(MetadataSingleEntityTransformTask):
                         "won" in entry,
                     ]
                 ):
-                    raise TaskOptionsError(
-                        "OpportunityStage standard value set entries require the keys "
-                        "'closed', 'forecastCategory', 'probability', and 'won'"
-                    )
+                    raise TaskOptionsError(OPP_STAGE_ERR)
             if api_name == "CaseStatus":
                 if "closed" not in entry:
-                    raise TaskOptionsError(
-                        "CaseStatus standard value set entries require the key 'closed'"
-                    )
+                    raise TaskOptionsError(CASE_STATUS_ERR)
             if api_name == "LeadStatus":
                 if "converted" not in entry:
-                    raise TaskOptionsError(
-                        "LeadStatus standard value set entries require the key 'converted'"
-                    )
+                    raise TaskOptionsError(LEAD_STATUS_ERR)
 
             existing_entry = metadata.findall(
                 "standardValue", fullName=entry["fullName"]
