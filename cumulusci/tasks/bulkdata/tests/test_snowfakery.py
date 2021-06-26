@@ -16,6 +16,21 @@ from cumulusci.core import exceptions as exc
 sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.yml"
 
 
+@pytest.fixture
+def load_data(request):
+    with mock.patch("cumulusci.tasks.bulkdata.load.LoadData.__call__") as y:
+        yield y
+
+
+@pytest.fixture
+def threads_instead_of_processes(request):
+    with mock.patch(
+        "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
+        wraps=Thread,
+    ) as t:
+        yield t
+
+
 @contextmanager
 def temporary_file_path(filename):
     with TemporaryDirectory() as tmpdirname:
@@ -118,7 +133,10 @@ class XXXTestUploadStatus:  # FIX THESE TESTS
         assert u.total_needed_generators == 1, u.total_needed_generators
 
 
-class TestGenerateFromDataTasks:
+@mock.patch(
+    "cumulusci.utils.salesforce.record_count.OrgRecordCounts.start", mock.Mock()
+)
+class TestSnowfakery:
     def assertRowsCreated(self, database_url):
         engine = create_engine(database_url)
         connection = engine.connect()
@@ -131,11 +149,10 @@ class TestGenerateFromDataTasks:
         with pytest.raises(exc.TaskOptionsError, match="recipe"):
             _make_task(Snowfakery, {})
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.LoadData.__call__")
     @mock.patch(
         "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
     )
-    def test_simple(self, create_subprocess, load_data, create_task_fixture):
+    def test_simple(self, Process, load_data, create_task_fixture):
         task = create_task_fixture(
             Snowfakery,
             {
@@ -145,36 +162,59 @@ class TestGenerateFromDataTasks:
         task()
         assert load_data.mock_calls
         # should not be called for a simple one-rep load
-        assert not create_subprocess.mock_calls
+        assert not Process.mock_calls
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.BASE_BATCH_SIZE", 3)
-    @mock.patch(
-        "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
-        Thread,  # use a thread instead of a process so mocking will work
-    )
-    @mock.patch("cumulusci.tasks.bulkdata.load.LoadData.__call__")
-    def test_small(self, load_data, create_task_fixture):
+    def test_small(self, load_data, threads_instead_of_processes, create_task_fixture):
         task = create_task_fixture(
             Snowfakery,
             {"recipe": sample_yaml, "run_until_recipe_repeated": "6"},
         )
         task()
-        # Batch size size ws 3 so 6 records takes two batches
+        # Batch size was 3, so 6 records takes two batches
         assert len(load_data.mock_calls) == 2
+        # One should be in a sub-process/thread
+        assert len(threads_instead_of_processes.mock_calls) == 1
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.LoadData.__call__")
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.BASE_BATCH_SIZE", 3)
+    def test_multi_part(
+        self, threads_instead_of_processes, load_data, create_task_fixture
+    ):
+        task = create_task_fixture(
+            Snowfakery,
+            {"recipe": sample_yaml, "run_until_recipe_repeated": 15},
+        )
+        task()
+        assert len(load_data.mock_calls) > 3  # depends on the details of the tuning
+        assert (
+            len(threads_instead_of_processes.mock_calls)
+            == len(load_data.mock_calls) - 1
+        )
+
     @mock.patch(
         "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
     )
-    def test_multi_part(self, create_subprocess, load_data, create_task_fixture):
+    def test_run_until_loaded(self, create_subprocess, load_data, create_task_fixture):
         task = create_task_fixture(
             Snowfakery,
-            {"recipe": sample_yaml, "run_until_recipe_repeated": 10},
+            {"recipe": sample_yaml, "run_until_records_loaded": "Account:10"},
         )
         task()
         assert load_data.mock_calls
-        # should not be called for a small load
+        # should not be called for a simple one-rep load
         assert not create_subprocess.mock_calls
+
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.BASE_BATCH_SIZE", 3)
+    def test_run_until_loaded_2_parts(
+        self, threads_instead_of_processes, load_data, create_task_fixture
+    ):
+        task = create_task_fixture(
+            Snowfakery,
+            {"recipe": sample_yaml, "run_until_records_loaded": "Account:6"},
+        )
+        task()
+        assert len(load_data.mock_calls) == 2
+        assert len(threads_instead_of_processes.mock_calls) == 1
 
     # def test_inaccessible_generator_yaml(self):
     #     with pytest.raises(exc.exc.TaskOptionsError):

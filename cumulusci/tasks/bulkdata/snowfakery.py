@@ -54,7 +54,7 @@ class Snowfakery(BaseSalesforceApiTask):
             "description": "A Snowfakery recipe file determining what data to generate and load.",
         },
         "run_until_records_in_org": {
-            "description": """<sobject>,<count>
+            "description": """<sobject>:<count>
 
       Run the recipe repeatedly until the count of <sobject>
       in the org matches the given <count>.
@@ -72,7 +72,7 @@ class Snowfakery(BaseSalesforceApiTask):
         """
         },
         "run_until_records_loaded": {
-            "description": """<sobject>,<count>
+            "description": """<sobject>:s<count>
 
       Run the recipe repeatedly until the number of records of
       <sobject> uploaded in this task execution matches <count>.
