@@ -488,3 +488,22 @@ Advance Project Structure
    * ``tests``: The folder where you store your test suites. You are free to organize this folder however you please, including adding subfolders.
 
 
+
+
+
+* Section Heading (***): By convention, three stars on both sides of a heading designate a section heading. Popular section headings include ``Settings``, ``Test Cases``, ``Keywords``, ``Variables``, and ``Tasks``.
+* Comments (``#``): Hashes designate comments.
+* Variables (``{}``): Curly brackets with a name placed inside designates a variable.
+   * Inside ``{}``, variable names are case-insensitive. Spaces and underscores are treated as the same value, and also optional.
+   * The leading ``$`` character refers to a single object, such as ``${contact id}``. 
+   * The leading ``&`` character refers to a dictionary or map for key-value pairs, such as ``&{contact}``, whose keys are ``FirstName`` and ``LastName``.
+* Equals (``=``): Equals sign designates the value of a variable. It is allowed up to one space before its placement but allowed more than two after, which is helpful in formatting test cases into readable columns. It is entirely optional. 
+* Ellipses (``...``): Ellipses designate the continuation of a single-line command broken up over several lines for easier readability.
+* Spaces (`` ``): Two or more spaces separate arguments from the keyword(s), and arguments from each other. They can also align data for readability.
+
+
+.. DISCUSS BEFORE DELETION (THIS WAS PART OF OUTLINE) 
+Because of these features, Robot offers a better experience with acceptance testing than the previous Salesforce testing hierarchy of Apex, JEST and Integration (API & Browser). Here's why:
+* Apex is a programming language developed by Salesforce. Although it offers flexibility with building apps from scratch, it was not designed with the goal of making readable acceptance tests.
+* JEST is a testing framework written in JavaScript, but it doesn't offer a lot of flexibility in its test cases, instead being used primarily for browser automation, which automates tests to run across any number of browsers to more efficiently find bugs, and to ensure a consistent user experience.
+* Integration testing performs complex scenarios that involve multiple components to find possible bugs in between interactions with those components. Traditional integration tests are great from a technical perspective, but they aren't as expressive or as relatable to high-level, user-centric tests as Robot. 
