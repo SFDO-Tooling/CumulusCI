@@ -17,7 +17,7 @@ sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.yml"
 
 
 @pytest.fixture
-def load_data(request):
+def mock_load_data(request):
     with mock.patch("cumulusci.tasks.bulkdata.load.LoadData.__call__") as y:
         yield y
 
@@ -29,6 +29,14 @@ def threads_instead_of_processes(request):
         wraps=Thread,
     ) as t:
         yield t
+
+
+@pytest.fixture
+def snowfakery(request, create_task):
+    def snowfakery(**kwargs):
+        return create_task(Snowfakery, kwargs)
+
+    return snowfakery
 
 
 @contextmanager
@@ -152,7 +160,7 @@ class TestSnowfakery:
     @mock.patch(
         "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
     )
-    def test_simple(self, Process, load_data, create_task_fixture):
+    def test_simple(self, Process, mock_load_data, create_task_fixture):
         task = create_task_fixture(
             Snowfakery,
             {
@@ -160,75 +168,170 @@ class TestSnowfakery:
             },
         )
         task()
-        assert load_data.mock_calls
+        assert mock_load_data.mock_calls
         # should not be called for a simple one-rep load
         assert not Process.mock_calls
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.BASE_BATCH_SIZE", 3)
-    def test_small(self, load_data, threads_instead_of_processes, create_task_fixture):
+    def test_small(
+        self, mock_load_data, threads_instead_of_processes, create_task_fixture
+    ):
         task = create_task_fixture(
             Snowfakery,
             {"recipe": sample_yaml, "run_until_recipe_repeated": "6"},
         )
         task()
         # Batch size was 3, so 6 records takes two batches
-        assert len(load_data.mock_calls) == 2
+        assert len(mock_load_data.mock_calls) == 2
         # One should be in a sub-process/thread
         assert len(threads_instead_of_processes.mock_calls) == 1
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.BASE_BATCH_SIZE", 3)
     def test_multi_part(
-        self, threads_instead_of_processes, load_data, create_task_fixture
+        self, threads_instead_of_processes, mock_load_data, create_task_fixture
     ):
         task = create_task_fixture(
             Snowfakery,
             {"recipe": sample_yaml, "run_until_recipe_repeated": 15},
         )
         task()
-        assert len(load_data.mock_calls) > 3  # depends on the details of the tuning
+        assert (
+            len(mock_load_data.mock_calls) > 3
+        )  # depends on the details of the tuning
         assert (
             len(threads_instead_of_processes.mock_calls)
-            == len(load_data.mock_calls) - 1
+            == len(mock_load_data.mock_calls) - 1
         )
 
     @mock.patch(
         "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
     )
-    def test_run_until_loaded(self, create_subprocess, load_data, create_task_fixture):
+    def test_run_until_loaded(
+        self, create_subprocess, mock_load_data, create_task_fixture
+    ):
         task = create_task_fixture(
             Snowfakery,
             {"recipe": sample_yaml, "run_until_records_loaded": "Account:10"},
         )
         task()
-        assert load_data.mock_calls
+        assert mock_load_data.mock_calls
         # should not be called for a simple one-rep load
         assert not create_subprocess.mock_calls
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.BASE_BATCH_SIZE", 3)
     def test_run_until_loaded_2_parts(
-        self, threads_instead_of_processes, load_data, create_task_fixture
+        self, threads_instead_of_processes, mock_load_data, create_task_fixture
     ):
         task = create_task_fixture(
             Snowfakery,
             {"recipe": sample_yaml, "run_until_records_loaded": "Account:6"},
         )
         task()
-        assert len(load_data.mock_calls) == 2
+        assert len(mock_load_data.mock_calls) == 2
         assert len(threads_instead_of_processes.mock_calls) == 1
 
-    # def test_inaccessible_generator_yaml(self):
-    #     with pytest.raises(exc.exc.TaskOptionsError):
-    #         task = _make_task(
-    #             GenerateDataFromYaml,
-    #             {
-    #                 "options": {
-    #                     "generator_yaml": sample_yaml / "junk",
-    #                     "num_records": 10,
-    #                     "num_records_tablename": "Account",
-    #                 }
-    #             },
-    #         )
-    #         task()
+    @pytest.mark.vcr(mode="none")
+    def test_run_until_records_in_org__none_needed(
+        self, sf, threads_instead_of_processes, mock_load_data, create_task
+    ):
+        # cassette reports 100 records in org
+        task = create_task(
+            Snowfakery, {"recipe": sample_yaml, "run_until_records_in_org": "Account:6"}
+        )
+        task()
+        assert len(mock_load_data.mock_calls) == 0
+        assert len(threads_instead_of_processes.mock_calls) == 0
+
+    @pytest.mark.vcr()
+    def test_run_until_records_in_org__one_needed(
+        self, sf, threads_instead_of_processes, mock_load_data, create_task
+    ):
+        # cassette reports 100 records in org
+        task = create_task(
+            Snowfakery,
+            {"recipe": sample_yaml, "run_until_records_in_org": "Account:106"},
+        )
+        task()
+        assert len(mock_load_data.mock_calls) == 1
+        assert len(threads_instead_of_processes.mock_calls) == 0
+
+    @pytest.mark.vcr()
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.BASE_BATCH_SIZE", 3)
+    def test_run_until_records_in_org__multiple_needed(
+        self, sf, threads_instead_of_processes, mock_load_data, snowfakery
+    ):
+        # cassette reports 100 records in org
+        task = snowfakery(recipe=sample_yaml, run_until_records_in_org="Account:106")
+        task()
+        assert len(mock_load_data.mock_calls) == 2
+        assert len(threads_instead_of_processes.mock_calls) == 1
+
+    def test_inaccessible_generator_yaml(self, snowfakery):
+        with pytest.raises(exc.TaskOptionsError, match="recipe"):
+            task = snowfakery(
+                recipe=sample_yaml / "junk",
+            )
+            task()
+
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.get_debug_mode", lambda: True)
+    @mock.patch("psutil.cpu_count", lambda logical: 11)
+    def test_snowfakery_debug_mode_and_cpu_count(self, snowfakery, mock_load_data):
+        task = snowfakery(recipe=sample_yaml, run_until_recipe_repeated="1")
+        with mock.patch.object(task, "logger") as logger:
+            task()
+        assert "Using 11 workers" in str(logger.mock_calls)
+
+    def test_run_until_wrong_format(self, snowfakery):
+        with pytest.raises(exc.TaskOptionsError, match="Ten"):
+            task = snowfakery(
+                recipe=sample_yaml, run_until_records_loaded="Account:Ten"
+            )
+            task()
+
+    def test_run_until_wrong_format__2(self, snowfakery):
+        with pytest.raises(exc.TaskOptionsError, match="Ten"):
+            task = snowfakery(
+                recipe=sample_yaml, run_until_records_loaded="Account_Ten"
+            )
+            task()
+
+    def test_run_reps_wrong_format(self, snowfakery):
+        with pytest.raises(exc.TaskOptionsError, match="Ten"):
+            task = snowfakery(recipe=sample_yaml, run_until_recipe_repeated="Ten")
+            task()
+
+    def test_run_until_conflcting_params(self, snowfakery):
+        with pytest.raises(exc.TaskOptionsError, match="only one of"):
+            task = snowfakery(
+                recipe=sample_yaml,
+                run_until_records_loaded="Account_Ten",
+                run_until_recipe_repeated="1",
+            )
+            task()
+
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.BASE_BATCH_SIZE", 3)
+    def test_failures_in_subprocesses__last_batch(self, snowfakery, mock_load_data):
+        class LoadDataSucceedsOnceThenFails:
+            count = 0
+
+            def __call__(self):
+                self.count += 1
+                if self.count > 1:
+                    raise AssertionError("XYZZY")
+
+        mock_load_data.side_effect = LoadDataSucceedsOnceThenFails().__call__
+
+        task = snowfakery(
+            recipe=sample_yaml,
+            run_until_records_loaded="Account:10",
+        )
+
+        with mock.patch.object(task, "logger") as logger:
+            task()
+        assert "XYZZY" in str(logger.mock_calls)
+
+    ## TODO: Test First batch
+    ## TODO: Test Intermediate batch
 
     # def test_vars(self):
     #     with temp_sqlite_database_url() as database_url:
@@ -299,7 +402,7 @@ class TestSnowfakery:
     #     "cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml._dataload"
     # )
     # def test_simple_generate_and_load_with_numrecords(self, _dataload):
-    #     task = _make_task(
+    #     task = _make_task(s
     #         GenerateAndLoadDataFromYaml,
     #         {
     #             "options": {

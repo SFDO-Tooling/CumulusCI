@@ -1,0 +1,19 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Request-Headers:
+      - Elided
+    method: GET
+    uri: https://orgname.my.salesforce.com/services/data/v50.0/query/?q=select+count%28Id%29+from+Account
+  response:
+    body:
+      string: "{\n  \"totalSize\" : 1,\n  \"done\" : true,\n  \"records\" : [ {\n
+        \   \"attributes\" : {\n      \"type\" : \"AggregateResult\"\n    },\n    \"expr0\"
+        : 10003\n  } ]\n}"
+    headers:
+      Response-Headers: Elided
+    status:
+      code: 200
+      message: OK
+version: 1

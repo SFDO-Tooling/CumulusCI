@@ -4,7 +4,7 @@ from datetime import timedelta
 import typing as T
 
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory, mkdtemp
 from contextlib import contextmanager
 
 import psutil
@@ -119,8 +119,6 @@ class Snowfakery(BaseSalesforceApiTask):
         super()._validate_options()
         # Do not store recipe due to MetaDeploy options freezing
         recipe = self.options.get("recipe")
-        if not recipe:
-            raise exc.TaskOptionsError("No recipe specified")
         recipe = Path(recipe)
         if not recipe.exists():
             raise exc.TaskOptionsError(f"Cannot find recipe `{recipe}`")
@@ -147,7 +145,7 @@ class Snowfakery(BaseSalesforceApiTask):
         self.recipe = Path(self.options.get("recipe"))
         self.job_counter = 0
         self.org_record_counts_thread = OrgRecordCounts(
-            self.run_until.sobject_name, self.sf
+            self.sf, self.run_until.sobject_name
         )
         self.org_record_counts_thread.start()
 
@@ -189,7 +187,8 @@ class Snowfakery(BaseSalesforceApiTask):
     def configure_queues(self, working_directory):
         try:
             connected_app = self.project_config.keychain.get_service("connected_app")
-        except exc.ServiceNotConfigured:
+        except exc.ServiceNotConfigured:  # pragma: no cover
+            # to discuss...when can this happen? What are the consequences?
             connected_app = None
 
         data_gen_q_config = WorkerQueueConfig(
@@ -261,7 +260,7 @@ class Snowfakery(BaseSalesforceApiTask):
             )
 
             time.sleep(3)
-        return upload_status or self.generate_upload_status(
+        return self.generate_upload_status(
             data_gen_q,
             load_data_q,
             batches.batch_size,
@@ -326,7 +325,7 @@ class Snowfakery(BaseSalesforceApiTask):
             self.logger.info("Waiting before datagen (queue full)")
         elif data_gen_q.free_workers <= 0:
             self.logger.info("Waiting before datagen (workers busy)")
-            assert 0  # should never happen?
+            # assert 0  # should never happen?
         else:
             for i in range(data_gen_q.free_workers):
                 upload_status = self.generate_upload_status(
@@ -347,22 +346,16 @@ class Snowfakery(BaseSalesforceApiTask):
                     self.job_counter, template_path, batch_size, tempdir
                 )
                 data_gen_q.push(job_dir)
-        return batch_size
 
     def finish(self, upload_status, data_gen_q, load_data_q):
         while data_gen_q.workers + load_data_q.workers:
-            plural = (
-                "" if len(data_gen_q.workers) + len(load_data_q.workers) == 1 else "s"
-            )
-            # self.logger.info(
-            #     f"Waiting for {len(data_gen_q.workers) + len(load_data_q.workers)} worker{plural} to finish"
-            # )
             self.logger.info(
-                f"Waiting for {len(data_gen_q.workers)}, {len(load_data_q.workers)} worker{plural} to finish"
+                f"Waiting for {len(data_gen_q.workers)} datagen, {len(load_data_q.workers)} upload workers to finish"
             )
             data_gen_q.tick()
             time.sleep(2)
 
+        self.log_failures(set(load_data_q.failed_job_dirs + data_gen_q.failed_job_dirs))
         elapsed = format_duration(timedelta(seconds=time.time() - self.start_time))
 
         for (
@@ -381,6 +374,7 @@ class Snowfakery(BaseSalesforceApiTask):
                 continue
             exception = f.read_text().strip().split("\n")[-1]
             self.logger.info(exception)
+            print("ZZZZZ", "YEAHD!!!s")
 
     def data_loader_opts(self, working_dir: Path):
         wd = SnowfakeryWorkingDirectory(working_dir)
@@ -442,10 +436,6 @@ class Snowfakery(BaseSalesforceApiTask):
         )
         subtask()
 
-    def sets_in_dir(self, dir):
-        idx_and_counts = (subdir.name.split("_") for subdir in dir.glob("*_*"))
-        return sum(int(count) for (idx, count) in idx_and_counts)
-
     def generate_upload_status(
         self,
         data_gen_q,
@@ -484,10 +474,17 @@ class Snowfakery(BaseSalesforceApiTask):
         return rc
 
     @contextmanager
-    def workingdir_or_tempdir(self, working_directory: T.Optional[Path]):
+    def workingdir_or_tempdir(self, working_directory: T.Optional[T.Union[Path, str]]):
         if working_directory:
+            working_directory = Path(working_directory)
             working_directory.mkdir()
             self.logger.info(f"Working Directory {working_directory}")
+            yield working_directory
+        elif get_debug_mode():
+            working_directory = Path(mkdtemp())
+            self.logger.info(
+                f"Due to debug mode, Working Directory {working_directory} will not be remooved"
+            )
             yield working_directory
         else:
             with TemporaryDirectory() as tempdir:

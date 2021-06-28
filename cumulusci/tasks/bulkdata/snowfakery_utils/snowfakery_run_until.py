@@ -15,7 +15,7 @@ class RunUntilBase:
         self.sobject_name = sobject_name
         try:
             self.target = self.gap = int(num_as_str)
-        except TypeError:
+        except (TypeError, ValueError):
             raise exc.TaskOptionsError(f"{num_as_str} is not a number")
 
     def split_pair(self, param):

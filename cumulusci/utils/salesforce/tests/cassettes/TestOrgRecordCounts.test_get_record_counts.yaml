@@ -1,0 +1,57 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Request-Headers:
+      - Elided
+    method: GET
+    uri: https://orgname.my.salesforce.com/services/data/v50.0/limits/recordCount
+  response:
+    body:
+      string: "{\n  \"sObjects\" : [ {\n    \"count\" : 9400,\n    \"name\" : \"ObjectPermissions\"\n
+        \ }, {\n    \"count\" : 24,\n    \"name\" : \"PermissionSetLicense\"\n  },
+        {\n    \"count\" : 10003,\n    \"name\" : \"Account\"\n  }, {\n    \"count\"
+        : 9999,\n    \"name\" : \"Contact\"\n  }, {\n    \"count\" : 8,\n    \"name\"
+        : \"User\"\n  }, {\n    \"count\" : 14728,\n    \"name\" : \"Opportunity\"\n
+        \ }, {\n    \"count\" : 15600,\n    \"name\" : \"OpportunityHistory\"\n  },
+        {\n    \"count\" : 11,\n    \"name\" : \"PermissionSetAssignment\"\n  }, {\n
+        \   \"count\" : 263,\n    \"name\" : \"ListView\"\n  }, {\n    \"count\" :
+        1,\n    \"name\" : \"Organization\"\n  }, {\n    \"count\" : 17,\n    \"name\"
+        : \"UserRole\"\n  }, {\n    \"count\" : 21,\n    \"name\" : \"Group\"\n  },
+        {\n    \"count\" : 1,\n    \"name\" : \"Report\"\n  }, {\n    \"count\" :
+        2,\n    \"name\" : \"RecordType\"\n  }, {\n    \"count\" : 7,\n    \"name\"
+        : \"EmailTemplate\"\n  }, {\n    \"count\" : 1,\n    \"name\" : \"WebLink\"\n
+        \ }, {\n    \"count\" : 3,\n    \"name\" : \"EventLogFile\"\n  }, {\n    \"count\"
+        : 43,\n    \"name\" : \"Profile\"\n  }, {\n    \"count\" : 1,\n    \"name\"
+        : \"Folder\"\n  }, {\n    \"count\" : 20200,\n    \"name\" : \"PermissionSetTabSetting\"\n
+        \ }, {\n    \"count\" : 10,\n    \"name\" : \"Calendar\"\n  }, {\n    \"count\"
+        : 22,\n    \"name\" : \"Prompt\"\n  }, {\n    \"count\" : 22,\n    \"name\"
+        : \"PromptVersion\"\n  }, {\n    \"count\" : 5,\n    \"name\" : \"ServiceReportLayout\"\n
+        \ }, {\n    \"count\" : 62600,\n    \"name\" : \"FieldPermissions\"\n  },
+        {\n    \"count\" : 1,\n    \"name\" : \"BusinessHours\"\n  }, {\n    \"count\"
+        : 1,\n    \"name\" : \"Pricebook2\"\n  }, {\n    \"count\" : 34,\n    \"name\"
+        : \"PricebookEntry\"\n  }, {\n    \"count\" : 5,\n    \"name\" : \"DuplicateRule\"\n
+        \ }, {\n    \"count\" : 26,\n    \"name\" : \"AppMenuItem\"\n  }, {\n    \"count\"
+        : 5,\n    \"name\" : \"LoginGeo\"\n  }, {\n    \"count\" : 1,\n    \"name\"
+        : \"FieldServiceOrgSettings\"\n  }, {\n    \"count\" : 13,\n    \"name\" :
+        \"TenantUsageEntitlement\"\n  }, {\n    \"count\" : 2,\n    \"name\" : \"ContentWorkspace\"\n
+        \ }, {\n    \"count\" : 12,\n    \"name\" : \"WorkBadgeDefinition\"\n  },
+        {\n    \"count\" : 3,\n    \"name\" : \"ContentWorkspacePermission\"\n  },
+        {\n    \"count\" : 12,\n    \"name\" : \"WorkAccess\"\n  }, {\n    \"count\"
+        : 1,\n    \"name\" : \"ConnectedApplication\"\n  }, {\n    \"count\" : 22,\n
+        \   \"name\" : \"UiFormulaCriterion\"\n  }, {\n    \"count\" : 604,\n    \"name\"
+        : \"SetupEntityAccess\"\n  }, {\n    \"count\" : 5,\n    \"name\" : \"LoginHistory\"\n
+        \ }, {\n    \"count\" : 19,\n    \"name\" : \"SetupAuditTrail\"\n  }, {\n
+        \   \"count\" : 3,\n    \"name\" : \"MatchingRule\"\n  }, {\n    \"count\"
+        : 11,\n    \"name\" : \"UserLogin\"\n  }, {\n    \"count\" : 1,\n    \"name\"
+        : \"Community\"\n  }, {\n    \"count\" : 22,\n    \"name\" : \"UiFormulaRule\"\n
+        \ }, {\n    \"count\" : 1,\n    \"name\" : \"Entitlement\"\n  }, {\n    \"count\"
+        : 1,\n    \"name\" : \"SlaProcess\"\n  }, {\n    \"count\" : 3,\n    \"name\"
+        : \"MilestoneType\"\n  }, {\n    \"count\" : 1,\n    \"name\" : \"FieldServiceMobileSettings\"\n
+        \ }, {\n    \"count\" : 33,\n    \"name\" : \"UserLicense\"\n  } ]\n}"
+    headers:
+      Response-Headers: Elided
+    status:
+      code: 200
+      message: OK
+version: 1
