@@ -2,7 +2,6 @@ import http.client
 import pytest
 import responses
 import ssl
-import socket
 import sys
 import threading
 import time
@@ -200,17 +199,6 @@ class TestOAuth2Client:
         with httpd_thread(client):
             with pytest.raises(OAuth2Error, match=PORT_IN_USE_ERR):
                 client._create_httpd()
-
-    @pytest.mark.skipif(
-        not sys.platform.startswith("win"),
-        reason="test setup differs on windows",
-    )
-    def test_create_httpd__port_already_in_use__windows(self, client):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind(("localhost", 7788))
-        with pytest.raises(OAuth2Error, match=PORT_IN_USE_ERR):
-            client._create_httpd()
-        sock.close()
 
     @mock.patch("cumulusci.oauth.client.HTTPServer")
     def test_create_httpd__other_OSError(self, HTTPServer, client):
