@@ -41,7 +41,6 @@ SANDBOX_LOGIN_URL = (
 )
 PROD_LOGIN_URL = os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforce.com"
 PORT_IN_USE_ERR = "Cannot listen for callback, as port {} is already in use."
-ADDR_IN_USE_ERR_CODES = (48, 10013)  # osx/linux, win
 GENERIC_OAUTH_ERROR = "An error occurred during the OAuth process: {}"
 
 
@@ -187,10 +186,10 @@ class OAuth2Client(object):
         try:
             httpd = HTTPServer(server_address, OAuthCallbackHandler)
         except OSError as e:
-            if e.errno in ADDR_IN_USE_ERR_CODES:
+            if self._address_in_use_error(e):
                 raise OAuth2Error(PORT_IN_USE_ERR)
             else:
-                raise OAuth2Error(GENERIC_OAUTH_ERROR.format(e))
+                raise
 
         if use_https:
             if not Path("localhost.pem").is_file() or not Path("key.pem").is_file():
@@ -205,6 +204,14 @@ class OAuth2Client(object):
 
         httpd.timeout = self.httpd_timeout
         return httpd
+
+    def _address_in_use_error(self, error: Exception):
+        """Returns true if the error is caused by an 'address already in use'.
+        This presents differently based on the OS."""
+        # osx, linux, windows
+        # windoes info - https://docs.microsoft.com/en-us/troubleshoot/windows-server/backup-and-storage/error-10013-wsaeacces-is-returned
+        error_codes = (48, 98, 10013)
+        return True if error.errno in error_codes else False
 
     def _port_in_use(self, port):
         """Detects if the given port is already being used"""

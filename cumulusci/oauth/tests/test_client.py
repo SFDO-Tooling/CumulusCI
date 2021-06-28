@@ -13,7 +13,8 @@ from requests.models import Response
 from unittest import mock
 
 from cumulusci.core.exceptions import SalesforceCredentialsException
-from cumulusci.oauth.client import GENERIC_OAUTH_ERROR, OAuth2Client, PORT_IN_USE_ERR
+from cumulusci.oauth.client import OAuth2Client
+from cumulusci.oauth.client import PORT_IN_USE_ERR
 from cumulusci.oauth.exceptions import OAuth2Error
 from cumulusci.oauth.salesforce import jwt_session
 
@@ -196,10 +197,10 @@ class TestOAuth2Client:
                 client._create_httpd()
 
     @mock.patch("cumulusci.oauth.client.HTTPServer")
-    def test_create_httpd__different_OSError(self, HTTPServer, client):
+    def test_create_httpd__other_OSError(self, HTTPServer, client):
         message = "generic error message"
         HTTPServer.side_effect = OSError(message)
-        with pytest.raises(OAuth2Error, match=GENERIC_OAUTH_ERROR.format(message)):
+        with pytest.raises(OSError, match=message):
             client._create_httpd()
 
     @responses.activate
