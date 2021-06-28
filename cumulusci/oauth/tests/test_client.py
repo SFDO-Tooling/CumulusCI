@@ -207,7 +207,7 @@ class TestOAuth2Client:
     )
     def test_create_httpd__port_already_in_use__windows(self, client):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind("localhost", 7788)
+        sock.bind(("localhost", 7788))
         with pytest.raises(OAuth2Error, match=PORT_IN_USE_ERR):
             client._create_httpd()
         sock.close()
