@@ -443,3 +443,48 @@ These variables can be set from the command line to override the config file for
 .. code-block:: console
  
     $ cci task run robot --vars browser:firefox,timeout:20
+
+
+   WHEN SOMETHING RUNS IN A SETUP/TEARDOWN, IT RUNS WHETHER OR NOT THE TEST PASSES OR FAILS
+   SETUP AND TEARDOWN DESIGNED TO ACCEPT A SINGLE KEYWORD AS AN ARGUMENT
+   SO TWO CHOICES: CREATE A CUSTOM KEYWORD, OR USE ``RUN KEYWORDS`` TO RUN EXISTING
+
+
+Run Keywords
+------------
+
+.. INTEGRATE THIS INTO BROWSER TEST???
+
+Suite setups and teardowns are designed to call a single keyword. However, the `Run keywords <http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Run%20Keywords>`_ keyword can run other keywords, which makes it a breeze to call multiple keywords in a single setup or teardown, or anywhere else in the Robot test. For example, the ``Create Contact`` test is simplified further.
+
+.. code-block:: robotframework
+
+   *** Settings ***
+   Suite Setup     Run keywords
+   ...             Open test browser
+   ...             AND  create a test contact
+
+``AND`` must be capitalized in order for ``Run keywords`` to call each keyword. Also, notice how the ``...`` notation can be used to make the code more readable.
+
+
+Advance Project Structure
+
+.. The ``cci project init`` command creates a folder named ``robot`` at the root of your repository. Within that folder is a subfolder for your project Robot files. If your project depends on keywords from other projects, those keywords are stored in the ``robot`` folder under their own project name.
+ 
+.. .. code-block:: console
+   MyProject/
+   ├── robot
+   │   └── MyProject
+   │       ├── doc
+   │       ├── resources
+   │       ├── results
+   │       └── tests
+ 
+.. Also inside the ``robot`` project's folder:
+   * ``doc``: The folder where generated documentation will be placed.
+   * ``resources``: The folder where you store your own keyword files. You can create `robot keyword files <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#creating-user-keywords>`_ (``.resource`` or ``.robot``) as well as `keyword libraries <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#creating-test-libraries>`_ (``.py``). 
+      * For keyword files we recommend using the ``.resource`` suffix.
+   * ``results``: This folder isn't created by `cci project init`. Instead, it is automatically created the first time you run your tests. All generated logs and screenshots of these tests are stored in the ``results`` folder.
+   * ``tests``: The folder where you store your test suites. You are free to organize this folder however you please, including adding subfolders.
+
+
