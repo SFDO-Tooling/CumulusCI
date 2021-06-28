@@ -221,7 +221,7 @@ class OAuth2Client(object):
 
     def validate_response(self, response):
         """Subclasses can implement custom response validation"""
-        if not response:
+        if response is None:
             raise CumulusCIUsageError("Authentication timed out or otherwise failed.")
         elif response.status_code == http.client.OK:
             return
