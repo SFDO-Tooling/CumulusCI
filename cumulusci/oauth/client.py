@@ -209,8 +209,7 @@ class OAuth2Client(object):
         """Returns true if the error is caused by an 'address already in use'.
         This presents differently based on the OS."""
         # osx, linux, windows
-        # windoes info - https://docs.microsoft.com/en-us/troubleshoot/windows-server/backup-and-storage/error-10013-wsaeacces-is-returned
-        error_codes = (48, 98, 10013)
+        error_codes = (48, 98, 10048)
         return True if error.errno in error_codes else False
 
     def _port_in_use(self, port):
