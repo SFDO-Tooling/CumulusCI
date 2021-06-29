@@ -88,7 +88,7 @@ class MetadataPackageVersion(BasePushApiObject):
                 self.major,
                 self.minor,
                 self.patch,
-            )  # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
+            )
         ]
         return result
 
