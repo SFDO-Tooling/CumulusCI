@@ -108,7 +108,7 @@ class MetadataPackageVersion(BasePushApiObject):
                     package_version.minor,
                     package_version.patch,
                 )
-                >= minimum_version  # should this be >= since query when I checked with CumulusCI-Test packaging org was returning +1 more result than this was expected speak with David Glick about it.
+                >= minimum_version
             ]
         else:
             result = [
