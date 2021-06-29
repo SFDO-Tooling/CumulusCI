@@ -111,15 +111,19 @@ class WorkerQueue:
 
     @property
     def free_space(self):
-        return max(self.free_workers + self.queue_size - len(self.queued_jobs), 0)
+        return max(self.num_free_workers + self.queue_size - len(self.queued_jobs), 0)
 
     @property
     def empty(self):
         return (not self.queued_job_dirs) and (not self.inprogress_job_dirs)
 
     @property
-    def free_workers(self) -> int:
-        return self.config.num_workers - len(self.workers)
+    def num_free_workers(self) -> int:
+        return self.config.num_workers - self.num_busy_workers
+
+    @property
+    def num_busy_workers(self) -> int:
+        return len([w for w in self.workers if w.is_alive])
 
     @property
     def queued_job_dirs(self):
@@ -216,14 +220,6 @@ class WorkerQueue:
         worker.start()
         self.workers.append(worker)
 
-    def terminate_all(self):
-        for worker in self.workers:
-            if worker.is_alive():
-                try:
-                    worker.terminate()
-                except Exception as e:
-                    logger.warn(f"Could not terminate worker: {e}")
-
     def tick(self):
         """Things are moved from place to place in the 'tick'.
         The tick runs in the parent/controller/original process
@@ -240,7 +236,7 @@ class WorkerQueue:
 
         self.workers = live_workers
 
-        for idx, job_dir in zip(range(self.free_workers), self.queued_job_dirs):
+        for idx, job_dir in zip(range(self.num_free_workers), self.queued_job_dirs):
             logger.info(f"Starting job {job_dir}")
             self._start_job(job_dir)
         if self.next_queue:

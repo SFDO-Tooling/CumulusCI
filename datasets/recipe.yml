@@ -1,6 +1,7 @@
 # Hard-coded objects
 - object: Account
   nickname: bluth_co
+  just_once: True
   fields:
     Name: The Bluth Company
     Description: Solid as a rock
@@ -8,6 +9,7 @@
 
 - object: Contact
   nickname: Michael
+  just_once: True
   fields:
     FirstName: Michael
     LastName: Bluth

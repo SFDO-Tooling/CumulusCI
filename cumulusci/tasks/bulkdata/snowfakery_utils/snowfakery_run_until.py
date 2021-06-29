@@ -94,7 +94,13 @@ def determine_run_until(options, sf):
 
 
 class BatchGenerator:
-    """Calling class must manage sets_created"""
+    """
+    Logic to generate batch sizes and know when we are done.
+
+    Calling class must manage sets_created_so_far because it may
+    have information unknown to this class, e.g. failures,
+    processes running on other nodes, etc.
+    """
 
     def __init__(
         self,
@@ -107,15 +113,12 @@ class BatchGenerator:
         self.min_batch_size = min_batch_size
         self.max_batch_size = max_batch_size
         self.next_batch_size = min_batch_size
-        self.sets_created = start_count
 
-    @property
-    def done(self):
-        return self.gap <= 0
+    def done(self, sets_created_so_far):
+        return self.gap(sets_created_so_far) <= 0
 
-    @property
-    def gap(self):
-        return self.target - self.sets_created
+    def gap(self, sets_created_so_far):
+        return self.target - sets_created_so_far
 
     def next_batch(self, sets_created_so_far: int):
         """Batch size starts at min_batch_size and grows toward max_batch_size
@@ -125,6 +128,13 @@ class BatchGenerator:
         than we would if we waited for the first big batch to be generated.
         """
         self.sets_created = sets_created_so_far
-        self.batch_size = min(self.gap, self.next_batch_size, self.max_batch_size)
+        # don't generate more records than needed to reach our target
+        # or current batch size
+        # or the max batch size
+        self.batch_size = min(
+            self.gap(sets_created_so_far), self.next_batch_size, self.max_batch_size
+        )
+        # don't generate fewer than zero
+        self.batch_size = max(self.batch_size, 0)
         self.next_batch_size = int(self.next_batch_size * 1.5)
         return self.batch_size

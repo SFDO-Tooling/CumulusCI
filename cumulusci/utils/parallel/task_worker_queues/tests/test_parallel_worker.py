@@ -67,69 +67,69 @@ class TestWorkerQueue:
             num_workers=2,
         ) as q:
             assert not q.full
-            assert q.free_workers == 2
+            assert q.num_free_workers == 2
             assert q.queued_job_dirs == []
             q.push(name="a")
             assert not q.full
-            assert q.free_workers == 1
+            assert q.num_free_workers == 1
             assert len(q.queued_job_dirs) == 0
             q.tick()
             assert not q.full
-            assert q.free_workers == 1
+            assert q.num_free_workers == 1
             assert len(q.queued_job_dirs) == 0
             q.workers[0].process._finish()
             q.tick()
             assert not q.full
-            assert q.free_workers == 2
+            assert q.num_free_workers == 2
             assert len(q.queued_job_dirs) == 0
             q.tick()
             assert not q.full
-            assert q.free_workers == 2
+            assert q.num_free_workers == 2
             assert len(q.queued_job_dirs) == 0
             q.push(name="bb")
             q.tick()
             assert not q.full
-            assert q.free_workers == 1
+            assert q.num_free_workers == 1
             assert len(q.queued_job_dirs) == 0
             q.push(name="cc")
             q.tick()
             assert not q.full
-            assert q.free_workers == 0
+            assert q.num_free_workers == 0
             assert len(q.queued_job_dirs) == 0
             q.push(name="dd")
             q.tick()
             assert not q.full
-            assert q.free_workers == 0
+            assert q.num_free_workers == 0
             assert len(q.queued_job_dirs) == 1
             q.push(name="ee")
             q.tick()
             assert not q.full
-            assert q.free_workers == 0
+            assert q.num_free_workers == 0
             assert len(q.queued_job_dirs) == 2
             q.push(name="ff")
             q.tick()
             assert q.full
-            assert q.free_workers == 0
+            assert q.num_free_workers == 0
             assert len(q.queued_job_dirs) == 3
 
             with pytest.raises(ValueError):
                 q.push(name="hh")
 
             assert q.full
-            assert q.free_workers == 0
+            assert q.num_free_workers == 0
             assert len(q.queued_job_dirs) == 3
 
             for worker in q.workers:
                 worker.process._finish()
 
             assert q.full
-            assert q.free_workers == 0
+            assert q.num_free_workers == 0
             assert len(q.queued_job_dirs) == 3
 
             q.tick()
 
             assert not q.full
-            assert q.free_workers == 0
+            assert q.num_free_workers == 0
             assert len(q.queued_job_dirs) == 1
 
             for worker in q.workers:
@@ -138,7 +138,7 @@ class TestWorkerQueue:
             q.tick()
 
             assert not q.full
-            assert q.free_workers == 1
+            assert q.num_free_workers == 1
             assert len(q.queued_job_dirs) == 0
 
             for worker in q.workers:
@@ -147,7 +147,7 @@ class TestWorkerQueue:
             q.tick()
 
             assert not q.full
-            assert q.free_workers == 2
+            assert q.num_free_workers == 2
             assert len(q.queued_job_dirs) == 0
 
             q.push(name="ii")
@@ -161,7 +161,7 @@ class TestWorkerQueue:
             q.tick()
 
             assert q.full
-            assert q.free_workers == 0
+            assert q.num_free_workers == 0
             assert len(q.queued_job_dirs) == 3
 
     def test_worker_queues_together(self, tmpdir):
@@ -183,12 +183,12 @@ class TestWorkerQueue:
             q1.feeds_data_to(q2)
             q1.push(name="a")
             assert not q1.full
-            assert q1.free_workers == 1
+            assert q1.num_free_workers == 1
             assert len(q1.queued_job_dirs) == 0
             q1.tick()
             q1.tick()
             assert not q1.full
-            assert q1.free_workers == 1
+            assert q1.num_free_workers == 1
             assert len(q1.queued_job_dirs) == 0
 
             for worker in q1.workers:
@@ -196,8 +196,8 @@ class TestWorkerQueue:
             q1.tick()
             q2.tick()
             assert not q2.full
-            assert q1.free_workers == 2
-            assert q2.free_workers == 1
+            assert q1.num_free_workers == 2
+            assert q2.num_free_workers == 1
             assert len(q2.queued_job_dirs) == 0
 
             q1.push(name="b")
@@ -240,11 +240,11 @@ class TestWorkerQueue:
             foo = tmpdir / "foo"
             foo.mkdir()
             assert not q1.full
-            assert q1.free_workers == 2
+            assert q1.num_free_workers == 2
             assert q1.queued_job_dirs == []
             q1.push(Path(foo))
             assert not q1.full
-            assert q1.free_workers == 1
+            assert q1.num_free_workers == 1
             assert len(q1.queued_job_dirs) == 0
             q1.tick()
 

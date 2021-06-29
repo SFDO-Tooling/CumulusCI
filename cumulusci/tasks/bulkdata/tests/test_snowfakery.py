@@ -49,7 +49,7 @@ def temporary_file_path(filename):
 class XXXTestUploadStatus:  # FIX THESE TESTS
     def test_upload_status(self):
         u = UploadStatus(
-            base_batch_size=5000,
+            min_portion_size=5000,
             confirmed_count_in_org=20000,
             sets_being_generated=5000,
             sets_being_loaded=20000,
@@ -62,7 +62,7 @@ class XXXTestUploadStatus:  # FIX THESE TESTS
         assert u.total_needed_generators == 1, u.total_needed_generators
 
         u = UploadStatus(
-            base_batch_size=5000,
+            min_portion_size=5000,
             confirmed_count_in_org=0,
             sets_being_generated=5000,
             sets_being_loaded=20000,
@@ -75,7 +75,7 @@ class XXXTestUploadStatus:  # FIX THESE TESTS
         assert u.total_needed_generators == 1, u.total_needed_generators
 
         u = UploadStatus(
-            base_batch_size=5000,
+            min_portion_size=5000,
             confirmed_count_in_org=0,
             sets_being_generated=5000,
             sets_being_loaded=15000,
@@ -88,7 +88,7 @@ class XXXTestUploadStatus:  # FIX THESE TESTS
         assert u.total_needed_generators == 2, u.total_needed_generators
 
         u = UploadStatus(
-            base_batch_size=5000,
+            min_portion_size=5000,
             confirmed_count_in_org=29000,
             sets_being_generated=0,
             sets_being_loaded=0,
@@ -101,7 +101,7 @@ class XXXTestUploadStatus:  # FIX THESE TESTS
         assert u.total_needed_generators == 1, u.total_needed_generators
 
         u = UploadStatus(
-            base_batch_size=5000,
+            min_portion_size=5000,
             confirmed_count_in_org=4603,
             sets_being_generated=5000,
             sets_being_loaded=20000,
@@ -128,7 +128,7 @@ class XXXTestUploadStatus:  # FIX THESE TESTS
         #       throttling should always happen in the uploaders, not
         #       the generators.
         u = UploadStatus(
-            base_batch_size=500,
+            min_portion_size=500,
             confirmed_count_in_org=39800,
             sets_being_generated=0,
             sets_being_loaded=5000,
@@ -172,21 +172,22 @@ class TestSnowfakery:
         # should not be called for a simple one-rep load
         assert not Process.mock_calls
 
-    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.BASE_BATCH_SIZE", 3)
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_small(
         self, mock_load_data, threads_instead_of_processes, create_task_fixture
     ):
         task = create_task_fixture(
             Snowfakery,
-            {"recipe": sample_yaml, "run_until_recipe_repeated": "6"},
+            {"recipe": sample_yaml, "run_until_recipe_repeated": "7"},
         )
         task()
-        # Batch size was 3, so 6 records takes two batches
-        assert len(mock_load_data.mock_calls) == 2
+        # Batch size was 3, so 7 records takes
+        # one initial batch plus two parallel batches
+        assert len(mock_load_data.mock_calls) == 3, mock_load_data.mock_calls
         # One should be in a sub-process/thread
-        assert len(threads_instead_of_processes.mock_calls) == 1
+        assert len(threads_instead_of_processes.mock_calls) == 2
 
-    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.BASE_BATCH_SIZE", 3)
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_multi_part(
         self, threads_instead_of_processes, mock_load_data, create_task_fixture
     ):
@@ -211,14 +212,14 @@ class TestSnowfakery:
     ):
         task = create_task_fixture(
             Snowfakery,
-            {"recipe": sample_yaml, "run_until_records_loaded": "Account:10"},
+            {"recipe": sample_yaml, "run_until_records_loaded": "Account:1"},
         )
         task()
         assert mock_load_data.mock_calls
         # should not be called for a simple one-rep load
         assert not create_subprocess.mock_calls
 
-    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.BASE_BATCH_SIZE", 3)
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_run_until_loaded_2_parts(
         self, threads_instead_of_processes, mock_load_data, create_task_fixture
     ):
@@ -247,16 +248,18 @@ class TestSnowfakery:
         self, sf, threads_instead_of_processes, mock_load_data, create_task
     ):
         # cassette reports 100 records in org
+        # so we only need 6 more.
+        # That will be one "initial" batch plus one "parallel" batch
         task = create_task(
             Snowfakery,
             {"recipe": sample_yaml, "run_until_records_in_org": "Account:106"},
         )
         task()
-        assert len(mock_load_data.mock_calls) == 1
-        assert len(threads_instead_of_processes.mock_calls) == 0
+        assert len(mock_load_data.mock_calls) == 2, mock_load_data.mock_calls
+        assert len(threads_instead_of_processes.mock_calls) == 1
 
     @pytest.mark.vcr()
-    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.BASE_BATCH_SIZE", 3)
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_run_until_records_in_org__multiple_needed(
         self, sf, threads_instead_of_processes, mock_load_data, snowfakery
     ):
@@ -309,7 +312,7 @@ class TestSnowfakery:
             )
             task()
 
-    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.BASE_BATCH_SIZE", 3)
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_failures_in_subprocesses__last_batch(self, snowfakery, mock_load_data):
         class LoadDataSucceedsOnceThenFails:
             count = 0
