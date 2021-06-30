@@ -38,7 +38,7 @@ from cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue import (
 
 # A portion serves the same process in this system as a "batch" in
 # other systems. The term "batch" is not used to avoid confusion with
-# Salesforce bulk loader batches. For example, a portion of 250_000
+# Salesforce Bulk API 1.0 batches. For example, a portion of 250_000
 # Account records would be broken into roughly 25 Salesforce upload
 # batches.
 
