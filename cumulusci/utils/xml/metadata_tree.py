@@ -101,7 +101,7 @@ class MetadataElement:
         return self._element.text
 
     @text.setter
-    def text(self, text):
+    def text(self, text: str):
         self._element.text = text
 
     def _wrap_element(self, child: etree._Element):

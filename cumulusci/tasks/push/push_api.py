@@ -66,7 +66,7 @@ class MetadataPackageVersion(BasePushApiObject):
         self.build = build
 
     @property
-    def version_number(self):
+    def version_number(self) -> str:
         parts = [str(self.major), str(self.minor)]
         if self.patch:
             parts.append(str(self.patch))

@@ -111,7 +111,7 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
         self.field_name = self.field_name.replace("%%%NAMESPACE%%%", namespace_prefix)
 
     @property
-    def success(self):
+    def success(self) -> bool:
         lower_case_record = {k.lower(): v for k, v in self.record.items()}
         self.field_value = lower_case_record[self.field_name.lower()]
 
@@ -131,5 +131,5 @@ class CustomSettingValueWait(BaseSalesforceApiTask):
         return self.field_value == self.check_value
 
     @property
-    def _object_query(self):
+    def _object_query(self) -> str:
         return f"SELECT SetupOwnerId, {self.field_name} FROM {self.object_name}"

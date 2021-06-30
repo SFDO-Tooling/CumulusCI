@@ -14,11 +14,11 @@ class MockUtil(GithubApiTestMixin):
         self.init_github()
 
     @property
-    def html_url(self):
+    def html_url(self) -> str:
         return "{}/{}/{}".format(self.BASE_HTML_URL, self.owner, self.repo)
 
     @property
-    def repo_url(self):
+    def repo_url(self) -> str:
         return "{}/repos/{}/{}".format(self.BASE_API_URL, self.owner, self.repo)
 
     def mock_edit_release(self, body=None, draft=True, prerelease=False):
