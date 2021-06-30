@@ -14,6 +14,7 @@ from requests.models import Response
 from unittest import mock
 
 from cumulusci.core.exceptions import SalesforceCredentialsException
+from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_PORT
 from cumulusci.oauth.client import OAuth2Client
 from cumulusci.oauth.client import PORT_IN_USE_ERR
 from cumulusci.oauth.exceptions import OAuth2Error
@@ -197,7 +198,9 @@ class TestOAuth2Client:
     )
     def test_create_httpd__port_already_in_use(self, client):
         with httpd_thread(client):
-            with pytest.raises(OAuth2Error, match=PORT_IN_USE_ERR):
+            with pytest.raises(
+                OAuth2Error, match=PORT_IN_USE_ERR.format(DEFAULT_CONNECTED_APP_PORT)
+            ):
                 client._create_httpd()
 
     @mock.patch("cumulusci.oauth.client.HTTPServer")
