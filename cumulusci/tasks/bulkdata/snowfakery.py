@@ -112,7 +112,7 @@ class Snowfakery(BaseSalesforceApiTask):
             run the recipe 50_000 times."""
         },
         "working_directory": {
-            "description": "Default path for temporary / working files"
+            "description": "Path for temporary / working files"
         },
         "loading_rules": {
             "description": "Path to .load.yml file containing rules to use to "
