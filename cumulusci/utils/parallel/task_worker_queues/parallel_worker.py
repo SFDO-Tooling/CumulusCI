@@ -4,8 +4,10 @@ import logging
 from contextlib import contextmanager
 import shutil
 import json
-
 from traceback import format_exc
+
+from pydantic import BaseModel
+
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.utils import import_global
@@ -19,23 +21,6 @@ from cumulusci.core.config import (
 )
 
 
-def get_annotations(cls: type):
-    """
-    Get annotations from a class. Useful for checking if field
-    values for all fields have been filled in.
-
-    https://stackoverflow.com/questions/64309238/is-there-built-in-method-to-get-all-annotations-from-all-base-classes-in-pyt
-    """
-    all_ann = [c.__annotations__ for c in cls.mro()[:-1]]
-    all_ann_names = set()
-    for aa in all_ann[::-1]:
-        all_ann_names.update(aa.keys())
-    return all_ann_names
-
-
-from pydantic import BaseModel
-
-
 class SharedConfig(BaseModel):
     task_class: type
     project_config: BaseProjectConfig
@@ -47,17 +32,6 @@ class SharedConfig(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
-
-    # def __init__(self, validate: bool = False, **kwargs):
-    #     valid_property_names = get_annotations(self.__class__)
-    #     for k, v in kwargs.items():
-    #         if validate and k not in valid_property_names:
-    #             raise AssertionError(
-    #                 f"Unknown property `{k}`. Should be one of {valid_property_names}"
-    #             )
-    #         setattr(self, k, v)
-    #     for k in self.__class__.__annotations__:
-    #         assert hasattr(self, k), f"Did not specify {k}"
 
 
 class WorkerConfig(SharedConfig):
@@ -115,6 +89,7 @@ class WorkerConfig(SharedConfig):
 
 
 def dotted_class_name(cls):
+    """Generate a dotted class name for a class object"""
     return cls.__module__ + "." + cls.__name__
 
 
@@ -151,6 +126,7 @@ class TaskWorker:
         exception_file.write_text(format_exc())
 
     def run(self):
+        """The main code that runs in a sub-thread or sub-process"""
         with self.make_logger() as (logger, logfile):
             try:
                 self.subtask = self._make_task(self.task_class, logger)
@@ -173,6 +149,7 @@ class TaskWorker:
 
     @contextmanager
     def make_logger(self):
+        """Log to a file for potential later inspection"""
         filename = self.working_dir / f"{self.task_class.__name__}.log"
         with filename.open("w") as f:
             logger = logging.Logger(self.task_class.__name__)
@@ -222,7 +199,7 @@ class ParallelWorker:
         )
         self.process.start()
 
-    def is_alive(self):
+    def is_alive(self) -> bool:
         return self.process.is_alive()
 
     def join(self):

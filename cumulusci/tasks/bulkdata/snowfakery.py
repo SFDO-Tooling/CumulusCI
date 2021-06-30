@@ -1,13 +1,12 @@
 import time
 import shutil
-from datetime import timedelta
 import typing as T
-import yaml
-
+from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory, mkdtemp
 from contextlib import contextmanager
 
+import yaml
 import psutil
 
 from sqlalchemy import MetaData, create_engine, func, select
@@ -59,7 +58,14 @@ WAIT_TIME = 3
 
 class Snowfakery(BaseSalesforceApiTask):
 
-    task_docs = """Do a data load with Snowfakery."""
+    task_docs = """
+    Do a data load with Snowfakery.
+
+    All options are optional.
+
+    The most commonly supplied options are `recipe` and one of the three
+    `run_until_...` options.
+    """
 
     task_options = {
         "recipe": {

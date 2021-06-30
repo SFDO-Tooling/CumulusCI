@@ -455,7 +455,7 @@ tasks:
     class_path: cumulusci.tasks.salesforce.sourcetracking.SnapshotChanges
     group: Salesforce Metadata
   snowfakery:
-    description: Generate and load data from Snowfakery
+    description: Generate and load data from a Snowfakery recipe
     class_path: cumulusci.tasks.bulkdata.snowfakery.Snowfakery
     group: Data Operations
     options:

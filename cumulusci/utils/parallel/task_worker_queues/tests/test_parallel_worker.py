@@ -122,10 +122,6 @@ class TestWorkerQueue:
             for worker in q.workers:
                 worker.process._finish()
 
-            assert q.full
-            assert q.num_free_workers == 0
-            assert len(q.queued_job_dirs) == 3
-
             q.tick()
 
             assert not q.full

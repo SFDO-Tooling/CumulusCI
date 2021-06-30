@@ -123,7 +123,7 @@ class WorkerQueue:
 
     @property
     def num_busy_workers(self) -> int:
-        return len([w for w in self.workers if w.is_alive])
+        return len([w for w in self.workers if w.is_alive()])
 
     @property
     def queued_job_dirs(self):
@@ -224,17 +224,7 @@ class WorkerQueue:
         """Things are moved from place to place in the 'tick'.
         The tick runs in the parent/controller/original process
         so there are no threading/locking issues."""
-        live_workers = []
-        dead_workers = []
-        for worker in self.workers:
-            if worker.is_alive():
-                live_workers.append(worker)
-            else:
-                dead_workers.append(
-                    worker
-                )  # TODO: Is any logging or checking helpful here?
-
-        self.workers = live_workers
+        self.workers = [w for w in self.workers if w.is_alive()]
 
         for idx, job_dir in zip(range(self.num_free_workers), self.queued_job_dirs):
             logger.info(f"Starting job {job_dir}")
