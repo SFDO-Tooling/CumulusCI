@@ -129,6 +129,7 @@ Again, here's the basic Robot test case for creating a new Contact object. To fo
 To run this test from the command line:
 
 .. code-block:: console
+
    $ cci task run robot --suites robot/<ProjectName>/tests/create_contact.robot
 
 The output will be similar to this.
@@ -260,6 +261,7 @@ Let's modify the ``create_contact.robot`` test case by adding a ``Suite Teardown
 To run this test from the command line:
 
 .. code-block:: console
+
    $ cci task run robot --suites robot/<ProjectName>/tests/create_contact.robot
 
 
@@ -297,6 +299,7 @@ Let's modify the ``create_contact.robot`` test case by generating a fake name wi
 To run this test from the command line:
 
 .. code-block:: console
+
    $ cci task run robot --suites robot/<ProjectName>/tests/create_contact.robot
 
 
@@ -342,6 +345,7 @@ For this example, let's create new Robot test that generates a custom keyword ca
 To run this test from the command line:
 
 .. code-block:: console
+
    $ cci task run robot --suites robot/<ProjectName>/tests/custom_keyword.robot
 
 Test cases and keywords have the concept of settings specified by square brackets, which means test cases can have their own individual setups, teardowns, documentation, and returns. This is how Robot knows you're not referring to the keyword but rather a specific test case setting.
@@ -426,6 +430,7 @@ When the browser opens, the test case takes a screenshot, which can be a useful 
 To run this test from the command line:
 
 .. code-block:: console
+
    $ cci task run robot --suites robot/<ProjectName>/tests/ui.robot
 
 
@@ -501,4 +506,5 @@ As you can see, the ``create_contact.robot`` test case not only creates a contac
 To run this test from the command line:
 
 .. code-block:: console
+
    $ cci task run robot --suites robot/<ProjectName>/tests/create_contact.robot
