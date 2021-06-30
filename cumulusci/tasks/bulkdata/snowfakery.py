@@ -51,7 +51,7 @@ ERROR_THRESHOLD = (
     0  # TODO v2.1: Allow this to be a percentage of recent records instead
 )
 
-# time between "ticks" where the org re-evaluates its progress
+# time between "ticks" where the task re-evaluates its progress
 # relatively arbitrary trade-off between busy-waiting and adding latency.
 WAIT_TIME = 3
 
