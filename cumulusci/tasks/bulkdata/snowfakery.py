@@ -45,7 +45,7 @@ from cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue import (
 # The system starts at the MIN_PORTION_SIZE and grows towards the
 # MAX_PORTION_SIZE. This is to prevent the org wasting time waiting
 # for the first portions.
-MIN_PORTION_SIZE = 2_000  # FIXME
+MIN_PORTION_SIZE = 2_000
 MAX_PORTION_SIZE = 250_000
 ERROR_THRESHOLD = (
     0  # TODO v2.1: Allow this to be a percentage of recent records instead
@@ -184,7 +184,7 @@ class Snowfakery(BaseSalesforceApiTask):
                 return
 
             template_path, relevant_sobjects = self._generate_and_load_initial_batch(
-                working_directory
+                self.load_data_q.outbox_dir
             )
 
             # disable this for now until it's reliability can be better
@@ -370,8 +370,13 @@ class Snowfakery(BaseSalesforceApiTask):
         self.log_failures(set(load_data_q.failed_job_dirs + data_gen_q.failed_job_dirs))
         elapsed = format_duration(timedelta(seconds=time.time() - self.start_time))
 
+        if self.run_until.sobject_name:
+            set_name = f"{self.run_until.sobject_name} records and associated records"
+        else:
+            set_name = "iterations"
+
         self.logger.info(
-            f"☃ Snowfakery created {elapsed}, {upload_status.target_count:,} sets"
+            f"☃ Snowfakery created {elapsed}, {upload_status.target_count:,} {set_name}"
         )
 
     def log_failures(self, dirs=T.Sequence[Path]):
@@ -450,13 +455,12 @@ class Snowfakery(BaseSalesforceApiTask):
             sets_queued_for_loading=set_count_from_names(self.load_data_q.queued_jobs),
             # note that these may count as already imported in the org
             sets_being_loaded=set_count_from_names(self.load_data_q.inprogress_jobs),
-            sets_finished=set_count_from_names(self.load_data_q.outbox_jobs)
-            + set_count_from_names([str(template_dir.name)]),
             min_portion_size=MIN_PORTION_SIZE,
             max_portion_size=MAX_PORTION_SIZE,
             user_max_num_generator_workers=self.num_generator_workers,
             user_max_num_loader_workers=self.num_loader_workers,
             elapsed_seconds=int(time.time() - self.start_time),
+            sets_finished=set_count_from_names(self.load_data_q.outbox_jobs),
             sets_failed=len(self.load_data_q.failed_jobs),
             batch_size=batch_size,
             inprogress_generator_jobs=len(self.data_gen_q.inprogress_jobs),
@@ -496,14 +500,16 @@ class Snowfakery(BaseSalesforceApiTask):
                 "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
             },
         )
+
+        # rename directory to reflect real number of sets created.
         wd = SnowfakeryWorkingDirectory(template_dir)
         new_template_dir = self.data_loader_rename_directory(template_dir)
         shutil.move(template_dir, new_template_dir)
         template_dir = new_template_dir
-        wd = SnowfakeryWorkingDirectory(template_dir)
 
         # don't send data tables to child processes. All they
         # care about are ID->OID mappings
+        wd = SnowfakeryWorkingDirectory(template_dir)
         self._cleanup_object_tables(*wd.setup_engine())
 
         return template_dir, wd.relevant_sobjects()

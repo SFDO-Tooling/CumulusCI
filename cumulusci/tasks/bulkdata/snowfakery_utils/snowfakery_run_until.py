@@ -136,5 +136,5 @@ class PortionGenerator:
         )
         # don't generate fewer than zero
         self.batch_size = max(self.batch_size, 0)
-        self.next_batch_size = int(self.next_batch_size * 1.5)
+        self.next_batch_size = int(self.next_batch_size * 1.1)
         return self.batch_size
