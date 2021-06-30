@@ -122,8 +122,6 @@ class OAuth2Client(object):
         """
         assert self.client_config.redirect_uri
         auth_uri_with_params = self._get_auth_uri(**kwargs)
-        # Open a browser and direct the user to login
-        webbrowser.open(auth_uri_with_params, new=1)
         # Open up an http daemon to listen for the
         # callback from the auth server
         self.httpd = self._create_httpd()
@@ -133,6 +131,8 @@ class OAuth2Client(object):
             "If you are unable to log in to Salesforce you can"
             " press <Ctrl+C> to kill the server and return to the command line."
         )
+        # Open a browser and direct the user to login
+        webbrowser.open(auth_uri_with_params, new=1)
         # Implement the 300 second timeout
         timeout_thread = HTTPDTimeout(self.httpd, self.httpd_timeout)
         timeout_thread.start()
