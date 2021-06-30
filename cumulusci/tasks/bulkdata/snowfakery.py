@@ -70,7 +70,7 @@ class Snowfakery(BaseSalesforceApiTask):
     task_options = {
         "recipe": {
             "required": True,
-            "description": "A Snowfakery recipe file determining what data to generate and load.",
+            "description": "Path to a Snowfakery recipe file determining what data to generate and load.",
         },
         "run_until_records_in_org": {
             "description": """<sobject>:<count>
