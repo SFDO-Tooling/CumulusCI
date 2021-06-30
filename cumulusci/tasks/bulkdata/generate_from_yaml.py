@@ -162,11 +162,11 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                 plugin_options={"orgname": self.org_config.name},
             )
 
-            if (
-                new_continuation_file
-                and Path(new_continuation_file.name).exists()
-                and self.working_directory
-            ):
-                shutil.copyfile(
-                    new_continuation_file.name, self.default_continuation_file_path()
-                )
+        if (
+            new_continuation_file
+            and Path(new_continuation_file.name).exists()
+            and self.working_directory
+        ):
+            shutil.move(
+                new_continuation_file.name, self.default_continuation_file_path()
+            )
