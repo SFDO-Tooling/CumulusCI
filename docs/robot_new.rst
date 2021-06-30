@@ -197,7 +197,7 @@ Settings
 ^^^^^^^^
 
 The Settings section of the ``.robot`` file sets up the entire test suite. Configurations established under Settings affect all test cases, including:
-* `Setups/Teardowns`_
+* Suite Setup/Teardown (INSERT ANCHOR LINK - NOT WORKING IN BULLET LIST)
 * Documentation, which describes the purpose of the test suite
 * Tags, which allow a user to associate individual test cases with a label
 
