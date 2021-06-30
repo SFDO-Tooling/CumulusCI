@@ -161,11 +161,11 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                 should_create_cci_record_type_tables=True,
             )
 
-            if (
-                new_continuation_file
-                and Path(new_continuation_file.name).exists()
-                and self.working_directory
-            ):
-                shutil.copyfile(
-                    new_continuation_file.name, self.default_continuation_file_path()
-                )
+        if (
+            new_continuation_file
+            and Path(new_continuation_file.name).exists()
+            and self.working_directory
+        ):
+            shutil.move(
+                new_continuation_file.name, self.default_continuation_file_path()
+            )
