@@ -652,7 +652,7 @@ The counting works like this:
     your recipe.
   
   * At the end of executing a recipe, it checks whether it has
-    created enough of the object type mentioned by the `--run-until` parameter.
+    created enough of the object type mentioned by the `--run-until-records-loaded` parameter.
   
   * If so, it finishes. If not, it runs the recipe again.
 
