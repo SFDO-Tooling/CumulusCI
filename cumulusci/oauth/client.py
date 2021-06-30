@@ -186,7 +186,7 @@ class OAuth2Client(object):
             httpd = HTTPServer(server_address, OAuthCallbackHandler)
         except OSError as e:
             if self._address_in_use_error(e):
-                raise OAuth2Error(PORT_IN_USE_ERR)
+                raise OAuth2Error(PORT_IN_USE_ERR.format(port))
             else:
                 raise
 
