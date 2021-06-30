@@ -41,7 +41,6 @@ SANDBOX_LOGIN_URL = (
 )
 PROD_LOGIN_URL = os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforce.com"
 PORT_IN_USE_ERR = "Cannot listen for callback, as port {} is already in use."
-GENERIC_OAUTH_ERROR = "An error occurred during the OAuth process: {}"
 
 
 def create_key_and_self_signed_cert():
@@ -211,9 +210,6 @@ class OAuth2Client(object):
         # osx, linux, windows
         error_codes = (48, 98, 10048)
         return True if error.errno in error_codes else False
-
-    def _port_in_use(self, port):
-        """Detects if the given port is already being used"""
 
     def auth_code_grant(self, auth_code):
         """Exchange an auth code for an access token"""
