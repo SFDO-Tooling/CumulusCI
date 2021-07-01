@@ -394,9 +394,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
 
         if min_version:
             # If working with a range of versions, use an inclusive search
-            versions = version.get_older_released_version_objs(
-                greater_than_version=min_version
-            )
+            versions = version.get_older_released_version_objs(min_version=min_version)
             included_versions = []
             for include_version in versions:
                 included_versions.append(str(include_version.sf_id))
