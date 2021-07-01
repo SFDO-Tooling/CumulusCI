@@ -249,7 +249,7 @@ class Snowfakery(BaseSalesforceApiTask):
             make_task_options=self.data_loader_opts,
             queue_size=LOAD_QUEUE_SIZE,
             num_workers=self.num_loader_workers,
-            rename_directory=self.data_loader_rename_directory,
+            rename_directory=self.data_loader_new_directory_name,
         )
         load_data_q = WorkerQueue(load_data_q_config)
 
@@ -403,8 +403,8 @@ class Snowfakery(BaseSalesforceApiTask):
         }
         return options
 
-    def data_loader_rename_directory(self, working_dir: Path):
-        """Rename the directory to reflect the true number of records created."""
+    def data_loader_new_directory_name(self, working_dir: Path):
+        """Change the directory name to reflect the true number of sets created."""
         if not self.run_until.sobject_name:
             return working_dir
 
@@ -484,7 +484,7 @@ class Snowfakery(BaseSalesforceApiTask):
         elif get_debug_mode():
             working_directory = Path(mkdtemp())
             self.logger.info(
-                f"Due to debug mode, Working Directory {working_directory} will not be remooved"
+                f"Due to debug mode, Working Directory {working_directory} will not be removed"
             )
             yield working_directory
         else:
@@ -507,7 +507,7 @@ class Snowfakery(BaseSalesforceApiTask):
 
         # rename directory to reflect real number of sets created.
         wd = SnowfakeryWorkingDirectory(template_dir)
-        new_template_dir = self.data_loader_rename_directory(template_dir)
+        new_template_dir = self.data_loader_new_directory_name(template_dir)
         shutil.move(template_dir, new_template_dir)
         template_dir = new_template_dir
 
