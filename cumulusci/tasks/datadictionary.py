@@ -430,14 +430,17 @@ class GenerateDataDictionary(BaseGithubTask):
         if self._should_process_object(
             version.package.namespace, sobject_name, element
         ):
+            if description_elem and description_elem.text:
+                description = description_elem.text
+            else:
+                description = ""
+
             self.sobjects[sobject_name].append(
                 SObjectDetail(
                     version=version,
                     api_name=sobject_name,
                     label=element.label.text,
-                    description=description_elem.text
-                    if description_elem is not None
-                    else "",
+                    description=description,
                 )
             )
 
@@ -464,13 +467,13 @@ class GenerateDataDictionary(BaseGithubTask):
         # `element` may be either a `fields` element (in MDAPI)
         # or a `CustomField` (SFDX)
         # If this is a custom field, register its presence in this version
-        field_name = f"{version.package.namespace}{field.fullName.text}"
-        # get field help text value
-        help_text_elem = field.find("inlineHelpText")
-        # get field description text value
-        description_text_elem = field.find("description")
+        if "__" in field.fullName.text:
+            field_name = f"{version.package.namespace}{field.fullName.text}"
+            # get field help text value
+            help_text_elem = field.find("inlineHelpText")
+            # get field description text value
+            description_text_elem = field.find("description")
 
-        if "__" in field_name:
             field_type = field.type.text
             valid_values = ""
 
@@ -526,14 +529,24 @@ class GenerateDataDictionary(BaseGithubTask):
                 field_type = f"Master-Detail Relationship to {target_sobject}"
                 # Note: polymorphic custom fields are not allowed.
 
+            if help_text_elem and help_text_elem.text:
+                help_text = help_text_elem.text
+            else:
+                help_text = ""
+
+            if description_text_elem and description_text_elem.text:
+                description = description_text_elem.text
+            else:
+                description = ""
+
             fd = FieldDetail(
                 version=version,
                 sobject=sobject,
                 api_name=field_name,
                 label=field.label.text,
                 type=f"{field_type}{length}",
-                help_text=help_text_elem.text if help_text_elem else "",
-                description=description_text_elem.text if description_text_elem else "",
+                help_text=help_text,
+                description=description,
                 valid_values=valid_values,
             )
             fully_qualified_name = f"{sobject}.{fd.api_name}"

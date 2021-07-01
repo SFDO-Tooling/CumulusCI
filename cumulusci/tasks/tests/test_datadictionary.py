@@ -372,6 +372,42 @@ class test_GenerateDataDictionary(unittest.TestCase):
             )
         ]
 
+    def test_process_field_element__blank_elements(self):
+        xml_source = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Lookup__c</fullName>
+    <label>Test</label>
+    <description></description>
+    <inlineHelpText></inlineHelpText>
+    <type>MasterDetail</type>
+    <referenceTo>Test__c</referenceTo>
+</CustomField>
+"""
+        task = create_task(GenerateDataDictionary, {})
+        p = Package(
+            repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
+        )
+        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+
+        task._init_schema()
+        task._process_field_element(
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
+        )
+
+        assert "test__Test__c.test__Lookup__c" in task.fields
+        assert task.fields["test__Test__c.test__Lookup__c"] == [
+            FieldDetail(
+                version=v,
+                sobject="test__Test__c",
+                api_name="test__Lookup__c",
+                label="Test",
+                type="Master-Detail Relationship to test__Test__c",
+                description="",
+                help_text="",
+                valid_values="",
+            )
+        ]
+
     def test_process_field_element__standard(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -393,7 +429,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
         )
 
-        assert "test__Test__c.Account" not in task.fields
+        assert len(task.fields) == 0
 
     def test_process_field_element__updated(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
