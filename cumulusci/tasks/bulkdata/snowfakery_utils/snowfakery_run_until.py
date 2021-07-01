@@ -55,6 +55,7 @@ class RunUntilRecordInOrg(RunUntilRecordsLoaded):
         parts = self.split_pair(param)
         self.set_target_and_gap(*parts)
         query = f"select count(Id) from {self.sobject_name}"
+        # TODO: fall back to other APIs
         self.in_org_count = sf.query(query)["records"][0]["expr0"]
         gap = self.target - int(self.in_org_count)
         self.gap = max(gap, 0)

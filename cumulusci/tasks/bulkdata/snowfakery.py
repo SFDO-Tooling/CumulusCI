@@ -55,6 +55,14 @@ ERROR_THRESHOLD = (
 # relatively arbitrary trade-off between busy-waiting and adding latency.
 WAIT_TIME = 3
 
+# more loader workers than generators because they spend so much time
+# waiting for responses. 4:1 is an experimentally derived ratio
+WORKER_TO_LOADER_RATIO = 4
+
+# number of portions we will allow to be on-disk waiting to be loaded
+# higher numbers use more disk space.
+LOAD_QUEUE_SIZE = 15
+
 
 class Snowfakery(BaseSalesforceApiTask):
 
@@ -141,11 +149,9 @@ class Snowfakery(BaseSalesforceApiTask):
 
         self.num_generator_workers = self.options.get("num_processes", None)
 
-    # more loader workers than generators because they spend so much time
-    # waiting for responses. 4:1 is an experimentally derived ratio
     @property
     def num_loader_workers(self):
-        return self.num_generator_workers * 4
+        return self.num_generator_workers * WORKER_TO_LOADER_RATIO
 
     def setup(self):
         if not self.num_generator_workers:
@@ -243,7 +249,7 @@ class Snowfakery(BaseSalesforceApiTask):
             name="data_load",
             task_class=LoadData,
             make_task_options=self.data_loader_opts,
-            queue_size=15,
+            queue_size=LOAD_QUEUE_SIZE,
             num_workers=self.num_loader_workers,
             rename_directory=self.data_loader_rename_directory,
         )
@@ -376,7 +382,7 @@ class Snowfakery(BaseSalesforceApiTask):
             set_name = "iterations"
 
         self.logger.info(
-            f"☃ Snowfakery created {elapsed}, {upload_status.target_count:,} {set_name}"
+            f"☃ Snowfakery created {upload_status.target_count:,} {set_name} in {elapsed}."
         )
 
     def log_failures(self, dirs=T.Sequence[Path]):
