@@ -408,7 +408,6 @@ class test_GenerateDataDictionary(unittest.TestCase):
             )
         ]
 
-    # FIXME: why did this test not fail?
     def test_process_field_element__standard(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
