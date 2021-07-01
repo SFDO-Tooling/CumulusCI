@@ -119,9 +119,7 @@ class Snowfakery(BaseSalesforceApiTask):
             For example, `--run_until_recipe_repeated 50_000` means
             run the recipe 50_000 times."""
         },
-        "working_directory": {
-            "description": "Path for temporary / working files"
-        },
+        "working_directory": {"description": "Path for temporary / working files"},
         "loading_rules": {
             "description": "Path to .load.yml file containing rules to use to "
             "load the file. Defaults to `<recipename>.load.yml`. "
@@ -391,7 +389,7 @@ class Snowfakery(BaseSalesforceApiTask):
             f = Path(failure_dir) / "exception.txt"
             if not f.exists():
                 continue
-            exception = f.read_text().strip().split("\n")[-1]
+            exception = f.read_text(encoding="utf-8").strip().split("\n")[-1]
             self.logger.info(exception)
 
     def data_loader_opts(self, working_dir: Path):
@@ -658,6 +656,6 @@ class SnowfakeryWorkingDirectory:
 
     def relevant_sobjects(self):
         # TODO:
-        with open(self.mapping_file) as f:
+        with open(self.mapping_file, encoding="utf-8") as f:
             mapping = yaml.safe_load(f)
             return [m.get("sf_object") for m in mapping.values() if m.get("sf_object")]

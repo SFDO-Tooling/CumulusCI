@@ -151,7 +151,7 @@ class TaskWorker:
     def make_logger(self):
         """Log to a file for potential later inspection"""
         filename = self.working_dir / f"{self.task_class.__name__}.log"
-        with filename.open("w") as f:
+        with filename.open("w", encoding="utf-8") as f:
             logger = logging.Logger(self.task_class.__name__)
 
             formatter = logging.Formatter(fmt="%(asctime)s: %(message)s")
