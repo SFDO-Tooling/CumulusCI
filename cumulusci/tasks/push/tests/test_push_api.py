@@ -60,6 +60,72 @@ def metadata_package_versions(metadata_package):
             patch="1",
             build="1",
         ),
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="1",
+            minor="1",
+            patch="1",
+            build="1",
+        ),
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="1",
+            minor="89",
+            patch="1",
+            build="1",
+        ),
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="89",
+            minor="1",
+            patch="1",
+            build="1",
+        ),
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="1",
+            minor="1",
+            patch="89",
+            build="1",
+        ),
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="1",
+            minor="1",
+            patch="1",
+            build="89",
+        ),
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="4",
+            minor="3",
+            patch="1",
+            build="1",
+        ),
     ]
 
 
@@ -752,7 +818,7 @@ def test_version_min_version_query_integration(
         metadata_package_versions
     )
     assert (
-        len(metadata_package_version.get_older_released_version_objs(min_version)) == 2
+        len(metadata_package_version.get_older_released_version_objs(min_version)) == 3
     )
     metadata_package_version.package.push_api.get_package_version_objs.assert_called_once_with(
         expected, None
@@ -788,7 +854,7 @@ def test_version_get_older(
         build="1",
     )
     assert (
-        len(metadata_package_version.get_older_released_version_objs(min_version)) == 3
+        len(metadata_package_version.get_older_released_version_objs(min_version)) == 8
     )
     metadata_package_version.package.get_package_version_objs.assert_called_once_with(
         expected
