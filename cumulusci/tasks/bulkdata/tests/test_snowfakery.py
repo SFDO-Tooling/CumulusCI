@@ -37,22 +37,6 @@ def threads_instead_of_processes(request):
         yield t
 
 
-# class FakeProcess:
-#     def __init__(self, target, args, daemon, index, process_handler):
-#         self.callback = callback
-#         self.target = target
-#         self.args = args
-#         self.daemon = daemon
-#         self.index = index
-#         self.report_event("__init__")
-
-#     def report_event(self, eventname):
-#         return self.callback(eventname, self.target, self.args, self.daemon, self.index)
-
-#     def __getattr__(self, name):
-#         return lambda: self.report_event(name)
-
-
 @pytest.fixture
 def fake_processes_and_threads(request):
     class FakeProcessManager:
