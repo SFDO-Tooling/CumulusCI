@@ -1,0 +1,50 @@
+interactions:
+- request:
+    body: '{"compositeRequest": [{"referenceId": "one", "method": "GET", "url": "/services/data/v49.0/query?q=SELECT
+      Id FROM Account LIMIT 1"}, {"referenceId": "two", "method": "GET", "url": "/services/data/v49.0/query?q=SELECT
+      Name FROM Account LIMIT 1"}]}'
+    headers:
+      Request-Headers:
+      - Elided
+    method: POST
+    uri: https://orgname.my.salesforce.com/services/data/v49.0/composite
+  response:
+    body:
+      string: "{\n  \"compositeResponse\" : [ {\n    \"body\" : {\n      \"totalSize\"
+        : 1,\n      \"done\" : true,\n      \"records\" : [ {\n        \"attributes\"
+        : {\n          \"type\" : \"Account\",\n          \"url\" : \"/services/data/v49.0/sobjects/Account/0013B00000ddh3PQAQ\"\n
+        \       },\n        \"Id\" : \"0013B00000ddh3PQAQ\"\n      } ]\n    },\n    \"httpHeaders\"
+        : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"one\"\n  },
+        {\n    \"body\" : {\n      \"totalSize\" : 1,\n      \"done\" : true,\n      \"records\"
+        : [ {\n        \"attributes\" : {\n          \"type\" : \"Account\",\n          \"url\"
+        : \"/services/data/v49.0/sobjects/Account/0013B00000ddh7qQAA\"\n        },\n
+        \       \"Name\" : \"Elizabeth Foster\"\n      } ]\n    },\n    \"httpHeaders\"
+        : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"two\"\n  }
+        ]\n}"
+    headers:
+      Response-Headers: Elided
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"compositeRequest": [{"referenceId": "three", "method": "GET", "url":
+      "/services/data/v49.0/query?q=SELECT Name FROM Account LIMIT 1"}]}'
+    headers:
+      Request-Headers:
+      - Elided
+    method: POST
+    uri: https://orgname.my.salesforce.com/services/data/v49.0/composite
+  response:
+    body:
+      string: "{\n  \"compositeResponse\" : [ {\n    \"body\" : {\n      \"totalSize\"
+        : 1,\n      \"done\" : true,\n      \"records\" : [ {\n        \"attributes\"
+        : {\n          \"type\" : \"Account\",\n          \"url\" : \"/services/data/v49.0/sobjects/Account/0013B00000ddh7qQAA\"\n
+        \       },\n        \"Name\" : \"Elizabeth Foster\"\n      } ]\n    },\n    \"httpHeaders\"
+        : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"three\"\n  }
+        ]\n}"
+    headers:
+      Response-Headers: Elided
+    status:
+      code: 200
+      message: OK
+version: 1

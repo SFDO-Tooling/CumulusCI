@@ -74,6 +74,8 @@ def _perf_logger(logger_func: Callable, formatter_func: Callable):
 
 
 pattern = r"\${cci_metric_(?P<metric>.*)} = (?P<value>.*)"
+# used also in MetaCI
+ELAPSED_TIME_PATTERN = re.compile(pattern)
 
 
 class PerfSummarizer(ResultVisitor):
@@ -83,32 +85,30 @@ class PerfSummarizer(ResultVisitor):
         self.times = []
         self.callable = callable
 
+    def start_test(self, test):
+        self.metrics = {}
+
+    def end_message(self, message):
+        # n.b. we're looking for messages like '${cci_metric_foo} = x'
+        match = ELAPSED_TIME_PATTERN.match(message.message)
+        if match:
+            try:
+                self.metrics[match["metric"]] = float(match["value"])
+            except ValueError as e:  # pragma: no cover
+                raise ValueError(  # -- should never happen
+                    f"Cannot find number in {message.message}"
+                ) from e
+
     def end_test(self, test):
-        metrics = {}
-        for keyword in test.keywords:
-            if keyword:
-                for message in keyword.messages:
-                    message = str(message or "")
-                    if message:
-                        match = re.match(pattern, message)
-                        if match:
-                            try:
-                                metrics[match["metric"]] = float(match["value"])
-                            except ValueError as e:  # pragma: no cover
-                                raise ValueError(  # -- should never happen
-                                    f"Cannot find number in {message}"
-                                ) from e
-        if metrics:
-            self.report_test_metrics(test, metrics)
+        if self.metrics:
+            self.report_test_metrics(test, self.metrics)
 
     def report_test_metrics(self, test, metrics):
         "Generate a perf summary and call formatter&logger to output it"
-        setup_keyword = test.keywords.setup
-        if setup_keyword:
-            metrics["setup_time"] = setup_keyword.elapsedtime / 1000
-        teardown_keyword = test.keywords.teardown
-        if teardown_keyword:
-            metrics["teardown_time"] = teardown_keyword.elapsedtime / 1000
+        if test.setup:
+            metrics["setup_time"] = test.setup.elapsedtime / 1000
+        if test.teardown:
+            metrics["teardown_time"] = test.teardown.elapsedtime / 1000
         metrics["total_time"] = test.elapsedtime / 1000
 
         self.callable(PerfSummary(test.name, metrics, test))

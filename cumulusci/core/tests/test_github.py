@@ -10,12 +10,13 @@ from github3.exceptions import ConnectionError
 from github3.session import AppInstallationTokenAuth
 
 from cumulusci.core import github
-from cumulusci.core.exceptions import GithubException
+from cumulusci.core.exceptions import DependencyLookupError, GithubException
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.core.github import (
     create_gist,
     get_github_api,
+    get_version_id_from_tag,
     validate_service,
     create_pull_request,
     markdown_link_to_pr,
@@ -26,6 +27,8 @@ from cumulusci.core.github import (
     add_labels_to_pull_request,
     get_pull_requests_by_commit,
     get_pull_requests_with_base_branch,
+    get_tag_by_name,
+    get_ref_for_tag,
 )
 
 
@@ -266,3 +269,103 @@ class TestGithub(GithubApiTestMixin):
             json=self._get_expected_gist(description, files),
             status=201,
         )
+
+    @responses.activate
+    def test_get_tag_by_name(self, repo):
+        self.init_github()
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=200,
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag("beta/1.0", "tag_SHA"),
+            status=200,
+        )
+        tag = get_tag_by_name(repo, "tag_SHA")
+        assert tag.tag == "beta/1.0"
+
+    @responses.activate
+    def test_get_tag_by_name__404(self, repo):
+        self.init_github()
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=200,
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag("beta/1.0", "tag_SHA"),
+            status=404,
+        )
+        with pytest.raises(DependencyLookupError):
+            get_tag_by_name(repo, "tag_SHA")
+
+    @responses.activate
+    def test_get_ref_by_name(self, repo):
+        self.init_github()
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=200,
+        )
+        ref = get_ref_for_tag(repo, "tag_SHA")
+        assert ref.object.sha == "tag_SHA"
+
+    @responses.activate
+    def test_get_ref_by_name__404(self, repo):
+        self.init_github()
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=404,
+        )
+        with pytest.raises(DependencyLookupError):
+            get_ref_for_tag(repo, "tag_SHA")
+
+    @responses.activate
+    def test_get_version_id_from_tag(self, repo):
+        self.init_github()
+        responses.add(  # the ref for the tag is fetched first
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/test-tag-name",
+            json=self._get_expected_tag_ref("test-tag-name", "tag_SHA"),
+            status=200,
+        )
+        tag_message = """Release of Test Package\nversion_id: 04t000000000000\n\ndependencies: []"""
+        responses.add(  # then we fetch that actual tag with the ref
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag("beta/1.0", "tag_SHA", message=tag_message),
+            status=200,
+        )
+        version_id = get_version_id_from_tag(repo, "test-tag-name")
+        assert version_id == "04t000000000000"
+
+    @responses.activate
+    def test_get_version_id_from_tag__dependency_error(self, repo):
+        self.init_github()
+        responses.add(  # the ref for the tag is fetched first
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/test-tag-name",
+            json=self._get_expected_tag_ref("test-tag-name", "tag_SHA"),
+            status=200,
+        )
+        tag_message = (
+            """Release of Test Package\nversion_id: invalid_id\n\ndependencies: []"""
+        )
+        responses.add(  # then we fetch that actual tag with the ref
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag("beta/1.0", "tag_SHA", message=tag_message),
+            status=200,
+        )
+        with pytest.raises(DependencyLookupError):
+            get_version_id_from_tag(repo, "test-tag-name")

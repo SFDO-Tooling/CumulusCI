@@ -8,7 +8,7 @@ from cumulusci.core.utils import process_bool_arg
 
 
 class CustomSettingValueWait(BaseSalesforceApiTask):
-    """ CustomSettingValueWait polls an org until the specific value exists in a custom settings field """
+    """CustomSettingValueWait polls an org until the specific value exists in a custom settings field"""
 
     name = "CustomSettingValueWait"
 

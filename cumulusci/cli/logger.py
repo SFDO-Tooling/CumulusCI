@@ -15,7 +15,7 @@ except ImportError:
 
 
 def init_logger(log_requests=False):
-    """ Initialize the logger """
+    """Initialize the logger"""
 
     logger = logging.getLogger(__name__.split(".")[0])
     for handler in logger.handlers:  # pragma: no cover

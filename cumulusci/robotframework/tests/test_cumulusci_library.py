@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest import mock
 import unittest
+import robot.api.logger
 from cumulusci.robotframework.CumulusCI import CumulusCI
 from cumulusci.core.config import UniversalConfig, BaseProjectConfig
 from cumulusci.core.tests.utils import MockLoggerMixin
@@ -37,8 +38,44 @@ class TestCumulusCILibrary(MockLoggerMixin, unittest.TestCase):
 
     def test_run_task(self):
         """Smoke test; can we run the command task?"""
-        self.cumulusci.run_task("get_pwd")
-        self.assertIn("Running command: pwd", self.task_log["info"])
+        result = self.cumulusci.run_task("get_pwd")
+        self.assertEqual(result["returncode"], 0)
+
+    def test_run_task_robot_logger(self):
+        """Verify that 'run task' uses the robot logger"""
+        with mock.patch.object(self.cumulusci, "_run_task"):
+            self.cumulusci.run_task("get_pwd")
+            args, kwargs = self.cumulusci._run_task.call_args
+            task = args[0]
+            self.assertEqual(task.logger, robot.api.logger)
+
+    def test_robot_logger_supports_warning(self):
+        """Verify that 'run task' uses a logger that supports .warning()
+
+        Python deprecated the logger method "warn" in favor of
+        "warning". Robot didn't get the memo and has "warn" instead of
+        "warning".  Since our tasks use "warning", this verifies that
+        we've patched the robot logger before passing it to the task
+        constructor.
+
+        """
+        with mock.patch.object(self.cumulusci, "_run_task"):
+            self.cumulusci.run_task("get_pwd")
+            args, kwargs = self.cumulusci._run_task.call_args
+            task = args[0]
+            assert hasattr(
+                task.logger, "warning"
+            ), "robot logger should have a warning method but doesn't"
+
+    def test_run_task_class_robot_logger(self):
+        """Verify that 'run task class' uses the robot logger"""
+        with mock.patch.object(self.cumulusci, "_run_task"):
+            self.cumulusci.run_task_class(
+                "cumulusci.tasks.command.Command", command="ls -l"
+            )
+            args, kwargs = self.cumulusci._run_task.call_args
+            task = args[0]
+            self.assertEqual(task.logger, robot.api.logger)
 
     def test_run_unknown_task(self):
         with self.assertRaises(TaskNotFoundError):

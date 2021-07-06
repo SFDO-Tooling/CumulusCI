@@ -1,17 +1,16 @@
 import os
-
-import yaml
 from pathlib import Path
 
 from cumulusci.core.utils import merge_config
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
+from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
 
 class UniversalConfig(BaseTaskFlowConfig):
-    """ Base class for the global config which contains all configuration not specific to projects """
+    """Base class for the global config which contains all configuration not specific to projects"""
 
     config = None
     config_filename = "cumulusci.yml"
@@ -41,6 +40,7 @@ class UniversalConfig(BaseTaskFlowConfig):
 
     @property
     def config_global_path(self):
+        """The global config path. Usually ~/.cumulusci/cumulusci.yml"""
         directory = self.cumulusci_config_dir
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -58,20 +58,17 @@ class UniversalConfig(BaseTaskFlowConfig):
         )
 
     def _load_config(self):
-        """ Loads the local configuration """
+        """Loads the local configuration"""
         # avoid loading multiple times
         if UniversalConfig.config is not None:
             return
 
-        # load the global config
-        with open(self.config_universal_path, "r", encoding="utf-8") as f_config:
-            config = yaml.safe_load(f_config)
-        UniversalConfig.config_universal = config
+        # load the universal config
+        UniversalConfig.config_universal = cci_safe_load(self.config_universal_path)
 
         # Load the local config
         if self.config_global_path:
-            with open(self.config_global_path, "r", encoding="utf-8") as f:
-                config = yaml.safe_load(f)
+            config = cci_safe_load(self.config_global_path)
         else:
             config = {}
         UniversalConfig.config_global = config

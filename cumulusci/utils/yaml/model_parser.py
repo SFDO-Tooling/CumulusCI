@@ -1,12 +1,10 @@
 from typing import Union, IO
 from pathlib import Path, Sequence
 
-from yaml import safe_load
-
 from pydantic import BaseModel, ValidationError
 from pydantic.error_wrappers import ErrorWrapper
 
-from cumulusci.utils.fileutils import load_from_source
+from cumulusci.utils.yaml.safer_loader import load_from_source, load_yaml_data
 
 
 class CCIModel(BaseModel):
@@ -17,12 +15,12 @@ class CCIModel(BaseModel):
     @classmethod
     def parse_from_yaml(cls, source: Union[str, Path, IO]):
         "Parse from a path, url, path-like or file-like"
-        with load_from_source(source) as (path, file):
-            data = safe_load(file)
+        with load_from_source(source) as (f, path):
+            data = load_yaml_data(f)
             return cls.parse_obj(data, path).__root__
 
     @classmethod
-    def parse_obj(cls, data: [dict, list], path: str = None):
+    def parse_obj(cls, data: Union[dict, list], path: str = None):
         "Parse a structured dict or list into Model objects"
         try:
             return super().parse_obj(data)

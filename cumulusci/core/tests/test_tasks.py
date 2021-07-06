@@ -49,7 +49,7 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
 
     @mock.patch("cumulusci.core.tasks.time.sleep", mock.Mock())
     def test_retry_on_exception(self):
-        """ calling _retry() should call try until the task succeeds.  """
+        """calling _retry() should call try until the task succeeds."""
         task_config = TaskConfig(
             {"options": {"retries": 5, "retry_interval": 1, "retry_interval_add": 1}}
         )
@@ -60,7 +60,7 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
 
     @mock.patch("cumulusci.core.tasks.time.sleep", mock.Mock())
     def test_retry_until_too_many(self):
-        """ calling _retry should call try until the retry count is exhausted. """
+        """calling _retry should call try until the retry count is exhausted."""
         task_config = TaskConfig(
             {"options": {"retries": 5, "retry_interval": 1, "retry_interval_add": 1}}
         )
@@ -82,7 +82,7 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
         self.assertEqual(task.options["retry_interval"], 6)
 
     def test_task_is_callable(self):
-        """ BaseTask is Callable """
+        """BaseTask is Callable"""
         task = BaseTask(self.project_config, self.task_config, self.org_config)
 
         self.assertIsInstance(task, collections.abc.Callable)
@@ -133,7 +133,7 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
             Task(self.project_config, self.task_config, self.org_config)
 
     def test_get_return_values(self):
-        """ Callable interface returns retvals """
+        """Callable interface returns retvals"""
 
         class _TaskReturnsStuff(BaseTask):
             def _run_task(self):
@@ -145,7 +145,7 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
         self.assertIn("name", return_values)
 
     def test_get_task_result(self):
-        """ Task results available as an instance member """
+        """Task results available as an instance member"""
 
         task = _TaskHasResult(self.project_config, self.task_config, self.org_config)
         task()
@@ -153,7 +153,7 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
         self.assertEqual(task.result, -1)
 
     def test_task_logs_name_not_org(self):
-        """ A task logs the task class name to info (and not creds) """
+        """A task logs the task class name to info (and not creds)"""
 
         task = _TaskHasResult(self.project_config, self.task_config, self.org_config)
         task()
@@ -163,7 +163,7 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
         self.assertFalse(any(ORG_ID in s for s in self.task_log["info"]))
 
     def test_salesforce_task_logs_org_id(self):
-        """ A salesforce_task will also log the org id & username """
+        """A salesforce_task will also log the org id & username"""
 
         task = _SfdcTask(self.project_config, self.task_config, self.org_config)
         task()
@@ -176,7 +176,7 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
             task()
 
     def test_no_id_if_run_from_flow(self):
-        """ A salesforce_task will not log the org id if run from a flow """
+        """A salesforce_task will not log the org id if run from a flow"""
         flow = mock.Mock()
         task = _SfdcTask(
             self.project_config, self.task_config, self.org_config, flow=flow
@@ -219,3 +219,11 @@ class TestBaseTaskCallable(MockLoggerMixin, unittest.TestCase):
         self.assertEqual(4, task.poll_count)
         self.assertEqual(1, task.poll_interval_level)
         self.assertEqual(2, task.poll_interval_s)
+
+    def test_explicit_logger(self):
+        """Verify that the logger is properly set when passed in as an argument"""
+        mock_logger = mock.Mock()
+        task = BaseTask(
+            self.project_config, self.task_config, self.org_config, logger=mock_logger
+        )
+        assert task.logger is mock_logger

@@ -23,6 +23,12 @@ from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
 
 
 class Robot(BaseSalesforceTask):
+    task_docs = """
+    Runs Robot test cases using a browser, if
+    necessary and stores its results in a directory. The
+    path to the directory can be retrieved from the
+    ``robot_outputdir`` return variable."""
+
     task_options = {
         "suites": {
             "description": 'Paths to test case files/directories to be executed similarly as when running the robot command on the command line.  Defaults to "tests" to run all tests in the tests directory',
@@ -31,8 +37,15 @@ class Robot(BaseSalesforceTask):
         "test": {
             "description": "Run only tests matching name patterns.  Can be comma separated and use robot wildcards like *"
         },
-        "include": {"description": "Includes tests with a given tag"},
-        "exclude": {"description": "Excludes tests with a given tag"},
+        "include": {"description": "Includes tests with a given tag pattern"},
+        "exclude": {
+            "description": "Excludes tests with a given tag pattern. "
+            "Excluded tests will not appear in the logs and reports."
+        },
+        "skip": {
+            "description": "Do not run tests with the given tag pattern. Similar to 'exclude', "
+            "but skipped tests will appear in the logs and reports  with the status of SKIP."
+        },
         "vars": {
             "description": "Pass values to override variables in the format VAR1:foo,VAR2:bar"
         },
@@ -53,16 +66,48 @@ class Robot(BaseSalesforceTask):
         "debug": {
             "description": "If true, enable the `breakpoint` keyword to enable the robot debugger"
         },
+        "ordering": {
+            "description": (
+                "Path to a file which defines the order in which parallel tests are run. "
+                "This maps directly to the pabot option of the same name. It is ignored "
+                "unless the processes argument is set to 2 or greater."
+            ),
+        },
         "processes": {
-            "description": "*experimental* Number of processes to use for running tests in parallel. If this value is set to a number larger than 1 the tests will run using the open source tool pabot rather than robotframework. For example, -o parallel 2 will run half of the tests in one process and half in another. If not provided, all tests will run in a single process using the standard robot test runner.",
+            "description": (
+                "*experimental* Number of processes to use for running tests in parallel. "
+                "If this value is set to a number larger than 1 the tests will run using the "
+                "open source tool pabot rather than robotframework. For example, -o parallel "
+                "2 will run half of the tests in one process and half in another. If not "
+                "provided, all tests will run in a single process using the standard robot "
+                "test runner. See https://pabot.org/ for more information on pabot."
+            ),
             "default": "1",
+        },
+        "testlevelsplit": {
+            "description": (
+                "If true, split parallel execution at the test level rather "
+                "than the suite level. This option is ignored unless the "
+                "processes option is set to 2 or greater. Note: this option "
+                "requires a boolean value even though the pabot option of the "
+                "same name does not. "
+            ),
+            "default": "false",
         },
     }
 
     def _init_options(self, kwargs):
         super(Robot, self)._init_options(kwargs)
 
-        for option in ("test", "include", "exclude", "vars", "sources", "suites"):
+        for option in (
+            "test",
+            "include",
+            "exclude",
+            "vars",
+            "sources",
+            "suites",
+            "skip",
+        ):
             if option in self.options:
                 self.options[option] = process_list_arg(self.options[option])
         if "vars" not in self.options:
@@ -79,6 +124,17 @@ class Robot(BaseSalesforceTask):
             raise TaskOptionsError(
                 "Please specify an integer for the `processes` option."
             )
+
+        if self.options["processes"] > 1:
+            self.options["testlevelsplit"] = process_bool_arg(
+                self.options.get("testlevelsplit", False)
+            )
+        else:
+            # ignore these. Why not throw an error? This lets the user
+            # turn off parallel processing on the command line without
+            # having to also remove these options.
+            self.options.pop("testlevelsplit", None)
+            self.options.pop("ordering", None)
 
         # There are potentially many robot options that are or could
         # be lists. The only ones we currently care about are the
@@ -106,13 +162,12 @@ class Robot(BaseSalesforceTask):
     def _run_task(self):
         self.options["vars"].append("org:{}".format(self.org_config.name))
         options = self.options["options"].copy()
-        for option in ("test", "include", "exclude", "xunit", "name"):
+        for option in ("test", "include", "exclude", "xunit", "name", "skip"):
             if option in self.options:
                 options[option] = self.options[option]
         options["variable"] = self.options.get("vars") or []
-        options["outputdir"] = os.path.relpath(
-            os.path.join(self.working_path, options.get("outputdir", ".")), os.getcwd()
-        )
+        output_dir = Path(self.working_path) / options.get("outputdir", ".")
+        options["outputdir"] = str(output_dir.resolve())
 
         options["tagstatexclude"] = options.get(
             "tagstatexclude", []
@@ -154,9 +209,21 @@ class Robot(BaseSalesforceTask):
                 "--pabotlib",
                 "--processes",
                 str(self.options["processes"]),
-                "--pythonpath",
-                str(self.project_config.repo_root),
             ]
+            # the pabot option `--testlevelsplit` takes no arguments,
+            # so we'll only add it if it's set to true and then remove
+            # it from options so it doesn't get added later.
+            if self.options.pop("testlevelsplit", False):
+                cmd.append("--testlevelsplit")
+
+            # the ordering option is pabot-specific and must come before
+            # all robot options:
+            if self.options.get("ordering", None):
+                cmd.extend(["--ordering", self.options.pop("ordering")])
+
+            # this has to come after the pabot-specific options.
+            cmd.extend(["--pythonpath", str(self.project_config.repo_root)])
+
             # We need to convert options to their commandline equivalent
             for option, value in options.items():
                 if isinstance(value, list):

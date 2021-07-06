@@ -6,9 +6,8 @@ import logging
 import pytest
 
 import responses
-from yaml import YAMLError
 
-from cumulusci.core.exceptions import BulkDataException
+from cumulusci.core.exceptions import BulkDataException, YAMLParseException
 from cumulusci.tasks.bulkdata.mapping_parser import (
     MappingLookup,
     MappingStep,
@@ -62,7 +61,9 @@ class TestMappingParser:
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
             data = f.read().replace(":", ": abcd")
-            with pytest.raises(YAMLError):
+            with pytest.raises(
+                YAMLParseException, match="An error occurred parsing yaml file .*"
+            ):
                 parse_from_yaml(StringIO(data))
 
     def test_bad_mapping_grammar(self):
@@ -338,11 +339,13 @@ class TestMappingParser:
         assert ms._validate_sobject(
             CaseInsensitiveDict({"Account": {"createable": True}}),
             None,
+            None,
             DataOperationType.INSERT,
         )
 
         assert ms._validate_sobject(
             CaseInsensitiveDict({"Account": {"queryable": True}}),
+            None,
             None,
             DataOperationType.QUERY,
         )
@@ -354,6 +357,7 @@ class TestMappingParser:
         assert not ms._validate_sobject(
             CaseInsensitiveDict({"Account": {"updateable": False}}),
             None,
+            None,
             DataOperationType.INSERT,
         )
 
@@ -364,10 +368,24 @@ class TestMappingParser:
 
         assert ms._validate_sobject(
             CaseInsensitiveDict({"npsp__Test__c": {"createable": True}}),
-            lambda obj: f"npsp__{obj}",
-            DataOperationType.INSERT,
+            inject=lambda obj: f"npsp__{obj}",
+            strip=None,
+            data_operation_type=DataOperationType.INSERT,
         )
         assert ms.sf_object == "npsp__Test__c"
+
+    def test_validate_sobject__stripping(self):
+        ms = MappingStep(
+            sf_object="foo__Test__c", fields=["Name"], action=DataOperationType.INSERT
+        )
+
+        assert ms._validate_sobject(
+            CaseInsensitiveDict({"Test__c": {"createable": True}}),
+            inject=None,
+            strip=lambda obj: obj[len("foo__") :],
+            data_operation_type=DataOperationType.INSERT,
+        )
+        assert ms.sf_object == "Test__c"
 
     def test_validate_sobject__injection_duplicate(self):
         ms = MappingStep(
@@ -379,6 +397,7 @@ class TestMappingParser:
                 {"npsp__Test__c": {"createable": True}, "Test__c": {"createable": True}}
             ),
             lambda obj: f"npsp__{obj}",
+            None,
             DataOperationType.INSERT,
         )
         assert ms.sf_object == "Test__c"
@@ -419,6 +438,7 @@ class TestMappingParser:
         ms._validate_sobject.assert_called_once_with(
             CaseInsensitiveDict({"Account": {"name": "Account", "createable": True}}),
             mock.ANY,  # This is a function def
+            mock.ANY,
             DataOperationType.INSERT,
         )
 
@@ -487,6 +507,7 @@ class TestMappingParser:
         ms._validate_sobject.assert_called_once_with(
             CaseInsensitiveDict({"Account": {"name": "Account", "createable": True}}),
             mock.ANY,  # local function def
+            mock.ANY,
             DataOperationType.INSERT,
         )
 
@@ -552,6 +573,7 @@ class TestMappingParser:
         ms._validate_sobject.assert_called_once_with(
             CaseInsensitiveDict({"Test__c": {"name": "Test__c", "createable": True}}),
             None,
+            None,
             DataOperationType.INSERT,
         )
 
@@ -605,6 +627,7 @@ class TestMappingParser:
         ms._validate_sobject.assert_called_once_with(
             {"Test__c": {"name": "Test__c", "createable": False}},
             None,
+            None,
             DataOperationType.INSERT,
         )
 
@@ -638,6 +661,7 @@ class TestMappingParser:
 
         ms._validate_sobject.assert_called_once_with(
             {"Test__c": {"name": "Test__c", "createable": True}},
+            None,
             None,
             DataOperationType.INSERT,
         )
@@ -695,6 +719,7 @@ class TestMappingParser:
 
         ms._validate_sobject.assert_called_once_with(
             {"Account": {"name": "Account", "createable": True}},
+            None,
             None,
             DataOperationType.INSERT,
         )
@@ -775,6 +800,7 @@ class TestMappingParser:
 
         ms._validate_sobject.assert_called_once_with(
             {"Account": {"name": "Account", "createable": True}},
+            None,
             None,
             DataOperationType.INSERT,
         )
@@ -1084,4 +1110,25 @@ class TestMappingLookup:
         )
         assert mapping["Insert Accounts"].api == DataApi.REST
         assert mapping["Insert Accounts"].bulk_mode == "Serial"
+        assert mapping["Insert Accounts"].batch_size == 50
+
+    def test_case_conversions(self):
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    """Insert Accounts:
+                        sf_object: account
+                        table: account
+                        api: ReST
+                        bulk_mode: serial
+                        action: INSerT
+                        batch_size: 50
+                        fields:
+                            - name"""
+                )
+            )
+        )
+        assert mapping["Insert Accounts"].api == DataApi.REST
+        assert mapping["Insert Accounts"].bulk_mode == "Serial"
+        assert mapping["Insert Accounts"].action.value == "insert"
         assert mapping["Insert Accounts"].batch_size == 50

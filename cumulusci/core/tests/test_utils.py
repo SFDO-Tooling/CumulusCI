@@ -1,19 +1,14 @@
 import datetime
 import os
-import unittest
-from unittest import mock
-from tempfile import TemporaryDirectory
-from pathlib import Path
-
 import pytz
 import pytest
+import re
+import unittest
 
 from .. import utils
 
-from cumulusci.core.exceptions import ConfigMergeError
+from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 from cumulusci.utils import temporary_dir, touch
-from cumulusci.core.utils import cleanup_org_cache_dirs
-from cumulusci.core.config import OrgConfig
 
 
 class TestUtils(unittest.TestCase):
@@ -81,8 +76,8 @@ class TestUtils(unittest.TestCase):
             self.assertEqual([filename], utils.process_glob_list_arg("**/*.resource"))
 
     def test_decode_to_unicode(self):
-        self.assertEqual(u"\xfc", utils.decode_to_unicode(b"\xfc"))
-        self.assertEqual(u"\u2603", utils.decode_to_unicode(u"\u2603"))
+        self.assertEqual("\xfc", utils.decode_to_unicode(b"\xfc"))
+        self.assertEqual("\u2603", utils.decode_to_unicode("\u2603"))
         self.assertEqual(None, utils.decode_to_unicode(None))
 
 
@@ -109,7 +104,7 @@ class TestMergedConfig(unittest.TestCase):
 
 
 class TestDictMerger(unittest.TestCase):
-    """ some stuff that didnt get covered by usual usage  """
+    """some stuff that didnt get covered by usual usage"""
 
     def test_merge_into_list(self):
         combo = utils.dictmerge([1, 2], 3)
@@ -124,66 +119,38 @@ class TestDictMerger(unittest.TestCase):
             utils.dictmerge(pytz, 2)
 
 
-class TestCleanupCacheDir:
-    def test_cleanup_cache_dir(self):
-        keychain = mock.Mock()
-        keychain.list_orgs.return_value = ["qa", "dev"]
-        org = mock.Mock()
-        org.config.get.return_value = "http://foo.my.salesforce.com/"
-        keychain.get_org.return_value = org
-        project_config = mock.Mock()
-        with TemporaryDirectory() as temp_for_global:
-            keychain.global_config_dir = Path(temp_for_global)
-            global_org_dir = _touch_test_org_file(keychain.global_config_dir)
-            with TemporaryDirectory() as temp_for_project:
-                cache_dir = project_config.cache_dir = Path(temp_for_project)
-                project_org_dir = _touch_test_org_file(cache_dir)
-                with mock.patch("cumulusci.core.utils.rmtree") as rmtree:
-                    cleanup_org_cache_dirs(keychain, project_config)
-                    rmtree.assert_has_calls(
-                        [mock.call(global_org_dir), mock.call(project_org_dir)],
-                        any_order=True,
-                    )
+class TestProcessListOfPairsDictArg:
+    def test_process_list_of_pairs_dict_arg__already_dict(self):
+        expected_dict = {"foo": "bar"}
+        actual_dict = utils.process_list_of_pairs_dict_arg(expected_dict)
+        assert actual_dict is expected_dict
 
-    def test_cleanup_cache_dir_nothing_to_cleanup(self):
-        keychain = mock.Mock()
-        keychain.list_orgs.return_value = ["qa", "dev"]
-        org = OrgConfig(
-            config={"instance_url": "http://foo.my.salesforce.com/"},
-            name="qa",
-            keychain=keychain,
-            global_org=False,
+    def test_process_list_of_pairs_dict_arg__valid_values(self):
+        valid_values = "foo:bar,baz:boo"
+        actual_dict = utils.process_list_of_pairs_dict_arg(valid_values)
+        assert actual_dict == {"foo": "bar", "baz": "boo"}
+
+    def test_process_list_of_pairs_dict_arg__uri_values(self):
+        uri_value = "companyWebsite:https://www.salesforce.org:8080"
+        actual_dict = utils.process_list_of_pairs_dict_arg(uri_value)
+        assert actual_dict == {"companyWebsite": "https://www.salesforce.org:8080"}
+
+    def test_process_list_of_pairs_dict_arg__not_dict_or_string(self):
+        unsupported = ("foo", "bar")
+        error_message = re.escape(
+            f"Arg is not a dict or string ({type(unsupported)}): {unsupported}"
         )
-        keychain.get_org.return_value = org
-        project_config = mock.Mock()
-        with TemporaryDirectory() as temp_for_global:
-            keychain.global_config_dir = Path(temp_for_global)
-            with TemporaryDirectory() as temp_for_project:
-                cache_dir = project_config.cache_dir = Path(temp_for_project)
-                org_dir = cache_dir / "orginfo/foo.my.salesforce.com"
-                org_dir.mkdir(parents=True)
-                (org_dir / "schema.json").touch()
-                with mock.patch("cumulusci.core.utils.rmtree") as rmtree:
-                    cleanup_org_cache_dirs(keychain, project_config)
-                    assert not rmtree.mock_calls, rmtree.mock_calls
+        with pytest.raises(TaskOptionsError, match=error_message):
+            utils.process_list_of_pairs_dict_arg(unsupported)
 
-    duration = (
-        (59, "59s"),
-        (70, "1m:10s"),
-        (119, "1m:59s"),
-        (65, "1m:5s"),
-        (4000, "1h:6m:40s"),
-        (7199, "1h:59m:59s"),
-    )
+    def test_process_list_of_pairs_dict_arg__not_name_value_pair(self):
+        not_pair = "foo:bar,baz"
+        error_message = re.escape("Var is not a name/value pair: baz")
+        with pytest.raises(TaskOptionsError, match=error_message):
+            utils.process_list_of_pairs_dict_arg(not_pair)
 
-    @pytest.mark.parametrize("val,expected", duration)
-    def test_time_delta(self, val, expected):
-        formatted = utils.format_duration(datetime.timedelta(seconds=val))
-        assert formatted == expected, (formatted, expected)
-
-
-def _touch_test_org_file(directory):
-    org_dir = directory / "orginfo/something.something.saleforce.com"
-    org_dir.mkdir(parents=True)
-    (org_dir / "testfile.json").touch()
-    return org_dir
+    def test_process_list_of_pairs_dict_arg__duplicate_value(self):
+        duplicate = "foo:bar,foo:baz"
+        error_message = re.escape("Var specified twice: foo")
+        with pytest.raises(TaskOptionsError, match=error_message):
+            utils.process_list_of_pairs_dict_arg(duplicate)

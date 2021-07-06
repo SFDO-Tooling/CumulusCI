@@ -9,13 +9,13 @@ from cumulusci.core.config.BaseConfig import BaseConfig
 
 
 class ConnectedAppOAuthConfig(BaseConfig):
-    """ Salesforce Connected App OAuth configuration """
+    """Salesforce Connected App OAuth configuration"""
 
     pass
 
 
 class FlowConfig(BaseConfig):
-    """ A flow with its configuration merged """
+    """A flow with its configuration merged"""
 
     pass
 
@@ -24,11 +24,13 @@ from cumulusci.core.config.OrgConfig import OrgConfig
 
 
 class ServiceConfig(BaseConfig):
-    pass
+    def __init__(self, config, name=None, keychain=None):
+        """Services may need access to a keychain and the alias of their service."""
+        super().__init__(config, keychain)
 
 
 class TaskConfig(BaseConfig):
-    """ A task with its configuration merged """
+    """A task with its configuration merged"""
 
     pass
 

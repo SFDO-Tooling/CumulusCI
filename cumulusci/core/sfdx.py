@@ -4,6 +4,7 @@ import logging
 import platform
 import sarge
 import sys
+import typing as T
 
 from cumulusci.core.exceptions import SfdxOrgException
 
@@ -15,7 +16,7 @@ def sfdx(
     username=None,
     log_note=None,
     access_token=None,
-    args=None,
+    args: T.Optional[T.List[str]] = None,
     env=None,
     capture_output=True,
     check_return=False,
@@ -56,16 +57,19 @@ def sfdx(
     return p
 
 
-def shell_quote(s):
+def shell_quote(s: str):
     if platform.system() == "Windows":
         assert isinstance(s, str)
         if not s:
             result = '""'
         elif '"' not in s:
             result = s
+            if " " in result:
+                result = f'"{result}"'
         else:
             escaped = s.replace('"', r"\"")
             result = f'"{escaped}"'
+
         return result
     else:
         return sarge.shell_quote(s)

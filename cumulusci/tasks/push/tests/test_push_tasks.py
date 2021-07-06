@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 import logging
 
+
 from cumulusci.core.exceptions import (
     CumulusCIException,
     PushApiObjectNotFound,
@@ -14,6 +15,7 @@ from cumulusci.tasks.push.push_api import (
     MetadataPackageVersion,
     PackagePushRequest,
     PackagePushJob,
+    SalesforcePushApi,
 )
 from cumulusci.tasks.push.tasks import (
     BaseSalesforcePushTask,
@@ -446,14 +448,13 @@ def test_schedule_push_org_query_get_org_error():
         options={
             "orgs": ORG,
             "version": VERSION,
-            "namespace": NAMESPACE,
             "start_time": None,
-            "batch_size": "200",
             "min_version": "1.1",
         },
     )
     task.push = mock.MagicMock()
     task.push_api = mock.MagicMock()
+    task.bulk = mock.MagicMock()
     task.sf = mock.Mock()
     task.push_api.return_query_records = mock.MagicMock()
     task.push_api.return_query_records.return_value = {"totalSize": "1"}
@@ -474,11 +475,60 @@ def test_schedule_push_org_query_get_org():
             "subscriber_where": "OrgType = 'Sandbox'",
         },
     )
+
     task.push = mock.MagicMock()
     task.push_api = mock.MagicMock()
+    task.bulk = None
     task.sf = mock.Mock()
+    task.sf.query_all = mock.MagicMock()
     task.sf.query_all.return_value = PACKAGE_OBJ_SUBSCRIBER
+    # task.push_api.return_query_records.return_value = {"totalSize": "1"}
     assert task._get_orgs() == ["bar"]
+
+
+@mock.patch("cumulusci.tasks.push.push_api.BulkApiQueryOperation")
+def test_schedule_push_org_bulk_query_get_org(BulkAPI):  # push_api):
+    expected_result = [
+        {
+            "Id": "0Hb0R0000009fPASAY",
+            "MetadataPackageVersionId": "04t1J000000gQziQAE",
+            "InstalledStatus": "i",
+            "OrgName": "CumulusCI-Test Dev Workspace",
+            "OrgKey": "00D0R0000000kN4",
+            "OrgStatus": "Trial",
+            "OrgType": "Sandbox",
+        }
+    ]
+    push_api = SalesforcePushApi(
+        mock.MagicMock(), mock.MagicMock(), None, None, None, mock.MagicMock()
+    )
+    bulk_api = mock.MagicMock(get_results=mock.MagicMock())
+    bulk_api.get_results.return_value = [
+        [
+            "0Hb0R0000009fPASAY",
+            "04t1J000000gQziQAE",
+            "i",
+            "CumulusCI-Test Dev Workspace",
+            "00D0R0000000kN4",
+            "Trial",
+            "Sandbox",
+        ]
+    ]
+    BulkAPI.return_value = bulk_api
+    result = push_api.return_query_records(
+        "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE (InstalledStatus = 'i' AND (OrgType = 'Sandbox')",
+        [
+            "Id",
+            "MetadataPackageVersionId",
+            "InstalledStatus",
+            "OrgName",
+            "OrgKey",
+            "OrgStatus",
+            "OrgType",
+        ],
+        "foo",
+    )
+    assert result == expected_result
 
 
 def test_schedule_push_org_list_run_task_with_time_assertion(org_file):

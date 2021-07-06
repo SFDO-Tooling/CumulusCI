@@ -4,6 +4,8 @@ from datetime import datetime
 
 import github3.exceptions
 
+from cumulusci.core.dependencies.dependencies import parse_dependencies
+from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.exceptions import GithubException
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.github.base import BaseGithubTask
@@ -16,6 +18,10 @@ class CreateRelease(BaseGithubTask):
             "description": "The managed package version number.  Ex: 1.2",
             "required": True,
         },
+        "version_id": {
+            "description": "The SubscriberPackageVersionId (04t) associated with this release.",
+            "required": False,
+        },
         "message": {"description": "The message to attach to the created git tag"},
         "dependencies": {
             "description": "List of dependencies to record in the tag message."
@@ -25,6 +31,16 @@ class CreateRelease(BaseGithubTask):
                 "Override the commit used to create the release. "
                 "Defaults to the current local HEAD commit"
             )
+        },
+        "resolution_strategy": {
+            "description": "The name of a sequence of resolution_strategy (from project__dependency_resolutions) to apply to dynamic dependencies. Defaults to 'production'."
+        },
+        "package_type": {
+            "description": "The package type of the project (either 1GP or 2GP)",
+            "required": True,
+        },
+        "tag_prefix": {
+            "description": "The prefix to use for the release tag created in github."
         },
     }
 
@@ -41,9 +57,9 @@ class CreateRelease(BaseGithubTask):
 
     def _run_task(self):
         repo = self.get_repo()
-
         version = self.options["version"]
-        tag_name = self.project_config.get_tag_for_version(version)
+        tag_prefix = self.options.get("tag_prefix")
+        tag_name = self.project_config.get_tag_for_version(version, prefix=tag_prefix)
 
         # Make sure release doesn't already exist
         try:
@@ -51,23 +67,30 @@ class CreateRelease(BaseGithubTask):
         except github3.exceptions.NotFoundError:
             pass
         else:
-            message = "Release {} already exists at {}".format(
-                release.name, release.html_url
-            )
+            message = f"Release {release.name} already exists at {release.html_url}"
             self.logger.error(message)
             raise GithubException(message)
 
         # Build tag message
         message = self.options.get("message", "Release of version {}".format(version))
-        dependencies = self.project_config.get_static_dependencies(
-            self.options.get("dependencies")
-            or self.project_config.project__dependencies
+        if self.options.get("version_id"):
+            message += f"\n\nversion_id: {self.options['version_id']}"
+        if self.options.get("package_type"):
+            message += f"\n\npackage_type: {self.options['package_type']}"
+        dependencies = get_static_dependencies(
+            self.project_config,
+            dependencies=parse_dependencies(
+                self.options.get("dependencies")
+                or self.project_config.project__dependencies
+            ),
+            resolution_strategy=self.options.get("resolution_strategy") or "production",
         )
         if dependencies:
+            dependencies = [d.dict(exclude_none=True) for d in dependencies]
             message += "\n\ndependencies: {}".format(json.dumps(dependencies, indent=4))
 
         try:
-            repo.ref("tags/{}".format(tag_name))
+            repo.ref(f"tags/{tag_name}")
         except github3.exceptions.NotFoundError:
             # Create the annotated tag
             repo.create_tag(
@@ -78,7 +101,7 @@ class CreateRelease(BaseGithubTask):
                 tagger={
                     "name": self.github_config.username,
                     "email": self.github_config.email,
-                    "date": "{}Z".format(datetime.utcnow().isoformat()),
+                    "date": f"{datetime.utcnow().isoformat()}Z",
                 },
                 lightweight=False,
             )
@@ -97,6 +120,4 @@ class CreateRelease(BaseGithubTask):
             "name": version,
             "dependencies": dependencies,
         }
-        self.logger.info(
-            "Created release {} at {}".format(release.name, release.html_url)
-        )
+        self.logger.info(f"Created release {release.name} at {release.html_url}")
