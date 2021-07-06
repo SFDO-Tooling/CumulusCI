@@ -823,6 +823,30 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert "test__CS__c" not in task.sobjects
         assert task.omit_sobjects == set(["test__CS__c"])
 
+    def test_process_object_element__protected_custom_setting_included(self):
+        xml_source = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+<customSettingsType>List</customSettingsType>
+<description>Description</description>
+<visibility>Protected</visibility>
+<label>Test</label>
+</CustomObject>"""
+
+        task = create_task(GenerateDataDictionary, {"include_protected_schema": True})
+
+        task._init_schema()
+        p = Package(
+            repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
+        )
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
+
+        task._process_object_element(
+            "test__CS__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
+        )
+
+        assert "test__CS__c" in task.sobjects
+        assert "test__CS__c" not in task.omit_sobjects
+
     def test_process_object_element__protected_custom_setting_old(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">

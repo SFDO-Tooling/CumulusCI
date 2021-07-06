@@ -100,8 +100,7 @@ class GenerateDataDictionary(BaseGithubTask):
     - Version Picklist Values Last Changed
     - Version Help Text Last Changed
 
-    Both MDAPI and SFDX format releases are supported. However, only force-app/main/default
-    is processed for SFDX projects.
+    Both MDAPI and SFDX format releases are supported.
     """
 
     task_options = {
@@ -126,6 +125,10 @@ class GenerateDataDictionary(BaseGithubTask):
             "description": "Treat the current branch as containing prerelease schema, "
             "and included it as Prerelease in the data dictionary. NOTE: this option "
             "cannot be used with `additional_dependencies` or `include_dependencies`."
+        },
+        "include_protected_schema": {
+            "description": "Include Custom Objects, Custom Settings, and Custom Metadata "
+            "Types that are marked as Protected. Defaults to False."
         },
     }
 
@@ -171,6 +174,10 @@ class GenerateDataDictionary(BaseGithubTask):
                     "Setting include_prerelease prohibits include_dependencies; setting include_dependencies to False"
                 )
                 self.options["include_dependencies"] = False
+
+        self.options["include_protected_schema"] = process_bool_arg(
+            self.options.get("include_protected_schema") or False
+        )
 
     def _get_repo_dependencies(
         self, dependencies: List[GitHubDynamicDependency]
@@ -350,7 +357,10 @@ class GenerateDataDictionary(BaseGithubTask):
                 or sobject_name.count("__") == 0
             )
             and sobject_name.startswith(namespace)
-            and not self._is_protected_object(element)
+            and (
+                not self._is_protected_object(element)
+                or self.options["include_protected_schema"]
+            )
         )
 
     def _should_process_object_fields(
@@ -368,7 +378,10 @@ class GenerateDataDictionary(BaseGithubTask):
             or sobject_name.endswith("__mdt")
             or sobject_name.endswith("__e")
             or sobject_name.count("__") == 0
-        ) and not self._is_protected_object(element)
+        ) and (
+            not self._is_protected_object(element)
+            or self.options["include_protected_schema"]
+        )
 
     def _is_protected_object(
         self, element: Optional[metadata_tree.MetadataElement]
@@ -621,18 +634,17 @@ class GenerateDataDictionary(BaseGithubTask):
             else:
                 deleted_version = None
 
-            if sobject_name.endswith("__c"):
-                writer.writerow(
-                    [
-                        last_version.label,
-                        sobject_name,
-                        last_version.description,
-                        f"{first_version.version.package.package_name} {self._get_version_name(first_version.version)}",
-                        ""
-                        if deleted_version is None
-                        else f"{first_version.version.package.package_name} {deleted_version}",
-                    ]
-                )
+            writer.writerow(
+                [
+                    last_version.label,
+                    sobject_name,
+                    last_version.description,
+                    f"{first_version.version.package.package_name} {self._get_version_name(first_version.version)}",
+                    ""
+                    if deleted_version is None
+                    else f"{first_version.version.package.package_name} {deleted_version}",
+                ]
+            )
 
     def _write_field_results(self, file_handle):
         """Write to the given handle an output CSV containing the data dictionary for fields."""
