@@ -20,7 +20,7 @@ from cumulusci.tasks.datadictionary import (
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils.xml import metadata_tree
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 from cumulusci.core.exceptions import (
     DependencyParseError,
     DependencyResolutionError,
@@ -33,7 +33,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     def test_version_from_tag_name(self):
         task = create_task(GenerateDataDictionary, {})
 
-        assert task._version_from_tag_name("release/1.1", "release/") == StrictVersion(
+        assert task._version_from_tag_name("release/1.1", "release/") == LooseVersion(
             "1.1"
         )
 
@@ -43,8 +43,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
-        v2 = PackageVersion(package=p, version=StrictVersion("1.2"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
+        v2 = PackageVersion(package=p, version=LooseVersion("1.2"))
         task.package_versions = defaultdict(list)
         task.package_versions[p] = [v2.version, v.version]
         task.sobjects = defaultdict(list)
@@ -74,8 +74,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
-        v2 = PackageVersion(package=p, version=StrictVersion("1.2"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
+        v2 = PackageVersion(package=p, version=LooseVersion("1.2"))
 
         task._init_schema()
         task.package_versions[p] = [v2.version, v.version]
@@ -163,8 +163,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
-        v2 = PackageVersion(package=p, version=StrictVersion("1.2"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
+        v2 = PackageVersion(package=p, version=LooseVersion("1.2"))
         task._init_schema()
         task.package_versions[p] = [v2.version, v.version]
         task.omit_sobjects = set(["test__Test2__c"])
@@ -243,9 +243,9 @@ class test_GenerateDataDictionary(unittest.TestCase):
     def test_should_process_object(self):
         object_source_negative = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
-    <customSettingsType>Hierarchy</customSettingsType>
     <description>Description</description>
     <label>Test</label>
+    <visibility>Protected</visibility>
 </CustomObject>"""
 
         object_source_positive = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -260,7 +260,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "test__", "test__Obj__c", metadata_tree.fromstring(object_source_positive)
         )
         assert task._should_process_object("test__", "test__Obj__c", None)
-        assert not task._should_process_object(
+        assert task._should_process_object(
             "test__", "test__Obj__e", metadata_tree.fromstring(object_source_positive)
         )
         assert not task._should_process_object(
@@ -276,7 +276,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
     def test_should_process_object_fields(self):
         object_source_negative = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
-    <customSettingsType>Hierarchy</customSettingsType>
+    <visibility>Protected</visibility>
     <description>Description</description>
     <label>Test</label>
 </CustomObject>"""
@@ -296,7 +296,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert task._should_process_object_fields(
             "Account", metadata_tree.fromstring(object_source_positive)
         )
-        assert not task._should_process_object_fields(
+        assert task._should_process_object_fields(
             "test__Obj__e", metadata_tree.fromstring(object_source_positive)
         )
         assert not task._should_process_object_fields(
@@ -316,7 +316,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         task._init_schema()
         task._process_field_element(
@@ -351,7 +351,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         task._init_schema()
         task._process_field_element(
@@ -387,7 +387,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         task._init_schema()
         task._process_field_element(
@@ -423,7 +423,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         task._process_field_element(
             "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
@@ -447,8 +447,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
-        v2 = PackageVersion(package=p, version=StrictVersion("1.2"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
+        v2 = PackageVersion(package=p, version=LooseVersion("1.2"))
 
         task._process_field_element(
             "test__Test__c",
@@ -523,7 +523,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         task._process_field_element(
             "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
@@ -566,7 +566,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         task._process_field_element(
             "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
@@ -602,7 +602,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         task._process_field_element(
             "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
@@ -636,7 +636,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         task._process_field_element(
             "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
@@ -671,7 +671,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         task._process_field_element(
             "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
@@ -711,7 +711,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         task._process_object_element(
             "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
@@ -742,6 +742,42 @@ class test_GenerateDataDictionary(unittest.TestCase):
             ]
         }
 
+    def test_process_object_element__missing_description(self):
+        xml_source = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Test Object</label>
+    <fields>
+        <fullName>Type__c</fullName>
+        <inlineHelpText>Type of field.</inlineHelpText>
+        <label>Type</label>
+        <type>Text</type>
+        <length>128</length>
+    </fields>
+</CustomObject>"""
+
+        task = create_task(GenerateDataDictionary, {})
+
+        task._init_schema()
+        p = Package(
+            repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
+        )
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
+
+        task._process_object_element(
+            "test__Test__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
+        )
+
+        assert task.sobjects == {
+            "test__Test__c": [
+                SObjectDetail(
+                    version=v,
+                    api_name="test__Test__c",
+                    label="Test Object",
+                    description="",
+                )
+            ]
+        }
+
     def test_process_object_element__standard(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -755,7 +791,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         task._process_object_element(
             "Account", metadata_tree.fromstring(xml_source.encode("utf-8")), v
@@ -763,11 +799,12 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         assert "Account" not in task.sobjects
 
-    def test_process_object_element__custom_setting(self):
+    def test_process_object_element__protected_custom_setting(self):
         xml_source = """<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
 <customSettingsType>List</customSettingsType>
 <description>Description</description>
+<visibility>Protected</visibility>
 <label>Test</label>
 </CustomObject>"""
 
@@ -777,7 +814,31 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
+
+        task._process_object_element(
+            "test__CS__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
+        )
+
+        assert "test__CS__c" not in task.sobjects
+        assert task.omit_sobjects == set(["test__CS__c"])
+
+    def test_process_object_element__protected_custom_setting_old(self):
+        xml_source = """<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+<customSettingsType>List</customSettingsType>
+<description>Description</description>
+<customSettingsVisibility>Protected</customSettingsVisibility>
+<label>Test</label>
+</CustomObject>"""
+
+        task = create_task(GenerateDataDictionary, {})
+
+        task._init_schema()
+        p = Package(
+            repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
+        )
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         task._process_object_element(
             "test__CS__c", metadata_tree.fromstring(xml_source.encode("utf-8")), v
@@ -811,7 +872,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         zip_file = Mock()
         zip_file.read.side_effect = zip_read
@@ -850,12 +911,13 @@ class test_GenerateDataDictionary(unittest.TestCase):
         assert len(task._process_field_element.call_args_list) == 1
         assert task._process_object_element.call_args_list[0][0][0] == "test__Child__c"
 
-    def test_process_sfdx_release__skips_custom_settings_fields(self):
+    def test_process_sfdx_release__skips_protected_custom_settings_fields(self):
         object_source = b"""<?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <customSettingsType>Hierarchy</customSettingsType>
     <description>Description</description>
     <label>Test</label>
+    <visibility>Protected</visibility>
 </CustomObject>"""
         field_source = b"""<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
         <fullName>Type__c</fullName>
@@ -877,7 +939,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         zip_file = Mock()
         zip_file.read.side_effect = zip_read
@@ -887,6 +949,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             "force-app/main/default/objects/Parent__c/Parent__c.object-meta.xml",
             ".gitignore",
             "test__c.object-meta.xml",
+            "sfdx-project.json",
         ]
         task._process_object_element = Mock()
         task._process_field_element = Mock()
@@ -927,12 +990,13 @@ class test_GenerateDataDictionary(unittest.TestCase):
         p = Package(
             repo=None, package_name="Test", namespace="test__", prefix_release="rel/"
         )
-        v = PackageVersion(package=p, version=StrictVersion("1.1"))
+        v = PackageVersion(package=p, version=LooseVersion("1.1"))
 
         zip_file = Mock()
         zip_file.read.side_effect = zip_read
         zip_file.namelist.return_value = [
-            "force-app/main/default/objects/Child__c/fields/Lookup__c.field-meta.xml"
+            "force-app/main/default/objects/Child__c/fields/Lookup__c.field-meta.xml",
+            "sfdx-project.json",
         ]
         task._process_object_element = Mock()
         task._process_field_element = Mock()
@@ -968,7 +1032,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._process_mdapi_release.assert_called_once_with(
             extract_github.return_value,
-            PackageVersion(package=p, version=StrictVersion("1.1")),
+            PackageVersion(package=p, version=LooseVersion("1.1")),
         )
 
     @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
@@ -988,7 +1052,8 @@ class test_GenerateDataDictionary(unittest.TestCase):
         repo.releases.return_value = [release]
         task._process_sfdx_release = Mock()
         extract_github.return_value.namelist.return_value = [
-            "force-app/main/default/objects/"
+            "force-app/main/default/objects/",
+            "sfdx-project.json",
         ]
         p = Package(
             repo=repo, package_name="Test", namespace="test__", prefix_release="rel/"
@@ -998,7 +1063,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         task._process_sfdx_release.assert_called_once_with(
             extract_github.return_value,
-            PackageVersion(package=p, version=StrictVersion("1.1")),
+            PackageVersion(package=p, version=LooseVersion("1.1")),
         )
 
     @patch("cumulusci.tasks.datadictionary.download_extract_github_from_repo")
@@ -1063,7 +1128,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
             [
                 call(
                     extract_github.return_value,
-                    PackageVersion(package=p, version=StrictVersion("1.1")),
+                    PackageVersion(package=p, version=LooseVersion("1.1")),
                 ),
                 call(
                     extract_github.return_value,
