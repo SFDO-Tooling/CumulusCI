@@ -1,6 +1,8 @@
 from contextlib import contextmanager
 from pathlib import Path
 from logging import getLogger
+from unittest import mock
+from tempfile import TemporaryDirectory
 
 import pytest
 
@@ -10,9 +12,21 @@ from cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue import (
     WorkerQueueConfig,
     WorkerQueue,
 )
+from cumulusci.utils.parallel.task_worker_queues.parallel_worker import (
+    TaskWorker,
+    WorkerConfig,
+    ParallelWorker,
+    SubprocessKeyChain,
+)
+from cumulusci.core import exceptions as exc
 
 
 logger = getLogger(__name__)
+dummy_project_config = BaseProjectConfig(
+    UniversalConfig(),
+    config={"project": {"package": "packageA"}},
+)
+dummy_org_config = OrgConfig({}, "dummy_config")
 
 
 class DelaySpawner:
@@ -34,19 +48,16 @@ class DelaySpawner:
         logger.info(f"Checking alive: {self}: {self._is_alive}")
         return self._is_alive
 
+    def terminate(self):
+        self._is_alive = False
+
 
 class TestWorkerQueue:
     @contextmanager
     def configure_worker_queue(self, parent_dir, **kwargs):
-        project_config = BaseProjectConfig(
-            UniversalConfig(),
-            config={"project": {"package": "packageA"}},
-        )
-        org_config = OrgConfig({}, "dummy_config")
-
         config = WorkerQueueConfig(
-            project_config=project_config,
-            org_config=org_config,
+            project_config=dummy_project_config,
+            org_config=dummy_org_config,
             connected_app=None,
             redirect_logging=True,
             spawn_class=DelaySpawner,
@@ -67,9 +78,11 @@ class TestWorkerQueue:
             num_workers=2,
         ) as q:
             assert not q.full
+            assert q.empty
             assert q.num_free_workers == 2
             assert q.queued_job_dirs == []
             q.push(name="a")
+            assert not q.empty
             assert not q.full
             assert q.num_free_workers == 1
             assert len(q.queued_job_dirs) == 0
@@ -206,6 +219,29 @@ class TestWorkerQueue:
             q1.tick()
             q2.tick()
 
+    def test_worker_queues_together__outbox_cannot_be_removed(self, tmpdir):
+        with self.configure_worker_queue(
+            parent_dir=tmpdir,
+            name="start",
+            task_class=Sleep,
+            make_task_options=lambda *args, **kwargs: {"seconds": 0},
+            queue_size=3,
+            num_workers=2,
+        ) as q1, self.configure_worker_queue(
+            parent_dir=tmpdir,
+            name="next",
+            task_class=Sleep,
+            make_task_options=lambda *args, **kwargs: {"seconds": 0},
+            queue_size=3,
+            num_workers=2,
+        ) as q2:
+            q1.outbox_dir.rmdir()
+            with mock.patch(
+                "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.logger.info"
+            ) as logger_info:
+                q1.feeds_data_to(q2)
+                assert "Cannot remove outbox dir" in logger_info.mock_calls[0][1][0]
+
     def test_worker_queue_from_path(self, tmpdir):
         parentdirs = [
             "start_inprogress",
@@ -256,3 +292,62 @@ class TestWorkerQueue:
                 worker.process._finish()
             q2.tick()
             assert q2.outbox_jobs == ["foo"]
+
+
+class TestParallelWorker:
+    def test_terminate_parallel_worker(self):
+        with TemporaryDirectory() as failures_dir, TemporaryDirectory() as outbox_dir, TemporaryDirectory() as working_dir:
+            config = WorkerConfig(
+                project_config=dummy_project_config,
+                org_config=dummy_org_config,
+                connected_app=None,
+                redirect_logging=True,
+                task_class=Sleep,
+                task_options={"seconds": 0},
+                failures_dir=failures_dir,
+                outbox_dir=outbox_dir,
+                working_dir=working_dir,
+            )
+            worker = ParallelWorker(DelaySpawner, config)
+            worker.start()
+            worker.terminate()
+            assert "Alive: False" in repr(worker)
+
+
+class TestTaskWorker:
+    def test_worker__cannot_move_to_outdir(self):
+        with TemporaryDirectory() as failures_dir, TemporaryDirectory() as outbox_dir, TemporaryDirectory() as working_dir:
+            config = WorkerConfig(
+                project_config=dummy_project_config,
+                org_config=dummy_org_config,
+                connected_app=None,
+                redirect_logging=True,
+                task_class=Sleep,
+                task_options={"seconds": 0},
+                failures_dir=failures_dir,
+                outbox_dir=outbox_dir,
+                working_dir=working_dir,
+            )
+            p = TaskWorker(config.as_dict())
+            with mock.patch("shutil.move", side_effect=AssertionError):
+                with pytest.raises(AssertionError):
+                    p.run()
+            assert Path(working_dir, "exception.txt").exists()
+
+
+# Frankly these tests are primarily for coverage-counting purposes.
+# Meaningful tests of keychain stuff are by definition integration
+# tests, and we only use connected apps for persistent orgs, which
+# makes this even more messy.
+
+# Also we usually mock refresh_oauth_token which is what would
+# invoke this. In other words, using integration tests to cover this
+# function is far easier than using unit test.
+class TestSubprocessKeyChain:
+    def test_subprocess_keychain(self):
+        skc = SubprocessKeyChain("Blah")
+
+        assert skc.get_service("connected_app") == "Blah"
+        skc.set_org()
+        with pytest.raises(exc.ServiceNotConfigured):
+            skc.get_service("xyzzy")

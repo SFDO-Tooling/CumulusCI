@@ -9,11 +9,17 @@ import pytest
 from sqlalchemy import create_engine
 
 from cumulusci.tasks.bulkdata.snowfakery import Snowfakery
+from cumulusci.utils.parallel.task_worker_queues.tests.test_parallel_worker import (
+    DelaySpawner,
+)
 
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.core import exceptions as exc
+from cumulusci.core.config import OrgConfig
 
 sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.yml"
+
+original_refresh_token = OrgConfig.refresh_oauth_token
 
 
 @pytest.fixture
@@ -29,6 +35,45 @@ def threads_instead_of_processes(request):
         wraps=Thread,
     ) as t:
         yield t
+
+
+# class FakeProcess:
+#     def __init__(self, target, args, daemon, index, process_handler):
+#         self.callback = callback
+#         self.target = target
+#         self.args = args
+#         self.daemon = daemon
+#         self.index = index
+#         self.report_event("__init__")
+
+#     def report_event(self, eventname):
+#         return self.callback(eventname, self.target, self.args, self.daemon, self.index)
+
+#     def __getattr__(self, name):
+#         return lambda: self.report_event(name)
+
+
+@pytest.fixture
+def fake_processes_and_threads(request):
+    class FakeProcessManager:
+        def __init__(self):
+            self.processes = []
+
+        def __call__(self, target, args, daemon):
+            res = self.process_handler(target, args, daemon, index=len(self.processes))
+            self.processes.append(res)
+            return res
+
+    process_manager = FakeProcessManager()
+
+    with mock.patch(
+        "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Thread",
+        process_manager,
+    ), mock.patch(
+        "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
+        process_manager,
+    ):
+        yield process_manager
 
 
 @pytest.fixture
@@ -133,6 +178,40 @@ class TestSnowfakery:
         assert len(mock_load_data.mock_calls) == 2
         assert len(threads_instead_of_processes.mock_calls) == 1
 
+    # This is a failed attempt at testing the connected app. Could
+    # try again after Snowfakery 2.0 launch.
+    #
+    # @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
+    # def test_as_if_persistent_org(
+    #     self, threads_instead_of_processes, mock_load_data, create_task_fixture
+    # ):
+    #     task = create_task_fixture(
+    #         Snowfakery,
+    #         {"recipe": sample_yaml, "run_until_records_loaded": "Account:6"},
+    #     )
+
+    #     orig_getattr = OrgConfig.__getattr__
+
+    #     class MyOrgConfig(OrgConfig):
+    #         def __getattr__(self, name):
+    #             if name == "scratch":
+    #                 return False
+    #             else:
+    #                 return orig_getattr(self, name)
+
+    #     with mock.patch.object(
+    #         OrgConfig,
+    #         "__getattr__",
+    #         MyOrgConfig.__getattr__,
+    #     ), mock.patch.object(
+    #         task.org_config,
+    #         "refresh_oauth_token",
+    #         lambda *args, **kwargs: original_refresh_token(
+    #             task.org_config, *args, **kwargs
+    #         ),
+    #     ):
+    #         task()
+
     @pytest.mark.vcr(mode="none")
     def test_run_until_records_in_org__none_needed(
         self, sf, threads_instead_of_processes, mock_load_data, create_task
@@ -181,7 +260,7 @@ class TestSnowfakery:
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.get_debug_mode", lambda: True)
     @mock.patch("psutil.cpu_count", lambda logical: 11)
     def test_snowfakery_debug_mode_and_cpu_count(self, snowfakery, mock_load_data):
-        task = snowfakery(recipe=sample_yaml, run_until_recipe_repeated="1")
+        task = snowfakery(recipe=sample_yaml, run_until_recipe_repeated="5")
         with mock.patch.object(task, "logger") as logger:
             task()
         assert "Using 11 workers" in str(logger.mock_calls)
@@ -214,8 +293,41 @@ class TestSnowfakery:
             )
             task()
 
-    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
-    def test_failures_in_subprocesses__last_batch(self, snowfakery, mock_load_data):
+    def test_working_directory(self, snowfakery, mock_load_data):
+        with TemporaryDirectory() as t:
+            working_directory = Path(t) / "junkdir"
+            task = snowfakery(
+                recipe=sample_yaml,
+                run_until_recipe_repeated="1",
+                working_directory=str(working_directory),
+            )
+            task()
+            assert (working_directory / "data_load_outbox").exists()
+
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 1)
+    def test_failures_in_subprocesses__last_batch(
+        self, snowfakery, mock_load_data, fake_processes_and_threads
+    ):
+        class FakeProcess(DelaySpawner):
+            def __init__(self, target, args, daemon, index):
+                super().__init__(target, args, daemon)
+                self.counter = 0
+                self.task_class = args[0]["task_class"]
+                self.index = index
+                try:
+                    self._finish()
+                except AssertionError:
+                    pass
+
+            def is_alive(self):
+                print("Alive?", self.task_class, self.index, self.counter, self)
+                self.counter += 1
+                if self.counter > 3:
+                    return False
+                return True
+
+        fake_processes_and_threads.process_handler = FakeProcess
+
         class LoadDataSucceedsOnceThenFails:
             count = 0
 
@@ -224,15 +336,15 @@ class TestSnowfakery:
                 if self.count > 1:
                     raise AssertionError("XYZZY")
 
-        mock_load_data.side_effect = LoadDataSucceedsOnceThenFails().__call__
+        mock_load_data.side_effect = LoadDataSucceedsOnceThenFails()
 
         task = snowfakery(
             recipe=sample_yaml,
             run_until_records_loaded="Account:10",
         )
-
         with mock.patch.object(task, "logger") as logger:
-            task()
+            with pytest.raises(exc.BulkDataException):
+                task()
         assert "XYZZY" in str(logger.mock_calls)
 
     ## TODO: Test First batch

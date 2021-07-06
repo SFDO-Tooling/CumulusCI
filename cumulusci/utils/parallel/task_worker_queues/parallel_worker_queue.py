@@ -99,7 +99,7 @@ class WorkerQueue:
             # cleanup, but not a problem if it fails
             self.outbox_dir.rmdir()
         except OSError:
-            pass  # add some logging here.
+            logger.info("Cannot remove outbox dir when connecting queues")
         # my output is your input.
         self.outbox_dir = other_queue.inbox_dir
 
