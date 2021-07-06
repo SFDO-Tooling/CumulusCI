@@ -1,5 +1,4 @@
 import json
-from packaging import version
 from functools import lru_cache
 
 from simple_salesforce import SalesforceMalformedRequest
