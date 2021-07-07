@@ -287,12 +287,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "SELECT Dependencies FROM SubscriberPackageVersion "
             f"WHERE Id='{package2_version['SubscriberPackageVersionId']}'"
         )
-        if res["records"][0]["Dependencies"]:
-            self.return_values["dependencies"] = self._prepare_cci_dependencies(
-                res["records"][0]["Dependencies"]
-            )
-        else:
-            self.return_values["dependencies"] = []
+        self.return_values["dependencies"] = self._prepare_cci_dependencies(
+            res["records"][0]["Dependencies"]
+        )
 
         self.logger.info("Created package version:")
         self.logger.info(f"  Package2 Id: {self.package_id}")
@@ -740,9 +737,12 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         # for the new package back into `update_dependencies`-compatible
         # format for persistence into the GitHub release.
 
-        return [
-            PackageVersionIdDependency(
-                version_id=v["subscriberPackageVersionId"]
-            ).dict()
-            for v in deps["ids"]
-        ]
+        if deps:
+            return [
+                PackageVersionIdDependency(
+                    version_id=v["subscriberPackageVersionId"]
+                ).dict(exclude_unset=True)
+                for v in deps["ids"]
+            ]
+
+        return []
