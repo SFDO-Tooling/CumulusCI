@@ -741,7 +741,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             return [
                 PackageVersionIdDependency(
                     version_id=v["subscriberPackageVersionId"]
-                ).dict(exclude_unset=True)
+                ).dict(exclude_none=True)
                 for v in deps["ids"]
             ]
 
