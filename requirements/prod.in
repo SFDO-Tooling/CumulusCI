@@ -2,7 +2,7 @@ click<8
 coloredlogs
 contextvars
 cryptography
-docutils<0.17
+docutils<0.18
 Faker
 fs
 github3.py
