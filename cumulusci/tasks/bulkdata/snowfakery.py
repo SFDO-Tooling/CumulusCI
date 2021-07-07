@@ -152,11 +152,12 @@ class Snowfakery(BaseSalesforceApiTask):
         return self.num_generator_workers * WORKER_TO_LOADER_RATIO
 
     def setup(self):
+        self.debug_mode = get_debug_mode()
         if not self.num_generator_workers:
             # logical CPUs do not really improve performance of CPU-bound
             # code, so we ignore them.
             self.num_generator_workers = psutil.cpu_count(logical=False)
-            if get_debug_mode():
+            if self.debug_mode:
                 self.logger.info(f"Using {self.num_generator_workers} workers")
 
         self.run_until = determine_run_until(self.options, self.sf)
@@ -191,23 +192,16 @@ class Snowfakery(BaseSalesforceApiTask):
                 self.load_data_q.outbox_dir
             )
 
-            # disable this for now until it's reliability can be better
+            # disable OrgReordCounts for now until it's reliability can be better
             # tested and documented.
 
-            # Retrieve relevant code from f2866e4b
-            self.org_record_counts_thread = None
-
-            # self.org_record_counts_thread = OrgRecordCounts(
-            #     self.sf,
-            #     relevant_sobjects,
-            #     self.run_until.sobject_name,
-            # )
-            # self.org_record_counts_thread.start()
+            # Retrieve OrgRecordCounts code from
+            # https://github.com/SFDO-Tooling/CumulusCI/commit/7d703c44b94e8b21f165e5538c2249a65da0a9eb#diff-54676811961455410c30d9c9405a8f3b9d12a6222a58db9d55580a2da3cfb870R147
 
             upload_status = self._loop(
                 template_path,
                 working_directory,
-                self.org_record_counts_thread,
+                None,
                 portions,
             )
             self.finish(upload_status, self.data_gen_q, self.load_data_q)
@@ -270,7 +264,7 @@ class Snowfakery(BaseSalesforceApiTask):
         )
 
         while not portions.done(upload_status.total_sets_working_on_or_uploaded):
-            if get_debug_mode():
+            if self.debug_mode:
                 self.logger.info(f"Working Directory: {tempdir}")
 
             self.tick(
@@ -306,7 +300,7 @@ class Snowfakery(BaseSalesforceApiTask):
             template_path,
         )
 
-        self.logger.info(upload_status._display(detailed=get_debug_mode()))
+        self.logger.info(upload_status._display(detailed=self.debug_mode))
 
         if upload_status.sets_failed:
             self.log_failures(
@@ -318,12 +312,8 @@ class Snowfakery(BaseSalesforceApiTask):
                 f"Errors exceeded threshold: {upload_status.sets_failed} vs {ERROR_THRESHOLD}"
             )
 
-        if (
-            org_record_counts_thread
-            and org_record_counts_thread.other_inaccurate_record_counts
-        ):
-            for k, v in org_record_counts_thread.other_inaccurate_record_counts.items():
-                self.logger.info(f"      COUNT: {k}: {v:,}")
+        # TODO: Retrieve OrgRecordCounts code from
+        # https://github.com/SFDO-Tooling/CumulusCI/commit/7d703c44b94e8b21f165e5538c2249a65da0a9eb#diff-54676811961455410c30d9c9405a8f3b9d12a6222a58db9d55580a2da3cfb870R147
 
         return upload_status
 
@@ -337,7 +327,9 @@ class Snowfakery(BaseSalesforceApiTask):
         """Called every few seconds, to make new data generators if needed."""
         self.data_gen_q.tick()
 
-        if portions.done(upload_status.total_sets_working_on_or_uploaded):
+        if portions.done(
+            upload_status.total_sets_working_on_or_uploaded
+        ):  # pragma: no cover
             self.logger.info("Finished Generating")
         # queue is full
         elif self.data_gen_q.full:
@@ -387,7 +379,7 @@ class Snowfakery(BaseSalesforceApiTask):
         """Log failures from sub-processes to main process"""
         for failure_dir in dirs:
             f = Path(failure_dir) / "exception.txt"
-            if not f.exists():
+            if not f.exists():  # pragma: no cover
                 continue
             exception = f.read_text(encoding="utf-8").strip().split("\n")[-1]
             self.logger.info(exception)
@@ -481,7 +473,7 @@ class Snowfakery(BaseSalesforceApiTask):
             working_directory.mkdir()
             self.logger.info(f"Working Directory {working_directory}")
             yield working_directory
-        elif get_debug_mode():
+        elif self.debug_mode:
             working_directory = Path(mkdtemp())
             self.logger.info(
                 f"Due to debug mode, Working Directory {working_directory} will not be removed"
@@ -595,17 +587,11 @@ class UploadStatus(T.NamedTuple):
             "inprogress_loader_jobs",
         ]
 
-        def format(val: object) -> str:
-            if isinstance(val, int):
-                return f"{val:,}"
-            else:
-                return str(val)
-
         def display_stats(keys):
             return (
                 "\n"
                 + "\n".join(
-                    f"{a.replace('_', ' ').title()}: {format(getattr(self, a))}"
+                    f"{a.replace('_', ' ').title()}: {getattr(self, a):,}"
                     for a in keys
                     if not a[0] == "_" and not callable(getattr(self, a))
                 )

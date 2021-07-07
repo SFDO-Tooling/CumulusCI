@@ -43,9 +43,9 @@
     ShippingCountry:
       fake: country
     Phone:
-      fake: phone_number
+      fake: PhoneNumber
     Fax:
-      fake: phone_number
+      fake: PhoneNumber
     Website:
       fake: uri
     NumberOfEmployees:
@@ -68,9 +68,9 @@
     Email:
       fake: email
     Phone:
-      fake: phone_number
+      fake: PhoneNumber
     MobilePhone:
-      fake: phone_number
+      fake: PhoneNumber
     Title:
       fake: job
     Birthdate:

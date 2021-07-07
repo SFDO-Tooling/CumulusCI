@@ -171,8 +171,6 @@ def run_task_in_worker(worker_dict):
 def simplify(x):
     if isinstance(x, Path):
         return str(x)
-    if hasattr(x, "isoformat"):
-        return x.isoformat()
 
 
 class ParallelWorker:
@@ -201,9 +199,6 @@ class ParallelWorker:
 
     def is_alive(self) -> bool:
         return self.process.is_alive()
-
-    def join(self):
-        return self.process.join()
 
     def terminate(self):
         # Note that this will throw an exception for threads

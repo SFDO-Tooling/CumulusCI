@@ -26,7 +26,7 @@ salesforce-bulk
 sarge
 selenium
 simple-salesforce
-snowfakery==2.0.dev0
+snowfakery==2.0.dev1
 SQLAlchemy
 terminaltables
 xmltodict
