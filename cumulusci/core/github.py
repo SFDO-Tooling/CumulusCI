@@ -192,7 +192,8 @@ VERSION_ID_RE = re.compile(r"version_id: (\S+)")
 def get_version_id_from_commit(repo, commit_sha, context):
     try:
         commit = repo.commit(commit_sha)
-    except github3.exceptions.NotFoundError:
+    except (github3.exceptions.NotFoundError, github3.exceptions.UnprocessableEntity):
+        # GitHub returns 422 for nonexistent commits in at least some circumstances.
         raise DependencyLookupError(f"Could not find commit {commit_sha} on GitHub")
 
     for status in commit.status().statuses:

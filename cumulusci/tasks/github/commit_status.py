@@ -24,13 +24,20 @@ class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
         dependencies = []
         version_id = self.options.get("version_id")
         if version_id is None:
-            version_id = get_version_id_from_commit(repo, commit_sha, context)
+            try:
+                version_id = get_version_id_from_commit(repo, commit_sha, context)
+            except DependencyLookupError as e:
+                self.logger.error(e)
+                self.logger.error(
+                    "This error usually means your local commit has not been pushed "
+                    "or that a feature test package has not yet been built."
+                )
 
         if version_id:
             dependencies = self._get_dependencies(version_id)
         else:
             raise DependencyLookupError(
-                f"Could not find package version id in '{context}' commit status."
+                f"Could not find package version id in '{context}' commit status for commit {commit_sha}."
             )
 
         self.return_values = {"dependencies": dependencies, "version_id": version_id}
