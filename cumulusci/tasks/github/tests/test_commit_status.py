@@ -91,7 +91,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
             json=self._get_expected_repo("TestOwner", "TestRepo"),
         )
         responses.add(
-            method=responses.GET, url=f"{self.repo_api_url}/commits/abcdef", status=404
+            method=responses.GET, url=f"{self.repo_api_url}/commits/abcdef", status=422
         )
 
         project_config = create_project_config(repo_commit="abcdef")
@@ -113,7 +113,8 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
         task = GetPackageDataFromCommitStatus(project_config, task_config, org_config)
         task._init_task()
         with pytest.raises(
-            DependencyLookupError, match="Could not find commit abcdef on GitHub"
+            DependencyLookupError,
+            match="Could not find package version id in '2gp' commit status for commit abcdef.",
         ):
             task._run_task()
 
