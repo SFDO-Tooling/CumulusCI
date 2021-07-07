@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import List, Optional, Union
 import base64
 import enum
 import io
@@ -11,7 +11,10 @@ from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.config.util import get_devhub_config
-from cumulusci.core.dependencies.dependencies import PackageNamespaceVersionDependency
+from cumulusci.core.dependencies.dependencies import (
+    PackageNamespaceVersionDependency,
+    StaticDependency,
+)
 from cumulusci.core.dependencies.dependencies import PackageVersionIdDependency
 from cumulusci.core.dependencies.dependencies import UnmanagedGitHubRefDependency
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
@@ -284,7 +287,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "SELECT Dependencies FROM SubscriberPackageVersion "
             f"WHERE Id='{package2_version['SubscriberPackageVersionId']}'"
         )
-        self.return_values["dependencies"] = res["records"][0]["Dependencies"]
+        self.return_values["dependencies"] = self._prepare_cci_dependencies(
+            res["records"][0]["Dependencies"]
+        )
 
         self.logger.info("Created package version:")
         self.logger.info(f"  Package2 Id: {self.package_id}")
@@ -726,3 +731,18 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             raise PackageUploadFailure("\n".join(errors))
         else:
             self.logger.info(f"[{request['Status']}]")
+
+    def _prepare_cci_dependencies(self, deps) -> List[dict]:
+        # Convert the dependencies returned by the Tooling API
+        # for the new package back into `update_dependencies`-compatible
+        # format for persistence into the GitHub release.
+
+        if deps:
+            return [
+                PackageVersionIdDependency(
+                    version_id=v["subscriberPackageVersionId"]
+                ).dict(exclude_none=True)
+                for v in deps["ids"]
+            ]
+
+        return []
