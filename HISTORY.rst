@@ -2,6 +2,38 @@
 History
 =======
 
+3.39.0 (2021-07-08)
+-------------------
+Critical Changes:
+* A new Snowfakery task with better usability and multi-processor support. Look at the CumulusCI docs to learn the new syntax.
+* Snowfakery 2.0 with various new features, especially the ability to query into orgs.
+
+Changes:
+
+
+* Add tests to increase coverage of Snowfakery to 100%. (#2711)
+* Also remove dead code and a few other stylistic improvements:
+ * e.g. get_debug_mode() is captured just once as an instance attribute.
+ * dead code is removed in some places.
+ * a few assertion or warning branches are covered with pragmas. (#2711)
+* Improved our robot documentation so that it's possible to link to keyword documentation instead of having to download it locally (#2696)
+* CumulusCI uses a new port (7788) for the built-in connected app to lessen the chances that the port is in use. (#2698)
+* CumulusCI now checks if the port associated with a callback URL/redirect URI is in use during OAuth2 flows, and if so, raises a more friendly error. (#2698)
+* The ``generate_data_dictionary`` task now includes Custom Settings, Custom Metadata Types, and Platform Events. (#2712)
+* The ``generate_data_dictionary`` task now excludes any schema with visibility set to Protected. This behavior can be turned off (including protected schema) with the ``include_protected_schema`` option. (#2712)
+* The ``generate_data_dictionary`` task now parses object and field metadata anywhere in a Salesforce DX release other than in the ``unpackaged/`` directory tree. (#2712)
+
+
+Issues closed:
+
+* Fixed issue where CumulusCI did not correctly convert a package version specified as a number in YAML to a string. This now raises a warning. (#2692)
+* Fixed a bug where OAuth errors were not reported in detail. (#2694)
+* ``W-9074271``
+* Fixed an issue where CumulusCI did not grant permissions to Custom Tabs when running ``update_admin_profile`` without a custom ``package.xml``. Projects that use a custom ``package.xml`` with ``update_admin_profile`` should update their manifest to include a ``CustomTab`` wildcard for the same outcome. (#2699)
+* Fixed an issue where the ``dx``, ``dx_push``, and ``dx_pull`` tasks did not refresh the org's access token. (#2703)
+* Fixed issues in the ``generate_data_dictionary`` task that resulted in failures when processing fields with blank Help Text or processing standard fields. (#2706)
+* Fixed an issue preventing ``generate_data_dictionary`` from working with four-digit (1.0.0.0) 2GP version numbers. (#2712)
+
 3.38.0 (2021-06-24)
 -------------------
 
