@@ -136,7 +136,7 @@ six==1.16.0
     #   jwcrypto
     #   python-dateutil
     #   salesforce-bulk
-snowfakery==2.0.dev0
+snowfakery==2.0
     # via -r requirements/prod.in
 sqlalchemy==1.4.20
     # via
