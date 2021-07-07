@@ -371,7 +371,7 @@ class GenerateDataDictionary(BaseGithubTask):
 
         We will track any field on a custom object, Platform Event,
         Custom Setting, Custom Metadata Type, or standard entity.
-        We will not track any object's fields that is protected
+        We will not track any object's fields that are protected
         in this package version."""
         return (
             sobject_name.endswith("__c")
