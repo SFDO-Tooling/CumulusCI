@@ -25,6 +25,10 @@ certifi==2021.5.30
     # via
     #   -c requirements/prod.txt
     #   requests
+cffi==1.14.5
+    # via
+    #   -c requirements/prod.txt
+    #   cryptography
 cfgv==3.3.0
     # via pre-commit
 chardet==4.0.0
@@ -43,6 +47,10 @@ coverage[toml]==5.5
     #   coveralls
 coveralls==3.1.0
     # via -r requirements/dev.in
+cryptography==3.4.7
+    # via
+    #   -c requirements/prod.txt
+    #   secretstorage
 distlib==0.3.2
     # via virtualenv
 docopt==0.6.2
@@ -64,7 +72,7 @@ filelock==3.0.12
     #   virtualenv
 flake8==3.9.2
     # via -r requirements/dev.in
-furo==2021.6.18b36
+furo==2021.7.5b38
     # via -r requirements/dev.in
 identify==2.2.10
     # via pre-commit
@@ -82,6 +90,10 @@ importlib-metadata==4.5.0
     #   twine
 iniconfig==1.1.1
     # via pytest
+jeepney==0.6.0
+    # via
+    #   keyring
+    #   secretstorage
 jinja2==2.11.3
     # via
     #   -c requirements/prod.txt
@@ -124,6 +136,10 @@ py==1.10.0
     #   tox
 pycodestyle==2.7.0
     # via flake8
+pycparser==2.20
+    # via
+    #   -c requirements/prod.txt
+    #   cffi
 pyflakes==2.3.1
     # via flake8
 pygments==2.9.0
@@ -132,15 +148,15 @@ pygments==2.9.0
     #   sphinx
 pyparsing==2.4.7
     # via packaging
-pytest-random-order==1.0.4
-    # via -r requirements/dev.in
-pytest-vcr==1.0.2
-    # via -r requirements/dev.in
 pytest==6.2.4
     # via
     #   -r requirements/dev.in
     #   pytest-random-order
     #   pytest-vcr
+pytest-random-order==1.0.4
+    # via -r requirements/dev.in
+pytest-vcr==1.0.2
+    # via -r requirements/dev.in
 python-dateutil==2.8.1
     # via
     #   -c requirements/prod.txt
@@ -158,8 +174,6 @@ readme-renderer==29.0
     # via twine
 regex==2021.4.4
     # via black
-requests-toolbelt==0.9.1
-    # via twine
 requests==2.25.1
     # via
     #   -c requirements/prod.txt
@@ -168,10 +182,14 @@ requests==2.25.1
     #   responses
     #   sphinx
     #   twine
+requests-toolbelt==0.9.1
+    # via twine
 responses==0.13.3
     # via -r requirements/dev.in
 rfc3986==1.5.0
     # via twine
+secretstorage==3.3.1
+    # via keyring
 six==1.16.0
     # via
     #   -c requirements/prod.txt
