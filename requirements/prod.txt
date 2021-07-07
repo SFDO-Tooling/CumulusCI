@@ -65,6 +65,8 @@ markupsafe==1.1.1
     # via
     #   -r requirements/prod.in
     #   jinja2
+psutil==5.8.0
+    # via -r requirements/prod.in
 pycparser==2.20
     # via cffi
 pydantic==1.8.2
@@ -134,7 +136,7 @@ six==1.16.0
     #   jwcrypto
     #   python-dateutil
     #   salesforce-bulk
-snowfakery==1.12
+snowfakery==2.0.dev0
     # via -r requirements/prod.in
 sqlalchemy==1.4.20
     # via

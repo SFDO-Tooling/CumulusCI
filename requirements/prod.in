@@ -10,6 +10,7 @@ jinja2<3
 keyring
 lxml
 MarkupSafe<2
+psutil
 pydantic
 PyJWT
 pytz
@@ -25,7 +26,7 @@ salesforce-bulk
 sarge
 selenium
 simple-salesforce
-snowfakery
+snowfakery==2.0.dev1
 SQLAlchemy
 terminaltables
 xmltodict
