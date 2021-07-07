@@ -162,39 +162,9 @@ class TestSnowfakery:
         assert len(mock_load_data.mock_calls) == 2
         assert len(threads_instead_of_processes.mock_calls) == 1
 
-    # This is a failed attempt at testing the connected app. Could
-    # try again after Snowfakery 2.0 launch.
-    #
-    # @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
-    # def test_as_if_persistent_org(
-    #     self, threads_instead_of_processes, mock_load_data, create_task_fixture
-    # ):
-    #     task = create_task_fixture(
-    #         Snowfakery,
-    #         {"recipe": sample_yaml, "run_until_records_loaded": "Account:6"},
-    #     )
-
-    #     orig_getattr = OrgConfig.__getattr__
-
-    #     class MyOrgConfig(OrgConfig):
-    #         def __getattr__(self, name):
-    #             if name == "scratch":
-    #                 return False
-    #             else:
-    #                 return orig_getattr(self, name)
-
-    #     with mock.patch.object(
-    #         OrgConfig,
-    #         "__getattr__",
-    #         MyOrgConfig.__getattr__,
-    #     ), mock.patch.object(
-    #         task.org_config,
-    #         "refresh_oauth_token",
-    #         lambda *args, **kwargs: original_refresh_token(
-    #             task.org_config, *args, **kwargs
-    #         ),
-    #     ):
-    #         task()
+    # Thee was previously a faailed attempt at testing the connected app here.
+    # Could try again after Snowfakery 2.0 launch.
+    # https://github.com/SFDO-Tooling/CumulusCI/blob/c7e0d7552394b3ac268cb373ffb24b72b5c059f3/cumulusci/tasks/bulkdata/tests/test_snowfakery.py#L165-L197https://github.com/SFDO-Tooling/CumulusCI/blob/c7e0d7552394b3ac268cb373ffb24b72b5c059f3/cumulusci/tasks/bulkdata/tests/test_snowfakery.py#L165-L197
 
     @pytest.mark.vcr(mode="none")
     def test_run_until_records_in_org__none_needed(
