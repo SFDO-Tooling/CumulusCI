@@ -192,16 +192,11 @@ class Snowfakery(BaseSalesforceApiTask):
                 self.load_data_q.outbox_dir
             )
 
-            # disable this for now until it's reliability can be better
+            # disable OrgReordCounts for now until it's reliability can be better
             # tested and documented.
 
-            # Retrieve relevant code from f2866e4b
-            # self.org_record_counts_thread = OrgRecordCounts(
-            #     self.sf,
-            #     relevant_sobjects,
-            #     self.run_until.sobject_name,
-            # )
-            # self.org_record_counts_thread.start()
+            # Retrieve OrgRecordCounts code from
+            # https://github.com/SFDO-Tooling/CumulusCI/commit/7d703c44b94e8b21f165e5538c2249a65da0a9eb#diff-54676811961455410c30d9c9405a8f3b9d12a6222a58db9d55580a2da3cfb870R147
 
             upload_status = self._loop(
                 template_path,
@@ -317,13 +312,8 @@ class Snowfakery(BaseSalesforceApiTask):
                 f"Errors exceeded threshold: {upload_status.sets_failed} vs {ERROR_THRESHOLD}"
             )
 
-        # disabled for now
-        # if (
-        #     org_record_counts_thread
-        #     and org_record_counts_thread.other_inaccurate_record_counts
-        # ):
-        #     for k, v in org_record_counts_thread.other_inaccurate_record_counts.items():
-        #         self.logger.info(f"      COUNT: {k}: {v:,}")
+        # TODO: Retrieve OrgRecordCounts code from
+        # https://github.com/SFDO-Tooling/CumulusCI/commit/7d703c44b94e8b21f165e5538c2249a65da0a9eb#diff-54676811961455410c30d9c9405a8f3b9d12a6222a58db9d55580a2da3cfb870R147
 
         return upload_status
 
