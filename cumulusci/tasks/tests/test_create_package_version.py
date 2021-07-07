@@ -15,7 +15,10 @@ from unittest import mock
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.dependencies.dependencies import PackageNamespaceVersionDependency
+from cumulusci.core.dependencies.dependencies import (
+    PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
+)
 from cumulusci.core.dependencies.dependencies import UnmanagedGitHubRefDependency
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.exceptions import CumulusCIUsageError
@@ -429,7 +432,18 @@ class TestCreatePackageVersion:
         responses.add(  # get dependencies from SubscriberPackageVersion (main package)
             "GET",
             f"{self.devhub_base_url}/tooling/query/",
-            json={"size": 1, "records": [{"Dependencies": ""}]},
+            json={
+                "size": 1,
+                "records": [
+                    {
+                        "Dependencies": {
+                            "ids": [
+                                {"subscriberPackageVersionId": "04t000000000009AAA"}
+                            ]
+                        }
+                    }
+                ],
+            },
         )
 
         with mock.patch(
@@ -437,6 +451,10 @@ class TestCreatePackageVersion:
             return_value=devhub_config,
         ):
             task()
+
+        assert task.return_values["dependencies"] == [
+            {"version_id": "04t000000000009AAA"}
+        ]
 
     @responses.activate
     def test_get_or_create_package__namespaced_existing(
@@ -738,3 +756,10 @@ class TestCreatePackageVersion:
             match=re.escape("Unrecognized value for ancestor_id: 001001001001001"),
         ):
             task._resolve_ancestor_id("001001001001001")
+
+    def test_prepare_cci_dependencies(self, task):
+        assert task._prepare_cci_dependencies("") == []
+        assert task._prepare_cci_dependencies(None) == []
+        assert task._prepare_cci_dependencies(
+            {"ids": [{"subscriberPackageVersionId": "04t000000000000"}]}
+        ) == [{"version_id": "04t000000000000"}]
