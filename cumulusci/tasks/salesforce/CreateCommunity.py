@@ -9,6 +9,7 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class CreateCommunity(BaseSalesforceApiTask):
+    COMMUNITY_EXISTS_ERROR_MSG = "Enter a different name. That one already exists."
     api_version = "48.0"
     task_docs = """
     Create a Salesforce Community via the Connect API.
@@ -89,7 +90,7 @@ class CreateCommunity(BaseSalesforceApiTask):
                 "connect/communities", method="POST", data=json.dumps(payload)
             )
         except SalesforceMalformedRequest as e:
-            if "Error: A Community with this name already exists" in str(e):
+            if CreateCommunity.COMMUNITY_EXISTS_ERROR_MSG in str(e):
                 # We can end up here if the previous try timed out
                 # but the community finished creating before we tried again.
                 community = self._get_community()

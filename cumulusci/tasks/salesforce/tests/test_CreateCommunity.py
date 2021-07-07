@@ -158,7 +158,7 @@ class test_CreateCommunity(unittest.TestCase):
             json=[
                 {
                     "errorCode": "INVALID_INPUT",
-                    "message": "Error: A Community with this name already exists.",
+                    "message": CreateCommunity.COMMUNITY_EXISTS_ERROR_MSG,
                 }
             ],
         )
