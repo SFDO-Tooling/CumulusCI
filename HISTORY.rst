@@ -4,13 +4,10 @@ History
 
 3.39.0 (2021-07-08)
 -------------------
-Critical Changes:
-* A new Snowfakery task with better usability and multi-processor support. Look at the CumulusCI docs to learn the new syntax.
-* CumulusCI now uses Snowfakery 2.0, with various new features, especially the ability to query into orgs.
 
 Changes:
-
-
+* A new Snowfakery task with better usability and multi-processor support. Look at the CumulusCI docs to learn the new syntax. (#2705)
+* CumulusCI now uses Snowfakery 2.0, with various new features, especially the ability to query into orgs. (#2705)
 * Add tests to increase coverage of Snowfakery to 100%. (#2711)
 * Also remove dead code and a few other stylistic improvements:
  * e.g. get_debug_mode() is captured just once as an instance attribute.
