@@ -22,7 +22,8 @@ Changes:
 * The ``generate_data_dictionary`` task now includes Custom Settings, Custom Metadata Types, and Platform Events. (#2712)
 * The ``generate_data_dictionary`` task now excludes any schema with visibility set to Protected. This behavior can be turned off (including protected schema) with the ``include_protected_schema`` option. (#2712)
 * The ``generate_data_dictionary`` task now parses object and field metadata anywhere in a Salesforce DX release other than in the ``unpackaged/`` directory tree. (#2712)
-
+* Builds that install feature-test 2GP packages now present a cleaner error message when the current commit is not found on GitHub. (#2713)
+* SFDX and CumulusCI both support noancestors as a Scratch org config option but CumulusCI generated a warning if users tried to specify the option in cumulusci.yml. (#2721)
 
 Issues closed:
 
@@ -33,6 +34,7 @@ Issues closed:
 * Fixed an issue where the ``dx``, ``dx_push``, and ``dx_pull`` tasks did not refresh the org's access token. (#2703)
 * Fixed issues in the ``generate_data_dictionary`` task that resulted in failures when processing fields with blank Help Text or processing standard fields. (#2706)
 * Fixed an issue preventing ``generate_data_dictionary`` from working with four-digit (1.0.0.0) 2GP version numbers. (#2712)
+* Fixed an issue causing ``release_2gp_beta`` to fail to create a GitHub release with a dependency-parsing error. (#2720)
 
 3.38.0 (2021-06-24)
 -------------------
