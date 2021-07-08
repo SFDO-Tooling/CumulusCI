@@ -346,13 +346,13 @@ For example, let's create a new robot test that generates a custom keyword calle
       # Fetch the contact object to be returned
       &{contact} = Salesforce Get Contact ${contact_id}
 
+Test cases and keywords have the concept of settings specified by square brackets, which means test cases can have their own individual setups, teardowns, documentation, and returns. This is how robot refers to a specific test case setting instead of the keyword.
+
 To run this test from the command line:
 
 .. code-block:: console
 
    $ cci task run robot --suites robot/<ProjectName>/tests/custom_keyword.robot
-
-Test cases and keywords have the concept of settings specified by square brackets, which means test cases can have their own individual setups, teardowns, documentation, and returns. This is how robot refers to a specific test case setting instead of the keyword.
 
 
 
@@ -440,9 +440,9 @@ To run this test from the command line:
 
    $ cci task run robot --suites robot/<ProjectName>/tests/ui.robot
 
-In this example, robot creates an ``output.xml`` file, a ``log.html``, a ``report.html`` file, and a screenshot, and stores them in the ``results`` folder. If you open up the ``log.html`` file, you can scroll down to see whether each step of the test case passed or failed. Toggle the ``+`` tab of the ``Take screenshot of landing page`` test header to examine the results of the test. Toggle the ``+`` tab of the ``Capture page screenshot`` keyword to examine the screenshot taken of the landing page.
+In this example, robot creates an ``output.xml`` file, a ``log.html`` file, a ``report.html`` file, and a screenshot, and stores them in the ``results`` folder. If you open up the ``log.html`` file, you can scroll down to see whether each step of the test case passed or failed. Toggle the ``+`` tab of the ``Take screenshot of landing page`` test header to examine the results of the test. Then toggle the ``+`` tab of the ``Capture page screenshot`` keyword to examine the screenshot taken of the landing page.
 
-The keywords in this robot test are stored inside CumulusCI's Salesforce library. ``Open test browser`` comes from the ``Salesforce.robot`` file, and it does so much more than open the browser. For example, it logs the user into their org, and it uses the browser defined by the ${BROWSER} variable.
+The keywords in this robot test are stored inside CumulusCI's Salesforce library. The ``Open test browser`` keyword comes from the ``Salesforce.robot`` file, and it does so much more than open the browser. For example, it logs the user into their org, and uses the browser defined by the ``${BROWSER}`` variable.
 
 Variables can be set in ``cumulusci.yml``, or specified with the ``vars`` option under ``robot`` in the ``tasks`` section. For example, ``${BROWSER}`` defaults to ``chrome`` in robot, but it can be set to ``firefox``.
 
@@ -478,7 +478,7 @@ Combine API Keywords and Browser Tests
 
 In robot, API and browser keywords can be used together, which gives the user options to build more elaborate acceptance tests. 
 
-Let's build upon the original ``create_contact.robot`` test to integrate all the previous configurations covered in this document. Replace the entirety of the ``create_contact.robot`` test case in the ``robot/<ProjectName>/tests`` folder of your project's repository with this code.
+For example, let's build upon the original ``create_contact.robot`` test to integrate all the previous configurations covered in this document. Replace the entirety of the ``create_contact.robot`` test case in the ``robot/<ProjectName>/tests`` folder of your project's repository with this code.
 
 .. code-block:: robotframework
 
