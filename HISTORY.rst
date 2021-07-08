@@ -6,7 +6,7 @@ History
 -------------------
 Critical Changes:
 * A new `snowfakery` task with better usability and multi-processor support. Look at the CumulusCI docs to learn the new syntax: https://cumulusci.readthedocs.io/en/stable/data.html#generate-fake-data
-* CumulusCI now uses Snowfakery 2.0, with various new features, especially the ability to query into orgs.
+* CumulusCI now uses Snowfakery 2.0, with various new features, especially the ability to query into orgs. More information: https://github.com/SFDO-Tooling/Snowfakery/releases/tag/2.0
 
 Changes:
 
