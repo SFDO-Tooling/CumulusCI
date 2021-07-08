@@ -11,7 +11,6 @@ Critical Changes:
 Changes:
 
 
-* Add tests to increase coverage of Snowfakery to 100%. (#2711)
 * We improved our Robot documentation so that it's possible to link to keyword documentation instead of having to download it locally (#2696)
 * CumulusCI uses a new port (7788) for the built-in connected app to lessen the chances that the port is in use. (#2698)
 * CumulusCI now checks if the port associated with a callback URL/redirect URI is in use during OAuth2 flows, and if so, raises a more friendly error. (#2698)
