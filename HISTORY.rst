@@ -25,7 +25,6 @@ Issues closed:
 
 * Fixed issue where CumulusCI did not correctly convert a package version specified as a number in YAML to a string. This now raises a warning. (#2692)
 * Fixed a bug where OAuth errors were not reported in detail. (#2694)
-* ``W-9074271``
 * Fixed an issue where CumulusCI did not grant permissions to Custom Tabs when running ``update_admin_profile`` without a custom ``package.xml``. Projects that use a custom ``package.xml`` with ``update_admin_profile`` should update their manifest to include a ``CustomTab`` wildcard for the same outcome. (#2699)
 * Fixed an issue where the ``dx``, ``dx_push``, and ``dx_pull`` tasks did not refresh the org's access token. (#2703)
 * Fixed issues in the ``generate_data_dictionary`` task that resulted in failures when processing fields with blank Help Text or processing standard fields. (#2706)
