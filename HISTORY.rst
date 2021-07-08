@@ -5,7 +5,7 @@ History
 3.39.0 (2021-07-08)
 -------------------
 Critical Changes:
-* A new Snowfakery task with better usability and multi-processor support. Look at the CumulusCI docs to learn the new syntax.
+* A new `snowfakery` task with better usability and multi-processor support. Look at the CumulusCI docs to learn the new syntax: https://cumulusci.readthedocs.io/en/stable/data.html#generate-fake-data
 * CumulusCI now uses Snowfakery 2.0, with various new features, especially the ability to query into orgs.
 
 Changes:
