@@ -60,7 +60,7 @@ def fake_processes_and_threads(request):
         yield process_manager
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def snowfakery(request, create_task):
     def snowfakery(**kwargs):
         return create_task(Snowfakery, kwargs)
@@ -162,7 +162,7 @@ class TestSnowfakery:
         assert len(mock_load_data.mock_calls) == 2
         assert len(threads_instead_of_processes.mock_calls) == 1
 
-    # Thee was previously a faailed attempt at testing the connected app here.
+    # There was previously a failed attempt at testing the connected app here.
     # Could try again after Snowfakery 2.0 launch.
     # https://github.com/SFDO-Tooling/CumulusCI/blob/c7e0d7552394b3ac268cb373ffb24b72b5c059f3/cumulusci/tasks/bulkdata/tests/test_snowfakery.py#L165-L197https://github.com/SFDO-Tooling/CumulusCI/blob/c7e0d7552394b3ac268cb373ffb24b72b5c059f3/cumulusci/tasks/bulkdata/tests/test_snowfakery.py#L165-L197
 
@@ -218,6 +218,14 @@ class TestSnowfakery:
         with mock.patch.object(task, "logger") as logger:
             task()
         assert "Using 11 workers" in str(logger.mock_calls)
+
+    def test_record_count(self, snowfakery, mock_load_data):
+        task = snowfakery(recipe="datasets/recipe.yml", run_until_recipe_repeated="4")
+        with mock.patch.object(task, "logger") as logger:
+            task()
+        mock_calls_as_string = str(logger.mock_calls)
+        assert "Account: 5 records" in mock_calls_as_string, mock_calls_as_string[-500:]
+        assert "Contact: 5 records" in mock_calls_as_string, mock_calls_as_string[-500:]
 
     def test_run_until_wrong_format(self, snowfakery):
         with pytest.raises(exc.TaskOptionsError, match="Ten"):
