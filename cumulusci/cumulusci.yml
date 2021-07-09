@@ -352,6 +352,10 @@ tasks:
     description: Prints the metadata types in a project
     class_path: cumulusci.tasks.util.ListMetadataTypes
     group: Salesforce Metadata
+  enable_merge_freeze:
+    description: Enables Merge Freeze For a list of repos given
+    class_path: cumulusci.tasks.github.merge_freeze.EnableMergeFreeze
+    group: Release Operations
   meta_xml_apiversion:
     description: Set the API version in ``*meta.xml`` files
     class_path: cumulusci.tasks.metaxml.UpdateApi
