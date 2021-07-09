@@ -91,42 +91,54 @@ class BulkJobMixin:
             el.text for el in tree.iterfind(".//{%s}stateMessage" % self.bulk.jobNS)
         ]
 
-        failures = tree.find(".//{%s}numberRecordsFailed" % self.bulk.jobNS)
-        record_failure_count = int(failures.text) if failures is not None else 0
-        processed = tree.find(".//{%s}numberRecordsProcessed" % self.bulk.jobNS)
-        records_processed = int(processed.text) if processed is not None else 0
+        # Get how many total records failed acorss all the batches.
+        failures = tree.findall(".//{%s}numberRecordsFailed" % self.bulk.jobNS)
+        record_failure_count = sum([int(failure.text) for failure in (failures or [])])
+
+        # Get how many total records processed across all the batches.
+        processed_list = tree.findall(".//{%s}numberRecordsProcessed" % self.bulk.jobNS)
+        records_processed_count = sum(
+            [int(processed.text) for processed in (processed_list or [])]
+        )
 
         # FIXME: "Not Processed" to be expected for original batch with PK Chunking Query
         # PK Chunking is not currently supported.
         if "Not Processed" in statuses:
             return DataOperationJobResult(
-                DataOperationStatus.ABORTED, [], records_processed, record_failure_count
+                DataOperationStatus.ABORTED,
+                [],
+                records_processed_count,
+                record_failure_count,
             )
         elif "InProgress" in statuses or "Queued" in statuses:
             return DataOperationJobResult(
                 DataOperationStatus.IN_PROGRESS,
                 [],
-                records_processed,
+                records_processed_count,
                 record_failure_count,
             )
         elif "Failed" in statuses:
             return DataOperationJobResult(
                 DataOperationStatus.JOB_FAILURE,
                 state_messages,
-                records_processed,
+                records_processed_count,
                 record_failure_count,
             )
 
+        # All the records submitted in this job failed.
         if record_failure_count:
             return DataOperationJobResult(
                 DataOperationStatus.ROW_FAILURE,
                 [],
-                records_processed,
+                records_processed_count,
                 record_failure_count,
             )
 
         return DataOperationJobResult(
-            DataOperationStatus.SUCCESS, [], records_processed, record_failure_count
+            DataOperationStatus.SUCCESS,
+            [],
+            records_processed_count,
+            record_failure_count,
         )
 
     def _wait_for_job(self, job_id):
