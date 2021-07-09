@@ -121,7 +121,7 @@ Note that some formatting, such as reStructuredText links, need to be converted 
 
 .. note::
 
-    If pandoc is installed on macOS, you can run ``pbpaste | pandoc -f rst -t gfm | pbcopy`` to convert from RST to GitHub Flavored Markdown.
+    If pandoc is installed on macOS, you can run ``pbpaste | pandoc -f rst -t gfm --wrap none | pbcopy`` to convert from RST to GitHub Flavored Markdown. Chatter handles DOCX input best, so you can run ``pbpaste | pandoc -f gfm -t docx -o /tmp/f.docx && open /tmp/f.docx``
 
 You can then create a pull request to update the `Homebrew Tap`_ by running this locally (note, it's important to do this as soon as possible after the release is published on PyPI, because PyPI is the source CumulusCI checks to see if a new version is available)::
 
