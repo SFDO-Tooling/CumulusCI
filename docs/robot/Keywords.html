@@ -1,5 +1,7 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
   <head>
+    <meta charset="utf-8" />
     <script
       src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
       integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E="
@@ -163,7 +165,7 @@ pre {
       <!-- this is the header for the documentation as a whole -->
       <div class="header">
         <h1 class="title">CumulusCI Robot Framework Keywords</h1>
-        <div class="filter right">filter: <input id="filter" type="filter"></input></div>
+        <div class="filter right">filter: <input id="filter" type="filter"/></div>
       </div>
 
       
@@ -280,6 +282,7 @@ ${login url}=  Login URL  alias=dadvisor
                 </td>
                 <td class="kwdoc"><p>Runs a named CumulusCI task for the current project with optional support for overriding task options via kwargs.</p>
 <p>Note: task_name can be prefixed with the name of another project, just the same as when running the task from the command line. The other project needs to have been defined in the 'sources' section of cumulusci.yml.</p>
+<p>The task output will appear in the robot log.</p>
 <p>Examples:</p>
 <table border="1">
 <tr>
@@ -322,6 +325,7 @@ ${login url}=  Login URL  alias=dadvisor
                 </td>
                 <td class="kwdoc"><p>Runs a CumulusCI task class with task options via kwargs.</p>
 <p>Use this keyword to run logic from CumulusCI tasks which have not been configured in the project's cumulusci.yml file.  This is most useful in cases where a test needs to use task logic for logic unique to the test and thus not worth making into a named task for the project</p>
+<p>The task output will appear in the robot log.</p>
 <p>Examples:</p>
 <table border="1">
 <tr>
@@ -1055,6 +1059,7 @@ Input text  //input  ${faker.date(pattern='%Y-%m-%d')}
                 <td class="kwdoc"><p>Fill in one or more labeled input fields fields with data</p>
 <p>Arguments should be pairs of field labels and values. Labels for required fields should not include the asterisk. Labels must be exact, including case.</p>
 <p>This keyword uses the keyword <b>Locate Element by Label</b> to locate elements. More details about how elements are found are in the documentation for that keyword.</p>
+<p>For most input form fields the actual value string will be used.  For a checkbox, passing the value "checked" will check the checkbox and any other value will uncheck it. Using "unchecked" is recommended for clarity.</p>
 <p>Example:</p>
 <pre>
 Input form data
@@ -1411,6 +1416,21 @@ Should be equal as numbers ${result}  204
                   
                 </td>
                 <td class="kwdoc"><p>Selects a record type while adding an object.</p></td>
+              </tr>
+              
+              <tr class="kwrow" id="Salesforce.Select Window">
+                <td class="kwname">
+                  Select Window
+                </td>
+                <td class="kwargs">
+                  
+                  <i>locator=MAIN</i>, 
+                  
+                  <i>timeout=None</i>
+                  
+                </td>
+                <td class="kwdoc"><p>Alias for SeleniuimLibrary 'Switch Window'</p>
+<p>This keyword was removed from SeleniumLibrary 5.x, but some of our tests still use this keyword. You can continue to use this, but should replace any calls to this keyword with calls to 'Switch Window' instead.</p></td>
               </tr>
               
               <tr class="kwrow" id="Salesforce.Selenium Execute With Retry">
@@ -2296,7 +2316,7 @@ Populate form
       
     </div>
     <div class="footer">
-      Generated on Wednesday March 24, 10:44 PM - cumulusci v3.31.0
+      Generated on Thursday June 24, 05:25 PM - cumulusci v3.37.0
     </div>
   </body>
 </html>

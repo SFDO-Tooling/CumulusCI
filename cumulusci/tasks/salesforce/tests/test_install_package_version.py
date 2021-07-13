@@ -84,6 +84,27 @@ def test_init_options():
     )
 
 
+def test_init_options__float_version():
+    project_config = create_project_config()
+    project_config.config["project"]["package"]["namespace"] = "ns"
+    task = create_task(
+        InstallPackageVersion,
+        {
+            "version": 1.0,
+            "retries": 20,
+            "retry_interval": 50,
+            "retry_interval_add": 100,
+            "password": "foo",
+            "activateRSS": True,
+            "name": "bar",
+            "security_type": "PUSH",
+        },
+        project_config=project_config,
+    )
+
+    assert task.options["version"] == "1.0"
+
+
 @mock.patch(
     "cumulusci.tasks.salesforce.install_package_version.GitHubDynamicDependency"
 )

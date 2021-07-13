@@ -1,8 +1,4 @@
-""" Utilities for CumulusCI Core
-
-import_global: task class defn import helper
-process_bool_arg: determine true/false for a commandline arg
-decode_to_unicode: get unicode string from sf api """
+""" Utilities for CumulusCI Core"""
 
 from datetime import datetime, timedelta
 import copy
@@ -115,7 +111,7 @@ def process_list_of_pairs_dict_arg(arg):
     elif isinstance(arg, str):
         rc = {}
         for key_value in arg.split(","):
-            subparts = key_value.split(":")
+            subparts = key_value.split(":", 1)
             if len(subparts) == 2:
                 key, value = subparts
                 if key in rc:
