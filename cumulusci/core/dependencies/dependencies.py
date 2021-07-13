@@ -1,4 +1,5 @@
 import abc
+from cumulusci.utils.ziputils import zip_subfolder
 import itertools
 import logging
 import os
@@ -30,7 +31,6 @@ from cumulusci.salesforce_api.package_install import (
 )
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.utils import download_extract_github_from_repo, download_extract_zip
-from cumulusci.utils.git import split_repo_url
 from cumulusci.utils.yaml.model_parser import CCIModel
 
 logger = logging.getLogger(__name__)
@@ -330,20 +330,17 @@ class GitHubDynamicDependency(BaseGitHubDependency):
             )
         )
 
-        # Look for metadata under src (deployed if no namespace, or we're asked to do an unmanaged install)
+        # Deploy the project, if unmanaged.
         if not managed:
-            contents = repo.directory_contents("src", ref=self.ref)
-            if contents:
-                deps.append(
-                    UnmanagedGitHubRefDependency(
-                        github=self.github,
-                        ref=self.ref,
-                        subfolder="src",
-                        unmanaged=self.unmanaged,
-                        namespace_inject=self.namespace_inject,
-                        namespace_strip=self.namespace_strip,
-                    )
+            deps.append(
+                UnmanagedGitHubRefDependency(
+                    github=self.github,
+                    ref=self.ref,
+                    unmanaged=self.unmanaged,
+                    namespace_inject=self.namespace_inject,
+                    namespace_strip=self.namespace_strip,
                 )
+            )
         else:
             if self.managed_dependency is None:
                 raise DependencyResolutionError(
@@ -523,8 +520,35 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
             "namespace_strip": self.namespace_strip,
         }
 
+        # We have a zip file. Now, determine how to handle
+        # MDAPI/SFDX format, with or without a subfolder specified.
+        namelist = zip_src.namelist()
+        zip_extract_subfolder = None
+
+        # In only two cases do we need to do a zip subset.
+        # Either we have a repo root in MDAPI format,
+        # or we're deploying a subfolder that is in MDAPI format.
+        if not self.subfolder and "src/package.xml" in namelist:
+            # Metadata API format, deploy `src`
+            zip_extract_subfolder = "src"
+        elif self.subfolder and f"{self.subfolder}/package.xml" in namelist:
+            # Subfolder contains Metadata API source.
+            zip_extract_subfolder = self.subfolder
+
+        if zip_extract_subfolder:
+            zip_src = zip_subfolder(zip_src, zip_extract_subfolder)
+
+        # We now know what to send to MetadataPackageZipBuilder
+        # Note we pass our own `subfolder` if and only if
+        # we didn't subset the zip file - this is the SFDX
+        # subfolder case. Otherwise, we already applied the
+        # subfolder via `zip_subfolder`.
+
         package_zip = MetadataPackageZipBuilder.from_zipfile(
-            zip_src, options=options, logger=logger
+            zip_src,
+            path=self.subfolder if not zip_subfolder else None,
+            options=options,
+            logger=logger,
         ).as_base64()
         task = TaskContext(org_config=org, project_config=context, logger=logger)
 
@@ -549,9 +573,16 @@ class UnmanagedGitHubRefDependency(UnmanagedDependency):
         return _validate_github_parameters(values)
 
     def _get_zip_src(self, context):
+        repo = get_repo(self.github, context)
+
+        # We don't pass `subfolder` to download_extract_github_from_repo()
+        # because we need to get the whole ref in order to
+        # correctly handle any permutation of MDAPI/SFDX format,
+        # with or without a subfolder specified.
+
+        # install() will take care of that for us.
         return download_extract_github_from_repo(
-            get_repo(self.github, context),
-            self.subfolder,
+            repo,
             ref=self.ref,
         )
 
@@ -577,7 +608,14 @@ class UnmanagedZipURLDependency(UnmanagedDependency):
     zip_url: AnyUrl
 
     def _get_zip_src(self, context: BaseProjectConfig):
-        return download_extract_zip(self.zip_url, subfolder=self.subfolder)
+        # We don't pass `subfolder` to download_extract_github_from_repo()
+        # because we need to get the whole ref in order to
+        # correctly handle any permutation of MDAPI/SFDX format,
+        # with or without a subfolder specified.
+
+        # install() will take care of that for us.
+
+        return download_extract_zip(self.zip_url)
 
     @property
     def name(self):
