@@ -159,7 +159,10 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                 dburl=dburl,
                 load_declarations=self.loading_rules,
                 should_create_cci_record_type_tables=True,
-                plugin_options={"orgname": self.org_config.name},
+                plugin_options={
+                    "org_config": self.org_config,
+                    "project_config": self.project_config,
+                },
             )
 
         if (
