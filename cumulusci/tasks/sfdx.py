@@ -14,6 +14,7 @@ how the CLI formats args opts commands etc.
 import json
 
 from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.tasks.command import Command
 
 SFDX_CLI = "sfdx"
@@ -39,10 +40,8 @@ class SFDXBaseTask(Command):
         return command
 
 
-class SFDXOrgTask(SFDXBaseTask):
+class SFDXOrgTask(SFDXBaseTask, BaseSalesforceTask):
     """Call the sfdx cli with a workspace username"""
-
-    salesforce_task = True
 
     def _get_command(self):
         command = super()._get_command()

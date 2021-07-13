@@ -104,6 +104,12 @@ class InstallPackageVersion(BaseSalesforceApiTask):
                 self.project_config,
                 get_resolver_stack(self.project_config, "production"),
             )
+        elif isinstance(version, (float, int)):
+            self.logger.warning(
+                f"The `version` option is specified as a number ({version}). "
+                "Please specify as a quoted string to avoid ambiguous results."
+            )
+            self.options["version"] = str(version)
 
         if dependency:
             if dependency.managed_dependency:

@@ -159,13 +159,17 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                 dburl=dburl,
                 load_declarations=self.loading_rules,
                 should_create_cci_record_type_tables=True,
+                plugin_options={
+                    "org_config": self.org_config,
+                    "project_config": self.project_config,
+                },
             )
 
-            if (
-                new_continuation_file
-                and Path(new_continuation_file.name).exists()
-                and self.working_directory
-            ):
-                shutil.copyfile(
-                    new_continuation_file.name, self.default_continuation_file_path()
-                )
+        if (
+            new_continuation_file
+            and Path(new_continuation_file.name).exists()
+            and self.working_directory
+        ):
+            shutil.move(
+                new_continuation_file.name, self.default_continuation_file_path()
+            )

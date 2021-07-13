@@ -51,10 +51,6 @@ class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
         self.assertEqual("force:org", task.options["command"])
         self.assertEqual("sfdx force:org --help", task._get_command())
 
-    @patch(
-        "cumulusci.tasks.sfdx.SFDXOrgTask._update_credentials",
-        MagicMock(return_value=None),
-    )
     @patch("cumulusci.tasks.command.Command._run_task", MagicMock(return_value=None))
     def test_keychain_org_creds(self):
         """Keychain org creds are passed by env var"""
@@ -63,19 +59,21 @@ class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
         access_token = "00d123"
         org_config = OrgConfig(
             {
-                "access_token": access_token,
                 "instance_url": "https://test.salesforce.com",
             },
             "test",
         )
 
+        def refresh_oauth_token(keychain):
+            org_config.config["access_token"] = access_token
+
+        org_config.refresh_oauth_token = mock.Mock(side_effect=refresh_oauth_token)
+        org_config.save = mock.Mock()
+
         task = SFDXOrgTask(self.project_config, self.task_config, org_config)
+        task()
 
-        try:
-            task()
-        except CommandException:
-            pass
-
+        org_config.refresh_oauth_token.assert_called_once()
         self.assertIn("SFDX_INSTANCE_URL", task._get_env())
         self.assertIn("SFDX_DEFAULTUSERNAME", task._get_env())
         self.assertIn(access_token, task._get_env()["SFDX_DEFAULTUSERNAME"])

@@ -1,5 +1,6 @@
 click<8
 coloredlogs
+contextvars
 cryptography
 docutils<0.17
 Faker
@@ -9,6 +10,7 @@ jinja2<3
 keyring
 lxml
 MarkupSafe<2
+psutil
 pydantic
 PyJWT
 pytz

@@ -8,7 +8,7 @@ import os
 import pathlib
 import tempfile
 import time
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 import lxml.etree as ET
 import requests
@@ -510,7 +510,7 @@ def get_query_operation(
     api_options: Dict,
     context: Any,
     query: str,
-    api: DataApi,
+    api: Optional[DataApi] = DataApi.SMART,
 ) -> BaseQueryOperation:
     """Create an appropriate QueryOperation instance for the given parameters, selecting
     between REST and Bulk APIs based upon volume (Bulk > 2000 records) if DataApi.SMART
@@ -521,7 +521,7 @@ def get_query_operation(
     if api_version < 42.0 and api is not DataApi.BULK:
         api = DataApi.BULK
 
-    if api is DataApi.SMART:
+    if api in (DataApi.SMART, None):
         record_count_response = context.sf.restful(
             f"limits/recordCount?sObjects={sobject}"
         )
@@ -538,7 +538,7 @@ def get_query_operation(
         return BulkApiQueryOperation(
             sobject=sobject, api_options=api_options, context=context, query=query
         )
-    else:
+    elif api is DataApi.REST:
         return RestApiQueryOperation(
             sobject=sobject,
             api_options=api_options,
@@ -546,6 +546,8 @@ def get_query_operation(
             query=query,
             fields=fields,
         )
+    else:
+        raise AssertionError(f"Unknown API: {api}")
 
 
 def get_dml_operation(
@@ -555,8 +557,8 @@ def get_dml_operation(
     fields: List[str],
     api_options: Dict,
     context: Any,
-    api: DataApi,
     volume: int,
+    api: Optional[DataApi] = DataApi.SMART,
 ) -> BaseDmlOperation:
     """Create an appropriate DmlOperation instance for the given parameters, selecting
     between REST and Bulk APIs based upon volume (Bulk used at volumes over 2000 records,
@@ -567,7 +569,7 @@ def get_dml_operation(
     if api_version < 42.0 and api is not DataApi.BULK:
         api = DataApi.BULK
 
-    if api is DataApi.SMART:
+    if api in (DataApi.SMART, None):
         api = (
             DataApi.BULK
             if volume >= 2000 or operation is DataOperationType.HARD_DELETE
@@ -576,8 +578,10 @@ def get_dml_operation(
 
     if api is DataApi.BULK:
         api_class = BulkApiDmlOperation
-    else:
+    elif api is DataApi.REST:
         api_class = RestApiDmlOperation
+    else:
+        raise AssertionError(f"Unknown API: {api}")
 
     return api_class(
         sobject=sobject,
