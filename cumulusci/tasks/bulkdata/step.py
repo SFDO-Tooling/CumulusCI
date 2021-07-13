@@ -96,9 +96,9 @@ class BulkJobMixin:
         record_failure_count = sum([int(failure.text) for failure in (failures or [])])
 
         # Get how many total records processed across all the batches.
-        processed_list = tree.findall(".//{%s}numberRecordsProcessed" % self.bulk.jobNS)
+        processed = tree.findall(".//{%s}numberRecordsProcessed" % self.bulk.jobNS)
         records_processed_count = sum(
-            [int(processed.text) for processed in (processed_list or [])]
+            [int(processed.text) for processed in (processed or [])]
         )
 
         # FIXME: "Not Processed" to be expected for original batch with PK Chunking Query
