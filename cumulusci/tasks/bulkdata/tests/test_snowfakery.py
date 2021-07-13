@@ -17,7 +17,8 @@ from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.core import exceptions as exc
 from cumulusci.core.config import OrgConfig
 
-sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.yml"
+sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.recipe.yml"
+query_yaml = Path(__file__).parent / "snowfakery/query_snowfakery.recipe.yml"
 
 original_refresh_token = OrgConfig.refresh_oauth_token
 
@@ -60,7 +61,7 @@ def fake_processes_and_threads(request):
         yield process_manager
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def snowfakery(request, create_task):
     def snowfakery(**kwargs):
         return create_task(Snowfakery, kwargs)
@@ -91,11 +92,27 @@ class TestSnowfakery:
     @mock.patch(
         "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
     )
-    def test_simple(self, Process, mock_load_data, create_task_fixture):
-        task = create_task_fixture(
+    def test_simple_snowfakery(self, Process, mock_load_data, create_task):
+        task = create_task(
             Snowfakery,
             {
                 "recipe": sample_yaml,
+            },
+        )
+        task()
+        assert mock_load_data.mock_calls
+        # should not be called for a simple one-rep load
+        assert not Process.mock_calls
+
+    @mock.patch(
+        "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
+    )
+    @pytest.mark.vcr()
+    def test_snowfakery_query_salesforce(self, Process, mock_load_data, create_task):
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": query_yaml,
             },
         )
         task()
