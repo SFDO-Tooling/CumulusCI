@@ -1,12 +1,13 @@
 import os
 from unittest import mock
 import pytest
+from requests.models import Response
 import responses
 from datetime import datetime
 
 from github3.repos.repo import Repository
 from github3.pulls import ShortPullRequest
-from github3.exceptions import ConnectionError
+from github3.exceptions import AuthenticationFailed, ConnectionError, ForbiddenError
 from github3.session import AppInstallationTokenAuth
 
 from cumulusci.core import github
@@ -14,8 +15,11 @@ from cumulusci.core.exceptions import DependencyLookupError, GithubException
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.core.github import (
+    check_github_sso_auth,
     create_gist,
     get_github_api,
+    get_oauth_scopes,
+    get_sso_disabled_orgs,
     get_version_id_from_tag,
     validate_service,
     create_pull_request,
@@ -369,3 +373,55 @@ class TestGithub(GithubApiTestMixin):
         )
         with pytest.raises(DependencyLookupError):
             get_version_id_from_tag(repo, "test-tag-name")
+
+    def test_get_oauth_scopes(self):
+        resp = Response()
+        resp.headers["X-OAuth-Scopes"] = "repo, user"
+        assert {"repo", "user"} == get_oauth_scopes(resp)
+
+        resp = Response()
+        resp.headers["X-OAuth-Scopes"] = "repo"
+        assert {"repo"} == get_oauth_scopes(resp)
+
+        resp = Response()
+        assert set() == get_oauth_scopes(resp)
+
+    def test_get_sso_disabled_orgs(self):
+        resp = Response()
+        assert [] == get_sso_disabled_orgs(resp)
+
+        resp = Response()
+        resp.headers["X-Github-Sso"] = "partial-results; organizations=0810298,20348880"
+        assert ["0810298", "20348880"] == get_sso_disabled_orgs(resp)
+
+    def test_check_github_sso_no_forbidden(self):
+        resp = Response()
+        resp.status_code = 401
+        exc = AuthenticationFailed(resp)
+        assert "" == check_github_sso_auth(exc)
+
+        resp.status_code = 403
+        exc = ForbiddenError(resp)
+        assert "" == check_github_sso_auth(exc)
+
+    @mock.patch("webbrowser.open")
+    def test_check_github_sso_unauthorized_token(self, browser_open):
+        resp = Response()
+        resp.status_code = 403
+        auth_url = "https://github.com/orgs/foo/sso?authoriziation_request=longhash"
+        resp.headers["X-Github-Sso"] = f"required; url={auth_url}"
+        exc = ForbiddenError(resp)
+
+        check_github_sso_auth(exc)
+
+        browser_open.assert_called_with(auth_url)
+
+    def test_check_github_sso_partial_auth(self):
+        resp = Response()
+        resp.status_code = 403
+        resp.headers["X-Github-Sso"] = "partial-results; organizations=0810298,20348880"
+        exc = ForbiddenError(resp)
+
+        expected_err_msg = "Results may be incomplete. You have not granted your Personal Access token access to the following organizations: ['0810298', '20348880']"
+        actual_error_msg = check_github_sso_auth(exc)
+        assert expected_err_msg == actual_error_msg
