@@ -1,5 +1,6 @@
 Run CumulusCI from Github Actions
 =================================
+CumulusCI can be used to run continuous integration builds with GitHub Actions.
 In order to follow along, you should already have a repository that is
 hosted on GitHub and configured as a CumulusCI project. In other words,
 we're assuming your project already has a ``cumulusci.yml`` and that you are
