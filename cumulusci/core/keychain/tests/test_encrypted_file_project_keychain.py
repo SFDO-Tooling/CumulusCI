@@ -924,6 +924,16 @@ class TestEncryptedFileProjectKeychain:
         actual_type, actual_name = keychain._get_env_service_type_and_name(val)
         assert (actual_type, actual_name) == expected
 
+    def test_backwards_compatability_with_EnvironmentProjectKeychain(
+        self, project_config, key
+    ):
+        """Ensure we don't break backwards compatability for people still using EnvironmentProjectKeychain"""
+        from cumulusci.core.keychain.environment_project_keychain import (
+            EnvironmentProjectKeychain,
+        )
+
+        assert EnvironmentProjectKeychain is EncryptedFileProjectKeychain
+
 
 def _touch_test_org_file(directory):
     org_dir = directory / "orginfo/something.something.saleforce.com"
