@@ -96,7 +96,7 @@ class AnonymousApexTask(BaseSalesforceApiTask):
         """Process the string of apex given via the --apex task option"""
         apex = ""
         if apex_string:
-            self.logger.info("Processing apex from '--apex' option")
+            self.logger.info("Processing Apex from '--apex' option")
             # append a newline so that we don't clash if
             # apex was also given via the --path option
             apex = "\n" + apex_string
