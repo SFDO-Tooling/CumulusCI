@@ -36,11 +36,6 @@ from cumulusci.core.tests.utils import EnvironmentVarGuard
 
 
 @pytest.fixture()
-def env():
-    yield EnvironmentVarGuard()
-
-
-@pytest.fixture()
 def keychain(project_config, key) -> EncryptedFileProjectKeychain:
     keychain = EncryptedFileProjectKeychain(project_config, key)
     assert keychain.project_config == project_config
@@ -220,10 +215,11 @@ class TestEncryptedFileProjectKeychain:
     def test_get_default_org__outside_project(self, keychain):
         assert keychain.get_default_org() == (None, None)
 
-    def test_load_orgs_from_environment(self, keychain, org_config, env):
+    def test_load_orgs_from_environment(self, keychain, org_config):
         scratch_config = org_config.config.copy()
         scratch_config["scratch"] = True
-        with env:
+        env = EnvironmentVarGuard()
+        with EnvironmentVarGuard() as env:
             env.set(
                 f"{keychain.env_org_var_prefix}dev",
                 json.dumps(scratch_config),
@@ -261,14 +257,14 @@ class TestEncryptedFileProjectKeychain:
         github_service = keychain.get_service("github", "alias")
         assert "foo" in github_service.config["name"]
 
-    def test_load_services__from_env(self, keychain, env):
+    def test_load_services__from_env(self, keychain):
         service_config_one = ServiceConfig(
             {"name": "foo1", "password": "1234", "token": "1234"}
         )
         service_config_two = ServiceConfig(
             {"name": "foo2", "password": "5678", "token": "5678"}
         )
-        with env:
+        with EnvironmentVarGuard() as env:
             env.set(
                 f"{keychain.env_service_var_prefix}github",
                 json.dumps(service_config_one.config),
@@ -288,13 +284,13 @@ class TestEncryptedFileProjectKeychain:
         gh_service = keychain.get_service("github", "env-OTHER")
         assert gh_service.config == service_config_two.config
 
-    def test_load_services_from_env__same_name_throws_error(self, keychain, env):
+    def test_load_services_from_env__same_name_throws_error(self, keychain):
         keychain.logger = mock.Mock()
         service_prefix = EncryptedFileProjectKeychain.env_service_var_prefix
         service_config = ServiceConfig(
             {"name": "foo", "password": "1234", "token": "1234"}
         )
-        with env:
+        with EnvironmentVarGuard() as env:
             env.set(f"{service_prefix}github", json.dumps(service_config.config))
             env.set(f"{service_prefix}github", json.dumps(service_config.config))
             keychain._load_services_from_environment()
