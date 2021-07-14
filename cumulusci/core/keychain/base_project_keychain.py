@@ -275,6 +275,7 @@ class BaseProjectKeychain(BaseConfig):
     def _set_service(
         self, service_type, alias, service_config, save=True, config_encrypted=False
     ):
+        # The first service of a given service_type automatically becomes the default
         if service_type not in self.services:
             self.services[service_type] = {}
             self._default_services[service_type] = alias
