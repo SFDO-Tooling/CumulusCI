@@ -39,14 +39,14 @@ class AnonymousApexTask(BaseSalesforceApiTask):
         },
         "param1": {
             "description": (
-                "Parameter to pass to the Apex. Use as %%%PARAM_1%%% in the Apex code."
+                "Parameter to pass to the Apex. Use as %%%PARAM_1%%% in the Apex code. "
                 "Defaults to an empty value."
             ),
             "required": False,
         },
         "param2": {
             "description": (
-                "Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code."
+                "Parameter to pass to the Apex. Use as %%%PARAM_2%%% in the Apex code. "
                 "Defaults to an empty value."
             ),
             "required": False,
@@ -54,7 +54,7 @@ class AnonymousApexTask(BaseSalesforceApiTask):
     }
 
     def _validate_options(self):
-        super(AnonymousApexTask, self)._validate_options()
+        super()._validate_options()
 
         if not self.options.get("path") and not self.options.get("apex"):
             raise TaskOptionsError(
@@ -62,38 +62,45 @@ class AnonymousApexTask(BaseSalesforceApiTask):
             )
 
     def _run_task(self):
-        apex = ""
-        apex_path = self.options.get("path")
-        if apex_path:
-            if not in_directory(apex_path, self.project_config.repo_root):
-                raise TaskOptionsError(
-                    "Please specify a path inside your project repository. "
-                    "You specified: {}".format(apex_path)
-                )
-            self.logger.info("Executing anonymous Apex from {}".format(apex_path))
-            try:
-                with open(apex_path, "r", encoding="utf-8") as f:
-                    apex = f.read()
-            except IOError:
-                raise TaskOptionsError(
-                    "Could not find or read file: {}".format(apex_path)
-                )
-        else:
-            self.logger.info("Executing anonymous Apex")
-
-        apex_string = self.options.get("apex")
-        if apex_string:
-            apex = apex + "\n" + apex_string
+        apex = self._process_apex_from_path(self.options.get("path"))
+        apex += self._process_apex_string(self.options.get("apex"))
 
         apex = self._prepare_apex(apex)
+        self.logger.info("Executing anonymous Apex")
         result = self.tooling._call_salesforce(
             method="GET",
-            url="{}executeAnonymous".format(self.tooling.base_url),
+            url=f"{self.tooling.base_url}executeAnonymous",
             params={"anonymousBody": apex},
         )
         self._check_result(result)
+        self.logger.info("Anonymous Apex Executed Successfully!")
 
-        self.logger.info("Anonymous Apex Success")
+    def _process_apex_from_path(self, apex_path):
+        """Process apex given via the --path task option"""
+        if not apex_path:
+            return ""
+        if not in_directory(apex_path, self.project_config.repo_root):
+            raise TaskOptionsError(
+                "Please specify a path inside your project repository. "
+                f"You specified: {apex_path}"
+            )
+        self.logger.info(f"Processing Apex from path: {apex_path}")
+        try:
+            with open(apex_path, "r", encoding="utf-8") as f:
+                apex = f.read()
+        except IOError:
+            raise TaskOptionsError(f"Could not find or read file: {apex_path}")
+        return apex
+
+    def _process_apex_string(self, apex_string):
+        """Process the string of apex given via the --apex task option"""
+        apex = ""
+        if apex_string:
+            self.logger.info("Processing apex from '--apex' option")
+            # append a newline so that we don't clash if
+            # apex was also given via the --path option
+            apex = "\n" + apex_string
+        return apex
 
     def _prepare_apex(self, apex):
         # Process namespace tokens
@@ -135,8 +142,7 @@ class AnonymousApexTask(BaseSalesforceApiTask):
         # https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/sforce_api_calls_executeanonymous_result.htm
         anon_results = safe_json_from_response(result)
 
-        # A result of `None` (body == "null") with a 200 status code
-        # means that a gack occurred.
+        # A result of `None` (body == "null") with a 200 status code means that a gack occurred.
         if anon_results is None:
             raise SalesforceException(
                 "Anonymous Apex returned the result `null`. "
