@@ -10,7 +10,7 @@ Register Environment Services
 ------------------------------
 It is often the case that services you use for local development
 will differ from the services that you want to use in your build system.
-For example, devlopers will setup a GitHub service locally that is associated
+For example, developers will setup a GitHub service locally that is associated
 with their GitHub User, while an integration build may want to run as 
 an integration user when interacting with GitHub. By providing environment
 variables with specific prefixes, CumulusCI can detect 
@@ -43,19 +43,20 @@ corresponding service types and names:
 By always prepending `env` to the names of services specified by environment variables,
 it is easy to see which services are currently set by environment variables and which are not.
 
-Environment Service Values
-***************************
+Environment Service Config Values
+*********************************
 The value of the environment variables (i.e. everything that comes after the ``=`` character) are provided
 in the form of a JSON string. The following shows an example that defines a github service via an environment variable:
 
 .. code-block:: console
 
-  CUMULUSCI_SERVICE_github='{"username":"jdoe","email":"jane.doe@some.biz", "token":"<personal_access_token>"}'
+  CUMULUSCI_SERVICE_github='{"username": "jdoe", "email": "jane.doe@some.biz", "token": "<personal_access_token>"}'
 
 These values provide CumulusCI with the required attributes for a particular service. The
 easiest way to find what attributes are needed for a particular service is
 to look for your service under the `services tag in the CumulusCI standard library <https://github.com/SFDO-Tooling/CumulusCI/blob/34533b4a1caa3f1850c64e223ece26069c83b60e/cumulusci/cumulusci.yml#L1164>`_
 and provide values for all "attributes" listed under the desired service.
+You can also use ``cci service info`` to get the values from a service you've configured locally.
 
 For example, if you're looking to register a ``connected_app`` service,
 then the attributes: ``callback_url``, ``client_id``, and ``client_secret``
