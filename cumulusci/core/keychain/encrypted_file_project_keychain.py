@@ -562,10 +562,6 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             # CumulusCI's default connected app is not encrypted, just return it
             return self.config["services"]["connected_app"][DEFAULT_CONNECTED_APP_NAME]
 
-        # if alias.startswith(self.env_service_alias_prefix):
-        # any environment based services aren't encrypted, just return it
-        # return self.services[service_type][alias]
-
         ConfigClass = ServiceConfig
         if "class_path" in self.project_config.config["services"][service_type]:
             class_path = self.project_config.config["services"][service_type][
