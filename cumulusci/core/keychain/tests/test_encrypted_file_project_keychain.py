@@ -250,7 +250,7 @@ class TestEncryptedFileProjectKeychain:
             keychain._encrypt_config(BaseConfig({"name": "foo"})).decode("utf-8"),
         )
 
-        del keychain.config["services"]
+        # keychain.config["services"] = {}
 
         with mock.patch.object(
             EncryptedFileProjectKeychain,

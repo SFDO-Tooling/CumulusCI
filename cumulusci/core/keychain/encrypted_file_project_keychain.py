@@ -523,8 +523,6 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
     def _set_service(
         self, service_type, alias, service_config, save=True, config_encrypted=False
     ):
-        if "services" not in self.config:
-            self.config["services"] = {}
         if service_type not in self.services:
             self.services[service_type] = {}
             # set the first service of a given type as the global default
