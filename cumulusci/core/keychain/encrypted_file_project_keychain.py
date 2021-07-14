@@ -3,6 +3,7 @@ import json
 import os
 import pickle
 import typing as T
+import sys
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher
@@ -30,6 +31,10 @@ DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
 # The file permissions that we want set on all
 # .org and .service files. Equivalent to -rw-------
 SERVICE_ORG_FILE_MODE = 0o600
+OS_FILE_FLAGS = os.O_WRONLY | os.O_CREAT
+if sys.platform.startswith("win"):
+    # O_BINARY only available on Windows
+    OS_FILE_FLAGS |= os.O_BINARY
 
 
 BS = 16
@@ -288,7 +293,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         else:
             filename = Path(f"{self.project_local_dir}/{name}.org")
 
-        fd = os.open(filename, os.O_WRONLY | os.O_CREAT, SERVICE_ORG_FILE_MODE)
+        fd = os.open(filename, OS_FILE_FLAGS, SERVICE_ORG_FILE_MODE)
         with open(fd, "wb") as f:
             f.write(org_bytes)
 
@@ -550,7 +555,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         if not service_path.parent.is_dir():
             service_path.parent.mkdir()
 
-        fd = os.open(service_path, os.O_WRONLY | os.O_CREAT, SERVICE_ORG_FILE_MODE)
+        fd = os.open(service_path, OS_FILE_FLAGS, SERVICE_ORG_FILE_MODE)
         with open(fd, "wb") as f:
             f.write(encrypted)
 
