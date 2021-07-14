@@ -47,7 +47,8 @@ class CliRuntime(BaseCumulusCI):
         try:
             key_from_keyring = keyring.get_password("cumulusci", "CUMULUSCI_KEY")
             has_functioning_keychain = True
-        except Exception:
+        except Exception as e:
+            keychain_exception = e
             key_from_keyring = None
             has_functioning_keychain = False
         # If no key in environment or file, generate one
@@ -57,8 +58,8 @@ class CliRuntime(BaseCumulusCI):
                 key = random_alphanumeric_underscore(length=16)
             else:
                 logger.warning(
-                    "Unable to store an encryption key. "
-                    "Any orgs or services written to disk will not be encrypted."
+                    f"Unable to store an encryption key. ({keychain_exception})"
+                    "Any orgs or services written to disk will not be encrypted. "
                 )
 
         if has_functioning_keychain and not key_from_keyring:
