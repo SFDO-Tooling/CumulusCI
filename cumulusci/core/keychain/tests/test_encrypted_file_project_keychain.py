@@ -128,10 +128,6 @@ class TestEncryptedFileProjectKeychain:
         with pytest.raises(OrgNotFound):
             keychain.remove_org("test", True)
 
-    @pytest.mark.skipif(
-        sys.platform.startswith("win"),
-        reason="os.stat() returns a differing value on windows",
-    )
     def test_set_and_get_org_local_should_not_shadow_global(
         self,
         keychain,
@@ -149,10 +145,13 @@ class TestEncryptedFileProjectKeychain:
         org_filepath = Path(keychain.global_config_dir, "test.org")
         assert org_filepath.exists()
 
-        # ensure expected file permissions
-        stat_result = os.stat(org_filepath)
-        actual_mode = oct(stat_result.st_mode & 0o777)
-        assert actual_mode == oct(SERVICE_ORG_FILE_MODE)
+        # os.stat returns something different on windows
+        # so only check this on osx/linux
+        if not sys.platform.startswith("win"):
+            # ensure expected file permissions
+            stat_result = os.stat(org_filepath)
+            actual_mode = oct(stat_result.st_mode & 0o777)
+            assert actual_mode == oct(SERVICE_ORG_FILE_MODE)
 
         # check that it saves to the right place
         with mock.patch(
@@ -337,10 +336,11 @@ class TestEncryptedFileProjectKeychain:
         )
         assert service_filepath.is_file()
 
-        # ensure expected file permissions
-        stat_result = os.stat(service_filepath)
-        actual_mode = oct(stat_result.st_mode & 0o777)
-        assert actual_mode == oct(SERVICE_ORG_FILE_MODE)
+        if not sys.platform.startswith("win"):
+            # ensure expected file permissions
+            stat_result = os.stat(service_filepath)
+            actual_mode = oct(stat_result.st_mode & 0o777)
+            assert actual_mode == oct(SERVICE_ORG_FILE_MODE)
 
         assert default_github_service.config == {
             **service_config.config,
