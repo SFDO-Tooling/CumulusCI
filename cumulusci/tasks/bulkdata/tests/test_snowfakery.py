@@ -17,7 +17,8 @@ from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.core import exceptions as exc
 from cumulusci.core.config import OrgConfig
 
-sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.yml"
+sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.recipe.yml"
+query_yaml = Path(__file__).parent / "snowfakery/query_snowfakery.recipe.yml"
 
 original_refresh_token = OrgConfig.refresh_oauth_token
 
@@ -91,11 +92,27 @@ class TestSnowfakery:
     @mock.patch(
         "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
     )
-    def test_simple(self, Process, mock_load_data, create_task_fixture):
-        task = create_task_fixture(
+    def test_simple_snowfakery(self, Process, mock_load_data, create_task):
+        task = create_task(
             Snowfakery,
             {
                 "recipe": sample_yaml,
+            },
+        )
+        task()
+        assert mock_load_data.mock_calls
+        # should not be called for a simple one-rep load
+        assert not Process.mock_calls
+
+    @mock.patch(
+        "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
+    )
+    @pytest.mark.vcr()
+    def test_snowfakery_query_salesforce(self, Process, mock_load_data, create_task):
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": query_yaml,
             },
         )
         task()
@@ -162,7 +179,7 @@ class TestSnowfakery:
         assert len(mock_load_data.mock_calls) == 2
         assert len(threads_instead_of_processes.mock_calls) == 1
 
-    # Thee was previously a faailed attempt at testing the connected app here.
+    # There was previously a failed attempt at testing the connected app here.
     # Could try again after Snowfakery 2.0 launch.
     # https://github.com/SFDO-Tooling/CumulusCI/blob/c7e0d7552394b3ac268cb373ffb24b72b5c059f3/cumulusci/tasks/bulkdata/tests/test_snowfakery.py#L165-L197https://github.com/SFDO-Tooling/CumulusCI/blob/c7e0d7552394b3ac268cb373ffb24b72b5c059f3/cumulusci/tasks/bulkdata/tests/test_snowfakery.py#L165-L197
 
@@ -218,6 +235,14 @@ class TestSnowfakery:
         with mock.patch.object(task, "logger") as logger:
             task()
         assert "Using 11 workers" in str(logger.mock_calls)
+
+    def test_record_count(self, snowfakery, mock_load_data):
+        task = snowfakery(recipe="datasets/recipe.yml", run_until_recipe_repeated="4")
+        with mock.patch.object(task, "logger") as logger:
+            task()
+        mock_calls_as_string = str(logger.mock_calls)
+        assert "Account: 5 records" in mock_calls_as_string, mock_calls_as_string[-500:]
+        assert "Contact: 5 records" in mock_calls_as_string, mock_calls_as_string[-500:]
 
     def test_run_until_wrong_format(self, snowfakery):
         with pytest.raises(exc.TaskOptionsError, match="Ten"):

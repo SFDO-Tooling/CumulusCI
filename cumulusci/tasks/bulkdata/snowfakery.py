@@ -5,11 +5,12 @@ from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory, mkdtemp
 from contextlib import contextmanager
+from collections import defaultdict
 
 import yaml
 import psutil
 
-from sqlalchemy import MetaData, create_engine, func, select
+from sqlalchemy import MetaData, create_engine, func, select, Table
 
 from snowfakery.api import COUNT_REPS
 
@@ -164,6 +165,7 @@ class Snowfakery(BaseSalesforceApiTask):
         self.start_time = time.time()
         self.recipe = Path(self.options.get("recipe"))
         self.job_counter = 0
+        self.cached_counts = {}
 
     ## Todo: Consider when this process runs longer than 2 Hours,
     # what will happen to my sf connection?
@@ -364,6 +366,8 @@ class Snowfakery(BaseSalesforceApiTask):
             time.sleep(WAIT_TIME)
 
         self.log_failures(set(load_data_q.failed_job_dirs + data_gen_q.failed_job_dirs))
+
+        self.log_upload_counts(load_data_q.outbox_job_dirs)
         elapsed = format_duration(timedelta(seconds=time.time() - self.start_time))
 
         if self.run_until.sobject_name:
@@ -384,6 +388,20 @@ class Snowfakery(BaseSalesforceApiTask):
             exception = f.read_text(encoding="utf-8").strip().split("\n")[-1]
             self.logger.info(exception)
 
+    def log_upload_counts(self, dirs=T.Sequence[Path]):
+        """Write upload counts to logs."""
+        total_count = defaultdict(int)
+
+        for upload_dir in dirs:
+            wd = SnowfakeryWorkingDirectory(upload_dir)
+            key = wd.index
+            for sobject, count in self.cached_counts[key].items():
+                total_count[sobject] += count
+
+        self.logger.info(" == Results == ")
+        for name, count in total_count.items():
+            self.logger.info(f"       {name}: {count} records")
+
     def data_loader_opts(self, working_dir: Path):
         wd = SnowfakeryWorkingDirectory(working_dir)
 
@@ -397,11 +415,17 @@ class Snowfakery(BaseSalesforceApiTask):
 
     def data_loader_new_directory_name(self, working_dir: Path):
         """Change the directory name to reflect the true number of sets created."""
+
+        wd = SnowfakeryWorkingDirectory(working_dir)
+
+        key = wd.index
+        if key not in self.cached_counts:
+            self.cached_counts[key] = wd.get_record_counts()
+
         if not self.run_until.sobject_name:
             return working_dir
 
-        wd = SnowfakeryWorkingDirectory(working_dir)
-        count = wd.get_record_count(self.run_until.sobject_name)
+        count = self.cached_counts[key][self.run_until.sobject_name]
 
         path, _ = str(working_dir).rsplit("_", 1)
         new_working_dir = Path(path + "_" + str(count))
@@ -598,8 +622,7 @@ class UploadStatus(T.NamedTuple):
                 + "\n"
             )
 
-        rc = "**** Progress ****\n"
-        rc += display_stats(most_important_stats)
+        rc = display_stats(most_important_stats)
         if detailed:
             rc += "\n   ** Queues **\n"
             rc += display_stats(queue_stats)
@@ -614,7 +637,7 @@ class SnowfakeryWorkingDirectory:
     """Helper functions based on well-known filenames in CCI/Snowfakery working directories."""
 
     def __init__(self, working_dir):
-        self.path = Path
+        self.path = working_dir
         self.mapping_file = working_dir / "temp_mapping.yml"
         self.database_file = working_dir / "generated_data.db"
         assert self.mapping_file.exists(), self.mapping_file
@@ -630,18 +653,32 @@ class SnowfakeryWorkingDirectory:
         metadata.reflect()
         return engine, metadata
 
-    # TODO: Change Snowfakery 2.1 to output this info instead.
-    def get_record_count(self, sobject_name):
+    @property
+    def index(self) -> str:
+        return self.path.name.rsplit("_")[0]
+
+    def get_record_counts(self):
+        """Get record counts generated for this portion."""
         engine, metadata = self.setup_engine()
 
         with engine.connect() as connection:
-            table = metadata.tables[sobject_name]
-            stmt = select(func.count()).select_from(table)
-            result = connection.execute(stmt)
-            return next(result)[0]
+            record_counts = {
+                table_name: self._record_count_from_db(connection, table)
+                for table_name, table in metadata.tables.items()
+                if table_name[-6:] != "sf_ids"
+            }
+        # note that the template has its contents deleted so if the cache
+        # is ever removed, it will start to return {}
+        assert record_counts
+        return record_counts
+
+    def _record_count_from_db(self, connection, table: Table):
+        """Count rows in a table"""
+        stmt = select(func.count()).select_from(table)
+        result = connection.execute(stmt)
+        return next(result)[0]
 
     def relevant_sobjects(self):
-        # TODO:
         with open(self.mapping_file, encoding="utf-8") as f:
             mapping = yaml.safe_load(f)
             return [m.get("sf_object") for m in mapping.values() if m.get("sf_object")]
