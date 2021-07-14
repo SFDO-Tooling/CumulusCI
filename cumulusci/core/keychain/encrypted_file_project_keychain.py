@@ -91,15 +91,6 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
     def project_local_dir(self):
         return self.project_config.project_local_dir
 
-    def _get_env(self):
-        """loads the environment variables as unicode if ascii"""
-        env = {}
-        for k, v in os.environ.items():
-            k = k.decode() if isinstance(k, bytes) else k
-            v = v.decode() if isinstance(v, bytes) else v
-            env[k] = v
-        return list(env.items())
-
     #######################################
     #             Encryption              #
     #######################################
@@ -223,7 +214,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         self._load_org_files(self.project_local_dir, LocalOrg)
 
     def _load_orgs_from_environment(self):
-        for env_var_name, value in self._get_env():
+        for env_var_name, value in os.environ.items():
             if env_var_name.startswith(self.env_org_var_prefix):
                 self._load_org_from_environment(env_var_name, value)
 
@@ -606,7 +597,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
     def _load_services_from_environment(self):
         """Load any services specified by environment variables"""
-        for env_var_name, value in self._get_env():
+        for env_var_name, value in os.environ.items():
             if env_var_name.startswith(self.env_service_var_prefix):
                 self._load_service_from_environment(env_var_name, value)
 
