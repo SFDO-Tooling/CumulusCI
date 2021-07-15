@@ -123,7 +123,6 @@ class AddFields(MetadataSingleEntityTransformTask):
 
     ## Collect fields already in the layout
     def _collect_existing_items(self):
-
         ## Need to traverse all layoutSections->layoutColumns->layoutItems->fields to find if item/field already exists
         layout_sections = self._metadata.findall("layoutSections")
         for section in layout_sections:
@@ -138,9 +137,11 @@ class AddFields(MetadataSingleEntityTransformTask):
 
     def _set_adding_fields(self, api_name):
         # Do nothing if there are no fields
-        if len(self._adding_fields) == 0:
+        if "_adding_fields" not in self and len(self._adding_fields) == 0:
             return
+
         field_props = {field["api_name"]: field for field in self._adding_fields}
+
         layout_item_dict = self._add_items(self._adding_fields, api_name)
 
         for field_item_key in layout_item_dict.keys():
@@ -154,7 +155,7 @@ class AddFields(MetadataSingleEntityTransformTask):
 
     def _set_adding_pages(self, api_name):
         # Do nothing if there are no pages
-        if len(self._adding_pages) == 0:
+        if "_adding_pages" not in self and len(self._adding_pages) == 0:
             return
 
         page_props = {page["api_name"]: page for page in self._adding_pages}
@@ -211,29 +212,29 @@ class AddFields(MetadataSingleEntityTransformTask):
         }
 
         # Position is optional
-        position = new_item.get("position", default)
+        position = new_item.get("position")
+        if position is None:
+            self.logger.warning(
+                f"Position details are missing for: {new_item_name}. Default position is being applied."
+            )
+            position = default
 
         relative_position = position.get("relative", default.get("relative"))
 
-        # Mutually exclusive, therefore a default is not specified for later validation
-        relative_field_name = (
-            self._inject_namespace(position.get("field"))
-            if position.get("field") is not None
-            else None
-        )
-        relative_section_index = position.get("section")
-
-        # Enforce mutual exclusivity
-        if relative_field_name is not None and relative_section_index is not None:
-            raise CumulusCIException(
-                f"Cannot mix field relative and section relativity in the same position definition for field: {new_item_name}"
+        # Mutually exclusive, therefore the higher priority is field if specified
+        relative_field_name = None
+        if "field" in position:
+            relative_field_name = (
+                self._inject_namespace(position.get("field"))
+                if position.get("field") is not None
+                else None
             )
-
-        # Position is specified, however other positional information is omitted
-        if relative_field_name is None and relative_section_index is None:
-            raise CumulusCIException(
-                f"Position details are missing for: {new_item_name}. Please specify either a field or column."
-            )
+            relative_section_index = None
+            if relative_position in ("top", "bottom"):
+                # Missing a relative position to the field, therefore default to after
+                relative_position = "after"
+        elif "section" in position:
+            relative_section_index = position.get("section")
 
         # Field relative
         if relative_field_name is not None and relative_position in (
@@ -283,9 +284,14 @@ class AddFields(MetadataSingleEntityTransformTask):
         columns = [col for col in section.findall("layoutColumns")]
         column = columns[1 if column == "last" else 0]
         items = [item for item in column.findall("layoutItems")]
-        item = items[-1] if position == "bottom" else items[0]
-        item_relative_position = "before" if position == "top" else "after"
-        return getattr(column, "insert_" + item_relative_position)(item, "layoutItems")
+        # Needing if statement just in case the section is empty
+        if len(items) == 0 or position == "bottom":
+            return column.append("layoutItems")
+        else:
+            item_relative_position = "before" if position == "top" else "after"
+            return getattr(column, "insert_" + item_relative_position)(
+                items[0], "layoutItems"
+            )
 
 
 class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
