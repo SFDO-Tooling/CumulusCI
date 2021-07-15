@@ -20,7 +20,7 @@ from cumulusci.core.dependencies.dependencies import (
 from pathlib import PurePosixPath
 from collections import defaultdict
 
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 from pydantic import BaseModel
 
 from cumulusci.tasks.github.base import BaseGithubTask
@@ -45,7 +45,7 @@ class Package(BaseModel):
 
 class PackageVersion(BaseModel):
     package: Package
-    version: StrictVersion
+    version: LooseVersion
 
     class Config:
         arbitrary_types_allowed = True
@@ -70,7 +70,7 @@ class FieldDetail(BaseModel):
 
 
 # "Version number" used to represent a prerelease.
-PRERELEASE_SIGIL = StrictVersion("100000001.0")
+PRERELEASE_SIGIL = LooseVersion("100000001.0")
 
 
 class GenerateDataDictionary(BaseGithubTask):
@@ -100,8 +100,7 @@ class GenerateDataDictionary(BaseGithubTask):
     - Version Picklist Values Last Changed
     - Version Help Text Last Changed
 
-    Both MDAPI and SFDX format releases are supported. However, only force-app/main/default
-    is processed for SFDX projects.
+    Both MDAPI and SFDX format releases are supported.
     """
 
     task_options = {
@@ -126,6 +125,10 @@ class GenerateDataDictionary(BaseGithubTask):
             "description": "Treat the current branch as containing prerelease schema, "
             "and included it as Prerelease in the data dictionary. NOTE: this option "
             "cannot be used with `additional_dependencies` or `include_dependencies`."
+        },
+        "include_protected_schema": {
+            "description": "Include Custom Objects, Custom Settings, and Custom Metadata "
+            "Types that are marked as Protected. Defaults to False."
         },
     }
 
@@ -171,6 +174,10 @@ class GenerateDataDictionary(BaseGithubTask):
                     "Setting include_prerelease prohibits include_dependencies; setting include_dependencies to False"
                 )
                 self.options["include_dependencies"] = False
+
+        self.options["include_protected_schema"] = process_bool_arg(
+            self.options.get("include_protected_schema") or False
+        )
 
     def _get_repo_dependencies(
         self, dependencies: List[GitHubDynamicDependency]
@@ -309,10 +316,11 @@ class GenerateDataDictionary(BaseGithubTask):
         if "src/objects/" in zip_file.namelist():
             # MDAPI format
             self._process_mdapi_release(zip_file, version)
-
-        if "force-app/main/default/objects/" in zip_file.namelist():
-            # TODO: check sfdx-project.json for directories to process.
+        elif "sfdx-project.json" in zip_file.namelist():
             # SFDX format
+            # Note: we check MDAPI first, because many
+            # CumulusCI projects contain an sfdx-project.json
+            # along with MDAPI source.
             self._process_sfdx_release(zip_file, version)
 
     def _process_mdapi_release(self, zip_file: ZipFile, version: PackageVersion):
@@ -339,35 +347,67 @@ class GenerateDataDictionary(BaseGithubTask):
 
         We don't process custom objects owned by other namespaces.
         It's fine for Package A to package fields on an object owned by Package B.
-        We'll record the fields on their owning package (B) and the object on its (A).
-
-        We also do not process Custom Settings, Platform Events, or Custom Metadata Types."""
+        We'll record the fields on their owning package (B) and the object on its (A)."""
 
         return (
-            (sobject_name.endswith("__c") or sobject_name.count("__") == 0)
+            (
+                sobject_name.endswith("__c")
+                or sobject_name.endswith("__mdt")
+                or sobject_name.endswith("__e")
+                or sobject_name.count("__") == 0
+            )
             and sobject_name.startswith(namespace)
-            and element.find("customSettingsType") is None
-            if element
-            else True
+            and (
+                not self._is_protected_object(element)
+                or self.options["include_protected_schema"]
+            )
         )
 
     def _should_process_object_fields(
         self, sobject_name: str, element: Optional[metadata_tree.MetadataElement]
-    ):
+    ) -> bool:
         """Determine if we should track fields from this object in the field dictionary.
         The object itself may or may not be included.
 
-        We will track any field on a custom object or standard entity. We will not track
-        fields on Custom Settings, Platform Events, or Custom Metadata Types."""
-        return (sobject_name.endswith("__c") or sobject_name.count("__") == 0) and (
-            element.find("customSettingsType") is None if element else True
+        We will track any field on a custom object, Platform Event,
+        Custom Setting, Custom Metadata Type, or standard entity.
+        We will not track any object's fields that are protected
+        in this package version."""
+        return (
+            sobject_name.endswith("__c")
+            or sobject_name.endswith("__mdt")
+            or sobject_name.endswith("__e")
+            or sobject_name.count("__") == 0
+        ) and (
+            not self._is_protected_object(element)
+            or self.options["include_protected_schema"]
         )
+
+    def _is_protected_object(
+        self, element: Optional[metadata_tree.MetadataElement]
+    ) -> bool:
+        if not element:
+            return False
+
+        # customSettingsVisibility is used in older API versions.
+        visibility_elem = element.find("customSettingsVisibility")
+        if visibility_elem:
+            return visibility_elem.text != "Public"
+
+        visibility_elem = element.find("visibility")
+        if visibility_elem:
+            return visibility_elem.text != "Public"
+
+        return False
 
     def _process_sfdx_release(self, zip_file: ZipFile, version: PackageVersion):
         """Process an SFDX ZIP file for objects and fields"""
         for f in zip_file.namelist():
             path = PurePosixPath(f)
-            if f.startswith("force-app/main/default/objects"):
+            # Be flexible about processing directories in SFDX context.
+            # This may not be optimal if the repo contains multiple
+            # 2GP package subdirectories.
+            if "objects/" in f and not f.startswith("unpackaged/"):
                 if path.suffixes == [".object-meta", ".xml"]:
                     sobject_name = path.name[: -len(".object-meta.xml")]
                     if sobject_name.count("__") == 1:
@@ -430,14 +470,17 @@ class GenerateDataDictionary(BaseGithubTask):
         if self._should_process_object(
             version.package.namespace, sobject_name, element
         ):
+            if description_elem and description_elem.text:
+                description = description_elem.text
+            else:
+                description = ""
+
             self.sobjects[sobject_name].append(
                 SObjectDetail(
                     version=version,
                     api_name=sobject_name,
                     label=element.label.text,
-                    description=description_elem.text
-                    if description_elem is not None
-                    else "",
+                    description=description,
                 )
             )
 
@@ -464,13 +507,13 @@ class GenerateDataDictionary(BaseGithubTask):
         # `element` may be either a `fields` element (in MDAPI)
         # or a `CustomField` (SFDX)
         # If this is a custom field, register its presence in this version
-        field_name = f"{version.package.namespace}{field.fullName.text}"
-        # get field help text value
-        help_text_elem = field.find("inlineHelpText")
-        # get field description text value
-        description_text_elem = field.find("description")
+        if "__" in field.fullName.text:
+            field_name = f"{version.package.namespace}{field.fullName.text}"
+            # get field help text value
+            help_text_elem = field.find("inlineHelpText")
+            # get field description text value
+            description_text_elem = field.find("description")
 
-        if "__" in field_name:
             field_type = field.type.text
             valid_values = ""
 
@@ -526,14 +569,24 @@ class GenerateDataDictionary(BaseGithubTask):
                 field_type = f"Master-Detail Relationship to {target_sobject}"
                 # Note: polymorphic custom fields are not allowed.
 
+            if help_text_elem and help_text_elem.text:
+                help_text = help_text_elem.text
+            else:
+                help_text = ""
+
+            if description_text_elem and description_text_elem.text:
+                description = description_text_elem.text
+            else:
+                description = ""
+
             fd = FieldDetail(
                 version=version,
                 sobject=sobject,
                 api_name=field_name,
                 label=field.label.text,
                 type=f"{field_type}{length}",
-                help_text=help_text_elem.text if help_text_elem else "",
-                description=description_text_elem.text if description_text_elem else "",
+                help_text=help_text,
+                description=description,
                 valid_values=valid_values,
             )
             fully_qualified_name = f"{sobject}.{fd.api_name}"
@@ -560,7 +613,7 @@ class GenerateDataDictionary(BaseGithubTask):
         )
 
         for sobject_name, versions in self.sobjects.items():
-            # object_version.version.version yields the StrictVersion
+            # object_version.version.version yields the LooseVersion
             # of the package version of this object version.
             versions = sorted(
                 versions,
@@ -581,18 +634,17 @@ class GenerateDataDictionary(BaseGithubTask):
             else:
                 deleted_version = None
 
-            if sobject_name.endswith("__c"):
-                writer.writerow(
-                    [
-                        last_version.label,
-                        sobject_name,
-                        last_version.description,
-                        f"{first_version.version.package.package_name} {self._get_version_name(first_version.version)}",
-                        ""
-                        if deleted_version is None
-                        else f"{first_version.version.package.package_name} {deleted_version}",
-                    ]
-                )
+            writer.writerow(
+                [
+                    last_version.label,
+                    sobject_name,
+                    last_version.description,
+                    f"{first_version.version.package.package_name} {self._get_version_name(first_version.version)}",
+                    ""
+                    if deleted_version is None
+                    else f"{first_version.version.package.package_name} {deleted_version}",
+                ]
+            )
 
     def _write_field_results(self, file_handle):
         """Write to the given handle an output CSV containing the data dictionary for fields."""
@@ -616,7 +668,7 @@ class GenerateDataDictionary(BaseGithubTask):
         )
 
         for _, field_versions in self.fields.items():
-            # field_version.version.version yields the StrictVersion of the package version for this field version.
+            # field_version.version.version yields the LooseVersion of the package version for this field version.
             versions = sorted(
                 field_versions,
                 key=lambda field_version: field_version.version.version,
@@ -695,6 +747,6 @@ class GenerateDataDictionary(BaseGithubTask):
 
     def _version_from_tag_name(
         self, tag_name: str, prefix_release: str
-    ) -> StrictVersion:
-        """Parse a release's tag and return a StrictVersion"""
-        return StrictVersion(tag_name[len(prefix_release) :])
+    ) -> LooseVersion:
+        """Parse a release's tag and return a LooseVersion"""
+        return LooseVersion(tag_name[len(prefix_release) :])
