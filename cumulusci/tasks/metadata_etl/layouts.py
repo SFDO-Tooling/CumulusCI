@@ -137,7 +137,7 @@ class AddFields(MetadataSingleEntityTransformTask):
 
     def _set_adding_fields(self, api_name):
         # Do nothing if there are no fields
-        if "_adding_fields" not in self and len(self._adding_fields) == 0:
+        if len(self._adding_fields) == 0:
             return
 
         field_props = {field["api_name"]: field for field in self._adding_fields}
@@ -155,7 +155,7 @@ class AddFields(MetadataSingleEntityTransformTask):
 
     def _set_adding_pages(self, api_name):
         # Do nothing if there are no pages
-        if "_adding_pages" not in self and len(self._adding_pages) == 0:
+        if len(self._adding_pages) == 0:
             return
 
         page_props = {page["api_name"]: page for page in self._adding_pages}
