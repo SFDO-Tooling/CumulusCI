@@ -70,76 +70,222 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
 
 
 class AddFields(MetadataSingleEntityTransformTask):
+    task_docs = """
+        Inserts the listed fields or visualforce pages into page page layouts
+        specified by api name
+
+        If the targeted item already exists, the layout metadata is not modified.
+
+        Fields property options:
+            - field_name: [field api name]
+            - field_behavior: [ReadOnly | Edit | Required]
+            - visualforce_page_name:[page_name]
+            - position:
+
+                - relative: [before | after | top | bottom]
+                - field: [field_name] (Use with relative: before, after)
+                - section: [index] (Use with relative: top, bottom)
+                - column: [first | last] (Use with relative: top, bottom)
+
+        """
     entity = "Layout"
     task_options = {
-        "layout_section": {
-            "description": "Which layout section the fields should be added to, default is Information",
+        "fields": {
+            "description": "List of fields. See task info for structure.",
             "required": False,
         },
-        "fields": {
-            "description": "Array of field API names to append to specified layout section",
-            "required": True,
+        "pages": {
+            "description": "List of Visualforce Pages. See task info for structure.",
+            "required": False,
         },
         **MetadataSingleEntityTransformTask.task_options,
     }
+
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+
+        self._adding_fields = process_list_arg(self.options.get("fields", []))
+        self._adding_pages = process_list_arg(self.options.get("pages", []))
+        self._existing_names = []
 
     def _transform_entity(
         self, metadata: MetadataElement, api_name: str
     ) -> Optional[MetadataElement]:
 
-        # Set layout section and default to "Information" section if not passed in
-        layout_section = self._inject_namespace(
-            self.options.get("layout_section") or "Information"
-        )
+        self._metadata = metadata
 
-        # Set fields to be added to layout section
-        adding_fields = [
-            self._inject_namespace(field)
-            for field in process_list_arg(self.options.get("fields", []))
-        ]
+        self._collect_existing_items()
 
-        self._remove_existing_fields(metadata, api_name, adding_fields)
-
-        self._set_adding_fields(metadata, api_name, layout_section, adding_fields)
+        self._set_adding_fields(api_name)
+        self._set_adding_pages(api_name)
 
         return metadata
 
-    ## If fields passed in that already exist in the Page Layout, remove from current sections
-    def _remove_existing_fields(self, metadata, api_name, adding_fields):
+    ## Collect fields already in the layout
+    def _collect_existing_items(self):
 
         ## Need to traverse all layoutSections->layoutColumns->layoutItems->fields to find if item/field already exists
-        layout_sections = metadata.findall("layoutSections")
+        layout_sections = self._metadata.findall("layoutSections")
         for section in layout_sections:
             layout_columns = section.findall("layoutColumns")
             for col in layout_columns:
                 layout_items = col.findall("layoutItems")
                 for item in layout_items:
-                    if item.field.text in adding_fields:
-                        # remove that item from existing layout to be re-added
-                        col.remove(item)
+                    if item.find("page"):
+                        self._existing_names.append(item.page.text)
+                    elif item.find("field"):
+                        self._existing_names.append(item.field.text)
 
-    def _set_adding_fields(
-        self, metadata, api_name, layout_section_name, adding_fields
-    ):
-        ## If no fields are passed in, do nothing
-        if len(adding_fields) == 0:
+    def _set_adding_fields(self, api_name):
+        # Do nothing if there are no fields
+        if len(self._adding_fields) == 0:
+            return
+        field_props = {field["api_name"]: field for field in self._adding_fields}
+        layout_item_dict = self._add_items(self._adding_fields, api_name)
+
+        for field_item_key in layout_item_dict.keys():
+            field = field_props.get(field_item_key)
+            field_layout_item = layout_item_dict.get(field_item_key)
+            adding_field_name = field.get("api_name")
+
+            self.logger.info(f"Adding {adding_field_name} to {api_name}")
+            field_layout_item.append("behavior", field.get("behavior"))
+            field_layout_item.append("field", adding_field_name)
+
+    def _set_adding_pages(self, api_name):
+        # Do nothing if there are no pages
+        if len(self._adding_pages) == 0:
             return
 
-        # Find specified layout sections to add fields to
-        layout_section_element = metadata.find(
-            "layoutSections", label=layout_section_name
+        page_props = {page["api_name"]: page for page in self._adding_pages}
+
+        layout_item_dict = self._add_items(self._adding_pages, api_name)
+
+        for page_item_key in layout_item_dict.keys():
+            page = page_props.get(page_item_key)
+            page_layout_item = layout_item_dict.get(page_item_key)
+            adding_page_name = page.get("api_name")
+
+            self.logger.info(f"Adding {adding_page_name} to {api_name}")
+
+            page_layout_item.append("page", adding_page_name)
+            page_layout_item.append("height", str(page.get("height", 200)))
+            page_layout_item.append(
+                "showLabel",
+                str(process_bool_arg(page.get("show_label") or False)).lower(),
+            )
+            page_layout_item.append(
+                "showScrollbars",
+                str(process_bool_arg(page.get("show_scrollbars") or False)).lower(),
+            )
+            page_layout_item.append("width", page.get("width", "100%"))
+
+    def _add_items(self, item_list, api_name):
+        """Iterate over a list of new layout items that will return a dict{api_name:MetadataElement}"""
+        ## If no items are passed in, do nothing
+        if len(item_list) == 0:
+            return
+
+        item_dict = {}
+
+        for item in item_list:
+            item_name = self._inject_namespace(item.get("api_name"))
+            if item_name in self._existing_names:
+                self.logger.warning(
+                    f"Skipped {item_name} because {item_name} is already present in {api_name}"
+                )
+                continue
+
+            item_dict[item_name] = self._position_item(item)
+
+        return item_dict
+
+    def _position_item(self, new_item):
+        """Returns new MetadataElement being added to the layout based on the positioning properties"""
+        new_item_name = new_item.get("api_name")
+        # Default to bottom of first section (index zero) of first column
+        default = {
+            "relative": "top",
+            "section": 0,
+            "column": "last",
+        }
+
+        # Position is optional
+        position = new_item.get("position", default)
+
+        relative_position = position.get("relative", default.get("relative"))
+
+        # Mutually exclusive, therefore a default is not specified for later validation
+        relative_field_name = (
+            self._inject_namespace(position.get("field"))
+            if position.get("field") is not None
+            else None
         )
+        relative_section_index = position.get("section")
+
+        # Enforce mutual exclusivity
+        if relative_field_name is not None and relative_section_index is not None:
+            raise CumulusCIException(
+                f"Cannot mix field relative and section relativity in the same position definition for field: {new_item_name}"
+            )
+
+        # Position is specified, however other positional information is omitted
+        if relative_field_name is None and relative_section_index is None:
+            raise CumulusCIException(
+                f"Position details are missing for: {new_item_name}. Please specify either a field or column."
+            )
+
+        # Field relative
+        if relative_field_name is not None and relative_position in (
+            "before",
+            "after",
+        ):
+
+            new_layout_item = self._new_layout_item(
+                relative_field_name, relative_position
+            )
+
+            # Gacefull fallback if field is not found
+            if new_layout_item is None:
+                relative_section_index = default.get("section")
+                relative_position = default.get("relative")
+
+        # Section relative
+        if relative_section_index is not None and relative_position in (
+            "top",
+            "bottom",
+        ):
+            new_layout_item = self._new_section_item(
+                relative_section_index,
+                relative_position,
+                position.get("column", default.get("column")),
+            )
 
         # If layout section doesn't exist, exit gracefully with appropriate message
-        if layout_section_element is None:
-            raise CumulusCIException("Layout section doesn't exist, task failed")
+        if new_layout_item is None:
+            raise CumulusCIException(
+                f"Layout placement could not be determined for field: {new_item_name}"
+            )
 
-        layout_columns_element = layout_section_element.find("layoutColumns")
+        return new_layout_item
 
-        for f in adding_fields:
-            layout_items_element = layout_columns_element.append("layoutItems")
-            layout_items_element.append("behavior", "Edit")
-            layout_items_element.append("field", f)
+    def _new_layout_item(self, field_text, position):
+        for section in self._metadata.findall("layoutSections"):
+            for col in section.findall("layoutColumns"):
+                for item in col.findall("layoutItems"):
+                    if item.field.text == field_text:
+                        return getattr(col, "insert_" + position)(item, "layoutItems")
+
+    def _new_section_item(self, index, position, column):
+        # Get section at index
+        sections = [section for section in self._metadata.findall("layoutSections")]
+        section = sections[index]
+        columns = [col for col in section.findall("layoutColumns")]
+        column = columns[1 if column == "last" else 0]
+        items = [item for item in column.findall("layoutItems")]
+        item = items[-1] if position == "bottom" else items[0]
+        item_relative_position = "before" if position == "top" else "after"
+        return getattr(column, "insert_" + item_relative_position)(item, "layoutItems")
 
 
 class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
