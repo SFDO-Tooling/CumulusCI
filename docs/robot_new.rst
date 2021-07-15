@@ -2,11 +2,11 @@
 Acceptance Testing with Robot Framework
 =======================================
 
-In addition to building packages, CumulusCI also provides the ability to create and run automated acceptance tests with `Robot Framework <http://robotframework.org>`_. This documentation shows how Robot Framework is integrated with CumulusCI, which makes it easy to write automated acceptance tests that interact with a Salesforce org.
+CumulusCI can help automate another important aspect of building packages: acceptance testing. It's the process of testing an application from the user's perspective as the final proof that the product meets its requirements.While there are plenty of testing tools, we're partial to Robot Framework, an acceptance testing framework that you can use with and within CumulusCI to create and run automated acceptance tests for your Salesforce projects.
 
-Robot Framework (or "Robot") is a keyword-driven acceptance testing framework. *Keyword-driven* means that test cases are made up of high-level keywords that let users write acceptance tests in an intuitive, human-readable language (``Open test browser``, ``Delete records and close browser``) rather than in a programming language. *Acceptance testing* refers to the process of testing an application from the user's perspective as the final proof that the product meets its requirements.
+Robot Framework (or just Robot) is a keyword-driven acceptance testing framework. *Keyword-driven* means that users can write test cases in an intuitive, human-readable language made up of high-level, reusable keywords (``Open test browser``, ``Delete records and close browser``) rather than in a programming language. 
 
-For example, here's a basic Robot test case to create a new ``Contact`` record.
+For example, in this basic Robot test case that creates a new ``Contact`` record, you can see how straightforward the keyword syntax is. Practically anyone can understand ``Salesforce Insert``, ``Salesforce Get``, and ``Should be equal``, even if someone is brand new to test automation.
 
 .. code-block:: robotframework
 
@@ -26,61 +26,43 @@ For example, here's a basic Robot test case to create a new ``Contact`` record.
       Should be equal  ${contact}[FirstName]    Eleanor
       Should be equal  ${contact}[LastName]     Rigby
 
-.. note::
-    This test is discussed in further detail later in this documentation.
 
 
+The Versatile Acceptance Tester
+-------------------------------
 
-Why Robot?
-----------
+Acceptance testing touches on multiple aspects of an application such as the data model, custom APIs, performance, and the user experience in the browser. Existing testing tools like Apex and Jest are good for writing unit tests and low-level integration tests. However, it can be difficult to understand the intent of a test, and the features being tested, when the test itself involves multiple lines of code detailing where to fetch data from, and how, and other such implementation details.
 
-Existing testing tools like Apex and Jest are good for writing unit tests and low-level integration tests. However, it can be difficult to separate the intent of the test, and the features being tested, from the implementation of the test when using those tools.
+Robot was designed specifically to address these problems associated with writing high-level acceptance tests for every aspect of an application, often in a single test suite. Here’s how:
 
-Robot was designed specifically to address problems associated with writing high-level acceptance tests using technology designed for unit and integration tests, making it an ideal acceptance testing framework for Salesforce. Here's why:
-
-* Human readable test cases: Robot test cases are designed to be easily understood by all stakeholders of a project, such as a product manager, scrum master, doc writer, and so on. It does this by utilizing a domain-specific language built upon reusable keywords. In the previous example, ``Salesforce Insert``, ``Salesforce Get`` and ``Should be equal`` are all keywords.
-* Libraries provide keywords: Robot organizes keywords into libraries, which provides a simple and effective method to organize and share keywords between tests and projects. Additionally, CumulusCI comes with a comprehensive standard library of Robot keywords created specifically to anticipate the needs of testers. In the previous example, when you define ``Salesforce.robot`` as a resource, it automatically pulls in dozens of Salesforce-specific keywords.
-* Elaborate processes are hidden: Keywords allow implementation details to be hidden from the test. In the previous example, a new ``Contact`` record is created with the ``Salesforce Insert`` keyword without the user seeing all the steps required to make an API call to create a ``Contact`` record.
-
-
-
-Robot & CumulusCI
------------------
- 
-CumulusCI's integration with Robot supports automated acceptance test scenarios useful to Salesforce projects, such as:
- 
-* Browser testing with Selenium
-* API-only tests interacting with the Salesforce REST, Bulk, and Tooling APIs
-* Complex org automation via CumulusCI
-* Combinations of all of the above
- 
-The ability to create rich, single-file acceptance tests that interact with CumulusCI's project-specific automation, Salesforce's APIs, and the Salesforce UI in a browser is the most exciting feature of the integration with Robot. Robot also makes it easy to automate even complex regression scenarios and tests for edge-case bugs just by writing Robot test suites, and with no need to change project automation in the ``cumulusci.yml`` file.
+* Human-readable test cases: Robot lets you create a domain-specific language (DSL), which takes a complex set of instructions and presents them in a human-readable language. In the case of Robot, this DSL is built upon reusable keywords that help design test cases that can be easily understood by all project stakeholders--not solely by the person who wrote the test.
+* Keyword libraries: Robot organizes keywords into libraries, which provide a simple, effective method to organize and share keywords between tests and projects. CumulusCI comes with a comprehensive standard library of Robot keywords created specifically to anticipate the needs of Salesforce testers. In the previous example, when you define ``Salesforce.robot`` as a resource, it automatically pulls in dozens of Salesforce-specific keywords.
+* Streamlined test cases: Keywords allow implementation details to be handled by the test but not explicitly itemized in the test. In the previous example, a new ``Contact`` record is created with the ``Salesforce Insert`` keyword, but we don't see all the steps required to make an API call to create the record.
 
 
 Custom Tasks
 ^^^^^^^^^^^^
 
-CumulusCI integrates Robot via custom tasks. The most common task is named ``robot``, but other tasks also make use of Robot Framework. Like with any task, you can get documentation and a list of arguments with the ``cci task info`` command. For example, ``cci task info robot_libdoc`` displays documentation for the ``robot_libdoc`` task.
+CumulusCI integrates with Robot via custom tasks. The most common task is named ``robot``, which runs one or more Robot tests. Here's a sampling of other Robot tasks.
 
-Robot tasks include:
-
-* ``robot``: Runs one or more Robot tests.
-* ``robot_libdoc``: Runs the `libdoc <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#library-documentation-tool-libdoc>`_ command, which creates an HTML file with documentation for all the keywords that are passed to it.
-* ``robot_testdoc``: Runs the `testdoc <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#test-data-documentation-tool-testdoc>`_ command, which creates an HTML file with documentation for one or more test cases. 
+* ``robot_libdoc``: Runs the `libdoc <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#library-documentation-tool-libdoc>`_ command, which creates an HTML file with documentation about all the keywords that are passed to it.
+* ``robot_testdoc``: Runs the `testdoc <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#test-data-documentation-tool-testdoc>`_ command, which creates an HTML file with documentation about one or more test cases.
 * ``robot_lint``: Runs the static analysis tool `rflint <https://github.com/boakley/robotframework-lint/>`_, which can validate Robot tests against a set of rules related to code quality.
+
+Like with any CumulusCi task, you can get documentation and a list of arguments with the ``cci task info`` command. For example, ``cci task info robot_libdoc`` displays documentation for the ``robot_libdoc`` task.
 
 
 Custom Keywords
 ^^^^^^^^^^^^^^^
 
-CumulusCI provides a set of keywords unique to both Salesforce and CumulusCI for acceptance testing. These keywords can run other tasks, interact with Salesforce applications, call Salesforce APIs, and so on. To learn more about these keywords, see `Keywords.html <Keywords.html>`_.
+CumulusCI provides a set of keywords unique to both Salesforce and CumulusCI for acceptance testing. These keywords can run other tasks, interact with Salesforce applications, call Salesforce APIs, and so on. To learn more about these keywords, see `Keywords.html <https://cumulusci.readthedocs.io/en/stable/Keywords.html>`_.
 
 
 
 Robot Directory Structure
 -------------------------
 
-When a project is initialized with ``cci project init``, several folders are created specifically for Robot tests and resources. This is the folder structure.
+When a project is initialized with ``cci project init``, this folder structure is created for Robot tests and resources.
 
 .. code-block:: console
 
