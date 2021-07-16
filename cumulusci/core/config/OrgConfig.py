@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import DependencyResolutionError
-from cumulusci.oauth.salesforce import jwt_session
+from cumulusci.oauth.salesforce import jwt_session, SANDBOX_LOGIN_URL
 from cumulusci.utils.fileutils import open_fs_resource
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
@@ -38,12 +38,14 @@ class OrgConfig(BaseConfig):
         self.global_org = global_org
 
         self.name = name
+        self.is_sandbox = config.get("sandbox") or False
         self._community_info_cache = {}
         self._latest_api_version = None
         self._installed_packages = None
         self._is_person_accounts_enabled = None
         self._multiple_currencies_is_enabled = False
-        super(OrgConfig, self).__init__(config)
+
+        super().__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
         """Get a fresh access token and store it in the org config.
@@ -60,12 +62,13 @@ class OrgConfig(BaseConfig):
             SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
             SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
             if SFDX_CLIENT_ID and SFDX_HUB_KEY:
+                auth_url = SANDBOX_LOGIN_URL if self.is_sandbox else self.id
                 info = jwt_session(
                     SFDX_CLIENT_ID,
                     SFDX_HUB_KEY,
                     self.username,
                     self.instance_url,
-                    auth_url=self.id,
+                    auth_url=auth_url,
                 )
             else:
                 info = self._refresh_token(keychain, connected_app)
