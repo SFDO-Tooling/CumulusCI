@@ -17,7 +17,6 @@ from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
-    PackageVersionIdDependency,
 )
 from cumulusci.core.dependencies.dependencies import UnmanagedGitHubRefDependency
 from cumulusci.core.keychain import BaseProjectKeychain
@@ -122,7 +121,7 @@ def task(project_config, devhub_config, org_config):
 @pytest.fixture
 def mock_download_extract_github():
     with mock.patch(
-        "cumulusci.tasks.create_package_version.download_extract_github"
+        "cumulusci.core.dependencies.dependencies.download_extract_github_from_repo"
     ) as download_extract_github:
         yield download_extract_github
 
@@ -198,8 +197,9 @@ class TestCreatePackageVersion:
         mock_get_static_dependencies,
         devhub_config,
     ):
-        mock_download_extract_github.return_value = zipfile.ZipFile(io.BytesIO(), "w")
-
+        zf = zipfile.ZipFile(io.BytesIO(), "w")
+        zf.writestr("unpackaged/pre/first/package.xml", "")
+        mock_download_extract_github.return_value = zf
         # _get_or_create_package() responses
         responses.add(  # query to find existing package
             "GET",

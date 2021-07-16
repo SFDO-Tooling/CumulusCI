@@ -341,7 +341,6 @@ class TestGitHubDynamicDependency:
             ),
             UnmanagedGitHubRefDependency(
                 github="https://github.com/SFDO-Tooling/RootRepo",
-                subfolder="src",
                 unmanaged=True,
                 ref="aaaaa",
             ),
@@ -612,10 +611,11 @@ class TestUnmanagedGitHubRefDependency:
         d.install(context, org)
 
         download_mock.assert_called_once_with(
-            context.get_repo_from_url.return_value, None, ref=d.ref
+            context.get_repo_from_url.return_value, ref=d.ref
         )
         zip_builder_mock.from_zipfile.assert_called_once_with(
             download_mock.return_value,
+            path=None,
             options={
                 "unmanaged": True,
                 "namespace_inject": None,
@@ -689,13 +689,13 @@ class TestUnmanagedZipURLDependency:
     @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
     @mock.patch("cumulusci.core.dependencies.dependencies.ApiDeploy")
     def test_install(self, api_deploy_mock, zip_builder_mock, download_mock):
-        d = UnmanagedZipURLDependency(zip_url="http://foo.com", subfolder="bar")
+        d = UnmanagedZipURLDependency(zip_url="http://foo.com")
 
         context = mock.Mock()
         org = mock.Mock()
         d.install(context, org)
 
-        download_mock.assert_called_once_with(d.zip_url, subfolder=d.subfolder)
+        download_mock.assert_called_once_with(d.zip_url)
 
         zip_builder_mock.from_zipfile.assert_called_once_with(
             download_mock.return_value,
@@ -704,6 +704,7 @@ class TestUnmanagedZipURLDependency:
                 "namespace_inject": None,
                 "namespace_strip": None,
             },
+            path=None,
             logger=mock.ANY,  # the logger
         )
         api_deploy_mock.assert_called_once_with(

@@ -85,7 +85,8 @@ class BasePackageZipBuilder(object):
 
 
 class MetadataPackageZipBuilder(BasePackageZipBuilder):
-    """Build a package zip from a metadata folder."""
+    """Build a package zip from a metadata folder. The specified
+    zipfile or path must be in Metadata API format."""
 
     def __init__(
         self,
@@ -99,35 +100,12 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         self.options = options or {}
         self.logger = logger or DEFAULT_LOGGER
 
-        self.zf = None
+        self.zf = zf
 
-        with contextlib.ExitStack() as stack:
-            temp_path = None
-
-            if zf is not None:
-                # Determine whether this zipfile is a Metadata API
-                # or SFDX-format source dir.
-                is_metadata_api = "package.xml" in zf.namelist()
-
-                if not is_metadata_api:
-                    # Decompress the zip file so we can convert
-                    # from SFDX to MDAPI format.
-                    temp_path = stack.enter_context(temporary_dir(chdir=True))
-
-                    zf.extractall()
-                else:
-                    self.zf = zf
-
-            if self.zf is None:
-                self._open_zip()
-
-            if path is not None or temp_path is not None:
-                # Either we are given a subfolder of the current dir,
-                # or we decompressed an SFDX zip file.
-                with self._convert_sfdx_format(
-                    path, name, force_convert=temp_path is not None
-                ) as mdapi_path:
-                    self._add_files_to_package(mdapi_path)
+        if self.zf is None:
+            self._open_zip()
+        if path is not None:
+            self._add_files_to_package(path)
 
         self._process()
 
@@ -135,33 +113,6 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
     def from_zipfile(cls, zf, *, path=None, options=None, logger=None):
         """Start with an existing zipfile rather than a filesystem folder."""
         return cls(zf=zf, path=path, options=options, logger=logger)
-
-    @contextlib.contextmanager
-    def _convert_sfdx_format(self, path, name, force_convert=False):
-        mdapi_path = None
-        with contextlib.ExitStack() as stack:
-            # convert sfdx -> mdapi format if path exists but does not have package.xml
-            if force_convert or (
-                path
-                and len(os.listdir(path))
-                and not pathlib.Path(path, "package.xml").exists()
-            ):
-                self.logger.info("Converting from SFDX to MDAPI format")
-                mdapi_path = stack.enter_context(temporary_dir(chdir=False))
-                args = ["-d", mdapi_path]
-                if path:
-                    # No path means convert default package directory.
-                    args += ["-r", path]
-                if name:
-                    args += ["-n", name]
-                sfdx(
-                    "force:source:convert",
-                    args=args,
-                    capture_output=True,
-                    check_return=True,
-                )
-
-            yield mdapi_path or path
 
     def _add_files_to_package(self, path):
         for file_path in self._find_files_to_package(path):

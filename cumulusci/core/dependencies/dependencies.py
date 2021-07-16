@@ -1,4 +1,11 @@
 import abc
+import contextlib
+from zipfile import ZipFile
+from cumulusci.core.sfdx import (
+    SourceFormat,
+    convert_sfdx_source,
+    get_source_format_for_zipfile,
+)
 from cumulusci.utils.ziputils import zip_subfolder
 import itertools
 import logging
@@ -30,7 +37,11 @@ from cumulusci.salesforce_api.package_install import (
     install_package_by_version_id,
 )
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
-from cumulusci.utils import download_extract_github_from_repo, download_extract_zip
+from cumulusci.utils import (
+    download_extract_github_from_repo,
+    download_extract_zip,
+    temporary_dir,
+)
 from cumulusci.utils.yaml.model_parser import CCIModel
 
 logger = logging.getLogger(__name__)
@@ -503,14 +514,13 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
         return self.unmanaged
 
     @abc.abstractmethod
-    def _get_zip_src(self, context: BaseProjectConfig):
+    def _get_zip_src(self, context: BaseProjectConfig) -> ZipFile:
         pass
 
-    def install(self, context: BaseProjectConfig, org: OrgConfig):
+    def get_metadata_package_zip_builder(
+        self, context: BaseProjectConfig, org: OrgConfig
+    ) -> MetadataPackageZipBuilder:
         zip_src = self._get_zip_src(context)
-
-        context.logger.info(f"Deploying unmanaged metadata from {self.description}")
-
         # Determine whether to inject namespace prefixes or not
         # If and only if we have no explicit configuration.
 
@@ -522,37 +532,62 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
 
         # We have a zip file. Now, determine how to handle
         # MDAPI/SFDX format, with or without a subfolder specified.
-        namelist = zip_src.namelist()
-        zip_extract_subfolder = None
 
         # In only two cases do we need to do a zip subset.
-        # Either we have a repo root in MDAPI format,
+        # Either we have a repo root in MDAPI format and need to get `src`,
         # or we're deploying a subfolder that is in MDAPI format.
-        if not self.subfolder and "src/package.xml" in namelist:
-            # Metadata API format, deploy `src`
+        zip_extract_subfolder = None
+        if (
+            not self.subfolder
+            and get_source_format_for_zipfile(zip_src, "src") is SourceFormat.MDAPI
+        ):
             zip_extract_subfolder = "src"
-        elif self.subfolder and f"{self.subfolder}/package.xml" in namelist:
-            # Subfolder contains Metadata API source.
+        elif (
+            self.subfolder
+            and get_source_format_for_zipfile(zip_src, self.subfolder)
+            is SourceFormat.MDAPI
+        ):
             zip_extract_subfolder = self.subfolder
 
         if zip_extract_subfolder:
             zip_src = zip_subfolder(zip_src, zip_extract_subfolder)
 
-        # We now know what to send to MetadataPackageZipBuilder
-        # Note we pass our own `subfolder` if and only if
-        # we didn't subset the zip file - this is the SFDX
-        # subfolder case. Otherwise, we already applied the
-        # subfolder via `zip_subfolder`.
+        source_format = get_source_format_for_zipfile(
+            zip_src, self.subfolder if not zip_extract_subfolder else None
+        )
 
-        package_zip = MetadataPackageZipBuilder.from_zipfile(
-            zip_src,
-            path=self.subfolder if not zip_subfolder else None,
-            options=options,
-            logger=logger,
-        ).as_base64()
+        real_path = None
+        package_zip = None
+        with contextlib.ExitStack() as stack:
+            if source_format is SourceFormat.SFDX:
+                # Convert source first.
+                stack.enter_context(temporary_dir(chdir=True))
+                zip_src.extractall()
+                real_path = stack.enter_context(
+                    convert_sfdx_source(self.subfolder, None, context.logger)
+                )
+
+            # We now know what to send to MetadataPackageZipBuilder
+            # Note that subfolder logic is applied either by subsetting the zip
+            # (for MDAPI) or by the conversion (for SFDX format)
+
+            package_zip = MetadataPackageZipBuilder.from_zipfile(
+                zip_src,
+                path=real_path,
+                options=options,
+                logger=logger,
+            )
+
+        return package_zip
+
+    def install(self, context: BaseProjectConfig, org: OrgConfig):
+
+        context.logger.info(f"Deploying unmanaged metadata from {self.description}")
+
+        package_zip_builder = self.get_metadata_package_zip_builder(context, org)
         task = TaskContext(org_config=org, project_config=context, logger=logger)
+        api = ApiDeploy(task, package_zip_builder.as_base64())
 
-        api = ApiDeploy(task, package_zip)
         return api()
 
 
