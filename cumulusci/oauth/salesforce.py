@@ -35,6 +35,8 @@ def jwt_session(client_id, private_key, username, url=None, auth_url=None):
             if auth_url.startswith(SANDBOX_LOGIN_URL)
             else PROD_LOGIN_URL
         )
+    elif "sandbox" in url:
+        url = SANDBOX_LOGIN_URL
     else:
         aud = PROD_LOGIN_URL
         if url is None:
