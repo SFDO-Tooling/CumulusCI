@@ -120,5 +120,5 @@ class CreateCommunity(BaseSalesforceApiTask):
 
     def _get_community(self):
         community_list = self.sf.restful("connect/communities")["communities"]
-        communities = {c["name"].casefold(): c for c in community_list}
-        return communities.get(self.options["name"].casefold())
+        communities = {c["name"].lower().upper(): c for c in community_list}
+        return communities.get(self.options["name"].lower().upper())
