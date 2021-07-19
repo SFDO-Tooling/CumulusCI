@@ -187,8 +187,8 @@ class TestPackageConfig:
 
 
 class TestCreatePackageVersion:
-    devhub_base_url = "https://devhub.my.salesforce.com/services/data/v50.0"
-    scratch_base_url = "https://scratch.my.salesforce.com/services/data/v50.0"
+    devhub_base_url = "https://devhub.my.salesforce.com/services/data/v52.0"
+    scratch_base_url = "https://scratch.my.salesforce.com/services/data/v52.0"
 
     @responses.activate
     def test_run_task(
@@ -245,7 +245,7 @@ class TestCreatePackageVersion:
         responses.add(  # get dependency org API version
             "GET",
             "https://scratch.my.salesforce.com/services/data",
-            json=[{"version": "50.0"}],
+            json=[{"version": "52.0"}],
         )
         responses.add(  # query for dependency org installed packages
             "GET",
