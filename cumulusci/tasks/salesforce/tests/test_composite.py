@@ -105,7 +105,7 @@ class TestCompositeApi:
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/composite",
+            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
             status=200,
             json=COMPOSITE_RESPONSE,
         )
@@ -131,7 +131,7 @@ class TestCompositeApi:
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/composite",
+            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
             status=200,
             json=COMPOSITE_RESPONSE,
         )
@@ -189,7 +189,7 @@ class TestCompositeApi:
         }
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/composite",
+            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
             status=200,
             json=error_response,
         )
