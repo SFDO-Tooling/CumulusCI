@@ -1,7 +1,6 @@
 import contextlib
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
 import json
-import os
 import pathlib
 import textwrap
 from typing import Optional
@@ -74,7 +73,7 @@ def build_settings_package(
 ):
     with temporary_dir() as path:
         if settings:
-            os.mkdir("settings")
+            pathlib.Path("settings").mkdir()
             for section, section_settings in settings.items():
                 settings_name = capitalize(section)
                 if section == "orgPreferenceSettings":
@@ -98,7 +97,7 @@ def build_settings_package(
                     )
 
         if object_settings:
-            os.mkdir("objects")
+            pathlib.Path("objects").mkdir()
             for obj_lower_name, this_obj_settings in object_settings.items():
                 object_name = capitalize(obj_lower_name)
                 file_content = _get_object_file(object_name, this_obj_settings)
