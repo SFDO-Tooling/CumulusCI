@@ -566,6 +566,7 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
                 real_path = stack.enter_context(
                     convert_sfdx_source(self.subfolder, None, context.logger)
                 )
+                zip_src = None  # Don't use the zipfile if we converted source.
 
             # We now know what to send to MetadataPackageZipBuilder
             # Note that subfolder logic is applied either by subsetting the zip
@@ -575,7 +576,7 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
                 zip_src,
                 path=real_path,
                 options=options,
-                logger=logger,
+                logger=context.logger,
             )
 
         return package_zip

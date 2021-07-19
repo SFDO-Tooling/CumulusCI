@@ -17,6 +17,7 @@ from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
 )
 from cumulusci.core.dependencies.dependencies import UnmanagedGitHubRefDependency
 from cumulusci.core.keychain import BaseProjectKeychain
@@ -105,7 +106,7 @@ def task(project_config, devhub_config, org_config):
                     "package_name": "Test Package",
                     "static_resource_path": "static-resources",
                     "ancestor_id": "04t000000000000",
-                    "create_unlocked_dependency_packages": True
+                    "create_unlocked_dependency_packages": True,
                 }
             }
         ),
@@ -582,12 +583,17 @@ class TestCreatePackageVersion:
 
     def test_convert_project_dependencies__no_unlocked_packages(self, task):
         task.options["create_unlocked_dependency_packages"] = False
-        assert task._convert_project_dependencies(
-            [
-                PackageVersionIdDependency(version_id="04t000000000000"), 
-                UnmanagedGitHubRefDependency(github="https://github.com/test/test", ref="abcdef")
-            ]
-        ) == [{"subscriberPackageVersionId": "04t000000000000"}]
+        assert (
+            task._convert_project_dependencies(
+                [
+                    PackageVersionIdDependency(version_id="04t000000000000"),
+                    UnmanagedGitHubRefDependency(
+                        github="https://github.com/test/test", ref="abcdef"
+                    ),
+                ]
+            )
+            == [{"subscriberPackageVersionId": "04t000000000000"}]
+        )
 
     def test_unpackaged_pre_dependencies__none(self, task):
         shutil.rmtree(str(pathlib.Path(task.project_config.repo_root, "unpackaged")))
