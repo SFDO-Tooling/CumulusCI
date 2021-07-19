@@ -6,7 +6,7 @@ from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTa
 
 class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
 
-    api_version = "50.0"
+    api_version = "52.0"
 
     task_options = {
         "context": {

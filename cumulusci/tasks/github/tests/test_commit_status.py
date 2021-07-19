@@ -50,7 +50,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
         )
         responses.add(
             "GET",
-            "https://salesforce/services/data/v50.0/tooling/query/",
+            "https://salesforce/services/data/v52.0/tooling/query/",
             json={
                 "records": [
                     {"Dependencies": {"ids": [{"subscriberPackageVersionId": "04t_2"}]}}
@@ -170,7 +170,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
     def test_get_dependencies__version_not_found(self):
         responses.add(
             "GET",
-            "https://salesforce/services/data/v50.0/tooling/query/",
+            "https://salesforce/services/data/v52.0/tooling/query/",
             json={"records": []},
         )
 
