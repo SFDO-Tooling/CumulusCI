@@ -1057,6 +1057,7 @@ flows:
           version_base: latest_github_release
           version_type: minor
           force_upload: True
+          create_unlocked_dependency_packages: False
       2:
         task: github_release
         options:
