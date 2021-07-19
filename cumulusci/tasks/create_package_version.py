@@ -193,7 +193,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         "create_unlocked_dependency_packages": {
             "description": "If True, create unlocked packages for unpackaged metadata in this project and dependencies. "
             "Defaults to False."
-        }
+        },
     }
 
     def _init_options(self, kwargs):
@@ -432,9 +432,11 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     package_descriptor[key] = scratch_org_def[key]
 
             # Add settings
-            if "settings" in scratch_org_def:
+            if "settings" in scratch_org_def or "objectSettings" in scratch_org_def:
                 with build_settings_package(
-                    scratch_org_def["settings"], self.api_version
+                    scratch_org_def.get("settings"),
+                    scratch_org_def.get("objectSettings"),
+                    self.api_version,
                 ) as path:
                     settings_zip_builder = MetadataPackageZipBuilder(path=path)
                     version_info.writestr(
@@ -608,10 +610,14 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     version_id = self._create_unlocked_package_from_github(
                         dependency, new_dependencies
                     )
-                    self.logger.info(f"Adding dependency {dependency} with id {version_id}")
+                    self.logger.info(
+                        f"Adding dependency {dependency} with id {version_id}"
+                    )
                     new_dependency["subscriberPackageVersionId"] = version_id
                 else:
-                    self.logger.info(f"Skipping dependency {dependency} because create_unlocked_dependency_packages is False.")
+                    self.logger.info(
+                        f"Skipping dependency {dependency} because create_unlocked_dependency_packages is False."
+                    )
                     continue
             else:
                 raise DependencyLookupError(
@@ -629,7 +635,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             return dependencies
 
         if not self.options["create_unlocked_dependency_packages"]:
-            self.logger.info("Skipping unpackaged/pre dependencies because create_unlocked_dependency_packages is False.")
+            self.logger.info(
+                "Skipping unpackaged/pre dependencies because create_unlocked_dependency_packages is False."
+            )
             return dependencies
 
         for item_path in sorted(path.iterdir(), key=str):

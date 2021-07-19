@@ -3,11 +3,15 @@ import base64
 import io
 import json
 import os
+import pathlib
 import zipfile
 
 import pytest
 
-from cumulusci.tasks.salesforce.org_settings import DeployOrgSettings
+from cumulusci.tasks.salesforce.org_settings import (
+    DeployOrgSettings,
+    build_settings_package,
+)
 from cumulusci.utils import temporary_dir
 from .util import create_task
 
@@ -43,7 +47,8 @@ class TestDeployOrgSettings:
             == """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
-        <members>*</members>
+        <members>OrgPreference</members>
+        <members>Other</members>
         <name>Settings</name>
     </types>
     <version>48.0</version>
@@ -92,7 +97,8 @@ class TestDeployOrgSettings:
             == """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
-        <members>*</members>
+        <members>OrgPreference</members>
+        <members>Other</members>
         <name>Settings</name>
     </types>
     <version>48.0</version>
@@ -155,7 +161,8 @@ class TestDeployOrgSettings:
             == """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
-        <members>*</members>
+        <members>OrgPreference</members>
+        <members>Other</members>
         <name>Settings</name>
     </types>
     <version>48.0</version>
@@ -217,3 +224,91 @@ class TestDeployOrgSettings:
 def readtext(zf, name):
     with zf.open(name, "r") as f:
         return io.TextIOWrapper(f).read()
+
+
+class TestBuildSettingsPackage:
+    def test_build_settings_package(self):
+        settings = {
+            "otherSettings": {
+                "nested": {
+                    "boolValue": True,
+                    "stringValue": "string",
+                },
+            }
+        }
+        object_settings = {
+            "account": {
+                "defaultRecordType": "Default",
+                "sharingModel": "Public",
+            },
+            "solution": {"defaultRecordType": "Default"},
+        }
+        with build_settings_package(settings, object_settings, "48.0") as path:
+            assert (
+                (pathlib.Path(path) / "package.xml").read_text()
+                == """<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>Solution.DefaultSolution</members>
+        <name>BusinessProcess</name>
+    </types>
+    <types>
+        <members>Account.Default</members>
+        <members>Solution.Default</members>
+        <name>RecordType</name>
+    </types>
+    <types>
+        <members>Other</members>
+        <name>Settings</name>
+    </types>
+    <version>48.0</version>
+</Package>"""
+            )
+            assert (
+                (pathlib.Path(path) / "settings" / "Other.settings").read_text()
+                == """<?xml version="1.0" encoding="UTF-8"?>
+<OtherSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <nested>
+        <boolValue>true</boolValue>
+        <stringValue>string</stringValue>
+    </nested>
+</OtherSettings>"""
+            )
+            assert (
+                (pathlib.Path(path) / "objects" / "Account.object").read_text()
+                == """<?xml version="1.0" encoding="UTF-8"?>
+<Object xmlns="http://soap.sforce.com/2006/04/metadata">
+    <sharingModel>Public</sharingModel>
+    <recordTypes>
+        <fullName>Default</fullName>
+        <label>Default</label>
+        <active>true</active>
+        
+    </recordTypes>
+        
+
+</Object>"""
+            )
+            print((pathlib.Path(path) / "objects" / "Solution.object").read_text())
+            assert (
+                (pathlib.Path(path) / "objects" / "Solution.object").read_text()
+                == """<?xml version="1.0" encoding="UTF-8"?>
+<Object xmlns="http://soap.sforce.com/2006/04/metadata">
+
+    <recordTypes>
+        <fullName>Default</fullName>
+        <label>Default</label>
+        <active>true</active>
+        <businessProcess>DefaultSolution</businessProcess>
+    </recordTypes>
+        
+    <businessProcesses>
+        <fullName>DefaultSolution</fullName>
+        <isActive>true</isActive>
+        <values>
+            <fullName>Draft</fullName>
+            
+        </values>
+    </businessProcesses>
+</Object>"""
+            )
