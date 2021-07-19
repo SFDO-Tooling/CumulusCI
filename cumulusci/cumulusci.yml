@@ -1262,7 +1262,7 @@ project:
     namespace:
     install_class:
     uninstall_class:
-    api_version: "50.0"
+    api_version: "52.0"
   git:
     default_branch: master
     prefix_feature: feature/

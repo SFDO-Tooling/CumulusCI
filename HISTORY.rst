@@ -2,6 +2,13 @@
 History
 =======
 
+3.39.1 (2021-07-08)
+-------------------
+
+Changes:
+
+* Fix a bug with the integration of CumulusCI and the new SOQLQuery Feature
+
 3.39.0 (2021-07-08)
 -------------------
 
