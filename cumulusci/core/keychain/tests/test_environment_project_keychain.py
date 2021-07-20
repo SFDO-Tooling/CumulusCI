@@ -9,6 +9,7 @@ from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain import EnvironmentProjectKeychain
+from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.core.tests.utils import EnvironmentVarGuard
 
@@ -184,3 +185,16 @@ class TestEnvironmentProjectKeychain(ProjectKeychainTestMixin):
     def test_set_and_get_scratch_org(self):
         self._clean_env(self.env)
         super(TestEnvironmentProjectKeychain, self).test_set_and_get_scratch_org()
+
+    def test_load_built_in_connected_app(self):
+        keychain = self.keychain_class(self.project_config, self.key)
+        # clear out any connected apps that are present
+        keychain.config["services"]["connected_app"] = {}
+        # clear out any default services
+        keychain._default_services = {}
+
+        keychain._load_default_connected_app()
+        keychain._load_default_services()
+
+        connected_app = keychain.get_service("connected_app")
+        assert connected_app is DEFAULT_CONNECTED_APP
