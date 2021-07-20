@@ -3,6 +3,7 @@ import os
 
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig, ServiceConfig
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
 from cumulusci.core.utils import import_global
 
 scratch_org_class = os.environ.get("CUMULUSCI_SCRATCH_ORG_CLASS")
@@ -53,6 +54,13 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
     def _load_default_services(self):
         for service_type in self.services:
             self._default_services[service_type] = "env"
+
+        # If there are no connected_app services loaded
+        # then set the built-in connected_app as the default.
+        # The built-in is always loaded, so 2 or more would indicate
+        # the presence of a user-provided connected app.
+        if len(self.config["services"]["connected_app"]) == 1:
+            self._default_services["connected_app"] = DEFAULT_CONNECTED_APP_NAME
 
     def cleanup_org_cache_dirs(self):
         pass
