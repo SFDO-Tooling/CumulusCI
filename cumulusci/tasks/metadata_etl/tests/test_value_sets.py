@@ -11,6 +11,7 @@ from cumulusci.tasks.metadata_etl.value_sets import OPP_STAGE_ERR
 from cumulusci.tasks.metadata_etl.value_sets import FULL_NAME_AND_LABEL_ERR
 from cumulusci.utils.xml import metadata_tree
 
+
 MD = "{%s}" % "http://soap.sforce.com/2006/04/metadata"
 VALUESET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <StandardValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
