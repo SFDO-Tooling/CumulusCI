@@ -16,7 +16,7 @@ from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
 )
 from snowfakery import data_generator_runtime, data_generator
 
-sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.yml"
+sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.recipe.yml"
 simple_yaml = Path(__file__).parent / "snowfakery/include_parent.yml"
 simple_snowfakery_yaml = (
     Path(__file__).parent / "snowfakery/simple_snowfakery.recipe.yml"

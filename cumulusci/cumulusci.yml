@@ -458,6 +458,12 @@ tasks:
     description: Tell SFDX source tracking to ignore previous changes in a scratch org
     class_path: cumulusci.tasks.salesforce.sourcetracking.SnapshotChanges
     group: Salesforce Metadata
+  snowfakery:
+    description: Generate and load data from a Snowfakery recipe
+    class_path: cumulusci.tasks.bulkdata.snowfakery.Snowfakery
+    group: Data Operations
+    options:
+      recipe: datasets/recipe.yml
   revert_managed_src:
     description: Reverts the changes from create_managed_src
     class_path: cumulusci.tasks.metadata.managed_src.RevertManagedSrc
@@ -1051,6 +1057,7 @@ flows:
           version_base: latest_github_release
           version_type: minor
           force_upload: True
+          create_unlocked_dependency_packages: False
       2:
         task: github_release
         options:
@@ -1256,7 +1263,7 @@ project:
     namespace:
     install_class:
     uninstall_class:
-    api_version: "50.0"
+    api_version: "52.0"
   git:
     default_branch: master
     prefix_feature: feature/

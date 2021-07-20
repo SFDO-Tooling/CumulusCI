@@ -88,7 +88,7 @@ class TestCreateRecord:
         )
         responses.add(
             responses.POST,
-            re.compile(r"https://test.salesforce.com/services/data/v50.0/.*"),
+            re.compile(r"https://test.salesforce.com/services/data/v52.0/.*"),
             content_type="application/json",
             status=404,
             json={

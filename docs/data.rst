@@ -607,8 +607,8 @@ Examples
 Generate Fake Data
 ==================
 It is possible to use CumulusCI to generate arbitrary amounts of
-synthetic data using the ``generate_and_load_from_yaml`` 
-`task <https://cumulusci.readthedocs.io/en/latest/tasks.html#generate-and-load-from-yaml>`_. That
+synthetic data using the ``snowfakery`` 
+`task <https://cumulusci.readthedocs.io/en/latest/tasks.html#snowfakery>`_. That
 task is built on the `Snowfakery language
 <https://snowfakery.readthedocs.io/en/docs/>`_. CumulusCI ships
 with Snowfakery embedded, so you do not need to install it.
@@ -619,33 +619,40 @@ writing them in the `Snowfakery docs
 
 Once you have it, you can fill an org with data like this:
 
-``$ cci task run generate_and_load_from_yaml -o generator_yaml
+``$ cci task run snowfakery --recipe
 datasets/some_snowfakery_recipe.yml``
 
 If you would like to execute the recipe multiple times to generate
 more data, you do so like this:
 
-``$ cci task run generate_and_load_from_yaml -o generator_yaml
-datasets/some_snowfakery_recipe.yml -o num_records 1000 -o num_records_tablename
-Account â€”-org dev``
+``$ cci task run generate_and_load_from_yaml --run-until-recipe-repeated 400``
 
-``generator_yaml`` is a reference to your Snowfakery recipe.
+Which will repeat the recipe 400 times.
 
-``num_records_tablename`` says what record type will control how
-many records are created.
+There are two other ways to control how many times the recipe is repeated:
+`--run-until-records-loaded` and `--run-until-records-in-org`.
 
-``num_records`` says how many of that record type ("Account" in
-this case) to make.
 
 Generated Record Counts
 -----------------------
 
+Consider this example:
+
+``$ cci task run snowfakery --run-until-records-loaded 1000:Account``
+
+This would say to run the recipe until the task has loaded 1000 new Accounts. In the process,
+it might also load Contacts, Opportunities, custom objects oor whatever else is in the recipe.
+But it finishes when it has loaded 400 Accounts.
+
 The counting works like this:
 
   * Snowfakery always executes a *complete* recipe. It never stops halfway through.
+    If your recipe creates more records than you need, you might overshoot. Usually
+    the amount of overshoot is just a few records, but it depends on the details of
+    your recipe.
   
   * At the end of executing a recipe, it checks whether it has
-    created enough of the object type defined by ``num_records_tablename``
+    created enough of the object type mentioned by the `--run-until-records-loaded` parameter.
   
   * If so, it finishes. If not, it runs the recipe again.
 
@@ -653,6 +660,15 @@ So if your recipe creates 10 Accounts, 5 Contacts and 15 Opportunities,
 then when you run the command above it will run the recipe
 100 times (100*10=1000) which will generate 1000 Accounts, 500 Contacts
 and 1500 Opportunities.
+
+`--run-until-records-in-org` works similarly, but it determines how many
+times to run the recipe based on how many records are in the org at the
+start. For example, if the org already has 300 Accounts in it then:
+
+``$ cci task run snowfakery --run-until-records-in-org 1000:Account``
+
+Would be equivalent to `--run-until-records-loaded 700:Account` because
+one needs to add 700 Accounts to the 300 resdent ones to get to 1000.
 
 Controlling the Loading Process
 -------------------------------
