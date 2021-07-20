@@ -56,7 +56,7 @@ def task(project_config, devhub_config, org_config):
 
 
 class TestPromotePackageVersion(GithubApiTestMixin):
-    devhub_base_url = "https://devhub.my.salesforce.com/services/data/v50.0"
+    devhub_base_url = "https://devhub.my.salesforce.com/services/data/v52.0"
 
     def _mock_target_package_api_calls(self):
         responses.add(  # query for main package's Package2Version info
