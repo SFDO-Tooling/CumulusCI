@@ -104,8 +104,8 @@ class SourceFormat(str, enum.Enum):
     MDAPI = "MDAPI"
 
 
-def get_source_format_for_path(path: PathLike) -> SourceFormat:
-    if pathlib.Path(path, "package.xml").exists():
+def get_source_format_for_path(path: T.Optional[PathLike]) -> SourceFormat:
+    if pathlib.Path(path or pathlib.Path.cwd(), "package.xml").exists():
         return SourceFormat.MDAPI
 
     return SourceFormat.SFDX
@@ -132,8 +132,8 @@ def convert_sfdx_source(
     with contextlib.ExitStack() as stack:
         # Convert SFDX -> MDAPI format if path exists but does not have package.xml
         if (
-            len(os.listdir(path or "."))
-            and get_source_format_for_path(path or ".") is SourceFormat.SFDX
+            len(os.listdir(path))  # path == None -> CWD
+            and get_source_format_for_path(path) is SourceFormat.SFDX
         ):
             logger.info("Converting from SFDX to MDAPI format.")
             mdapi_path = stack.enter_context(temporary_dir(chdir=False))
