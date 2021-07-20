@@ -25,6 +25,111 @@ ORG_KEY = "bar"
 
 
 @pytest.fixture
+def metadata_package_versions(metadata_package):
+    return [
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="3",
+            minor="1",
+            patch="1",
+            build="1",
+        ),
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="2",
+            minor="1",
+            patch="1",
+            build="1",
+        ),
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="1",
+            minor="1",
+            patch="1",
+            build="1",
+        ),
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="1",
+            minor="1",
+            patch="1",
+            build="1",
+        ),
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="1",
+            minor="89",
+            patch="1",
+            build="1",
+        ),
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="89",
+            minor="1",
+            patch="1",
+            build="1",
+        ),
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="1",
+            minor="1",
+            patch="89",
+            build="1",
+        ),
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="1",
+            minor="1",
+            patch="1",
+            build="89",
+        ),
+        MetadataPackageVersion(
+            push_api=PUSH_API,
+            package=metadata_package,
+            name=NAME,
+            sf_id=SF_ID,
+            state="Beta",
+            major="4",
+            minor="3",
+            patch="1",
+            build="1",
+        ),
+    ]
+
+
+@pytest.fixture
 def sf_push_api():
     return SalesforcePushApi(sf=mock.Mock(), logger=mock.Mock())
 
@@ -44,10 +149,10 @@ def metadata_package_version(metadata_package):
         name=NAME,
         sf_id=SF_ID,
         state="Beta",
-        major="1",
-        minor="2",
-        patch="3",
-        build="4",
+        major="4",
+        minor="3",
+        patch="2",
+        build="1",
     )
 
 
@@ -155,7 +260,7 @@ def test_metadata_package_get_versions_by_id(metadata_package):
 
 
 def test_metadata_package_version_version_number(metadata_package_version):
-    expected = "1.2.3 (Beta 4)"
+    expected = "4.3.2 (Beta 1)"
     actual = metadata_package_version.version_number
     assert expected == actual
 
@@ -589,25 +694,25 @@ def test_version_init(metadata_package):
         name=NAME,
         sf_id=SF_ID,
         state="Beta",
-        major="1",
-        minor="2",
-        patch="3",
-        build="4",
+        major="4",
+        minor="3",
+        patch="2",
+        build="1",
     )
     assert package.push_api == PUSH_API
     assert package.package == metadata_package
     assert package.name == NAME
     assert package.sf_id == SF_ID
     assert package.state == "Beta"
-    assert package.major == "1"
-    assert package.minor == "2"
-    assert package.patch == "3"
-    assert package.build == "4"
+    assert package.major == "4"
+    assert package.minor == "3"
+    assert package.patch == "2"
+    assert package.build == "1"
 
 
 def test_version_number(metadata_package_version):
     actual = metadata_package_version.version_number
-    expected = "1.2.3 (Beta 4)"
+    expected = "4.3.2 (Beta 1)"
     assert actual == expected
 
 
@@ -660,7 +765,7 @@ def test_metadata_package_push_requests_by_id(metadata_package_version):
 
 
 def test_version_get_newer_query(metadata_package_version):
-    expected = "MetadataPackageId = '033xxxxxxxxx' AND (MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released' AND (MajorVersion > 1 OR (MajorVersion = 1 AND MinorVersion > 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion >= 3)))"
+    expected = "MetadataPackageId = '033xxxxxxxxx' AND (MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released')"
     metadata_package_version.get_newer_released_version_objs()
     metadata_package_version.package.push_api.get_package_version_objs.assert_called_once_with(
         expected, None
@@ -668,15 +773,15 @@ def test_version_get_newer_query(metadata_package_version):
 
 
 def test_version_get_older_query(metadata_package_version):
-    expected = "MetadataPackageId = '033xxxxxxxxx' AND (MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released' AND (MajorVersion < 1 OR (MajorVersion = 1 AND MinorVersion < 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion < 3)))"
+    expected = "MetadataPackageId = '033xxxxxxxxx' AND (MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released')"
     metadata_package_version.get_older_released_version_objs()
     metadata_package_version.package.push_api.get_package_version_objs.assert_called_once_with(
         expected, None
     )
 
 
-def test_version_greater_than_query(metadata_package_version, metadata_package):
-    expected = "MetadataPackageId = '033xxxxxxxxx' AND (MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released' AND (MajorVersion < 1 OR (MajorVersion = 1 AND MinorVersion < 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion < 3)) AND (MajorVersion > 2 OR (MajorVersion = 2 AND MinorVersion > 2) OR (MajorVersion = 2 AND MinorVersion = 2 AND PatchVersion >= 2)))"
+def test_version_min_version_query(metadata_package_version, metadata_package):
+    expected = "MetadataPackageId = '033xxxxxxxxx' AND (MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released')"
     greater_than = MetadataPackageVersion(
         push_api=PUSH_API,
         package=metadata_package,
@@ -694,8 +799,34 @@ def test_version_greater_than_query(metadata_package_version, metadata_package):
     )
 
 
+def test_version_min_version_query_integration(
+    metadata_package_version, metadata_package_versions, metadata_package
+):
+    expected = "MetadataPackageId = '033xxxxxxxxx' AND (MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released')"
+    min_version = MetadataPackageVersion(
+        push_api=PUSH_API,
+        package=metadata_package,
+        name=NAME,
+        sf_id=SF_ID,
+        state="Beta",
+        major="2",
+        minor="1",
+        patch="1",
+        build="1",
+    )
+    metadata_package_version.package.push_api.get_package_version_objs.return_value = (
+        metadata_package_versions
+    )
+    assert (
+        len(metadata_package_version.get_older_released_version_objs(min_version)) == 3
+    )
+    metadata_package_version.package.push_api.get_package_version_objs.assert_called_once_with(
+        expected, None
+    )
+
+
 def test_version_get_newer(metadata_package_version):
-    expected = "MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released' AND (MajorVersion > 1 OR (MajorVersion = 1 AND MinorVersion > 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion >= 3))"
+    expected = "MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released'"  # AND (MajorVersion > 1 OR (MajorVersion = 1 AND MinorVersion > 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion >= 3))"
     metadata_package_version.package.get_package_version_objs = mock.MagicMock()
     metadata_package_version.get_newer_released_version_objs()
     metadata_package_version.package.get_package_version_objs.assert_called_once_with(
@@ -703,10 +834,28 @@ def test_version_get_newer(metadata_package_version):
     )
 
 
-def test_version_get_older(metadata_package_version):
-    expected = "MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released' AND (MajorVersion < 1 OR (MajorVersion = 1 AND MinorVersion < 2) OR (MajorVersion = 1 AND MinorVersion = 2 AND PatchVersion < 3))"
+def test_version_get_older(
+    metadata_package_version, metadata_package_versions, metadata_package
+):
+    expected = "MetadataPackageId = '033xxxxxxxxx' AND ReleaseState = 'Released'"
     metadata_package_version.package.get_package_version_objs = mock.MagicMock()
-    metadata_package_version.get_older_released_version_objs()
+    metadata_package_version.package.get_package_version_objs.return_value = (
+        metadata_package_versions
+    )
+    min_version = MetadataPackageVersion(
+        push_api=PUSH_API,
+        package=metadata_package,
+        name=NAME,
+        sf_id=SF_ID,
+        state="Beta",
+        major="1",
+        minor="1",
+        patch="1",
+        build="1",
+    )
+    assert (
+        len(metadata_package_version.get_older_released_version_objs(min_version)) == 8
+    )
     metadata_package_version.package.get_package_version_objs.assert_called_once_with(
         expected
     )

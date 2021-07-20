@@ -40,6 +40,7 @@ SANDBOX_LOGIN_URL = (
     os.environ.get("SF_SANDBOX_LOGIN_URL") or "https://test.salesforce.com"
 )
 PROD_LOGIN_URL = os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforce.com"
+PORT_IN_USE_ERR = "Cannot listen for callback, as port {} is already in use."
 
 
 def create_key_and_self_signed_cert():
@@ -121,8 +122,6 @@ class OAuth2Client(object):
         """
         assert self.client_config.redirect_uri
         auth_uri_with_params = self._get_auth_uri(**kwargs)
-        # Open a browser and direct the user to login
-        webbrowser.open(auth_uri_with_params, new=1)
         # Open up an http daemon to listen for the
         # callback from the auth server
         self.httpd = self._create_httpd()
@@ -132,6 +131,8 @@ class OAuth2Client(object):
             "If you are unable to log in to Salesforce you can"
             " press <Ctrl+C> to kill the server and return to the command line."
         )
+        # Open a browser and direct the user to login
+        webbrowser.open(auth_uri_with_params, new=1)
         # Implement the 300 second timeout
         timeout_thread = HTTPDTimeout(self.httpd, self.httpd_timeout)
         timeout_thread.start()
@@ -175,10 +176,20 @@ class OAuth2Client(object):
         for the callback from the auth server"""
         url_parts = urlparse(self.client_config.redirect_uri)
         use_https = url_parts.scheme == "https"
-        server_address = (url_parts.hostname, url_parts.port)
+        hostname = url_parts.hostname
+        port = url_parts.port
+
+        server_address = (hostname, port)
         OAuthCallbackHandler.parent = self
 
-        httpd = HTTPServer(server_address, OAuthCallbackHandler)
+        try:
+            httpd = HTTPServer(server_address, OAuthCallbackHandler)
+        except OSError as e:
+            if self._address_in_use_error(e):
+                raise OAuth2Error(PORT_IN_USE_ERR.format(port))
+            else:
+                raise
+
         if use_https:
             if not Path("localhost.pem").is_file() or not Path("key.pem").is_file():
                 create_key_and_self_signed_cert()
@@ -192,6 +203,13 @@ class OAuth2Client(object):
 
         httpd.timeout = self.httpd_timeout
         return httpd
+
+    def _address_in_use_error(self, error: Exception):
+        """Returns true if the error is caused by an 'address already in use'.
+        This presents differently based on the OS."""
+        # osx, linux, windows
+        error_codes = (48, 98, 10048)
+        return True if error.errno in error_codes else False
 
     def auth_code_grant(self, auth_code):
         """Exchange an auth code for an access token"""
@@ -221,7 +239,7 @@ class OAuth2Client(object):
 
     def validate_response(self, response):
         """Subclasses can implement custom response validation"""
-        if not response:
+        if response is None:
             raise CumulusCIUsageError("Authentication timed out or otherwise failed.")
         elif response.status_code == http.client.OK:
             return
