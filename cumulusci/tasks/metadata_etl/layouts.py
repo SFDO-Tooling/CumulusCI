@@ -213,13 +213,33 @@ class AddFields(MetadataSingleEntityTransformTask):
 
         # Position is optional
         position = new_item.get("position")
+
         if position is None:
             self.logger.warning(
                 f"Position details are missing for: {new_item_name}. Default position is being applied."
             )
-            position = default
+            position = [default]
 
-        relative_position = position.get("relative", default.get("relative"))
+        # We have a single postion argument, so we convert to a list
+        if type(position) is dict:
+            position = [position]
+
+        # append the default position to the list as a fallback
+        position.append(default)
+
+        for pos in position:
+            new_layout_item = self._process_position(pos, default)
+            if new_layout_item is not None:
+                return new_layout_item
+
+        # If layout section doesn't exist, exit gracefully with appropriate message
+        if new_layout_item is None:
+            raise CumulusCIException(
+                f"Layout placement could not be determined for field: {new_item_name}"
+            )
+
+    def _process_position(self, position, default_position):
+        relative_position = position.get("relative", default_position.get("relative"))
 
         # Mutually exclusive, therefore the higher priority is field if specified
         relative_field_name = None
@@ -246,11 +266,6 @@ class AddFields(MetadataSingleEntityTransformTask):
                 relative_field_name, relative_position
             )
 
-            # Gacefull fallback if field is not found
-            if new_layout_item is None:
-                relative_section_index = default.get("section")
-                relative_position = default.get("relative")
-
         # Section relative
         if relative_section_index is not None and relative_position in (
             "top",
@@ -259,13 +274,7 @@ class AddFields(MetadataSingleEntityTransformTask):
             new_layout_item = self._new_section_item(
                 relative_section_index,
                 relative_position,
-                position.get("column", default.get("column")),
-            )
-
-        # If layout section doesn't exist, exit gracefully with appropriate message
-        if new_layout_item is None:
-            raise CumulusCIException(
-                f"Layout placement could not be determined for field: {new_item_name}"
+                position.get("column", default_position.get("column")),
             )
 
         return new_layout_item
@@ -274,8 +283,11 @@ class AddFields(MetadataSingleEntityTransformTask):
         for section in self._metadata.findall("layoutSections"):
             for col in section.findall("layoutColumns"):
                 for item in col.findall("layoutItems"):
-                    if item.field.text == field_text:
-                        return getattr(col, "insert_" + position)(item, "layoutItems")
+                    for field in item.findall("field"):
+                        if field.text == field_text:
+                            return getattr(col, "insert_" + position)(
+                                item, "layoutItems"
+                            )
 
     def _new_section_item(self, index, position, column):
         # Get section at index
