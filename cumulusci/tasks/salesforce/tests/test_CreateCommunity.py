@@ -132,10 +132,11 @@ class test_CreateCommunity(unittest.TestCase):
             method=responses.GET,
             url=community_url,
             status=200,
-            json={"communities": [{"name": "Test Community", "id": "000000000000000"}]},
+            json={"communities": [{"name": "Test community", "id": "000000000000000"}]},
         )
 
         cc_task()
+        assert len(responses.calls) == 1
 
     @responses.activate
     def test_handles_community_created_between_tries(self):
@@ -157,7 +158,7 @@ class test_CreateCommunity(unittest.TestCase):
             json=[
                 {
                     "errorCode": "INVALID_INPUT",
-                    "message": "Error: A Community with this name already exists.",
+                    "message": CreateCommunity.COMMUNITY_EXISTS_ERROR_MSG,
                 }
             ],
         )
