@@ -88,7 +88,7 @@ def validate_service(options: dict) -> dict:
     try:
         authed_user = gh.me()
         auth_login = authed_user.login
-        assert username == auth_login, f"{username=}, {auth_login}"
+        assert username == auth_login, f"{username}, {auth_login}"
     except AssertionError as e:
         raise GithubException(
             f"Service username and token username do not match. ({str(e)})"
