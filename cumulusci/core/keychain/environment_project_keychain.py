@@ -56,7 +56,7 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
             self._default_services[service_type] = "env"
 
         # If there are no connected_app services loaded
-        # then set the built-in connecteid_app as the default.
+        # then set the built-in connected_app as the default.
         # The built-in is always loaded, so 2 or more would indicate
         # the presence of a user-provided connected app.
         if len(self.config["services"]["connected_app"].keys()) == 1:
