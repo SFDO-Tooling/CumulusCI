@@ -25,9 +25,13 @@ certifi==2021.5.30
     # via
     #   -c requirements/prod.txt
     #   requests
+cffi==1.14.5
+    # via
+    #   -c requirements/prod.txt
+    #   cryptography
 cfgv==3.3.0
     # via pre-commit
-chardet==4.0.0
+charset-normalizer==2.0.3
     # via
     #   -c requirements/prod.txt
     #   requests
@@ -43,11 +47,15 @@ coverage[toml]==5.5
     #   coveralls
 coveralls==3.1.0
     # via -r requirements/dev.in
+cryptography==3.4.7
+    # via
+    #   -c requirements/prod.txt
+    #   secretstorage
 distlib==0.3.2
     # via virtualenv
 docopt==0.6.2
     # via coveralls
-docutils==0.17.1
+docutils==0.16
     # via
     #   -c requirements/prod.txt
     #   readme-renderer
@@ -82,6 +90,11 @@ importlib-metadata==4.6.1
     #   twine
 iniconfig==1.1.1
     # via pytest
+jeepney==0.7.0
+    # via
+    #   -c requirements/prod.txt
+    #   keyring
+    #   secretstorage
 jinja2==2.11.3
     # via
     #   -c requirements/prod.txt
@@ -124,6 +137,10 @@ py==1.10.0
     #   tox
 pycodestyle==2.7.0
     # via flake8
+pycparser==2.20
+    # via
+    #   -c requirements/prod.txt
+    #   cffi
 pyflakes==2.3.1
     # via flake8
 pygments==2.9.0
@@ -151,14 +168,13 @@ pytz==2021.1
     #   babel
 pyyaml==5.4.1
     # via
-    #   -c requirements/prod.txt
     #   pre-commit
     #   vcrpy
 readme-renderer==29.0
     # via twine
 regex==2021.7.6
     # via black
-requests==2.25.1
+requests==2.26.0
     # via
     #   -c requirements/prod.txt
     #   coveralls
@@ -172,6 +188,10 @@ responses==0.13.3
     # via -r requirements/dev.in
 rfc3986==1.5.0
     # via twine
+secretstorage==3.3.1
+    # via
+    #   -c requirements/prod.txt
+    #   keyring
 six==1.16.0
     # via
     #   -c requirements/prod.txt
