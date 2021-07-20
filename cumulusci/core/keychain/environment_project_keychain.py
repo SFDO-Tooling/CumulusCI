@@ -59,7 +59,7 @@ class EnvironmentProjectKeychain(BaseProjectKeychain):
         # then set the built-in connected_app as the default.
         # The built-in is always loaded, so 2 or more would indicate
         # the presence of a user-provided connected app.
-        if len(self.config["services"]["connected_app"].keys()) == 1:
+        if len(self.config["services"]["connected_app"]) == 1:
             self._default_services["connected_app"] = DEFAULT_CONNECTED_APP_NAME
 
     def cleanup_org_cache_dirs(self):
