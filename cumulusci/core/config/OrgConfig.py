@@ -38,7 +38,7 @@ class OrgConfig(BaseConfig):
         self.global_org = global_org
 
         self.name = name
-        self.is_sandbox = config.get("sandbox") or False
+        self.is_sandbox = config.get("sandbox", False) if config else False
         self._community_info_cache = {}
         self._latest_api_version = None
         self._installed_packages = None
