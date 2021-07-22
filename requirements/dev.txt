@@ -154,6 +154,7 @@ pytz==2021.1
     #   babel
 pyyaml==5.4.1
     # via
+    #   -c requirements/prod.txt
     #   pre-commit
     #   vcrpy
 readme-renderer==29.0
