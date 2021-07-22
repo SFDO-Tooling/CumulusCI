@@ -2,6 +2,13 @@
 History
 =======
 
+3.40.1 (2021-07-22)
+-------------------
+
+Issues Closed
+
+* Fixed an issue where a missing dependency was causing the hombrew installer formula to break.
+
 3.40.0 (2021-07-22)
 -------------------
 
