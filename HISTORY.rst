@@ -5,6 +5,13 @@ History
 3.40.0 (2021-07-22)
 -------------------
 
+Issues Closed
+
+* Fixed an issue where a missing dependency was causing the hombrew installer formula to break.
+
+3.40.0 (2021-07-22)
+-------------------
+
 Critical Changes
 
 * The ``create_package_version`` task no longer creates Unlocked Packages from the ``unpackaged/pre`` and ``unpackaged/post`` directories of dependencies, or local ``unpackaged/pre`` directories by default. This behavior is now opt-in via the ``create_unlocked_dependency_packages`` option, which defaults to False. Projects using the old default behavior must explicitly set this option. We believe the new behavior is a more sane default for most 2GP projects. (#2741)
