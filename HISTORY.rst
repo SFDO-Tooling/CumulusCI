@@ -2,6 +2,32 @@
 History
 =======
 
+3.40.1 (2021-07-22)
+-------------------
+
+Issues Closed
+
+* Fixed an issue where a missing dependency was causing the hombrew installer formula to break.
+
+3.40.0 (2021-07-22)
+-------------------
+
+Critical Changes
+
+* The ``create_package_version`` task no longer creates Unlocked Packages from the ``unpackaged/pre`` and ``unpackaged/post`` directories of dependencies, or local ``unpackaged/pre`` directories by default. This behavior is now opt-in via the ``create_unlocked_dependency_packages`` option, which defaults to False. Projects using the old default behavior must explicitly set this option. We believe the new behavior is a more sane default for most 2GP projects. (#2741)
+
+Changes
+
+* The ``add_standard_value_set_entries`` task now supports value sets for ``LeadStatus``. (#2695, with thanks to @naicigam)
+* We updated the default API version to 52.0. (#2740)
+
+Issues Closed
+
+* Fixed an issue where the the built-in connected app was not accessible when running CumulusCI in a headless environment. (#2737)
+* The ``create_package_version`` task now supports ``objectSettings`` in the org definition file. (#2741)
+* We fixed issues in working with files containing Unicode characters on some Windows systems when using source-tracking commands. (#2739)
+* Fixed a bug where the ``anon_apex`` task had option text that was missing spaces. (#2736)
+
 3.39.1 (2021-07-08)
 -------------------
 

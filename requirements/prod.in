@@ -14,6 +14,7 @@ psutil
 pydantic
 PyJWT
 pytz
+pyyaml
 requests
 requests-futures
 robotframework
