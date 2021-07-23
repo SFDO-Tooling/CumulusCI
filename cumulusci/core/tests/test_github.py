@@ -408,7 +408,7 @@ class TestGithub(GithubApiTestMixin):
     def test_check_github_sso_unauthorized_token(self, browser_open):
         resp = Response()
         resp.status_code = 403
-        auth_url = "https://github.com/orgs/foo/sso?authoriziation_request=longhash"
+        auth_url = "https://github.com/orgs/foo/sso?authorization_request=longhash"
         resp.headers["X-Github-Sso"] = f"required; url={auth_url}"
         exc = ForbiddenError(resp)
 
