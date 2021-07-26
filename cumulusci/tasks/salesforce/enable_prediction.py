@@ -1,0 +1,49 @@
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.exceptions import SalesforceException
+from simple_salesforce.exceptions import SalesforceError
+
+
+class EnablePrediction(BaseSalesforceApiTask):
+    task_docs = """
+    cci task run enable_prediction --org dev -o developer_name mlpd__Example_Prediction_v0
+    """
+
+    task_options = {
+        "developer_name": {
+            "description": "Developer name of the MLPredictionDefinition.",
+            "required": True,
+        }
+    }
+
+    def _run_task(self):
+        self._enable_prediction()
+
+    def _enable_prediction(self):
+        try:
+            ml_prediction_definition_id = self._get_ml_prediction_definition_id()
+
+            metadata = self.tooling._call_salesforce(
+                method="GET",
+                url=f"{self.tooling.base_url}sobjects/MLPredictionDefinition/{ml_prediction_definition_id}",
+            ).json()["Metadata"]
+
+            metadata["status"] = "Enabled"
+
+            self.tooling._call_salesforce(
+                method="PATCH",
+                url=f"{self.tooling.base_url}sobjects/MLPredictionDefinition/{ml_prediction_definition_id}",
+                json={"Metadata": metadata},
+            )
+        except SalesforceError as e:
+            raise SalesforceException(f"Failed to enable prediction: {e}")
+
+    def _get_ml_prediction_definition_id(self):
+        query = f"""
+        select Id from MLPredictionDefinition where DeveloperName = '{self.options["developer_name"]}'
+        """.strip()
+        try:
+            return self.tooling.query(query)["records"][0]["Id"]
+        except SalesforceError as e:
+            raise SalesforceException(
+                f"Failed to obtain MLPredictionDefinition Id: {e}"
+            )
