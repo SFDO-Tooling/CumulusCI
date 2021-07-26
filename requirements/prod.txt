@@ -73,6 +73,8 @@ pytz==2021.1
     # via
     #   -r requirements/prod.in
     #   fs
+pyyaml==5.4.1
+    # via -r requirements/prod.in
 requests==2.26.0
     # via
     #   -r requirements/prod.in
@@ -125,7 +127,7 @@ six==1.16.0
     #   salesforce-bulk
 snowfakery==2.0
     # via -r requirements/prod.in
-sqlalchemy==1.4.21
+sqlalchemy==1.4.22
     # via -r requirements/prod.in
 terminaltables==3.1.0
     # via -r requirements/prod.in
