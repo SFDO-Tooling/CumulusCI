@@ -1,5 +1,5 @@
 from typing import Optional
-from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.utils import process_list_arg, process_bool_arg
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
@@ -80,13 +80,14 @@ class AddFields(MetadataSingleEntityTransformTask):
             - field_name: [field api name]
             - field_behavior: [ReadOnly | Edit | Required]
             - visualforce_page_name:[page_name]
-            - position:
+            - position: (Must be a list of positions)
 
                 - relative: [before | after | top | bottom]
                 - field: [field_name] (Use with relative: before, after)
+                - required: Boolean (default False)
+                - read_only: Boolean (default False, not compatable with required)
                 - section: [index] (Use with relative: top, bottom)
                 - column: [first | last] (Use with relative: top, bottom)
-
         """
     entity = "Layout"
     task_options = {
@@ -150,7 +151,19 @@ class AddFields(MetadataSingleEntityTransformTask):
             adding_field_name = field.get("api_name")
 
             self.logger.info(f"Adding {adding_field_name} to {api_name}")
-            field_layout_item.append("behavior", field.get("behavior"))
+
+            behavior = "Edit"
+            required = process_bool_arg(field.get("required") or False)
+            read_only = process_bool_arg(field.get("read_only") or False)
+            if required and read_only is False:
+                behavior = "Required"
+            elif read_only and required is False:
+                behavior = "Readonly"
+            elif required and read_only:
+                raise TaskOptionsError(
+                    f"Required and ReadOnly cannot both be True for {adding_field_name}"
+                )
+            field_layout_item.append("behavior", behavior)
             field_layout_item.append("field", adding_field_name)
 
     def _set_adding_pages(self, api_name):
@@ -220,10 +233,6 @@ class AddFields(MetadataSingleEntityTransformTask):
             )
             position = [default]
 
-        # We have a single postion argument, so we convert to a list
-        if type(position) is dict:
-            position = [position]
-
         # append the default position to the list as a fallback
         position.append(default)
 
@@ -239,6 +248,7 @@ class AddFields(MetadataSingleEntityTransformTask):
             )
 
     def _process_position(self, position, default_position):
+        """Returns a MetadataElement that represents a  given the position"""
         relative_position = position.get("relative", default_position.get("relative"))
 
         # Mutually exclusive, therefore the higher priority is field if specified
@@ -255,13 +265,15 @@ class AddFields(MetadataSingleEntityTransformTask):
                 relative_position = "after"
         elif "section" in position:
             relative_section_index = position.get("section")
+        else:
+            relative_section_index = default_position.get("section")
+            relative_position = default_position.get("position")
 
         # Field relative
         if relative_field_name is not None and relative_position in (
             "before",
             "after",
         ):
-
             new_layout_item = self._new_layout_item(
                 relative_field_name, relative_position
             )
@@ -289,14 +301,21 @@ class AddFields(MetadataSingleEntityTransformTask):
                                 item, "layoutItems"
                             )
 
-    def _new_section_item(self, index, position, column):
+    def _new_section_item(self, index, position, column_index):
         # Get section at index
         sections = [section for section in self._metadata.findall("layoutSections")]
+
+        if index > (len(sections) - 1):
+            self.logger.warning(
+                f"Unable to find section at: {str(index)}. Default section is being selected."
+            )
+            return None
+
         section = sections[index]
         columns = [col for col in section.findall("layoutColumns")]
-        column = columns[1 if column == "last" else 0]
+        column = columns[1 if column_index == "last" else 0]
         items = [item for item in column.findall("layoutItems")]
-        # Needing if statement just in case the section is empty
+        # Sections can be empty
         if len(items) == 0 or position == "bottom":
             return column.append("layoutItems")
         else:
