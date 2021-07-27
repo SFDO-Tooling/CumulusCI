@@ -1,5 +1,7 @@
+import unittest
 from cumulusci.tasks.salesforce.tests.util import create_task
 
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl import AddRelatedLists
 from cumulusci.tasks.metadata_etl.layouts import (
     AddRecordPlatformActionListItem,
@@ -563,8 +565,9 @@ MOCK_ADD_FIELDS_LAYOUT = """<?xml version="1.0" encoding="UTF-8"?>
 """
 
 
-class TestAddFields:
+class TestAddFields(unittest.TestCase):
     def test_add_fields_positioning(self):
+        """Testing the positioning keywords [top|bottom|before|after]"""
         task = create_task(
             AddFields,
             {
@@ -624,6 +627,7 @@ class TestAddFields:
         assert items[6].getchildren()[1].text == "Top"
 
     def test_add_fields_default_positioning(self):
+        """Making sure the default column position is applied if not supplied"""
         task = create_task(
             AddFields,
             {
@@ -645,11 +649,19 @@ class TestAddFields:
         assert items[0].getchildren()[1].text == "Industry"
 
     def test_add_fields_adding_pages(self):
+        """Testing of adding Visualforce pages and making sure their options are applied"""
         task = create_task(
             AddFields,
             {
                 "api_names": "Account-Account Layout",
                 "pages": [
+                    {
+                        "api_name": "TestPage2",
+                        "height": "500",
+                        "show_label": True,
+                        "show_scrollbars": True,
+                        "width": "50%",
+                    },
                     {
                         "api_name": "TestPage",
                     },
@@ -667,16 +679,30 @@ class TestAddFields:
         assert "page" in items[0].getchildren()[0].tag  # Its a page!!!
         assert items[0].getchildren()[0].text == "TestPage"
 
+        # Check defaults are applied
+        assert items[0].getchildren()[1].text == "200"  # height
+        assert items[0].getchildren()[2].text == "false"  # showLabel
+        assert items[0].getchildren()[3].text == "false"  # showScrollbars
+        assert items[0].getchildren()[4].text == "100%"  # width
+
+        assert items[1].getchildren()[0].text == "TestPage2"
+        # Check options
+        assert items[1].getchildren()[1].text == "500"  # height
+        assert items[1].getchildren()[2].text == "true"  # showLabel
+        assert items[1].getchildren()[3].text == "true"  # showScrollbars
+        assert items[1].getchildren()[4].text == "50%"  # width
+
     def test_add_fields_skip_existing(self):
+        """Make sure if a field already exists it is skipped"""
         task = create_task(
             AddFields,
             {
                 "api_names": "Account-Account Layout",
-                "field": [
+                "fields": [
                     {
                         "api_name": "Name",
                         "position": [
-                            {"relative": "before", "field": "NotFound"},
+                            {"relative": "before", "field": "Name"},
                         ],
                     },
                 ],
@@ -691,6 +717,8 @@ class TestAddFields:
         assert len(items) == 5
 
     def test_add_fields_fallback(self):
+        """Testing the fallback procedure of the positionin, in the order listed each item of
+        the list is tried, and if not successful the default is finally applied."""
         task = create_task(
             AddFields,
             {
@@ -718,3 +746,67 @@ class TestAddFields:
         assert len(items) == 3  # Field Still Added
         # Field Added at top of last column
         assert items[0].getchildren()[1].text == "Lost"
+
+    def test_add_fields_behavior(self):
+        """Testing the application of field behavior. Edit is the default and
+        'required' or 'read_only' are alternative options"""
+        task = create_task(
+            AddFields,
+            {
+                "api_names": "Account-Account Layout",
+                "fields": [
+                    {
+                        "api_name": "Edit",
+                        "position": [
+                            {"relative": "top", "section": 0, "column": "first"},
+                        ],
+                    },
+                    {
+                        "api_name": "Required",
+                        "required": True,
+                        "position": [
+                            {"relative": "top", "section": 0, "column": "first"},
+                        ],
+                    },
+                    {
+                        "api_name": "Readonly",
+                        "read_only": True,
+                        "position": [
+                            {"relative": "top", "section": 0, "column": "first"},
+                        ],
+                    },
+                ],
+            },
+        )
+        tree = metadata_tree.fromstring(MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8"))
+        result = task._transform_entity(tree, "Layout")
+
+        element = result._element
+        sections = element.findall(f".//{MD}layoutSections")
+        cols = sections[0].findall(f".//{MD}layoutColumns")
+        items = cols[0].findall(f".//{MD}layoutItems")
+
+        # Fields display in reverse order than they were listed
+        assert items[0].getchildren()[0].text == "Readonly"
+        assert items[1].getchildren()[0].text == "Required"
+        assert items[2].getchildren()[0].text == "Edit"
+
+    def test_add_fields_required_readonly(self):
+        """required and read_only are mutually exclusive"""
+        task = create_task(
+            AddFields,
+            {
+                "api_names": "Account-Account Layout",
+                "fields": [
+                    {
+                        "api_name": "NotAdded",
+                        "required": True,
+                        "read_only": True,
+                    },
+                ],
+            },
+        )
+        tree = metadata_tree.fromstring(MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8"))
+
+        with self.assertRaises(TaskOptionsError):
+            task._transform_entity(tree, "Layout")

@@ -307,7 +307,7 @@ class AddFields(MetadataSingleEntityTransformTask):
 
         if index > (len(sections) - 1):
             self.logger.warning(
-                f"Unable to find section at: {str(index)}. Default section is being selected."
+                f"Unable to find section at index: {str(index)}. Default section is being selected."
             )
             return None
 
