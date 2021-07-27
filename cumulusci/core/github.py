@@ -373,7 +373,9 @@ def check_github_scopes(exc: ResponseError) -> str:
     if missing_scopes:
         user_warning = f"Your token may be missing the following scopes: {', '.join(missing_scopes)}\n"
         # This assumes we're not on enterprise and 'api.github.com' == request_url.hostname
-        user_warning += "Visit https://github.com/settings/tokens to add them."
+        user_warning += (
+            "Visit Settings > Developer settings > Personal access tokens to add them."
+        )
 
     return user_warning
 
