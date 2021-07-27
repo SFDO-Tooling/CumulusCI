@@ -503,8 +503,7 @@ class TestAddRecordPlatformActionListItem:
         assert actual_metadata.tostring() == expected_metadata.tostring()
 
 
-# Mocked empty page layout (mostly black sections)
-#   Included common elements to better emulate a 'real' page layout.
+# Mocked empty page layout
 MOCK_ADD_FIELDS_LAYOUT = """<?xml version="1.0" encoding="UTF-8"?>
 <Layout xmlns="http://soap.sforce.com/2006/04/metadata">
     <excludeButtons>Submit</excludeButtons>
@@ -693,7 +692,7 @@ class TestAddFields(unittest.TestCase):
         assert items[1].getchildren()[4].text == "50%"  # width
 
     def test_add_fields_skip_existing(self):
-        """Make sure if a field already exists it is skipped"""
+        """Make sure if a field is skipped if it already exists in the layout"""
         task = create_task(
             AddFields,
             {
