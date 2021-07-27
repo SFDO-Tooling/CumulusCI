@@ -38,7 +38,7 @@ class OrgConfig(BaseConfig):
         self.global_org = global_org
 
         self.name = name
-        self.is_sandbox = config.get("sandbox", False) if config else False
+        self.force_sandbox = config.get("sandbox", False) if config else False
         self._community_info_cache = {}
         self._latest_api_version = None
         self._installed_packages = None
@@ -62,7 +62,7 @@ class OrgConfig(BaseConfig):
             SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
             SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
             if SFDX_CLIENT_ID and SFDX_HUB_KEY:
-                auth_url = SANDBOX_LOGIN_URL if self.is_sandbox else self.id
+                auth_url = SANDBOX_LOGIN_URL if self.force_sandbox else self.id
                 info = jwt_session(
                     SFDX_CLIENT_ID,
                     SFDX_HUB_KEY,
