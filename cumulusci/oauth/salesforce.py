@@ -11,6 +11,7 @@ from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
+ENHANCED_DOMAIN_SUBSTRING = "sandbox.my.salesforce.com"
 HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}
 SANDBOX_DOMAIN_RE = re.compile(
     r"^https://([\w\d-]+\.)?(test|cs\d+)(\.my)?\.salesforce\.com/?$"
@@ -35,6 +36,10 @@ def jwt_session(client_id, private_key, username, url=None, auth_url=None):
             if auth_url.startswith(SANDBOX_LOGIN_URL)
             else PROD_LOGIN_URL
         )
+    # check for enhanced domains (instanceless URLs)
+    # https://developer.salesforce.com/docs/atlas.en-us.identityImplGuide.meta/identityImplGuide/domain_name_enhanced.htm
+    elif url and ENHANCED_DOMAIN_SUBSTRING in url:
+        url = aud = SANDBOX_LOGIN_URL
     else:
         aud = PROD_LOGIN_URL
         if url is None:
