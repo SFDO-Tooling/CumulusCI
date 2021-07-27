@@ -109,7 +109,7 @@ class CreateRelease(BaseGithubTask):
             # Sleep for Github to catch up with the fact that the tag actually exists!
             time.sleep(3)
 
-        prerelease = "Beta" in version
+        prerelease = tag_prefix == self.project_config.project__git__prefix_beta
 
         # Create the Github Release
         release = repo.create_release(
