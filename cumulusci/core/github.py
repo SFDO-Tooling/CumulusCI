@@ -1,9 +1,10 @@
+import functools
 import io
 import os
 import re
 import webbrowser
 from urllib.parse import urlparse
-from typing import Union
+from typing import Callable, Union
 
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
@@ -18,11 +19,19 @@ from github3.pulls import ShortPullRequest
 from github3.repos.repo import Repository
 from github3.session import GitHubSession
 
-from cumulusci.core.exceptions import GithubException, DependencyLookupError
+from cumulusci.core.exceptions import (
+    GithubApiError,
+    GithubException,
+    DependencyLookupError,
+)
 
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
+SSO_WARNING = """Results may be incomplete. You have not granted your Personal Access token access to the following organizations:"""
+UNAUTHORIZED_WARNING = """
+Bad credentials. Verify that your personal access token is correct and that you are authorized to access this resource.
+"""
 
 # Prepare request retry policy to be attached to github sessions.
 # 401 is a weird status code to retry, but sometimes it happens spuriously
@@ -313,10 +322,6 @@ def format_github3_exception(exc: Union[ResponseError, TransportError]) -> str:
     @returns: The formatted exception string
     """
     user_warning = ""
-    unauthorized_warning = """
-    Bad credentials. Verify that your personal access token is correct and that
-    you are authorized to access this resource.
-    """
 
     too_many_str = "too many 401 error responses"
     is_bad_auth_retry = (
@@ -327,8 +332,9 @@ def format_github3_exception(exc: Union[ResponseError, TransportError]) -> str:
     is_auth_failure = type(exc) is AuthenticationFailed
 
     if is_bad_auth_retry or is_auth_failure:
-        user_warning = unauthorized_warning
-    else:
+        user_warning = UNAUTHORIZED_WARNING
+
+    if isinstance(exc, ResponseError):
         scope_error_msg = check_github_scopes(exc)
         sso_error_msg = check_github_sso_auth(exc)
         user_warning = scope_error_msg + sso_error_msg
@@ -398,7 +404,7 @@ def check_github_sso_auth(exc: ResponseError) -> str:
         # partal-results header, so return the organization IDs. This may or
         # may not be useful without help from us to lookup the org IDs.
         unauthorized_org_ids = get_sso_disabled_orgs(exc.response)
-        user_warning = f"Results may be incomplete. You have not granted your Personal Access token access to the following organizations: {unauthorized_org_ids}"
+        user_warning = f"{SSO_WARNING} {unauthorized_org_ids}"
 
     return user_warning
 
@@ -431,3 +437,22 @@ def get_oauth_scopes(response: Response) -> set:
         authorized_scopes = set(x_oauth_scopes.split(", "))
 
     return authorized_scopes
+
+
+def catch_common_github_auth_errors(func: Callable) -> Callable:
+    """
+    A decorator catching the most common Github authentication errors.
+    """
+
+    @functools.wraps(func)
+    def inner(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except (ResponseError, TransportError) as exc:
+            error_msg = format_github3_exception(exc)
+            if error_msg:
+                raise GithubApiError(error_msg)
+            else:
+                raise
+
+    return inner

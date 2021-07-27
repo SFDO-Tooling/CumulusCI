@@ -1,22 +1,36 @@
 import os
 from unittest import mock
 import pytest
+from requests.exceptions import RequestException, RetryError
 from requests.models import Response
 import responses
 from datetime import datetime
 
 from github3.repos.repo import Repository
 from github3.pulls import ShortPullRequest
-from github3.exceptions import AuthenticationFailed, ConnectionError, ForbiddenError
+from github3.exceptions import (
+    AuthenticationFailed,
+    ConnectionError,
+    ForbiddenError,
+    TransportError,
+)
 from github3.session import AppInstallationTokenAuth
 
 from cumulusci.core import github
-from cumulusci.core.exceptions import DependencyLookupError, GithubException
+from cumulusci.core.exceptions import (
+    DependencyLookupError,
+    GithubApiError,
+    GithubException,
+)
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.core.github import (
+    SSO_WARNING,
+    UNAUTHORIZED_WARNING,
+    catch_common_github_auth_errors,
     check_github_sso_auth,
     create_gist,
+    format_github3_exception,
     get_github_api,
     get_oauth_scopes,
     get_sso_disabled_orgs,
@@ -422,6 +436,44 @@ class TestGithub(GithubApiTestMixin):
         resp.headers["X-Github-Sso"] = "partial-results; organizations=0810298,20348880"
         exc = ForbiddenError(resp)
 
-        expected_err_msg = "Results may be incomplete. You have not granted your Personal Access token access to the following organizations: ['0810298', '20348880']"
-        actual_error_msg = check_github_sso_auth(exc)
+        expected_err_msg = f"{SSO_WARNING} ['0810298', '20348880']"
+        actual_error_msg = check_github_sso_auth(exc).strip()
+        print(f"{actual_error_msg=}")
         assert expected_err_msg == actual_error_msg
+
+    def test_format_gh3_exc_retry(self):
+        resp = Response()
+        resp.status_code = 401
+        message = "Max retries exceeded with url: foo (Caused by ResponseError('too many 401 error responses',))"
+        base_exc = RetryError(message, response=resp)
+        exc = TransportError(base_exc)
+        print(f"{str(exc)=}")
+        assert UNAUTHORIZED_WARNING == format_github3_exception(exc)
+
+    def test_catch_common_decorator(self):
+        resp = Response()
+        resp.status_code = 403
+        resp.headers["X-Github-Sso"] = "partial-results; organizations=0810298,20348880"
+
+        expected_err_msg = "Results may be incomplete. You have not granted your Personal Access token access to the following organizations: ['0810298', '20348880']"
+
+        @catch_common_github_auth_errors
+        def test_func():
+            raise ForbiddenError(resp)
+
+        with pytest.raises(GithubApiError) as exc:
+            test_func()
+            actual_error_msg = exc.message
+            assert expected_err_msg == actual_error_msg
+
+    def test_catch_common_decorator_ignores(self):
+        resp = Response()
+        resp.status_code = 401
+
+        @catch_common_github_auth_errors
+        def test_func():
+            e = RequestException(response=resp)
+            raise TransportError(e)
+
+        with pytest.raises(TransportError):
+            test_func()
