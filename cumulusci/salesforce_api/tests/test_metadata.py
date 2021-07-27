@@ -134,7 +134,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         api = self._create_instance(task)
         self.assertEqual(
             api._build_endpoint_url(),
-            "https://na12.salesforce.com/services/Soap/m/{}/{}".format(
+            "https://test-org.na12.my.salesforce.com/services/Soap/m/{}/{}".format(
                 self.project_config.project__package__api_version,
                 task.org_config.org_id,
             ),
