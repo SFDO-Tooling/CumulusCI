@@ -438,7 +438,6 @@ class TestGithub(GithubApiTestMixin):
 
         expected_err_msg = f"{SSO_WARNING} ['0810298', '20348880']"
         actual_error_msg = check_github_sso_auth(exc).strip()
-        print(f"{actual_error_msg=}")
         assert expected_err_msg == actual_error_msg
 
     def test_format_gh3_exc_retry(self):
@@ -447,7 +446,6 @@ class TestGithub(GithubApiTestMixin):
         message = "Max retries exceeded with url: foo (Caused by ResponseError('too many 401 error responses',))"
         base_exc = RetryError(message, response=resp)
         exc = TransportError(base_exc)
-        print(f"{str(exc)=}")
         assert UNAUTHORIZED_WARNING == format_github3_exception(exc)
 
     def test_catch_common_decorator(self):
