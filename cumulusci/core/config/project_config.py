@@ -11,7 +11,6 @@ from contextlib import contextmanager
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
 import github3
-from github3.exceptions import ResponseError, TransportError
 
 from cumulusci.core.utils import merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
@@ -24,9 +23,9 @@ from cumulusci.core.exceptions import (
     ProjectConfigNotFound,
 )
 from cumulusci.core.github import (
+    catch_common_github_auth_errors,
     get_github_api_for_repo,
     find_previous_release,
-    format_github3_exception,
 )
 from cumulusci.core.source import GitHubSource
 from cumulusci.core.source import LocalFolderSource
@@ -492,17 +491,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 + "config.set_keychain(keychain) before accessing orgs"
             )
 
+    @catch_common_github_auth_errors
     def get_repo_from_url(self, url):
         owner, name = split_repo_url(url)
-        try:
-            return self.get_github_api(owner, name).repository(owner, name)
-        except (TransportError, ResponseError) as exc:
-            user_warning = format_github3_exception(exc)
-            if user_warning:
-                # We've caught a common error
-                raise GithubException(user_warning) from exc
-            else:
-                raise
+        return self.get_github_api(owner, name).repository(owner, name)
 
     def get_task(self, name):
         """Get a TaskConfig by task name
