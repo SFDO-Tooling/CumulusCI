@@ -5,6 +5,9 @@ from simple_salesforce.exceptions import SalesforceError
 
 class EnablePrediction(BaseSalesforceApiTask):
     task_docs = """
+    This task updates the state of Einstein Prediction Builder predictions from 'Draft' to 'Enabled' by
+    posting to the metadata tooling API.
+
     cci task run enable_prediction --org dev -o developer_name mlpd__Example_Prediction_v0
     """
 
