@@ -103,6 +103,10 @@ PACKAGE_XML_BEFORE = """<Package xmlns="http://soap.sforce.com/2006/04/metadata"
         <name>CustomObject</name>
     </types>
     <types>
+        <members>*</members>
+        <name>CustomTab</name>
+    </types>
+    <types>
         <name>Profile</name>
     </types>
     <version>39.0</version>

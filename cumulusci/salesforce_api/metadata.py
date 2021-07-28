@@ -74,22 +74,8 @@ class BaseMetadataApiCall(object):
             raise MetadataApiError(response.text, response)
 
     def _build_endpoint_url(self):
-        # Parse org id from id which ends in /ORGID/USERID
         org_id = self.task.org_config.org_id
-        # If "My Domain" is configured in the org, the instance_url needs to be
-        # parsed differently
         instance_url = self.task.org_config.instance_url
-        if instance_url.find(".my.salesforce.com") != -1:
-            # Parse instance_url with My Domain configured
-            # URL will be in the format
-            # https://name--name.na11.my.salesforce.com and should be
-            # https://na11.salesforce.com
-            instance_url = re.sub(
-                r"https://.*\.(\w+)\.my\.salesforce\.com",
-                r"https://\1.salesforce.com",
-                instance_url,
-            )
-        # Build the endpoint url from the instance_url
         endpoint = f"{instance_url}/services/Soap/m/{self.api_version}/{org_id}"
         return endpoint
 

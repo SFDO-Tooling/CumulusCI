@@ -23,3 +23,21 @@ def test_jwt_session(encode):
         SalesforceCredentialsException, match=f"Error retrieving access token: {error}"
     ):
         jwt_session("client_id", "server_key", "username")
+
+
+@mock.patch("cumulusci.oauth.salesforce.jwt.encode")
+def test_jwt_session__enhanced_domains_enabled(encode):
+    # raise an assertion error if the registered url was not accessed
+    with responses.RequestsMock(assert_all_requests_are_fired=True) as rsps:
+        rsps.add(
+            responses.POST,
+            "https://test.salesforce.com/services/oauth2/token",
+            body='{"message":"well done mate!"}',
+            status=200,
+        )
+        jwt_session(
+            "client_id",
+            "server_key",
+            "username",
+            url="https://supercool.sandbox.my.salesforce.com",
+        )
