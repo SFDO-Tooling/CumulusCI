@@ -1,23 +1,37 @@
+import functools
 import io
 import os
 import re
+import webbrowser
+from urllib.parse import urlparse
+from typing import Callable, Union
 
 from requests.adapters import HTTPAdapter
+from requests.exceptions import RetryError
+from requests.models import Response
 from requests.packages.urllib3.util.retry import Retry
 
 import github3
-from github3 import GitHub
-from github3 import login
-from github3.git import Tag, Reference
+from github3 import GitHub, login
+from github3.exceptions import AuthenticationFailed, ResponseError, TransportError
+from github3.git import Reference, Tag
 from github3.pulls import ShortPullRequest
 from github3.repos.repo import Repository
 from github3.session import GitHubSession
 
-from cumulusci.core.exceptions import GithubException, DependencyLookupError
+from cumulusci.core.exceptions import (
+    GithubApiError,
+    GithubException,
+    DependencyLookupError,
+)
 
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
+SSO_WARNING = """Results may be incomplete. You have not granted your Personal Access token access to the following organizations:"""
+UNAUTHORIZED_WARNING = """
+Bad credentials. Verify that your personal access token is correct and that you are authorized to access this resource.
+"""
 
 # Prepare request retry policy to be attached to github sessions.
 # 401 is a weird status code to retry, but sometimes it happens spuriously
@@ -74,14 +88,44 @@ def get_github_api_for_repo(keychain, owner, repo, session=None):
     return gh
 
 
-def validate_service(options):
+def validate_service(options: dict) -> dict:
     username = options["username"]
     token = options["token"]
-    gh = get_github_api(username, token)
+    # Don't make the user wait 4 minutes to fail
+    gh = GitHub(token=token)
+
     try:
-        gh.rate_limit()
+        authed_user = gh.me()
+        auth_login = authed_user.login
+        assert username == auth_login, f"{username}, {auth_login}"
+    except AssertionError as e:
+        raise GithubException(
+            f"Service username and token username do not match. ({str(e)})"
+        )
     except Exception as e:
-        raise GithubException(f"Could not confirm access to the GitHub API: {str(e)}")
+        warning_msg = format_github3_exception(e) or str(e)
+        raise GithubException(
+            f"Could not confirm access to the GitHub API: {warning_msg}"
+        )
+    else:
+        member_orgs = {f"{org.id}": f"{org.login}" for org in gh.organizations()}
+        options["Organizations"] = ", ".join([k for k in member_orgs.values()])
+
+        # We're checking for a partial-response SSO header and /user/orgs
+        # doesn't include one, so we need /user/repos instead.
+        repo_generator = gh.repositories()
+        _ = repo_generator.next()
+        repo_response = repo_generator.last_response
+        options["scopes"] = get_oauth_scopes(repo_response)
+
+        unauthorized_org_ids = get_sso_disabled_orgs(repo_response)
+        unauthorized_orgs = {
+            k: member_orgs[k] for k in unauthorized_org_ids if k in member_orgs
+        }
+        if unauthorized_orgs:
+            options["SSO Disabled"] = ", ".join([k for k in unauthorized_orgs.values()])
+
+    return options
 
 
 def get_pull_requests_with_base_branch(repo, base_branch_name, head=None, state=None):
@@ -268,3 +312,149 @@ def get_version_id_from_tag(repo: Repository, tag_name: str) -> str:
             return version_id
 
     raise DependencyLookupError(f"Could not find version_id for tag {tag_name}")
+
+
+def format_github3_exception(exc: Union[ResponseError, TransportError]) -> str:
+    """Checks github3 exceptions for the most common GitHub authentication
+    issues, returning a user-friendly message if found.
+
+    @param exc: The exception to process
+    @returns: The formatted exception string
+    """
+    user_warning = ""
+
+    too_many_str = "too many 401 error responses"
+    is_bad_auth_retry = (
+        type(exc) is TransportError
+        and type(exc.exception) is RetryError
+        and too_many_str in str(exc.exception)
+    )
+    is_auth_failure = type(exc) is AuthenticationFailed
+
+    if is_bad_auth_retry or is_auth_failure:
+        user_warning = UNAUTHORIZED_WARNING
+
+    if isinstance(exc, ResponseError):
+        scope_error_msg = check_github_scopes(exc)
+        sso_error_msg = check_github_sso_auth(exc)
+        user_warning = scope_error_msg + sso_error_msg
+
+    return user_warning
+
+
+def check_github_scopes(exc: ResponseError) -> str:
+    """
+    Parse github3 ResponseError headers for the correct scopes and return a
+    warning if the user is missing.
+
+    @param exc: The exception to process
+    @returns: The formatted exception string
+    """
+
+    user_warning = ""
+
+    has_wrong_status_code = exc.response.status_code not in (403, 404)
+    if has_wrong_status_code:
+        return user_warning
+
+    token_scopes = get_oauth_scopes(exc.response)
+
+    # Gist resource won't return X-Accepted-OAuth-Scopes for some reason, so this
+    # string might be `None`; we discard the empty string if so.
+    accepted_scopes = exc.response.headers.get("X-Accepted-OAuth-Scopes") or ""
+    accepted_scopes = set(accepted_scopes.split(", "))
+    accepted_scopes.discard("")
+
+    request_url = urlparse(exc.response.url)
+    if not accepted_scopes and request_url.path == "/gists":
+        accepted_scopes = {"gist"}
+
+    missing_scopes = accepted_scopes.difference(token_scopes)
+    if missing_scopes:
+        user_warning = f"Your token may be missing the following scopes: {', '.join(missing_scopes)}\n"
+        # This assumes we're not on enterprise and 'api.github.com' == request_url.hostname
+        user_warning += (
+            "Visit Settings > Developer settings > Personal access tokens to add them."
+        )
+
+    return user_warning
+
+
+def check_github_sso_auth(exc: ResponseError) -> str:
+    """
+    Check ResponseError header for SSO authorization and return a warning if
+    required
+
+    @param exc: The exception to process
+    @returns: The formatted exception string
+    """
+    user_warning = ""
+    headers = exc.response.headers
+
+    if exc.response.status_code != 403 or "X-Github-Sso" not in headers:
+        return user_warning
+
+    sso_header = str(headers["X-Github-Sso"] or "")
+    if sso_header.startswith("required; url="):
+        # In this case the message from github is good enough, but we can help
+        # the user by opening a browser to authorize the token.
+        auth_url = sso_header.split("url=", maxsplit=1)[1]
+        user_warning = f"{exc.message}\n{auth_url}"
+        webbrowser.open(auth_url)
+    elif sso_header.startswith("partial-results"):
+        # In cases where we don't have complete results we get the
+        # partal-results header, so return the organization IDs. This may or
+        # may not be useful without help from us to lookup the org IDs.
+        unauthorized_org_ids = get_sso_disabled_orgs(exc.response)
+        user_warning = f"{SSO_WARNING} {unauthorized_org_ids}"
+
+    return user_warning
+
+
+def get_sso_disabled_orgs(response: Response) -> list:
+    """
+    Given a response from Github, return a list of organization IDs without SSO
+    grants.
+    """
+    disabled_orgs = []
+    sso_header = response.headers.get("X-Github-Sso")
+    partial_results_prefix = "partial-results; organizations="
+
+    if sso_header and partial_results_prefix in sso_header:
+        disabled_orgs = sso_header[len(partial_results_prefix) :].split(",")
+
+    return disabled_orgs
+
+
+def get_oauth_scopes(response: Response) -> set:
+    """
+    Given a response from Github, return the set of OAuth scopes for its
+    request.
+    """
+    authorized_scopes = set()
+
+    # If the token isn't authorized "X-OAuth-Scopes" header won't be present
+    x_oauth_scopes = response.headers.get("X-OAuth-Scopes")
+    if x_oauth_scopes:
+        authorized_scopes = set(x_oauth_scopes.split(", "))
+
+    return authorized_scopes
+
+
+def catch_common_github_auth_errors(func: Callable) -> Callable:
+    """
+    A decorator catching the most common Github authentication errors.
+    """
+
+    @functools.wraps(func)
+    def inner(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except (ResponseError, TransportError) as exc:
+            error_msg = format_github3_exception(exc)
+            if error_msg:
+                raise GithubApiError(error_msg)
+            else:
+                raise
+
+    return inner
