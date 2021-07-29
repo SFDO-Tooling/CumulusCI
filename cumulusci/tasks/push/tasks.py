@@ -2,7 +2,7 @@ import csv
 import time
 from datetime import datetime, timedelta
 
-from dateutil.parser import ParserError, isoparse
+from dateutil.parser import isoparse
 
 from cumulusci.core.exceptions import (
     CumulusCIException,

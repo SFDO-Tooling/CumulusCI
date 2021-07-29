@@ -531,7 +531,9 @@ def test_schedule_push_org_bulk_query_get_org(BulkAPI):  # push_api):
     assert result == expected_result
 
 
-@pytest.mark.parametrize("test_date_str", ['2028-01-01 12:30:30 CST','06-18-2022 07:21PM PDT', '2028-28-01'])
+@pytest.mark.parametrize(
+    "test_date_str", ["2028-01-01 12:30:30 CST", "06-18-2022 07:21PM PDT", "2028-28-01"]
+)
 def test_schedule_push_org_list_run_task_with_bad_datestr(org_file, test_date_str):
     task = create_task(
         SchedulePushOrgList,
@@ -548,6 +550,7 @@ def test_schedule_push_org_list_run_task_with_bad_datestr(org_file, test_date_st
     task.push.create_push_request.return_value = ("0DV000000000001", 2)
     with pytest.raises((ValueError, CumulusCIException)):
         task._run_task()
+
 
 def test_schedule_push_org_list_run_task_with_isofmt_assertion(org_file):
     target_dt = datetime.datetime.utcnow().replace(microsecond=0)
