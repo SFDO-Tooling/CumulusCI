@@ -69,17 +69,17 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
         elem.append("relatedList", text=related_list)
 
 
-class AddFields(MetadataSingleEntityTransformTask):
+class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
     task_docs = """
-        Inserts the listed fields or visualforce pages into page page layouts
-        specified by api name
+        Inserts the listed fields or Visualforce pages into page layouts
+        specified by API name.
 
         If the targeted item already exists, the layout metadata is not modified.
 
         Fields property options:
-            - field_name: [field api name]
+            - field_name: [field API name]
             - field_behavior: [ReadOnly | Edit | Required]
-            - visualforce_page_name:[page_name]
+            - visualforce_page_name: [page_name]
             - position: (Must be a list of positions)
 
                 - relative: [before | after | top | bottom]
@@ -303,7 +303,7 @@ class AddFields(MetadataSingleEntityTransformTask):
 
     def _new_section_item(self, index, position, column_index):
         # Get section at index
-        sections = [section for section in self._metadata.findall("layoutSections")]
+        sections = list(self._metadata.findall("layoutSections"))
 
         if index > (len(sections) - 1):
             self.logger.warning(
@@ -312,9 +312,9 @@ class AddFields(MetadataSingleEntityTransformTask):
             return None
 
         section = sections[index]
-        columns = [col for col in section.findall("layoutColumns")]
-        column = columns[1 if column_index == "last" else 0]
-        items = [item for item in column.findall("layoutItems")]
+        columns = list(section.findall("layoutColumns"))
+        column = columns[-1 if column_index == "last" else 0]
+        items = list(column.findall("layoutItems"))
         # Sections can be empty
         if len(items) == 0 or position == "bottom":
             return column.append("layoutItems")

@@ -14,7 +14,7 @@ tasks:
   add_page_layout_fields:
     group: Metadata Transformations
     description: Adds specified Fields or VisualForce Pages to a Page Layout.
-    class_path: cumulusci.tasks.metadata_etl.layouts.AddFields
+    class_path: cumulusci.tasks.metadata_etl.layouts.AddFieldsToPageLayout
   add_standard_value_set_entries:
     group: Metadata Transformations
     description: Adds specified picklist entries to a Standard Value Set.
