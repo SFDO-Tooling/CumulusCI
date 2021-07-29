@@ -257,7 +257,8 @@ def test_service_connect_invalid_service():
             multi_cmd.get_command(ctx, "test")
 
 
-def test_service_connect_validator():
+@mock.patch("cumulusci.cli.tests.test_service.validate_service")
+def test_service_connect_validator(validator):
     multi_cmd = service.ConnectServiceCommand()
     runtime = mock.MagicMock()
     runtime.project_config.services = {
@@ -267,6 +268,36 @@ def test_service_connect_validator():
         }
     }
 
+    expected_conf = {
+        "service_type": "test",
+        "service_name": "test-alias",
+        "key": "value",
+    }
+    validator.return_value = expected_conf
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        cmd = multi_cmd.get_command(ctx, "test")
+        cmd.callback(
+            runtime,
+            service_type="test",
+            service_name="test-alias",
+            project=False,
+            key="value",
+        )
+        validator.assert_called_once_with(expected_conf)
+
+
+@mock.patch("cumulusci.cli.tests.test_service.validate_service")
+def test_service_connect_validator_failure(validator):
+    multi_cmd = service.ConnectServiceCommand()
+    runtime = mock.MagicMock()
+    runtime.project_config.services = {
+        "test": {
+            "attributes": {},
+            "validator": "cumulusci.cli.tests.test_service.validate_service",
+        }
+    }
+
+    validator.side_effect = Exception("Validation failed")
     with click.Context(multi_cmd, obj=runtime) as ctx:
         cmd = multi_cmd.get_command(ctx, "test")
         with pytest.raises(Exception, match="Validation failed"):
@@ -492,4 +523,4 @@ def test_service_remove__exception_thrown(click):
 
 
 def validate_service(options):
-    raise Exception("Validation failed")
+    pass

@@ -23,6 +23,7 @@ from cumulusci.core.exceptions import (
     ProjectConfigNotFound,
 )
 from cumulusci.core.github import (
+    catch_common_github_auth_errors,
     get_github_api_for_repo,
     find_previous_release,
 )
@@ -490,6 +491,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
                 + "config.set_keychain(keychain) before accessing orgs"
             )
 
+    @catch_common_github_auth_errors
     def get_repo_from_url(self, url):
         owner, name = split_repo_url(url)
         return self.get_github_api(owner, name).repository(owner, name)

@@ -291,8 +291,14 @@ Set this variable equal to the following json string:
   
     {
         "username": "USERNAME",
-        "instance_url": "INSTANCE_URL"
+        "instance_url": "INSTANCE_URL",
+        "sandbox": true
     }
+
+.. note::
+
+  If the org is not a sandbox, then you can either omit the ``"sandbox": true`` line, or set it to ``false``.
+
 
 * ``USERNAME`` - The username of the user you will login to the org as.
 * ``INSTANCE_URL`` - The instance URL for the org. Should begin with the ``https://`` schema.

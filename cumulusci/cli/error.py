@@ -8,6 +8,7 @@ import click
 import github3
 
 import cumulusci
+from cumulusci.core.github import check_github_scopes
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.github import create_gist, get_github_api
 from .runtime import pass_runtime
@@ -104,8 +105,9 @@ def gist(runtime):
             "CumulusCI Error Output",
             files,
         )
-    except github3.exceptions.NotFoundError:
-        raise CumulusCIException(GIST_404_ERR_MSG)
+    except github3.exceptions.NotFoundError as exc:
+        scope_warning = check_github_scopes(exc)
+        raise CumulusCIException(GIST_404_ERR_MSG + f"\n\n{scope_warning}")
     except Exception as e:
         raise CumulusCIException(
             f"An error occurred attempting to create your gist:\n{e}"
