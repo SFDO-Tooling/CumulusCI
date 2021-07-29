@@ -3,66 +3,111 @@ Release an Unlocked Package
 
 While CumulusCI was originally created to develop managed packages, it can also be used to develop and release `unlocked packages <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_intro.htm>`_.
 
-.. warning::
-
-    We do not currently support setting the Ancestor Id for a 2GP package.
-
 
 Prerequisites
 -------------
+This section assumes:
 
-To create unlocked package versions, complete these steps.
-
-* `Enable DevHub Features in Your Org <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packagingGuide/sfdx_setup_enable_devhub.htm>`_.
-* `Enable Unlocked and Second-Generation Managed Packaging <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_secondgen_pkg.htm>`_.
-* Connect the Dev Hub org to the CumulusCI keychain by running ``cci org connect devhub``. (This is necessary even if ``sfdx`` has already authenticated to the Dev Hub).
-* To create an unlocked package with a namespace, you must also create a new Developer Edition org to `Create and Register Your Namespace <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_create_namespace.htm>`_, and link the namespace to your Dev Hub.
-
+* :doc:`CumulusCI is installed <get_started>` on your computer.
+* A Salesforce project has been configured for use with CumulusCI.
+* Your Dev Hub has the required features enabled: `Enable DevHub Features in Your Org <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packagingGuide/sfdx_setup_enable_devhub.htm>`_ and `Enable Unlocked and Second-Generation Managed Packaging <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_secondgen_pkg.htm>`_.
+* If you're building a namespaced Unlocked Package, a namespace org has been `created and linked to the active Dev Hub <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_dev2gp_create_namespace.htm>`_.
 
 
-Create a Package Version
-------------------------
+Create a Beta Version
+---------------------
 
-To create a new unlocked package version, run the ``create_package_version`` task against a scratch org.
+CumulusCI uses the ``dependencies`` section of your ``cumulusci.yml`` file to define your 2GP project's dependencies. CumulusCI uses GitHub releases to identify the ancestor Id and new version number for the beta package version. By default, the new beta version will increment the minor version number from the most recent GitHub release.
+
+Because Salesforce requires package version Ids (``04txxxxxxxxxxxx``) for 2GP package dependencies, some CumulusCI dependencies must be installed in an org to make those Ids available. If your project has dependencies that are not specified as a ``version_id``, start by running
 
 .. code-block:: console
 
-    $ cci task run create_package_version --org <org_name> --package_type Unlocked
+    $ cci flow run dependencies --org dev
 
-This task looks in your default Dev Hub org (as configured in ``sfdx``) for an unlocked package with the name and namespace specified in the task options (defaulting to the name and namespace from the ``project__package`` section of the ``cumulusci.yml`` file). If a matching package doesn't exist, CumulusCI first creates a `Package2 <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_package2.htm>`_ object, and then submits a `request <https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_package2versioncreaterequest.htm>`_ to create the package version. When completed (which can take some time), the task outputs a ``SubscriberPackageVersion`` ID, which can be used to install the package in another org.
+When you're ready, and your org is prepared, to upload a package version, run the command
 
-If a package version already exists with the exact same contents, as determined by the hash of the package metadata, its ``SubscriberPackageVersion`` ID is returned rather than creating a new version.
+.. code-block:: console
 
+    $ cci flow run upload_unlocked_beta --org dev
 
+.. important::
+    
+    The org supplied to ``upload_unlocked_beta`` has two purposes. One is to look up the Ids of dependency packages (see above). The other is to provide the configuration for the *build org* used to upload the 2GP package version. CumulusCI will use the scratch org definition file used to create the specified org (``dev`` here) to create the build org, which defines the features and settings available during package upload.
 
-Handle Dependencies
----------------------
-
-CumulusCI tries to convert dependencies configured under the ``project`` section of the ``cumulusci.yml`` file into a ``SubscriberPackageVersion`` ID (``04t`` key prefix). This format is required for dependencies in the API to create a package version.
-
-For dependencies that are specified as a managed package namespace and version, or dependencies specified as a GitHub repository with releases that can be resolved to a namespace and version, CumulusCI needs a scratch org with the dependencies installed to execute this conversion in the ``create_package_version`` task.
-
-.. important:: Install the dependencies in this scratch org *before* running the ``create_package_version`` task! 
-
-The scratch org's definition file also specifies the correct org shape when building the new package version.
-
-For dependencies that are an unpackaged bundle of metadata, CumulusCI creates an additional unlocked package to contain them.
+    You may wish to define a separate scratch org configuration (``build``) just for package uploads to ensure only your required features are present.
 
 
+The ``upload_unlocked_beta`` flow executes these tasks:
 
-Promote a Package Version
--------------------------
+* Uploads a new beta version of the unlocked package.
+* Creates a new GitHub release tag for the new beta version. Extension packages that also use CumulusCI require this release tag to find the latest version when this repository is listed as a dependency.
+* :ref:`Generates Release Notes <github_release_notes>`.
+* Syncs feature branches with the ``main`` branch, which automatically integrates the latest changes from ``main``. For more information see :ref:`auto merging`.
+
+.. tip:: 
+
+    To list each step in the ``upload_unlocked_beta`` flow, run ``cci flow info upload_unlocked_beta``.
+
+Customizing Package Uploads
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+2GP package uploads are performed by the ``create_package_version`` task. If the built-in configuration used by ``upload_unlocked_beta`` does not suit the needs of your project - for example, if you want to increment version numbers differently, or build an org-dependent package - you can customize the options for that task in ``upload_unlocked_beta`` or invoke the task directly.
+
+To learn more about the available options, run
+
+.. code-block:: console
+
+    $ cci task info create_package_version
+
+
+CumulusCI can also create org-dependent and skip-validation packages when configured with the appropriate options.
+
+
+Handling Unpackaged Metadata
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+CumulusCI projects can include *unpackaged metadata* in directories like ``unpackaged/pre`` and ``unpackaged/post``. These directories are deployed when CumulusCI creates a scratch org, and are installed in the packaging org when CumulusCI creates 1GP package versions.However, second-generation packaging does not have a packaging org, and does not allow interactive access to the build org. 
+
+CumulusCI offers two modes of handling unpackaged metadata owned by dependencies when building a second-generation package. 
+
+The default behavior is to ignore unpackaged metadata. If unpackaged metadata is intended to satisfy install-time dependencies of packages, this requires that those dependencies be met in other ways, such as by configuring the scratch org definition. For examples of how to satisfy the install-time dependencies for NPSP and EDA without using unpackaged metadata, see :doc:`Extending NPSP and EDA with Second-Generation Packaging <npsp_eda_2gp>`.
+
+The other option is to have CumulusCI automatically create Unlocked Packages containing unpackaged metadata from dependency projects. For example, if your project depended on the repository ``Food-Bank``, which contained the unpackaged metadata directories
+
+* ``unpackaged/pre/record_types``
+* ``unpackaged/pre/setup``
+
+CumulusCI would automatically, while uploading a version of your package, upload Unlocked Package versions containing the current content of those unpackaged directories.
+
+The Unlocked Package route is generally suitable for testing only, where it may be convenient when working with complex legacy projects that include lots of unpackaged metadata. However, it's generally *not* suitable for use when building production packages, because your packages would have to be distributed along with those Unlocked Packages. For this reason, this behavior is off by default. If you would like to use it, configure your ``cumulusci.yml`` to set the option ``create_unlocked_dependency_packages`` on the ``create_package_version`` task.
+
+Test a Beta Version
+-------------------
+
+The ``ci_beta`` flow installs the latest beta version of the project in a scratch org, and runs Apex tests against it.
+
+.. code-block:: console
+
+    $ cci flow run ci_beta --org beta 
+
+This flow is intended to be run whenever a beta release is created.       
+
+
+Promote a Production Version
+----------------------------
 
 To be installed in a production org, an 2GP package version must be `promoted <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_create_pkg_ver_promote.htm>`_ to mark it as released.
 
-Use the ``promote_package_version`` task along with a valid ``SubscriberPackageVersionId`` to promote a 2GP package.
+To promote a production release of your managed package project:
 
-.. code-block:: console
+.. code-block::
 
-    $ cci task run promote_package_version --version_id 04t000000000000
+    $ cci flow run release_unlocked_production --org packaging 
 
-If additional unlocked packages were created to hold unpackaged dependencies, they must be promoted as well.
-To promote dependencies automatically use ``--promote_dependencies True``.
+Unlike first-generation packages, promoting a second-generation package doesn't upload a new version. Instead, it promotes the most recent beta version (found in the project's GitHub releases) to production status. Then, CumulusCI creates a new, production GitHub release, and aggregates release notes for that release.
+
+You can also promote a package using its ``04t`` package Id, without using the GitHub release operations:
 
 .. code-block:: console
 
@@ -71,37 +116,26 @@ To promote dependencies automatically use ``--promote_dependencies True``.
 Alternatively, you can use the ``sfdx force:package:version:promote`` command to promote a 2GP package.
 
 
-Install the Unlocked Package
-----------------------------
+Promoting Dependencies
+^^^^^^^^^^^^^^^^^^^^^^
 
-To install an unlocked package with CumulusCI:
+If additional unlocked packages were created to hold unpackaged dependencies, they must be promoted as well. To promote dependencies automatically use ``--promote_dependencies True``
+with the ``promote_package_version`` task, or customize the ``release_unlocked_production``
+flow to include that option.
 
-Configure either the ``update_dependencies`` or the ``install_managed`` task and provide the ``SubscriberPackageVersion`` ID of the unlocked package to be used.
+.. code-block:: console
 
-The ``update_dependencies`` task can be configured in the ``cumulusci.yml`` file.
+    $ cci task run promote_package_version --version_id 04t000000000000 --promote_dependencies True
 
-.. code-block::yaml
 
-    task: update_dependencies
-    options:
-        dependencies:
-            - version_id: 04t000000000000
+Test a Production Version
+-------------------
 
-For the ``install_managed`` task, run it via ``cci``...
+To test the new package version:
 
-.. code-block::console
+.. code-block::
 
-    $ cci task run intsall_managed --version 04t000000000000 --org <org_name>
+    $ cci flow run ci_release --org release
 
-Or configure it in the ``cumulusci.yml`` file.
+The ``ci_release`` flow installs the latest production release version and runs the Apex tests from the managed package on a scratch org. 
 
-.. code-block::yaml
-
-    task: install_managed
-    options:
-        version: 04t000000000000
-
-To install unlocked packages in an org that doesn't use CumulusCI, use one of these methods. 
-
-* `Install via the Salesforce CLI <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_cli.htm>`_
-* `Install via an Installation URL <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_install_pkg_ui.htm>`_
