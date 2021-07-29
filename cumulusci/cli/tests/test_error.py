@@ -144,7 +144,11 @@ Environment Info: Rossian / x68_46
 
         class GitHubExceptionWithResponse(github3.exceptions.NotFoundError, mock.Mock):
             def __init__(self, status_code):
-                self.response = mock.Mock(status_code=status_code)
+                self.response = mock.Mock(
+                    status_code=status_code,
+                    headers={},
+                    url="https://api.github.com/gists",
+                )
 
         create_gist.side_effect = GitHubExceptionWithResponse(404)
         with pytest.raises(CumulusCIException, match=re.escape(error.GIST_404_ERR_MSG)):
