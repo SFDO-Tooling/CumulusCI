@@ -19,9 +19,6 @@ and adding to it an ``objectSettings`` section. We'll call this file ``orgs/buil
         /* Your project's settings are here */
     },
     "objectSettings": {
-        "opportunity": {
-            "defaultRecordType": "default"
-        },
         "account": {
             "defaultRecordType": "default"
         }
