@@ -31,15 +31,15 @@ class UninstallPackagedIncremental(UninstallPackaged):
         "ignore_types": {
             "description": f"List of component types to ignore in the org and not try to delete. Defaults to {DEFAULT_IGNORE_TYPES}"
         },
+        "dry_run": {
+            "description": "Perform a dry run of the operation without actually deleting any components, and display the components that would be deleted."
+        },
     }
 
     def _init_options(self, kwargs):
         super(UninstallPackagedIncremental, self)._init_options(kwargs)
         if "path" not in self.options:
             self.options["path"] = "src"
-        self.options["purge_on_delete"] = process_bool_arg(
-            self.options.get("purge_on_delete", True)
-        )
         self.options["ignore"] = self.options.get("ignore", {})
         self.options["ignore_types"] = self.options.get(
             "ignore_types", DEFAULT_IGNORE_TYPES

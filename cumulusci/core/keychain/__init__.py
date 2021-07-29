@@ -6,11 +6,7 @@ from cumulusci.core.keychain.base_project_keychain import (
     DEFAULT_CONNECTED_APP,
 )
 
-# inherit from BaseProjectKeychain
-from cumulusci.core.keychain.BaseEncryptedProjectKeychain import (
-    BaseEncryptedProjectKeychain,
-)
-from cumulusci.core.keychain.EnvironmentProjectKeychain import (
+from cumulusci.core.keychain.environment_project_keychain import (
     EnvironmentProjectKeychain,
 )
 

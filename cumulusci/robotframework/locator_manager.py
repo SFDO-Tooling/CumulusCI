@@ -1,6 +1,7 @@
 from robot.libraries.BuiltIn import BuiltIn
 import functools
 from cumulusci.core.utils import dictmerge
+from robot.api import logger
 
 """
 This module supports managing multiple location strategies. It
@@ -43,15 +44,17 @@ LOCATORS = {}
 
 
 def register_locators(prefix, locators):
-    """Register a strategy with a set of locators or a keyword
+    """Register locators to be used with a custom locator strategy
 
-    If the prefix is already known, merge in the new locators.
+    If the prefix is already known, the locators will be merged with
+    the dictionary we already have.
+
     """
     if prefix in LOCATORS:
-        BuiltIn().log(f"merging keywords for prefix {prefix}", "DEBUG")
+        logger.debug(f"merging keywords for prefix {prefix}")
         dictmerge(LOCATORS[prefix], locators)
     else:
-        BuiltIn().log(f"registering keywords for prefix {prefix}", "DEBUG")
+        logger.debug(f"registering keywords for prefix {prefix}")
         LOCATORS[prefix] = locators
 
 
@@ -64,17 +67,12 @@ def add_location_strategies():
     selenium = BuiltIn().get_library_instance("SeleniumLibrary")
     for (prefix, strategy) in LOCATORS.items():
         try:
-            BuiltIn().log(f"adding location strategy for '{prefix}'", "DEBUG")
-            if isinstance(strategy, dict):
-                selenium.add_location_strategy(
-                    prefix, functools.partial(locate_element, prefix)
-                )
-            else:
-                # not a dict? Just pass it through to selenium as-is
-                # so that this function can register normal keywords
-                selenium.add_location_strategy(prefix, strategy)
+            logger.debug(f"adding location strategy for '{prefix}'")
+            selenium.add_location_strategy(
+                prefix, functools.partial(locate_element, prefix)
+            )
         except Exception as e:
-            BuiltIn().log(f"unable to register locators: {e}", "DEBUG")
+            logger.debug(f"unable to register locators: {e}")
 
 
 def locate_element(prefix, parent, locator, tag, constraints):
@@ -94,13 +92,18 @@ def locate_element(prefix, parent, locator, tag, constraints):
     # practice it probably won't matter <shrug>.
     selenium = BuiltIn().get_library_instance("SeleniumLibrary")
     loc = translate_locator(prefix, locator)
-    BuiltIn().log(f"locate_element: '{prefix}:{locator}' => {loc}", "DEBUG")
+    logger.info(f"locator: '{prefix}:{locator}' => '{loc}'")
+
     try:
         element = selenium.get_webelement(loc)
-    except Exception:
-        raise Exception(
-            f"Element with locator '{prefix}:{locator}' not found\ntranslated: '{loc}'"
-        )
+    except Exception as e:
+        # the SeleniumLibrary documentation doesn't say, but I'm
+        # pretty sure we should return None rather than throwing an error
+        # in this case. If we throw an error, that prevents the custom
+        # locators from being used negatively (eg: Page should not
+        # contain element  custom:whatever).
+        logger.debug(f"caught exception in locate_element: {e}")
+        return None
     return element
 
 
@@ -124,11 +127,18 @@ def translate_locator(prefix, locator):
     try:
         for key in path.split("."):
             breadcrumbs.append(key)
+            # this assumes that loc is a dictionary rather than a
+            # string. If we've hit the leaf node of the locator and
+            # there are still more keys, this will fail with a TypeError
             loc = loc[key.strip()]
 
-    except KeyError:
+    except (KeyError, TypeError):
+        # TypeError: if the user passes in foo.bar.baz, but foo or foo.bar
+        # resolves to a string rather than a nested dict.
+        # KeyError if user passes in foo.bar and either 'foo' or 'bar' isn't
+        # a valid key for a nested dictionary
         breadcrumb_path = ".".join(breadcrumbs)
-        raise KeyError(f"locator {prefix}:{breadcrumb_path} not found")
+        raise Exception(f"locator {prefix}:{breadcrumb_path} not found")
 
     if not isinstance(loc, str):
         raise TypeError(f"Expected locator to be of type string, but was {type(loc)}")

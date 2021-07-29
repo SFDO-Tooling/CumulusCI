@@ -41,7 +41,11 @@ import cumulusci
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode"]
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.autosectionlabel",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -52,12 +56,19 @@ source_suffix = ".rst"
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
 
+# Set epilog with any variable values we want replaced
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-rst_epilog
+cci_version = cumulusci.__version__
+rst_epilog = f"""
+.. |cumulusci_version| replace:: {cci_version}
+"""
+
 # The master toctree document.
 master_doc = "index"
 
 # General information about the project.
-project = u"CumulusCI"
-copyright = u"2020, Salesforce.org"
+project = "CumulusCI"
+copyright = "2021, Salesforce.org"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -112,7 +123,7 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "alabaster"
+html_theme = "furo"
 
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.  For a list of options available for each theme, see the
@@ -145,6 +156,11 @@ html_theme = "alabaster"
 # "default.css".
 html_static_path = []
 
+# Add any extra paths that contain custom files (such as robots.txt or
+# .htaccess) here, relative to this directory. These files are copied
+# directly to the root of the documentation.
+html_extra_path = ["robot"]
+
 # If not '', a 'Last updated on:' timestamp is inserted at every page
 # bottom, using the given strftime format.
 # html_last_updated_fmt = '%b %d, %Y'
@@ -155,15 +171,17 @@ html_static_path = []
 
 # Custom sidebar templates, maps document names to template names.
 # html_sidebars = {}
-html_sidebars = {
-    "**": [
-        "about.html",
-        "navigation.html",
-        "relations.html",
-        "searchbox.html",
-        "donate.html",
-    ]
-}
+
+# This doesn't play well with 'furo' theme
+# html_sidebars = {
+# "**": [
+# "about.html",
+# "navigation.html",
+# "relations.html",
+# "searchbox.html",
+# "donate.html",
+# ]
+# }
 
 # Additional templates that should be rendered to pages, maps page names
 # to template names.
@@ -216,7 +234,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ("index", "cumulusci.tex", u"CumulusCI Documentation", u"Jason Lantz", "manual")
+    ("index", "cumulusci.tex", "CumulusCI Documentation", "Jason Lantz", "manual")
 ]
 
 # The name of an image file (relative to this directory) to place at
@@ -244,7 +262,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "cumulusci", u"CumulusCI Documentation", [u"Jason Lantz"], 1)]
+man_pages = [("index", "cumulusci", "CumulusCI Documentation", ["Jason Lantz"], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -259,8 +277,8 @@ texinfo_documents = [
     (
         "index",
         "cumulusci",
-        u"CumulusCI Documentation",
-        u"Jason Lantz",
+        "CumulusCI Documentation",
+        "Jason Lantz",
         "cumulusci",
         "One line description of project.",
         "Miscellaneous",
@@ -280,27 +298,19 @@ texinfo_documents = [
 # texinfo_no_detailmenu = False
 
 
-# Run sphinx api-doc
-def run_apidoc(_):
-    from sphinx.ext.apidoc import main
-    import os
-    import sys
+def generate_task_and_flow_docs(_):
+    """Run cci commands to generate tasks.rst and flows.rst"""
+    import subprocess
+    from sphinx.util.logging import getLogger
 
-    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-    cur_dir = os.path.abspath(os.path.dirname(__file__))
-    module = os.path.join(cur_dir, "..", "cumulusci")
-    main(
-        [
-            "-T",
-            "-M",
-            "-o",
-            os.path.join(cur_dir, "api"),
-            module,
-            os.path.join(cur_dir, "..", "**", "tests", "*"),
-            "--force",
-        ]
-    )
+    logger = getLogger("cci")
+    logger.info("Generating docs/tasks.rst from cci tasks")
+    with open("tasks.rst", "w") as task_docs:
+        subprocess.run(["cci", "task", "doc"], stdout=task_docs, check=True)
+    logger.info("Generating docs/flows.rst from cci flows")
+    with open("flows.rst", "w") as flow_docs:
+        subprocess.run(["cci", "flow", "doc"], stdout=flow_docs, check=True)
 
 
 def setup(app):
-    app.connect("builder-inited", run_apidoc)
+    app.connect("builder-inited", generate_task_and_flow_docs)

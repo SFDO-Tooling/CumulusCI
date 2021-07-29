@@ -59,16 +59,16 @@ test: ## run tests quickly with the default Python
 test-all: ## run tests on every Python version with tox
 	tox
 
+# Use CLASS_PATH to run coverage for a subset of tests. 
+# $ make coverage CLASS_PATH="cumulusci/core/tests"
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source cumulusci -m pytest
+	coverage run --source cumulusci -m pytest $(CLASS_PATH)
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
 
 docs: ## generate Sphinx HTML documentation
 	$(MAKE) -C docs clean
-	cci task doc > docs/tasks.rst
-	cci flow doc > docs/flows.rst
 	$(MAKE) -C docs html
 	$(BROWSER) docs/_build/html/index.html
 
@@ -96,3 +96,12 @@ install: clean ## install the package to the active Python's site-packages
 tag: clean
 	git tag -a -m 'version $$(python setup.py --version)' v$$(python setup.py --version)
 	git push --follow-tags
+
+update-deps:
+	pip-compile --upgrade --allow-unsafe requirements/prod.in
+	pip-compile --upgrade --allow-unsafe requirements/dev.in
+
+dev-install:
+	pip install --upgrade pip-tools
+	pip-sync requirements/*.txt
+	pip install -e .

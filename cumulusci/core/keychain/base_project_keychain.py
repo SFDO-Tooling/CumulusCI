@@ -1,20 +1,25 @@
 import sarge
 
-from cumulusci.core.config import BaseConfig
-from cumulusci.core.config import ConnectedAppOAuthConfig
-from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.exceptions import ServiceNotValid
+from cumulusci.core.config import (
+    BaseConfig,
+    ConnectedAppOAuthConfig,
+    ScratchOrgConfig,
+)
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    OrgNotFound,
+    ServiceNotConfigured,
+    ServiceNotValid,
+)
 from cumulusci.core.sfdx import sfdx
-from cumulusci.core.utils import cleanup_org_cache_dirs
 
+DEFAULT_CONNECTED_APP_PORT = 7788
+DEFAULT_CONNECTED_APP_NAME = "built-in"
 DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig(
     {
         "client_id": "3MVG9i1HRpGLXp.or6OVlWVWyn8DXi9xueKNM4npq_AWh.yqswojK9sE5WY7f.biP0w7bNJIENfXc7JMDZGO1",
         "client_secret": None,
-        "callback_url": "http://localhost:8080/callback",
+        "callback_url": f"http://localhost:{DEFAULT_CONNECTED_APP_PORT}/callback",
     }
 )
 
@@ -24,45 +29,30 @@ class BaseProjectKeychain(BaseConfig):
 
     def __init__(self, project_config, key):
         super(BaseProjectKeychain, self).__init__()
-        self.config = {"orgs": {}, "app": None, "services": {}}
+        self.config = {
+            "orgs": {},
+            "app": None,
+            "services": {},
+        }
         self.project_config = project_config
+        self._default_services = {}
         self.key = key
         self._validate_key()
         self._load_keychain()
 
-    def _convert_connected_app(self):
-        """Convert Connected App to service"""
-        if self.services and "connected_app" in self.services:
-            # already a service
-            return
-        connected_app = self.get_connected_app()
-        if not connected_app:
-            # not configured
-            return
-        self.logger.warning(
-            "Reading Connected App info from deprecated config."
-            " Connected App should be changed to a service."
-            " If using environment keychain, update the environment variable."
-            " Otherwise, it has been handled automatically and you should not"
-            " see this message again."
-        )
-        ca_config = ServiceConfig(
-            {
-                "callback_url": connected_app.callback_url,
-                "client_id": connected_app.client_id,
-                "client_secret": connected_app.client_secret,
-            }
-        )
-        self.set_service("connected_app", ca_config)
-
     def _load_keychain(self):
-        self._load_app()
         self._load_orgs()
         self._load_scratch_orgs()
+        self._load_default_connected_app()
         self._load_services()
+        self._load_default_services()
 
-    def _load_app(self):
+    def _validate_key(self):
         pass
+
+    #######################################
+    #               Orgs                  #
+    #######################################
 
     def _load_orgs(self):
         pass
@@ -79,11 +69,8 @@ class BaseProjectKeychain(BaseConfig):
                 continue
             self.create_scratch_org(config_name, config_name)
 
-    def _load_services(self):
-        pass
-
     def create_scratch_org(self, org_name, config_name, days=None, set_password=True):
-        """ Adds/Updates a scratch org config to the keychain from a named config """
+        """Adds/Updates a scratch org config to the keychain from a named config"""
         scratch_config = getattr(self.project_config, f"orgs__scratch__{config_name}")
         if days is not None:
             # Allow override of scratch config's default days
@@ -103,46 +90,6 @@ class BaseProjectKeychain(BaseConfig):
         )
         org_config.save()
 
-    def change_key(self, key):
-        """ re-encrypt stored services and orgs with the new key """
-
-        services = {}
-        for service_name in self.list_services():
-            services[service_name] = self.get_service(service_name)
-
-        orgs = {}
-        for org_name in self.list_orgs():
-            orgs[org_name] = self.get_org(org_name)
-
-        self.key = key
-
-        if orgs:
-            for org_name, org_config in list(orgs.items()):
-                org_config.save()
-
-        if services:
-            for service_name, service_config in list(services.items()):
-                self.set_service(service_name, service_config)
-
-        self._convert_connected_app()
-
-    def get_connected_app(self):
-        """ retrieve the connected app configuration """
-
-        return self._get_connected_app()
-
-    def _get_connected_app(self):
-        return self.app
-
-    def remove_org(self, name, global_org=None):
-        if name in self.orgs.keys():
-            self._remove_org(name, global_org)
-        cleanup_org_cache_dirs(self, self.project_config)
-
-    def _remove_org(self, name, global_org):
-        del self.orgs[name]
-        self._load_orgs()
-
     def set_org(self, org_config, global_org=False):
         if isinstance(org_config, ScratchOrgConfig):
             org_config.config["scratch"] = True
@@ -152,21 +99,8 @@ class BaseProjectKeychain(BaseConfig):
     def _set_org(self, org_config, global_org):
         self.orgs[org_config.name] = org_config
 
-    # This implementation of get_default_org, set_default_org, and unset_default_org
-    # is currently kept for backwards compatibility, but EncryptedFileProjectKeychain
-    # now stores the default elsewhere, and EnvironmentProjectKeychain doesn't actually
-    # persist across multiple invocations of cci, so we should consider getting rid of this.
-
-    def get_default_org(self):
-        """ retrieve the name and configuration of the default org """
-        for org in self.list_orgs():
-            org_config = self.get_org(org)
-            if org_config.default:
-                return org, org_config
-        return None, None
-
     def set_default_org(self, name):
-        """ set the default org for tasks and flows by name """
+        """set the default org for tasks and flows by name"""
         org = self.get_org(name)
         self.unset_default_org()
         org.config["default"] = True
@@ -179,7 +113,7 @@ class BaseProjectKeychain(BaseConfig):
             )
 
     def unset_default_org(self):
-        """ unset the default orgs for tasks """
+        """unset the default orgs for tasks"""
         for org in self.list_orgs():
             org_config = self.get_org(org)
             if org_config.default:
@@ -188,7 +122,7 @@ class BaseProjectKeychain(BaseConfig):
         sfdx("force:config:set defaultusername=")
 
     def get_org(self, name: str):
-        """ retrieve an org configuration by name key """
+        """retrieve an org configuration by name key"""
         if name not in self.orgs:
             self._raise_org_not_found(name)
         org = self._get_org(name)
@@ -201,64 +135,157 @@ class BaseProjectKeychain(BaseConfig):
     def _get_org(self, name):
         return self.orgs.get(name)
 
-    def _raise_org_not_found(self, name):
-        raise OrgNotFound(f"Org named {name} was not found in keychain")
+    # This implementation of get_default_org, set_default_org, and unset_default_org
+    # is currently kept for backwards compatibility, but EncryptedFileProjectKeychain
+    # now stores the default elsewhere, and EnvironmentProjectKeychain doesn't actually
+    # persist across multiple invocations of cci, so we should consider getting rid of this.
+
+    def get_default_org(self):
+        """retrieve the name and configuration of the default org"""
+        for org in self.list_orgs():
+            org_config = self.get_org(org)
+            if org_config.default:
+                return org, org_config
+        return None, None
+
+    def remove_org(self, name, global_org=None):
+        if name in self.orgs.keys():
+            self._remove_org(name, global_org)
+        self.cleanup_org_cache_dirs()
+
+    def _remove_org(self, name, global_org):
+        del self.orgs[name]
+        self._load_orgs()
 
     def list_orgs(self):
-        """ list the orgs configured in the keychain """
+        """list the orgs configured in the keychain"""
         orgs = list(self.orgs.keys())
         orgs.sort()
         return orgs
 
-    def set_service(self, name, service_config, project=False):
-        """ Store a ServiceConfig in the keychain """
-        if not self.project_config.services or name not in self.project_config.services:
-            self._raise_service_not_valid(name)
-        self._validate_service(name, service_config)
-        self._set_service(name, service_config, project)
-        self._load_services()
+    def _raise_org_not_found(self, name):
+        raise OrgNotFound(f"Org named {name} was not found in keychain")
 
-    def _set_service(self, name, service_config, project=False):
-        self.services[name] = service_config
-
-    def get_service(self, name):
-        """Retrieve a stored ServiceConfig from the keychain or exception
-
-        :param name: the service name to retrieve
-        :type name: str
-
-        :rtype ServiceConfig
-        :return the configured Service
-        """
-        self._convert_connected_app()
-        if not self.project_config.services or name not in self.project_config.services:
-            self._raise_service_not_valid(name)
-        if name not in self.services:
-            if name == "connected_app":
-                return DEFAULT_CONNECTED_APP
-            self._raise_service_not_configured(name)
-
-        service = self._get_service(name)
-        # transparent migration of github API tokens to new key
-        if name == "github" and service.password and not service.token:
-            service.config["token"] = service.password
-        return service
-
-    def _get_service(self, name):
-        return self.services.get(name)
-
-    def _validate_key(self):
+    def cleanup_org_cache_dirs(self):
         pass
 
-    def _validate_service(self, name, service_config):
+    #######################################
+    #              Services               #
+    #######################################
+
+    def _load_services(self):
+        pass
+
+    def _load_default_services(self):
+        self._default_services["connected_app"] = DEFAULT_CONNECTED_APP_NAME
+
+    def _load_default_connected_app(self):
+        """Load the default connected app as a first class service on the keychain."""
+        if "connected_app" not in self.config["services"]:
+            self.config["services"]["connected_app"] = {}
+        self.config["services"]["connected_app"][
+            DEFAULT_CONNECTED_APP_NAME
+        ] = DEFAULT_CONNECTED_APP
+
+    def get_default_service_name(self, service_type: str):
+        """Returns the name of the default service for the given type
+        or None if no default is currently set for the given type."""
+        try:
+            return self._default_services[service_type]
+        except KeyError:
+            return None
+
+    def set_service(self, service_type, alias, service_config):
+        """Store a ServiceConfig in the keychain"""
+        self._validate_service(service_type, alias, service_config)
+        self._set_service(service_type, alias, service_config)
+        self._load_services()
+
+    def _set_service(self, service_type, alias, service_config):
+        if service_type not in self.services:
+            self.services[service_type] = {}
+            self._default_services[service_type] = alias
+
+        self.services[service_type][alias] = service_config
+
+    def get_service(self, service_type, alias=None):
+        """Retrieve a stored ServiceConfig from the keychain.
+        If no alias is specified then the default service for
+        the given type is returned.
+
+        @param service_type: the service to retrieve e.g. 'github'
+        @param alias: the alias of the service
+        @returns: ServiceConfig for the requested service
+        """
+        if not self.project_config.services:
+            raise ServiceNotValid(
+                "Expecting services to be loaded, but none were found."
+            )
+        elif service_type not in self.project_config.services:
+            raise ServiceNotConfigured(
+                f"Service type is not configured: {service_type}"
+            )
+
+        if service_type not in self.services:
+            self._raise_service_not_configured(service_type)
+
+        if not alias:
+            alias = self._default_services.get(service_type)
+            if not alias:
+                raise CumulusCIException(
+                    f"No default service currently set for service type: {service_type}"
+                )
+        service = self._get_service(service_type, alias)
+
+        # transparent migration of github API tokens to new key
+        if service_type == "github" and service.password and not service.token:
+            service.config["token"] = service.password
+
+        return service
+
+    def _get_service(self, service_type, alias):
+        try:
+            return self.services[service_type][alias]
+        except KeyError:
+            raise ServiceNotConfigured(
+                f"No service of type {service_type} configured with name: {alias}"
+            )
+
+    def _validate_service(self, service_type, alias, config):
+        if (
+            not self.project_config.services
+            or service_type not in self.project_config.services
+        ):
+            self._raise_service_not_valid(service_type)
+
+        self._validate_service_alias(service_type, alias)
+        self._validate_service_attributes(service_type, config)
+
+    def _validate_service_attributes(self, service_type, service_config):
+        """
+        Validate that all of the required attributes for a
+        given service are present.
+        """
         missing_required = []
-        attr_key = f"services__{name}__attributes"
+        attr_key = f"services__{service_type}__attributes"
         for atr, config in list(getattr(self.project_config, attr_key).items()):
-            if config.get("required") is True and not getattr(service_config, atr):
+            if config.get("required") and not getattr(service_config, atr):
                 missing_required.append(atr)
 
         if missing_required:
-            self._raise_service_not_valid(name)
+            raise ServiceNotValid(
+                f"Missing required attribute(s) for service: {missing_required}"
+            )
+
+    def _validate_service_alias(self, service_type, alias):
+        if alias == service_type:
+            raise ServiceNotValid(
+                "Service name cannot be the same as the service type."
+            )
+        if service_type == "connected_app" and alias == DEFAULT_CONNECTED_APP_NAME:
+            raise ServiceNotValid(
+                f"You cannot use the name {DEFAULT_CONNECTED_APP_NAME} for a connected app service. Please select a different name."
+            )
 
     def _raise_service_not_configured(self, name):
         services = ", ".join(list(self.services))
@@ -270,12 +297,21 @@ class BaseProjectKeychain(BaseConfig):
         raise ServiceNotValid(f"Service named {name} is not valid for this project")
 
     def list_services(self):
-        """ list the services configured in the keychain """
-        services = list(self.services.keys())
-        services.sort()
+        """list the services configured in the keychain"""
+        service_types = list(self.services.keys())
+        service_types.sort()
+
+        services = {}
+        for s_type in service_types:
+            if s_type not in services:
+                services[s_type] = []
+            names = list(self.services[s_type].keys())
+            names.sort()
+            for name in names:
+                services[s_type].append(name)
         return services
 
     @property
     def cache_dir(self):
         "Helper function to get the cache_dir from the project_config"
-        return self.project_config.cache_dir
+        return self.project_config.cache_dir  # pragma: no cover

@@ -7,6 +7,10 @@ import os.path
 import re
 import sys
 from xml.etree import ElementTree as ET
+from pathlib import Path
+from contextlib import contextmanager
+
+import responses
 
 from cumulusci.core.config import TaskConfig, UniversalConfig, BaseProjectConfig
 from cumulusci.core.exceptions import RobotTestFailure, TaskOptionsError
@@ -18,6 +22,7 @@ from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.robotframework.debugger import DebugListener
 from cumulusci.tasks.robotframework.robotframework import KeywordLogger
 from cumulusci.utils import touch, temporary_dir
+from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
 
 
 from cumulusci.tasks.robotframework.libdoc import KeywordFile
@@ -80,9 +85,10 @@ class TestRobot(unittest.TestCase):
                 "include": "foo, bar",
                 "exclude": "a,  b",
                 "vars": "uno, dos, tres",
+                "skip": "xyzzy,plugh",
             },
         )
-        for option in ("test", "include", "exclude", "vars", "suites"):
+        for option in ("test", "include", "exclude", "vars", "suites", "skip"):
             assert isinstance(task.options[option], list)
 
     def test_process_arg_requires_int(self):
@@ -94,49 +100,84 @@ class TestRobot(unittest.TestCase):
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch("cumulusci.tasks.robotframework.robotframework.subprocess.run")
-    def test_process_arg_gt_zero(self, mock_subprocess_run, mock_robot_run):
-        """Verify that setting the process option to a number > 1 runs pabot"""
-        mock_subprocess_run.return_value = mock.Mock(returncode=0)
-        task = create_task(Robot, {"suites": "tests", "processes": "2"})
+    def test_pabot_arg_with_process_eq_one(self, mock_subprocess_run, mock_robot_run):
+        """Verify that pabot-specific arguments are ignored if processes==1"""
+        mock_robot_run.return_value = 0
+        task = create_task(
+            Robot,
+            {
+                "suites": "tests",
+                "process": 1,
+                "ordering": "robot/order.txt",
+                "testlevelsplit": "true",
+            },
+        )
         task()
-        expected_cmd = [
-            sys.executable,
-            "-m",
-            "pabot.pabot",
-            "--pabotlib",
-            "--processes",
-            "2",
-            "--pythonpath",
-            task.project_config.repo_root,
-            "--variable",
-            "org:test",
-            "--outputdir",
-            ".",
+        mock_subprocess_run.assert_not_called()
+        outputdir = str(Path(".").resolve())
+        mock_robot_run.assert_called_once_with(
             "tests",
-        ]
-        mock_robot_run.assert_not_called()
-        mock_subprocess_run.assert_called_once_with(expected_cmd)
+            listener=[],
+            outputdir=outputdir,
+            variable=["org:test"],
+            tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
+        )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch("cumulusci.tasks.robotframework.robotframework.subprocess.run")
-    def test_process_arg_eq_zero(self, mock_subprocess_run, mock_robot_run):
+    def test_process_arg_eq_one(self, mock_subprocess_run, mock_robot_run):
         """Verify that setting the process option to 1 runs robot rather than pabot"""
         mock_robot_run.return_value = 0
-        task = create_task(Robot, {"suites": "tests", "process": 0})
+        task = create_task(Robot, {"suites": "tests", "process": 1})
         task()
         mock_subprocess_run.assert_not_called()
+        outputdir = str(Path(".").resolve())
         mock_robot_run.assert_called_once_with(
-            "tests", listener=[], outputdir=".", variable=["org:test"]
+            "tests",
+            listener=[],
+            outputdir=outputdir,
+            variable=["org:test"],
+            tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
         )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     def test_suites(self, mock_robot_run):
         """Verify that passing a list of suites is handled properly"""
         mock_robot_run.return_value = 0
-        task = create_task(Robot, {"suites": "tests,more_tests", "process": 0})
+        task = create_task(Robot, {"suites": "tests,more_tests", "process": 1})
         task()
+        outputdir = str(Path(".").resolve())
         mock_robot_run.assert_called_once_with(
-            "tests", "more_tests", listener=[], outputdir=".", variable=["org:test"]
+            "tests",
+            "more_tests",
+            listener=[],
+            outputdir=outputdir,
+            variable=["org:test"],
+            tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
+        )
+
+    @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
+    def test_tagstatexclude(self, mock_robot_run):
+        """Verify tagstatexclude is treated as a list"""
+        mock_robot_run.return_value = 0
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "options": {
+                    "tagstatexclude": "this,that",
+                },
+            },
+        )
+        assert type(task.options["options"]["tagstatexclude"]) == list
+        task()
+        outputdir = str(Path(".").resolve())
+        mock_robot_run.assert_called_once_with(
+            "test",
+            listener=[],
+            outputdir=outputdir,
+            variable=["org:test"],
+            tagstatexclude=["this", "that", "cci_metric_elapsed_time", "cci_metric"],
         )
 
     def test_default_listeners(self):
@@ -252,7 +293,9 @@ class TestRobot(unittest.TestCase):
         )
         self.assertNotIn("dummy1", sys.path)
         self.assertNotIn("dummy2", sys.path)
-        self.assertEquals(".", task.return_values["robot_outputdir"])
+        self.assertEquals(
+            Path(".").resolve(), Path(task.return_values["robot_outputdir"]).resolve()
+        )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch(
@@ -309,7 +352,9 @@ def test_outputdir_return_value(mock_run, tmpdir):
     )
     mock_run.return_value = 0
     task()
-    assert test_dir == task.return_values["robot_outputdir"]
+    assert (Path.cwd() / test_dir).resolve() == Path(
+        task.return_values["robot_outputdir"]
+    ).resolve()
 
 
 class TestRobotTestDoc(unittest.TestCase):
@@ -562,3 +607,98 @@ class TestLibdocPageObjects(unittest.TestCase):
         expected = '<div class="description" title="Description"><p>Description of SomethingListingPage</p></div>'
         actual = ET.tostring(description).decode("utf-8").strip()
         assert actual == expected
+
+
+class TestRobotPerformanceKeywords:
+    def setup(self):
+        self.datadir = os.path.dirname(__file__)
+
+    @contextmanager
+    def _run_robot_and_parse_xml(
+        self, test_pattern, suite_path="tests/salesforce/performance.robot"
+    ):
+        universal_config = UniversalConfig()
+        project_config = BaseProjectConfig(universal_config)
+        with temporary_dir() as d, mock.patch(
+            "cumulusci.robotframework.Salesforce.Salesforce._init_locators"
+        ), responses.RequestsMock():
+            project_config.repo_info["root"] = d
+            suite = Path(self.datadir) / "../../../robotframework/" / suite_path
+            task = create_task(
+                Robot,
+                {
+                    "test": test_pattern,
+                    "suites": str(suite),
+                    "options": {"outputdir": d, "skiponfailure": "noncritical"},
+                },
+                project_config=project_config,
+            )
+            task()
+            logger_func = mock.Mock()
+            log_perf_summary_from_xml(Path(d) / "output.xml", logger_func)
+            yield logger_func.mock_calls
+
+    def parse_metric(self, metric):
+        name, value = metric.split(": ")
+        value = value.strip("s ")  # strip seconds unit
+        try:
+            value = float(value)
+        except ValueError:
+            raise Exception(f"Cannot convert to float {value}")
+        return name.strip(), value
+
+    def extract_times(self, pattern, call):
+        first_arg = call[1][0]
+        if pattern in first_arg:
+            metrics = first_arg.split("-")[-1].split(",")
+            return dict(self.parse_metric(metric) for metric in metrics)
+
+    def test_parser_FOR_and_IF(self):
+        # verify that metrics nested inside a FOR or IF are accounted for
+        pattern = "Test FOR and IF statements"
+        suite_path = Path(self.datadir) / "performance.robot"
+        with self._run_robot_and_parse_xml(
+            pattern, suite_path=suite_path
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            perf_data = list(filter(None, elapsed_times))[0]
+            assert perf_data["plugh"] == 4.0
+            assert perf_data["xyzzy"] == 2.0
+
+    def test_elapsed_time_xml(self):
+        pattern = "Elapsed Time: "
+
+        with self._run_robot_and_parse_xml("Test Perf*") as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            elapsed_times = [next(iter(x.values())) for x in elapsed_times if x]
+            elapsed_times.sort()
+
+            assert elapsed_times[1:] == [53, 11655.9, 18000.0]
+            assert float(elapsed_times[0]) < 3
+
+    def test_metrics(self):
+        pattern = "Max_CPU_Percent: "
+        with self._run_robot_and_parse_xml(
+            "Test Perf Measure Other Metric"
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            assert list(filter(None, elapsed_times))[0]["Max_CPU_Percent"] == 30.0
+
+    def test_empty_test(self):
+        pattern = "Max_CPU_Percent: "
+        with self._run_robot_and_parse_xml(
+            "Test Perf Measure Other Metric"
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            assert list(filter(None, elapsed_times))[0]["Max_CPU_Percent"] == 30.0
+
+    def test_explicit_failures(self):
+        pattern = "Elapsed Time: "
+        suite_path = Path(self.datadir) / "failing_tests.robot"
+        with self._run_robot_and_parse_xml(
+            "Test *", suite_path=suite_path
+        ) as logger_calls:
+            elapsed_times = [self.extract_times(pattern, call) for call in logger_calls]
+            assert list(filter(None, elapsed_times)) == [
+                {"Elapsed Time": 11655.9, "Donuts": 42.3}
+            ]

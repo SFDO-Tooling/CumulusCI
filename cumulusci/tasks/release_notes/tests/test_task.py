@@ -1,14 +1,43 @@
 from unittest import mock
 import pytest
+from pathlib import Path
+import tempfile
 
 from github3.pulls import ShortPullRequest
 
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config import ServiceConfig
 from cumulusci.tests.util import create_project_config
-from cumulusci.tasks.release_notes.task import GithubReleaseNotes
+from cumulusci.tasks.release_notes.task import GithubReleaseNotes, AllGithubReleaseNotes
 from cumulusci.tasks.release_notes.task import ParentPullRequestNotes
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
+
+from cumulusci.tasks.salesforce.tests.util import create_task
+
+
+class TestAllGithubReleaseNotes:
+    def test_run_AllGithubReleaseNotes_task(
+        self,
+    ):
+        with tempfile.TemporaryDirectory():
+            task = create_task(
+                AllGithubReleaseNotes,
+                options={"repos": [{"owner": "SalesforceFoundation", "repo": "NPSP"}]},
+            )
+            task.github = mock.Mock()
+            task.get_repo = mock.Mock()
+            task.github.repository(
+                "SalesforceFoundation", "NPSP"
+            ).latest_release = mock.MagicMock(body="NPSP")
+            task.github.repository(
+                "SalesforceFoundation", "NPSP"
+            ).latest_release.body = "NPSP"
+            task.github.markdown.return_value = "<h1>foo</h1>"
+            task._run_task()
+            result = f"""<html><head><title>Release Notes</title></head><body><h1>Table of Contents</h1><ul><li><a href="#NPSP">NPSP</a></li></ul><br><hr><h1 id="NPSP">NPSP</h1><hr>{task.github.markdown.return_value}<hr></body></html>"""
+            assert Path("github_release_notes.html").is_file()
+            with open("github_release_notes.html", "r") as f:
+                assert f.read() == result
 
 
 class TestGithubReleaseNotes:
@@ -17,12 +46,15 @@ class TestGithubReleaseNotes:
         project_config = create_project_config()
         project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",
                     "token": "TestPass",
                     "email": "testuser@testdomain.com",
-                }
+                },
+                "test_alias",
+                project_config.keychain,
             ),
         )
         project_config.project__git__default_branch = "main"
@@ -72,6 +104,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         project_config = create_project_config()
         project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",

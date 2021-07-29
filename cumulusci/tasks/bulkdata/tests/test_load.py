@@ -63,6 +63,7 @@ class TestLoadData(unittest.TestCase):
                     "options": {
                         "database_url": f"sqlite:///{tmp_db_path}",
                         "mapping": mapping_path,
+                        "set_recently_viewed": False,
                     }
                 },
             )
@@ -105,6 +106,7 @@ class TestLoadData(unittest.TestCase):
                     "database_url": "sqlite://",
                     "mapping": "mapping.yml",
                     "start_step": "Insert Contacts",
+                    "set_recently_viewed": False,
                 }
             },
         )
@@ -125,7 +127,13 @@ class TestLoadData(unittest.TestCase):
     def test_run_task__after_steps(self):
         task = _make_task(
             LoadData,
-            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": "mapping.yml",
+                    "set_recently_viewed": False,
+                }
+            },
         )
         task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
@@ -190,7 +198,14 @@ class TestLoadData(unittest.TestCase):
         mapping_path = os.path.join(base_path, self.mapping_file)
 
         task = _make_task(
-            LoadData, {"options": {"sql_path": sql_path, "mapping": mapping_path}}
+            LoadData,
+            {
+                "options": {
+                    "sql_path": sql_path,
+                    "mapping": mapping_path,
+                    "set_recently_viewed": False,
+                }
+            },
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
@@ -1538,6 +1553,7 @@ class TestLoadData(unittest.TestCase):
                     "options": {
                         "database_url": f"sqlite:///{tmp_db_path}",
                         "mapping": mapping_path,
+                        "set_recently_viewed": False,
                     }
                 },
             )
@@ -2205,7 +2221,13 @@ class TestLoadData(unittest.TestCase):
 
             task = _make_task(
                 NetworklessLoadData,
-                {"options": {"sql_path": tmp_sql_path, "mapping": mapping_path}},
+                {
+                    "options": {
+                        "sql_path": tmp_sql_path,
+                        "mapping": mapping_path,
+                        "set_recently_viewed": False,
+                    }
+                },
             )
 
             numrecords = 5000
@@ -2251,3 +2273,97 @@ class TestLoadData(unittest.TestCase):
                 15 * MEGABYTE
             ):
                 task()
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock.MagicMock())
+    def test_set_viewed(self):
+        base_path = os.path.dirname(__file__)
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "sql_path": "test.sql",
+                    "mapping": os.path.join(base_path, self.mapping_file),
+                }
+            },
+        )
+        queries = []
+
+        def _query_all(query):
+            queries.append(query)
+            return {
+                "records": [
+                    {
+                        "SobjectName": "Account",
+                    },
+                    {
+                        "SobjectName": "Custom__c",
+                    },
+                ],
+            }
+
+        task.sf = mock.Mock()
+        task.sf.query_all = _query_all
+        task.mapping = {}
+        task.mapping["Insert Households"] = MappingStep(sf_object="Account", fields={})
+        task.mapping["Insert Custom__c"] = MappingStep(sf_object="Custom__c", fields={})
+
+        task._set_viewed()
+
+        assert queries == [
+            "SELECT SObjectName FROM TabDefinition WHERE IsCustom = true AND SObjectName IN ('Custom__c')",
+            "SELECT Id FROM Account ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW",
+            "SELECT Id FROM Custom__c ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW",
+        ], queries
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock.MagicMock())
+    def test_set_viewed__SOQL_error_1(self):
+        base_path = os.path.dirname(__file__)
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "sql_path": "test.sql",
+                    "mapping": os.path.join(base_path, self.mapping_file),
+                }
+            },
+        )
+
+        def _query_all(query):
+            assert 0
+
+        task.sf = mock.Mock()
+        task.sf.query_all = _query_all
+        task.mapping = {}
+        task.mapping["Insert Households"] = MappingStep(sf_object="Account", fields={})
+        task.mapping["Insert Custom__c"] = MappingStep(sf_object="Custom__c", fields={})
+
+        with mock.patch.object(task.logger, "warning") as warning:
+            task._set_viewed()
+
+        assert "custom tabs" in str(warning.mock_calls[0])
+        assert "Account" in str(warning.mock_calls[1])
+
+    def test_set_viewed__exception(self):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": "mapping.yml",
+                    "set_recently_viewed": True,
+                }
+            },
+        )
+        task._init_db = mock.Mock(return_value=nullcontext())
+        task._init_mapping = mock.Mock()
+        task.mapping = {}
+        task.after_steps = {}
+
+        def raise_exception():
+            assert 0, "xyzzy"
+
+        task._set_viewed = raise_exception
+
+        with mock.patch.object(task.logger, "warning") as warning:
+            task()
+        assert "xyzzy" in str(warning.mock_calls[0])

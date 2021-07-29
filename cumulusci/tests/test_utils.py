@@ -432,6 +432,12 @@ Options\n------------------------------------------\n\n
         assert name == "ns__test"
         assert content == "ns__|ns.|ns__|ns|ns"
 
+    def test_inject_namespace__filename_token_in_package_xml(self):
+        name, content = utils.inject_namespace(
+            "package.xml", "___NAMESPACE___", namespace="ns", managed=True
+        )
+        assert content == "ns__"
+
     def test_strip_namespace(self):
         logger = mock.Mock()
         name, content = utils.strip_namespace(

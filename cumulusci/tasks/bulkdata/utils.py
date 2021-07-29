@@ -1,8 +1,6 @@
 import collections
-import itertools
 import logging
 import tempfile
-import typing
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -17,6 +15,7 @@ from simple_salesforce import Salesforce
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.utils.backports.py36 import nullcontext
+from cumulusci.utils.iterators import iterate_in_chunks
 
 
 class SqlAlchemyMixin:
@@ -48,10 +47,11 @@ class SqlAlchemyMixin:
         Yields after every batch."""
         table = self.metadata.tables[table]
         dict_iterable = (dict(zip(columns, row)) for row in record_iterable)
-        for group in get_batch_iterator(10000, dict_iterable):
+        for group in iterate_in_chunks(10000, dict_iterable):
             with connection.begin():
-                yield connection.execute(table.insert(), group)
+                connection.execute(table.insert(), group)
             self.session.flush()
+            yield
 
     def _create_record_type_table(self, table_name):
         """Create a table to store mapping between Record Type Ids and Developer Names."""
@@ -140,12 +140,15 @@ def generate_batches(num_records, batch_size):
 
     Given a number of records to split up, and a batch size, generate a
     stream of batchsize, index pairs"""
-    num_batches = (num_records // batch_size) + 1
+    num_batches, left_over = divmod(num_records, batch_size)
+    if left_over:
+        num_batches += 1  # need an extra batch for the clean-up
     for i in range(0, num_batches):
-        if i == num_batches - 1:  # last batch
-            batch_size = num_records - (batch_size * i)  # leftovers
+        is_last_batch = i == num_batches - 1
+        if is_last_batch and left_over:
+            batch_size = left_over
         if batch_size > 0:
-            yield batch_size, i
+            yield batch_size, i, num_batches
 
 
 class RowErrorChecker:
@@ -175,12 +178,3 @@ def consume(iterator):
     Simplified from the function in https://docs.python.org/3/library/itertools.html
     """
     collections.deque(iterator, maxlen=0)
-
-
-def get_batch_iterator(n: int, iterable: typing.Iterable):
-    it = iter(iterable)
-    while True:
-        chunk = tuple(itertools.islice(it, n))
-        if not chunk:
-            return
-        yield chunk

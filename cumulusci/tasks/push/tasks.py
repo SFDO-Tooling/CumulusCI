@@ -7,6 +7,7 @@ from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.exceptions import PushApiObjectNotFound
 from cumulusci.tasks.push.push_api import SalesforcePushApi
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.utils import process_bool_arg
 
 
 class BaseSalesforcePushTask(BaseSalesforceApiTask):
@@ -182,8 +183,8 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
 
             # Clear the method level cache on get_push_requests and
             # get_push_request_objs
-            self.push_report.get_push_requests.cache.clear()
-            self.push_report.get_push_request_objs.cache.clear()
+            self.push_report.get_push_requests.cache_clear()
+            self.push_report.get_push_request_objs.cache_clear()
             # Get the push_request again
             self.push_request = self.push_report.get_push_request_objs(
                 "Id = '{}'".format(request_id), limit=1
@@ -236,7 +237,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
     def _init_options(self, kwargs):
         super(SchedulePushOrgList, self)._init_options(kwargs)
-
+        self.options["dry_run"] = False
         neither_file_option = "orgs" not in self.options and "csv" not in self.options
         both_file_options = "orgs" in self.options and "csv" in self.options
         if neither_file_option or both_file_options:
@@ -283,6 +284,13 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
                 "Scheduling push for %d minutes from now", delay_minutes
             )
             start_time = datetime.utcnow() + timedelta(minutes=delay_minutes)
+
+        if self.options["dry_run"]:
+            self.logger.info(
+                f"Selected {len(orgs)} orgs. "
+                f"Skipping actual creation of the PackagePushRequest because the dry_run flag is on."
+            )
+            return
 
         self.request_id, num_scheduled_orgs = self.push.create_push_request(
             version, orgs, start_time
@@ -349,18 +357,31 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
                 + " Ex: 2016-10-19T10:00"
             )
         },
+        "dry_run": {
+            "description": "If True, log how many orgs were selected but skip creating a PackagePushRequest.  Defaults to False"
+        },
     }
+
+    def _init_options(self, kwargs):
+        super(SchedulePushOrgList, self)._init_options(kwargs)
+        # Set the namespace option to the value from cumulusci.yml if not
+        # already set
+        if "namespace" not in self.options:
+            self.options["namespace"] = self.project_config.project__package__namespace
+        if "batch_size" not in self.options:
+            self.options["batch_size"] = 200
+        self.options["dry_run"] = process_bool_arg(self.options.get("dry_run", False))
 
     def _get_orgs(self):
         subscriber_where = self.options.get("subscriber_where")
         default_where = {
-            "PackageSubscriber": ("OrgStatus = 'Active' AND InstalledStatus = 'i'")
+            "PackageSubscriber": ("OrgStatus != 'Inactive' AND InstalledStatus = 'i'")
         }
         if subscriber_where:
             default_where["PackageSubscriber"] += " AND ({})".format(subscriber_where)
 
         push_api = SalesforcePushApi(
-            self.sf, self.logger, default_where=default_where.copy()
+            self.sf, self.logger, default_where=default_where.copy(), bulk=self.bulk
         )
 
         package = self._get_package(self.options.get("namespace"))
@@ -373,9 +394,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
 
         if min_version:
             # If working with a range of versions, use an inclusive search
-            versions = version.get_older_released_version_objs(
-                greater_than_version=min_version
-            )
+            versions = version.get_older_released_version_objs(min_version=min_version)
             included_versions = []
             for include_version in versions:
                 included_versions.append(str(include_version.sf_id))
@@ -390,7 +409,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             # query timeout errors with querying multiple versions
             for included_version in included_versions:
                 # Clear the get_subscribers method cache before each call
-                push_api.get_subscribers.cache.clear()
+                push_api.get_subscribers.cache_clear()
                 push_api.default_where[
                     "PackageSubscriber"
                 ] = "{} AND MetadataPackageVersionId = '{}'".format(
@@ -407,18 +426,11 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             excluded_versions = [str(version.sf_id)]
             for newer in newer_versions:
                 excluded_versions.append(str(newer.sf_id))
-            if len(excluded_versions) == 1:
-                push_api.default_where[
-                    "PackageSubscriber"
-                ] += " AND MetadataPackageVersionId != '{}'".format(
-                    excluded_versions[0]
-                )
-            else:
-                push_api.default_where[
-                    "PackageSubscriber"
-                ] += " AND MetadataPackageVersionId NOT IN {}".format(
-                    "('" + "','".join(excluded_versions) + "')"
-                )
+            push_api.default_where[
+                "PackageSubscriber"
+            ] += " AND MetadataPackageVersionId NOT IN {}".format(
+                "('" + "','".join(excluded_versions) + "')"
+            )
 
             for subscriber in push_api.get_subscribers():
                 orgs.append(subscriber["OrgKey"])

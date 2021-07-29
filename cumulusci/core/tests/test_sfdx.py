@@ -1,33 +1,33 @@
-from unittest import mock
 import io
-import sys
-
 import pytest
+
+from unittest import mock
 
 from cumulusci.core.exceptions import SfdxOrgException
 from cumulusci.core.sfdx import get_default_devhub_username
+from cumulusci.core.sfdx import shell_quote
 from cumulusci.core.sfdx import sfdx
 
 
 class TestSfdx:
-    @pytest.mark.skipif(
-        sys.platform.startswith("win"), reason="This tests quoting on POSIX systems"
-    )
+    @mock.patch("platform.system", mock.Mock(return_value="Linux"))
     @mock.patch("sarge.Command")
     def test_posix_quoting(self, Command):
         sfdx("cmd", args=["a'b"])
         cmd = Command.call_args[0][0]
         assert cmd == r"sfdx cmd 'a'\''b'"
 
-    @pytest.mark.skipif(
-        not sys.platform.startswith("win"),
-        reason="This tests quoting on Windows systems",
-    )
+    @mock.patch("platform.system", mock.Mock(return_value="Windows"))
     @mock.patch("sarge.Command")
     def test_windows_quoting(self, Command):
         sfdx("cmd", args=['a"b'], access_token="token")
         cmd = Command.call_args[0][0]
         assert cmd == r'sfdx cmd "a\"b" -u token'
+
+    @mock.patch("platform.system", mock.Mock(return_value="Windows"))
+    def test_shell_quote__str_with_space(self):
+        actual = shell_quote("pkg-name Managed Feature Test")
+        assert '"pkg-name Managed Feature Test"' == actual
 
     @mock.patch("sarge.Command")
     def test_check_return(self, Command):

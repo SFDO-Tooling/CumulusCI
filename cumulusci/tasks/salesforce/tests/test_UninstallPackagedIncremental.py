@@ -92,3 +92,19 @@ class TestUninstallPackagedIncremental(unittest.TestCase):
 </Package>""",
                 result,
             )
+
+    def test_dry_run(self):
+        project_config = create_project_config()
+        task = create_task(
+            UninstallPackagedIncremental,
+            {"dry_run": True},
+            project_config,
+        )
+        task._get_destructive_changes = mock.Mock(return_value="foo")
+        task.api_class = mock.Mock()
+        task.logger = mock.Mock()
+
+        task()
+        assert task._get_api() is None
+        task.logger.info.assert_has_calls([mock.call("foo")])
+        task.api_class.assert_not_called()

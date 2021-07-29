@@ -114,7 +114,7 @@ class ObjectManagerPage(BasePage):
 
     @capture_screenshot_on_error
     def create_formula_field(self, field_name, formula):
-        """ Creates a formula field by providing the field_name, formula and forumla fields"""
+        """Creates a formula field by providing the field_name, formula and forumla fields"""
         self.selenium.wait_until_page_contains_element(formula_locator, 60)
         self.selenium.click_element(formula_locator)
         self.selenium.wait_until_page_contains_element(next_button, 60)
@@ -144,7 +144,7 @@ class ObjectManagerPage(BasePage):
         self.selenium.wait_until_page_contains_element(next_button, 60)
         self.selenium.click_element(next_button)
         self.selenium.wait_until_page_contains_element(related, 60)
-        self.selenium.scroll_element_into_view(related)
+        self.salesforce.scroll_element_into_view(related)
         self.selenium.get_webelement(related).click()
         self.selenium.click_element(option)
         self.selenium.wait_until_page_contains_element(next_button, 60)
@@ -165,32 +165,49 @@ class ObjectManagerPage(BasePage):
 
     @capture_screenshot_on_error
     def is_field_present(self, field_name):
-        """Searches for the field name (field_name) and asserts the field got created """
+        """Searches for the field name (field_name) and asserts the field got created"""
         self.selenium.wait_until_page_contains_element(search_button)
-        self.selenium.get_webelement(search_button).clear()
-        self.selenium.get_webelement(search_button).send_keys(field_name)
-        self.selenium.get_webelement(search_button).send_keys(Keys.ENTER)
+        self.selenium.clear_element_text(search_button)
+        self.selenium.press_keys(search_button, field_name, "ENTER")
+        self.selenium.wait_until_element_is_not_visible("sf:spinner")
         search_results = object_manager["search_result"].format(field_name)
         self.selenium.wait_until_page_contains_element(search_results)
-        # I hate adding a hard-coded sleep, but I can't figure out what else to
-        # wait on. It appears that part of the page will eventually refresh
-        # but I don't know what triggers it.
-        self.builtin.sleep("500ms")
 
     @capture_screenshot_on_error
     def delete_custom_field(self, field_name):
         """Searches for the custom field and performs the delete action from the actions menu next to the field"""
         action_menu_button = actions_menu.format(field_name)
         self.is_field_present(field_name)
-        self.selenium.wait_until_page_contains_element(action_menu_button)
-        self.selenium.scroll_element_into_view(action_menu_button)
 
-        self.salesforce._jsclick(action_menu_button)
-        self.selenium.wait_until_element_is_visible(action_item_delete)
-        self.selenium.click_element(action_item_delete, action_chain=True)
-        self.selenium.wait_until_element_is_visible(confirm_delete)
-        self.selenium.click_element(confirm_delete, action_chain=True)
-        self.selenium.wait_until_location_contains("/view", timeout=90)
+        self.selenium.wait_until_page_contains_element(action_menu_button)
+        self.salesforce.scroll_element_into_view(action_menu_button)
+
+        # I don't know why, but sometimes clicking the action menu just
+        # doesn't work. The menu doesn't appear, or clicking the item on
+        # the menu does nothing. So, we'll try and handful of times.
+        # Yes, this feels icky.
+        for tries in range(5):
+            try:
+                self.selenium.wait_until_element_is_visible(action_menu_button)
+                self.selenium.click_element(action_menu_button)
+                self.selenium.wait_until_element_is_visible(
+                    action_item_delete, timeout="5 seconds"
+                )
+                self.selenium.click_element(action_item_delete, action_chain=True)
+                self.selenium.wait_until_element_is_visible(
+                    confirm_delete, timeout="5 seconds"
+                )
+                self.selenium.click_element(confirm_delete, action_chain=True)
+                self.selenium.wait_until_location_contains("/view", timeout=90)
+                return
+
+            except Exception as e:
+                self.builtin.log(
+                    f"on try #{tries+1} we caught this error: {e}", "DEBUG"
+                )
+                self.builtin.sleep("1 second")
+                last_error = e
+        raise (last_error)
 
     @capture_screenshot_on_error
     def create_custom_field(self, **kwargs):

@@ -24,14 +24,14 @@ def list_infos(infos):
 
 
 class BaseTaskFlowConfig(BaseConfig):
-    """ Base class for all configs that contain tasks and flows """
+    """Base class for all configs that contain tasks and flows"""
 
     def list_tasks(self):
-        """ Returns a list of task info dictionaries with keys 'name' and 'description' """
+        """Returns a list of task info dictionaries with keys 'name' and 'description'"""
         return list_infos(self.tasks)
 
     def get_task(self, name):
-        """ Returns a TaskConfig """
+        """Returns a TaskConfig"""
         config = getattr(self, f"tasks__{name}")
         if not config:
             error_msg = f"Task not found: {name}"
@@ -40,11 +40,11 @@ class BaseTaskFlowConfig(BaseConfig):
         return TaskConfig(config)
 
     def list_flows(self):
-        """ Returns a list of flow info dictionaries with keys 'name' and 'description' """
+        """Returns a list of flow info dictionaries with keys 'name' and 'description'"""
         return list_infos(self.flows)
 
     def get_flow(self, name):
-        """ Returns a FlowConfig """
+        """Returns a FlowConfig"""
         config = getattr(self, f"flows__{name}")
         if not config:
             error_msg = f"Flow not found: {name}"

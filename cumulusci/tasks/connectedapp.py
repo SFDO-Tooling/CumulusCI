@@ -139,7 +139,7 @@ class CreateConnectedApp(SFDXBaseTask):
         if not self.options["overwrite"]:
             try:
                 connected_app = self.project_config.keychain.get_service(
-                    "connected_app"
+                    "connected_app", self.options["label"]
                 )
             except ServiceNotConfigured:  # pragma: no cover
                 pass
@@ -152,6 +152,7 @@ class CreateConnectedApp(SFDXBaseTask):
     def _connect_service(self):
         self.project_config.keychain.set_service(
             "connected_app",
+            self.options["label"],
             ServiceConfig(
                 {
                     "client_id": self.client_id,

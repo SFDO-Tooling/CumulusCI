@@ -78,6 +78,18 @@ Salesforce Query Where Not Equal
     ${cnt}=    Get length    ${records}
     Should Be Equal As Numbers   ${cnt}  0
 
+Salesforce Query Where Limit Order
+    &{anon_contact} =  Create Contact
+    &{anon_contact} =  Create Contact
+    ${contact_id} =  Salesforce Insert  Contact  FirstName=xyzzy   LastName=xyzzy
+    @{records} =    Salesforce Query  Contact
+    ...              select=Id,FirstName,LastName
+    ...              where= LastName!='xyzzy'
+    ...              order_by=LastName desc
+    ...              limit=2
+    ${cnt}=    Get length    ${records}
+    Should Be Equal As Numbers   ${cnt}  2
+
 
 SOQL Query
     &{new_contact} =  Create Contact
@@ -151,3 +163,4 @@ Collection API Errors Test
 Get Version
     ${version} =   Get Latest Api Version
     Should Be True     ${version} > 46
+

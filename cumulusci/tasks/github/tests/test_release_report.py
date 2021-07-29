@@ -21,6 +21,7 @@ class TestReleaseReport(unittest.TestCase, GithubApiTestMixin):
         self.project_config = create_project_config(self.repo_name, self.repo_owner)
         self.project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",
@@ -85,7 +86,7 @@ Production orgs: 2018-09-01""",
             [
                 {
                     "beta": False,
-                    "name": "release",
+                    "name": "1.0",
                     "tag": u"rel/2.0",
                     "time_created": datetime(2018, 1, 1, 0, 0, tzinfo=pytz.UTC),
                     "time_push_production": datetime(

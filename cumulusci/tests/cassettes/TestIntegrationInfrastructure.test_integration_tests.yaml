@@ -5,11 +5,11 @@ interactions:
       Request-Headers:
       - Elided
     method: GET
-    uri: https://orgname.salesforce.com/services/data/v50.0/sobjects/Organization/ORGID
+    uri: https://orgname.my.salesforce.com/services/data/v52.0/sobjects/Organization/ORGID
   response:
     body:
       string: "{\n  \"attributes\" : {\n    \"type\" : \"Organization\",\n    \"url\"
-        : \"/services/data/v50.0/sobjects/Organization/00D0R000000FIDcUAO\"\n  },\n
+        : \"/services/data/v52.0/sobjects/Organization/00D0R000000FIDcUAO\"\n  },\n
         \ \"Id\" : \"00D0R000000FIDcUAO\",\n  \"Name\" : \"CumulusCI - Dev Workspace\",\n
         \ \"Division\" : null,\n  \"Street\" : null,\n  \"City\" : null,\n  \"State\"
         : null,\n  \"PostalCode\" : null,\n  \"Country\" : \"US\",\n  \"Latitude\"
@@ -30,7 +30,7 @@ interactions:
         : \"ReadEditTransfer\",\n  \"DefaultCaseAccess\" : \"ReadEditTransfer\",\n
         \ \"DefaultCalendarAccess\" : \"HideDetailsInsert\",\n  \"DefaultPricebookAccess\"
         : \"ReadSelect\",\n  \"DefaultCampaignAccess\" : \"All\",\n  \"SystemModstamp\"
-        : \"2020-06-14T19:35:50.000+0000\",\n  \"ComplianceBccEmail\" : null,\n  \"UiSkin\"
+        : \"2020-06-14T19:35:52.000+0000\",\n  \"ComplianceBccEmail\" : null,\n  \"UiSkin\"
         : \"Theme3\",\n  \"SignupCountryIsoCode\" : \"US\",\n  \"TrialExpirationDate\"
         : \"2020-07-15T19:33:06.000+0000\",\n  \"NumKnowledgeService\" : 2,\n  \"OrganizationType\"
         : \"Developer Edition\",\n  \"NamespacePrefix\" : null,\n  \"InstanceName\"
@@ -50,15 +50,15 @@ interactions:
       \ <soap:Header>\n    <SessionHeader xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
       \     <sessionId>**Elided**</sessionId>\n    </SessionHeader>\n  </soap:Header>\n
       \ <soap:Body>\n    <retrieve xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
-      \     <retrieveRequest>\n        <apiVersion>50.0</apiVersion>\n        <unpackaged>\n
+      \     <retrieveRequest>\n        <apiVersion>52.0</apiVersion>\n        <unpackaged>\n
       \         <types>\n            <members>*</members>\n            <name>InstalledPackage</name>\n
-      \         </types>\n          <version>50.0</version>\n        </unpackaged>\n
+      \         </types>\n          <version>52.0</version>\n        </unpackaged>\n
       \     </retrieveRequest>\n    </retrieve>\n  </soap:Body>\n</soap:Envelope>"
     headers:
       Request-Headers:
       - Elided
     method: POST
-    uri: https://orgname.salesforce.com/services/Soap/m/50.0/ORGID
+    uri: https://orgname.my.salesforce.com/services/Soap/m/52.0/ORGID
   response:
     body:
       string: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
@@ -80,7 +80,7 @@ interactions:
       Request-Headers:
       - Elided
     method: POST
-    uri: https://orgname.salesforce.com/services/Soap/m/50.0/ORGID
+    uri: https://orgname.my.salesforce.com/services/Soap/m/52.0/ORGID
   response:
     body:
       string: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
@@ -102,7 +102,7 @@ interactions:
       Request-Headers:
       - Elided
     method: POST
-    uri: https://orgname.salesforce.com/services/Soap/m/50.0/ORGID
+    uri: https://orgname.my.salesforce.com/services/Soap/m/52.0/ORGID
   response:
     body:
       string: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"

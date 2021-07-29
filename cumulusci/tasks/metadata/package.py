@@ -299,7 +299,7 @@ class MetadataXmlElementParser(BaseMetadataParser):
         return item.findall(self.name_xpath, self.namespaces)
 
     def get_item_name(self, item, parent):
-        """ Returns the value of the first name element found inside of element """
+        """Returns the value of the first name element found inside of element"""
         names = self.get_name_elements(item)
         if not names:
             raise MissingNameElementError

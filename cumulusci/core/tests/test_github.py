@@ -1,21 +1,40 @@
 import os
 from unittest import mock
 import pytest
+from requests.exceptions import RequestException, RetryError
+from requests.models import Response
 import responses
 from datetime import datetime
 
 from github3.repos.repo import Repository
 from github3.pulls import ShortPullRequest
-from github3.exceptions import ConnectionError
+from github3.exceptions import (
+    AuthenticationFailed,
+    ConnectionError,
+    ForbiddenError,
+    TransportError,
+)
 from github3.session import AppInstallationTokenAuth
 
 from cumulusci.core import github
-from cumulusci.core.exceptions import GithubException
+from cumulusci.core.exceptions import (
+    DependencyLookupError,
+    GithubApiError,
+    GithubException,
+)
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.core.github import (
+    SSO_WARNING,
+    UNAUTHORIZED_WARNING,
+    catch_common_github_auth_errors,
+    check_github_sso_auth,
     create_gist,
+    format_github3_exception,
     get_github_api,
+    get_oauth_scopes,
+    get_sso_disabled_orgs,
+    get_version_id_from_tag,
     validate_service,
     create_pull_request,
     markdown_link_to_pr,
@@ -26,6 +45,8 @@ from cumulusci.core.github import (
     add_labels_to_pull_request,
     get_pull_requests_by_commit,
     get_pull_requests_with_base_branch,
+    get_tag_by_name,
+    get_ref_for_tag,
 )
 
 
@@ -123,7 +144,7 @@ class TestGithub(GithubApiTestMixin):
 
     @responses.activate
     def test_validate_service(self):
-        responses.add("GET", "https://api.github.com/rate_limit", status=401)
+        responses.add("GET", "https://api.github.com/user", status=401, headers={})
         with pytest.raises(GithubException):
             validate_service({"username": "BOGUS", "token": "BOGUS"})
 
@@ -266,3 +287,191 @@ class TestGithub(GithubApiTestMixin):
             json=self._get_expected_gist(description, files),
             status=201,
         )
+
+    @responses.activate
+    def test_get_tag_by_name(self, repo):
+        self.init_github()
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=200,
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag("beta/1.0", "tag_SHA"),
+            status=200,
+        )
+        tag = get_tag_by_name(repo, "tag_SHA")
+        assert tag.tag == "beta/1.0"
+
+    @responses.activate
+    def test_get_tag_by_name__404(self, repo):
+        self.init_github()
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=200,
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag("beta/1.0", "tag_SHA"),
+            status=404,
+        )
+        with pytest.raises(DependencyLookupError):
+            get_tag_by_name(repo, "tag_SHA")
+
+    @responses.activate
+    def test_get_ref_by_name(self, repo):
+        self.init_github()
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=200,
+        )
+        ref = get_ref_for_tag(repo, "tag_SHA")
+        assert ref.object.sha == "tag_SHA"
+
+    @responses.activate
+    def test_get_ref_by_name__404(self, repo):
+        self.init_github()
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
+            status=404,
+        )
+        with pytest.raises(DependencyLookupError):
+            get_ref_for_tag(repo, "tag_SHA")
+
+    @responses.activate
+    def test_get_version_id_from_tag(self, repo):
+        self.init_github()
+        responses.add(  # the ref for the tag is fetched first
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/test-tag-name",
+            json=self._get_expected_tag_ref("test-tag-name", "tag_SHA"),
+            status=200,
+        )
+        tag_message = """Release of Test Package\nversion_id: 04t000000000000\n\ndependencies: []"""
+        responses.add(  # then we fetch that actual tag with the ref
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag("beta/1.0", "tag_SHA", message=tag_message),
+            status=200,
+        )
+        version_id = get_version_id_from_tag(repo, "test-tag-name")
+        assert version_id == "04t000000000000"
+
+    @responses.activate
+    def test_get_version_id_from_tag__dependency_error(self, repo):
+        self.init_github()
+        responses.add(  # the ref for the tag is fetched first
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/test-tag-name",
+            json=self._get_expected_tag_ref("test-tag-name", "tag_SHA"),
+            status=200,
+        )
+        tag_message = (
+            """Release of Test Package\nversion_id: invalid_id\n\ndependencies: []"""
+        )
+        responses.add(  # then we fetch that actual tag with the ref
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag("beta/1.0", "tag_SHA", message=tag_message),
+            status=200,
+        )
+        with pytest.raises(DependencyLookupError):
+            get_version_id_from_tag(repo, "test-tag-name")
+
+    def test_get_oauth_scopes(self):
+        resp = Response()
+        resp.headers["X-OAuth-Scopes"] = "repo, user"
+        assert {"repo", "user"} == get_oauth_scopes(resp)
+
+        resp = Response()
+        resp.headers["X-OAuth-Scopes"] = "repo"
+        assert {"repo"} == get_oauth_scopes(resp)
+
+        resp = Response()
+        assert set() == get_oauth_scopes(resp)
+
+    def test_get_sso_disabled_orgs(self):
+        resp = Response()
+        assert [] == get_sso_disabled_orgs(resp)
+
+        resp = Response()
+        resp.headers["X-Github-Sso"] = "partial-results; organizations=0810298,20348880"
+        assert ["0810298", "20348880"] == get_sso_disabled_orgs(resp)
+
+    def test_check_github_sso_no_forbidden(self):
+        resp = Response()
+        resp.status_code = 401
+        exc = AuthenticationFailed(resp)
+        assert "" == check_github_sso_auth(exc)
+
+        resp.status_code = 403
+        exc = ForbiddenError(resp)
+        assert "" == check_github_sso_auth(exc)
+
+    @mock.patch("webbrowser.open")
+    def test_check_github_sso_unauthorized_token(self, browser_open):
+        resp = Response()
+        resp.status_code = 403
+        auth_url = "https://github.com/orgs/foo/sso?authorization_request=longhash"
+        resp.headers["X-Github-Sso"] = f"required; url={auth_url}"
+        exc = ForbiddenError(resp)
+
+        check_github_sso_auth(exc)
+
+        browser_open.assert_called_with(auth_url)
+
+    def test_check_github_sso_partial_auth(self):
+        resp = Response()
+        resp.status_code = 403
+        resp.headers["X-Github-Sso"] = "partial-results; organizations=0810298,20348880"
+        exc = ForbiddenError(resp)
+
+        expected_err_msg = f"{SSO_WARNING} ['0810298', '20348880']"
+        actual_error_msg = check_github_sso_auth(exc).strip()
+        assert expected_err_msg == actual_error_msg
+
+    def test_format_gh3_exc_retry(self):
+        resp = Response()
+        resp.status_code = 401
+        message = "Max retries exceeded with url: foo (Caused by ResponseError('too many 401 error responses',))"
+        base_exc = RetryError(message, response=resp)
+        exc = TransportError(base_exc)
+        assert UNAUTHORIZED_WARNING == format_github3_exception(exc)
+
+    def test_catch_common_decorator(self):
+        resp = Response()
+        resp.status_code = 403
+        resp.headers["X-Github-Sso"] = "partial-results; organizations=0810298,20348880"
+
+        expected_err_msg = "Results may be incomplete. You have not granted your Personal Access token access to the following organizations: ['0810298', '20348880']"
+
+        @catch_common_github_auth_errors
+        def test_func():
+            raise ForbiddenError(resp)
+
+        with pytest.raises(GithubApiError) as exc:
+            test_func()
+            actual_error_msg = exc.message
+            assert expected_err_msg == actual_error_msg
+
+    def test_catch_common_decorator_ignores(self):
+        resp = Response()
+        resp.status_code = 401
+
+        @catch_common_github_auth_errors
+        def test_func():
+            e = RequestException(response=resp)
+            raise TransportError(e)
+
+        with pytest.raises(TransportError):
+            test_func()
