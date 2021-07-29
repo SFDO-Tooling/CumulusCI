@@ -1156,3 +1156,15 @@ class TestInsertContentDocument:
                 ),
             ]
         )
+
+
+class TestContentWithVCR:
+    @pytest.mark.vcr()
+    def test_content_with_vcr(self, create_task):
+        task = create_task(
+            InsertContentDocument,
+            {"path": __file__},
+        )
+        task.logger = mock.Mock()
+        task()
+        assert "Success!  Inserted ContentDocument" in str(task.logger.mock_calls)
