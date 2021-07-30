@@ -1,3 +1,4 @@
+from cumulusci.core.dependencies.dependencies import PackageVersionIdDependency
 from typing import List, Dict, Optional
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
@@ -86,7 +87,10 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         target_package_info = self._get_target_package_info(version_id)
         self._promote_package_version(target_package_info)
         self.return_values = {
-            "dependencies": [d["version_id"] for d in dependencies],
+            "dependencies": [
+                PackageVersionIdDependency(version_id=d["version_id"])
+                for d in dependencies
+            ],
             "version_id": version_id,
             "version_number": target_package_info["package_version_number"],
         }
@@ -113,7 +117,7 @@ class PromotePackageVersion(BaseSalesforceApiTask):
         Given a SubscriberPackageVersionId (04t) return a list of
         dictionaries with info on all dependency packages present.
 
-        @param spv_id: a SubscirberPackageVersionId
+        @param spv_id: a SubscriberPackageVersionId
         @returns: a dict with the following shape:
         {
             "is_2gp": (bool) whether or not this dependency is a 2GP package
