@@ -79,7 +79,7 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
         You may supply a single position option, or multiple options for both pages and
         fields. The first option to to be matched will be used.
 
-        Options:
+        Task option details:
 
         - fields:
 
