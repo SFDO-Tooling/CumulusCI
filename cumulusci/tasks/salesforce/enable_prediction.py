@@ -1,6 +1,7 @@
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import SalesforceException
 from simple_salesforce.exceptions import SalesforceError
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 class EnablePrediction(BaseSalesforceApiTask):
@@ -25,10 +26,12 @@ class EnablePrediction(BaseSalesforceApiTask):
         try:
             ml_prediction_definition_id = self._get_ml_prediction_definition_id()
 
-            metadata = self.tooling._call_salesforce(
+            response = self.tooling._call_salesforce(
                 method="GET",
                 url=f"{self.tooling.base_url}sobjects/MLPredictionDefinition/{ml_prediction_definition_id}",
-            ).json()["Metadata"]
+            )
+            result = safe_json_from_response(response)
+            metadata = result["Metadata"]
 
             metadata["status"] = "Enabled"
 
