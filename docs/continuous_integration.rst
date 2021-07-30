@@ -56,6 +56,7 @@ Further Reading
 
    cumulusci_flow.rst
    2gp_testing.rst
+   headless.rst
    github_actions.rst
 
 
