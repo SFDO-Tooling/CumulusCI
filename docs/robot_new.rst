@@ -2,11 +2,11 @@
 Acceptance Testing with Robot Framework
 =======================================
 
-CumulusCI can help automate another important aspect of building packages: acceptance testing. It's the process of testing an application from the user's perspective as the final proof that the product meets its requirements.While there are plenty of testing tools, we're partial to Robot Framework, an acceptance testing framework that you can use with and within CumulusCI to create and run automated acceptance tests for your Salesforce projects.
+CumulusCI can help automate another important aspect of building packages: acceptance testing. Acceptance testing is the process of testing an application from the user's perspective as the final proof that the product meets its requirements.While there are plenty of testing tools, we're partial to Robot Framework, an acceptance testing framework that you can use with and within CumulusCI to create and run automated acceptance tests for your Salesforce projects.
 
-Robot Framework (or just Robot) is a keyword-driven acceptance testing framework. *Keyword-driven* means that users can write test cases in an intuitive, human-readable language made up of high-level, reusable keywords (``Open test browser``, ``Delete records and close browser``) rather than in a programming language. 
+`Robot Framework <https://robotframework.org/>`_ (or just Robot) is a keyword-driven acceptance testing framework. `*Keyword-driven* <https://robocorp.com/docs/languages-and-frameworks/robot-framework/keywords>`_ means that users can write test cases in an intuitive, human-readable language made up of high-level, reusable keywords (``Open test browser``, ``Delete records and close browser``) rather than in a programming language. 
 
-For example, in this basic Robot test case that creates a new ``Contact`` record, you can see how straightforward the keyword syntax is. Practically anyone can understand ``Salesforce Insert``, ``Salesforce Get``, and ``Should be equal``, even if someone is brand new to test automation.
+For example, in this basic Robot test case that creates a new ``Contact`` record, and then examines the record to confirm that the fields listed are correct, you can see how straightforward the keyword syntax is. Even someone brand new to test automation can look at this test and grasp the function of the ``Salesforce Insert``, ``Salesforce Get``, and ``Should be equal`` keywords.
 
 .. code-block:: robotframework
 
@@ -31,7 +31,7 @@ For example, in this basic Robot test case that creates a new ``Contact`` record
 The Robot Framework Advantage
 -----------------------------
 
-Acceptance testing touches on multiple aspects of an application such as the data model, custom APIs, performance, and the user experience in the browser. Existing testing tools like Apex and Jest are good for writing unit tests and low-level integration tests. However, it can be difficult to understand the intent of a test, and the features being tested, when the test itself involves multiple lines of code detailing where to fetch data from, and how, and other such implementation details.
+Acceptance testing touches on multiple aspects of an application such as the data model, custom APIs, performance, and the user experience in the browser. Existing tools like Apex and Jest are good for writing unit tests and low-level integration tests. However, it can be difficult to understand the intent of a test, and the features being tested, when the test itself involves multiple lines of code detailing where to fetch data from, and how, and other such implementation details.
 
 Robot addresses these challenges with a few strategies, helping you write high-level acceptance tests for every aspect of an application, often in a single test suite.
 
@@ -43,13 +43,14 @@ Robot addresses these challenges with a few strategies, helping you write high-l
 Custom Tasks
 ^^^^^^^^^^^^
 
-CumulusCI integrates with Robot via custom tasks. The most common task is named ``robot``, which runs one or more Robot tests. Here's a sampling of other Robot tasks.
+CumulusCI integrates with Robot via custom tasks. Here's a sampling of other Robot tasks.
 
+* ``robot``: Runs one or more Robot tests. This is the most common task.
 * ``robot_libdoc``: Runs the `libdoc <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#library-documentation-tool-libdoc>`_ command, which creates an HTML file defining all the keywords in a library or resource file.
 * ``robot_testdoc``: Runs the `testdoc <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#test-data-documentation-tool-testdoc>`_ command, which creates an HTML file documenting all the tests in a test suite.
 * ``robot_lint``: Runs the static analysis tool `rflint <https://github.com/boakley/robotframework-lint/>`_, which can validate Robot tests against a set of rules related to code quality.
 
-Like with any CumulusCi task, you can get documentation and a list of arguments with the ``cci task info`` command. For example, ``cci task info robot_libdoc`` displays documentation for the ``robot_libdoc`` task.
+Like with any CumulusCi task, you can get documentation and a list of arguments with the ``cci task info`` command. For example, ``cci task info robot`` displays documentation for the ``robot`` task.
 
 
 Custom Keywords
@@ -61,7 +62,7 @@ CumulusCI provides a set of keywords unique to both Salesforce and CumulusCI for
 Robot Directory Structure
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When a project is initialized with ``cci project init``, this folder structure is created for Robot tests and resources.
+When a project is `initialized <https://cumulusci.readthedocs.io/en/latest/get_started.html#project-initialization>`_ with ``cci project init``, this folder structure is created for Robot tests and resources.
 
 .. code-block:: console
 
@@ -83,9 +84,9 @@ Write a Sample Robot Test Case
 Now that you have a general lay of the land, you're ready to construct a sample test case to see how things come together. Let's revisit the test case that creates a new ``Contact`` record.
 
 #. Run ``cci project init``, which creates a file named ``create_contact.robot``.
-#. Save this code in a file named ``NEWEXAMPLENAME.robot`` in the ``robot/<ProjectName>/tests`` folder of your project's repository. 
+#. Save this code in a file named ``new_contact_record.robot`` in the ``robot/<ProjectName>/tests`` folder of your project's repository. 
 
-You can tell this file is a test suite because it has a ``.robot`` extension and contains a ``Test Cases`` section.
+You can tell this file is a test case because it has a ``.robot`` extension and contains a ``Test Cases`` section.
 
 .. code-block:: robotframework
 
@@ -105,72 +106,44 @@ You can tell this file is a test suite because it has a ``.robot`` extension and
       Should be equal  ${contact}[FirstName]    Eleanor
       Should be equal  ${contact}[LastName]     Rigby
 
-The test makes two calls to the Salesforce API: one to create the ``Contact`` record, and another to confirm that the record has the correct first and last names. 
-
-To run this test from the command line:
-
-.. code-block:: console
-
-   $ cci task run robot --suites robot/<ProjectName>/tests/create_contact.robot
-
-.. note::
-   Make sure to `set a default org <https://cumulusci.readthedocs.io/en/main/scratch_orgs.html#set-a-default-org>`_ first or supply the ``--org`` argument with the command. If you haven't created a scratch org yet, the ``robot`` task creates one for you. 
-
-The output is similar to this.
-
-.. code-block:: console
-
-   $ cci task run robot --suites robot/CumulusCI-Test/create_contact.robot
-
-   ==============================================================================
-   Create Contact                                                                
-   ==============================================================================
-   Create a Contact using the API                                        | PASS |
-   ------------------------------------------------------------------------------
-   Create Contact                                                        | PASS |
-   1 test, 1 passed, 0 failed
-   ==============================================================================
-   Output:  /Users/boakley/dev/CumulusCI-Test/output.xml
-   Log:     /Users/boakley/dev/CumulusCI-Test/log.html
-   Report:  /Users/boakley/dev/CumulusCI-Test/report.html
-
-Each time Robot runs, it creates new iterations of the files ``output.xml``, ``log.html`` and ``report.html`` in the ``results`` folder. ``log.html`` contains details about executed test cases, such as statistics on every keyword that is run. ``report.html`` contains an overview of test execution results.
+The test case makes two calls to a Salesforce API: one to create the ``Contact`` record, and another to confirm that the record has the correct first and last names. 
 
 
 Syntax
 ^^^^^^
 
-Here's a quick primer for the Robot syntax in the ``create_contact.robot`` test case.
+Here's a quick primer for the Robot syntax in the ``new_contact_record.robot`` test case.
 
-+--------+-------------------+----------------------------------------------------------------------------+
-| Symbol | Name              | Description and Usage                                                        |
-+========+===================+============================================================================+
-| ``***``| Section Heading   | By convention, three stars on both sides of a heading designate a section  |
-|        |                   | heading. Section headings include ``Settings``, ``Test Cases``,            |
-|        |                   | ``Keywords``, ``Variables``, ``Comments``, and ``Tasks``.                  |
-+--------+-------------------+----------------------------------------------------------------------------+
-| #      | Hash              | Designates code comments.                                                  |
-+--------+-------------------+----------------------------------------------------------------------------+
-| ${}    | Variable          | Curly braces surrounding a name designate a variable. The lead $ character |
-|        |                   | refers to a single value..                                                 |
-|        |                   |                                                                            |
-|        |                   | Variable names are case-insensitive. Spaces and underscores are allowed    | 
-|        |                   | and are treated the same.                                                  |
-+--------+-------------------+----------------------------------------------------------------------------+
-| &{}    | Dictionary or Map | Lead ``&`` character refers to a dictionary or map for key-value pairs,    |
-|        |                   | such as ``&{contact}``, which in this test has defined values for the keys |
-|        |                   | ``FirstName`` and ``LastName``.                                            |
-+--------+-------------------+----------------------------------------------------------------------------+
-| =      | Assignment        | Equals sign is optional yet convenient for showing that a variable is      |
-|        |                   | assigned a value. It's allotted zero or one spaces before its placement    | |        |                   | but more than two after, which is helpful to format test cases into        |
-|        |                   | readable columns.                                                          |
-+--------+-------------------+----------------------------------------------------------------------------+
-| ...    | Ellipses          | Ellipses designate the continuation of a single-line command split over    | 
-|        |                   | multiple lines for easier readability.                                     |
-+--------+-------------------+----------------------------------------------------------------------------+
-|        | Space             | Two or more spaces separate arguments from the keywords, and arguments     |
-|        |                   | from each other. Multiple spaces can be used to align data and to aid in   | |        |                   | readability.                                                               |
-+--------+-------------------+----------------------------------------------------------------------------+
++---------+-------------------+----------------------------------------------------------------------------+
+| Symbol  | Name              | Description and Usage                                                      |
++========+====================+============================================================================+
+| ``***`` | Section Heading   | A line that begins with one or more asterisks is a section heading. By     |
+|         |                   | convention, we use three asterisks on both sides of a heading to designate |
+|         |                   | a section heading. Section headings include ``Settings``, ``Test Cases``,  ||         |                   | ``Keywords``, ``Variables``, ``Comments``, and ``Tasks``.                  |
++---------+-------------------+----------------------------------------------------------------------------+
+| #       | Hash              | Designates code comments.                                                  |
++---------+-------------------+----------------------------------------------------------------------------+
+| ${}     | Variable          | Curly braces surrounding a name designate a variable. The lead $ character |
+|         |                   | refers to a single value..                                                 |
+|         |                   |                                                                            |
+|         |                   | Variable names are case-insensitive. Spaces and underscores are allowed    | 
+|         |                   | and are treated the same.                                                  |
++---------+-------------------+----------------------------------------------------------------------------+
+| &{}     | Dictionary or Map | Lead ``&`` character refers to a dictionary or map for key-value pairs,    |
+|         |                   | such as ``&{contact}``, which in this test has defined values for the keys |
+|         |                   | ``FirstName`` and ``LastName``.                                            |
++---------+-------------------+----------------------------------------------------------------------------+
+| =       | Assignment        | Equals sign is optional yet convenient for showing that a variable is      | 
+|         |                   | assigned a value. Before the equals sign, up to one space is allowed but   |
+|         |                   | *not* required. After the equals sign, two spaces are required, but more   |
+|         |                   | are allowed to format test cases into readable columns.                    |
++---------+-------------------+----------------------------------------------------------------------------+
+| ...     | Ellipses          | Ellipses designate the continuation of a single-line row of code split     | 
+|         |                   | over multiple lines for easier readability.                                |
++---------+-------------------+----------------------------------------------------------------------------+
+|         | Space             | Two or more spaces separate arguments from the keywords, and arguments     |
+|         |                   | from each other. Multiple spaces can be used to align data and to aid in   | |         |                   | readability.                                                               |
++---------+-------------------+----------------------------------------------------------------------------+
 
 For more details on Robot syntax, visit the official `Robot syntax documentation <http://robotframework.org/robotframework/2.9.2/RobotFrameworkUserGuide.html#test-data-syntax>`_.
 
@@ -180,10 +153,17 @@ Settings
 
 The Settings section of the ``.robot`` file sets up the entire test suite. Configurations established under ``Settings`` affect all test cases, such as:
 
-* Suite Setup and Teardown
-* Test suite documentation
-* Tags, for associating one or more labels with all tests in the suite
-* Importing keywords from external files
+* ``Suite Setup`` and ``Suite Teardown``, which support processes before the test begins and cleanup after the test finishes.
+* ``Documentation``, which describes the purpose of the test suite.
+* ``Tags``, which lets a user associate individual test cases with a label.
+* ``Resource``, which imports keywords from external files.
+
+For example, these are the settings stored inside the ``new_contact_record.robot`` file.
+
+.. code-block:: robotframework
+
+   *** Settings ***
+   Resource        cumulusci/robotframework/Salesforce.robot
 
 The resource ``cumulusci/robotframework/Salesforce.robot`` comes with CumulusCI and automatically inherits useful configuration and keywords for Salesforce testing. The ``Salesforce.robot`` file is the primary method of importing all keywords and variables provided by CumulusCI, so it's best practice for the file to be the first item imported in a test file under ``Settings``. It also imports the `CumulusCI Library <Keywords.html#file-cumulusci.robotframework.CumulusCI>`_, the `Salesforce Library <LINK TODO>`, the third-party `SeleniumLibrary <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html>`_ for browser testing via Selenium, and these most commonly used Robot libraries.
 
@@ -203,11 +183,69 @@ Test Cases
 
 The ``Test Cases`` section of the ``.robot`` file stores test cases. Each test case gets its own code block, with the test case name as the first line of code, with no indentation. The body of the test case is all the indented text underneath.
 
-Keywords in the test cases are separated by two or more spaces from arguments. In the ``create_contact.robot`` test case, thanks to the ``Resource`` called in the ``Settings`` sections, these keywords already stored within CumulusCI's Salesforce library are used.
+For example, these are the test cases stored inside the ``new_contact_record.robot`` file.
+
+.. code-block:: robotframework
+
+   *** Test Cases ***
+   Create a Contact using the API
+
+      # Create a new Contact
+      ${contact id}=   Salesforce Insert  Contact
+      ...  FirstName=Eleanor
+      ...  LastName=Rigby
+
+      # Get the new Contact and examine it
+      &{contact}=      Salesforce Get  Contact  ${contact id}
+      Should be equal  ${contact}[FirstName]    Eleanor
+      Should be equal  ${contact}[LastName]     Rigby
+
+These keywords are used in the test cases.
 
 * ``Salesforce Insert`` creates a new ``Contact`` record with the arguments it's given for the ``FirstName`` and ``LastName`` fields.
 * ``Salesforce Get`` retrieves the requested record, a ``Contact`` record, based on its ID.
 * ``Should Be Equal`` compares the arguments to the values of the ``FirstName`` and ``LastName`` fields of the newly created ``Contact`` record.
+
+.. tip::
+    Keywords in the test cases are separated from arguments by two or more spaces.
+
+
+Test Case Output
+^^^^^^^^^^^^^^^^
+
+To run this test from the command line:
+
+.. code-block:: console
+
+   $ cci task run robot --suites robot/<ProjectName>/tests/new_contact_record.robot
+
+.. note::
+   Make sure to `set a default org <https://cumulusci.readthedocs.io/en/main/scratch_orgs.html#set-a-default-org>`_ first or supply the ``--org`` argument with the command. If you haven't created a scratch org yet, the ``robot`` task creates one for you. 
+
+The output is similar to this.
+
+.. code-block:: console
+
+   $ cci task run robot --suites robot/CumulusCI-Test/new_contact_record.robot
+
+   ==============================================================================
+   Create Contact                                                                
+   ==============================================================================
+   Create a Contact using the API                                        | PASS |
+   ------------------------------------------------------------------------------
+   Create Contact                                                        | PASS |
+   1 test, 1 passed, 0 failed
+   ==============================================================================
+   Output:  /Users/boakley/dev/CumulusCI-Test/output.xml
+   Log:     /Users/boakley/dev/CumulusCI-Test/log.html
+   Report:  /Users/boakley/dev/CumulusCI-Test/report.html
+
+Each time Robot runs it creates these output files in the ``results`` folder.
+* ``output.xml``, the official source of test results. It's used to generate the ``log.html`` and ``report.html`` files, which each offer distinct views of the data. 
+* ``log.html``, which contains a detailed view of test execution, such as statistics on every keyword that is run.
+* ``report.html``, which contains a high-level overview of test execution results.
+
+By default these files are written to the ``results`` folder, and will overwrite any existing files by the same name. 
 
 
 Suite Setup and Teardown
@@ -215,9 +253,9 @@ Suite Setup and Teardown
 
 Most real-world tests require setup before the test begins (such as opening a browser or creating test data), and cleanup after the test finishes (such as closing the browser or deleting test data). Robot supports setup and teardown at both the suite level (such as opening the browser before the first test, *and* closing the browser after the last test) and the test level (such as opening and closing the browser at the start *and* the end of the test).
 
-If you run the ``create_contact.robot`` test case several times, you add a new ``Contact`` record to your scratch org each time it runs. If you have a test that requires a specific number of ``Contact`` records, the test can fail the second time you run it. To maintain the required number, you can add a teardown that deletes any ``Contact`` records created by running the test.
+If you run the ``new_contact_record.robot`` test case several times, you add a new ``Contact`` record to your scratch org each time it runs. If you have a test that requires a specific number of ``Contact`` records, the test can fail the second time you run it. To maintain the required number, you can add a teardown that deletes any ``Contact`` records created by running the test.
 
-Let's modify the ``create_contact.robot`` test case with a ``Suite Teardown`` that deletes the ``Contact`` records created by any tests in the suite. (The ``Salesforce Insert`` keyword keeps track of the IDs of the records created. The ``Delete session records`` keyword deletes those records.)
+Let's modify the ``new_contact_record.robot`` test case with a ``Suite Teardown`` that deletes the ``Contact`` records created by any tests in the suite.
 
 .. code-block:: robotframework
 
@@ -239,13 +277,13 @@ Let's modify the ``create_contact.robot`` test case with a ``Suite Teardown`` th
       Should be equal  ${contact}[LastName]     Rigby
 
 .. note:: 
-    
+    The ``Salesforce Insert`` keyword keeps track of the IDs of the records created. The ``Delete session records`` keyword deletes those records.
 
 To run this test from the command line:
 
 .. code-block:: console
 
-   $ cci task run robot --suites robot/<ProjectName>/tests/create_contact.robot
+   $ cci task run robot --suites robot/<ProjectName>/tests/new_contact_record.robot
 
 
 
@@ -254,7 +292,7 @@ Generate Fake Data with Faker
 
 The ``get fake data`` keyword comes with the Faker library that's installed with CumulusCI, and saves you from hard-coding test data for Robot tests. ``Get fake data`` does much more than just return random strings; it generates strings in an appropriate format. You can ask it for a name, address, date, phone number, credit card number, and so on, and get back properly formatted data.
 
-For example, let's modify the ``create_contact.robot`` test case to generate a fake name. Because the new ``Contact`` name is randomly generated in this updated example, you can't hard-code an assertion on the name of the created ``Contact`` to verify the name. Instead, for illustrative purposes, this test logs the ``Contact`` name in the test's ``log.html`` file.
+For example, let's modify the ``new_contact_record.robot`` test case to generate a fake name. Because the new ``Contact`` name is randomly generated in this updated example, you can't hard-code an assertion on the name of the created ``Contact`` to verify the name. Instead, for illustrative purposes, this test logs the ``Contact`` name in the test's ``log.html`` file.
 
 .. code-block:: robotframework
 
@@ -283,16 +321,16 @@ To run this test from the command line:
 
 .. code-block:: console
 
-   $ cci task run robot --suites robot/<ProjectName>/tests/create_contact.robot
+   $ cci task run robot --suites robot/<ProjectName>/tests/new_contact_record.robot
 
 
 
 Create Custom Keywords
 ----------------------
 
-Because Robot uses a domain-specific language, you can create your own custom keywords specific to your project's needs, and that can be used in multiple tests inside your project.
+We mentioned earlier that Robot makes use of a domain-specific language. By creating a library of reusable custom keywords, we can create this DSL for testing Salesforce apps.
 
-Let's create a new Robot test that includes a custom keyword called ``Create a test contact``, which creates a ``Contact`` record. Save this code in a file named ``custom_keyword.robot`` in the ``robot/<ProjectName>/tests`` folder of your project's repository.
+Let's now create a new Robot test that includes a custom keyword called ``Create a test Contact``, which creates a ``Contact`` record. Save this code in a file named ``custom_keyword.robot`` in the ``robot/<ProjectName>/tests`` folder of your project's repository.
 
 .. code-block:: robotframework
 
@@ -302,14 +340,14 @@ Let's create a new Robot test that includes a custom keyword called ``Create a t
 
    *** Test Cases ***
    Example of using a custom keyword in a setup step
-      [Setup]      Create a test contact
+      [Setup]      Create a test Contact
 
       # Get the new Contact and add name to the log
       &{contact}=      Salesforce Get  Contact  ${contact id}
       Log  Contact name: ${contact}[Name]
 
    *** Keywords ***
-   Create a test contact
+   Create a test Contact
       [Documentation]  Create a temporary Contact and return it
       [Return]         ${contact}
 
@@ -325,7 +363,7 @@ Let's create a new Robot test that includes a custom keyword called ``Create a t
       # Fetch the Contact to be returned
       &{contact} = Salesforce Get  Contact ${contact_id}
 
-Each test case and keyword can have its own settings. However, instead of a ``Settings`` section inside of a test case or keyword, test case or keyword settings are specified with the setting name in square brackets. In the previous example, ``[Setup]`` is a setting for the ``Example of using a custom keyword in a setup step`` test case, and ``[Documentation]`` and ``[Return]`` are settings for the ``Create a test contact`` keyword.
+Each test case and keyword can have its own settings. However, instead of a ``Settings`` section inside of a test case or keyword, test case or keyword settings are specified with the setting name in square brackets. In the previous example, ``[Setup]`` is a setting for the ``Example of using a custom keyword in a setup step`` test case, and ``[Documentation]`` and ``[Return]`` are settings for the ``Create a test Contact`` keyword.
 
 To run this test from the command line:
 
@@ -342,7 +380,7 @@ Now that you know how to create a custom keyword that is reusable within a test 
 
 A resource file is similar to a normal test suite file, except it can't contain test cases. Typically, it defines reusable keywords and imports a common set of libraries..
 
-Let's create a resource file that stores the ``Create a test contact`` custom keyword, which is currently in the ``custom_keyword.robot`` test case defined in `Create Custom Keywords`_. Save this code in a file named ``<ProjectName>.robot`` in the ``robot/<ProjectName>/resources`` folder of your project's repository. Projects often organize their keywords into multiple files, and then use a ``.robot`` file named after the project (``NPSP.robot``, ``EDA.robot``, and so on) to import them. This file can also define keywords directly if the project doesn't have multiple keyword files.
+Let's create a resource file that stores the ``Create a test Contact`` custom keyword, which is currently in the ``custom_keyword.robot`` test case defined in `Create Custom Keywords`_. Save this code in a file named ``<ProjectName>.robot`` in the ``robot/<ProjectName>/resources`` folder of your project's repository. Projects often organize their keywords into multiple files, and then use a ``.robot`` file named after the project (``NPSP.robot``, ``EDA.robot``, and so on) to import them. This file can also define keywords directly if the project doesn't have multiple keyword files.
 
 .. code-block:: robotframework
 
@@ -350,7 +388,7 @@ Let's create a resource file that stores the ``Create a test contact`` custom ke
    Resource        cumulusci/robotframework/Salesforce.robot
 
    *** Keywords ***
-   Create a test contact
+   Create a test Contact
       [Documentation]  Create a temporary Contact and return the ID
       [Return]         ${contact id}
 
@@ -364,7 +402,7 @@ Let's create a resource file that stores the ``Create a test contact`` custom ke
       ...  LastName=${last name}
 
 .. note::
-    Along with moving the ``Keywords`` section in the ``custom_keyword.robot`` test case to this file, in the ``Settings`` section, notice that importing ``Salesforce.robot`` as a resource is also required because it's where the Faker library is defined.
+    Along with moving the ``Keywords`` section in the ``custom_keyword.robot`` test case to this file, you must also import ``Salesforce.robot`` as a ``Resource`` because that's where the Faker library is defined.
 
 Next, let's modify the ``custom_keyword.robot`` test case. Remove the ``Keywords`` section, and then under ``Settings`` add as many ``Resource`` statements as needed to import keywords from their specific ``.robot`` resource files.
 
@@ -378,7 +416,7 @@ Next, let's modify the ``custom_keyword.robot`` test case. Remove the ``Keywords
 
    *** Test Cases ***
    Example of using a custom keyword in a setup step
-      [Setup]      Create a test contact
+      [Setup]      Create a test Contact
 
       # Get the new Contact and add name to the log
       &{contact}=      Salesforce Get  Contact  ${contact id}
@@ -461,7 +499,7 @@ Combine API Keywords and Browser Tests
 
 In Robot, API and browser keywords can be used together to build more elaborate acceptance tests.
 
-Let's build on the original ``create_contact.robot`` test to integrate all the previous configurations covered so far. Replace the entirety of the ``create_contact.robot`` test case in the ``robot/<ProjectName>/tests`` folder of your project's repository with this code.
+Let's build on the original ``new_contact_record.robot`` test to integrate the previous configurations covered so far. Replace the entirety of the ``new_contact_record.robot`` test case in the ``robot/<ProjectName>/tests`` folder of your project's repository with this code.
 
 .. code-block:: robotframework
 
@@ -472,14 +510,14 @@ Let's build on the original ``create_contact.robot`` test to integrate all the p
    Suite Teardown  Delete records and close browser
 
    *** Test Cases ***
-   Take screenshot of list of contacts
-      [Setup]  Create a test contact
+   Take screenshot of list of Contacts
+      [Setup]  Create a test Contact
 
       Go to object home  Contact
       Capture page screenshot
 
    *** Keywords ***
-   Create a test contact
+   Create a test Contact
       [Documentation]  Create a temporary Contact and return the ID
       [Return]         ${contact id}
 
@@ -492,20 +530,20 @@ Let's build on the original ``create_contact.robot`` test to integrate all the p
       ...  FirstName=${first name}
       ...  LastName=${last name}
 
-The ``create_contact.robot`` test case not only creates a contact, it also opens the browser to see that the ``Contact`` appears in a list of ``Contacts``, takes a screenshot of the list, then deletes all new records created during the test run, and closes the browser.
+The ``new_contact_record.robot`` test case not only creates a ``Contact``, it also opens the browser to see that the ``Contact`` appears in a list of ``Contacts``, takes a screenshot of the list, then deletes all new records created during the test run, and closes the browser.
 
 To run this test from the command line:
 
 .. code-block:: console
 
-   $ cci task run robot --suites robot/<ProjectName>/tests/create_contact.robot
+   $ cci task run robot --suites robot/<ProjectName>/tests/new_contact_record.robot
 
 
 
 Run an Entire Suite of Tests
 ----------------------------
 
-While a single ``.robot`` file is considered to be a test suite, Robot also considers folders to be suites. You can pass a folder to Robot to run all tests stored in that folder. So if you've saved the ``create_contact.robot``, ``custom_keyword.robot`` and ``ui.robot`` test cases in your ``tests`` folder, you can run all of the tests in the command line.
+While a single ``.robot`` file is considered to be a test suite, Robot also considers folders to be suites. You can pass a folder to Robot to run all tests stored in that folder. So if you've saved the ``new_contact_record.robot``, ``custom_keyword.robot`` and ``ui.robot`` test cases in your ``tests`` folder, you can run all of the tests in the command line.
 
 .. code-block:: console
 
