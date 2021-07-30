@@ -94,7 +94,10 @@ look up information about dependency packages. To set this up, we'll set
 a secret to configure the CumulusCI github service.
 
 First, follow GitHub's instructions to `create a Personal Access Token
-<https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line>`_.
+<https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line>`_. Be sure to select repo and gist scope:
+
+.. image:: images/github_personal_access_token_scopes.png
+   :alt: Screenshot showing the Github Personal Access Token scopes with only repo and gist selected
 
 Now, in your repository's Secrets settings, click the "Add a new secret"
 link. Enter ``CUMULUSCI_SERVICE_github`` as the Name of the secret. For
@@ -276,6 +279,22 @@ The following shows a snippet from the `main <https://github.com/SFDO-Tooling/Cu
 in our demo repository. 
 
 .. code-block:: yaml
+
+   name: Beta Package and Install
+
+   on:
+      push:
+         branches:
+            - master
+         paths-ignore:
+            - 'docs/**'
+            - 'README.md'
+
+   env:
+      CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
+      CUMULUSCI_ORG_packaging: '{"username": "d.reed@cci-ci-demo.package", "instance_url": "https://cumulusci-ci-demo-dev-ed.my.salesforce.com"}'
+      SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
+      SFDX_HUB_KEY: ${{ secrets.SFDX_HUB_KEY }}
 
   release_beta:
     name: "Upload Managed Beta"
