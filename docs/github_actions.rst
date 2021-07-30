@@ -1,8 +1,6 @@
 Run CumulusCI from Github Actions
 =================================
-
 CumulusCI can be used to run continuous integration builds with GitHub Actions.
-
 In order to follow along, you should already have a repository that is
 hosted on GitHub and configured as a CumulusCI project. In other words,
 we're assuming your project already has a ``cumulusci.yml`` and that you are
@@ -37,7 +35,6 @@ Tests workflow, use your editor to create a file named
    on: [push]
 
    env:
-     CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
      CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
 
    jobs:
@@ -76,10 +73,6 @@ these steps in the CI environment after any commits are pushed:
     and then delete the org. The ``ci_feature`` flow deploys the package
     and then runs its Apex tests.
 
-It also configures CumulusCI to use a special keychain, the
-``EnvironmentProjectKeychain``, which will load org and service
-configuration from environment variables instead of from files.
-
 
 
 Configure Secrets
@@ -101,7 +94,10 @@ look up information about dependency packages. To set this up, we'll set
 a secret to configure the CumulusCI github service.
 
 First, follow GitHub's instructions to `create a Personal Access Token
-<https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line>`_.
+<https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line>`_. Be sure to select repo and gist scope:
+
+.. image:: images/github_personal_access_token_scopes.png
+   :alt: Screenshot showing the Github Personal Access Token scopes with only repo and gist selected
 
 Now, in your repository's Secrets settings, click the "Add a new secret"
 link. Enter ``CUMULUSCI_SERVICE_github`` as the Name of the secret. For
@@ -115,6 +111,11 @@ Click the "Add secret" button to save the secret.
 
 Replace ``USERNAME`` with your GitHub username, ``TOKEN`` with the Personal
 Access Token you just created, and ``EMAIL`` with your email address.
+
+.. note::
+  
+  For more information on registering services in a headless environment
+  see the :ref:`Register Services` section of the docs.
 
 
 
@@ -192,7 +193,6 @@ Here is a complete workflow to run Robot Framework tests for any commit:
    on: [push]
 
    env:
-     CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
      CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
 
    jobs:
@@ -231,108 +231,14 @@ Here is a complete workflow to run Robot Framework tests for any commit:
            cci org scratch_delete dev
 
 
-Connect a Persistent Org
-------------------------
-Using the JWT flow for authentication is the recommended approach when running
-CumulusCI in a non-interactive environment for continuous integration with an existing org.
-
-First, you need a Connected App that is configured with a certificate in the
-"Use digital signatures" setting in its OAuth settings. You can follow the Salesforce
-DX Developer Guide to get this set up:
-
-* `Create a private key and self-signed certificate <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_key_and_cert.htm>`_
-* `Create a Connected App <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_connected_app.htm>`_
-
-Once the Connected App has been created, you can configure CumulusCI to use this Connected
-App to login to a persistent org by setting the following environment variables.
-
-* ``CUMULUSCI_KEYCHAIN_CLASS``
-* ``CUMULUSCI_ORG_orgName``
-* ``SFDX_CLIENT_ID``
-* ``SFDX_HUB_KEY``
-
-See the below entries for the values to use with each.
-
-.. important::
-
-  Setting the above environment variables negates the need to use the ``cci org connect`` command.
-  You can simply run a ``cci`` command and pass the ``--org orgName`` option, where ``orgName``
-  corresponds to the name used in the ``CUMULUSCI_ORG_*`` environment variable.
-
-In the context of GitHub Actions, all of these environment variables would be declared under the ``env`` section of a workflow.
-Below is an example of what this would look like:
-
-.. code-block:: yaml
-
-    env:
-        CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
-        CUMULUSCI_ORG_sandbox: {"username": "just.in@salesforce.org", "instance_url": "https://sfdo--sbxname.my.salesforce.com"}
-        SFDX_CLIENT_ID: {{ $secrets.client_id }}
-        SFDX_HUB_KEY: {{ $secrets.server_key }}
-
-
-The above assumes that you have ``client_id`` and ``server_key`` setup in your GitHub
-`encrypted secrets <https://docs.github.com/en/free-pro-team@latest/actions/reference/encrypted-secrets>`_
-
-
-``CUMULUSCI_KEYCHAIN_CLASS``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Set this equal to ``EnvironmentProjectKeychain``.
-This instructs CumulusCI to look for org configurations in environment variables instead of files.
-
-``CUMULUSCI_ORG_orgName``
-^^^^^^^^^^^^^^^^^^^^^^^^^
-The name of this environment variable dictates what name to use for the value of the ``--org`` option. 
-For example, a value of ``CUMULUSCI_ORG_mySandbox`` would mean you use ``--org mySandbox`` to use this org in a ``cci`` command.
-
-Set this variable equal to the following json string:
-
-.. code-block:: JSON
-  
-    {
-        "username": "USERNAME",
-        "instance_url": "INSTANCE_URL",
-        "sandbox": true
-    }
-
-.. note::
-
-  If the org is not a sandbox, then you can either omit the ``"sandbox": true`` line, or set it to ``false``.
-
-
-* ``USERNAME`` - The username of the user you will login to the org as.
-* ``INSTANCE_URL`` - The instance URL for the org. Should begin with the ``https://`` schema.
-
-You can see an example of setting this environment variable in a GitHub actions workflow in our `demo repository <https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml#L11>`_.
-
-.. admonition:: Wizard Note
-
-  If the target org's instance URL is instanceless (i.e. does not contain a segment like 
-  cs46 identifying the instance), then for sandboxes it is also necessary to set 
-  ``SFDX_AUDIENCE_URL`` to ``https://test.salesforce.com"``. This instructs CumulusCI to set
-  the correct ``aud`` value in the JWT (which is normally determined from the instance URL).
-
-
-
-``SFDX_CLIENT_ID``
-^^^^^^^^^^^^^^^^^^^^^^
-Set this to your Connected App's client id.
-This, combined with the ``SFDX_HUB_KEY`` variable instructs CumulusCI to authenticate
-to the org using the `JWT Bearer Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_jwt_flow.htm#sfdx_dev_auth_jwt_flow>`_ instead
-of the `Web Server Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm#!>`_.
-
-
-``SFDX_HUB_KEY``
-^^^^^^^^^^^^^^^^
-Set this to the private key associated with your Connected App (this is the contents of your ``server.key`` file).
-This combined with the ``SFDX_CLIENT_ID`` variable instructs CumulusCI to authenticate
-to the org using the `JWT Bearer Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_jwt_flow.htm#sfdx_dev_auth_jwt_flow>`_ instead
-of the `Web Server Flow <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm#!>`_.
-  
-
 
 Deploy to a Persistent Org
 --------------------------
+.. note::
+  
+  For instructions on setting up a connection to a persistent org in a headless environment
+  see the :ref:`Register Persistent Orgs` section of the docs.
+
 The final step in a CI pipeline is often deploying newly-verified changes into a production environment.
 In the context of a Salesforce project, this could mean a couple of different things.
 It could mean that you want to deploy changes in a managed package project into a packaging org.
@@ -373,6 +279,22 @@ The following shows a snippet from the `main <https://github.com/SFDO-Tooling/Cu
 in our demo repository. 
 
 .. code-block:: yaml
+
+   name: Beta Package and Install
+
+   on:
+      push:
+         branches:
+            - master
+         paths-ignore:
+            - 'docs/**'
+            - 'README.md'
+
+   env:
+      CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
+      CUMULUSCI_ORG_packaging: '{"username": "d.reed@cci-ci-demo.package", "instance_url": "https://cumulusci-ci-demo-dev-ed.my.salesforce.com"}'
+      SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
+      SFDX_HUB_KEY: ${{ secrets.SFDX_HUB_KEY }}
 
   release_beta:
     name: "Upload Managed Beta"
