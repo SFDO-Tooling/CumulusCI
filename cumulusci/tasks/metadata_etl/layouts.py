@@ -1,5 +1,5 @@
 from typing import Optional
-from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_list_arg, process_bool_arg
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
@@ -76,14 +76,35 @@ class AddFields(MetadataSingleEntityTransformTask):
 
         If the targeted item already exists, the layout metadata is not modified.
 
-        Fields property options:
-            - field_name: [field api name]
+        You may supply a single position option, or multiple options for both pages and
+        fields. The first option to to be matched will be used.
+
+        Options:
+
+        - fields:
+
+            - api_name: [field api name]
             - field_behavior: [ReadOnly | Edit | Required]
-            - visualforce_page_name:[page_name]
-            - position: (Must be a list of positions)
+            - position: (Optional: A list of single or multiple position options.)
 
                 - relative: [before | after | top | bottom]
-                - field: [field_name] (Use with relative: before, after)
+                - field: [api_name] (Use with relative: before, after)
+                - required: Boolean (default False)
+                - read_only: Boolean (default False, not compatable with required)
+                - section: [index] (Use with relative: top, bottom)
+                - column: [first | last] (Use with relative: top, bottom)
+
+        - pages:
+
+            - api_name: [field api name]
+            - height: int (Optional. Default: 200)
+            - show_label: Boolean (Optional. Default: False)
+            - show_scrollbars: Boolean (Optional. Default: False)
+            - width: 0-100% (Optional. Default: 100%)
+            - position: (Optional: A list of single or multiple position options.)
+
+                - relative: [before | after | top | bottom]
+                - field: [api_name] (Use with relative: before, after)
                 - required: Boolean (default False)
                 - read_only: Boolean (default False, not compatable with required)
                 - section: [index] (Use with relative: top, bottom)
@@ -107,7 +128,9 @@ class AddFields(MetadataSingleEntityTransformTask):
 
         self._adding_fields = process_list_arg(self.options.get("fields", []))
         self._adding_pages = process_list_arg(self.options.get("pages", []))
-        self._existing_names = []
+        # Split because a page could share an api name with a field in the same namespace
+        self._existing_field_names = []
+        self._existing_page_names = []
 
     def _transform_entity(
         self, metadata: MetadataElement, api_name: str
@@ -117,8 +140,8 @@ class AddFields(MetadataSingleEntityTransformTask):
 
         self._collect_existing_items()
 
-        self._set_adding_fields(api_name)
-        self._set_adding_pages(api_name)
+        self._add_fields(api_name)
+        self._add_pages(api_name)
 
         return metadata
 
@@ -132,18 +155,20 @@ class AddFields(MetadataSingleEntityTransformTask):
                 layout_items = col.findall("layoutItems")
                 for item in layout_items:
                     if item.find("page"):
-                        self._existing_names.append(item.page.text)
+                        self._existing_page_names.append(item.page.text)
                     elif item.find("field"):
-                        self._existing_names.append(item.field.text)
+                        self._existing_field_names.append(item.field.text)
 
-    def _set_adding_fields(self, api_name):
+    def _add_fields(self, api_name):
         # Do nothing if there are no fields
         if len(self._adding_fields) == 0:
             return
 
         field_props = {field["api_name"]: field for field in self._adding_fields}
 
-        layout_item_dict = self._add_items(self._adding_fields, api_name)
+        layout_item_dict = self._add_items(
+            self._adding_fields, self._existing_field_names, api_name
+        )
 
         for field_item_key in layout_item_dict.keys():
             field = field_props.get(field_item_key)
@@ -166,14 +191,16 @@ class AddFields(MetadataSingleEntityTransformTask):
             field_layout_item.append("behavior", behavior)
             field_layout_item.append("field", adding_field_name)
 
-    def _set_adding_pages(self, api_name):
-        # Do nothing if there are no pages
+    def _add_pages(self, api_name):
+        # Do nothing if there are no fields
         if len(self._adding_pages) == 0:
             return
 
         page_props = {page["api_name"]: page for page in self._adding_pages}
 
-        layout_item_dict = self._add_items(self._adding_pages, api_name)
+        layout_item_dict = self._add_items(
+            self._adding_pages, self._existing_page_names, api_name
+        )
 
         for page_item_key in layout_item_dict.keys():
             page = page_props.get(page_item_key)
@@ -194,17 +221,14 @@ class AddFields(MetadataSingleEntityTransformTask):
             )
             page_layout_item.append("width", page.get("width", "100%"))
 
-    def _add_items(self, item_list, api_name):
+    def _add_items(self, item_list, existing_name_list, api_name):
         """Iterate over a list of new layout items that will return a dict{api_name:MetadataElement}"""
-        ## If no items are passed in, do nothing
-        if len(item_list) == 0:
-            return
 
         item_dict = {}
 
         for item in item_list:
             item_name = self._inject_namespace(item.get("api_name"))
-            if item_name in self._existing_names:
+            if item_name in existing_name_list:
                 self.logger.warning(
                     f"Skipped {item_name} because {item_name} is already present in {api_name}"
                 )
@@ -217,7 +241,7 @@ class AddFields(MetadataSingleEntityTransformTask):
     def _position_item(self, new_item):
         """Returns new MetadataElement being added to the layout based on the positioning properties"""
         new_item_name = new_item.get("api_name")
-        # Default to bottom of first section (index zero) of first column
+        # Default to top of first section (index zero) of last column
         default = {
             "relative": "top",
             "section": 0,
@@ -232,20 +256,14 @@ class AddFields(MetadataSingleEntityTransformTask):
                 f"Position details are missing for: {new_item_name}. Default position is being applied."
             )
             position = [default]
-
-        # append the default position to the list as a fallback
-        position.append(default)
+        else:
+            # append the default position to the list as a fallback
+            position.append(default)
 
         for pos in position:
             new_layout_item = self._process_position(pos, default)
             if new_layout_item is not None:
                 return new_layout_item
-
-        # If layout section doesn't exist, exit gracefully with appropriate message
-        if new_layout_item is None:
-            raise CumulusCIException(
-                f"Layout placement could not be determined for field: {new_item_name}"
-            )
 
     def _process_position(self, position, default_position):
         """Returns a MetadataElement that represents a  given the position"""
@@ -307,7 +325,7 @@ class AddFields(MetadataSingleEntityTransformTask):
 
         if index > (len(sections) - 1):
             self.logger.warning(
-                f"Unable to find section at index: {str(index)}. Default section is being selected."
+                f"Unable to find section at index: {str(index)}. Default position is being selected."
             )
             return None
 
