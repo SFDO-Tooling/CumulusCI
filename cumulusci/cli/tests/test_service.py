@@ -119,6 +119,7 @@ def test_service_connect__list_global_keychain():
 def test_service_connect():
     multi_cmd = service.ConnectServiceCommand()
     runtime = mock.MagicMock()
+    runtime.keychain.get_default_service_name.return_value = None
     runtime.project_config.services = {
         "test": {"attributes": {"attr": {"required": False}}}
     }
@@ -143,6 +144,7 @@ def test_service_connect__alias_already_exists(confirm):
     }
     runtime.services = {"test-type": {"already-exists": "some config"}}
     runtime.keychain.list_services.return_value = {"test-type": ["already-exists"]}
+    runtime.keychain.get_default_service_name.return_value = None
 
     with click.Context(multi_cmd, obj=runtime) as ctx:
         cmd = multi_cmd.get_command(ctx, "test-type")
@@ -156,6 +158,34 @@ def test_service_connect__alias_already_exists(confirm):
     confirm.assert_called_once()
 
 
+@mock.patch("click.confirm")
+def test_service_connect__set_new_service_as_default(confirm):
+    confirm.side_effect = "y"
+    multi_cmd = service.ConnectServiceCommand()
+    runtime = mock.MagicMock()
+    runtime.project_config.services = {
+        "test-type": {"attributes": {"attr": {"required": False}}}
+    }
+    service_name = "existing-service"
+    runtime.services = {"test-type": {service_name: "some config"}}
+    runtime.keychain.list_services.return_value = {"test-type": [service_name]}
+    runtime.keychain.get_default_service_name.return_value = service_name
+
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        cmd = multi_cmd.get_command(ctx, "test-type")
+        cmd.callback(
+            runtime,
+            service_type="test-type",
+            service_name="new-service",
+            project=False,
+        )
+
+    confirm.assert_called_once()
+    runtime.keychain.set_default_service.assert_called_once_with(
+        "test-type", "new-service"
+    )
+
+
 @mock.patch("click.echo")
 def test_service_connect__no_name_given(echo):
     multi_cmd = service.ConnectServiceCommand()
@@ -166,6 +196,7 @@ def test_service_connect__no_name_given(echo):
     }
     runtime.services = {"test-type": {}}
     runtime.keychain.list_services.return_value = {"test-type": []}
+    runtime.keychain.get_default_service_name.return_value = None
 
     with click.Context(multi_cmd, obj=runtime) as ctx:
         cmd = multi_cmd.get_command(ctx, "test-type")
@@ -192,6 +223,7 @@ def test_service_connect__global_default(echo):
     runtime.project_config.services = {
         "test": {"attributes": {"attr": {"required": False}}}
     }
+    runtime.keychain.get_default_service_name.return_value = None
 
     with click.Context(multi_cmd, obj=runtime) as ctx:
         cmd = multi_cmd.get_command(ctx, "test")
@@ -215,6 +247,7 @@ def test_service_connect__project_default(echo):
     runtime.project_config.services = {
         "test": {"attributes": {"attr": {"required": False}}}
     }
+    runtime.keychain.get_default_service_name.return_value = None
 
     with click.Context(multi_cmd, obj=runtime) as ctx:
         cmd = multi_cmd.get_command(ctx, "test")
@@ -237,6 +270,7 @@ def test_service_connect_global_keychain():
     runtime.universal_config.services = {
         "test": {"attributes": {"attr": {"required": False}}}
     }
+    runtime.keychain.get_default_service_name.return_value = None
 
     with click.Context(multi_cmd, obj=runtime) as ctx:
         cmd = multi_cmd.get_command(ctx, "test")
@@ -267,6 +301,7 @@ def test_service_connect_validator(validator):
             "validator": "cumulusci.cli.tests.test_service.validate_service",
         }
     }
+    runtime.keychain.get_default_service_name.return_value = None
 
     expected_conf = {
         "service_type": "test",
@@ -296,6 +331,7 @@ def test_service_connect_validator_failure(validator):
             "validator": "cumulusci.cli.tests.test_service.validate_service",
         }
     }
+    runtime.keychain.get_default_service_name.return_value = None
 
     validator.side_effect = Exception("Validation failed")
     with click.Context(multi_cmd, obj=runtime) as ctx:
