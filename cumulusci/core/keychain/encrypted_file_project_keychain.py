@@ -274,7 +274,17 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         # if keychain is explicitly set to
         # EnvironmentProjectKeychain never save the org config.
         keychain_class = os.environ.get("CUMULUSCI_KEYCHAIN_CLASS")
-        if save and keychain_class != "EnvironmentProjectKeychain":
+        if keychain_class == "EnvironmentProjectKeychain":
+            message = (
+                "The keychain is currently set to EnvironmentProjectKeychain; "
+                "skipping save of org config to file. "
+                "If you would like orgs to be saved for re-use later, remove the "
+                "CUMULUSCI_KEYCHAIN_CLASS environment variable."
+            )
+            self.logger.warning(message)
+            return
+
+        if save:
             self._save_org(
                 org_name,
                 org_config.data,
