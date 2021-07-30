@@ -9,6 +9,7 @@ on:
 env:
   CUMULUSCI_ORG_scratch: '{"config_file": "orgs/dev.json", "scratch": true}'
   CUMULUSCI_ORG_packaging: ${{ secrets.CUMULUSCI_ORG_packaging }}
+  CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
   GITHUB_APP_ID: 129383
   GITHUB_APP_KEY: ${{ secrets.CCITEST_APP_KEY }}
   SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
