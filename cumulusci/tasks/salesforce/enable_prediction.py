@@ -45,7 +45,7 @@ class EnablePrediction(BaseSalesforceApiTask):
 
     def _get_ml_prediction_definition_id(self):
         query = f"""
-        select Id from MLPredictionDefinition where DeveloperName = '{self.options["developer_name"]}'
+        select Id from MLPredictionDefinition where DeveloperName = '%%%NAMESPACE%%%{self.options["developer_name"]}'
         """.strip()
         try:
             return self.tooling.query(query)["records"][0]["Id"]
