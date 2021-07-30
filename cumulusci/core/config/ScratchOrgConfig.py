@@ -203,3 +203,4 @@ class ScratchOrgConfig(SfdxOrgConfig):
         self.config["username"] = None
         self.config["date_created"] = None
         self.config["instance_url"] = None
+        self.save()
