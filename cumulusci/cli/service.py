@@ -300,7 +300,7 @@ def service_remove(runtime, service_type, service_name):
     if os.environ.get(env_var_name):
         message = (
             f"The service {service_type}:{service_name} is defined by environment variables. "
-            f"If you woud like it removed please delete the environment variable with name: {env_var_name}"
+            f"If you would like it removed please delete the environment variable with name: {env_var_name}"
         )
         click.echo(message)
         return
