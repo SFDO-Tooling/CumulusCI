@@ -95,13 +95,6 @@ class TestEncryptedFileProjectKeychain:
             keychain._save_org("alias", org_config, global_org=False)
         assert mock_open.call_count == 0
 
-    def test_set_and_get_org__non_global_org_without_project_config_should_not_be_saved(
-        self, key, org_config
-    ):
-        keychain = EncryptedFileProjectKeychain(UniversalConfig(), key)
-        keychain.set_org(org_config, False)
-        assert list(keychain.orgs.keys()) == []
-
     def test_load_files__org_empty(self, keychain):
         self._write_file(
             Path(keychain.global_config_dir, "test.org"),

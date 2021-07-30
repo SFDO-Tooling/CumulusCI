@@ -254,8 +254,6 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 )
 
     def _set_org(self, org_config, global_org, save=True):
-        if not global_org and not self.project_local_dir:
-            return
         if org_config.keychain:
             assert org_config.keychain is self
         assert org_config.global_org == global_org
