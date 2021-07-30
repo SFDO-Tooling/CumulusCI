@@ -295,7 +295,7 @@ def service_rename(runtime, service_type, current_name, new_name):
 def service_remove(runtime, service_type, service_name):
     # cannot remove services defined via env vars
     env_var_name = (
-        runtime.keychain.env_service_var_prefix + service_type + f"__{service_name}"
+        f"{runtime.keychain.env_service_var_prefix}{service_type}__{service_name}"
     )
     if os.environ.get(env_var_name):
         message = (
