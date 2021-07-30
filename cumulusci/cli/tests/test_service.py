@@ -547,7 +547,7 @@ def test_service_remove__environment_service_cannot_be_removed(click):
         )
     assert (
         click.echo.call_args_list[-1][0][0]
-        == "The service github:env-foo is defined by environment variables. If you woud like it removed please delete the environment variable with name: CUMULUSCI_SERVICE_github__env-foo"
+        == "The service github:env-foo is defined by environment variables. If you would like it removed please delete the environment variable with name: CUMULUSCI_SERVICE_github__env-foo"
     )
 
 
