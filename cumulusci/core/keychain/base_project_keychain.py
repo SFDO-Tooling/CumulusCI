@@ -15,12 +15,13 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.sfdx import sfdx
 
+DEFAULT_CONNECTED_APP_PORT = 7788
 DEFAULT_CONNECTED_APP_NAME = "built-in"
 DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig(
     {
         "client_id": "3MVG9i1HRpGLXp.or6OVlWVWyn8DXi9xueKNM4npq_AWh.yqswojK9sE5WY7f.biP0w7bNJIENfXc7JMDZGO1",
         "client_secret": None,
-        "callback_url": "http://localhost:8080/callback",
+        "callback_url": f"http://localhost:{DEFAULT_CONNECTED_APP_PORT}/callback",
     }
 )
 

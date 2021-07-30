@@ -2,6 +2,7 @@ click<8
 coloredlogs
 contextvars
 cryptography
+python-dateutil
 docutils<0.17
 Faker
 fs
@@ -10,9 +11,11 @@ jinja2<3
 keyring
 lxml
 MarkupSafe<2
+psutil
 pydantic
 PyJWT
 pytz
+pyyaml
 requests
 requests-futures
 robotframework

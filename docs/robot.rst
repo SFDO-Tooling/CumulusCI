@@ -236,6 +236,14 @@ The following variables defined in ``Salesforce.robot`` are all used by the ``Op
        <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Selenium%20Timeout>`_ keyword.
        Default: ``30 seconds``
 
+Full Documentation
+------------------
+
+To see the full list of keywords and their descriptions for this
+library, see the section titled
+`Salesforce.robot <Keywords.html#file-cumulusci/robotframework/Salesforce.robot>`_
+in the keyword documentation.
+
 
 .. _cumulusci-library-overview:
 
@@ -307,11 +315,10 @@ job:
 Full Documentation
 ------------------
 
-Full documentation of the keywords in the CumulusCI and Salesforce
-keyword libraries can be found here:
-
-* :download:`CumulusCI and Salesforce Keyword Documentation <../docs/robot/Keywords.html>`
-
+To see the full list of keywords and their descriptions for this
+library, see the section titled
+`CumulusCI <Keywords.html#file-cumulusci.robotframework.CumulusCI>`_
+in the keyword documentation.
 
 .. _salesforce-library-overview:
 
@@ -365,6 +372,15 @@ In addition to the predefined locator strategies, the Salesforce library defines
      - This uses the Salesforce library keyword ``Locate Element by Text`` to find web elements that contain a given string. For example, ``text:Profile`` is shorthand for the xpath locator ``xpath://*[text()='Profile']``
    * - ``title``
      - This uses the Salesforce library keyword ``Locate Element by Title`` to find web elements that have a title attribute with the given string. For example, ``title:Appointment`` is shorthand for the xpath ``xpath://*[@title='Appointment']``
+
+Full Documentation
+------------------
+
+To see the full list of keywords and their descriptions for this
+library, see the section titled
+`Salesforce <Keywords.html#file-cumulusci.robotframework.Salesforce>`_
+in the keyword documentation.
+
 
 PageObjects Library
 ===================
@@ -654,13 +670,16 @@ class which implements keywords which can be used with your custom
 objects.
 
 
-Keyword Documentation
-=====================
+Full Documentation
+------------------
 
-Use the following links to download generated documentation for both
-the CumulusCI and Salesforce keywords
+To see the full list of keywords and their descriptions for page
+objects, see the following sections in the keyword documentation:
 
-* :download:`CumulusCI and Salesforce Keyword Documentation <../docs/robot/Keywords.html>`
+
+* `PageObjects  <Keywords.html#file-cumulusci.robotframework.PageObjects>`_
+* `Base Page Objects <Keywords.html#file-cumulusci/robotframework/pageobjects/BasePageObjects.py>`_
+
 
 CumulusCI Robot Tasks
 =====================

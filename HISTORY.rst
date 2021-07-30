@@ -2,6 +2,83 @@
 History
 =======
 
+3.40.1 (2021-07-22)
+-------------------
+
+Issues Closed
+
+* Fixed an issue where a missing dependency was causing the homebrew installer formula to break.
+
+3.40.0 (2021-07-22)
+-------------------
+
+Critical Changes
+
+* The ``create_package_version`` task no longer creates Unlocked Packages from the ``unpackaged/pre`` and ``unpackaged/post`` directories of dependencies, or local ``unpackaged/pre`` directories by default. This behavior is now opt-in via the ``create_unlocked_dependency_packages`` option, which defaults to False. Projects using the old default behavior must explicitly set this option. We believe the new behavior is a more sane default for most 2GP projects. (#2741)
+
+Changes
+
+* The ``add_standard_value_set_entries`` task now supports value sets for ``LeadStatus``. (#2695, with thanks to @naicigam)
+* We updated the default API version to 52.0. (#2740)
+
+Issues Closed
+
+* Fixed an issue where the the built-in connected app was not accessible when running CumulusCI in a headless environment. (#2737)
+* The ``create_package_version`` task now supports ``objectSettings`` in the org definition file. (#2741)
+* We fixed issues in working with files containing Unicode characters on some Windows systems when using source-tracking commands. (#2739)
+* Fixed a bug where the ``anon_apex`` task had option text that was missing spaces. (#2736)
+
+3.39.1 (2021-07-08)
+-------------------
+
+Changes:
+
+* Fix a bug with the integration of CumulusCI and the new SOQLQuery Feature
+
+3.39.0 (2021-07-08)
+-------------------
+
+Changes:
+
+* A new `snowfakery` task with better usability and multi-processor support. Look at the CumulusCI docs to learn the new syntax: https://cumulusci.readthedocs.io/en/stable/data.html#generate-fake-data (#2705)
+* CumulusCI now uses Snowfakery 2.0, with various new features, especially the ability to query into orgs. More information: https://github.com/SFDO-Tooling/Snowfakery/releases/tag/2.0 (#2705)
+* We improved our Robot documentation so that it's possible to link to keyword documentation instead of having to download it locally (#2696)
+* CumulusCI uses a new port (7788) for the built-in connected app to lessen the chances that the port is in use. (#2698)
+* CumulusCI now checks if the port associated with a callback URL/redirect URI is in use during OAuth2 flows, and if so, raises a more friendly error. (#2698)
+* The ``generate_data_dictionary`` task now includes Custom Settings, Custom Metadata Types, and Platform Events. (#2712)
+* The ``generate_data_dictionary`` task now excludes any schema with visibility set to Protected. This behavior can be turned off (including protected schema) with the ``include_protected_schema`` option. (#2712)
+* The ``generate_data_dictionary`` task now parses object and field metadata anywhere in a Salesforce DX release other than in the ``unpackaged/`` directory tree. (#2712)
+* Builds that install feature-test 2GP packages now present a cleaner error message when the current commit is not found on GitHub. (#2713)
+* SFDX and CumulusCI both support noancestors as a Scratch org config option but CumulusCI generated a warning if users tried to specify the option in cumulusci.yml. (#2721)
+
+Issues closed:
+
+* Fixed issue where CumulusCI did not correctly convert a package version specified as a number in YAML to a string. This now raises a warning. (#2692)
+* Fixed a bug where OAuth errors were not reported in detail. (#2694)
+* Fixed an issue where CumulusCI did not grant permissions to Custom Tabs when running ``update_admin_profile`` without a custom ``package.xml``. Projects that use a custom ``package.xml`` with ``update_admin_profile`` should update their manifest to include a ``CustomTab`` wildcard for the same outcome. (#2699)
+* Fixed an issue where the ``dx``, ``dx_push``, and ``dx_pull`` tasks did not refresh the org's access token. (#2703)
+* Fixed issues in the ``generate_data_dictionary`` task that resulted in failures when processing fields with blank Help Text or processing standard fields. (#2706)
+* Fixed an issue preventing ``generate_data_dictionary`` from working with four-digit (1.0.0.0) 2GP version numbers. (#2712)
+* Fixed an issue causing ``release_2gp_beta`` to fail to create a GitHub release with a dependency-parsing error. (#2720)
+
+3.38.0 (2021-06-24)
+-------------------
+
+Changes:
+
+* The built-in connected app that CumulusCI uses by default is now visible in the output of the ``cci service list`` command. This makes it possible to switch back and forth between this connected app and another one as the current default when multiple connected_app services are configured. The built-in connected_app service has the name ``built-in`` and cannot be renamed or removed. (#2664)
+* The ``generate_data_dictionary`` task includes a new option, ``include_prerelease``. If set to ``True``, CumulusCI will include unreleased schema in the data dictionary from the current branch on GitHub, with the version listed as "Prerelease". (#2671)
+* Added a new task, ``gather_release_notes``, which generates an HTML file with release notes from multiple repositories. (#2633)
+* The ``deploy_marketing_cloud_package`` task includes a new option, ``custom_inputs``, which can be used to specify values to fill in for inputs in a Marketing Cloud package. (#2683)
+* Mappings for the ``extract_dataset`` task can now specify a ``soql_filter`` to restrict which records are extracted. Thanks @sfdcale (#2663)
+* Robot Framework: The ``Scroll Element Into View`` keyword in the Salesforce library now scrolls the center of the element into view rather than the top. (#2689)
+
+Issues closed:
+
+* Fixed a bug where CumulusCI could not parse the repository owner and name from an ssh git remote URL if it used an ssh alias instead of ``github.com``. (#2684)
+* Fixed a bug where ``cci service info <service_type>`` would display ``None`` as the name for the default service if no name was provided. (#2664)
+* Fixed a missing dependency on the ``contextvars`` Python package in Python 3.6.
+
 3.37.0 (2021-06-10)
 -------------------
 

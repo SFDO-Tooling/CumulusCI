@@ -1,13 +1,17 @@
 import csv
-from datetime import datetime
-from datetime import timedelta
 import time
-from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.exceptions import PushApiObjectNotFound
+from datetime import datetime, timedelta
+
+from dateutil.parser import isoparse
+
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    PushApiObjectNotFound,
+    TaskOptionsError,
+)
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.push.push_api import SalesforcePushApi
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.utils import process_bool_arg
 
 
 class BaseSalesforcePushTask(BaseSalesforceApiTask):
@@ -219,8 +223,8 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         },
         "start_time": {
             "description": (
-                "Set the start time (UTC) to queue a future push."
-                + " Ex: 2016-10-19T10:00"
+                "Set the start time (ISO-8601) to queue a future push."
+                + " Ex: 2021-01-01T06:00Z or 2021-01-01T06:00-08:00"
             )
         },
         "batch_size": {
@@ -274,7 +278,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             if start_time.lower() == "now":
                 start_time = datetime.utcnow() + timedelta(seconds=5)
             else:
-                start_time = datetime.strptime(start_time, "%Y-%m-%dT%H:%M")
+                start_time = isoparse(start_time)
             if start_time < datetime.utcnow():
                 raise CumulusCIException("Start time cannot be in the past")
         else:
@@ -394,9 +398,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
 
         if min_version:
             # If working with a range of versions, use an inclusive search
-            versions = version.get_older_released_version_objs(
-                greater_than_version=min_version
-            )
+            versions = version.get_older_released_version_objs(min_version=min_version)
             included_versions = []
             for include_version in versions:
                 included_versions.append(str(include_version.sf_id))
@@ -428,18 +430,11 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             excluded_versions = [str(version.sf_id)]
             for newer in newer_versions:
                 excluded_versions.append(str(newer.sf_id))
-            if len(excluded_versions) == 1:
-                push_api.default_where[
-                    "PackageSubscriber"
-                ] += " AND MetadataPackageVersionId != '{}'".format(
-                    excluded_versions[0]
-                )
-            else:
-                push_api.default_where[
-                    "PackageSubscriber"
-                ] += " AND MetadataPackageVersionId NOT IN {}".format(
-                    "('" + "','".join(excluded_versions) + "')"
-                )
+            push_api.default_where[
+                "PackageSubscriber"
+            ] += " AND MetadataPackageVersionId NOT IN {}".format(
+                "('" + "','".join(excluded_versions) + "')"
+            )
 
             for subscriber in push_api.get_subscribers():
                 orgs.append(subscriber["OrgKey"])
