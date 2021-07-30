@@ -4,6 +4,7 @@ import click
 import pytest
 
 from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.tests.utils import EnvironmentVarGuard
 
 from .. import service
 from .utils import run_click_command
@@ -435,6 +436,7 @@ def test_service_rename__exception(echo):
 def test_service_remove(click):
     click.prompt.side_effect = ("future-default-alias",)
     runtime = mock.Mock()
+    runtime.keychain.env_service_var_prefix = "CUMULUSCI_SERVICE_"
     runtime.keychain.services = {
         "github": {
             "current-default-alias": "config1",
@@ -468,6 +470,7 @@ def test_service_remove(click):
 def test_service_remove__name_does_not_exist(click):
     click.prompt.side_effect = ("this-alias-does-not-exist",)
     runtime = mock.Mock()
+    runtime.keychain.env_service_var_prefix = "CUMULUSCI_SERVICE_"
     runtime.keychain.services = {
         "github": {
             "current-default-alias": "config1",
@@ -495,9 +498,9 @@ def test_service_remove__name_does_not_exist(click):
 
 @mock.patch("cumulusci.cli.service.click")
 def test_service_remove__exception_thrown(click):
-
     click.prompt.side_effect = ("future-default-alias",)
     runtime = mock.Mock()
+    runtime.keychain.env_service_var_prefix = "CUMULUSCI_SERVICE_"
     runtime.keychain.services = {
         "github": {
             "current-default-alias": "config1",
@@ -519,6 +522,32 @@ def test_service_remove__exception_thrown(click):
     assert (
         click.echo.call_args_list[-1][0][0]
         == "An error occurred removing the service: test error"
+    )
+
+
+@mock.patch("cumulusci.cli.service.click")
+def test_service_remove__environment_service_cannot_be_removed(click):
+    runtime = mock.Mock()
+    runtime.keychain.env_service_var_prefix = "CUMULUSCI_SERVICE_"
+    runtime.keychain.services = {
+        "github": {
+            "env-foo": "config-from-env",
+            "another-alias": "config-from-file",
+        }
+    }
+    with EnvironmentVarGuard() as env:
+        env.set(
+            "CUMULUSCI_SERVICE_github__env-foo", '{"username":"foo", "token": "bar"}'
+        )
+        run_click_command(
+            service.service_remove,
+            runtime=runtime,
+            service_type="github",
+            service_name="env-foo",
+        )
+    assert (
+        click.echo.call_args_list[-1][0][0]
+        == "The service github:env-foo is defined by environment variables. If you woud like it removed please delete the environment variable with name: CUMULUSCI_SERVICE_github__env-foo"
     )
 
 
