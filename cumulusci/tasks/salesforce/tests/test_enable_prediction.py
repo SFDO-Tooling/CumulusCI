@@ -52,9 +52,21 @@ class TestEnablePrediction(unittest.TestCase):
 
     def test_get_ml_prediction_definition_id__exception(self):
         self.task.tooling.query.side_effect = MagicMock(
-            side_effect=SalesforceError(None, None, None, "test exception")
+            side_effect=SalesforceError("url", 500, "MLPredictionDefinition", "content")
         )
 
-        self.assertRaises(
-            SalesforceException, self.task._get_ml_prediction_definition_id
+        with self.assertRaises(SalesforceException) as e:
+            self.task._get_ml_prediction_definition_id()
+        self.assertEqual(
+            str(e.exception),
+            "Failed to obtain MLPredictionDefinitionId: Unknown error occurred for url. Response content: content",
+        )
+
+        self.task.tooling.query.side_effect = MagicMock(side_effect=IndexError())
+
+        with self.assertRaises(SalesforceException) as e:
+            self.task._get_ml_prediction_definition_id()
+        self.assertEqual(
+            str(e.exception),
+            "MLPredictionDefinition mlpd__test_prediction_v0 not found.",
         )

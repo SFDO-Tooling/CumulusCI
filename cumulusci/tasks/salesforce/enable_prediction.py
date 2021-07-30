@@ -49,7 +49,9 @@ class EnablePrediction(BaseSalesforceApiTask):
         """.strip()
         try:
             return self.tooling.query(query)["records"][0]["Id"]
-        except SalesforceError as e:
+        except IndexError:
             raise SalesforceException(
-                f"Failed to obtain MLPredictionDefinition Id: {e}"
+                f"MLPredictionDefinition {self.options['developer_name']} not found."
             )
+        except SalesforceError as e:
+            raise SalesforceException(f"Failed to obtain MLPredictionDefinitionId: {e}")
