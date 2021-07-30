@@ -79,7 +79,9 @@ class BaseCumulusCI(object):
         )
 
     def _load_keychain(self):
+
         keychain_key = self.keychain_key if self.keychain_cls.encrypted else None
+
         if self.project_config is None:
             self.keychain = self.keychain_cls(self.universal_config, keychain_key)
         else:

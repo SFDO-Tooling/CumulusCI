@@ -79,8 +79,8 @@ class TestCliRuntime(unittest.TestCase):
             del os.environ["CUMULUSCI_KEY"]
             keyring.get_password.side_effect = Exception
 
-            with self.assertRaises(click.UsageError):
-                CliRuntime()
+            runtime = CliRuntime()
+            assert runtime.keychain_key is None
 
     def test_get_org(self):
         config = CliRuntime()

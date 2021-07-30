@@ -3,6 +3,7 @@ import json
 import os
 import pickle
 import typing as T
+import sys
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher
@@ -23,8 +24,18 @@ from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
 from cumulusci.core.utils import import_class
+from cumulusci.core.utils import import_global
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
+
+# The file permissions that we want set on all
+# .org and .service files. Equivalent to -rw-------
+SERVICE_ORG_FILE_MODE = 0o600
+OS_FILE_FLAGS = os.O_WRONLY | os.O_CREAT
+if sys.platform.startswith("win"):
+    # O_BINARY only available on Windows
+    OS_FILE_FLAGS |= os.O_BINARY
+
 
 BS = 16
 backend = default_backend()
@@ -32,6 +43,13 @@ backend = default_backend()
 
 def pad(s):
     return s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode("ascii")
+
+
+scratch_org_class = os.environ.get("CUMULUSCI_SCRATCH_ORG_CLASS")
+if scratch_org_class:
+    scratch_org_factory = import_global(scratch_org_class)  # pragma: no cover
+else:
+    scratch_org_factory = ScratchOrgConfig
 
 
 """
@@ -59,6 +77,9 @@ the default org for that project.
 
 class EncryptedFileProjectKeychain(BaseProjectKeychain):
     encrypted = True
+    env_service_alias_prefix = "env"
+    env_service_var_prefix = "CUMULUSCI_SERVICE_"
+    env_org_var_prefix = "CUMULUSCI_ORG_"
 
     @property
     def global_config_dir(self):
@@ -95,30 +116,32 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         return base64.b64encode(iv + cipher.encryptor().update(pickled))
 
     def _decrypt_config(self, config_class, encrypted_config, extra=None, context=None):
-        if not encrypted_config:
-            if extra:
-                return config_class(None, *extra)
-            else:
-                return config_class()
-        encrypted_config = base64.b64decode(encrypted_config)
-        iv = encrypted_config[:16]
-        cipher, iv = self._get_cipher(iv)
-        pickled = cipher.decryptor().update(encrypted_config[16:])
-        try:
-            unpickled = pickle.loads(pickled, encoding="bytes")
-        except Exception:
-            raise KeychainKeyNotFound(
-                f"Unable to decrypt{' ' + context if context else ''}. "
-                "It was probably stored using a different CUMULUSCI_KEY."
-            )
-        # Convert bytes created in Python 2
-        config_dict = {}
-        for k, v in unpickled.items():
-            if isinstance(k, bytes):
-                k = k.decode("utf-8")
-            if isinstance(v, bytes):
-                v = v.decode("utf-8")
-            config_dict[k] = v
+        if self.key:
+            if not encrypted_config:
+                if extra:
+                    return config_class(None, *extra)
+                else:
+                    return config_class()
+            encrypted_config = base64.b64decode(encrypted_config)
+            iv = encrypted_config[:16]
+            cipher, iv = self._get_cipher(iv)
+            pickled = cipher.decryptor().update(encrypted_config[16:])
+            try:
+                unpickled = pickle.loads(pickled, encoding="bytes")
+            except Exception:
+                raise KeychainKeyNotFound(
+                    f"Unable to decrypt{' ' + context if context else ''}. "
+                    "It was probably stored using a different CUMULUSCI_KEY."
+                )
+            # Convert bytes created in Python 2
+            config_dict = {}
+            for k, v in unpickled.items():
+                if isinstance(k, bytes):
+                    k = k.decode("utf-8")
+                if isinstance(v, bytes):
+                    v = v.decode("utf-8")
+                config_dict[k] = v
+
         args = [config_dict]
         if extra:
             args += extra
@@ -130,9 +153,22 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
         return config_class(*args)
 
+    def _get_config_bytes(self, config) -> bytes:
+        """Depending on if a key is present return
+        the bytes that we want to store on the keychain."""
+        org_bytes = None
+        if self.key:
+            org_bytes = self._encrypt_config(config)
+        else:
+            org_bytes = pickle.dumps(config.config)
+
+        assert org_bytes is not None, "org_bytes should have a value"
+        return org_bytes
+
     def _validate_key(self):
+        # the key can be None when we detect issues using keyring
         if not self.key:
-            raise KeychainKeyNotFound("The keychain key was not found.")
+            return
         if len(self.key) != 16:
             raise ConfigError("The keychain key must be 16 characters long.")
 
@@ -178,8 +214,28 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             return Path(self.project_local_dir) / "DEFAULT_ORG.txt"
 
     def _load_orgs(self) -> None:
+        self._load_orgs_from_environment()
         self._load_org_files(self.global_config_dir, GlobalOrg)
         self._load_org_files(self.project_local_dir, LocalOrg)
+
+    def _load_orgs_from_environment(self):
+        for env_var_name, value in os.environ.items():
+            if env_var_name.startswith(self.env_org_var_prefix):
+                self._load_org_from_environment(env_var_name, value)
+
+    def _load_org_from_environment(self, env_var_name, value):
+        org_config = json.loads(value)
+        org_name = env_var_name[len(self.env_org_var_prefix) :].lower()
+        if org_config.get("scratch"):
+            org_config = scratch_org_factory(
+                json.loads(value), org_name, keychain=self, global_org=False
+            )
+        else:
+            org_config = OrgConfig(
+                org_config, org_name, keychain=self, global_org=False
+            )
+
+        self.set_org(org_config, global_org=False, save=False)
 
     def _load_org_files(self, dirname: str, constructor=None):
         """Loads .org files in a given directory onto the keychain"""
@@ -188,7 +244,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         dir_path = Path(dirname)
         for item in sorted(dir_path.iterdir()):
             if item.suffix == ".org":
-                with open(item, "r") as f:
+                with open(item, "rb") as f:
                     config = f.read()
                 name = item.name.replace(".org", "")
                 if "orgs" not in self.config:
@@ -197,34 +253,80 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                     constructor(config) if constructor else config
                 )
 
-    def _set_org(self, org_config, global_org):
+    def _set_org(self, org_config, global_org, save=True):
         if org_config.keychain:
             assert org_config.keychain is self
         assert org_config.global_org == global_org
         org_config.keychain = self
         org_config.global_org = global_org
-        encrypted = self._encrypt_config(org_config)
-        self._set_encrypted_org(org_config.name, encrypted, global_org)
 
-    def _set_encrypted_org(self, name, encrypted, global_org):
+        org_name = org_config.name
+
+        org_bytes = self._get_config_bytes(org_config)
+
+        if global_org:
+            org_config = GlobalOrg(org_bytes)
+        else:
+            org_config = LocalOrg(org_bytes)
+
+        self.orgs[org_name] = org_config
+
+        # if keychain is explicitly set to
+        # EnvironmentProjectKeychain never save the org config.
+        keychain_class = os.environ.get("CUMULUSCI_KEYCHAIN_CLASS")
+        if keychain_class == "EnvironmentProjectKeychain":
+            message = (
+                "The keychain is currently set to EnvironmentProjectKeychain; "
+                "skipping save of org config to file. "
+                "If you would like orgs to be saved for re-use later, remove the "
+                "CUMULUSCI_KEYCHAIN_CLASS environment variable."
+            )
+            self.logger.warning(message)
+            return
+
+        if save:
+            self._save_org(
+                org_name,
+                org_config.data,
+                global_org,
+            )
+
+    def _save_org(self, name, org_bytes, global_org):
+        """
+        @name - name of the org
+        @org_bytes - bytes-like objecte to write to disk
+        @global_org - whether or not this is a global org
+        """
         if global_org:
             filename = Path(f"{self.global_config_dir}/{name}.org")
         elif self.project_local_dir is None:
             return
         else:
             filename = Path(f"{self.project_local_dir}/{name}.org")
-        with open(filename, "wb") as f_org:
-            f_org.write(encrypted)
+
+        fd = os.open(filename, OS_FILE_FLAGS, SERVICE_ORG_FILE_MODE)
+        with open(fd, "wb") as f:
+            f.write(org_bytes)
 
     def _get_org(self, name):
-        org = self._decrypt_config(
-            OrgConfig,
-            self.orgs[name].encrypted_data,
-            extra=[name, self],
-            context=f"org config ({name})",
-        )
-        if self.orgs[name].global_org:
-            org.global_org = True
+        try:
+            config = self.orgs[name].data
+            global_org = self.orgs[name].global_org
+        except KeyError:
+            raise OrgNotFound(f"Org with name '{name}' does not exist.")
+
+        if self.key:
+            org = self._decrypt_config(
+                OrgConfig,
+                config,
+                extra=[name, self],
+                context=f"org config ({name})",
+            )
+        else:
+            config = pickle.loads(config)
+            org = self._construct_config(OrgConfig, [config, name, self])
+
+        org.global_org = global_org
         return org
 
     def _remove_org(self, name, global_org):
@@ -241,11 +343,6 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
         org_path.unlink()
         del self.orgs[name]
-
-    def _raise_org_not_found(self, name):
-        raise OrgNotFound(
-            f"Org information could not be found. Expected to find encrypted file at {self.project_local_dir}/{name}.org"
-        )
 
     def cleanup_org_cache_dirs(self):
         """Cleanup directories that are not associated with a connected/live org."""
@@ -274,18 +371,20 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
     #######################################
 
     def set_default_service(
-        self, service_type: str, alias: str, project: bool = False
+        self, service_type: str, alias: str, project: bool = False, save: bool = True
     ) -> None:
         """Public API for setting a default service e.g. `cci service default`
 
         @param service_type: the type of service
         @param alias: the name of the service
         @param project: Should this be a project default
+        @param save: save the defaults so they are loaded on subsequent executions
         @raises ServiceNotConfigured if service_type or alias are invalid
         """
         self._validate_service_type_and_alias(service_type, alias)
         self._default_services[service_type] = alias
-        self._save_default_service(service_type, alias, project=project)
+        if save:
+            self._save_default_service(service_type, alias, project=project)
 
     def rename_service(
         self, service_type: str, current_alias: str, new_alias: str
@@ -423,29 +522,50 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
     def _load_services(self) -> None:
         """Load services (and migrate old ones if present)"""
+        self._load_services_from_environment()
+
         if not (self.global_config_dir / "services").is_dir():
             self._create_default_service_files()
             self._create_services_dir_structure()
             self._migrate_services()
+
         self._load_service_files()
 
-    def _set_service(self, service_type, alias, service_config):
+    def _set_service(
+        self, service_type, alias, service_config, save=True, config_encrypted=False
+    ):
         if service_type not in self.services:
             self.services[service_type] = {}
             # set the first service of a given type as the global default
             self._default_services[service_type] = alias
-            self._save_default_service(service_type, alias, project=False)
+            if save:
+                self._save_default_service(service_type, alias, project=False)
 
-        encrypted = self._encrypt_config(service_config)
-        self._set_encrypted_service(service_type, alias, encrypted)
+        # If the config is already encrypted coming in
+        # (like when were setting services after loading from an encrypted file)
+        # then we don't need to do anything.
+        if self.key and config_encrypted:
+            config = service_config
+        elif self.key and not config_encrypted:
+            config = self._encrypt_config(service_config)
+        else:
+            config = pickle.dumps(service_config.config)
 
-    def _set_encrypted_service(self, service_type, alias, encrypted):
+        self.services[service_type][alias] = config
+
+        if save:
+            self._save_encrypted_service(service_type, alias, config)
+
+    def _save_encrypted_service(self, service_type, alias, encrypted):
+        """Write out the encrypted service to disk."""
         service_path = Path(
             f"{self.global_config_dir}/services/{service_type}/{alias}.service"
         )
         if not service_path.parent.is_dir():
             service_path.parent.mkdir()
-        with open(service_path, "wb") as f:
+
+        fd = os.open(service_path, OS_FILE_FLAGS, SERVICE_ORG_FILE_MODE)
+        with open(fd, "wb") as f:
             f.write(encrypted)
 
     def _get_service(self, service_type, alias):
@@ -465,14 +585,61 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                     f"Unrecognized class_path for service: {class_path}"
                 )
 
-        return self._decrypt_config(
-            ConfigClass,
-            self.services[service_type][alias],
-            extra=[alias, self],
-            context=f"service config ({service_type}:{alias})",
+        try:
+            config = self.services[service_type][alias]
+        except KeyError:
+            raise ServiceNotConfigured(
+                f"No service of type {service_type} exists with the name: {alias}"
+            )
+
+        if self.key:
+            org = self._decrypt_config(
+                ConfigClass,
+                config,
+                extra=[alias, self],
+                context=f"service config ({service_type}:{alias})",
+            )
+        else:
+            config = pickle.loads(config)
+            org = self._construct_config(ConfigClass, [config, alias, self])
+
+        return org
+
+    def _load_services_from_environment(self):
+        """Load any services specified by environment variables"""
+        for env_var_name, value in os.environ.items():
+            if env_var_name.startswith(self.env_service_var_prefix):
+                self._load_service_from_environment(env_var_name, value)
+
+    def _load_service_from_environment(self, env_var_name, value):
+        """Given a valid name/value pair, load the
+        service from the environment on to the keychain"""
+        service_config = ServiceConfig(json.loads(value))
+        service_type, service_name = self._get_env_service_type_and_name(env_var_name)
+        self.set_service(service_type, service_name, service_config, save=False)
+
+    def _get_env_service_type_and_name(self, env_service_name):
+        return (
+            self._get_env_service_type(env_service_name),
+            self._get_env_service_name(env_service_name),
         )
 
-    def _load_service_files(self, constructor=None) -> None:
+    def _get_env_service_type(self, env_service_name):
+        """Parse the service type given the env var name"""
+        post_prefix = env_service_name[len(self.env_service_var_prefix) :].lower()
+        return post_prefix.split("__")[0]
+
+    def _get_env_service_name(self, env_service_name):
+        """
+        Parse the service name given the env var name.
+        Services from the environment can be listed with or without a name:
+        * CUMULUSCI_SERVICE_service_type -> this gets a default name of "env"
+        * CUMULUSCI_SERVICE_service_type__name -> this gets the name "env-name"
+        """
+        parts = env_service_name.split("__")
+        return f"env-{parts[-1]}" if len(parts) > 1 else "env"
+
+    def _load_service_files(self) -> None:
         """
         Load configured services onto the keychain.
         This method recursively goes through all subdirectories
@@ -483,14 +650,11 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             if item.suffix == ".service":
                 with open(item) as f:
                     config = f.read()
-                if "services" not in self.config:
-                    self.config["services"] = {}
                 name = item.name.replace(".service", "")
                 service_type = item.parent.name
-                if service_type not in self.config["services"]:
-                    self.config["services"][service_type] = {}
-                self.config["services"][service_type][name] = (
-                    constructor(config) if constructor else config
+
+                self.set_service(
+                    service_type, name, config, save=False, config_encrypted=True
                 )
 
     def _load_default_services(self) -> None:
@@ -717,10 +881,10 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
 
 class GlobalOrg(T.NamedTuple):
-    encrypted_data: bytes
+    data: bytes
     global_org: bool = True
 
 
 class LocalOrg(T.NamedTuple):
-    encrypted_data: bytes
+    data: bytes
     global_org: bool = False
