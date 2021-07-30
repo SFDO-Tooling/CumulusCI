@@ -5,7 +5,7 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl import AddRelatedLists
 from cumulusci.tasks.metadata_etl.layouts import (
     AddRecordPlatformActionListItem,
-    AddFields,
+    AddFieldsToPageLayout,
 )
 from cumulusci.utils.xml import metadata_tree
 
@@ -564,11 +564,11 @@ MOCK_ADD_FIELDS_LAYOUT = """<?xml version="1.0" encoding="UTF-8"?>
 """
 
 
-class TestAddFields(unittest.TestCase):
+class TestAddFieldsToPageLayout(unittest.TestCase):
     def test_add_fields_positioning(self):
         """Testing the positioning keywords [top|bottom|before|after]"""
         task = create_task(
-            AddFields,
+            AddFieldsToPageLayout,
             {
                 "api_names": "Account-Account Layout",
                 "fields": [
@@ -628,7 +628,7 @@ class TestAddFields(unittest.TestCase):
     def test_add_fields_default_positioning(self):
         """Making sure the default column position is applied if not supplied"""
         task = create_task(
-            AddFields,
+            AddFieldsToPageLayout,
             {
                 "api_names": "Account-Account Layout",
                 "fields": [
@@ -650,7 +650,7 @@ class TestAddFields(unittest.TestCase):
     def test_add_fields_adding_pages(self):
         """Testing of adding Visualforce pages and making sure their options are applied"""
         task = create_task(
-            AddFields,
+            AddFieldsToPageLayout,
             {
                 "api_names": "Account-Account Layout",
                 "pages": [
@@ -694,7 +694,7 @@ class TestAddFields(unittest.TestCase):
     def test_add_fields_skip_existing(self):
         """Make sure if a field is skipped if it already exists in the layout"""
         task = create_task(
-            AddFields,
+            AddFieldsToPageLayout,
             {
                 "api_names": "Account-Account Layout",
                 "fields": [
@@ -719,7 +719,7 @@ class TestAddFields(unittest.TestCase):
         """Testing the fallback procedure of the positionin, in the order listed each item of
         the list is tried, and if not successful the default is finally applied."""
         task = create_task(
-            AddFields,
+            AddFieldsToPageLayout,
             {
                 "api_names": "Account-Account Layout",
                 "fields": [
@@ -750,7 +750,7 @@ class TestAddFields(unittest.TestCase):
         """Testing the application of field behavior. Edit is the default and
         'required' or 'read_only' are alternative options"""
         task = create_task(
-            AddFields,
+            AddFieldsToPageLayout,
             {
                 "api_names": "Account-Account Layout",
                 "fields": [
@@ -793,7 +793,7 @@ class TestAddFields(unittest.TestCase):
     def test_add_fields_required_readonly(self):
         """required and read_only are mutually exclusive"""
         task = create_task(
-            AddFields,
+            AddFieldsToPageLayout,
             {
                 "api_names": "Account-Account Layout",
                 "fields": [
