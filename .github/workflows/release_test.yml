@@ -19,8 +19,6 @@ jobs:
   test_release:
     name: "Test Release Flows"
     runs-on: ubuntu-latest
-    env:
-      CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.8
