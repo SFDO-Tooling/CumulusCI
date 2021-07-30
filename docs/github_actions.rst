@@ -291,7 +291,6 @@ in our demo repository.
             - 'README.md'
 
    env:
-      CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
       CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
       CUMULUSCI_ORG_packaging: '{"username": "d.reed@cci-ci-demo.package", "instance_url": "https://cumulusci-ci-demo-dev-ed.my.salesforce.com"}'
       SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
