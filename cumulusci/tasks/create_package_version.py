@@ -1,3 +1,6 @@
+from cumulusci.core.sfdx import (
+    convert_sfdx_source,
+)
 from typing import List, Optional, Union
 import base64
 import enum
@@ -13,6 +16,7 @@ from simple_salesforce.exceptions import SalesforceMalformedRequest
 from cumulusci.core.config.util import get_devhub_config
 from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
+    UnmanagedDependency,
 )
 from cumulusci.core.dependencies.dependencies import PackageVersionIdDependency
 from cumulusci.core.dependencies.dependencies import UnmanagedGitHubRefDependency
@@ -254,12 +258,18 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         if "static_resource_path" in self.options:
             options["static_resource_path"] = self.options["static_resource_path"]
 
-        package_zip_builder = MetadataPackageZipBuilder(
-            path=self.project_config.default_package_path,
-            name=self.package_config.package_name,
-            options=options,
-            logger=self.logger,
-        )
+        package_zip_builder = None
+        with convert_sfdx_source(
+            self.project_config.default_package_path,
+            self.package_config.package_name,
+            self.logger,
+        ) as path:
+            package_zip_builder = MetadataPackageZipBuilder(
+                path=path,
+                name=self.package_config.package_name,
+                options=options,
+                logger=self.logger,
+            )
 
         ancestor_id = self._resolve_ancestor_id(self.options.get("ancestor_id"))
 
@@ -603,11 +613,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     f"Adding dependency {dependency.package_name} with id {dependency.version_id}"
                 )
                 new_dependency["subscriberPackageVersionId"] = dependency.version_id
-
-            elif isinstance(dependency, UnmanagedGitHubRefDependency):
+            elif isinstance(dependency, UnmanagedDependency):
                 if self.options["create_unlocked_dependency_packages"]:
-                    # TODO: We do not support zip_url unmanaged dependencies
-                    version_id = self._create_unlocked_package_from_github(
+                    version_id = self._create_unlocked_package_from_unmanaged_dep(
                         dependency, new_dependencies
                     )
                     self.logger.info(
@@ -657,25 +665,21 @@ class CreatePackageVersion(BaseSalesforceApiTask):
 
         return dependencies
 
-    def _create_unlocked_package_from_github(self, dependency, dependencies):
-        repo_owner, repo_name = split_repo_url(dependency.github)
-        gh_for_repo = self.project_config.get_github_api(repo_owner, repo_name)
-        zip_src = download_extract_github(
-            gh_for_repo,
-            repo_owner,
-            repo_name,
-            dependency.subfolder,
-            ref=dependency.ref,
-        )
-        keys = ["namespace_inject", "namespace_strip", "unmanaged"]
-        dep_opts = dependency.dict(exclude_none=True)
-        options = {k: dep_opts[k] for k in keys if k in dep_opts}
-        package_zip_builder = MetadataPackageZipBuilder.from_zipfile(
-            zip_src, options=options, logger=self.logger
+    def _create_unlocked_package_from_unmanaged_dep(
+        self, dependency: UnmanagedDependency, dependencies
+    ) -> str:
+        if isinstance(dependency, UnmanagedGitHubRefDependency):
+            repo_owner, repo_name = split_repo_url(dependency.github)
+            package_name = f"{repo_owner}/{repo_name} {dependency.subfolder}"
+        else:
+            package_name = dependency.description
+
+        package_zip_builder = dependency.get_metadata_package_zip_builder(
+            self.project_config, self.org_config
         )
 
         package_config = PackageConfig(
-            package_name=f"{repo_owner}/{repo_name} {dependency.subfolder}",
+            package_name=package_name,
             version_name="Auto",
             package_type="Unlocked",
             # Ideally we'd do this without a namespace,
@@ -705,21 +709,25 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         package_name = (
             f"{self.project_config.repo_owner}/{self.project_config.repo_name} {path}"
         )
-        package_zip_builder = MetadataPackageZipBuilder(
-            path=path, name=package_name, logger=self.logger
-        )
-        package_config = PackageConfig(
-            package_name=package_name,
-            version_name="Auto",
-            package_type="Unlocked",
-            # Ideally we'd do this without a namespace,
-            # but it needs to match the dependent package
-            namespace=self.package_config.namespace,
-        )
-        package_id = self._get_or_create_package(package_config)
-        self.request_id = self._create_version_request(
-            package_id, package_config, package_zip_builder, dependencies=dependencies
-        )
+        with convert_sfdx_source(path, package_name, self.logger) as src_path:
+            package_zip_builder = MetadataPackageZipBuilder(
+                path=src_path, name=package_name, logger=self.logger
+            )
+            package_config = PackageConfig(
+                package_name=package_name,
+                version_name="Auto",
+                package_type="Unlocked",
+                # Ideally we'd do this without a namespace,
+                # but it needs to match the dependent package
+                namespace=self.package_config.namespace,
+            )
+            package_id = self._get_or_create_package(package_config)
+            self.request_id = self._create_version_request(
+                package_id,
+                package_config,
+                package_zip_builder,
+                dependencies=dependencies,
+            )
         self._poll()
         self._reset_poll()
         res = self.tooling.query(

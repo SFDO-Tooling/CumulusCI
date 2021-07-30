@@ -85,7 +85,8 @@ class BasePackageZipBuilder(object):
 
 
 class MetadataPackageZipBuilder(BasePackageZipBuilder):
-    """Build a package zip from a metadata folder."""
+    """Build a package zip from a metadata folder. The specified
+    zipfile or path must be in Metadata API format."""
 
     def __init__(
         self,
@@ -98,40 +99,20 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
     ):
         self.options = options or {}
         self.logger = logger or DEFAULT_LOGGER
-        if zf is not None:
-            self.zf = zf
-        elif path is not None:
+
+        self.zf = zf
+
+        if self.zf is None:
             self._open_zip()
-            with self._convert_sfdx_format(path, name) as path:
-                self._add_files_to_package(path)
-        else:
-            self._open_zip()
+        if path is not None:
+            self._add_files_to_package(path)
+
         self._process()
 
     @classmethod
-    def from_zipfile(cls, zf, *, options=None, logger=None):
+    def from_zipfile(cls, zf, *, path=None, options=None, logger=None):
         """Start with an existing zipfile rather than a filesystem folder."""
-        return cls(zf=zf, options=options, logger=logger)
-
-    @contextlib.contextmanager
-    def _convert_sfdx_format(self, path, name):
-        orig_path = path
-        with contextlib.ExitStack() as stack:
-            # convert sfdx -> mdapi format if path exists but does not have package.xml
-            if len(os.listdir(path)) and not pathlib.Path(path, "package.xml").exists():
-                self.logger.info("Converting from sfdx to mdapi format")
-                path = stack.enter_context(temporary_dir(chdir=False))
-                args = ["-r", str(orig_path), "-d", path]
-                if name:
-                    args += ["-n", name]
-                sfdx(
-                    "force:source:convert",
-                    args=args,
-                    capture_output=True,
-                    check_return=True,
-                )
-
-            yield path
+        return cls(zf=zf, path=path, options=options, logger=logger)
 
     def _add_files_to_package(self, path):
         for file_path in self._find_files_to_package(path):
