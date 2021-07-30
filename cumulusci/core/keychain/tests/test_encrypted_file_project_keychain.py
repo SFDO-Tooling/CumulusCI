@@ -33,6 +33,7 @@ from cumulusci.core.keychain.encrypted_file_project_keychain import (
     SERVICE_ORG_FILE_MODE,
 )
 from cumulusci.core.tests.utils import EnvironmentVarGuard
+from cumulusci.utils import temporary_dir
 
 
 @pytest.fixture()
@@ -86,6 +87,22 @@ class TestEncryptedFileProjectKeychain:
         filepath = Path(keychain.project_local_dir, "test.org")
         with open(filepath, "rb") as f:
             assert pickle.load(f) == org_config.config
+
+    def test_set_org__should_not_save_when_environment_project_keychain_set(
+        self, keychain, org_config
+    ):
+        with temporary_dir() as temp:
+            env = EnvironmentVarGuard()
+            with EnvironmentVarGuard() as env:
+                env.set("CUMULUSCI_KEYCHAIN_CLASS", "EnvironmentProjectKeychain")
+                with mock.patch.object(
+                    EncryptedFileProjectKeychain, "project_local_dir", temp
+                ):
+                    keychain.set_org(org_config, global_org=False)
+
+            actual_org = keychain.get_org("test")
+            assert actual_org.config == org_config.config
+            assert not Path(temp, "test.org").is_file()
 
     @mock.patch("cumulusci.core.keychain.encrypted_file_project_keychain.open")
     def test_save_org_when_no_project_local_dir_present(
