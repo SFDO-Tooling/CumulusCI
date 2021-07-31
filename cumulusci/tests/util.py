@@ -66,7 +66,7 @@ class DummyOrgConfig(OrgConfig):
             config = {
                 "instance_url": "https://orgname.my.salesforce.com",
                 "access_token": "pytest_sf_orgconnect_abc123",
-                "id": "https://test.salesforce.com/id/ORGID/USERID",
+                "id": "https://test.salesforce.com/id/00DORGID/USERID",
                 "username": "sfuser@example.com",
             }
 

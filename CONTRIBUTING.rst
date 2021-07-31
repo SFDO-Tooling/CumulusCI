@@ -147,23 +147,35 @@ Finally, post the release notes to our usual channels:
 .. _Homebrew Tap: https://github.com/SFDO-Tooling/homebrew-sfdo
 .. _jq: https://stedolan.github.io/jq/
 
-Org-reliant Integration tests
+Org-reliant Automated Tests
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some tests are marked ``@pytest.mark.vcr()`` which means that they can either
 call into a real (configured) Salesforce org or use a cached YAML file of the request/response.
-To regenerate the VCR file, you can run pytest like this::
 
-    $ pytest cumulusci/.../test_<something>.py --org <orgname>
+By default using pytest will use the cached YAML. If you want to work against a
+real Scratch org, you do so like this::
+
+    $ pytest --org qa <other arguments and options, such as filename or -k testname>
 
 Where "orgname" is a configured org name like "qa", "dev", etc.
 
-Periodically you can also do this, but it will take a LONG time::
+To regenerate the VCR file, you can just delete it before running the command above::
 
-    $ pytest --org <orgname>
+    $ rm /path/to/vcr.yml ; pytest --org qa <etc. etc.>
+
+To regenerate all VCR files::
+
+    $ make vcr
+
+This will configure an org named "pytest", delete the VCR files and regenerate them.
+It will of course be much slower than a normal test.
 
 That will run all VCR-backed tests against the org, including all of the slow
 integration tests.
+
+Org-reliant Integration Tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some of these tests generate so much data or run so slowly that even the VCR tool does not
 help much. For example, if you are testing something that needs to download an

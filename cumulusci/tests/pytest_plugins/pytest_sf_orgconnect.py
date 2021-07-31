@@ -1,5 +1,7 @@
 import pytest
 import os.path
+from contextlib import contextmanager
+from contextvars import ContextVar
 
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
@@ -117,3 +119,28 @@ def vcr_cassette_dir(request):
     else:  # standard behaviour from
         # https://github.com/ktosiek/pytest-vcr/blob/master/pytest_vcr.py
         return os.path.join(test_dir, "cassettes")
+
+
+class SFOrgConnectionState:
+    should_record = True
+
+
+sf_org_connection_state = ContextVar(
+    "sf_org_connection_state", default=SFOrgConnectionState()
+)
+
+
+@pytest.fixture(
+    scope="module",
+)
+def setup_org_without_recording(request, vcr):
+    @contextmanager
+    def really_setup_org_without_recording(func):
+        orgname = sf_pytest_orgname(request)
+        sf_org_connection_state.set(SFOrgConnectionState())
+        if orgname:
+            sf_org_connection_state.get().should_record = False
+            func()
+            sf_org_connection_state.get().should_record = True
+
+    return really_setup_org_without_recording

@@ -67,6 +67,11 @@ coverage: ## check code coverage quickly with the default Python
 	coverage html
 	$(BROWSER) htmlcov/index.html
 
+vcr:  # remake VCR cassettes
+	cci org scratch qa pytest
+	cci org scratch_delete pytest
+	find . -name \Test*.yaml | xargs rm ; pytest --org qa
+
 docs: ## generate Sphinx HTML documentation
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html

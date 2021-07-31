@@ -39,10 +39,8 @@ class TestCompositeParallelSalesforce:
             results = cpsf.do_composite_requests([])
             assert list(results) == []
 
-    # don't re-record this one because you'll need to fiddle
-    # with the date
-    @pytest.mark.vcr(record_mode="none")
-    def test_http_headers(self, sf):
+    @pytest.mark.vcr()
+    def test_http_headers(self, sf, vcr):
         requests = [
             {
                 "method": "GET",
@@ -50,8 +48,13 @@ class TestCompositeParallelSalesforce:
                 "httpHeaders": {"If-Modified-Since": "Thu, 03 Sep 2020 21:35:07 GMT"},
             },
         ] * 3
-        with CompositeParallelSalesforce(sf, 4, max_workers=1) as cpsf:
-            results = cpsf.do_composite_requests(requests)
+        # don't re-record this one because you'll need to fiddle
+        # with the dates
+        with vcr.use_cassette(
+            "ManualEditTestCompositeParallelSalesforce.test_http_headers.yaml"
+        ):
+            with CompositeParallelSalesforce(sf, 4, max_workers=1) as cpsf:
+                results = cpsf.do_composite_requests(requests)
         assert results[0]["httpStatusCode"] == 304
 
     @pytest.mark.vcr()

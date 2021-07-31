@@ -160,12 +160,13 @@ class TestCumulusciYml:
         errs = _validate_files([str(Path(codedir / "bad_cci.yml"))])
         assert errs
 
-    @pytest.mark.vcr(record_mode="none")
+    @pytest.mark.vcr()
     def test_validate_url__with_errors(self, caplog):
-        url = "https://test/bad/cumulusci.yml"
+        url = "https://raw.githubusercontent.com/SFDO-Tooling/CumulusCI/8b8d1eb9a1593503bf625030fa702b6d4651cb55/cumulusci/tasks/bulkdata/tests/snowfakery/simple_snowfakery.load.yml"
         errs = _validate_url(url)
-        assert "foo" in str(errs)
+        assert "sf_object" in str(errs)
         assert "extra fields not permitted" in str(errs)
+        assert "snowfakery.load.yml" in str(errs)
 
 
 @pytest.fixture

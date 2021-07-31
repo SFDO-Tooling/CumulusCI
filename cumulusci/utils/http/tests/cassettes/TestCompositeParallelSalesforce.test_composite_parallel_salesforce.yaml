@@ -5,10 +5,10 @@ interactions:
       Request-Headers:
       - Elided
     method: POST
-    uri: https://orgname.my.salesforce.com/services/data/v50.0/sobjects/Account/
+    uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects/Account/
   response:
     body:
-      string: "{\n  \"id\" : \"0011D00000o9pgJQAQ\",\n  \"success\" : true,\n  \"errors\"
+      string: "{\n  \"id\" : \"001ACCOUNTID\",\n  \"success\" : true,\n  \"errors\"
         : [ ]\n}"
     headers:
       Response-Headers: Elided
@@ -17,79 +17,38 @@ interactions:
       message: Created
 - request:
     body: '{"compositeRequest": [{"referenceId": "CCI__RefId__0__", "method": "GET",
-      "url": "/services/data/v50.0/query?q=SELECT Id FROM Account LIMIT 1"}, {"referenceId":
-      "CCI__RefId__1__", "method": "GET", "url": "/services/data/v50.0/query?q=SELECT
+      "url": "/services/data/vxx.0/query?q=SELECT Id FROM Account LIMIT 1"}, {"referenceId":
+      "CCI__RefId__1__", "method": "GET", "url": "/services/data/vxx.0/query?q=SELECT
       Name FROM Account LIMIT 1"}, {"referenceId": "CCI__RefId__2__", "method": "GET",
-      "url": "/services/data/v50.0/query?q=SELECT Id FROM Account LIMIT 1"}, {"referenceId":
-      "CCI__RefId__3__", "method": "GET", "url": "/services/data/v50.0/query?q=SELECT
+      "url": "/services/data/vxx.0/query?q=SELECT Id FROM Account LIMIT 1"}, {"referenceId":
+      "CCI__RefId__3__", "method": "GET", "url": "/services/data/vxx.0/query?q=SELECT
       Name FROM Account LIMIT 1"}]}'
     headers:
       Request-Headers:
       - Elided
     method: POST
-    uri: https://orgname.my.salesforce.com/services/data/v50.0/composite
+    uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite
   response:
     body:
       string: "{\n  \"compositeResponse\" : [ {\n    \"body\" : {\n      \"totalSize\"
         : 1,\n      \"done\" : true,\n      \"records\" : [ {\n        \"attributes\"
-        : {\n          \"type\" : \"Account\",\n          \"url\" : \"/services/data/v50.0/sobjects/Account/0011D00000o9pgJQAQ\"\n
-        \       },\n        \"Id\" : \"0011D00000o9pgJQAQ\"\n      } ]\n    },\n    \"httpHeaders\"
+        : {\n          \"type\" : \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/001ACCOUNTID\"\n
+        \       },\n        \"Id\" : \"001ACCOUNTID\"\n      } ]\n    },\n    \"httpHeaders\"
         : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__0__\"\n
         \ }, {\n    \"body\" : {\n      \"totalSize\" : 1,\n      \"done\" : true,\n
         \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
-        \"Account\",\n          \"url\" : \"/services/data/v50.0/sobjects/Account/0011D00000o9pgJQAQ\"\n
+        \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/001ACCOUNTID\"\n
         \       },\n        \"Name\" : \"Smith Corp.\"\n      } ]\n    },\n    \"httpHeaders\"
         : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__1__\"\n
         \ }, {\n    \"body\" : {\n      \"totalSize\" : 1,\n      \"done\" : true,\n
         \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
-        \"Account\",\n          \"url\" : \"/services/data/v50.0/sobjects/Account/0011D00000o9pgJQAQ\"\n
-        \       },\n        \"Id\" : \"0011D00000o9pgJQAQ\"\n      } ]\n    },\n    \"httpHeaders\"
+        \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/001ACCOUNTID\"\n
+        \       },\n        \"Id\" : \"001ACCOUNTID\"\n      } ]\n    },\n    \"httpHeaders\"
         : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__2__\"\n
         \ }, {\n    \"body\" : {\n      \"totalSize\" : 1,\n      \"done\" : true,\n
         \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
-        \"Account\",\n          \"url\" : \"/services/data/v50.0/sobjects/Account/0011D00000o9pgJQAQ\"\n
+        \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/001ACCOUNTID\"\n
         \       },\n        \"Name\" : \"Smith Corp.\"\n      } ]\n    },\n    \"httpHeaders\"
-        : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__3__\"\n
-        \ } ]\n}"
-    headers:
-      Response-Headers: Elided
-    status:
-      code: 200
-      message: OK
-- request:
-    body: '{"compositeRequest": [{"referenceId": "CCI__RefId__0__", "method": "GET",
-      "url": "/services/data/v49.0/query?q=SELECT Id FROM Account LIMIT 1"}, {"referenceId":
-      "CCI__RefId__1__", "method": "GET", "url": "/services/data/v49.0/query?q=SELECT
-      Name FROM Account LIMIT 1"}, {"referenceId": "CCI__RefId__2__", "method": "GET",
-      "url": "/services/data/v49.0/query?q=SELECT Id FROM Account LIMIT 1"}, {"referenceId":
-      "CCI__RefId__3__", "method": "GET", "url": "/services/data/v49.0/query?q=SELECT
-      Name FROM Account LIMIT 1"}]}'
-    headers:
-      Request-Headers:
-      - Elided
-    method: POST
-    uri: https://orgname.my.salesforce.com/services/data/v49.0/composite
-  response:
-    body:
-      string: "{\n  \"compositeResponse\" : [ {\n    \"body\" : {\n      \"totalSize\"
-        : 1,\n      \"done\" : true,\n      \"records\" : [ {\n        \"attributes\"
-        : {\n          \"type\" : \"Account\",\n          \"url\" : \"/services/data/v49.0/sobjects/Account/0013B00000ddh3PQAQ\"\n
-        \       },\n        \"Id\" : \"0013B00000ddh3PQAQ\"\n      } ]\n    },\n    \"httpHeaders\"
-        : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__0__\"\n
-        \ }, {\n    \"body\" : {\n      \"totalSize\" : 1,\n      \"done\" : true,\n
-        \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
-        \"Account\",\n          \"url\" : \"/services/data/v49.0/sobjects/Account/0013B00000ddh7qQAA\"\n
-        \       },\n        \"Name\" : \"Elizabeth Foster\"\n      } ]\n    },\n    \"httpHeaders\"
-        : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__1__\"\n
-        \ }, {\n    \"body\" : {\n      \"totalSize\" : 1,\n      \"done\" : true,\n
-        \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
-        \"Account\",\n          \"url\" : \"/services/data/v49.0/sobjects/Account/0013B00000ddh3PQAQ\"\n
-        \       },\n        \"Id\" : \"0013B00000ddh3PQAQ\"\n      } ]\n    },\n    \"httpHeaders\"
-        : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__2__\"\n
-        \ }, {\n    \"body\" : {\n      \"totalSize\" : 1,\n      \"done\" : true,\n
-        \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
-        \"Account\",\n          \"url\" : \"/services/data/v49.0/sobjects/Account/0013B00000ddh7qQAA\"\n
-        \       },\n        \"Name\" : \"Elizabeth Foster\"\n      } ]\n    },\n    \"httpHeaders\"
         : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__3__\"\n
         \ } ]\n}"
     headers:

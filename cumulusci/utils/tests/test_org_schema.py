@@ -88,8 +88,7 @@ def mock_return_cached_responses():
 class TestDescribeOrg:
     def setup_class(self):
         cassette = (
-            Path(__file__).parent
-            / "cassettes/TestDescribeOrg.test_describe_to_sql.yaml"
+            Path(__file__).parent / "cassettes/ManualEdit_test_describe_to_sql.yaml"
         )
         with open(cassette) as f:
             self.cassette_data = yaml.safe_load(f)
