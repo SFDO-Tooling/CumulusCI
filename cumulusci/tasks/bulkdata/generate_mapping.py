@@ -4,10 +4,10 @@ from typing import Dict
 import click
 import yaml
 
-from cumulusci.core.utils import process_list_arg, process_bool_arg
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.salesforce_api.org_schema import get_org_schema, Field
+from cumulusci.core.utils import process_bool_arg, process_list_arg
+from cumulusci.salesforce_api.org_schema import Field, get_org_schema
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class GenerateMapping(BaseSalesforceApiTask):

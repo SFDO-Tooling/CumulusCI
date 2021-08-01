@@ -1,12 +1,13 @@
-import click
 import json
 import os
-
 from pathlib import Path
+
+import click
 
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import CumulusCIException, ServiceNotConfigured
-from cumulusci.core.utils import import_global, import_class
+from cumulusci.core.utils import import_class, import_global
+
 from .runtime import pass_runtime
 from .ui import CliTable
 

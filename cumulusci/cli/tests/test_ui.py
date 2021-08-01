@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import sys
-
-from unittest import mock
 from pprint import pformat
+from unittest import mock
 
 import pytest
-from cumulusci.cli.ui import CHECKMARK, CliTable, _summarize, SimpleSalesforceUIHelpers
+
+from cumulusci.cli.ui import CHECKMARK, CliTable, SimpleSalesforceUIHelpers, _summarize
 
 
 @pytest.fixture

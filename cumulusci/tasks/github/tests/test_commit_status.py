@@ -1,15 +1,13 @@
-from cumulusci.core.exceptions import DependencyLookupError
 from datetime import datetime
 
 import pytest
 import responses
 
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.tests.util import create_project_config
+from cumulusci.core.config import OrgConfig, ServiceConfig, TaskConfig
+from cumulusci.core.exceptions import DependencyLookupError
 from cumulusci.tasks.github.commit_status import GetPackageDataFromCommitStatus
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tests.util import create_project_config
 
 
 class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):

@@ -1,16 +1,18 @@
 import functools
-import time
 import re
+import time
 from pathlib import Path
 
-from selenium.common.exceptions import ElementNotInteractableException
-from selenium.common.exceptions import StaleElementReferenceException
-from selenium.common.exceptions import WebDriverException
-from selenium.common.exceptions import NoSuchWindowException
+import robot.api as robot_api
+from robot.libraries.BuiltIn import BuiltIn
+from selenium.common.exceptions import (
+    ElementNotInteractableException,
+    NoSuchWindowException,
+    StaleElementReferenceException,
+    WebDriverException,
+)
 from selenium.webdriver.remote.command import Command
 from SeleniumLibrary.errors import ElementNotFound
-from robot.libraries.BuiltIn import BuiltIn
-import robot.api as robot_api
 
 
 def set_pdb_trace(pm=False):  # pragma: no cover
@@ -19,8 +21,8 @@ def set_pdb_trace(pm=False):  # pragma: no cover
     This makes sure that pdb can use stdin/stdout even though
     robotframework has redirected I/O.
     """
-    import sys
     import pdb
+    import sys
 
     for attr in ("stdin", "stdout", "stderr"):
         setattr(sys, attr, getattr(sys, "__%s__" % attr))

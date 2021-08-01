@@ -1,22 +1,18 @@
 import functools
 import os
 import sys
-from subprocess import call
 from logging import getLogger
+from subprocess import call
 
 import click
 import keyring
 import pkg_resources
 
 from cumulusci.cli.utils import get_installed_version
+from cumulusci.core.exceptions import ConfigError, KeychainKeyNotFound, OrgNotFound
 from cumulusci.core.runtime import BaseCumulusCI
-from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.utils import import_global
-from cumulusci.utils import get_cci_upgrade_command
-from cumulusci.utils import random_alphanumeric_underscore
-
+from cumulusci.utils import get_cci_upgrade_command, random_alphanumeric_underscore
 
 logger = getLogger(__name__)
 

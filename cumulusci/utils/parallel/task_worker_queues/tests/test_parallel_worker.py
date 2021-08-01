@@ -1,25 +1,24 @@
 from contextlib import contextmanager
-from pathlib import Path
 from logging import getLogger
-from unittest import mock
+from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest import mock
 
 import pytest
 
+from cumulusci.core import exceptions as exc
+from cumulusci.core.config import BaseProjectConfig, OrgConfig, UniversalConfig
 from cumulusci.tasks.util import Sleep
-from cumulusci.core.config import BaseProjectConfig, UniversalConfig, OrgConfig
-from cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue import (
-    WorkerQueueConfig,
-    WorkerQueue,
-)
 from cumulusci.utils.parallel.task_worker_queues.parallel_worker import (
-    TaskWorker,
-    WorkerConfig,
     ParallelWorker,
     SubprocessKeyChain,
+    TaskWorker,
+    WorkerConfig,
 )
-from cumulusci.core import exceptions as exc
-
+from cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue import (
+    WorkerQueue,
+    WorkerQueueConfig,
+)
 
 logger = getLogger(__name__)
 dummy_project_config = BaseProjectConfig(

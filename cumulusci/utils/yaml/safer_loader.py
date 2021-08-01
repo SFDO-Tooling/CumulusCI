@@ -1,16 +1,14 @@
 import re
-import yaml
-
+import typing as T
 from io import StringIO
 from logging import getLogger
-import typing as T
 from pathlib import Path
 
+import yaml
 from yaml.error import MarkedYAMLError
 
 from cumulusci.core.exceptions import YAMLParseException
-from cumulusci.utils.fileutils import load_from_source, FSResource
-
+from cumulusci.utils.fileutils import FSResource, load_from_source
 
 NBSP = "\u00A0"
 

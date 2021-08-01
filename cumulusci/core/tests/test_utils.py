@@ -1,14 +1,15 @@
 import datetime
 import os
-import pytz
-import pytest
 import re
 import unittest
 
-from .. import utils
+import pytest
+import pytz
 
 from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 from cumulusci.utils import temporary_dir, touch
+
+from .. import utils
 
 
 class TestUtils(unittest.TestCase):

@@ -8,7 +8,6 @@ from cumulusci.tasks.bulkdata.base_generate_data_task import BaseGenerateDataTas
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.utils import temporary_dir
 
-
 NUM_RECORDS = 20
 
 

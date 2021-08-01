@@ -1,16 +1,19 @@
-from unittest import mock
 import os
 import unittest
+from unittest import mock
+
 import pytest
 
-from cumulusci.tasks import util
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.utils import temporary_dir
-from cumulusci.tests.util import DummyLogger
+from cumulusci.core.config import (
+    BaseProjectConfig,
+    OrgConfig,
+    TaskConfig,
+    UniversalConfig,
+)
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.tasks import util
+from cumulusci.tests.util import DummyLogger
+from cumulusci.utils import temporary_dir
 
 
 class TestUtilTasks(unittest.TestCase):

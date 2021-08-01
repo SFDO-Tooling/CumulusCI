@@ -1,11 +1,11 @@
 from glob import glob
-from pathlib import Path
-from tempfile import mkdtemp, TemporaryDirectory
 from io import StringIO
+from pathlib import Path
 from shutil import rmtree
+from tempfile import TemporaryDirectory, mkdtemp
 
-from lxml import etree
 import pytest
+from lxml import etree
 
 from cumulusci.utils.xml.salesforce_encoding import serialize_xml_for_salesforce
 

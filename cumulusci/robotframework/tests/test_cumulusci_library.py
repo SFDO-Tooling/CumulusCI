@@ -1,11 +1,13 @@
+import unittest
 from pathlib import Path
 from unittest import mock
-import unittest
+
 import robot.api.logger
-from cumulusci.robotframework.CumulusCI import CumulusCI
-from cumulusci.core.config import UniversalConfig, BaseProjectConfig
-from cumulusci.core.tests.utils import MockLoggerMixin
+
+from cumulusci.core.config import BaseProjectConfig, UniversalConfig
 from cumulusci.core.exceptions import TaskNotFoundError
+from cumulusci.core.tests.utils import MockLoggerMixin
+from cumulusci.robotframework.CumulusCI import CumulusCI
 from cumulusci.utils import temporary_dir
 
 

@@ -1,16 +1,16 @@
 import pytest
-
 from lxml import etree
 
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.metadata_etl import AddValueSetEntries
-from cumulusci.tasks.metadata_etl.value_sets import CASE_STATUS_ERR
-from cumulusci.tasks.metadata_etl.value_sets import LEAD_STATUS_ERR
-from cumulusci.tasks.metadata_etl.value_sets import OPP_STAGE_ERR
-from cumulusci.tasks.metadata_etl.value_sets import FULL_NAME_AND_LABEL_ERR
+from cumulusci.tasks.metadata_etl.value_sets import (
+    CASE_STATUS_ERR,
+    FULL_NAME_AND_LABEL_ERR,
+    LEAD_STATUS_ERR,
+    OPP_STAGE_ERR,
+)
+from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.utils.xml import metadata_tree
-
 
 MD = "{%s}" % "http://soap.sforce.com/2006/04/metadata"
 VALUESET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>

@@ -2,17 +2,17 @@
 
 import io
 import os
-import sarge
-import pytest
 import zipfile
 from datetime import datetime
-
-from xml.etree import ElementTree as ET
 from unittest import mock
+from xml.etree import ElementTree as ET
+
+import pytest
 import responses
+import sarge
 
 from cumulusci import utils
-from cumulusci.core.config import TaskConfig, FlowConfig
+from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tests.util import create_project_config

@@ -1,5 +1,6 @@
-from robot.libraries.BuiltIn import BuiltIn
 from contextlib import contextmanager
+
+from robot.libraries.BuiltIn import BuiltIn
 
 
 class BasePage:

@@ -1,9 +1,8 @@
-from cumulusci.utils import temporary_dir, touch
 import io
-import pytest
-
 from unittest import mock
 from zipfile import ZipFile
+
+import pytest
 
 from cumulusci.core.exceptions import SfdxOrgException
 from cumulusci.core.sfdx import (
@@ -12,9 +11,10 @@ from cumulusci.core.sfdx import (
     get_default_devhub_username,
     get_source_format_for_path,
     get_source_format_for_zipfile,
+    sfdx,
+    shell_quote,
 )
-from cumulusci.core.sfdx import shell_quote
-from cumulusci.core.sfdx import sfdx
+from cumulusci.utils import temporary_dir, touch
 
 
 class TestSfdx:

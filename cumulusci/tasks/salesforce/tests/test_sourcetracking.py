@@ -1,13 +1,15 @@
-from unittest import mock
 import json
 import os
 import pathlib
+from unittest import mock
 
 from cumulusci.core.config import OrgConfig
-from cumulusci.tasks.salesforce.sourcetracking import ListChanges
-from cumulusci.tasks.salesforce.sourcetracking import RetrieveChanges
-from cumulusci.tasks.salesforce.sourcetracking import SnapshotChanges
-from cumulusci.tasks.salesforce.sourcetracking import _write_manifest
+from cumulusci.tasks.salesforce.sourcetracking import (
+    ListChanges,
+    RetrieveChanges,
+    SnapshotChanges,
+    _write_manifest,
+)
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
 

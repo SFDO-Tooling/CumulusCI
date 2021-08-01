@@ -1,20 +1,20 @@
 import contextlib
 import enum
-from zipfile import ZipFile
-
-from cumulusci.utils import temporary_dir
 import io
 import json
 import logging
-from os import PathLike
 import os
 import pathlib
 import platform
-import sarge
 import sys
 import typing as T
+from os import PathLike
+from zipfile import ZipFile
+
+import sarge
 
 from cumulusci.core.exceptions import SfdxOrgException
+from cumulusci.utils import temporary_dir
 
 logger = logging.getLogger(__name__)
 

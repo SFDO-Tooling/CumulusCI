@@ -1,20 +1,20 @@
 import os
-from unittest import mock
-import pytest
-from requests.exceptions import RequestException, RetryError
-from requests.models import Response
-import responses
 from datetime import datetime
+from unittest import mock
 
-from github3.repos.repo import Repository
-from github3.pulls import ShortPullRequest
+import pytest
+import responses
 from github3.exceptions import (
     AuthenticationFailed,
     ConnectionError,
     ForbiddenError,
     TransportError,
 )
+from github3.pulls import ShortPullRequest
+from github3.repos.repo import Repository
 from github3.session import AppInstallationTokenAuth
+from requests.exceptions import RequestException, RetryError
+from requests.models import Response
 
 from cumulusci.core import github
 from cumulusci.core.exceptions import (
@@ -22,32 +22,32 @@ from cumulusci.core.exceptions import (
     GithubApiError,
     GithubException,
 )
-from cumulusci.tasks.release_notes.tests.utils import MockUtil
-from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.core.github import (
     SSO_WARNING,
     UNAUTHORIZED_WARNING,
+    add_labels_to_pull_request,
     catch_common_github_auth_errors,
     check_github_sso_auth,
     create_gist,
+    create_pull_request,
     format_github3_exception,
     get_github_api,
-    get_oauth_scopes,
-    get_sso_disabled_orgs,
-    get_version_id_from_tag,
-    validate_service,
-    create_pull_request,
-    markdown_link_to_pr,
-    is_pull_request_merged,
     get_github_api_for_repo,
-    is_label_on_pull_request,
-    get_pull_requests_by_head,
-    add_labels_to_pull_request,
+    get_oauth_scopes,
     get_pull_requests_by_commit,
+    get_pull_requests_by_head,
     get_pull_requests_with_base_branch,
-    get_tag_by_name,
     get_ref_for_tag,
+    get_sso_disabled_orgs,
+    get_tag_by_name,
+    get_version_id_from_tag,
+    is_label_on_pull_request,
+    is_pull_request_merged,
+    markdown_link_to_pr,
+    validate_service,
 )
+from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.release_notes.tests.utils import MockUtil
 
 
 class TestGithub(GithubApiTestMixin):

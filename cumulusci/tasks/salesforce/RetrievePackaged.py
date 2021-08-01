@@ -2,7 +2,6 @@ from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata
 from cumulusci.utils import zip_subfolder
 
-
 retrieve_packaged_options = BaseRetrieveMetadata.task_options.copy()
 retrieve_packaged_options.update(
     {

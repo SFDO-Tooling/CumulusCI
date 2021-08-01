@@ -1,8 +1,8 @@
 import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.metadata_etl.picklists import AddPicklistEntries
+from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.utils.xml import metadata_tree
 
 OBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>

@@ -2,9 +2,9 @@
 
 from simple_salesforce.exceptions import SalesforceError
 
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class CustomSettingValueWait(BaseSalesforceApiTask):

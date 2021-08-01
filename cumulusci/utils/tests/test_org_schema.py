@@ -1,17 +1,16 @@
-import json
-from unittest.mock import patch
-from pathlib import Path
-from itertools import chain
 import gzip
+import json
+from itertools import chain
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import yaml
-
 from sqlalchemy import create_engine
 
 from cumulusci.salesforce_api.org_schema import (
-    get_org_schema,
     BufferedSession,
+    get_org_schema,
     zip_database,
 )
 from cumulusci.salesforce_api.org_schema_models import Base

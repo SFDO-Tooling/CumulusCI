@@ -5,14 +5,15 @@ import pathlib
 import unittest
 import zipfile
 
-from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
-from cumulusci.salesforce_api.package_zip import CreatePackageZipBuilder
-from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
-from cumulusci.salesforce_api.package_zip import DestructiveChangesZipBuilder
-from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
-from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import touch
+from cumulusci.salesforce_api.package_zip import (
+    BasePackageZipBuilder,
+    CreatePackageZipBuilder,
+    DestructiveChangesZipBuilder,
+    InstallPackageZipBuilder,
+    MetadataPackageZipBuilder,
+    UninstallPackageZipBuilder,
+)
+from cumulusci.utils import temporary_dir, touch
 
 
 class TestBasePackageZipBuilder:

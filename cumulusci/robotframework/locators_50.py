@@ -1,5 +1,6 @@
-from cumulusci.robotframework import locators_49
 import copy
+
+from cumulusci.robotframework import locators_49
 
 lex_locators = copy.deepcopy(locators_49.lex_locators)
 

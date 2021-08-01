@@ -1,5 +1,5 @@
 import pathlib
-from typing import Optional, Any, Tuple
+from typing import Any, Optional, Tuple
 
 
 def git_path(repo_root: str, tail: Any = None) -> Optional[pathlib.Path]:

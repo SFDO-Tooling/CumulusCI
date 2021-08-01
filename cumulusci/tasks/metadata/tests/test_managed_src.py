@@ -1,12 +1,9 @@
 import os
 import unittest
 
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.metadata.managed_src import CreateManagedSrc
-from cumulusci.tasks.metadata.managed_src import RevertManagedSrc
+from cumulusci.tasks.metadata.managed_src import CreateManagedSrc, RevertManagedSrc
 from cumulusci.utils import temporary_dir
 
 
