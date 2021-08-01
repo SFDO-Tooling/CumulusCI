@@ -15,3 +15,4 @@ addopts =  "-p cumulusci.tests.pytest_plugins.pytest_typeguard -p cumulusci.test
 [tool.isort]
 profile = "black"
 multi_line_output = 3
+skip_glob = "cumulusci/**/__init__.py"
