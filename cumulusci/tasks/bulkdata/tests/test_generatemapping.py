@@ -1043,8 +1043,8 @@ class TestMappingGenerator(unittest.TestCase):
             )
 
 
-@pytest.mark.no_vcr()  # too hard to make these VCR-compatible due to data volume
-@pytest.mark.integration_test()
+@pytest.mark.needs_org()  # too hard to make these VCR-compatible due to data volume
+@pytest.mark.slow()
 class TestIntegrationGenerateMapping:
     def test_simple_generate(self, create_task):
         "Generate a mapping against a provided org."

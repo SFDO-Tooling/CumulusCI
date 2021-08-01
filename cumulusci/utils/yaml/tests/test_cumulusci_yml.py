@@ -52,7 +52,7 @@ class TestCumulusciYml:
         logfunc.assert_called()
         validate_data.assert_called()
 
-    @pytest.mark.integration_test()  # turn this on if you don't mind Internet access in your tests
+    @pytest.mark.large_vcr()
     def test_from_web(self):
         good_urls = """
             https://raw.githubusercontent.com/SalesforceFoundation/NPSP/master/cumulusci.yml

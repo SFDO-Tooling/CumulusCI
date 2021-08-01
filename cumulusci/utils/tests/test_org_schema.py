@@ -205,8 +205,8 @@ class TestDescribeOrg:
             assert caplog.text
 
 
-@pytest.mark.no_vcr()  # too hard to make these VCR-compatible due to data volume
-@pytest.mark.integration_test()
+@pytest.mark.needs_org()  # too hard to make these VCR-compatible due to data volume
+@pytest.mark.slow()
 class TestOrgSchemaIntegration:
     def validate_real_schema_data(self, schema):
         assert len(list(schema.sobjects)) > 800

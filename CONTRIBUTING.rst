@@ -174,32 +174,25 @@ It will of course be much slower than a normal test.
 That will run all VCR-backed tests against the org, including all of the slow
 integration tests.
 
-Org-reliant Integration Tests
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Integration Tests
+~~~~~~~~~~~~~~~~~
 
-Some of these tests generate so much data or run so slowly that even the VCR tool does not
-help much. For example, if you are testing something that needs to download an
-entire org schema.
-
-These tests can be marked with ``@pytest.mark.integration_test()``. In that case,
-you can invoke them the same way as above, but you should not check in their
-YAML file into the repo. One of our files generates more than 300MB of cache data.
-
-You can invoke these tests the same way::
-
-    $ pytest cumulusci/.../test_<something>.py --org qa
-
-This will generate the cached data.
-
-Later, you can use the cached data like this::
-
-    $ pytest cumulusci/.../test_<something>.py --accelerate-integration-tests
-
-It will usually be  much faster than calling into the Salesforce org, but it will
-still be quite slow compared to normal unit tests. Nevertheless, if you are changing feature tested by
-these tests, you should run them periodically.
+Some tests generate so much data that we do not want to store the VCR cassettes
+in our repo. You can mark tests like that with ``@pytest.mark.large_vcr()``. When
+they are executed, their cassettes will go in a .gitignore'd folder called
+`large_cassettes`.
 
 Do not commit the files ("large_cassettes/\*.yml") to the repository.
+
+Some tests generate even more network traffic data and it isn't practical 
+to use VCR at all. Still, we'd like to run them when we run all of the
+other org-reliant tests with --org. Mark them with ``@pytest.mark.needs_org()``
+and they will run with the VCR tests.
+
+Some tests are so slow that you only want to run them on an opt-in basis.
+Mark these tests with ``@pytest.mark.slow()`` and run them with
+``pytest --run-slow`` or ``pytest --run-slow --orgname <orgname>``.
+
 
 Randomized tests
 ~~~~~~~~~~~~~~~~

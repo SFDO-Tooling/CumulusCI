@@ -1,21 +1,22 @@
 import pytest
-import os.path
 from contextlib import contextmanager
 from contextvars import ContextVar
+from pathlib import Path
 
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.core.config import TaskConfig
 from cumulusci.tests.util import unmock_env
+import cumulusci
 
 
 def pytest_addoption(parser, pluginmanager):
     parser.addoption("--org", action="store", default=None, help="org to use")
     parser.addoption(
-        "--accelerate-integration-tests",
+        "--run-slow-tests",
         action="store_true",
         default=False,
-        help="DO run integration tests. Do NOT make calls to a real org. This will error out if you have not run with '--org blah' so that you have cached org output.",
+        help="Include slow tests.",
     )
 
 
@@ -87,38 +88,43 @@ def create_task(request, project_config, org_config):
 
 
 def pytest_configure(config):
-    # register an additional marker
-    config.addinivalue_line(
-        "markers",
-        "integration_test(): an integration test that should only be executed when requested",
-    )
-    config.addinivalue_line(
-        "markers",
-        "no_vcr(): an integration test that should not attempt to store VCR cassettes",
-    )
+    markers = [
+        "slow(): a slow test that should only be executed when requested with --slow",
+        "large_vcr(): a network-based test that generates VCR cassettes too large for version control. Use --org to generate them locally.",
+        "needs_org(): a test that needs an org (or at least access to the network) but should not attempt to store VCR cassettes",
+    ]
+
+    for marker in markers:
+        # register additional markers
+        config.addinivalue_line("markers", marker)
+
+
+def vcr_cassette_name_for_item(item):
+    """Name of the VCR cassette"""
+    test_class = item.cls
+    if test_class:
+        return "{}.{}".format(test_class.__name__, item.name)
+    return item.name
 
 
 def pytest_runtest_setup(item):
-    is_integration_test = any(item.iter_markers(name="integration_test"))
-    if is_integration_test:
-        if not item.config.getoption(
-            "--accelerate-integration-tests"
-        ) and not item.config.getoption("--org"):
-            pytest.skip("test requires --org or --accelerate-integration-tests")
-        no_vcr = any(item.iter_markers(name="no_vcr"))
-        if no_vcr and item.config.getoption("--accelerate-integration-tests"):
-            pytest.skip("test cannot be accelerated. " "It is not compatible with VCR.")
+    marker_names = set(marker.name for marker in item.iter_markers())
 
+    if "slow" in marker_names:
+        if not item.config.getoption("--run-slow-tests"):
+            pytest.skip("slow: test requires --run-slow-tests")
 
-@pytest.fixture(scope="module")
-def vcr_cassette_dir(request):
-    is_integration_test = any(request.node.iter_markers(name="integration_test"))
-    test_dir = request.node.fspath.dirname
-    if is_integration_test:
-        return os.path.join(test_dir, "large_cassettes")  # 8-tracks
-    else:  # standard behaviour from
-        # https://github.com/ktosiek/pytest-vcr/blob/master/pytest_vcr.py
-        return os.path.join(test_dir, "cassettes")
+    if "large_vcr" in marker_names:
+        library_dir = Path(cumulusci.__file__).parent.parent / "large_cassettes"
+        item.add_marker(pytest.mark.vcr(cassette_library_dir=str(library_dir)))
+
+        test_name = vcr_cassette_name_for_item(item)
+        test_path = Path(library_dir) / (test_name + ".yaml")
+        if not (test_path.exists() or item.config.getoption("--org")):
+            pytest.skip("large_vcr: test requires --org to generate large cassette")
+
+    elif "needs_org" in marker_names and not item.config.getoption("--org"):
+        pytest.skip("needs_org: test requires --org")
 
 
 class SFOrgConnectionState:
