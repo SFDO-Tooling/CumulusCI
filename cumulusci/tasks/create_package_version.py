@@ -1,7 +1,3 @@
-from cumulusci.core.sfdx import (
-    convert_sfdx_source,
-)
-from typing import List, Optional, Union
 import base64
 import enum
 import io
@@ -9,6 +5,7 @@ import json
 import pathlib
 import re
 import zipfile
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
@@ -16,26 +13,29 @@ from simple_salesforce.exceptions import SalesforceMalformedRequest
 from cumulusci.core.config.util import get_devhub_config
 from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
     UnmanagedDependency,
+    UnmanagedGitHubRefDependency,
 )
-from cumulusci.core.dependencies.dependencies import PackageVersionIdDependency
-from cumulusci.core.dependencies.dependencies import UnmanagedGitHubRefDependency
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
-from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.core.exceptions import DependencyLookupError
-from cumulusci.core.exceptions import GithubException
-from cumulusci.core.exceptions import PackageUploadFailure
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import (
+    CumulusCIUsageError,
+    DependencyLookupError,
+    GithubException,
+    PackageUploadFailure,
+    TaskOptionsError,
+)
 from cumulusci.core.github import get_version_id_from_tag
+from cumulusci.core.sfdx import convert_sfdx_source
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
-from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
+from cumulusci.salesforce_api.package_zip import (
+    BasePackageZipBuilder,
+    MetadataPackageZipBuilder,
+)
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce.org_settings import build_settings_package
-from cumulusci.utils import download_extract_github
 from cumulusci.utils.git import split_repo_url
-
 
 VERSION_RE = re.compile(
     r"^(?P<MajorVersion>\d+)"

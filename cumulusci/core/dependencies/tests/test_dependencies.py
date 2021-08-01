@@ -1,10 +1,8 @@
-from cumulusci.core.sfdx import SourceFormat, get_source_format_for_zipfile
-from cumulusci.utils.ziputils import zip_subfolder
-from distutils.version import StrictVersion
 import io
+import os
+from distutils.version import StrictVersion
 from typing import List, Optional, Tuple
 from unittest import mock
-import os
 from zipfile import ZipFile
 
 import pytest
@@ -29,6 +27,7 @@ from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
     PackageInstallOptions,
 )
+from cumulusci.utils.ziputils import zip_subfolder
 
 
 class ConcreteDynamicDependency(DynamicDependency):
