@@ -655,11 +655,12 @@ class TestScratchOrgConfig(unittest.TestCase):
             {"username": "test", "created": True, "instance_url": "https://blah"},
             "test",
         )
+        config.keychain = mock.Mock()
         config.delete_org()
 
-        self.assertFalse(config.config.get("instance_url"))
-        self.assertFalse(config.config["created"])
-        self.assertIs(config.config["username"], None)
+        assert not config.config.get("instance_url")
+        assert not config.config["created"]
+        assert config.config["username"] is None
 
     def test_delete_org_not_created(self, Command):
         config = ScratchOrgConfig({"created": False}, "test")

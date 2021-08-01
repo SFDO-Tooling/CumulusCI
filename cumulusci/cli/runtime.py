@@ -2,6 +2,7 @@ import functools
 import os
 import sys
 from subprocess import call
+from logging import getLogger
 
 import click
 import keyring
@@ -15,6 +16,9 @@ from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.utils import import_global
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils import random_alphanumeric_underscore
+
+
+logger = getLogger(__name__)
 
 
 class CliRuntime(BaseCumulusCI):
@@ -53,12 +57,11 @@ class CliRuntime(BaseCumulusCI):
             if has_functioning_keychain:
                 key = random_alphanumeric_underscore(length=16)
             else:
-                raise KeychainKeyNotFound(
-                    "Unable to store CumulusCI encryption key. "
-                    "You can configure it manually by setting the CUMULUSCI_KEY "
-                    "environment variable to a random 16-character string. "
-                    f"ERROR: {keychain_exception}"
+                logger.warning(
+                    f"Unable to store an encryption key. ({keychain_exception})"
+                    "Any orgs or services written to disk will not be encrypted. "
                 )
+
         if has_functioning_keychain and not key_from_keyring:
             keyring.set_password("cumulusci", "CUMULUSCI_KEY", key)
         return key
