@@ -23,3 +23,7 @@ class TestIntegrationInfrastructure:
             assert "Bearer 0" not in data
             assert "Public-Key-Pins-Report-Only" not in data
             assert "<sessionId>00" not in data
+
+    def test_org_shape(self, org_shape):
+        with org_shape("qa", "qa_org"):
+            pass

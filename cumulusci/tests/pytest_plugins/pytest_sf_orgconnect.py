@@ -1,5 +1,6 @@
 import pytest
 from contextvars import ContextVar
+from contextlib import contextmanager
 from pathlib import Path
 
 from cumulusci.cli.runtime import CliRuntime
@@ -133,6 +134,7 @@ class SFOrgConnectionState:
 sf_org_connection_state = ContextVar(
     "sf_org_connection_state", default=SFOrgConnectionState()
 )
+org_shapes = ContextVar("org_shapes", default={})
 
 
 @pytest.fixture(
@@ -151,3 +153,43 @@ def setup_org_without_recording(request, vcr):
                 sf_org_connection_state.get().should_record = True
 
     return really_setup_org_without_recording
+
+
+@pytest.fixture(
+    scope="module",
+)
+def org_shape(request, vcr):
+    @contextmanager
+    def org_shape(config_name: str = pytest, flow_name: str = None):
+        shapes = org_shapes.get()
+        org_name = f"pytest__{config_name}__{flow_name}"
+        org = shapes.get(org_name)
+        if org:
+            return org
+
+        from cumulusci.cli.org import org_scratch
+        from cumulusci.cli.flow import flow_run
+        import click
+        from unittest import mock
+
+        with click.Context(command=mock.Mock(), obj=CliRuntime()):
+            org_scratch.callback(
+                config_name,
+                org_name,
+                default=False,
+                devhub=None,
+                days=1,
+                no_password=False,
+            )
+            flow_run.callback(
+                flow_name,
+                org_name,
+                delete_org=False,
+                debug=False,
+                o=(),
+                skip=None,
+                no_prompt=True,
+            )
+            ### UNFINISHED
+
+    return org_shape
