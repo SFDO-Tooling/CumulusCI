@@ -1,5 +1,4 @@
 import pytest
-from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
 
@@ -140,13 +139,15 @@ sf_org_connection_state = ContextVar(
     scope="module",
 )
 def setup_org_without_recording(request, vcr):
-    @contextmanager
     def really_setup_org_without_recording(func):
         orgname = sf_pytest_orgname(request)
+        # Get a thread-local copy
         sf_org_connection_state.set(SFOrgConnectionState())
         if orgname:
             sf_org_connection_state.get().should_record = False
-            func()
-            sf_org_connection_state.get().should_record = True
+            try:
+                return func()
+            finally:
+                sf_org_connection_state.get().should_record = True
 
     return really_setup_org_without_recording
