@@ -1,15 +1,15 @@
-import unittest
 import os
+import unittest
 
 import factory
 
-from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.tests.utils import _make_task
-from cumulusci.tasks.bulkdata.tests.dummy_data_factory import (
-    GenerateDummyData,
-    ContactFactory,
-)
 from cumulusci.tasks.bulkdata import factory_utils
+from cumulusci.tasks.bulkdata.tests.dummy_data_factory import (
+    ContactFactory,
+    GenerateDummyData,
+)
+from cumulusci.tasks.bulkdata.tests.utils import _make_task
+from cumulusci.utils import temporary_dir
 
 
 class TestFactoryUtils(unittest.TestCase):

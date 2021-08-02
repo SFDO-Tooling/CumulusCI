@@ -1,31 +1,27 @@
-from unittest import mock
-import unittest
-import shutil
-import tempfile
-import pytest
 import os.path
 import re
+import shutil
 import sys
-from xml.etree import ElementTree as ET
-from pathlib import Path
+import tempfile
+import unittest
 from contextlib import contextmanager
+from pathlib import Path
+from unittest import mock
+from xml.etree import ElementTree as ET
 
+import pytest
 import responses
 
-from cumulusci.core.config import TaskConfig, UniversalConfig, BaseProjectConfig
+from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.exceptions import RobotTestFailure, TaskOptionsError
 from cumulusci.core.tests.utils import MockLoggerMixin
-from cumulusci.tasks.robotframework import Robot
-from cumulusci.tasks.robotframework import RobotLibDoc
-from cumulusci.tasks.robotframework import RobotTestDoc
-from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.tasks.robotframework import Robot, RobotLibDoc, RobotTestDoc
 from cumulusci.tasks.robotframework.debugger import DebugListener
-from cumulusci.tasks.robotframework.robotframework import KeywordLogger
-from cumulusci.utils import touch, temporary_dir
-from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
-
-
 from cumulusci.tasks.robotframework.libdoc import KeywordFile
+from cumulusci.tasks.robotframework.robotframework import KeywordLogger
+from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.utils import temporary_dir, touch
+from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
 
 
 class TestRobot(unittest.TestCase):

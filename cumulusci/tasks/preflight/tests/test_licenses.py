@@ -1,5 +1,5 @@
-from unittest.mock import Mock
 import unittest
+from unittest.mock import Mock
 
 from cumulusci.tasks.preflight.licenses import (
     GetAvailableLicenses,

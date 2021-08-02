@@ -1,12 +1,12 @@
+import glob
 import os
 import shutil
 import time
-import glob
 from xml.dom.minidom import parse
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.utils import process_list_arg, process_bool_arg
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.utils import download_extract_zip, find_replace, find_replace_regex
 
 

@@ -1,12 +1,10 @@
-from unittest import mock
 import unittest
+from unittest import mock
 
 import responses
 
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.exceptions import GithubException
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.config import ServiceConfig, TaskConfig
+from cumulusci.core.exceptions import GithubException, TaskOptionsError
 from cumulusci.tasks.github import CreateRelease
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tests.util import create_project_config

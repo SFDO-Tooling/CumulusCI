@@ -74,15 +74,19 @@ def vcr_config(request):
     }
 
 
-_version_string = re.compile(r"/v\d\d.0/")
+replacements = [
+    (re.compile(r"/v?\d\d.0/"), r"/vxx.0/"),
+    (re.compile(r"/00D[\w\d]{10,20}"), "/ORGID"),
+    (re.compile(r".com//"), r".com/"),
+    (re.compile(r"ersion>\d\d.0<"), r"ersion>vxx.0<"),
+]
 
 
 def _noversion(s):
     if s:
         s = str(s, "utf-8") if isinstance(s, bytes) else s
-        s = _version_string.sub(r"/vxx.0/", s)
-        s = re.sub(r"/00D[\w\d]{10,20}", "/ORGID", s)
-        s = re.sub(r".com//", r".com/", s)
+        for pattern, replacement in replacements:
+            s = pattern.sub(replacement, s)
         return s
 
 

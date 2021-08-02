@@ -3,8 +3,13 @@ Robot Debugger
 
 """
 
-from cumulusci.tasks.robotframework.debugger import DebuggerCli
-from cumulusci.tasks.robotframework.debugger import Breakpoint, Suite, Testcase, Keyword
+from cumulusci.tasks.robotframework.debugger import (
+    Breakpoint,
+    DebuggerCli,
+    Keyword,
+    Suite,
+    Testcase,
+)
 
 
 class DebugListener(object):

@@ -4,16 +4,13 @@ import unittest
 from unittest import mock
 
 import responses
-from sqlalchemy import create_engine, MetaData, Integer, Unicode, Column, Table
+from sqlalchemy import Column, Integer, MetaData, Table, Unicode, create_engine
 from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.tasks import bulkdata
-from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.utils import (
-    create_table,
-    generate_batches,
-)
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
+from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
+from cumulusci.utils import temporary_dir
 
 
 def create_db_file(filename):

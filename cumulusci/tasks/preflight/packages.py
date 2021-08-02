@@ -1,6 +1,7 @@
+from pprint import pformat
+
 from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
 from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
-from pprint import pformat
 
 
 class GetInstalledPackages(BaseSalesforceMetadataApiTask):

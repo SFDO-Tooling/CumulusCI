@@ -1,9 +1,9 @@
 import code
+import contextlib
 import pdb
+import runpy
 import sys
 import traceback
-import runpy
-import contextlib
 
 import click
 import requests
@@ -14,17 +14,15 @@ from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.logging import tee_stdout_stderr
 
-from .logger import init_logger, get_tempfile_logger
-from .runtime import pass_runtime, CliRuntime
-from .utils import get_installed_version, check_latest_version, get_latest_final_version
-
 from .error import error
 from .flow import flow
+from .logger import get_tempfile_logger, init_logger
 from .org import org
 from .project import project
+from .runtime import CliRuntime, pass_runtime
 from .service import service
 from .task import task
-
+from .utils import check_latest_version, get_installed_version, get_latest_final_version
 
 SUGGEST_ERROR_COMMAND = (
     """Run this command for more information about debugging errors: cci error --help"""

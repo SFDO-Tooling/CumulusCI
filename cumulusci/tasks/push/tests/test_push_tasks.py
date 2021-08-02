@@ -1,9 +1,9 @@
 import datetime
+import logging
 import os
 from unittest import mock
-import pytest
-import logging
 
+import pytest
 
 from cumulusci.core.exceptions import (
     CumulusCIException,
@@ -13,8 +13,8 @@ from cumulusci.core.exceptions import (
 from cumulusci.tasks.push.push_api import (
     MetadataPackage,
     MetadataPackageVersion,
-    PackagePushRequest,
     PackagePushJob,
+    PackagePushRequest,
     SalesforcePushApi,
 )
 from cumulusci.tasks.push.tasks import (
@@ -23,7 +23,6 @@ from cumulusci.tasks.push.tasks import (
     SchedulePushOrgQuery,
 )
 from cumulusci.tasks.salesforce.tests.util import create_task
-
 
 SF_ID = "033xxxxxxxxx"
 NAMESPACE = "foo"
@@ -391,7 +390,7 @@ def test_schedule_push_org_list__init_options__missing_csv(tmp_path):
         )
 
 
-def test_schedule_push_org_list_bad_start_time(org_file):
+def test_schedule_push_org_list_start_time_in_past(org_file):
     task = create_task(
         SchedulePushOrgList,
         options={
@@ -531,15 +530,38 @@ def test_schedule_push_org_bulk_query_get_org(BulkAPI):  # push_api):
     assert result == expected_result
 
 
-def test_schedule_push_org_list_run_task_with_time_assertion(org_file):
+@pytest.mark.parametrize(
+    "test_date_str", ["2028-01-01 12:30:30 CST", "06-18-2022 07:21PM PDT", "2028-28-01"]
+)
+def test_schedule_push_org_list_run_task_with_bad_datestr(org_file, test_date_str):
     task = create_task(
         SchedulePushOrgList,
         options={
             "orgs": ORG_FILE,
             "version": VERSION,
-            "start_time": datetime.datetime(2021, 8, 20, 3, 55).strftime(
-                "%Y-%m-%dT%H:%M"
-            ),
+            "start_time": test_date_str,
+            "namespace": NAMESPACE,
+        },
+    )
+    task.push = mock.MagicMock()
+    task.sf = mock.MagicMock()
+    task.sf.query_all.return_value = PACKAGE_OBJS
+    task.push.create_push_request.return_value = ("0DV000000000001", 2)
+    with pytest.raises((ValueError, CumulusCIException)):
+        task._run_task()
+
+
+def test_schedule_push_org_list_run_task_with_isofmt_assertion(org_file):
+    target_dt = datetime.datetime.utcnow().replace(microsecond=0)
+    target_dt += datetime.timedelta(hours=8)
+    start_time_str = target_dt.isoformat()
+
+    task = create_task(
+        SchedulePushOrgList,
+        options={
+            "orgs": ORG_FILE,
+            "version": VERSION,
+            "start_time": start_time_str,
             "namespace": NAMESPACE,
         },
     )
@@ -551,7 +573,7 @@ def test_schedule_push_org_list_run_task_with_time_assertion(org_file):
     task.push.create_push_request.assert_called_once_with(
         mock.ANY,
         ["00DS0000003TJJ6MAO", "00DS0000003TJJ6MAL"],
-        datetime.datetime(2021, 8, 20, 3, 55),
+        target_dt,
     )
 
 

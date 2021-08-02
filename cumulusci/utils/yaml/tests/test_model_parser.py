@@ -2,12 +2,9 @@ from io import StringIO
 from unittest.mock import Mock
 
 import pytest
-from cumulusci.utils.yaml.model_parser import (
-    CCIDictModel,
-    CCIModel,
-    ValidationError,
-)
 from pydantic import Field
+
+from cumulusci.utils.yaml.model_parser import CCIDictModel, CCIModel, ValidationError
 
 
 class Foo(CCIModel):

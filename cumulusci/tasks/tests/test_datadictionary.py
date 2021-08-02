@@ -1,32 +1,32 @@
+import io
+import unittest
 from collections import defaultdict
-from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+from distutils.version import LooseVersion
+from unittest.mock import Mock, call, mock_open, patch
+
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.dependencies.dependencies import (
     GitHubDynamicDependency,
     parse_dependencies,
 )
-import io
-import unittest
-from unittest.mock import Mock, call, patch, mock_open
-
-from cumulusci.tasks.datadictionary import (
-    GenerateDataDictionary,
-    Package,
-    PackageVersion,
-    FieldDetail,
-    SObjectDetail,
-    PRERELEASE_SIGIL,
-)
-from cumulusci.tasks.salesforce.tests.util import create_task
-from cumulusci.tests.util import create_project_config
-from cumulusci.utils.xml import metadata_tree
-from distutils.version import LooseVersion
 from cumulusci.core.exceptions import (
     DependencyParseError,
     DependencyResolutionError,
     TaskOptionsError,
 )
+from cumulusci.tasks.datadictionary import (
+    PRERELEASE_SIGIL,
+    FieldDetail,
+    GenerateDataDictionary,
+    Package,
+    PackageVersion,
+    SObjectDetail,
+)
+from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
+from cumulusci.utils.xml import metadata_tree
+from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 
 class test_GenerateDataDictionary(unittest.TestCase):

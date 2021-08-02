@@ -1,11 +1,12 @@
-import yaml
 from collections import defaultdict
 from contextlib import contextmanager
 
+import yaml
+
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.utils import process_list_arg, process_bool_arg
-from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
-from cumulusci.utils.fileutils import open_fs_resource, FSResource
+from cumulusci.utils.fileutils import FSResource, open_fs_resource
 
 
 class SetTDTMHandlerStatus(BaseSalesforceApiTask):

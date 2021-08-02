@@ -1,9 +1,10 @@
-import pytest
 import os.path
 
+import pytest
+
 from cumulusci.cli.runtime import CliRuntime
-from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.core.config import TaskConfig
+from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tests.util import unmock_env
 
 

@@ -1,5 +1,3 @@
-from cumulusci.core.dependencies.resolvers import get_resolver_stack
-from cumulusci.core.github import find_previous_release
 from pydantic import ValidationError
 
 from cumulusci.core.dependencies.dependencies import (
@@ -8,7 +6,9 @@ from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
 )
+from cumulusci.core.dependencies.resolvers import get_resolver_stack
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.core.github import find_previous_release
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_install import DEFAULT_PACKAGE_RETRY_OPTIONS
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask

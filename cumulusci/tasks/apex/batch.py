@@ -1,10 +1,10 @@
 """ a task for waiting on a Batch Apex job to complete """
 from datetime import datetime
-from typing import Sequence, Optional
+from typing import Optional, Sequence
 
-from cumulusci.utils import parse_api_datetime
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import SalesforceException
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.utils import parse_api_datetime
 
 COMPLETED_STATUSES = ["Completed", "Aborted", "Failed"]
 STOPPED_STATUSES = ["Aborted"]

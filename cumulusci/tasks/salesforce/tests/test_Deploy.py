@@ -7,8 +7,8 @@ import zipfile
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.flowrunner import StepSpec
 from cumulusci.tasks.salesforce import Deploy
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import touch
+from cumulusci.utils import temporary_dir, touch
+
 from .util import create_task
 
 

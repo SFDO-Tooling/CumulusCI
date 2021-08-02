@@ -1,27 +1,30 @@
-from datetime import datetime
-from datetime import timedelta
-from unittest import mock
 import io
 import os
+import shutil
 import tempfile
 import unittest
-import shutil
+from datetime import datetime, timedelta
 from pathlib import Path
+from unittest import mock
 
 import pytest
 import yaml
 
-from cumulusci.utils import temporary_dir, cd
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.config import SfdxOrgConfig
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.exceptions import NotInProject
-from cumulusci.core.exceptions import ProjectConfigNotFound
-from cumulusci.core.exceptions import SfdxOrgException
-from cumulusci.core.exceptions import ScratchOrgException
-from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.config import (
+    BaseProjectConfig,
+    ScratchOrgConfig,
+    ServiceConfig,
+    SfdxOrgConfig,
+    UniversalConfig,
+)
+from cumulusci.core.exceptions import (
+    NotInProject,
+    ProjectConfigNotFound,
+    ScratchOrgException,
+    ServiceNotConfigured,
+    SfdxOrgException,
+)
+from cumulusci.utils import cd, temporary_dir
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -655,11 +658,12 @@ class TestScratchOrgConfig(unittest.TestCase):
             {"username": "test", "created": True, "instance_url": "https://blah"},
             "test",
         )
+        config.keychain = mock.Mock()
         config.delete_org()
 
-        self.assertFalse(config.config.get("instance_url"))
-        self.assertFalse(config.config["created"])
-        self.assertIs(config.config["username"], None)
+        assert not config.config.get("instance_url")
+        assert not config.config["created"]
+        assert config.config["username"] is None
 
     def test_delete_org_not_created(self, Command):
         config = ScratchOrgConfig({"created": False}, "test")
