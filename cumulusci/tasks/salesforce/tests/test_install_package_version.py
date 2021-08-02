@@ -1,12 +1,12 @@
-from cumulusci.core.dependencies.resolvers import get_resolver_stack
-from cumulusci.core.dependencies.dependencies import (
-    PackageNamespaceVersionDependency,
-    PackageVersionIdDependency,
-)
 from unittest import mock
 
 import pytest
 
+from cumulusci.core.dependencies.dependencies import (
+    PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
+)
+from cumulusci.core.dependencies.resolvers import get_resolver_stack
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.flowrunner import StepSpec
 from cumulusci.salesforce_api.package_install import (

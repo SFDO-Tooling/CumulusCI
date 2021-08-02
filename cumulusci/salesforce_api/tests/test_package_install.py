@@ -1,7 +1,3 @@
-from collections import namedtuple
-from cumulusci.core.dependencies.utils import TaskContext
-from cumulusci.salesforce_api.exceptions import MetadataApiError
-from cumulusci.core.exceptions import PackageInstallError
 import logging
 from unittest import mock
 
@@ -9,6 +5,9 @@ import pytest
 import responses
 
 from cumulusci.core.config import OrgConfig
+from cumulusci.core.dependencies.utils import TaskContext
+from cumulusci.core.exceptions import PackageInstallError
+from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.package_install import (
     PackageInstallOptions,
     SecurityType,

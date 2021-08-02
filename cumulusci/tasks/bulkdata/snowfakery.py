@@ -1,41 +1,35 @@
-import time
 import shutil
+import time
 import typing as T
+from collections import defaultdict
+from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory, mkdtemp
-from contextlib import contextmanager
-from collections import defaultdict
 
-import yaml
 import psutil
-
-from sqlalchemy import MetaData, create_engine, func, select, Table
-
+import yaml
 from snowfakery.api import COUNT_REPS
+from sqlalchemy import MetaData, Table, create_engine, func, select
 
-from cumulusci.tasks.bulkdata.snowfakery_utils.snowfakery_run_until import (
-    determine_run_until,
-    PortionGenerator,
-)
-
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+import cumulusci.core.exceptions as exc
+from cumulusci.core.config import TaskConfig
+from cumulusci.core.debug import get_debug_mode
+from cumulusci.core.utils import format_duration
 from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
     GenerateAndLoadDataFromYaml,
 )
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.debug import get_debug_mode
-
-from cumulusci.tasks.bulkdata.load import LoadData
 from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateDataFromYaml
-from cumulusci.core.utils import format_duration
-import cumulusci.core.exceptions as exc
-
-from cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue import (
-    WorkerQueueConfig,
-    WorkerQueue,
+from cumulusci.tasks.bulkdata.load import LoadData
+from cumulusci.tasks.bulkdata.snowfakery_utils.snowfakery_run_until import (
+    PortionGenerator,
+    determine_run_until,
 )
-
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue import (
+    WorkerQueue,
+    WorkerQueueConfig,
+)
 
 # A portion serves the same process in this system as a "batch" in
 # other systems. The term "batch" is not used to avoid confusion with

@@ -1,9 +1,9 @@
 import datetime
+import logging
 import os
 from unittest import mock
-import pytest
-import logging
 
+import pytest
 
 from cumulusci.core.exceptions import (
     CumulusCIException,
@@ -13,8 +13,8 @@ from cumulusci.core.exceptions import (
 from cumulusci.tasks.push.push_api import (
     MetadataPackage,
     MetadataPackageVersion,
-    PackagePushRequest,
     PackagePushJob,
+    PackagePushRequest,
     SalesforcePushApi,
 )
 from cumulusci.tasks.push.tasks import (
@@ -23,7 +23,6 @@ from cumulusci.tasks.push.tasks import (
     SchedulePushOrgQuery,
 )
 from cumulusci.tasks.salesforce.tests.util import create_task
-
 
 SF_ID = "033xxxxxxxxx"
 NAMESPACE = "foo"

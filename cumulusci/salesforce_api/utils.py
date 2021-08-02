@@ -1,11 +1,11 @@
+from urllib.parse import urlparse
+
 import simple_salesforce
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-from urllib.parse import urlparse
 
 from cumulusci import __version__
 from cumulusci.core.exceptions import ServiceNotConfigured, ServiceNotValid
-
 
 CALL_OPTS_HEADER_KEY = "Sforce-Call-Options"
 

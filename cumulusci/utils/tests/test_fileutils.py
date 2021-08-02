@@ -1,22 +1,18 @@
 import doctest
-from io import BytesIO, UnsupportedOperation
-from pathlib import Path
-from unittest import mock
-from tempfile import TemporaryDirectory
 import os
 import sys
+from io import BytesIO, UnsupportedOperation
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import mock
 
 import pytest
 import responses
-from fs import open_fs, errors
+from fs import errors, open_fs
 
 import cumulusci
 from cumulusci.utils import fileutils, temporary_dir
-from cumulusci.utils.fileutils import (
-    load_from_source,
-    open_fs_resource,
-    FSResource,
-)
+from cumulusci.utils.fileutils import FSResource, load_from_source, open_fs_resource
 
 
 class TestFileutils:

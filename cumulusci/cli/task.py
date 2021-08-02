@@ -1,8 +1,8 @@
-from pathlib import Path
 import json
+from pathlib import Path
 
-from rst2ansi import rst2ansi
 import click
+from rst2ansi import rst2ansi
 
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import CumulusCIUsageError

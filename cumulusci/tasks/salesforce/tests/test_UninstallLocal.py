@@ -1,8 +1,9 @@
-from unittest import mock
 import unittest
+from unittest import mock
 
 from cumulusci.tasks.salesforce import UninstallLocal
 from cumulusci.utils import temporary_dir
+
 from .util import create_task
 
 

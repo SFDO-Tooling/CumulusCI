@@ -1,5 +1,4 @@
-from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.exceptions import CumulusCIFailure
+from cumulusci.core.exceptions import CumulusCIException, CumulusCIFailure
 
 
 class MetadataApiError(CumulusCIFailure):

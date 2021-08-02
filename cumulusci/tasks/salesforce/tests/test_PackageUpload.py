@@ -1,13 +1,14 @@
 from collections import defaultdict
-from cumulusci.core.config.OrgConfig import OrgConfig, VersionInfo
-from cumulusci.core.config.universal_config import UniversalConfig
-from cumulusci.core.config.project_config import BaseProjectConfig
-import pytest
 from unittest import mock
 
+import pytest
+
+from cumulusci.core.config.OrgConfig import OrgConfig, VersionInfo
+from cumulusci.core.config.project_config import BaseProjectConfig
+from cumulusci.core.config.universal_config import UniversalConfig
+from cumulusci.core.exceptions import ApexTestException, SalesforceException
 from cumulusci.tasks.salesforce import PackageUpload
-from cumulusci.core.exceptions import ApexTestException
-from cumulusci.core.exceptions import SalesforceException
+
 from .util import create_task
 
 

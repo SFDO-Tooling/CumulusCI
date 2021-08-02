@@ -1,8 +1,8 @@
+import contextlib
+import logging
 import os
 import re
 import sys
-import contextlib
-import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 

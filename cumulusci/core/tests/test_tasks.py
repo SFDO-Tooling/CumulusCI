@@ -1,16 +1,17 @@
 """ Tests for the CumulusCI task module """
 
-import unittest
 import collections
+import unittest
 from unittest import mock
 
+from cumulusci.core.config import (
+    BaseProjectConfig,
+    OrgConfig,
+    TaskConfig,
+    UniversalConfig,
+)
+from cumulusci.core.exceptions import TaskOptionsError, TaskRequiresSalesforceOrg
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
 from cumulusci.core.tests.utils import MockLoggerMixin
 
 ORG_ID = "00D000000000001"

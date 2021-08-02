@@ -1,7 +1,7 @@
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.utils import process_list_arg
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
-from cumulusci.core.utils import process_bool_arg, process_list_arg
 
 
 class AddFieldsToFieldSet(MetadataSingleEntityTransformTask):

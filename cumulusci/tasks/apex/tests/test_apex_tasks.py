@@ -1,23 +1,21 @@
-from distutils.version import StrictVersion
 import http.client
 import os
 import shutil
 import tempfile
 import unittest
+from copy import deepcopy
+from distutils.version import StrictVersion
+from unittest.mock import MagicMock, Mock, patch
 
 import responses
-from copy import deepcopy
-from unittest.mock import Mock, MagicMock, patch
 from simple_salesforce import SalesforceGeneralError
 
-
 from cumulusci.core.config import (
-    UniversalConfig,
     BaseProjectConfig,
     OrgConfig,
     TaskConfig,
+    UniversalConfig,
 )
-from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.exceptions import (
     ApexCompilationException,
     ApexException,
@@ -26,10 +24,11 @@ from cumulusci.core.exceptions import (
     SalesforceException,
     TaskOptionsError,
 )
+from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.tests.utils import MockLoggerMixin
 from cumulusci.tasks.apex.anon import AnonymousApexTask
 from cumulusci.tasks.apex.batch import BatchApexWait
 from cumulusci.tasks.apex.testrunner import RunApexTests
-from cumulusci.core.tests.utils import MockLoggerMixin
 
 
 @patch(

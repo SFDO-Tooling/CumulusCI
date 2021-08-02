@@ -1,7 +1,7 @@
+import json
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-import json
 
 import click
 
@@ -9,6 +9,7 @@ from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import format_duration
 from cumulusci.utils import document_flow, flow_ref_title_and_intro
 from cumulusci.utils.yaml.safer_loader import load_yaml_data
+
 from .runtime import pass_runtime
 from .ui import CliTable
 from .utils import group_items

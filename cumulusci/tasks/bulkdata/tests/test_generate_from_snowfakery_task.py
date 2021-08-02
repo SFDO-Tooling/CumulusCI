@@ -1,20 +1,19 @@
 import unittest
-from unittest import mock
+from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from contextlib import contextmanager
+from unittest import mock
 
-from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.bulkdata.tests.utils import _make_task
-
-import yaml
 import pytest
+import yaml
+from snowfakery import data_generator, data_generator_runtime
 from sqlalchemy import create_engine
 
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
     GenerateAndLoadDataFromYaml,
 )
-from snowfakery import data_generator_runtime, data_generator
+from cumulusci.tasks.bulkdata.tests.utils import _make_task
 
 sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.recipe.yml"
 simple_yaml = Path(__file__).parent / "snowfakery/include_parent.yml"

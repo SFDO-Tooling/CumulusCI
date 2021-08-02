@@ -1,6 +1,6 @@
 import os
-from distutils.dir_util import copy_tree
-from distutils.dir_util import remove_tree
+from distutils.dir_util import copy_tree, remove_tree
+
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import remove_xml_element_directory

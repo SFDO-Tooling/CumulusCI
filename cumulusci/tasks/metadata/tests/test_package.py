@@ -1,30 +1,33 @@
-from unittest import mock
 import os
 import unittest
+from unittest import mock
 
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.config import OrgConfig
-from cumulusci.tasks.metadata.package import metadata_sort_key
-from cumulusci.tasks.metadata.package import BaseMetadataParser
-from cumulusci.tasks.metadata.package import BundleParser
-from cumulusci.tasks.metadata.package import BusinessProcessParser
-from cumulusci.tasks.metadata.package import CustomLabelsParser
-from cumulusci.tasks.metadata.package import CustomObjectParser
-from cumulusci.tasks.metadata.package import DocumentParser
-from cumulusci.tasks.metadata.package import LWCBundleParser
-from cumulusci.tasks.metadata.package import MetadataFilenameParser
-from cumulusci.tasks.metadata.package import MetadataFolderParser
-from cumulusci.tasks.metadata.package import MetadataParserMissingError
-from cumulusci.tasks.metadata.package import MetadataXmlElementParser
-from cumulusci.tasks.metadata.package import MissingNameElementError
-from cumulusci.tasks.metadata.package import PackageXmlGenerator
-from cumulusci.tasks.metadata.package import ParserConfigurationError
-from cumulusci.tasks.metadata.package import RecordTypeParser
-from cumulusci.tasks.metadata.package import UpdatePackageXml
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import touch
+from cumulusci.core.config import (
+    BaseProjectConfig,
+    OrgConfig,
+    TaskConfig,
+    UniversalConfig,
+)
+from cumulusci.tasks.metadata.package import (
+    BaseMetadataParser,
+    BundleParser,
+    BusinessProcessParser,
+    CustomLabelsParser,
+    CustomObjectParser,
+    DocumentParser,
+    LWCBundleParser,
+    MetadataFilenameParser,
+    MetadataFolderParser,
+    MetadataParserMissingError,
+    MetadataXmlElementParser,
+    MissingNameElementError,
+    PackageXmlGenerator,
+    ParserConfigurationError,
+    RecordTypeParser,
+    UpdatePackageXml,
+    metadata_sort_key,
+)
+from cumulusci.utils import temporary_dir, touch
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 

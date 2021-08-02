@@ -1,9 +1,9 @@
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Union
 
-from typing_extensions import Literal, TypedDict
 from pydantic import Field, root_validator
+from typing_extensions import Literal, TypedDict
 
 from cumulusci.utils.fileutils import DataInput, load_from_source
 from cumulusci.utils.yaml.model_parser import CCIDictModel

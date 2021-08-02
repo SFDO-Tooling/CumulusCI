@@ -1,15 +1,14 @@
-import jwt
 import os
 import re
-import requests
-
 from calendar import timegm
 from datetime import datetime
 from urllib.parse import urljoin
 
+import jwt
+import requests
+
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.utils.http.requests_utils import safe_json_from_response
-
 
 ENHANCED_DOMAIN_SUBSTRING = "sandbox.my.salesforce.com"
 HTTP_HEADERS = {"Content-Type": "application/x-www-form-urlencoded"}

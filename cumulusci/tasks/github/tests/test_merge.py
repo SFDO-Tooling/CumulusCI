@@ -1,17 +1,15 @@
-import github3
 import http.client
-import responses
 import unittest
 
+import github3
+import responses
 from testfixtures import LogCapture
 
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.tasks.github import MergeBranch
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
-from cumulusci.tests.util import create_project_config
-from cumulusci.tests.util import DummyOrgConfig
+from cumulusci.tests.util import DummyOrgConfig, create_project_config
 
 
 class TestMergeBranch(unittest.TestCase, MockUtil):

@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-import responses
 import unittest
-from cumulusci.tasks.salesforce import ListCommunities
-from .util import create_task
 
+import responses
+
+from cumulusci.tasks.salesforce import ListCommunities
+
+from .util import create_task
 
 task_options = {}
 

@@ -60,15 +60,13 @@ except ImportError:  # pragma: no cover
 
 import copy
 import logging
-from collections import defaultdict
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from distutils.version import LooseVersion
 from operator import attrgetter
 
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.config import FlowConfig
+from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
 from cumulusci.core.utils import import_global
 

@@ -3,9 +3,9 @@ from unittest.mock import Mock, patch
 import click
 import pytest
 
+from cumulusci.cli.runtime import CliRuntime
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.cli.runtime import CliRuntime
 
 from .. import task
 from .utils import DummyTask, run_click_command

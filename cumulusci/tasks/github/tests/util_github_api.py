@@ -1,8 +1,8 @@
 import typing as T
-
-from random import randint, choice
-from string import digits, ascii_lowercase
 from datetime import datetime
+from random import choice, randint
+from string import ascii_lowercase, digits
+
 from cumulusci.tests.util import random_sha
 
 date_format = "%Y-%m-%dT%H:%M:%SZ"

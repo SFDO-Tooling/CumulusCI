@@ -1,10 +1,9 @@
 from datetime import datetime
 
-from cumulusci.core.dependencies.resolvers import get_static_dependencies
-from cumulusci.core.exceptions import ApexTestException
-from cumulusci.core.exceptions import SalesforceException
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.cli.ui import CliTable
+from cumulusci.core.dependencies.resolvers import get_static_dependencies
+from cumulusci.core.exceptions import ApexTestException, SalesforceException
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class PackageUpload(BaseSalesforceApiTask):

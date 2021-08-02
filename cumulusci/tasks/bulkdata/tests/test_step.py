@@ -3,29 +3,28 @@ import json
 import unittest
 from unittest import mock
 
-import responses
 import pytest
+import responses
 
 from cumulusci.core.exceptions import BulkDataException
-from cumulusci.tasks.bulkdata.step import (
-    download_file,
-    DataOperationType,
-    DataOperationStatus,
-    DataOperationResult,
-    DataOperationJobResult,
-    BulkJobMixin,
-    BulkApiQueryOperation,
-    BulkApiDmlOperation,
-    RestApiQueryOperation,
-    RestApiDmlOperation,
-    DataApi,
-    get_query_operation,
-    get_dml_operation,
-)
 from cumulusci.tasks.bulkdata.load import LoadData
-from cumulusci.tests.util import mock_describe_calls
+from cumulusci.tasks.bulkdata.step import (
+    BulkApiDmlOperation,
+    BulkApiQueryOperation,
+    BulkJobMixin,
+    DataApi,
+    DataOperationJobResult,
+    DataOperationResult,
+    DataOperationStatus,
+    DataOperationType,
+    RestApiDmlOperation,
+    RestApiQueryOperation,
+    download_file,
+    get_dml_operation,
+    get_query_operation,
+)
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
-
+from cumulusci.tests.util import mock_describe_calls
 
 BULK_BATCH_RESPONSE = """<root xmlns="http://ns">
 <batch>
