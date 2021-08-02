@@ -1,11 +1,12 @@
-import responses
 import unittest
-from cumulusci.tasks.salesforce import PublishCommunity
-from cumulusci.core.exceptions import SalesforceException
-from cumulusci.core.exceptions import TaskOptionsError
-from simple_salesforce.exceptions import SalesforceResourceNotFound
-from .util import create_task
 
+import responses
+from simple_salesforce.exceptions import SalesforceResourceNotFound
+
+from cumulusci.core.exceptions import SalesforceException, TaskOptionsError
+from cumulusci.tasks.salesforce import PublishCommunity
+
+from .util import create_task
 
 task_options = {"name": "Test Community"}
 task_options_with_id = {"name": "Test Community", "community_id": "000000000000000000"}

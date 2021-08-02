@@ -1,12 +1,13 @@
-from unittest import mock
 import re
+from unittest import mock
 
 import pytest
 import responses
-
-from cumulusci.tasks.salesforce.insert_record import InsertRecord
-from cumulusci.core.exceptions import SalesforceException
 from simple_salesforce.exceptions import SalesforceError
+
+from cumulusci.core.exceptions import SalesforceException
+from cumulusci.tasks.salesforce.insert_record import InsertRecord
+
 from .util import create_task
 
 

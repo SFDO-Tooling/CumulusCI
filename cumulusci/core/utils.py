@@ -1,12 +1,13 @@
 """ Utilities for CumulusCI Core"""
 
-from datetime import datetime, timedelta
 import copy
 import glob
-import pytz
 import time
 import typing as T
 import warnings
+from datetime import datetime, timedelta
+
+import pytz
 
 from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 

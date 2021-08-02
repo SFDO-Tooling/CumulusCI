@@ -1,9 +1,12 @@
 import json
 from unittest.mock import patch
+
 import pytest
 import responses
-from cumulusci.tasks.salesforce.composite import CompositeApi, API_ROLLBACK_MESSAGE
+
 from cumulusci.core.exceptions import SalesforceException
+from cumulusci.tasks.salesforce.composite import API_ROLLBACK_MESSAGE, CompositeApi
+
 from .util import create_task
 
 COMPOSITE_REQUEST = {

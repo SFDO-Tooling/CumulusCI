@@ -1,17 +1,20 @@
-from unittest import mock
-import unittest
 import logging
+import unittest
+from unittest import mock
 
 import cumulusci
-from cumulusci.core.exceptions import FlowConfigError
-from cumulusci.core.exceptions import FlowInfiniteLoopError
-from cumulusci.core.exceptions import TaskNotFoundError
-from cumulusci.core.config import FlowConfig
-from cumulusci.core.flowrunner import FlowCoordinator
-from cumulusci.core.flowrunner import PreflightFlowCoordinator
-from cumulusci.core.flowrunner import StepSpec
+from cumulusci.core.config import FlowConfig, OrgConfig
+from cumulusci.core.exceptions import (
+    FlowConfigError,
+    FlowInfiniteLoopError,
+    TaskNotFoundError,
+)
+from cumulusci.core.flowrunner import (
+    FlowCoordinator,
+    PreflightFlowCoordinator,
+    StepSpec,
+)
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.config import OrgConfig
 from cumulusci.core.tests.utils import MockLoggingHandler
 from cumulusci.tests.util import create_project_config
 

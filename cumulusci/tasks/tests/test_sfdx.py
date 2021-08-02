@@ -1,24 +1,21 @@
 """ Tests for the SFDX Command Wrapper"""
 
-from unittest import mock
 import unittest
+from unittest import mock
+from unittest.mock import MagicMock, patch
 
-from unittest.mock import MagicMock
-from unittest.mock import patch
-
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.config import (
+    BaseProjectConfig,
+    OrgConfig,
+    ScratchOrgConfig,
+    TaskConfig,
+    UniversalConfig,
+)
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.tests.utils import MockLoggerMixin
-
 from cumulusci.tasks.command import CommandException
 from cumulusci.tasks.salesforce.tests.util import create_task
-from cumulusci.tasks.sfdx import SFDXBaseTask
-from cumulusci.tasks.sfdx import SFDXOrgTask
-from cumulusci.tasks.sfdx import SFDXJsonTask
+from cumulusci.tasks.sfdx import SFDXBaseTask, SFDXJsonTask, SFDXOrgTask
 
 
 class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):

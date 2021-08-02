@@ -1,7 +1,8 @@
-from pathlib import Path
 import os
 import re
 import urllib.parse
+from pathlib import Path
+
 import yaml
 
 from cumulusci.core.tasks import BaseTask

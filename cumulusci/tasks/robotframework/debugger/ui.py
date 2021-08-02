@@ -1,13 +1,15 @@
 import cmd
 import os
-import signal
-import textwrap
-import sys
-import re
 import pdb
+import re
+import signal
+import sys
+import textwrap
+
 from robot.libraries.BuiltIn import BuiltIn
-from cumulusci.cli.ui import CliTable
 from selenium.common.exceptions import InvalidSelectorException
+
+from cumulusci.cli.ui import CliTable
 
 
 class DebuggerCli(cmd.Cmd, object):

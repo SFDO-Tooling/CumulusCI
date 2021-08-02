@@ -1,18 +1,19 @@
-from unittest import mock
-import pytest
-from pathlib import Path
 import tempfile
+from pathlib import Path
+from unittest import mock
 
+import pytest
 from github3.pulls import ShortPullRequest
 
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.config import ServiceConfig
-from cumulusci.tests.util import create_project_config
-from cumulusci.tasks.release_notes.task import GithubReleaseNotes, AllGithubReleaseNotes
-from cumulusci.tasks.release_notes.task import ParentPullRequestNotes
+from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
-
+from cumulusci.tasks.release_notes.task import (
+    AllGithubReleaseNotes,
+    GithubReleaseNotes,
+    ParentPullRequestNotes,
+)
 from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.tests.util import create_project_config
 
 
 class TestAllGithubReleaseNotes:

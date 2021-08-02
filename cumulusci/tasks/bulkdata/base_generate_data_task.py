@@ -1,13 +1,12 @@
 import os
-from abc import abstractmethod, ABCMeta
+from abc import ABCMeta, abstractmethod
 
-from sqlalchemy import create_engine
-from sqlalchemy import MetaData
-from sqlalchemy.orm import create_session
+from sqlalchemy import MetaData, create_engine
 from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import create_session
 
-from cumulusci.core.tasks import BaseTask
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 from .utils import create_table

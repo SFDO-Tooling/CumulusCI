@@ -1,8 +1,10 @@
-import responses
 import unittest
-from cumulusci.tasks.salesforce import ListCommunityTemplates
-from .util import create_task
 
+import responses
+
+from cumulusci.tasks.salesforce import ListCommunityTemplates
+
+from .util import create_task
 
 task_options = {}
 

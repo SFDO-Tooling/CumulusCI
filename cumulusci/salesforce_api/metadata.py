@@ -9,24 +9,26 @@ based on mrbelvedere/mpinstaller/mdapi.py
 
 import base64
 import http.client
+import io
 import re
 import time
 from collections import defaultdict
 from xml.dom.minidom import parseString
 from xml.sax.saxutils import escape
 from zipfile import ZipFile
-import io
 
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
-from cumulusci.salesforce_api import soap_envelopes
 from cumulusci.core.exceptions import ApexTestException
-from cumulusci.utils import zip_subfolder, parse_api_datetime
-from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
-from cumulusci.salesforce_api.exceptions import MetadataParseError
-from cumulusci.salesforce_api.exceptions import MetadataApiError
+from cumulusci.salesforce_api import soap_envelopes
+from cumulusci.salesforce_api.exceptions import (
+    MetadataApiError,
+    MetadataComponentFailure,
+    MetadataParseError,
+)
+from cumulusci.utils import parse_api_datetime, zip_subfolder
 
 # If pyOpenSSL is installed, make sure it's not used for requests
 # (it's not needed in the verisons of Python we support)
@@ -74,22 +76,8 @@ class BaseMetadataApiCall(object):
             raise MetadataApiError(response.text, response)
 
     def _build_endpoint_url(self):
-        # Parse org id from id which ends in /ORGID/USERID
         org_id = self.task.org_config.org_id
-        # If "My Domain" is configured in the org, the instance_url needs to be
-        # parsed differently
         instance_url = self.task.org_config.instance_url
-        if instance_url.find(".my.salesforce.com") != -1:
-            # Parse instance_url with My Domain configured
-            # URL will be in the format
-            # https://name--name.na11.my.salesforce.com and should be
-            # https://na11.salesforce.com
-            instance_url = re.sub(
-                r"https://.*\.(\w+)\.my\.salesforce\.com",
-                r"https://\1.salesforce.com",
-                instance_url,
-            )
-        # Build the endpoint url from the instance_url
         endpoint = f"{instance_url}/services/Soap/m/{self.api_version}/{org_id}"
         return endpoint
 

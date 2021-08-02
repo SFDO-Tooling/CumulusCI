@@ -4,9 +4,9 @@ from unittest.mock import Mock, call
 import pytest
 import yaml
 
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.salesforce.custom_settings import LoadCustomSettings
 from cumulusci.tasks.salesforce.tests.util import create_task
-from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 from cumulusci.utils import temporary_dir
 
 

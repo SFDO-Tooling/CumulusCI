@@ -1,15 +1,15 @@
+from cumulusci.core.github import (
+    get_pull_requests_by_commit,
+    get_pull_requests_with_base_branch,
+    is_label_on_pull_request,
+    is_pull_request_merged,
+    markdown_link_to_pr,
+)
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.tasks.release_notes.generator import (
     GithubReleaseNotesGenerator,
     ParentPullRequestNotesGenerator,
-)
-from cumulusci.core.github import (
-    markdown_link_to_pr,
-    is_pull_request_merged,
-    is_label_on_pull_request,
-    get_pull_requests_by_commit,
-    get_pull_requests_with_base_branch,
 )
 
 

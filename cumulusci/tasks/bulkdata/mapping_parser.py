@@ -1,21 +1,19 @@
 from datetime import date
-from typing import Dict, List, Union, IO, Optional, Any, Callable, Mapping
+from enum import Enum
 from logging import getLogger
 from pathlib import Path
-from enum import Enum
+from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Union
 
+from pydantic import Field, ValidationError, root_validator, validator
 from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
-
-from pydantic import Field, validator, root_validator, ValidationError
+from typing_extensions import Literal
 
 from cumulusci.core.config.OrgConfig import OrgConfig
 from cumulusci.core.exceptions import BulkDataException
-from cumulusci.tasks.bulkdata.step import DataOperationType, DataApi
 from cumulusci.tasks.bulkdata.dates import iso_to_date
-from cumulusci.utils.yaml.model_parser import CCIDictModel
+from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
 from cumulusci.utils import convert_to_snake_case
-
-from typing_extensions import Literal
+from cumulusci.utils.yaml.model_parser import CCIDictModel
 
 logger = getLogger(__name__)
 

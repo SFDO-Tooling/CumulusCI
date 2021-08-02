@@ -1,7 +1,6 @@
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.salesforce import Deploy
 from cumulusci.salesforce_api.package_zip import DestructiveChangesZipBuilder
-
+from cumulusci.tasks.salesforce import Deploy
 
 uninstall_task_options = Deploy.task_options.copy()
 uninstall_task_options["purge_on_delete"] = {

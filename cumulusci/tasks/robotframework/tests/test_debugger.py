@@ -1,9 +1,9 @@
-from unittest import mock
 import fnmatch
 import io
 import os
 import signal
 import unittest
+from unittest import mock
 
 from selenium.common.exceptions import InvalidSelectorException
 

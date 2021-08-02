@@ -1,5 +1,4 @@
-from cumulusci.robotframework.pageobjects import BasePage
-from cumulusci.robotframework.pageobjects import pageobject
+from cumulusci.robotframework.pageobjects import BasePage, pageobject
 
 
 @pageobject("About", "Blank")
