@@ -1,10 +1,12 @@
-from cumulusci.tests.util import DummyKeychain
-from cumulusci.core.config.OrgConfig import OrgConfig
-from cumulusci.tasks.salesforce.enable_prediction import EnablePrediction
-from cumulusci.core.exceptions import CumulusCIException
-from .util import create_task
-import responses
 import pytest
+import responses
+
+from cumulusci.core.config.OrgConfig import OrgConfig
+from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.tasks.salesforce.enable_prediction import EnablePrediction
+from cumulusci.tests.util import DummyKeychain
+
+from .util import create_task
 
 
 @pytest.fixture

@@ -1,8 +1,9 @@
-from cumulusci.utils import inject_namespace
+from simple_salesforce.exceptions import SalesforceError
+
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.exceptions import CumulusCIException, SalesforceException
-from simple_salesforce.exceptions import SalesforceError
+from cumulusci.utils import inject_namespace
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
