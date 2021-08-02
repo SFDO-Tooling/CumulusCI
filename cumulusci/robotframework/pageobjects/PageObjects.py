@@ -1,11 +1,13 @@
-from robot.api import logger
-from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
-from cumulusci.robotframework.pageobjects.baseobjects import BasePage
-from cumulusci.robotframework.utils import capture_screenshot_on_error
 import inspect
-import robot.utils
 import sys
 from pathlib import Path
+
+import robot.utils
+from robot.api import logger
+from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
+
+from cumulusci.robotframework.pageobjects.baseobjects import BasePage
+from cumulusci.robotframework.utils import capture_screenshot_on_error
 
 
 def get_keyword_names(obj):

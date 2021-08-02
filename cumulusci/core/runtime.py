@@ -1,11 +1,11 @@
-from abc import abstractmethod
 import sys
+from abc import abstractmethod
 
-from cumulusci.core.config import UniversalConfig, BaseProjectConfig
-from cumulusci.core.exceptions import NotInProject, ProjectConfigNotFound
-from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.flowrunner import FlowCallback, FlowCoordinator
+from cumulusci.core.config import BaseProjectConfig, UniversalConfig
 from cumulusci.core.debug import get_debug_mode
+from cumulusci.core.exceptions import NotInProject, ProjectConfigNotFound
+from cumulusci.core.flowrunner import FlowCallback, FlowCoordinator
+from cumulusci.core.keychain import BaseProjectKeychain
 
 
 # pylint: disable=assignment-from-none

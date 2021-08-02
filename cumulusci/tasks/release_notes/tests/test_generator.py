@@ -1,28 +1,28 @@
 # coding=utf-8
-from unittest import mock
-import os
 import json
-import pytest
+import os
 import unittest
+from unittest import mock
+
+import pytest
 import responses
-
-from github3.repos.repo import Repository
 from github3.pulls import ShortPullRequest
+from github3.repos.repo import Repository
 
-from cumulusci.core.github import get_github_api
-from cumulusci.tests.util import create_project_config
 from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.github import get_github_api
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
-from cumulusci.tasks.release_notes.tests.utils import MockUtil
-from cumulusci.tasks.release_notes.parser import BaseChangeNotesParser
-from cumulusci.tasks.release_notes.generator import render_empty_pr_section
 from cumulusci.tasks.release_notes.generator import (
     BaseReleaseNotesGenerator,
-    StaticReleaseNotesGenerator,
-    GithubReleaseNotesGenerator,
     DirectoryReleaseNotesGenerator,
+    GithubReleaseNotesGenerator,
     ParentPullRequestNotesGenerator,
+    StaticReleaseNotesGenerator,
+    render_empty_pr_section,
 )
+from cumulusci.tasks.release_notes.parser import BaseChangeNotesParser
+from cumulusci.tasks.release_notes.tests.utils import MockUtil
+from cumulusci.tests.util import create_project_config
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]
 

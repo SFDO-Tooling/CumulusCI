@@ -5,6 +5,7 @@ import github3.exceptions
 
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.oauth.salesforce import PROD_LOGIN_URL, SANDBOX_LOGIN_URL
+
 from .exceptions import GithubIssuesError
 
 

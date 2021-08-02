@@ -1,6 +1,7 @@
 from unittest import mock
 
 import pytest
+from github3.exceptions import NotFoundError
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.dependencies.github import (
@@ -9,7 +10,6 @@ from cumulusci.core.dependencies.github import (
     get_repo,
 )
 from cumulusci.core.exceptions import DependencyResolutionError
-from github3.exceptions import NotFoundError
 
 
 class DummyResponse(object):

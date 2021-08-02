@@ -1,8 +1,10 @@
 import unittest
-from robot.libraries.BuiltIn import RobotNotRunningError
-from cumulusci.robotframework.Salesforce import Salesforce
-from unittest import mock
 from pathlib import Path
+from unittest import mock
+
+from robot.libraries.BuiltIn import RobotNotRunningError
+
+from cumulusci.robotframework.Salesforce import Salesforce
 
 
 # FIXME: we shouldn't have to tweak these tests for every

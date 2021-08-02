@@ -1,15 +1,15 @@
 import json
-import requests
 import zipfile
-
 from collections import defaultdict
 from pathlib import Path
 
-from cumulusci.core.exceptions import DeploymentException
+import requests
 
+from cumulusci.core.exceptions import DeploymentException
 from cumulusci.core.utils import process_list_of_pairs_dict_arg
 from cumulusci.utils import temporary_dir
 from cumulusci.utils.http.requests_utils import safe_json_from_response
+
 from .base import BaseMarketingCloudTask
 
 MCPM_ENDPOINT = "https://mc-package-manager.herokuapp.com"

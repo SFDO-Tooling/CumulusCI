@@ -1,24 +1,23 @@
-from datetime import date
-from pathlib import Path
-from io import StringIO
-from unittest import mock
 import logging
-import pytest
+from datetime import date
+from io import StringIO
+from pathlib import Path
+from unittest import mock
 
+import pytest
 import responses
 
 from cumulusci.core.exceptions import BulkDataException, YAMLParseException
 from cumulusci.tasks.bulkdata.mapping_parser import (
+    CaseInsensitiveDict,
     MappingLookup,
     MappingStep,
+    ValidationError,
     parse_from_yaml,
     validate_and_inject_mapping,
-    ValidationError,
-    CaseInsensitiveDict,
 )
-from cumulusci.tasks.bulkdata.step import DataOperationType
+from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
 from cumulusci.tests.util import DummyOrgConfig, mock_describe_calls
-from cumulusci.tasks.bulkdata.step import DataApi
 
 
 class TestMappingParser:

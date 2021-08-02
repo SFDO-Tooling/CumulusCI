@@ -1,13 +1,13 @@
 import json
-import re
 import os
+import re
+
 from cumulusci.core.config import ServiceConfig
-from cumulusci.core.exceptions import TaskOptionsError, ServiceNotConfigured
+from cumulusci.core.exceptions import ServiceNotConfigured, TaskOptionsError
 from cumulusci.core.keychain import DEFAULT_CONNECTED_APP
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.sfdx import SFDXBaseTask, SFDX_CLI
-from cumulusci.utils import random_alphanumeric_underscore
-from cumulusci.utils import temporary_dir
+from cumulusci.tasks.sfdx import SFDX_CLI, SFDXBaseTask
+from cumulusci.utils import random_alphanumeric_underscore, temporary_dir
 
 CONNECTED_APP = """<?xml version="1.0" encoding="UTF-8"?>
 <ConnectedApp xmlns="http://soap.sforce.com/2006/04/metadata">

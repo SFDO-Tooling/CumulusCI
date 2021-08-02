@@ -1,7 +1,7 @@
+from unittest import mock
+
 import pytest
 import responses
-
-from unittest import mock
 
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.oauth.salesforce import jwt_session

@@ -6,15 +6,18 @@ import contextlib
 import logging
 import os
 import re
-import time
 import threading
+import time
 
 from cumulusci import __version__
-from cumulusci.utils import cd
-from cumulusci.core.exceptions import ServiceNotValid, ServiceNotConfigured
-from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
-from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.debug import get_debug_mode
+from cumulusci.core.exceptions import (
+    ServiceNotConfigured,
+    ServiceNotValid,
+    TaskOptionsError,
+    TaskRequiresSalesforceOrg,
+)
+from cumulusci.utils import cd
 
 CURRENT_TASK = threading.local()
 

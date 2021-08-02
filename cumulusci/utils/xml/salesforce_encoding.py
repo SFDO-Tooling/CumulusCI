@@ -1,6 +1,6 @@
-from lxml import etree
-
 from xml.sax.saxutils import escape
+
+from lxml import etree
 
 xml_encoding = '<?xml version="1.0" encoding="UTF-8"?>\n'
 METADATA_NAMESPACE = "http://soap.sforce.com/2006/04/metadata"

@@ -1,7 +1,9 @@
-from robot.libraries.BuiltIn import BuiltIn
 import functools
-from cumulusci.core.utils import dictmerge
+
 from robot.api import logger
+from robot.libraries.BuiltIn import BuiltIn
+
+from cumulusci.core.utils import dictmerge
 
 """
 This module supports managing multiple location strategies. It

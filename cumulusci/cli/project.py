@@ -1,17 +1,17 @@
-from pathlib import Path
 import json
 import os
 import re
 import shutil
+from pathlib import Path
 
-from jinja2 import Environment
-from jinja2 import PackageLoader
 import click
+from jinja2 import Environment, PackageLoader
 
-from .runtime import pass_runtime
+import cumulusci
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.utils.git import current_branch
-import cumulusci
+
+from .runtime import pass_runtime
 
 
 @click.group(

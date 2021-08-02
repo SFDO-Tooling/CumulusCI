@@ -1,6 +1,4 @@
 import http.client
-import pytest
-import responses
 import ssl
 import sys
 import threading
@@ -8,15 +6,16 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-
 from contextlib import contextmanager
-from requests.models import Response
 from unittest import mock
+
+import pytest
+import responses
+from requests.models import Response
 
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_PORT
-from cumulusci.oauth.client import OAuth2Client
-from cumulusci.oauth.client import PORT_IN_USE_ERR
+from cumulusci.oauth.client import PORT_IN_USE_ERR, OAuth2Client
 from cumulusci.oauth.exceptions import OAuth2Error
 from cumulusci.oauth.salesforce import jwt_session
 

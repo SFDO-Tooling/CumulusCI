@@ -1,17 +1,18 @@
-import unittest
+import os.path
 import shutil
 import tempfile
-import pytest
-import os.path
 import textwrap
+import unittest
 from pathlib import Path
 
-from cumulusci.tasks.salesforce.tests.util import create_task
-from cumulusci.tests.util import create_project_config
+import pytest
+
 from cumulusci.core.config import TaskConfig
+from cumulusci.core.exceptions import CumulusCIFailure
 from cumulusci.core.tests.utils import MockLoggerMixin
 from cumulusci.tasks.robotframework import RobotLint
-from cumulusci.core.exceptions import CumulusCIFailure
+from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.tests.util import create_project_config
 
 
 class TestRobotLint(MockLoggerMixin, unittest.TestCase):

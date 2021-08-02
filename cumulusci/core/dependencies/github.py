@@ -3,9 +3,9 @@ import io
 import re
 from typing import Optional
 
+from github3.exceptions import NotFoundError
 from github3.git import Tag
 from github3.repos.repo import Repository
-from github3.exceptions import NotFoundError
 
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config.project_config import BaseProjectConfig

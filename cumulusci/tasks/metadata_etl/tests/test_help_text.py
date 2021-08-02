@@ -1,8 +1,8 @@
 import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.metadata_etl.help_text import SetFieldHelpText
+from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.utils.xml import metadata_tree
 
 # Custom Object with 2 custom fields with all elements present

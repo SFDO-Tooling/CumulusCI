@@ -1,6 +1,8 @@
-import pytest
-from cumulusci.tasks.preflight.packages import GetInstalledPackages
 from pathlib import Path
+
+import pytest
+
+from cumulusci.tasks.preflight.packages import GetInstalledPackages
 
 
 class TestIntegrationInfrastructure:

@@ -1,7 +1,9 @@
-from cumulusci.core.exceptions import ApexCompilationException
-from cumulusci.core.exceptions import ApexException
-from cumulusci.core.exceptions import SalesforceException
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import (
+    ApexCompilationException,
+    ApexException,
+    SalesforceException,
+    TaskOptionsError,
+)
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import in_directory, inject_namespace

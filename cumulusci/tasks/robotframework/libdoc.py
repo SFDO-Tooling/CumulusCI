@@ -2,19 +2,19 @@ import os
 import os.path
 import re
 import time
+
 import jinja2
 import robot.utils
+from robot.libdocpkg.builder import DocumentationBuilder
+from robot.libdocpkg.robotbuilder import LibraryDocBuilder
+from robot.libraries.BuiltIn import RobotNotRunningError
+from robot.utils import Importer
 
 import cumulusci
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_glob_list_arg
 from cumulusci.robotframework import PageObjects
-
-from robot.libdocpkg.builder import DocumentationBuilder
-from robot.libraries.BuiltIn import RobotNotRunningError
-from robot.libdocpkg.robotbuilder import LibraryDocBuilder
-from robot.utils import Importer
 
 
 class RobotLibDoc(BaseTask):

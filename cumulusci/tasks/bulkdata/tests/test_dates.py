@@ -1,4 +1,5 @@
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
+
 from cumulusci.tasks.bulkdata.dates import (
     adjust_relative_dates,
     datetime_from_salesforce,

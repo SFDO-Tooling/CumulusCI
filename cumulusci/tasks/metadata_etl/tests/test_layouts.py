@@ -1,14 +1,13 @@
 import unittest
-from cumulusci.tasks.salesforce.tests.util import create_task
 
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.metadata_etl import AddRelatedLists
 from cumulusci.tasks.metadata_etl.layouts import (
-    AddRecordPlatformActionListItem,
     AddFieldsToPageLayout,
+    AddRecordPlatformActionListItem,
+    AddRelatedLists,
 )
+from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.utils.xml import metadata_tree
-
 
 MD = "{%s}" % metadata_tree.METADATA_NAMESPACE
 
