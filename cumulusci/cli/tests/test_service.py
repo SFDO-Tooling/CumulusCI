@@ -160,7 +160,7 @@ def test_service_connect__alias_already_exists(confirm):
 
 @mock.patch("click.confirm")
 def test_service_connect__set_new_service_as_default(confirm):
-    confirm.side_effect = "y"
+    confirm.return_value = True
     multi_cmd = service.ConnectServiceCommand()
     runtime = mock.MagicMock()
     runtime.project_config.services = {
@@ -184,6 +184,32 @@ def test_service_connect__set_new_service_as_default(confirm):
     runtime.keychain.set_default_service.assert_called_once_with(
         "test-type", "new-service"
     )
+
+
+@mock.patch("click.confirm")
+def test_service_connect__do_not_set_new_service_as_default(confirm):
+    confirm.return_value = False
+    multi_cmd = service.ConnectServiceCommand()
+    runtime = mock.MagicMock()
+    runtime.project_config.services = {
+        "test-type": {"attributes": {"attr": {"required": False}}}
+    }
+    service_name = "existing-service"
+    runtime.services = {"test-type": {service_name: "some config"}}
+    runtime.keychain.list_services.return_value = {"test-type": [service_name]}
+    runtime.keychain.get_default_service_name.return_value = service_name
+
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        cmd = multi_cmd.get_command(ctx, "test-type")
+        cmd.callback(
+            runtime,
+            service_type="test-type",
+            service_name="new-service",
+            project=False,
+        )
+
+    confirm.assert_called_once()
+    runtime.keychain.set_default_service.call_count = 0
 
 
 @mock.patch("click.echo")
