@@ -9,13 +9,13 @@ from .util import create_task
 class TestEnablePrediction(unittest.TestCase):
     def setUp(self):
         self.task = create_task(
-            EnablePrediction, {"developer_name": "mlpd__test_prediction_v0"}
+            EnablePrediction, {"api_names": "mlpd__test_prediction_v0"}
         )
         self.task.tooling = MagicMock()
 
     def test_run_task(self):
         self.task._get_ml_prediction_definition_id = MagicMock()
-        self.task._get_ml_prediction_definition_id.return_value = "001"
+        self.task._get_ml_prediction_definition_id.side_effect = ["001", "002"]
 
         self.task.tooling.base_url = "http://test.salesforce.com/tooling/"
         self.task.tooling._call_salesforce().json.return_value = {
