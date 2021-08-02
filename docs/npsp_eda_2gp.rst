@@ -1,4 +1,4 @@
-Extending NPSP and EDA with Second-Generation Packaging
+Extend NPSP and EDA with Second-Generation Packaging
 -------------------------------------------------------
 
 Building packages that extend (depend on) NPSP and EDA using second-generation packaging involves some unique complications.
@@ -47,4 +47,3 @@ This will result in the creation of default Record Types in the build org, allow
 your other scratch orgs will continue to use the NPSP or EDA default Record Types, installed by CumulusCI's 
 dependency-management system and reflecting the configuration of the subscriber orgs into which your package 
 will ultimately be installed.
-

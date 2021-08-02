@@ -1,6 +1,6 @@
 Release a First-Generation Managed Package
 ==========================================
-This section outlines how to release first generation (1GP) Salesforce managed package projects.
+This section outlines how to release first-generation (1GP) Salesforce managed package projects.
 Salesforce.org's Release Engineering team practices :doc:`CumulusCI Flow <cumulusci_flow>`, which incorporates all of these steps.
 
 

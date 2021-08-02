@@ -116,7 +116,7 @@ You can also promote a package using its ``04t`` package Id, without using the G
 Alternatively, you can use the ``sfdx force:package:version:promote`` command to promote a 2GP package.
 
 
-Promoting Dependencies
+Promote Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^
 
 If additional unlocked packages were created to hold unpackaged dependencies, they must be promoted as well. To promote dependencies automatically use ``--promote_dependencies True``
@@ -138,4 +138,3 @@ To test the new package version:
     $ cci flow run ci_release --org release
 
 The ``ci_release`` flow installs the latest production release version and runs the Apex tests from the managed package on a scratch org. 
-
