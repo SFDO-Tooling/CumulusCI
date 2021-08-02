@@ -165,7 +165,10 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
         if len(self._adding_fields) == 0:
             return
 
-        field_props = {field["api_name"]: field for field in self._adding_fields}
+        field_props = {
+            self._inject_namespace(field["api_name"]): field
+            for field in self._adding_fields
+        }
 
         layout_item_dict = self._add_items(
             self._adding_fields, self._existing_field_names, api_name
@@ -174,7 +177,7 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
         for field_item_key in layout_item_dict.keys():
             field = field_props.get(field_item_key)
             field_layout_item = layout_item_dict.get(field_item_key)
-            adding_field_name = field.get("api_name")
+            adding_field_name = self._inject_namespace(field.get("api_name"))
 
             self.logger.info(f"Adding {adding_field_name} to {api_name}")
 
@@ -197,7 +200,10 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
         if len(self._adding_pages) == 0:
             return
 
-        page_props = {page["api_name"]: page for page in self._adding_pages}
+        page_props = {
+            self._inject_namespace(page["api_name"]): page
+            for page in self._adding_pages
+        }
 
         layout_item_dict = self._add_items(
             self._adding_pages, self._existing_page_names, api_name
@@ -206,7 +212,7 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
         for page_item_key in layout_item_dict.keys():
             page = page_props.get(page_item_key)
             page_layout_item = layout_item_dict.get(page_item_key)
-            adding_page_name = page.get("api_name")
+            adding_page_name = self._inject_namespace(page.get("api_name"))
 
             self.logger.info(f"Adding {adding_page_name} to {api_name}")
 
