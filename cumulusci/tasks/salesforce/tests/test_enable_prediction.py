@@ -1,72 +1,131 @@
-import unittest
-from unittest.mock import MagicMock
-from simple_salesforce import SalesforceError
+from cumulusci.tests.util import DummyKeychain
+from cumulusci.core.config.OrgConfig import OrgConfig
 from cumulusci.tasks.salesforce.enable_prediction import EnablePrediction
-from cumulusci.core.exceptions import SalesforceException
+from cumulusci.core.exceptions import CumulusCIException
 from .util import create_task
+import responses
+import pytest
 
 
-class TestEnablePrediction(unittest.TestCase):
-    def setUp(self):
-        self.task = create_task(
-            EnablePrediction, {"api_names": "mlpd__test_prediction_v0"}
+@pytest.fixture
+def task():
+    return create_task(
+        EnablePrediction,
+        {"api_names": ["test_prediction_v0", "test_prediction_2_v0"]},
+        org_config=OrgConfig(
+            {"instance_url": "https://test-dev-ed.my.salesforce.com"},
+            "test",
+            keychain=DummyKeychain(),
+        ),
+    )
+
+
+@pytest.fixture
+def mock_oauth():
+    with responses.RequestsMock() as rsps:
+        rsps.add(
+            "POST",
+            "https://test-dev-ed.my.salesforce.com/services/oauth2/token",
+            json={
+                "access_token": "TOKEN",
+                "instance_url": "https://test-dev-ed.my.salesforce.com",
+            },
         )
-        self.task.tooling = MagicMock()
-
-    def test_run_task(self):
-        self.task._get_ml_prediction_definition_id = MagicMock()
-        self.task._get_ml_prediction_definition_id.side_effect = ["001", "002"]
-
-        self.task.tooling.base_url = "http://test.salesforce.com/tooling/"
-        self.task.tooling._call_salesforce().json.return_value = {
-            "Metadata": {"status": "Draft"}
-        }
-
-        self.task._run_task()
-
-        self.task.tooling._call_salesforce.assert_any_call(
-            method="GET",
-            url="http://test.salesforce.com/tooling/sobjects/MLPredictionDefinition/001",
+        rsps.add(
+            "GET",
+            url="https://test-dev-ed.my.salesforce.com/services/oauth2/userinfo",
+            json={},
+            status=200,
+        )
+        rsps.add(
+            "GET",
+            url="https://test-dev-ed.my.salesforce.com/services/data",
+            json=[
+                {
+                    "label": "Summer '21",
+                    "url": "/services/data/v52.0",
+                    "version": "52.0",
+                }
+            ],
+            status=200,
+        )
+        rsps.add(
+            "GET",
+            "https://test-dev-ed.my.salesforce.com/services/data/v52.0/sobjects/Organization/",
+            json={
+                "OrganizationType": "Developer",
+                "IsSandbox": False,
+                "InstanceName": "NA149",
+                "NamespacePrefix": None,
+            },
         )
 
-        self.task.tooling._call_salesforce.assert_any_call(
-            method="PATCH",
-            url="http://test.salesforce.com/tooling/sobjects/MLPredictionDefinition/001",
-            json={"Metadata": {"status": "Enabled"}},
-        )
+        yield rsps
 
-    def test_run_task__exception(self):
-        self.task._get_ml_prediction_definition_id = MagicMock()
-        self.task._get_ml_prediction_definition_id.return_value = "001"
 
-        self.task.tooling._call_salesforce.side_effect = MagicMock(
-            side_effect=SalesforceError(None, None, None, "test exception")
-        )
+def test_run_task(mock_oauth, task):
+    mock_oauth.add(
+        "GET",
+        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27test_prediction_v0%27",
+        json={"totalSize": 1, "records": [{"Id": "001"}]},
+    )
+    mock_oauth.add(
+        "GET",
+        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27test_prediction_2_v0%27",
+        json={"totalSize": 1, "records": [{"Id": "002"}]},
+    )
+    mock_oauth.add(
+        "GET",
+        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/001",
+        json={"Metadata": {"status": "Draft"}},
+    )
+    mock_oauth.add(
+        "GET",
+        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/002",
+        json={"Metadata": {"status": "Draft"}},
+    )
+    mock_oauth.add(
+        method="PATCH",
+        url="https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/001",
+        match=[responses.json_params_matcher({"Metadata": {"status": "Enabled"}})],
+    )
+    mock_oauth.add(
+        method="PATCH",
+        url="https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/002",
+        match=[responses.json_params_matcher({"Metadata": {"status": "Enabled"}})],
+    )
 
-        self.assertRaises(SalesforceException, self.task._run_task)
+    task()
 
-    def test_get_ml_prediction_definition_id(self):
-        self.task.tooling.query.return_value = {"records": [{"Id": "001"}]}
 
-        self.assertEquals("001", self.task._get_ml_prediction_definition_id())
+def test_run_task__not_found_exception(mock_oauth, task):
+    mock_oauth.add(
+        "GET",
+        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27test_prediction_v0%27",
+        json={"totalSize": 0, "records": []},
+    )
 
-    def test_get_ml_prediction_definition_id__exception(self):
-        self.task.tooling.query.side_effect = MagicMock(
-            side_effect=SalesforceError("url", 500, "MLPredictionDefinition", "content")
-        )
+    with pytest.raises(CumulusCIException) as e:
+        task()
+        assert "not found" in str(e)
 
-        with self.assertRaises(SalesforceException) as e:
-            self.task._get_ml_prediction_definition_id()
-        self.assertEqual(
-            str(e.exception),
-            "Failed to obtain MLPredictionDefinitionId: Unknown error occurred for url. Response content: content",
-        )
 
-        self.task.tooling.query.side_effect = MagicMock(side_effect=IndexError())
+def test_run_task__failed_update_exception(mock_oauth, task):
+    mock_oauth.add(
+        "GET",
+        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27test_prediction_v0%27",
+        json={"totalSize": 1, "records": [{"Id": "001"}]},
+    )
+    mock_oauth.add(
+        "GET",
+        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/001",
+        json={"Metadata": {"status": "Draft"}},
+    )
+    mock_oauth.add(
+        method="PATCH",
+        url="https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/001",
+        status=400,
+    )
 
-        with self.assertRaises(SalesforceException) as e:
-            self.task._get_ml_prediction_definition_id()
-        self.assertEqual(
-            str(e.exception),
-            "MLPredictionDefinition mlpd__test_prediction_v0 not found.",
-        )
+    with pytest.raises(CumulusCIException):
+        task()

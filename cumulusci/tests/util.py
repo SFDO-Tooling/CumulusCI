@@ -116,6 +116,9 @@ class DummyKeychain(object):
     def get_service(self, name):
         return DummyService(name)
 
+    def set_org(self, org: OrgConfig, global_org: bool):
+        pass
+
 
 @contextmanager
 def assert_max_memory_usage(max_usage):

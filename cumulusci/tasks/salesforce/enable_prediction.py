@@ -1,7 +1,7 @@
 from cumulusci.utils import inject_namespace
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.exceptions import SalesforceException
+from cumulusci.core.exceptions import CumulusCIException, SalesforceException
 from simple_salesforce.exceptions import SalesforceError
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
@@ -35,6 +35,7 @@ class EnablePrediction(BaseSalesforceApiTask):
             self.options.get("namespace_inject")
             or self.project_config.project__package__namespace
         )
+        self.options["namespace_inject"] = namespace
         if "managed" in self.options:
             self.options["managed"] = process_bool_arg(self.options["managed"] or False)
         else:
@@ -96,7 +97,7 @@ class EnablePrediction(BaseSalesforceApiTask):
                     json={"Metadata": metadata},
                 )
             except SalesforceError as e:
-                raise SalesforceException(f"Failed to enable prediction: {e}")
+                raise CumulusCIException(f"Failed to enable prediction: {e}")
 
     def _get_ml_prediction_definition_id(self, api_name: str):
         query = (
@@ -105,6 +106,4 @@ class EnablePrediction(BaseSalesforceApiTask):
         try:
             return self.tooling.query(query)["records"][0]["Id"]
         except IndexError:
-            raise SalesforceException(f"MLPredictionDefinition {api_name} not found.")
-        except SalesforceError as e:
-            raise SalesforceException(f"Failed to obtain MLPredictionDefinitionId: {e}")
+            raise CumulusCIException(f"MLPredictionDefinition {api_name} not found.")
