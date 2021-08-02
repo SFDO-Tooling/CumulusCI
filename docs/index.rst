@@ -15,8 +15,7 @@ Contents
    data
    robot
    continuous_integration
-   managed_package
-   unlocked_package
+   packaging
    unpackaged
    metadata_etl
    reference
