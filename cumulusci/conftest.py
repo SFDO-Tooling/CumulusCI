@@ -1,6 +1,9 @@
 import io
 import os
 from contextlib import contextmanager
+
+import burrito
+
 from http.client import HTTPMessage
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -32,7 +35,7 @@ class MockHttpResponse(mock.Mock):
         self.strict = 0
         self.version = 0
         self.reason = None
-        self.msg = HTTPMessage(io.BytesIO())
+        self.msg =    HTTPMessage(io.BytesIO())
         self.closed = True
 
     def read(self):  # pragma: no cover
