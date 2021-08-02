@@ -23,8 +23,8 @@ To schedule the push upgrades to occur at a specific time, use the ``--start_tim
 
 There are additional tasks related to push upgrades in the CumulusCI standard library.
 
-* :ref:`push_failure_report`: Produces a ``csv`` report of the failed and otherwise anomalous push jobs.
-* :ref:`push_list`: Schedules a push upgrade of a package version to all orgs listed in a specified file.
-* :ref:`push_qa`: Schedules a push upgrade of a package version to all orgs listed in ``push/orgs_qa.txt``.
-* :ref:`push_sandbox`: Schedules a push upgrade of a package version to all subscribers' sandboxes.
-* :ref:`push_trial`: Schedules a push upgrade of a package version to Trialforce Template orgs listed in ``push/orgs_trial.txt``.
+* :ref:`**push_failure_report**`: Produces a ``csv`` report of the failed and otherwise anomalous push jobs.
+* :ref:`**push_list**`: Schedules a push upgrade of a package version to all orgs listed in a specified file.
+* :ref:`**push_qa**`: Schedules a push upgrade of a package version to all orgs listed in ``push/orgs_qa.txt``.
+* :ref:`**push_sandbox**`: Schedules a push upgrade of a package version to all subscribers' sandboxes.
+* :ref:`**push_trial**`: Schedules a push upgrade of a package version to Trialforce Template orgs listed in ``push/orgs_trial.txt``.

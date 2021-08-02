@@ -1,4 +1,4 @@
-Release Managed and unlocked packages
+Release Managed and Unlocked Packages
 -------------------------------------
 
 CumulusCI makes it easy to build first- and second-generation managed packages, as well as unlocked packages.

@@ -9,7 +9,7 @@ Prerequisites
 This section assumes:
 
 * :doc:`CumulusCI is installed <get_started>` on your computer.
-* A Salesforce project has been configured for use with CumulusCI.
+* A Salesforce project has been :ref:`configured <project initialization>` for use with CumulusCI.
 * Your Dev Hub has the required features enabled: `Enable DevHub Features in Your Org <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packagingGuide/sfdx_setup_enable_devhub.htm>`_ and `Enable Unlocked and Second-Generation Managed Packaging <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_secondgen_pkg.htm>`_.
 * If you're building a namespaced unlocked package, a namespace org has been `created and linked to the active Dev Hub <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_dev2gp_create_namespace.htm>`_.
 
