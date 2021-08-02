@@ -3,13 +3,8 @@ import io
 import os
 import re
 import webbrowser
-from urllib.parse import urlparse
 from typing import Callable, Union
-
-from requests.adapters import HTTPAdapter
-from requests.exceptions import RetryError
-from requests.models import Response
-from requests.packages.urllib3.util.retry import Retry
+from urllib.parse import urlparse
 
 import github3
 from github3 import GitHub, login
@@ -18,13 +13,16 @@ from github3.git import Reference, Tag
 from github3.pulls import ShortPullRequest
 from github3.repos.repo import Repository
 from github3.session import GitHubSession
+from requests.adapters import HTTPAdapter
+from requests.exceptions import RetryError
+from requests.models import Response
+from requests.packages.urllib3.util.retry import Retry
 
 from cumulusci.core.exceptions import (
+    DependencyLookupError,
     GithubApiError,
     GithubException,
-    DependencyLookupError,
 )
-
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 

@@ -3,21 +3,20 @@ import fnmatch
 import io
 import math
 import os
-
 import re
 import shutil
 import sys
 import tempfile
 import textwrap
+import xml.etree.ElementTree as ET
 import zipfile
 from datetime import datetime
-from .ziputils import zip_subfolder
-from .ziputils import process_text_in_zipfile  # noqa
 
 import requests
 import sarge
-import xml.etree.ElementTree as ET
 
+from .ziputils import process_text_in_zipfile  # noqa
+from .ziputils import zip_subfolder
 
 CUMULUSCI_PATH = os.path.realpath(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")

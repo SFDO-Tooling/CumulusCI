@@ -1,18 +1,20 @@
 import io
-from unittest import mock
 import unittest
 import zipfile
+from unittest import mock
 
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import OrgConfig, TaskConfig
 from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.tasks.salesforce import BaseRetrieveMetadata
-from cumulusci.tasks.salesforce import BaseSalesforceTask
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.tasks.salesforce import BaseSalesforceMetadataApiTask
-from cumulusci.tasks.salesforce import BaseUninstallMetadata
+from cumulusci.tasks.salesforce import (
+    BaseRetrieveMetadata,
+    BaseSalesforceApiTask,
+    BaseSalesforceMetadataApiTask,
+    BaseSalesforceTask,
+    BaseUninstallMetadata,
+)
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
+
 from . import create_task
 
 

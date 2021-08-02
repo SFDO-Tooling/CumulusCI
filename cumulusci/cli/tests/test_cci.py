@@ -1,23 +1,23 @@
+import contextlib
 import io
 import os
 import shutil
 import tempfile
-import pytest
 import unittest
 from pathlib import Path
-import contextlib
+from unittest import mock
 
 import click
-from unittest import mock
 import pkg_resources
+import pytest
 from requests.exceptions import ConnectionError
 
 import cumulusci
+from cumulusci.cli import cci
+from cumulusci.cli.tests.utils import run_click_command
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.cli import cci
 from cumulusci.utils import temporary_dir
-from cumulusci.cli.tests.utils import run_click_command
 
 MagicMock = mock.MagicMock()
 

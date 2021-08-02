@@ -1,21 +1,21 @@
-from cumulusci.utils.yaml.model_parser import CCIModel
-from cumulusci.salesforce_api.exceptions import MetadataApiError
-from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
-from cumulusci.salesforce_api.metadata import ApiDeploy
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config.project_config import BaseProjectConfig
-from typing import Optional, cast
 import functools
 import logging
 from enum import Enum
+from typing import Optional, cast
+
 from simple_salesforce.api import SFType
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
-from cumulusci.core.exceptions import PackageInstallError
+from cumulusci.core.config import OrgConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.utils import TaskContext
-
+from cumulusci.core.exceptions import PackageInstallError
+from cumulusci.salesforce_api.exceptions import MetadataApiError
+from cumulusci.salesforce_api.metadata import ApiDeploy
+from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils.waiting import poll, retry
+from cumulusci.utils.yaml.model_parser import CCIModel
 
 logger = logging.getLogger(__name__)
 

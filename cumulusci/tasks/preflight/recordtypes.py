@@ -1,5 +1,6 @@
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from collections import defaultdict
+
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class CheckSObjectRecordTypes(BaseSalesforceApiTask):

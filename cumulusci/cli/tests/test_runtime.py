@@ -1,17 +1,15 @@
-from datetime import date
-from datetime import timedelta
-from unittest import mock
 import os
 import sys
 import unittest
+from datetime import date, timedelta
+from unittest import mock
 
 import click
 
 import cumulusci
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.core.exceptions import ConfigError, OrgNotFound
 
 
 class TestCliRuntime(unittest.TestCase):

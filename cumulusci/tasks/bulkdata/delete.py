@@ -1,14 +1,14 @@
+from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.bulkdata.step import (
-    DataOperationType,
-    DataOperationStatus,
     DataApi,
-    get_query_operation,
+    DataOperationStatus,
+    DataOperationType,
     get_dml_operation,
+    get_query_operation,
 )
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
 from cumulusci.tasks.bulkdata.utils import RowErrorChecker
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class DeleteData(BaseSalesforceApiTask):

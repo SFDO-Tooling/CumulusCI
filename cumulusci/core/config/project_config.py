@@ -1,18 +1,17 @@
-from distutils.version import LooseVersion
 import json
 import os
 import re
-from io import StringIO
-from pathlib import Path
 from configparser import ConfigParser
-from itertools import chain
 from contextlib import contextmanager
+from distutils.version import LooseVersion
+from io import StringIO
+from itertools import chain
+from pathlib import Path
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
 import github3
 
-from cumulusci.core.utils import merge_config
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.exceptions import (
     ConfigError,
@@ -24,19 +23,14 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.github import (
     catch_common_github_auth_errors,
-    get_github_api_for_repo,
     find_previous_release,
+    get_github_api_for_repo,
 )
-from cumulusci.core.source import GitHubSource
-from cumulusci.core.source import LocalFolderSource
-from cumulusci.core.source import NullSource
-from cumulusci.utils.git import (
-    current_branch,
-    git_path,
-    split_repo_url,
-)
-from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+from cumulusci.core.source import GitHubSource, LocalFolderSource, NullSource
+from cumulusci.core.utils import merge_config
 from cumulusci.utils.fileutils import open_fs_resource
+from cumulusci.utils.git import current_branch, git_path, split_repo_url
+from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 
 class BaseProjectConfig(BaseTaskFlowConfig):

@@ -1,50 +1,49 @@
+import datetime
 import http.client
 import io
 import unittest
 from collections import defaultdict
 from xml.dom.minidom import parseString
-import datetime
 
-from requests import Response
-import responses
 import pytest
+import responses
+from requests import Response
 
-from cumulusci.tests.util import create_project_config
-from cumulusci.tests.util import DummyOrgConfig
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import ApexTestException
 from cumulusci.core.tasks import BaseTask
-from cumulusci.salesforce_api.exceptions import MetadataApiError
-from cumulusci.salesforce_api.exceptions import MetadataParseError
-from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
-from cumulusci.salesforce_api.metadata import BaseMetadataApiCall
-from cumulusci.salesforce_api.metadata import ApiDeploy
-from cumulusci.salesforce_api.metadata import ApiListMetadata
-from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
-from cumulusci.salesforce_api.metadata import ApiRetrieveInstalledPackages
-from cumulusci.salesforce_api.metadata import ApiRetrievePackaged
-from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
-from cumulusci.salesforce_api.package_zip import CreatePackageZipBuilder
-from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
-from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_status_envelope
-from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_result
-from cumulusci.salesforce_api.tests.metadata_test_strings import deploy_result_failure
-from cumulusci.salesforce_api.tests.metadata_test_strings import (
-    list_metadata_start_envelope,
+from cumulusci.salesforce_api.exceptions import (
+    MetadataApiError,
+    MetadataComponentFailure,
+    MetadataParseError,
 )
-from cumulusci.salesforce_api.tests.metadata_test_strings import list_metadata_result
+from cumulusci.salesforce_api.metadata import (
+    ApiDeploy,
+    ApiListMetadata,
+    ApiRetrieveInstalledPackages,
+    ApiRetrievePackaged,
+    ApiRetrieveUnpackaged,
+    BaseMetadataApiCall,
+)
+from cumulusci.salesforce_api.package_zip import (
+    BasePackageZipBuilder,
+    CreatePackageZipBuilder,
+    InstallPackageZipBuilder,
+)
 from cumulusci.salesforce_api.tests.metadata_test_strings import (
+    deploy_result,
+    deploy_result_failure,
+    deploy_status_envelope,
+    list_metadata_result,
     list_metadata_result_bad_val,
-)
-from cumulusci.salesforce_api.tests.metadata_test_strings import (
+    list_metadata_start_envelope,
+    result_envelope,
     retrieve_packaged_start_envelope,
-)
-from cumulusci.salesforce_api.tests.metadata_test_strings import (
+    retrieve_result,
     retrieve_unpackaged_start_envelope,
+    status_envelope,
 )
-from cumulusci.salesforce_api.tests.metadata_test_strings import retrieve_result
-from cumulusci.salesforce_api.tests.metadata_test_strings import result_envelope
-from cumulusci.salesforce_api.tests.metadata_test_strings import status_envelope
+from cumulusci.tests.util import DummyOrgConfig, create_project_config
 
 
 class DummyPackageZipBuilder(BasePackageZipBuilder):

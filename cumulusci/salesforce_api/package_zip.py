@@ -1,22 +1,22 @@
-from base64 import b64encode
-from xml.sax.saxutils import escape
-import contextlib
-import html
 import functools
+import html
 import io
 import logging
 import os
 import pathlib
 import zipfile
+from base64 import b64encode
+from xml.sax.saxutils import escape
 
-from cumulusci.core.sfdx import sfdx
-from cumulusci.utils import cd
-from cumulusci.utils import inject_namespace
-from cumulusci.utils import process_text_in_zipfile
-from cumulusci.utils import strip_namespace
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import tokenize_namespace
-from cumulusci.utils import zip_clean_metaxml
+from cumulusci.utils import (
+    cd,
+    inject_namespace,
+    process_text_in_zipfile,
+    strip_namespace,
+    temporary_dir,
+    tokenize_namespace,
+    zip_clean_metaxml,
+)
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.ziputils import hash_zipfile_contents
 

@@ -1,23 +1,23 @@
-from collections import defaultdict
 import contextlib
 import functools
 import json
 import os
 import re
 import time
+from collections import defaultdict
 
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.sfdx import sfdx
-from cumulusci.core.utils import process_bool_arg
-from cumulusci.core.utils import process_list_arg
-from cumulusci.tasks.salesforce import BaseRetrieveMetadata
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import touch
-from cumulusci.utils import inject_namespace
-from cumulusci.utils import process_text_in_directory
-from cumulusci.utils import tokenize_namespace
+from cumulusci.tasks.salesforce import BaseRetrieveMetadata, BaseSalesforceApiTask
+from cumulusci.utils import (
+    inject_namespace,
+    process_text_in_directory,
+    temporary_dir,
+    tokenize_namespace,
+    touch,
+)
 
 
 class ListChanges(BaseSalesforceApiTask):

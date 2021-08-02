@@ -1,15 +1,8 @@
 import re
-import pytest
-
 from unittest import mock
 
-from cumulusci.core.keychain import BaseProjectKeychain, DEFAULT_CONNECTED_APP
-from cumulusci.core.exceptions import (
-    CumulusCIException,
-    OrgNotFound,
-    ServiceNotValid,
-    ServiceNotConfigured,
-)
+import pytest
+
 from cumulusci.core.config import (
     BaseProjectConfig,
     OrgConfig,
@@ -17,6 +10,13 @@ from cumulusci.core.config import (
     ServiceConfig,
     UniversalConfig,
 )
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    OrgNotFound,
+    ServiceNotConfigured,
+    ServiceNotValid,
+)
+from cumulusci.core.keychain import DEFAULT_CONNECTED_APP, BaseProjectKeychain
 
 
 @pytest.fixture

@@ -1,4 +1,5 @@
 import http.client
+
 import responses
 
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin

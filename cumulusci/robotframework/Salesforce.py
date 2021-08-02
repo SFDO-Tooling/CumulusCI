@@ -3,31 +3,33 @@ import logging
 import re
 import time
 from datetime import datetime
-from dateutil.parser import parse as parse_date, ParserError
-
 from pprint import pformat
-from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
-from robot.utils import timestr_to_secs
-from cumulusci.robotframework.utils import get_locator_module_name
-from cumulusci.robotframework.form_handlers import get_form_handler
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.common.exceptions import (
-    StaleElementReferenceException,
-    NoSuchElementException,
-    JavascriptException,
-    WebDriverException,
-)
 
 import faker
-
-from simple_salesforce import SalesforceResourceNotFound
-from cumulusci.robotframework.utils import selenium_retry, capture_screenshot_on_error
+from dateutil.parser import ParserError
+from dateutil.parser import parse as parse_date
+from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
+from robot.utils import timestr_to_secs
+from selenium.common.exceptions import (
+    JavascriptException,
+    NoSuchElementException,
+    StaleElementReferenceException,
+    WebDriverException,
+)
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
 from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
+from simple_salesforce import SalesforceResourceNotFound
 from urllib3.exceptions import ProtocolError
 
 from cumulusci.core.template_utils import format_str
 from cumulusci.robotframework import locator_manager
+from cumulusci.robotframework.form_handlers import get_form_handler
+from cumulusci.robotframework.utils import (
+    capture_screenshot_on_error,
+    get_locator_module_name,
+    selenium_retry,
+)
 
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
 STATUS_KEY = ("status",)

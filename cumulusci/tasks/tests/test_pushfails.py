@@ -1,11 +1,11 @@
 import csv
-from unittest import mock
 import os.path
 import unittest
+from unittest import mock
 
-from cumulusci.utils import temporary_dir
-from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.push.pushfails import ReportPushFailures
+from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.utils import temporary_dir
 
 
 def error_record(gack=False, ErrorTitle="Unexpected Error"):  # type: (bool) -> dict

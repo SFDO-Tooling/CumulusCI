@@ -1,18 +1,17 @@
-from datetime import datetime
-from pathlib import Path
 import platform
 import sys
 import webbrowser
+from datetime import datetime
+from pathlib import Path
 
 import click
 import github3
 
 import cumulusci
-from cumulusci.core.github import check_github_scopes
 from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.github import create_gist, get_github_api
-from .runtime import pass_runtime
+from cumulusci.core.github import check_github_scopes, create_gist, get_github_api
 
+from .runtime import pass_runtime
 
 GIST_404_ERR_MSG = """A 404 error code was returned when trying to create your gist.
 Please ensure that your GitHub personal access token has the 'Create gists' scope."""

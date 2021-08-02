@@ -1,13 +1,10 @@
-from unittest import mock
 import os
 import unittest
+from unittest import mock
 
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.metadata.ee_src import CreateUnmanagedEESrc
-from cumulusci.tasks.metadata.ee_src import RevertUnmanagedEESrc
+from cumulusci.tasks.metadata.ee_src import CreateUnmanagedEESrc, RevertUnmanagedEESrc
 from cumulusci.utils import temporary_dir
 
 

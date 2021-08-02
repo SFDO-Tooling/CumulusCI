@@ -1,12 +1,13 @@
 import unittest
 from unittest import mock
+
 import pytest
 
 from cumulusci.robotframework.locator_manager import (
-    register_locators,
-    translate_locator,
     LOCATORS,
     locate_element,
+    register_locators,
+    translate_locator,
 )
 
 mock_libs = {}

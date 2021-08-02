@@ -1,15 +1,16 @@
 from typing import List
+
 from cumulusci.core.dependencies.dependencies import (
+    Dependency,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
-    Dependency,
     parse_dependencies,
 )
 from cumulusci.core.dependencies.resolvers import (
     DependencyResolutionStrategy,
     dependency_filter_ignore_deps,
-    get_static_dependencies,
     get_resolver_stack,
+    get_static_dependencies,
 )
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseSalesforceTask

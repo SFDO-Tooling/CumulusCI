@@ -1,8 +1,9 @@
-from unittest import mock
 import unittest
+from unittest import mock
 
 from cumulusci.tasks.salesforce import UninstallPackage
 from cumulusci.tests.util import create_project_config
+
 from .util import create_task
 
 

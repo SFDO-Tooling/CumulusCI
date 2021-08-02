@@ -1,16 +1,14 @@
-from cumulusci.core.dependencies.dependencies import PackageVersionIdDependency
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.config.util import get_devhub_config
-from cumulusci.core.exceptions import (
-    CumulusCIException,
-    TaskOptionsError,
-)
+from cumulusci.core.dependencies.dependencies import PackageVersionIdDependency
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.github import get_version_id_from_tag
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.tasks.create_package_version import PackageVersionNumber
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class PromotePackageVersion(BaseSalesforceApiTask):

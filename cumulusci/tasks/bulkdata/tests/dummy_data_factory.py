@@ -1,5 +1,6 @@
 import factory
-from cumulusci.tasks.bulkdata.factory_utils import ModuleDataFactory, Models
+
+from cumulusci.tasks.bulkdata.factory_utils import Models, ModuleDataFactory
 
 
 class GenerateDummyData(ModuleDataFactory):

@@ -1,15 +1,10 @@
-from unittest import mock
 import os
 import unittest
+from unittest import mock
 
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.dependencies.dependencies import (
-    PackageNamespaceVersionDependency,
-)
-from cumulusci.tasks.metaxml import UpdateApi
-from cumulusci.tasks.metaxml import UpdateDependencies
+from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
+from cumulusci.core.dependencies.dependencies import PackageNamespaceVersionDependency
+from cumulusci.tasks.metaxml import UpdateApi, UpdateDependencies
 from cumulusci.utils import temporary_dir
 
 

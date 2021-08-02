@@ -1,12 +1,11 @@
 import os.path
-
 import unittest
-from unittest import mock
-from tempfile import TemporaryDirectory
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import mock
 
-from cumulusci.tasks.bulkdata import GenerateAndLoadData
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.tasks.bulkdata import GenerateAndLoadData
 
 from .utils import _make_task
 

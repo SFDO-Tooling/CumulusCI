@@ -1,10 +1,11 @@
 """ Tests for the connectedapp tasks """
 
-from unittest import mock
 import os
-import pytest
 import re
 import unittest
+from unittest import mock
+
+import pytest
 
 try:
     from json.decoder import JSONDecodeError
@@ -13,14 +14,13 @@ except ImportError:
 from unittest.mock import MagicMock
 
 from cumulusci.core.config import (
-    UniversalConfig,
     BaseProjectConfig,
-    TaskConfig,
     ServiceConfig,
+    TaskConfig,
+    UniversalConfig,
 )
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.keychain import DEFAULT_CONNECTED_APP
+from cumulusci.core.keychain import DEFAULT_CONNECTED_APP, BaseProjectKeychain
 from cumulusci.core.tests.utils import MockLoggerMixin
 from cumulusci.tasks.connectedapp import CreateConnectedApp
 from cumulusci.utils import temporary_dir

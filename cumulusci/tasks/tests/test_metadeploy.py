@@ -1,22 +1,20 @@
-from base64 import b64encode
-from pathlib import Path
 import io
 import json
 import shutil
 import tempfile
 import unittest
 import zipfile
+from base64 import b64encode
+from pathlib import Path
 
 import requests
 import responses
 import yaml
 
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
-from cumulusci.tasks.metadeploy import BaseMetaDeployTask
-from cumulusci.tasks.metadeploy import Publish
+from cumulusci.tasks.metadeploy import BaseMetaDeployTask, Publish
 from cumulusci.tests.util import create_project_config
 
 
