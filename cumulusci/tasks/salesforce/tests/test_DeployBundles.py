@@ -1,10 +1,11 @@
-from unittest import mock
 import os
 import unittest
+from unittest import mock
 
 from cumulusci.core.flowrunner import StepSpec
 from cumulusci.tasks.salesforce import DeployBundles
 from cumulusci.utils import temporary_dir
+
 from .util import create_task
 
 

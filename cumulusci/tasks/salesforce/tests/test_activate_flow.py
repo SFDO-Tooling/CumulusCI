@@ -1,9 +1,12 @@
-import unittest
 import json
+import unittest
+
 import responses
-from .util import create_task
-from cumulusci.tasks.salesforce.activate_flow import ActivateFlow
+
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.tasks.salesforce.activate_flow import ActivateFlow
+
+from .util import create_task
 
 
 class TestActivateFlow(unittest.TestCase):

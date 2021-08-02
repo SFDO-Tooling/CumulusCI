@@ -1,8 +1,9 @@
 import pathlib
+
 import yaml
 
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
-from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 
 
 class LoadCustomSettings(BaseSalesforceApiTask):

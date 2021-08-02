@@ -1,11 +1,11 @@
-from cumulusci.core.dependencies.dependencies import PackageVersionIdDependency
-from cumulusci.tests.util import create_project_config
 import logging
-import pytest
-import responses
 from unittest import mock
 
+import pytest
+import responses
+
 from cumulusci.core.config import ServiceConfig, TaskConfig
+from cumulusci.core.dependencies.dependencies import PackageVersionIdDependency
 from cumulusci.core.exceptions import (
     CumulusCIException,
     DependencyLookupError,
@@ -13,6 +13,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.salesforce.promote_package_version import PromotePackageVersion
+from cumulusci.tests.util import create_project_config
 
 
 @pytest.fixture

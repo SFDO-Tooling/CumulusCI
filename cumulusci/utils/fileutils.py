@@ -1,11 +1,12 @@
-from typing import IO, ContextManager, Text, Tuple, Union
-from contextlib import contextmanager
-from pathlib import Path
-from io import TextIOWrapper, StringIO
 import os
+from contextlib import contextmanager
+from io import StringIO, TextIOWrapper
+from pathlib import Path
+from typing import IO, ContextManager, Text, Tuple, Union
 
 import requests
-from fs import open_fs, path as fspath, copy, base
+from fs import base, copy, open_fs
+from fs import path as fspath
 
 """Utilities for working with files"""
 

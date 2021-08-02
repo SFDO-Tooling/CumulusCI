@@ -1,15 +1,15 @@
-from cumulusci.core.exceptions import TaskOptionsError
-from unittest.mock import Mock
 import unittest
-
-from cumulusci.tasks.preflight.sobjects import (
-    CheckSObjectOWDs,
-    CheckSObjectsAvailable,
-    CheckSObjectPerms,
-)
-from cumulusci.tasks.salesforce.tests.util import create_task
+from unittest.mock import Mock
 
 from simple_salesforce.exceptions import SalesforceMalformedRequest
+
+from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.tasks.preflight.sobjects import (
+    CheckSObjectOWDs,
+    CheckSObjectPerms,
+    CheckSObjectsAvailable,
+)
+from cumulusci.tasks.salesforce.tests.util import create_task
 
 
 class TestCheckSObjectsAvailable(unittest.TestCase):

@@ -1,17 +1,17 @@
-import pytest
 import unittest
 from unittest import mock
 
+import pytest
 import responses
 
-from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
+from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.tasks.bulkdata import DeleteData
 from cumulusci.tasks.bulkdata.step import (
-    DataOperationStatus,
-    DataOperationResult,
-    DataOperationJobResult,
-    DataOperationType,
     DataApi,
+    DataOperationJobResult,
+    DataOperationResult,
+    DataOperationStatus,
+    DataOperationType,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tests.util import mock_describe_calls

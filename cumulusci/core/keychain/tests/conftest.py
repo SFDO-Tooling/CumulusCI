@@ -1,10 +1,10 @@
 import pytest
 
 from cumulusci.core.config import (
-    UniversalConfig,
     BaseProjectConfig,
     OrgConfig,
     ServiceConfig,
+    UniversalConfig,
 )
 
 
@@ -17,6 +17,10 @@ def project_config():
         "github": {"attributes": {"name": {"required": True}, "password": {}}},
         "not_configured": {"attributes": {"foo": {"required": True}}},
         "devhub": {"attributes": {"foo": {"required": True}}},
+        "marketing_cloud": {
+            "class_path": "cumulusci.core.config.marketing_cloud_service_config.MarketingCloudServiceConfig",
+            "attributes": {"foo": {"required": True}},
+        },
     }
     project_config.project__name = "TestProject"
     return project_config

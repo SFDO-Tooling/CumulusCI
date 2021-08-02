@@ -1,14 +1,14 @@
-from abc import ABCMeta, abstractmethod
-from collections import namedtuple
-from contextlib import contextmanager
 import csv
-from enum import Enum
 import io
 import os
 import pathlib
 import tempfile
 import time
-from typing import Dict, Any, List, Optional
+from abc import ABCMeta, abstractmethod
+from collections import namedtuple
+from contextlib import contextmanager
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 import lxml.etree as ET
 import requests

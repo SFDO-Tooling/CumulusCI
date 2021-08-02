@@ -1,6 +1,7 @@
 import os
-import click
 from unittest import mock
+
+import click
 
 from cumulusci.core.tasks import BaseTask
 

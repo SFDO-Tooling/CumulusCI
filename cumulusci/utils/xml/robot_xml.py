@@ -1,9 +1,8 @@
-from typing import Callable, NamedTuple, Dict
 import re
+from typing import Callable, Dict, NamedTuple
 
 from robot.api import ExecutionResult, ResultVisitor
 from robot.result.model import TestCase
-
 
 UNITS = {
     "setup_time": ("s", "Setup Time"),

@@ -1,7 +1,7 @@
 import http.client
 
-from github3 import GitHubError
 import github3.exceptions
+from github3 import GitHubError
 
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.core.utils import process_bool_arg

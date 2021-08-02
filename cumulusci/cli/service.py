@@ -1,11 +1,13 @@
-import click
 import json
-
+import os
 from pathlib import Path
+
+import click
 
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import CumulusCIException, ServiceNotConfigured
-from cumulusci.core.utils import import_global, import_class
+from cumulusci.core.utils import import_class, import_global
+
 from .runtime import pass_runtime
 from .ui import CliTable
 
@@ -307,6 +309,18 @@ def service_rename(runtime, service_type, current_name, new_name):
 @click.argument("service_name")
 @pass_runtime(require_project=False, require_keychain=True)
 def service_remove(runtime, service_type, service_name):
+    # cannot remove services defined via env vars
+    env_var_name = (
+        f"{runtime.keychain.env_service_var_prefix}{service_type}__{service_name}"
+    )
+    if os.environ.get(env_var_name):
+        message = (
+            f"The service {service_type}:{service_name} is defined by environment variables. "
+            f"If you would like it removed please delete the environment variable with name: {env_var_name}"
+        )
+        click.echo(message)
+        return
+
     new_default = None
     if len(
         runtime.keychain.services.get(service_type, {}).keys()

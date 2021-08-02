@@ -1,6 +1,6 @@
-from itertools import chain
 from concurrent.futures import as_completed
-from typing import Iterable, Dict
+from itertools import chain
+from typing import Dict, Iterable
 
 from requests_futures.sessions import FuturesSession
 

@@ -1,4 +1,5 @@
-from subprocess import Popen, PIPE
+from subprocess import PIPE, Popen
+
 import pytest
 
 

@@ -1,23 +1,20 @@
 import os
 import re
-import requests
-
+from collections import defaultdict, namedtuple
 from contextlib import contextmanager
-from collections import defaultdict
-from collections import namedtuple
-from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
 from distutils.version import StrictVersion
-from simple_salesforce import Salesforce
-from simple_salesforce.exceptions import SalesforceError, SalesforceResourceNotFound
 from urllib.parse import urlparse
 
+import requests
+from simple_salesforce import Salesforce
+from simple_salesforce.exceptions import SalesforceError, SalesforceResourceNotFound
+
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.exceptions import DependencyResolutionError
-from cumulusci.oauth.salesforce import jwt_session, SANDBOX_LOGIN_URL
+from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
+from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
+from cumulusci.oauth.salesforce import SANDBOX_LOGIN_URL, jwt_session
 from cumulusci.utils.fileutils import open_fs_resource
 from cumulusci.utils.http.requests_utils import safe_json_from_response
-
 
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
 SANDBOX_MYDOMAIN_RE = re.compile(r"\.cs\d+\.my\.(.*)salesforce\.com")

@@ -1,4 +1,5 @@
 import unittest
+
 from cumulusci.core import template_utils
 
 

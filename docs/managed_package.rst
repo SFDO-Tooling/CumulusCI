@@ -1,6 +1,6 @@
-Release a Managed Package
-=========================
-This section outlines how to release a first generation (1GP) Salesforce managed package project.
+Release a First-Generation Managed Package
+==========================================
+This section outlines how to release first-generation (1GP) Salesforce managed package projects.
 Salesforce.org's Release Engineering team practices :doc:`CumulusCI Flow <cumulusci_flow>`, which incorporates all of these steps.
 
 
@@ -108,43 +108,6 @@ This flow is intended to be run whenever a beta release is created.
 
 
 
-Generate Release Notes
-----------------------
-
-The ``github_release_notes`` task fetches the text from Pull Requests that were merged between two given tags. The task then searches for specific titles (Critical Changes, Changes, Issues Closed, New Metadata, Installation Info, and so on) in the Pull Request bodies, and aggregates the text together under those titles in the GitHub tag description.
-
-To see what the release notes look like without publishing them to GitHub:
-
-.. code-block::
-
-    $ cci task run github_release_notes --tag release/1.2
-
-.. note:: The ``--tag`` option indicates which release's change notes are aggregated. The previous command aggregates all change notes between the `1.2` release and the `1.1` release.
-
-To see where each line in the release notes comes from, use the ``--link_pr True`` option.
-
-.. code-block::
-
-    $ cci task run github_release_notes --tag release/1.2 --link_pr True
-
-To publish the release notes to a release tag in GitHub, use the ``--publish True`` option:
-
-.. code-block::
-
-    $ cci task run github_release_notes --tag release/1.2 --publish True
-
-To use additional headings, add new ones (as parsers) under the ``project__git__release_notes`` section of the ``cumulusci.yml`` file.
-
-.. code-block::
-
-    release_notes:
-        parsers:
-            7: class_path: cumulusci.tasks.release_notes.parser.GithubLinesParser
-
-.. note:: The new parser is listed with the number ``7`` because the first six are the `default parsers <https://github.com/SFDO-Tooling/CumulusCI/blob/671a0e88cef79e9aeefe1e2b835816cd8141bdbb/cumulusci/cumulusci.yml#L1154>`_ that come with CumulusCI.
-        
-
-
 Upload and Test a Final Version
 -------------------------------
 
@@ -173,35 +136,3 @@ To test the new package version:
     $ cci flow run ci_release --org release
 
 The ``ci_release`` flow installs the latest production release version, and runs the Apex tests from the managed package on a scratch org.
-
-
-
-Manage Push Upgrades
---------------------
-If your packaging org is enabled to use push upgrades, CumulusCI can schedule push upgrades with the ``push_sandbox`` and ``push_all`` tasks. 
-
-.. warning::
-
-    ``push_all`` schedules push upgrades to *all* customers' production orgs. Please confirm that this action is essential before executing the task.
-
-.. code-block:: console
-
-    $ cci task run push_all --version <version> --org packaging
-
-Replace ``<version>`` with the version of the managed package to be pushed.
-
-By default, push upgrades are scheduled to run immediately.
-
-To schedule the push upgrades to occur at a specific time, use the ``--start_time`` option with a time value in UTC. 
-
-.. code-block:: console
-
-    $ cci task run push_all --version <version> --start_time 2020-10-19T10:00 --org packaging
-
-There are additional tasks related to push upgrades in the CumulusCI standard library.
-
-* :ref:`push_failure_report`: Produces a ``csv`` report of the failed and otherwise anomalous push jobs.
-* :ref:`push_list`: Schedules a push upgrade of a package version to all orgs listed in a specified file.
-* :ref:`push_qa`: Schedules a push upgrade of a package version to all orgs listed in ``push/orgs_qa.txt``.
-* :ref:`push_sandbox`: Schedules a push upgrade of a package version to all subscribers' sandboxes.
-* :ref:`push_trial`: Schedules a push upgrade of a package version to Trialforce Template orgs listed in ``push/orgs_trial.txt``.

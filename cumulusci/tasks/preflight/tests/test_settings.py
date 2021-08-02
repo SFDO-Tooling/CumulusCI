@@ -1,12 +1,11 @@
 from unittest.mock import MagicMock
-from cumulusci.tasks.preflight.settings import CheckSettingsValue, CheckMyDomainActive
-from cumulusci.tasks.salesforce.tests.util import create_task
-
-from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 import pytest
 import responses
+from simple_salesforce.exceptions import SalesforceMalformedRequest
 
+from cumulusci.tasks.preflight.settings import CheckMyDomainActive, CheckSettingsValue
+from cumulusci.tasks.salesforce.tests.util import create_task
 
 JSON_RESPONSE = {
     "records": [{"IntVal": 3, "FloatVal": 3.0, "BoolVal": True, "StringVal": "foo"}],
