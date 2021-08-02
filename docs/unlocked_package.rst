@@ -11,7 +11,7 @@ This section assumes:
 * :doc:`CumulusCI is installed <get_started>` on your computer.
 * A Salesforce project has been configured for use with CumulusCI.
 * Your Dev Hub has the required features enabled: `Enable DevHub Features in Your Org <https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packagingGuide/sfdx_setup_enable_devhub.htm>`_ and `Enable Unlocked and Second-Generation Managed Packaging <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_secondgen_pkg.htm>`_.
-* If you're building a namespaced Unlocked Package, a namespace org has been `created and linked to the active Dev Hub <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_dev2gp_create_namespace.htm>`_.
+* If you're building a namespaced unlocked package, a namespace org has been `created and linked to the active Dev Hub <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_dev2gp_create_namespace.htm>`_.
 
 
 Create a Beta Version
@@ -73,14 +73,14 @@ CumulusCI offers two modes of handling unpackaged metadata owned by dependencies
 
 The default behavior is to ignore unpackaged metadata. If unpackaged metadata is intended to satisfy install-time dependencies of packages, this requires that those dependencies be met in other ways, such as by configuring the scratch org definition. For examples of how to satisfy the install-time dependencies for NPSP and EDA without using unpackaged metadata, see :doc:`Extending NPSP and EDA with Second-Generation Packaging <npsp_eda_2gp>`.
 
-The other option is to have CumulusCI automatically create Unlocked Packages containing unpackaged metadata from dependency projects. For example, if your project depended on the repository ``Food-Bank``, which contained the unpackaged metadata directories
+The other option is to have CumulusCI automatically create unlocked packages containing unpackaged metadata from dependency projects. For example, if your project depended on the repository ``Food-Bank``, which contained the unpackaged metadata directories
 
 * ``unpackaged/pre/record_types``
 * ``unpackaged/pre/setup``
 
-CumulusCI would automatically, while uploading a version of your package, upload Unlocked Package versions containing the current content of those unpackaged directories.
+CumulusCI would automatically, while uploading a version of your package, upload unlocked package versions containing the current content of those unpackaged directories.
 
-The Unlocked Package route is generally suitable for testing only, where it may be convenient when working with complex legacy projects that include lots of unpackaged metadata. However, it's generally *not* suitable for use when building production packages, because your packages would have to be distributed along with those Unlocked Packages. For this reason, this behavior is off by default. If you would like to use it, configure your ``cumulusci.yml`` to set the option ``create_unlocked_dependency_packages`` on the ``create_package_version`` task.
+The unlocked package route is generally suitable for testing only, where it may be convenient when working with complex legacy projects that include lots of unpackaged metadata. However, it's generally *not* suitable for use when building production packages, because your packages would have to be distributed along with those unlocked packages. For this reason, this behavior is off by default. If you would like to use it, configure your ``cumulusci.yml`` to set the option ``create_unlocked_dependency_packages`` on the ``create_package_version`` task.
 
 Test a Beta Version
 -------------------

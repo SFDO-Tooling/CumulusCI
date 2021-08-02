@@ -5,7 +5,7 @@ CumulusCI can schedule push upgrades with the ``push_sandbox`` and ``push_all`` 
 
 .. warning::
 
-    ``push_all`` schedules push upgrades to *all* customers' production orgs. Please confirm that this action is desired before executing the task.
+    ``push_all`` schedules push upgrades to *all* customers' production and sandbox orgs. Please confirm that this action is desired before executing the task.
 
 .. code-block:: console
 

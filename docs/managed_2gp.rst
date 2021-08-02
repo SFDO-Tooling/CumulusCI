@@ -63,16 +63,13 @@ Customizing Package Uploads
 
 2GP package uploads are performed by the ``create_package_version`` task. If the built-in configuration used by ``upload_2gp_beta``
 does not suit the needs of your project - for example, if you want to increment version
-numbers differently, or build an org-dependent package - you can customize the options for that task in ``upload_2gp_beta`` or invoke the task directly.
+numbers differently, or build a package with the Skip Validation option - you can customize the options for that task in ``upload_2gp_beta`` or invoke the task directly.
 
 To learn more about the available options, run
 
 .. code-block:: console
 
     $ cci task info create_package_version
-
-
-CumulusCI can also create org-dependent and skip-validation packages when configured with the appropriate options.
 
 
 Handling Unpackaged Metadata
@@ -87,18 +84,18 @@ The default behavior is to ignore unpackaged metadata. If unpackaged metadata is
 of packages, this requires that those dependencies be met in other ways, such as by configuring the scratch org definition. For
 examples of how to satisfy the install-time dependencies for NPSP and EDA without using unpackaged metadata, see :doc:`Extending NPSP and EDA with Second-Generation Packaging <npsp_eda_2gp>`.
 
-The other option is to have CumulusCI automatically create Unlocked Packages containing unpackaged metadata from dependency projects.
+The other option is to have CumulusCI automatically create unlocked packages containing unpackaged metadata from dependency projects.
 For example, if your project depended on the repository ``Food-Bank``, which contained the unpackaged metadata directories
 
 * ``unpackaged/pre/record_types``
 * ``unpackaged/pre/setup``
 
-CumulusCI would automatically, while uploading a version of your package, upload Unlocked Package versions containing the current
+CumulusCI would automatically, while uploading a version of your package, upload unlocked package versions containing the current
 content of those unpackaged directories.
 
-The Unlocked Package route is generally suitable for testing only, where it may be convenient when working with complex legacy
+The unlocked package route is generally suitable for testing only, where it may be convenient when working with complex legacy
 projects that include lots of unpackaged metadata. However, it's generally *not* suitable for use when building production packages,
-because your packages would have to be distributed along with those Unlocked Packages. For this reason, this behavior is off by default.
+because your packages would have to be distributed along with those unlocked packages. For this reason, this behavior is off by default.
 If you would like to use it, configure your ``cumulusci.yml`` to set the option ``create_unlocked_dependency_packages`` on the
 ``create_package_version`` task.
 
@@ -135,7 +132,7 @@ release operations:
 
     $ cci task run promote_package_version --version_id 04t000000000000 --promote_dependencies True
 
-Alternatively, you can use the ``sfdx force:package:version:promote`` command to promote a 2GP package.
+Alternatively, you can use the ``sfdx force:package:version:promote`` command to promote a 2GP package. Note that using this command will also not perform any release operations in GitHub. 
 
 
 Promote Dependencies
