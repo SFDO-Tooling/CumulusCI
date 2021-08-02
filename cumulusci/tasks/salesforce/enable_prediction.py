@@ -12,7 +12,7 @@ class EnablePrediction(BaseSalesforceApiTask):
     This task updates the state of Einstein Prediction Builder predictions from 'Draft' to 'Enabled' by
     posting to the Tooling API.
 
-    cci task run enable_prediction --org dev -o api_names mlpd__Example_Prediction_v0
+    cci task run enable_prediction --org dev -o api_names Example_Prediction_v0
     """
 
     task_options = {
