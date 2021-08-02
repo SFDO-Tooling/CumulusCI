@@ -715,7 +715,7 @@ class TestAddFieldsToPageLayout(unittest.TestCase):
         assert len(items) == 5
 
     def test_add_fields_fallback(self):
-        """Testing the fallback procedure of the positionin, in the order listed each item of
+        """Testing the fallback procedure of the positioning, in the order listed each item of
         the list is tried, and if not successful the default is finally applied."""
         task = create_task(
             AddFieldsToPageLayout,

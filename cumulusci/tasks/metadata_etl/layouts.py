@@ -85,13 +85,12 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
         - fields:
 
             - api_name: [field API name]
-            - field_behavior: [ReadOnly | Edit | Required]
+            - required: Boolean (default False)
+            - read_only: Boolean (default False, not compatable with required)
             - position: (Optional: A list of single or multiple position options.)
 
                 - relative: [before | after | top | bottom]
                 - field: [api_name] (Use with relative: before, after)
-                - required: Boolean (default False)
-                - read_only: Boolean (default False, not compatable with required)
                 - section: [index] (Use with relative: top, bottom)
                 - column: [first | last] (Use with relative: top, bottom)
 
@@ -144,7 +143,7 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
         self._add_fields(api_name)
         self._add_pages(api_name)
 
-        return metadata
+        return self._metadata
 
     ## Collect fields already in the layout
     def _collect_existing_items(self):
@@ -162,7 +161,7 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
 
     def _add_fields(self, api_name):
         # Do nothing if there are no fields
-        if len(self._adding_fields) == 0:
+        if not self._adding_fields:
             return
 
         field_props = {
@@ -184,20 +183,20 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
             behavior = "Edit"
             required = process_bool_arg(field.get("required") or False)
             read_only = process_bool_arg(field.get("read_only") or False)
-            if required and read_only is False:
+            if required and not read_only:
                 behavior = "Required"
-            elif read_only and required is False:
+            elif read_only and not required:
                 behavior = "Readonly"
             elif required and read_only:
                 raise TaskOptionsError(
-                    f"Required and ReadOnly cannot both be True for {adding_field_name}"
+                    f"`required` and `read_only` cannot both be True for {adding_field_name}"
                 )
             field_layout_item.append("behavior", behavior)
             field_layout_item.append("field", adding_field_name)
 
     def _add_pages(self, api_name):
         # Do nothing if there are no fields
-        if len(self._adding_pages) == 0:
+        if not self._adding_pages:
             return
 
         page_props = {
@@ -273,7 +272,7 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
                 return new_layout_item
 
     def _process_position(self, position, default_position):
-        """Returns a MetadataElement that represents a  given the position"""
+        """Attempt to apply a position specifier and return a MetadataElement representing a layout item, or None if the position specifier cannot be applied."""
         relative_position = position.get("relative", default_position.get("relative"))
 
         # Mutually exclusive, therefore the higher priority is field if specified
