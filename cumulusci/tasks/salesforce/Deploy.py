@@ -2,6 +2,7 @@ import pathlib
 from typing import Optional
 
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.sfdx import convert_sfdx_source
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
@@ -120,10 +121,12 @@ class Deploy(BaseSalesforceMetadataApiTask):
             "unmanaged": not self._has_namespaced_package(namespace),
             "namespaced_org": self._is_namespaced_org(namespace),
         }
+        package_zip = None
+        with convert_sfdx_source(path, None, self.logger) as src_path:
+            package_zip = MetadataPackageZipBuilder(
+                path=src_path, options=options, logger=self.logger
+            )
 
-        package_zip = MetadataPackageZipBuilder(
-            path=path, options=options, logger=self.logger
-        )
         if not package_zip.zf.namelist():
             return
         return package_zip.as_base64()

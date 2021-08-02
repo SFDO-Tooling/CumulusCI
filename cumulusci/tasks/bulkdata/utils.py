@@ -4,14 +4,9 @@ import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import MetaData
-from sqlalchemy import Table
-from sqlalchemy import Unicode
-from sqlalchemy.orm import mapper
-from sqlalchemy.orm import Session
 from simple_salesforce import Salesforce
+from sqlalchemy import Column, Integer, MetaData, Table, Unicode
+from sqlalchemy.orm import Session, mapper
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.utils.backports.py36 import nullcontext

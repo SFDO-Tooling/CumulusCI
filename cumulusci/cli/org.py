@@ -1,18 +1,19 @@
-from datetime import datetime
-from urllib.parse import urlencode, urlparse
 import code
 import json
 import runpy
 import webbrowser
+from datetime import datetime
+from urllib.parse import urlencode, urlparse
 
 import click
 
-from cumulusci.cli.ui import CliTable, CROSSMARK, SimpleSalesforceUIHelpers
+from cumulusci.cli.ui import CROSSMARK, CliTable, SimpleSalesforceUIHelpers
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import parse_api_datetime
+
 from .runtime import pass_runtime
 
 

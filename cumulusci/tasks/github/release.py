@@ -6,8 +6,7 @@ import github3.exceptions
 
 from cumulusci.core.dependencies.dependencies import parse_dependencies
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
-from cumulusci.core.exceptions import GithubException
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import GithubException, TaskOptionsError
 from cumulusci.tasks.github.base import BaseGithubTask
 
 

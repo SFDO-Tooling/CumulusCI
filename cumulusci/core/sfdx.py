@@ -1,12 +1,20 @@
+import contextlib
+import enum
 import io
 import json
 import logging
+import os
+import pathlib
 import platform
-import sarge
 import sys
 import typing as T
+from os import PathLike
+from zipfile import ZipFile
+
+import sarge
 
 from cumulusci.core.exceptions import SfdxOrgException
+from cumulusci.utils import temporary_dir
 
 logger = logging.getLogger(__name__)
 
@@ -89,3 +97,57 @@ def get_default_devhub_username():
         )
     username = result["result"][0]["value"]
     return username
+
+
+class SourceFormat(str, enum.Enum):
+    SFDX = "SFDX"
+    MDAPI = "MDAPI"
+
+
+def get_source_format_for_path(path: T.Optional[PathLike]) -> SourceFormat:
+    if pathlib.Path(path or pathlib.Path.cwd(), "package.xml").exists():
+        return SourceFormat.MDAPI
+
+    return SourceFormat.SFDX
+
+
+def get_source_format_for_zipfile(
+    zf: ZipFile, subfolder: T.Optional[str]
+) -> SourceFormat:
+    namelist = zf.namelist()
+
+    target_name = str(pathlib.PurePosixPath(subfolder or "", "package.xml"))
+
+    if target_name in namelist:
+        return SourceFormat.MDAPI
+
+    return SourceFormat.SFDX
+
+
+@contextlib.contextmanager
+def convert_sfdx_source(
+    path: T.Optional[PathLike], name: T.Optional[str], logger: logging.Logger
+):
+    mdapi_path = None
+    with contextlib.ExitStack() as stack:
+        # Convert SFDX -> MDAPI format if path exists but does not have package.xml
+        if (
+            len(os.listdir(path))  # path == None -> CWD
+            and get_source_format_for_path(path) is SourceFormat.SFDX
+        ):
+            logger.info("Converting from SFDX to MDAPI format.")
+            mdapi_path = stack.enter_context(temporary_dir(chdir=False))
+            args = ["-d", mdapi_path]
+            if path:
+                # No path means convert default package directory in the CWD
+                args += ["-r", str(path)]
+            if name:
+                args += ["-n", name]
+            sfdx(
+                "force:source:convert",
+                args=args,
+                capture_output=True,
+                check_return=True,
+            )
+
+        yield mdapi_path or path

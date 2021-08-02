@@ -3,9 +3,9 @@ import io
 import unittest
 import zipfile
 
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.config import BaseProjectConfig, UniversalConfig
 from cumulusci.tasks.salesforce import CreatePackage
+
 from .util import create_task
 
 

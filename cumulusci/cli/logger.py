@@ -3,9 +3,9 @@ import logging
 import os
 import sys
 import tempfile
-import requests
 
 import coloredlogs
+import requests
 
 try:
     import colorama

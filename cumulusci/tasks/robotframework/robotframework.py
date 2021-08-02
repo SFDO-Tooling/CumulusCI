@@ -1,24 +1,23 @@
 import os
 import shlex
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
-from robot import run as robot_run
 from robot import pythonpathsetter
+from robot import run as robot_run
 from robot.testdoc import testdoc
 
 from cumulusci.core.exceptions import (
+    NamespaceNotFoundError,
     RobotTestFailure,
     TaskOptionsError,
-    NamespaceNotFoundError,
 )
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.utils import process_bool_arg
-from cumulusci.core.utils import process_list_arg
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.robotframework.utils import set_pdb_trace
-from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.tasks.robotframework.debugger import DebugListener
+from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
 
 

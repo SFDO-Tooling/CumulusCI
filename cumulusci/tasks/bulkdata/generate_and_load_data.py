@@ -1,16 +1,16 @@
 import os
-from tempfile import TemporaryDirectory
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Optional, Union
 
 from sqlalchemy import MetaData, create_engine
 
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.config import TaskConfig
+from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.utils import import_global
 from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.tasks.bulkdata.utils import generate_batches
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.utils import import_global
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class GenerateAndLoadData(BaseSalesforceApiTask):

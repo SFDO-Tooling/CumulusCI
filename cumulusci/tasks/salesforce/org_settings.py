@@ -1,14 +1,13 @@
 import contextlib
-from cumulusci.tasks.metadata.package import PackageXmlGenerator
 import json
 import pathlib
 import textwrap
 from typing import Optional
 
+from cumulusci.core.utils import dictmerge
+from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.tasks.salesforce import Deploy
 from cumulusci.utils import temporary_dir
-from cumulusci.core.utils import dictmerge
-
 
 SETTINGS_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <{settingsName} xmlns="http://soap.sforce.com/2006/04/metadata">

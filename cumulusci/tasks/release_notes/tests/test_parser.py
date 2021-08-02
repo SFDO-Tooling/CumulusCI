@@ -1,20 +1,23 @@
 import http.client
-from unittest import mock
 import unittest
 import urllib.parse
+from unittest import mock
+
 import responses
 
-from cumulusci.tasks.release_notes.exceptions import GithubIssuesError
-from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
-from cumulusci.tasks.release_notes.parser import BaseChangeNotesParser
-from cumulusci.tasks.release_notes.parser import ChangeNotesLinesParser
-from cumulusci.tasks.release_notes.parser import GithubIssuesParser
-from cumulusci.tasks.release_notes.parser import GithubLinesParser
-from cumulusci.tasks.release_notes.parser import IssuesParser
-from cumulusci.tasks.release_notes.parser import InstallLinkParser
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.core.github import get_github_api
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.release_notes.exceptions import GithubIssuesError
+from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
+from cumulusci.tasks.release_notes.parser import (
+    BaseChangeNotesParser,
+    ChangeNotesLinesParser,
+    GithubIssuesParser,
+    GithubLinesParser,
+    InstallLinkParser,
+    IssuesParser,
+)
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 
 PARSER_CONFIG = [

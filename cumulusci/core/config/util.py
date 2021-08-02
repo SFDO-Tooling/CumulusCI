@@ -1,6 +1,6 @@
 from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.exceptions import CumulusCIException, ServiceNotConfigured
 from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
+from cumulusci.core.exceptions import CumulusCIException, ServiceNotConfigured
 from cumulusci.core.sfdx import get_default_devhub_username
 
 

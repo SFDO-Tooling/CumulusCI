@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from cumulusci.core.exceptions import YAMLParseException
-from cumulusci.utils.yaml.safer_loader import load_yaml_data, _replace_nbsp
+from cumulusci.utils.yaml.safer_loader import _replace_nbsp, load_yaml_data
 
 
 @pytest.fixture

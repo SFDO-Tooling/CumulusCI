@@ -1,5 +1,5 @@
-from typing import Union, IO
 from pathlib import Path, Sequence
+from typing import IO, Union
 
 from pydantic import BaseModel, ValidationError
 from pydantic.error_wrappers import ErrorWrapper

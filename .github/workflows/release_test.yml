@@ -10,6 +10,8 @@ env:
   CUMULUSCI_ORG_scratch: '{"config_file": "orgs/dev.json", "scratch": true}'
   CUMULUSCI_ORG_packaging: ${{ secrets.CUMULUSCI_ORG_packaging }}
   CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
+  GITHUB_APP_ID: 129383
+  GITHUB_APP_KEY: ${{ secrets.CCITEST_APP_KEY }}
   SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
   SFDX_HUB_KEY: ${{ secrets.SFDX_HUB_KEY }}
   SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
@@ -19,8 +21,6 @@ jobs:
   test_release:
     name: "Test Release Flows"
     runs-on: ubuntu-latest
-    env:
-      CUMULUSCI_KEYCHAIN_CLASS: cumulusci.core.keychain.EnvironmentProjectKeychain
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.8
