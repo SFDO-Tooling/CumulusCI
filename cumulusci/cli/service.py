@@ -142,13 +142,13 @@ class ConnectServiceCommand(click.MultiCommand):
                     abort=True,
                 )
 
-            set_as_default = False
             prompt_to_default_service = f"A default service already exists for service type {service_type}. Would you like to set this service as the new default?"
             default_service_exists = runtime.keychain.get_default_service_name(
                 service_type
             )
-            if default_service_exists and click.confirm(prompt_to_default_service):
-                set_as_default = True
+            set_as_default = default_service_exists and click.confirm(
+                prompt_to_default_service
+            )
 
             if runtime.project_config is None:
                 set_project_default = False
