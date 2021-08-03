@@ -7,10 +7,12 @@ Records transactions if there is an org specified and does not if there is not.
 """
 
 import re
+import pytest
+from pathlib import Path
 
 from vcr import cassette
-
-from .pytest_sf_orgconnect import sf_pytest_orgname, sf_org_connection_state
+from contextvars import ContextVar
+from contextlib import contextmanager
 
 
 def simplify_body(request_or_response_body):
@@ -53,9 +55,61 @@ replacements = [
 ]
 
 
+RECORDING = ContextVar("RECORDING", default=True)
+READING = ContextVar("READING", default=True)
+
+
+@contextmanager
+def set_mode(mode, value):
+    orig = mode.get()
+    mode.set(value)
+    try:
+        yield
+    finally:
+        mode.set(orig)
+
+
+@pytest.fixture(scope="function")
+def vcr_cassette_path(vcr_cassette_dir, vcr_cassette_name):
+    return Path(vcr_cassette_dir, vcr_cassette_name + ".yaml")
+
+
+@pytest.fixture(autouse=True)
+def configure_recording_mode(
+    request,
+    user_requested_network_access,
+    vcr_cassette_path,
+    user_requested_cassette_replacement,
+):
+    recording_mode = RECORDING.get()
+    reading_mode = READING.get()
+    if (
+        user_requested_network_access
+        and vcr_cassette_path.exists()
+        and user_requested_cassette_replacement
+    ):
+        vcr_cassette_path.unlink()
+        recording_mode = True
+        reading_mode = "irrelevant"  # reading from missing file
+    elif user_requested_network_access and vcr_cassette_path.exists():
+        # user wants to keep existing cassette, so disable VCR usage entirely, like:
+        # https://github.com/ktosiek/pytest-vcr/blob/08482cf0724697c14b63ad17752a0f13f7670add/pytest_vcr.py#L56
+        recording_mode = False
+        reading_mode = False
+    elif user_requested_network_access:
+        recording_mode = True
+        reading_mode = "irrelevant"  # file doesn't exist, so reading missing file
+    else:
+        recording_mode = False
+        reading_mode = True
+
+    with set_mode(RECORDING, recording_mode), set_mode(READING, reading_mode):
+        yield
+
+
 def sf_before_record_request(http_request):
 
-    if not sf_org_connection_state.get().should_record:
+    if not (READING.get() or RECORDING.get()):
         return None
     if http_request.body:
         http_request.body = simplify_body(http_request.body)
@@ -74,14 +128,12 @@ def sf_before_record_response(response):
     return response
 
 
-def vcr_config(request):
+def vcr_config(request, user_requested_network_access):
     "Fixture for configuring VCR"
 
-    orgname = sf_pytest_orgname(request)
-
     # https://vcrpy.readthedocs.io/en/latest/usage.html#record-modes
-    if orgname:
-        record_mode = "once"
+    if user_requested_network_access:
+        record_mode = "new_episodes"  # should this be once?
     else:
         record_mode = "none"
 
@@ -90,7 +142,7 @@ def vcr_config(request):
         "decode_compressed_response": True,
         "before_record_response": sf_before_record_response,
         "before_record_request": sf_before_record_request,
-        # this is redundant, but I guess its a from of
+        # this is redundant, but I guess its a form of
         # security in-depth
         "filter_headers": [
             "Authorization",
@@ -142,6 +194,12 @@ def salesforce_vcr(vcr):
 salesforce_vcr.__doc__ = __doc__
 
 orig_contains = cassette.Cassette.__contains__
+
+
+# @pytest.fixture(scope="module")
+# def vcr_cassette_dir(request):
+#     test_dir = request.node.fspath.dirname
+#     return os.path.join(test_dir, "cassettes")
 
 
 # much better error handling than the built-in VCR stuff

@@ -182,16 +182,16 @@ class TestSnowfakery:
         assert len(threads_instead_of_processes.mock_calls) == 1
 
     @contextmanager
-    def _ensure_accounts(self, number, create_task, setup_org_without_recording, sf):
+    def _ensure_accounts(self, number, create_task, run_code_without_recording, sf):
         def setup(number):
             task = create_task(DeleteData, {"objects": "Entitlement, Account"})
             task()
             for i in range(0, number):
                 sf.Account.create({"Name": f"Account {i}"})
 
-        setup_org_without_recording(lambda: setup(number))
+        run_code_without_recording(lambda: setup(number))
         yield
-        setup_org_without_recording(lambda: setup(0))
+        run_code_without_recording(lambda: setup(0))
 
     # There was previously a failed attempt at testing the connected app here.
     # Could try again after Snowfakery 2.0 launch.
@@ -204,9 +204,9 @@ class TestSnowfakery:
         threads_instead_of_processes,
         mock_load_data,
         create_task,
-        setup_org_without_recording,
+        run_code_without_recording,
     ):
-        with self._ensure_accounts(6, create_task, setup_org_without_recording, sf):
+        with self._ensure_accounts(6, create_task, run_code_without_recording, sf):
             task = create_task(
                 Snowfakery,
                 {"recipe": sample_yaml, "run_until_records_in_org": "Account:6"},
@@ -224,9 +224,9 @@ class TestSnowfakery:
         threads_instead_of_processes,
         mock_load_data,
         create_task,
-        setup_org_without_recording,
+        run_code_without_recording,
     ):
-        with self._ensure_accounts(10, create_task, setup_org_without_recording, sf):
+        with self._ensure_accounts(10, create_task, run_code_without_recording, sf):
             # org reports 10 records in org
             # so we only need 6 more.
             # That will be one "initial" batch plus one "parallel" batch
@@ -248,10 +248,10 @@ class TestSnowfakery:
         threads_instead_of_processes,
         mock_load_data,
         snowfakery,
-        setup_org_without_recording,
+        run_code_without_recording,
         create_task,
     ):
-        with self._ensure_accounts(10, create_task, setup_org_without_recording, sf):
+        with self._ensure_accounts(10, create_task, run_code_without_recording, sf):
             task = snowfakery(recipe=sample_yaml, run_until_records_in_org="Account:16")
             task()
 
