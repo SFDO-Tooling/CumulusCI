@@ -43,7 +43,7 @@ Robot addresses these challenges with a few strategies, helping you write high-l
 Custom Tasks
 ^^^^^^^^^^^^
 
-CumulusCI integrates with Robot via custom ``robot`` tasks, such as:
+CumulusCI integrates with Robot via custom tasks, such as:
 
 * ``robot``: Runs one or more Robot tests. This is the most common task.
 * ``robot_libdoc``: Runs the `libdoc <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#library-documentation-tool-libdoc>`_ command, which creates an HTML file defining all the keywords in a library or resource file.
@@ -56,7 +56,11 @@ Like with any CumulusCi task, you can get documentation and a list of arguments 
 Custom Keywords
 ^^^^^^^^^^^^^^^
 
-CumulusCI provides a set of keywords unique to both Salesforce and CumulusCI for acceptance testing. These keywords can run other tasks, interact with Salesforce applications, call Salesforce APIs, and so on. To learn more, see `Keywords.html <https://cumulusci.readthedocs.io/en/stable/Keywords.html>`_.
+CumulusCI provides a set of keywords unique to both Salesforce and CumulusCI for acceptance testing. These keywords can run other tasks, interact with Salesforce applications, call Salesforce APIs, and so on. For a list of all custom keywords provided by CumulusCI, see `Keywords.html <https://cumulusci.readthedocs.io/en/stable/Keywords.html>`_.
+
+.. tip::
+    In addition to the keywords that come with CumulusCI, you have the ability to write project-specific keywords. These keywords can be written based on existing keywords, or implemented in Python.
+
 
 
 Robot Directory Structure
@@ -335,7 +339,7 @@ To run this test from the command line:
 Create Custom Keywords
 ----------------------
 
-We mentioned earlier that Robot makes use of a domain-specific language. By creating a library of reusable custom keywords, we can create this DSL for testing Salesforce apps.
+We mentioned earlier that Robot makes use of a domain-specific language. By creating a collection of reusable custom keywords, we can create this DSL for testing Salesforce apps.
 
 Let's now create a new Robot test that includes a custom keyword called ``Create a test Contact``, which creates a ``Contact`` record. Save this code in a file named ``custom_keyword.robot`` in the ``robot/<ProjectName>/tests`` folder of your project's repository.
 
@@ -467,8 +471,8 @@ To run this test from the command line:
 In addition to the usual output files (``log.html``, ``report.html``, ``output.xml``), this test also creates a screenshot in the ``results`` folder. If you open ``log.html``, you can see whether each step of the test case passed or failed. Toggle the ``+`` tab of the ``Take screenshot of landing page`` test header to examine the results of the test. Then toggle the ``+`` tab of the ``Capture page screenshot`` keyword to examine the screenshot taken of the landing page.
 
 
-Open a Test Browser
-^^^^^^^^^^^^^^^^^^^
+Open the Browser
+^^^^^^^^^^^^^^^^
 
 The Selenium library comes with a keyword for opening the browser. However, CumulusCi comes with its own keyword, `Open Test Browser <https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.robot.Open%20Test%20Browser>`_, which not only opens the browser but takes care of the details of logging into the org. This keyword uses a variable named ``${BROWSER}``, which can be set from the command line or in the ``cumulusci.yml`` file to specify which browser to use.
 
