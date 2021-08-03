@@ -1,5 +1,11 @@
-from cumulusci.tasks.metadata_etl import AddRelatedLists
-from cumulusci.tasks.metadata_etl.layouts import AddRecordPlatformActionListItem
+import unittest
+
+from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.tasks.metadata_etl.layouts import (
+    AddFieldsToPageLayout,
+    AddRecordPlatformActionListItem,
+    AddRelatedLists,
+)
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.utils.xml import metadata_tree
 
@@ -494,3 +500,311 @@ class TestAddRecordPlatformActionListItem:
         # Assert our transformed metadata is the same as our expected
         # This confirms, action list item size, sortOrder, and record context
         assert actual_metadata.tostring() == expected_metadata.tostring()
+
+
+# Mocked empty page layout
+MOCK_ADD_FIELDS_LAYOUT = """<?xml version="1.0" encoding="UTF-8"?>
+<Layout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <excludeButtons>Submit</excludeButtons>
+    <layoutSections>
+        <customLabel>false</customLabel>
+        <detailHeading>false</detailHeading>
+        <editHeading>true</editHeading>
+        <label>Information</label>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Required</behavior>
+                <field>Name</field>
+            </layoutItems>
+            <layoutItems>
+                <emptySpace>true</emptySpace>
+            </layoutItems>
+            <layoutItems>
+                <emptySpace>true</emptySpace>
+            </layoutItems>
+        </layoutColumns>
+        <layoutColumns>
+            <layoutItems>
+                <emptySpace>true</emptySpace>
+            </layoutItems>
+            <layoutItems>
+                <emptySpace>true</emptySpace>
+            </layoutItems>
+        </layoutColumns>
+        <style>TwoColumnsTopToBottom</style>
+    </layoutSections>
+    <layoutSections>
+        <customLabel>false</customLabel>
+        <detailHeading>false</detailHeading>
+        <editHeading>true</editHeading>
+        <label>Address Information</label>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>BillingAddress</field>
+            </layoutItems>
+        </layoutColumns>
+        <layoutColumns>
+            <layoutItems>
+                <behavior>Edit</behavior>
+                <field>ShippingAddress</field>
+            </layoutItems>
+        </layoutColumns>
+        <style>TwoColumnsTopToBottom</style>
+    </layoutSections>
+    <relatedLists>
+        <fields>FULL_NAME</fields>
+        <fields>CONTACT.TITLE</fields>
+        <fields>CONTACT.EMAIL</fields>
+        <fields>CONTACT.PHONE1</fields>
+        <relatedList>RelatedContactList</relatedList>
+    </relatedLists>
+</Layout>
+"""
+
+
+class TestAddFieldsToPageLayout(unittest.TestCase):
+    def test_add_fields_positioning(self):
+        """Testing the positioning keywords [top|bottom|before|after]"""
+        task = create_task(
+            AddFieldsToPageLayout,
+            {
+                "api_names": "Account-Account Layout",
+                "fields": [
+                    {
+                        "api_name": "After",
+                        "position": [
+                            {
+                                "relative": "after",
+                                "field": "Name",
+                            },
+                        ],
+                    },
+                    {
+                        "api_name": "Before",
+                        "position": [
+                            {
+                                "relative": "before",
+                                "field": "Name",
+                            },
+                        ],
+                    },
+                    {
+                        "api_name": "Bottom",
+                        "position": [
+                            {
+                                "relative": "bottom",
+                                "column": "first",
+                                "section": 0,
+                            },
+                        ],
+                    },
+                    {
+                        "api_name": "Top",
+                        "position": [
+                            {
+                                "relative": "top",
+                                "column": "last",
+                                "section": 0,
+                            },
+                        ],
+                    },
+                ],
+            },
+        )
+        tree = metadata_tree.fromstring(MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8"))
+        result = task._transform_entity(tree, "Layout")
+
+        element = result._element
+        updated_sections = element.findall(f".//{MD}layoutSections")
+        items = updated_sections[0].findall(f".//{MD}layoutItems")
+
+        assert items[0].getchildren()[1].text == "Before"
+        assert items[2].getchildren()[1].text == "After"
+        assert items[5].getchildren()[1].text == "Bottom"
+        assert items[6].getchildren()[1].text == "Top"
+
+    def test_add_fields_default_positioning(self):
+        """Making sure the default column position is applied if not supplied"""
+        task = create_task(
+            AddFieldsToPageLayout,
+            {
+                "api_names": "Account-Account Layout",
+                "fields": [
+                    {
+                        "api_name": "Industry",
+                    },
+                ],
+            },
+        )
+        tree = metadata_tree.fromstring(MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8"))
+        result = task._transform_entity(tree, "Layout")
+
+        element = result._element
+        updated_sections = element.findall(f".//{MD}layoutSections")
+        cols = updated_sections[0].findall(f".//{MD}layoutColumns")
+        items = cols[1].findall(f".//{MD}layoutItems")
+        assert items[0].getchildren()[1].text == "Industry"
+
+    def test_add_fields_adding_pages(self):
+        """Testing of adding Visualforce pages and making sure their options are applied"""
+        task = create_task(
+            AddFieldsToPageLayout,
+            {
+                "api_names": "Account-Account Layout",
+                "pages": [
+                    {
+                        "api_name": "TestPage2",
+                        "height": "500",
+                        "show_label": True,
+                        "show_scrollbars": True,
+                        "width": "50%",
+                    },
+                    {
+                        "api_name": "TestPage",
+                    },
+                ],
+            },
+        )
+        tree = metadata_tree.fromstring(MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8"))
+        result = task._transform_entity(tree, "Layout")
+
+        element = result._element
+        updated_sections = element.findall(f".//{MD}layoutSections")
+        cols = updated_sections[0].findall(f".//{MD}layoutColumns")
+        items = cols[1].findall(f".//{MD}layoutItems")
+        # {http://soap.sforce.com/2006/04/metadata}page
+        assert "page" in items[0].getchildren()[0].tag  # Its a page!!!
+        assert items[0].getchildren()[0].text == "TestPage"
+
+        # Check defaults are applied
+        assert items[0].getchildren()[1].text == "200"  # height
+        assert items[0].getchildren()[2].text == "false"  # showLabel
+        assert items[0].getchildren()[3].text == "false"  # showScrollbars
+        assert items[0].getchildren()[4].text == "100%"  # width
+
+        assert items[1].getchildren()[0].text == "TestPage2"
+        # Check options
+        assert items[1].getchildren()[1].text == "500"  # height
+        assert items[1].getchildren()[2].text == "true"  # showLabel
+        assert items[1].getchildren()[3].text == "true"  # showScrollbars
+        assert items[1].getchildren()[4].text == "50%"  # width
+
+    def test_add_fields_skip_existing(self):
+        """Make sure if a field is skipped if it already exists in the layout"""
+        task = create_task(
+            AddFieldsToPageLayout,
+            {
+                "api_names": "Account-Account Layout",
+                "fields": [
+                    {
+                        "api_name": "Name",
+                        "position": [
+                            {"relative": "before", "field": "Name"},
+                        ],
+                    },
+                ],
+            },
+        )
+        tree = metadata_tree.fromstring(MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8"))
+        result = task._transform_entity(tree, "Layout")
+
+        element = result._element
+        updated_sections = element.findall(f".//{MD}layoutSections")
+        items = updated_sections[0].findall(f".//{MD}layoutItems")
+        assert len(items) == 5
+
+    def test_add_fields_fallback(self):
+        """Testing the fallback procedure of the positioning, in the order listed each item of
+        the list is tried, and if not successful the default is finally applied."""
+        task = create_task(
+            AddFieldsToPageLayout,
+            {
+                "api_names": "Account-Account Layout",
+                "fields": [
+                    {
+                        "api_name": "Lost",
+                        "position": [
+                            {"relative": "before", "field": "NotFound"},
+                            {"relative": "before", "field": "NotFound2"},
+                            {"relative": "top", "section": 2, "column": "last"},
+                        ],
+                    },
+                ],
+            },
+        )
+        tree = metadata_tree.fromstring(MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8"))
+        result = task._transform_entity(tree, "Layout")
+
+        element = result._element
+        sections = element.findall(f".//{MD}layoutSections")
+        cols = sections[0].findall(f".//{MD}layoutColumns")
+        items = cols[1].findall(f".//{MD}layoutItems")
+
+        assert len(items) == 3  # Field Still Added
+        # Field Added at top of last column
+        assert items[0].getchildren()[1].text == "Lost"
+
+    def test_add_fields_behavior(self):
+        """Testing the application of field behavior. Edit is the default and
+        'required' or 'read_only' are alternative options"""
+        task = create_task(
+            AddFieldsToPageLayout,
+            {
+                "api_names": "Account-Account Layout",
+                "fields": [
+                    {
+                        "api_name": "Edit",
+                        "position": [
+                            {"relative": "top", "section": 0, "column": "first"},
+                        ],
+                    },
+                    {
+                        "api_name": "Required",
+                        "required": True,
+                        "position": [
+                            {"relative": "top", "section": 0, "column": "first"},
+                        ],
+                    },
+                    {
+                        "api_name": "Readonly",
+                        "read_only": True,
+                        "position": [
+                            {"relative": "top", "section": 0, "column": "first"},
+                        ],
+                    },
+                ],
+            },
+        )
+        tree = metadata_tree.fromstring(MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8"))
+        result = task._transform_entity(tree, "Layout")
+
+        element = result._element
+        sections = element.findall(f".//{MD}layoutSections")
+        cols = sections[0].findall(f".//{MD}layoutColumns")
+        items = cols[0].findall(f".//{MD}layoutItems")
+
+        # Fields display in reverse order than they were listed
+        assert items[0].getchildren()[0].text == "Readonly"
+        assert items[1].getchildren()[0].text == "Required"
+        assert items[2].getchildren()[0].text == "Edit"
+
+    def test_add_fields_required_readonly(self):
+        """required and read_only are mutually exclusive"""
+        task = create_task(
+            AddFieldsToPageLayout,
+            {
+                "api_names": "Account-Account Layout",
+                "fields": [
+                    {
+                        "api_name": "NotAdded",
+                        "required": True,
+                        "read_only": True,
+                    },
+                ],
+            },
+        )
+        tree = metadata_tree.fromstring(MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8"))
+
+        with self.assertRaises(TaskOptionsError):
+            task._transform_entity(tree, "Layout")

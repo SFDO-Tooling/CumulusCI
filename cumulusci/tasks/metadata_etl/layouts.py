@@ -1,5 +1,6 @@
 from typing import Optional
 
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
@@ -67,6 +68,283 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
         for button in custom_buttons:
             elem.append("customButtons", button)
         elem.append("relatedList", text=related_list)
+
+
+class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
+    task_docs = """
+        Inserts the listed fields or Visualforce pages into page layouts
+        specified by API name.
+
+        If the targeted item already exists, the layout metadata is not modified.
+
+        You may supply a single position option, or multiple options for both pages and
+        fields. The first option to to be matched will be used.
+
+        Task option details:
+
+        - fields:
+
+            - api_name: [field API name]
+            - required: Boolean (default False)
+            - read_only: Boolean (default False, not compatable with required)
+            - position: (Optional: A list of single or multiple position options.)
+
+                - relative: [before | after | top | bottom]
+                - field: [api_name] (Use with relative: before, after)
+                - section: [index] (Use with relative: top, bottom)
+                - column: [first | last] (Use with relative: top, bottom)
+
+        - pages:
+
+            - visualforce_page_name:[page_name]
+            - height: int (Optional. Default: 200)
+            - show_label: Boolean (Optional. Default: False)
+            - show_scrollbars: Boolean (Optional. Default: False)
+            - width: 0-100% (Optional. Default: 100%)
+            - position: (Optional: A list of single or multiple position options.)
+
+                - relative: [before | after | top | bottom]
+                - field: [api_name] (Use with relative: before, after)
+                - section: [index] (Use with relative: top, bottom)
+                - column: [first | last] (Use with relative: top, bottom)
+        """
+    entity = "Layout"
+    task_options = {
+        "fields": {
+            "description": "List of fields. See task info for structure.",
+            "required": False,
+        },
+        "pages": {
+            "description": "List of Visualforce Pages. See task info for structure.",
+            "required": False,
+        },
+        **MetadataSingleEntityTransformTask.task_options,
+    }
+
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+
+        self._adding_fields = process_list_arg(self.options.get("fields", []))
+        self._adding_pages = process_list_arg(self.options.get("pages", []))
+        # Split because a page could share an api name with a field in the same namespace
+        self._existing_field_names = []
+        self._existing_page_names = []
+
+    def _transform_entity(
+        self, metadata: MetadataElement, api_name: str
+    ) -> Optional[MetadataElement]:
+
+        self._metadata = metadata
+
+        self._collect_existing_items()
+
+        self._add_fields(api_name)
+        self._add_pages(api_name)
+
+        return self._metadata
+
+    ## Collect fields already in the layout
+    def _collect_existing_items(self):
+        ## Need to traverse all layoutSections->layoutColumns->layoutItems->fields to find if item/field already exists
+        layout_sections = self._metadata.findall("layoutSections")
+        for section in layout_sections:
+            layout_columns = section.findall("layoutColumns")
+            for col in layout_columns:
+                layout_items = col.findall("layoutItems")
+                for item in layout_items:
+                    if item.find("page"):
+                        self._existing_page_names.append(item.page.text)
+                    elif item.find("field"):
+                        self._existing_field_names.append(item.field.text)
+
+    def _add_fields(self, api_name):
+        # Do nothing if there are no fields
+        if not self._adding_fields:
+            return
+
+        field_props = {
+            self._inject_namespace(field["api_name"]): field
+            for field in self._adding_fields
+        }
+
+        layout_item_dict = self._add_items(
+            self._adding_fields, self._existing_field_names, api_name
+        )
+
+        for field_item_key in layout_item_dict.keys():
+            field = field_props.get(field_item_key)
+            field_layout_item = layout_item_dict.get(field_item_key)
+            adding_field_name = self._inject_namespace(field.get("api_name"))
+
+            self.logger.info(f"Adding {adding_field_name} to {api_name}")
+
+            behavior = "Edit"
+            required = process_bool_arg(field.get("required") or False)
+            read_only = process_bool_arg(field.get("read_only") or False)
+            if required and not read_only:
+                behavior = "Required"
+            elif read_only and not required:
+                behavior = "Readonly"
+            elif required and read_only:
+                raise TaskOptionsError(
+                    f"`required` and `read_only` cannot both be True for {adding_field_name}"
+                )
+            field_layout_item.append("behavior", behavior)
+            field_layout_item.append("field", adding_field_name)
+
+    def _add_pages(self, api_name):
+        # Do nothing if there are no fields
+        if not self._adding_pages:
+            return
+
+        page_props = {
+            self._inject_namespace(page["api_name"]): page
+            for page in self._adding_pages
+        }
+
+        layout_item_dict = self._add_items(
+            self._adding_pages, self._existing_page_names, api_name
+        )
+
+        for page_item_key in layout_item_dict.keys():
+            page = page_props.get(page_item_key)
+            page_layout_item = layout_item_dict.get(page_item_key)
+            adding_page_name = self._inject_namespace(page.get("api_name"))
+
+            self.logger.info(f"Adding {adding_page_name} to {api_name}")
+
+            page_layout_item.append("page", adding_page_name)
+            page_layout_item.append("height", str(page.get("height", 200)))
+            page_layout_item.append(
+                "showLabel",
+                str(process_bool_arg(page.get("show_label") or False)).lower(),
+            )
+            page_layout_item.append(
+                "showScrollbars",
+                str(process_bool_arg(page.get("show_scrollbars") or False)).lower(),
+            )
+            page_layout_item.append("width", page.get("width", "100%"))
+
+    def _add_items(self, item_list, existing_name_list, api_name):
+        """Iterate over a list of new layout items that will return a dict{api_name:MetadataElement}"""
+
+        item_dict = {}
+
+        for item in item_list:
+            item_name = self._inject_namespace(item.get("api_name"))
+            if item_name in existing_name_list:
+                self.logger.warning(
+                    f"Skipped {item_name} because {item_name} is already present in {api_name}"
+                )
+                continue
+
+            item_dict[item_name] = self._position_item(item)
+
+        return item_dict
+
+    def _position_item(self, new_item):
+        """Returns new MetadataElement being added to the layout based on the positioning properties"""
+        new_item_name = new_item.get("api_name")
+        # Default to top of first section (index zero) of last column
+        default = {
+            "relative": "top",
+            "section": 0,
+            "column": "last",
+        }
+
+        # Position is optional
+        position = new_item.get("position")
+
+        if position is None:
+            self.logger.warning(
+                f"Position details are missing for: {new_item_name}. Default position is being applied."
+            )
+            position = [default]
+        else:
+            # append the default position to the list as a fallback
+            position.append(default)
+
+        for pos in position:
+            new_layout_item = self._process_position(pos, default)
+            if new_layout_item is not None:
+                return new_layout_item
+
+    def _process_position(self, position, default_position):
+        """Attempt to apply a position specifier and return a MetadataElement representing a layout item, or None if the position specifier cannot be applied."""
+        relative_position = position.get("relative", default_position.get("relative"))
+
+        # Mutually exclusive, therefore the higher priority is field if specified
+        relative_field_name = None
+        if "field" in position:
+            relative_field_name = (
+                self._inject_namespace(position.get("field"))
+                if position.get("field") is not None
+                else None
+            )
+            relative_section_index = None
+            if relative_position in ("top", "bottom"):
+                # Missing a relative position to the field, therefore default to after
+                relative_position = "after"
+        elif "section" in position:
+            relative_section_index = position.get("section")
+        else:
+            relative_section_index = default_position.get("section")
+            relative_position = default_position.get("position")
+
+        # Field relative
+        if relative_field_name is not None and relative_position in (
+            "before",
+            "after",
+        ):
+            new_layout_item = self._new_layout_item(
+                relative_field_name, relative_position
+            )
+
+        # Section relative
+        if relative_section_index is not None and relative_position in (
+            "top",
+            "bottom",
+        ):
+            new_layout_item = self._new_section_item(
+                relative_section_index,
+                relative_position,
+                position.get("column", default_position.get("column")),
+            )
+
+        return new_layout_item
+
+    def _new_layout_item(self, field_text, position):
+        for section in self._metadata.findall("layoutSections"):
+            for col in section.findall("layoutColumns"):
+                for item in col.findall("layoutItems"):
+                    for field in item.findall("field"):
+                        if field.text == field_text:
+                            return getattr(col, "insert_" + position)(
+                                item, "layoutItems"
+                            )
+
+    def _new_section_item(self, index, position, column_index):
+        # Get section at index
+        sections = list(self._metadata.findall("layoutSections"))
+
+        if index > (len(sections) - 1):
+            self.logger.warning(
+                f"Unable to find section at index: {str(index)}. Default position is being selected."
+            )
+            return None
+
+        section = sections[index]
+        columns = list(section.findall("layoutColumns"))
+        column = columns[-1 if column_index == "last" else 0]
+        items = list(column.findall("layoutItems"))
+        # Sections can be empty
+        if len(items) == 0 or position == "bottom":
+            return column.append("layoutItems")
+        else:
+            item_relative_position = "before" if position == "top" else "after"
+            return getattr(column, "insert_" + item_relative_position)(
+                items[0], "layoutItems"
+            )
 
 
 class AddRecordPlatformActionListItem(MetadataSingleEntityTransformTask):
