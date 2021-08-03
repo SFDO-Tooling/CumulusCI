@@ -20,7 +20,7 @@ class TestIntegrationInfrastructure:
         # only delete the cassette if we can replace it
         def delete_cassette():
             if first_cassette.exists():
-                first_cassette.unlink(missing_ok=True)
+                first_cassette.unlink()
 
         run_code_without_recording(delete_cassette)
         task = create_task(GetInstalledPackages, {})

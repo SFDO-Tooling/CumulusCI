@@ -13,6 +13,7 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.tests.util import unmock_env
 import cumulusci
 from cumulusci.cli.org import org_scratch, org_scratch_delete
+from cumulusci.core.exceptions import OrgNotFound
 
 
 def pytest_addoption(parser, pluginmanager):
@@ -216,9 +217,6 @@ def org_shape(request, vcr, current_org_shape):
     other tests.
     """
 
-    runtime1 = CliRuntime(load_keychain=True)
-    devhub = runtime1.project_config.keychain.get_service("devhub")
-
     @contextmanager
     def org_shape(config_name: str = pytest, flow_name: str = None):
 
@@ -233,14 +231,17 @@ def org_shape(request, vcr, current_org_shape):
 
             runtime = CliRuntime(load_keychain=True)
             with click.Context(command=mock.Mock(), obj=runtime):
-                org, org_config = runtime.get_org(org_name)
+                try:
+                    org, org_config = runtime.get_org(org_name)
+                except OrgNotFound:
+                    org = None
                 if org:
                     org_scratch_delete.callback(org_name)
                 org_scratch.callback(
                     config_name,
                     org_name,
                     default=False,
-                    devhub=devhub.username,
+                    devhub=None,
                     days=1,
                     no_password=False,
                 )
