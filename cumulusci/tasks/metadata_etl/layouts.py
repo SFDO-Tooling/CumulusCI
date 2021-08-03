@@ -105,8 +105,6 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
 
                 - relative: [before | after | top | bottom]
                 - field: [api_name] (Use with relative: before, after)
-                - required: Boolean (default False)
-                - read_only: Boolean (default False, not compatable with required)
                 - section: [index] (Use with relative: top, bottom)
                 - column: [first | last] (Use with relative: top, bottom)
         """
