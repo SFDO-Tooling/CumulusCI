@@ -43,7 +43,7 @@ Robot addresses these challenges with a few strategies, helping you write high-l
 Custom Tasks
 ^^^^^^^^^^^^
 
-CumulusCI integrates with Robot via custom tasks. Here's a sampling of other Robot tasks.
+CumulusCI integrates with Robot via custom ``robot`` tasks, such as:
 
 * ``robot``: Runs one or more Robot tests. This is the most common task.
 * ``robot_libdoc``: Runs the `libdoc <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#library-documentation-tool-libdoc>`_ command, which creates an HTML file defining all the keywords in a library or resource file.
@@ -106,7 +106,14 @@ You can tell this file is a test case because it has a ``.robot`` extension and 
       Should be equal  ${contact}[FirstName]    Eleanor
       Should be equal  ${contact}[LastName]     Rigby
 
-The test case makes two calls to a Salesforce API: one to create the ``Contact`` record, and another to confirm that the record has the correct first and last names. 
+The test case makes two calls to a Salesforce API: one to create the ``Contact`` record, and another to confirm that the record has the correct first and last names.
+
+
+################UPDATE THIS
+The test makes calls to two keywords that communicate with Salesforce via an API.
+
+* ``Salesforce Insert``, which creates the ``Contact`` record.
+* ``Salesforce Get``, which 
 
 
 Syntax
@@ -373,8 +380,8 @@ To run this test from the command line:
 
 
 
-Use a Resource File
--------------------
+Create a Resource File
+----------------------
 
 Now that you know how to create a custom keyword that is reusable within a test file, you can build a library of custom keywords to be shared project-wide with a resource file.
 
@@ -460,8 +467,8 @@ To run this test from the command line:
 In addition to the usual output files (``log.html``, ``report.html``, ``output.xml``), this test also creates a screenshot in the ``results`` folder. If you open ``log.html``, you can see whether each step of the test case passed or failed. Toggle the ``+`` tab of the ``Take screenshot of landing page`` test header to examine the results of the test. Then toggle the ``+`` tab of the ``Capture page screenshot`` keyword to examine the screenshot taken of the landing page.
 
 
-Open Test Browser
-^^^^^^^^^^^^^^^^^
+Open a Test Browser
+^^^^^^^^^^^^^^^^^^^
 
 The Selenium library comes with a keyword for opening the browser. However, CumulusCi comes with its own keyword, `Open Test Browser <https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.robot.Open%20Test%20Browser>`_, which not only opens the browser but takes care of the details of logging into the org. This keyword uses a variable named ``${BROWSER}``, which can be set from the command line or in the ``cumulusci.yml`` file to specify which browser to use.
 
