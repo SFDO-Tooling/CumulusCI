@@ -1,16 +1,22 @@
-import pytest
 from contextvars import ContextVar
 from contextlib import contextmanager
 from pathlib import Path
+from unittest import mock
+
+import click
+import pytest
+from .pytest_sf_vcr import RECORDING, READING, set_mode
 
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.core.config import TaskConfig
 from cumulusci.tests.util import unmock_env
 import cumulusci
+from cumulusci.cli.org import org_scratch, org_scratch_delete
 
 
 def pytest_addoption(parser, pluginmanager):
+    """Pytest magic method: add --org and --run-slow-tests features"""
     parser.addoption("--org", action="store", default=None, help="org to use")
     parser.addoption(
         "--run-slow-tests",
@@ -18,10 +24,48 @@ def pytest_addoption(parser, pluginmanager):
         default=False,
         help="Include slow tests.",
     )
+    parser.addoption(
+        "--replace-vcrs",
+        action="store_true",
+        default=False,
+        help="Replace VCR files.",
+    )
 
 
-def sf_pytest_orgname(request):
+def pytest_configure(config):
+    """Pytest magic method: add pytest markers/decorators"""
+    markers = [
+        "slow(): a slow test that should only be executed when requested with --run-slow-tests",
+        "large_vcr(): a network-based test that generates VCR cassettes too large for version control. Use --org to generate them locally.",
+        "needs_org(): a test that needs an org (or at least access to the network) but should not attempt to store VCR cassettes",
+    ]
+
+    for marker in markers:
+        # register additional markers
+        config.addinivalue_line("markers", marker)
+
+
+def pytest_runtest_setup(item):
+    """Pytest magic method"""
+    marker_names = set(marker.name for marker in item.iter_markers())
+    classify_and_modify_test(item, marker_names)
+
+
+def sf_pytest_cli_orgname(request):
+    """Helper to see what org the user has ased for"""
     return request.config.getoption("--org")
+
+
+@pytest.fixture(scope="session")
+def user_requested_network_access(request):
+    """Did the user ask to enable network access by specifying an org?"""
+    return bool(sf_pytest_cli_orgname(request))
+
+
+@pytest.fixture(scope="session")
+def user_requested_cassette_replacement(request):
+    """Did the user ask to delete VCR cassettes?"""
+    return request.config.getoption("--replace-vcrs")
 
 
 @pytest.fixture(scope="session")
@@ -37,28 +81,37 @@ def project_config(runtime):
 
 
 @pytest.fixture(scope="session")
-def org_config(request, fallback_org_config):
+def cli_org_config(request):
+    """What org did the user specify on the CLI or pytest options?"""
+    cli_org_name = sf_pytest_cli_orgname(request)
+    if cli_org_name:
+        with unmock_env():  # restore real homedir
+            runtime = CliRuntime()
+            runtime.keychain._load_orgs()
+            org_name, org_config = runtime.get_org(cli_org_name)
+            assert org_config.scratch, "You should only run tests against scratch orgs."
+            org_config.refresh_oauth_token(runtime.keychain)
+            return org_config
+
+
+@pytest.fixture(scope="function")
+def org_config(request, current_org_shape, cli_org_config, fallback_org_config):
     """Get an org config with an active access token.
 
     Specify the org name using the --org option when running pytest.
     Or else it will use a dummy org.
     """
-    org_name = sf_pytest_orgname(request)
-    if org_name:
-        with unmock_env():  # restore real homedir
-            runtime = CliRuntime()
-            runtime.keychain._load_orgs()
-            org_name, org_config = runtime.get_org(org_name)
-            assert org_config.scratch, "You should only run tests against scratch orgs."
-            org_config.refresh_oauth_token(runtime.keychain)
+    org_config = current_org_shape.org_config or cli_org_config
+    if org_config:
+        org_config.user_specified = True
     else:
-        # fallback_org_config can be defined in "conftest" based
-        # on the needs of the test suite. For example, for
-        # fast running test suites it might return a hardcoded
-        # org and for integration test suites it might return
-        # a specific default org or throw an exception.
-        return fallback_org_config()
+        org_config = fallback_org_config()
 
+    # fallback_org_config can be defined in "conftest" based
+    # on the needs of the test suite. For example, for
+    # fast running test suites it might return a hardcoded
+    # org and for integration test suites it might return
+    # a specific default org or throw an exception.
     return org_config
 
 
@@ -87,18 +140,6 @@ def create_task(request, project_config, org_config):
     return create_task
 
 
-def pytest_configure(config):
-    markers = [
-        "slow(): a slow test that should only be executed when requested with --slow",
-        "large_vcr(): a network-based test that generates VCR cassettes too large for version control. Use --org to generate them locally.",
-        "needs_org(): a test that needs an org (or at least access to the network) but should not attempt to store VCR cassettes",
-    ]
-
-    for marker in markers:
-        # register additional markers
-        config.addinivalue_line("markers", marker)
-
-
 def vcr_cassette_name_for_item(item):
     """Name of the VCR cassette"""
     test_class = item.cls
@@ -107,9 +148,7 @@ def vcr_cassette_name_for_item(item):
     return item.name
 
 
-def pytest_runtest_setup(item):
-    marker_names = set(marker.name for marker in item.iter_markers())
-
+def classify_and_modify_test(item, marker_names):
     if "slow" in marker_names:
         if not item.config.getoption("--run-slow-tests"):
             pytest.skip("slow: test requires --run-slow-tests")
@@ -127,69 +166,90 @@ def pytest_runtest_setup(item):
         pytest.skip("needs_org: test requires --org")
 
 
-class SFOrgConnectionState:
-    should_record = True
-
-
-sf_org_connection_state = ContextVar(
-    "sf_org_connection_state", default=SFOrgConnectionState()
-)
+# a cache of orgs matching shapes:
+#    TODO test that it is properly used
 org_shapes = ContextVar("org_shapes", default={})
 
 
 @pytest.fixture(
-    scope="module",
+    scope="function",
 )
-def setup_org_without_recording(request, vcr):
-    def really_setup_org_without_recording(func):
-        orgname = sf_pytest_orgname(request)
-        # Get a thread-local copy
-        sf_org_connection_state.set(SFOrgConnectionState())
-        if orgname:
-            sf_org_connection_state.get().should_record = False
-            try:
+def run_code_without_recording(request, vcr, user_requested_network_access):
+    def really_run_code_without_recording(func):
+        if user_requested_network_access:
+            # Run the setup code, but don't record it
+            with set_mode(RECORDING, False), set_mode(READING, False):
                 return func()
-            finally:
-                sf_org_connection_state.get().should_record = True
 
-    return really_setup_org_without_recording
+    return really_run_code_without_recording
+
+
+class CurrentOrg:
+    __slots__ = ("org_config",)
+
+    def __init__(self):
+        self.org_config = None
+
+
+@pytest.fixture(scope="session")
+def current_org_shape(request):
+    """Internal: shared state for fixtures"""
+    org = CurrentOrg()
+    return org
 
 
 @pytest.fixture(
     scope="module",
 )
-def org_shape(request, vcr):
+def org_shape(request, vcr, current_org_shape):
+    """Select an org_shape for a test
+    e.g.:
+
+    with org_shape('qa', 'qa_org'):
+        t = create_task(Foo)
+        t()
+
+    Switch the current org to an org created with
+    org template "qa" after running flow "qa_org".
+
+    Clean up any changes you make, because this org may be reused by
+    other tests.
+    """
+
+    runtime1 = CliRuntime(load_keychain=True)
+    devhub = runtime1.project_config.keychain.get_service("devhub")
+
     @contextmanager
     def org_shape(config_name: str = pytest, flow_name: str = None):
-        shapes = org_shapes.get()
-        org_name = f"pytest__{config_name}__{flow_name}"
-        org = shapes.get(org_name)
-        if org:
-            return org
 
-        from cumulusci.cli.org import org_scratch
-        from cumulusci.cli.flow import flow_run
-        import click
-        from unittest import mock
+        # I don't love that we're using the user's real keychain
+        # but I get weird popups when I use the mock one.
+        with unmock_env():
+            shapes = org_shapes.get()
+            org_name = f"pytest__{config_name}__{flow_name}"
+            org = shapes.get(org_name)
+            if org:
+                return org
 
-        with click.Context(command=mock.Mock(), obj=CliRuntime()):
-            org_scratch.callback(
-                config_name,
-                org_name,
-                default=False,
-                devhub=None,
-                days=1,
-                no_password=False,
-            )
-            flow_run.callback(
-                flow_name,
-                org_name,
-                delete_org=False,
-                debug=False,
-                o=(),
-                skip=None,
-                no_prompt=True,
-            )
-            ### UNFINISHED
+            runtime = CliRuntime(load_keychain=True)
+            with click.Context(command=mock.Mock(), obj=runtime):
+                org, org_config = runtime.get_org(org_name)
+                if org:
+                    org_scratch_delete.callback(org_name)
+                org_scratch.callback(
+                    config_name,
+                    org_name,
+                    default=False,
+                    devhub=devhub.username,
+                    days=1,
+                    no_password=False,
+                )
+                org, org_config = runtime.get_org(org_name)
+
+                coordinator = runtime.get_flow(flow_name)
+                coordinator.run(org_config)
+                shapes[org_name] = org_config
+                current_org_shape.org_config = org_config
+                yield org_config
 
     return org_shape

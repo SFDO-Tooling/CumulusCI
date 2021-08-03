@@ -2,6 +2,8 @@ import pytest
 from cumulusci.tasks.preflight.packages import GetInstalledPackages
 from pathlib import Path
 
+from cumulusci.tasks.salesforce import SOQLQuery
+
 
 class TestIntegrationInfrastructure:
     "Test our two plugins for doing integration testing"
@@ -24,6 +26,47 @@ class TestIntegrationInfrastructure:
             assert "Public-Key-Pins-Report-Only" not in data
             assert "<sessionId>00" not in data
 
-    def test_org_shape(self, org_shape):
+    @pytest.mark.vcr()
+    def test_run_code_without_recording(
+        self, run_code_without_recording, sf, create_task
+    ):
+        def setup():
+            task = create_task(
+                SOQLQuery,
+                {
+                    "query": "select Id from Organization",
+                    "object": "Organization",
+                    "result_file": "foo.csv",
+                },
+            )
+            task()
+
+        run_code_without_recording(lambda: setup())
+
+    def test_file_was_not_created(self):
+        filename = (
+            Path(__file__).parent
+            / "cassettes/TestIntegrationInfrastructure.test_run_code_without_recording.yaml"
+        )
+
+        assert not filename.exists(), filename
+
+    @pytest.mark.needs_org()
+    @pytest.mark.slow()
+    def test_org_shape(self, org_shape, create_task, current_org_shape, tmp_path):
         with org_shape("qa", "qa_org"):
-            pass
+            csv_output = Path(tmp_path) / "foo.csv"
+            assert (
+                current_org_shape.org_config.sfdx_alias
+                == "CumulusCI__pytest__qa__qa_org"
+            )
+            t = create_task(
+                SOQLQuery,
+                {
+                    "query": "select Id from Organization",
+                    "object": "Organization",
+                    "result_file": csv_output,
+                },
+            )
+            t()
+            assert csv_output.exists()

@@ -5,7 +5,10 @@ from cumulusci.utils.http.multi_request import CompositeParallelSalesforce
 
 class TestCompositeParallelSalesforce:
     @pytest.mark.vcr()
-    def test_composite_parallel_salesforce(self, sf):
+    def test_composite_parallel_salesforce(
+        self, sf, run_code_without_recording, delete_data_from_org
+    ):
+        run_code_without_recording(lambda: delete_data_from_org("Entitlement,Account"))
         sf.Account.create(
             {"Name": "Smith Corp."},
         )
@@ -58,7 +61,8 @@ class TestCompositeParallelSalesforce:
         assert results[0]["httpStatusCode"] == 304
 
     @pytest.mark.vcr()
-    def test_reference_ids(self, sf):
+    def test_reference_ids(self, sf, run_code_without_recording, delete_data_from_org):
+        run_code_without_recording(lambda: delete_data_from_org("Account"))
         requests = [
             {
                 "method": "GET",

@@ -160,22 +160,17 @@ real Scratch org, you do so like this::
 
 Where "orgname" is a configured org name like "qa", "dev", etc.
 
-To regenerate the VCR file, you can just delete it before running the command above::
+To regenerate the VCR file, you can run this command::
 
-    $ rm /path/to/vcr.yml ; pytest --org qa <etc. etc.>
+    $ pytest --replace-vcrs --org qa
 
-To regenerate all VCR files::
-
-    $ make vcr
-
-This will configure an org named "pytest", delete the VCR files and regenerate them.
-It will of course be much slower than a normal test.
+This will configure an org named "pytest" and regenerate them.
 
 That will run all VCR-backed tests against the org, including all of the slow
 integration tests.
 
-Integration Tests
-~~~~~~~~~~~~~~~~~
+Running Integration Tests
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some tests generate so much data that we do not want to store the VCR cassettes
 in our repo. You can mark tests like that with ``@pytest.mark.large_vcr()``. When
@@ -193,6 +188,34 @@ Some tests are so slow that you only want to run them on an opt-in basis.
 Mark these tests with ``@pytest.mark.slow()`` and run them with
 ``pytest --run-slow`` or ``pytest --run-slow --orgname <orgname>``.
 
+Writing Integration Tests
+~~~~~~~~~~~~~~~~~~~~~~~~~
+All features should have integration tests which work against
+real orgs or APIs.
+
+You will need to use some the following fixtures in your tests. Search
+the repo to see examples where they are used in context, or to see
+their definitions:
+
+* gh_api - get a fake github API
+* restore_cwd - ensure that a test finishes with the 
+  same "current working directory" that it started with
+* with temp_db():... - create a temporary SQLite Database
+* delete_data_from_org("Account,Contacts") - delete named sobjects from an org
+* run_code_without_recording(func) - run a function ONLY when
+  the integration tests are being used against real orgs
+  and DO NOT record the network traffic in a VCR cassette
+* sf - a handle to a simple-salesforce client tied to the
+  current org
+* with org_shape('qa', 'qa_org'): - switch the current
+  org to an org created with org template "qa" after running flow "qa_org".
+  Clean up any changes you make, because this org may be reused by
+  other tests.
+* mock_http_response(status) - make a mock HTTP Response with a particular status
+* runtime - Get the CumulusCI runtime for the current working directory
+* project_config - Get the project config for the current working directory
+* org_config - Get the project config for the current working directory
+* create_task - Get a task _factory_ which can be used to construct task instances.
 
 Randomized tests
 ~~~~~~~~~~~~~~~~

@@ -108,3 +108,14 @@ def temp_db():
                 yield connection, Base.metadata, session
 
         yield open_db
+
+
+@pytest.fixture()
+def delete_data_from_org(create_task):
+    def delete_data_from_org(object_names):
+        from cumulusci.tasks.bulkdata.delete import DeleteData
+
+        t = create_task(DeleteData, {"objects": object_names})
+        t()
+
+    return delete_data_from_org
