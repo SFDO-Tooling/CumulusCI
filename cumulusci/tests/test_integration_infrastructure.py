@@ -4,23 +4,32 @@ from pathlib import Path
 
 from cumulusci.tasks.salesforce import SOQLQuery
 
+pytestmark = pytest.mark.random_order(disabled=True)
+
+first_cassette = (
+    Path(__file__).parent
+    / "cassettes/TestIntegrationInfrastructure.test_integration_tests.yaml"
+)
+
 
 class TestIntegrationInfrastructure:
     "Test our two plugins for doing integration testing"
 
     @pytest.mark.vcr()
-    def test_integration_tests(self, create_task):
+    def test_integration_tests(self, create_task, run_code_without_recording):
+        # only delete the cassette if we can replace it
+        def delete_cassette():
+            if first_cassette.exists():
+                first_cassette.unlink(missing_ok=True)
+
+        run_code_without_recording(delete_cassette)
         task = create_task(GetInstalledPackages, {})
         assert task() is not None
 
     def test_file_was_created(self):
-        filename = (
-            Path(__file__).parent
-            / "cassettes/TestIntegrationInfrastructure.test_integration_tests.yaml"
-        )
 
-        assert filename.exists(), filename
-        with filename.open() as f:
+        assert first_cassette.exists(), first_cassette
+        with first_cassette.open() as f:
             data = f.read()
             assert "Bearer 0" not in data
             assert "Public-Key-Pins-Report-Only" not in data
