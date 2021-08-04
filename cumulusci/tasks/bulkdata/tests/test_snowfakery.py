@@ -75,6 +75,25 @@ def temporary_file_path(filename):
         yield path
 
 
+@pytest.fixture()
+def ensure_accounts(create_task, run_code_without_recording, sf):
+    """Delete all accounts and create a certain number of new ones"""
+
+    @contextmanager
+    def _ensure_accounts(number_of_accounts):
+        def setup(number):
+            task = create_task(DeleteData, {"objects": "Entitlement, Account"})
+            task()
+            for i in range(0, number):
+                sf.Account.create({"Name": f"Account {i}"})
+
+        run_code_without_recording(lambda: setup(number_of_accounts))
+        yield
+        run_code_without_recording(lambda: setup(0))
+
+    return _ensure_accounts
+
+
 class TestSnowfakery:
     def assertRowsCreated(self, database_url):
         engine = create_engine(database_url)
@@ -178,32 +197,15 @@ class TestSnowfakery:
         assert len(mock_load_data.mock_calls) == 2
         assert len(threads_instead_of_processes.mock_calls) == 1
 
-    @contextmanager
-    def _ensure_accounts(self, number, create_task, run_code_without_recording, sf):
-        def setup(number):
-            task = create_task(DeleteData, {"objects": "Entitlement, Account"})
-            task()
-            for i in range(0, number):
-                sf.Account.create({"Name": f"Account {i}"})
-
-        run_code_without_recording(lambda: setup(number))
-        yield
-        run_code_without_recording(lambda: setup(0))
-
     # There was previously a failed attempt at testing the connected app here.
     # Could try again after Snowfakery 2.0 launch.
     # https://github.com/SFDO-Tooling/CumulusCI/blob/c7e0d7552394b3ac268cb373ffb24b72b5c059f3/cumulusci/tasks/bulkdata/tests/test_snowfakery.py#L165-L197https://github.com/SFDO-Tooling/CumulusCI/blob/c7e0d7552394b3ac268cb373ffb24b72b5c059f3/cumulusci/tasks/bulkdata/tests/test_snowfakery.py#L165-L197
 
     @pytest.mark.vcr()
     def test_run_until_records_in_org__none_needed(
-        self,
-        sf,
-        threads_instead_of_processes,
-        mock_load_data,
-        create_task,
-        run_code_without_recording,
+        self, threads_instead_of_processes, mock_load_data, create_task, ensure_accounts
     ):
-        with self._ensure_accounts(6, create_task, run_code_without_recording, sf):
+        with ensure_accounts(6):
             task = create_task(
                 Snowfakery,
                 {"recipe": sample_yaml, "run_until_records_in_org": "Account:6"},
@@ -221,9 +223,9 @@ class TestSnowfakery:
         threads_instead_of_processes,
         mock_load_data,
         create_task,
-        run_code_without_recording,
+        ensure_accounts,
     ):
-        with self._ensure_accounts(10, create_task, run_code_without_recording, sf):
+        with ensure_accounts(10):
             # org reports 10 records in org
             # so we only need 6 more.
             # That will be one "initial" batch plus one "parallel" batch
@@ -241,14 +243,13 @@ class TestSnowfakery:
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_run_until_records_in_org__multiple_needed(
         self,
-        sf,
         threads_instead_of_processes,
         mock_load_data,
         snowfakery,
-        run_code_without_recording,
+        ensure_accounts,
         create_task,
     ):
-        with self._ensure_accounts(10, create_task, run_code_without_recording, sf):
+        with ensure_accounts(10):
             task = snowfakery(recipe=sample_yaml, run_until_records_in_org="Account:16")
             task()
 
