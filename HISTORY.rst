@@ -1,6 +1,45 @@
 =======
 History
 =======
+3.41 (2012-08-04)
+-----------------
+
+Changes
+
+* CCI has a new Metadata ETL task that allows adding fields to existing layouts. Sections can be selected using an index (#2766)
+
+* We added a task to enable an Einstein prediction (thanks, @erikperkins!) (#2778)
+
+* We added standard flows for releasing unlocked packages: release_unlocked_beta and release_unlocked_production (#2768)
+ 
+* We added documentation for using CumulusCI to build managed 2GP packages, 
+  unlocked packages, and extending NPSP and EDA with 2GP packages. (#2768)
+
+* Contributions to CCI now require verification by isort (#2770)
+ 
+* CumulusCI now supports deploying unmanaged dependencies in SFDX source format. (#2735)
+
+* The `create_package_version` task now handles dependencies that use a `zip_url`. (#2735)
+
+* Updates to Github Actions configuration documentation. Thanks @Julian88Tex (#2773)
+
+* CumulusCI now automatically recognizes services and orgs configured via environment variables. See the `docs <https://github.com/SFDO-Tooling/CumulusCI/blob/481ab27446edbfdb038ea62834a6f276dc53bf3d/docs/headless.rst#L9>`_ for more details. (#2676 and #2776)
+
+* We've updated the Push Upgrade tasks (push_list, push_sandbox, etc) task option `start_time` to accept ISO-8601 formatted datetimes. (#2769)
+
+* CumulusCI now automatically recognizes enhanced domains in sandboxes when 
+  establishing a connection via JWT. (#2753)
+
+Issues Closed
+
+* Fixed an issue where scratch orgs failed to be deleted in CI environments.
+
+* Fixed an issue where deleting an org failed to mark the org as deleted on CumulusCI's keychain.
+
+* Fixed an issue where CumulusCI would fail on Linux distributions that were incompatible with the `keyring` package. 
+
+* We fixed an issue causing release_2gp_production to fail with a dependency parsing error.
+
 
 3.40.1 (2021-07-22)
 -------------------
