@@ -8,7 +8,7 @@ interactions:
     uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects/Account/
   response:
     body:
-      string: "{\n  \"id\" : \"001ACCOUNTID\",\n  \"success\" : true,\n  \"errors\"
+      string: "{\n  \"id\" : \"0010xACCOUNTID0000\",\n  \"success\" : true,\n  \"errors\"
         : [ ]\n}"
     headers:
       Response-Headers: Elided
@@ -32,22 +32,22 @@ interactions:
     body:
       string: "{\n  \"compositeResponse\" : [ {\n    \"body\" : {\n      \"totalSize\"
         : 1,\n      \"done\" : true,\n      \"records\" : [ {\n        \"attributes\"
-        : {\n          \"type\" : \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/001ACCOUNTID\"\n
-        \       },\n        \"Id\" : \"001ACCOUNTID\"\n      } ]\n    },\n    \"httpHeaders\"
+        : {\n          \"type\" : \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/0010xACCOUNTID0000\"\n
+        \       },\n        \"Id\" : \"0010xACCOUNTID0000\"\n      } ]\n    },\n    \"httpHeaders\"
         : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__0__\"\n
         \ }, {\n    \"body\" : {\n      \"totalSize\" : 1,\n      \"done\" : true,\n
         \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
-        \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/001ACCOUNTID\"\n
+        \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/0010xACCOUNTID0000\"\n
         \       },\n        \"Name\" : \"Smith Corp.\"\n      } ]\n    },\n    \"httpHeaders\"
         : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__1__\"\n
         \ }, {\n    \"body\" : {\n      \"totalSize\" : 1,\n      \"done\" : true,\n
         \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
-        \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/001ACCOUNTID\"\n
-        \       },\n        \"Id\" : \"001ACCOUNTID\"\n      } ]\n    },\n    \"httpHeaders\"
+        \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/0010xACCOUNTID0000\"\n
+        \       },\n        \"Id\" : \"0010xACCOUNTID0000\"\n      } ]\n    },\n    \"httpHeaders\"
         : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__2__\"\n
         \ }, {\n    \"body\" : {\n      \"totalSize\" : 1,\n      \"done\" : true,\n
         \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
-        \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/001ACCOUNTID\"\n
+        \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/0010xACCOUNTID0000\"\n
         \       },\n        \"Name\" : \"Smith Corp.\"\n      } ]\n    },\n    \"httpHeaders\"
         : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__3__\"\n
         \ } ]\n}"
