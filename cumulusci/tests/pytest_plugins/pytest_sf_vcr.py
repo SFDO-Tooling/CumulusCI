@@ -7,12 +7,12 @@ Records transactions if there is an org specified and does not if there is not.
 """
 
 import re
-import pytest
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 
+import pytest
 from vcr import cassette
-from contextvars import ContextVar
-from contextlib import contextmanager
 
 
 def simplify_body(request_or_response_body):
