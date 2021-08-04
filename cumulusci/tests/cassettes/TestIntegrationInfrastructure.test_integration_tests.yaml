@@ -5,12 +5,12 @@ interactions:
       Request-Headers:
       - Elided
     method: GET
-    uri: https://orgname.my.salesforce.com/services/data/v52.0/sobjects/Organization/ORGID
+    uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects/Organization/00D0xORGID00000000
   response:
     body:
       string: "{\n  \"attributes\" : {\n    \"type\" : \"Organization\",\n    \"url\"
-        : \"/services/data/v52.0/sobjects/Organization/00D0R000000FIDcUAO\"\n  },\n
-        \ \"Id\" : \"00D0R000000FIDcUAO\",\n  \"Name\" : \"CumulusCI - Dev Workspace\",\n
+        : \"/services/data/vxx.0/sobjects/Organization/00D0xORGID00000000\"\n  },\n
+        \ \"Id\" : \"00D0xORGID00000000\",\n  \"Name\" : \"CumulusCI - Dev Workspace\",\n
         \ \"Division\" : null,\n  \"Street\" : null,\n  \"City\" : null,\n  \"State\"
         : null,\n  \"PostalCode\" : null,\n  \"Country\" : \"US\",\n  \"Latitude\"
         : null,\n  \"Longitude\" : null,\n  \"GeocodeAccuracy\" : null,\n  \"Address\"
@@ -22,23 +22,22 @@ interactions:
         : \"en_US\",\n  \"ReceivesInfoEmails\" : true,\n  \"ReceivesAdminInfoEmails\"
         : true,\n  \"PreferencesRequireOpportunityProducts\" : false,\n  \"PreferencesTransactionSecurityPolicy\"
         : false,\n  \"PreferencesTerminateOldestSession\" : false,\n  \"PreferencesConsentManagementEnabled\"
-        : true,\n  \"PreferencesIndividualAutoCreateEnabled\" : false,\n  \"PreferencesAutoSelectIndividualOnMerge\"
-        : false,\n  \"PreferencesLightningLoginEnabled\" : true,\n  \"PreferencesOnlyLLPermUserAllowed\"
-        : false,\n  \"FiscalYearStartMonth\" : 1,\n  \"UsesStartDateAsFiscalYearName\"
-        : false,\n  \"DefaultAccountAccess\" : \"Edit\",\n  \"DefaultContactAccess\"
-        : \"ControlledByParent\",\n  \"DefaultOpportunityAccess\" : \"Edit\",\n  \"DefaultLeadAccess\"
-        : \"ReadEditTransfer\",\n  \"DefaultCaseAccess\" : \"ReadEditTransfer\",\n
-        \ \"DefaultCalendarAccess\" : \"HideDetailsInsert\",\n  \"DefaultPricebookAccess\"
-        : \"ReadSelect\",\n  \"DefaultCampaignAccess\" : \"All\",\n  \"SystemModstamp\"
-        : \"2020-06-14T19:35:52.000+0000\",\n  \"ComplianceBccEmail\" : null,\n  \"UiSkin\"
-        : \"Theme3\",\n  \"SignupCountryIsoCode\" : \"US\",\n  \"TrialExpirationDate\"
-        : \"2020-07-15T19:33:06.000+0000\",\n  \"NumKnowledgeService\" : 2,\n  \"OrganizationType\"
-        : \"Developer Edition\",\n  \"NamespacePrefix\" : null,\n  \"InstanceName\"
-        : \"CS94\",\n  \"IsSandbox\" : true,\n  \"WebToCaseDefaultOrigin\" : \"Web\",\n
-        \ \"MonthlyPageViewsUsed\" : 0,\n  \"MonthlyPageViewsEntitlement\" : 0,\n
-        \ \"IsReadOnly\" : false,\n  \"CreatedDate\" : \"2020-06-14T19:30:07.000+0000\",\n
-        \ \"CreatedById\" : \"0050R000004qnA8QAI\",\n  \"LastModifiedDate\" : \"2020-06-14T19:33:12.000+0000\",\n
-        \ \"LastModifiedById\" : \"0050R000004qnA8QAI\"\n}"
+        : true,\n  \"PreferencesAutoSelectIndividualOnMerge\" : false,\n  \"PreferencesLightningLoginEnabled\"
+        : true,\n  \"PreferencesOnlyLLPermUserAllowed\" : false,\n  \"FiscalYearStartMonth\"
+        : 1,\n  \"UsesStartDateAsFiscalYearName\" : false,\n  \"DefaultAccountAccess\"
+        : \"Edit\",\n  \"DefaultContactAccess\" : \"ControlledByParent\",\n  \"DefaultOpportunityAccess\"
+        : \"Edit\",\n  \"DefaultLeadAccess\" : \"ReadEditTransfer\",\n  \"DefaultCaseAccess\"
+        : \"ReadEditTransfer\",\n  \"DefaultCalendarAccess\" : \"HideDetailsInsert\",\n
+        \ \"DefaultPricebookAccess\" : \"ReadSelect\",\n  \"DefaultCampaignAccess\"
+        : \"All\",\n  \"SystemModstamp\" : \"2021-01-01T01:02:01.000+0000\",\n  \"ComplianceBccEmail\"
+        : null,\n  \"UiSkin\" : \"Theme3\",\n  \"SignupCountryIsoCode\" : \"US\",\n
+        \ \"TrialExpirationDate\" : \"2021-01-01T01:02:01.000+0000\",\n  \"NumKnowledgeService\"
+        : 2,\n  \"OrganizationType\" : \"Developer Edition\",\n  \"NamespacePrefix\"
+        : null,\n  \"InstanceName\" : \"CS420\",\n  \"IsSandbox\" : true,\n  \"WebToCaseDefaultOrigin\"
+        : \"Web\",\n  \"MonthlyPageViewsUsed\" : 0,\n  \"MonthlyPageViewsEntitlement\"
+        : 0,\n  \"IsReadOnly\" : false,\n  \"CreatedDate\" : \"2021-01-01T01:02:01.000+0000\",\n
+        \ \"CreatedById\" : \"0050xUSERID0000000\",\n  \"LastModifiedDate\" : \"2021-01-01T01:02:01.000+0000\",\n
+        \ \"LastModifiedById\" : \"0050xUSERID0000000\"\n}"
     headers:
       Response-Headers: Elided
     status:
@@ -50,19 +49,19 @@ interactions:
       \ <soap:Header>\n    <SessionHeader xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
       \     <sessionId>**Elided**</sessionId>\n    </SessionHeader>\n  </soap:Header>\n
       \ <soap:Body>\n    <retrieve xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
-      \     <retrieveRequest>\n        <apiVersion>52.0</apiVersion>\n        <unpackaged>\n
+      \     <retrieveRequest>\n        <apiVersion>vxx.0</apiVersion>\n        <unpackaged>\n
       \         <types>\n            <members>*</members>\n            <name>InstalledPackage</name>\n
-      \         </types>\n          <version>52.0</version>\n        </unpackaged>\n
+      \         </types>\n          <version>vxx.0</version>\n        </unpackaged>\n
       \     </retrieveRequest>\n    </retrieve>\n  </soap:Body>\n</soap:Envelope>"
     headers:
       Request-Headers:
       - Elided
     method: POST
-    uri: https://orgname.my.salesforce.com/services/Soap/m/52.0/ORGID
+    uri: https://orgname.my.salesforce.com/services/Soap/m/vxx.0/00D0xORGID00000000
   response:
     body:
       string: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
-        xmlns="http://soap.sforce.com/2006/04/metadata"><soapenv:Body><retrieveResponse><result><done>false</done><id>09S0R000000mmd5UAA</id><state>Queued</state></result></retrieveResponse></soapenv:Body></soapenv:Envelope>
+        xmlns="http://soap.sforce.com/2006/04/metadata"><soapenv:Body><retrieveResponse><result><done>false</done><id>0ANID</id><state>Queued</state></result></retrieveResponse></soapenv:Body></soapenv:Envelope>
     headers:
       Response-Headers: Elided
     status:
@@ -74,17 +73,16 @@ interactions:
       \ <soap:Header>\n    <SessionHeader xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
       \     <sessionId>**Elided**</sessionId>\n    </SessionHeader>\n  </soap:Header>\n
       \ <soap:Body>\n    <checkStatus xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
-      \     <asyncProcessId>09S0R000000mmd5UAA</asyncProcessId>\n    </checkStatus>\n
-      \ </soap:Body>\n</soap:Envelope>"
+      \     <asyncProcessId>0ANAPPID</asyncProcessId>\n    </checkStatus>\n  </soap:Body>\n</soap:Envelope>"
     headers:
       Request-Headers:
       - Elided
     method: POST
-    uri: https://orgname.my.salesforce.com/services/Soap/m/52.0/ORGID
+    uri: https://orgname.my.salesforce.com/services/Soap/m/vxx.0/00D0xORGID00000000
   response:
     body:
       string: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
-        xmlns="http://soap.sforce.com/2006/04/metadata"><soapenv:Body><checkStatusResponse><result><done>true</done><id>09S0R000000mmd5UAA</id><state>Completed</state></result></checkStatusResponse></soapenv:Body></soapenv:Envelope>
+        xmlns="http://soap.sforce.com/2006/04/metadata"><soapenv:Body><checkStatusResponse><result><done>true</done><id>0ANID</id><state>Completed</state></result></checkStatusResponse></soapenv:Body></soapenv:Envelope>
     headers:
       Response-Headers: Elided
     status:
@@ -96,19 +94,19 @@ interactions:
       \ <soap:Header>\n    <SessionHeader xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
       \     <sessionId>**Elided**</sessionId>\n    </SessionHeader>\n  </soap:Header>\n
       \ <soap:Body>\n    <checkRetrieveStatus xmlns=\"http://soap.sforce.com/2006/04/metadata\">\n
-      \     <asyncProcessId>09S0R000000mmd5UAA</asyncProcessId>\n    </checkRetrieveStatus>\n
+      \     <asyncProcessId>0ANAPPID</asyncProcessId>\n    </checkRetrieveStatus>\n
       \ </soap:Body>\n</soap:Envelope>"
     headers:
       Request-Headers:
       - Elided
     method: POST
-    uri: https://orgname.my.salesforce.com/services/Soap/m/52.0/ORGID
+    uri: https://orgname.my.salesforce.com/services/Soap/m/vxx.0/00D0xORGID00000000
   response:
     body:
       string: <?xml version="1.0" encoding="UTF-8"?><soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
-        xmlns="http://soap.sforce.com/2006/04/metadata"><soapenv:Body><checkRetrieveStatusResponse><result><done>true</done><fileProperties><createdById>0050R000004qnA8QAI</createdById><createdByName>User
-        User</createdByName><createdDate>2020-06-16T02:06:17.172Z</createdDate><fileName>unpackaged/package.xml</fileName><fullName>unpackaged/package.xml</fullName><id></id><lastModifiedById>0050R000004qnA8QAI</lastModifiedById><lastModifiedByName>User
-        User</lastModifiedByName><lastModifiedDate>2020-06-16T02:06:17.172Z</lastModifiedDate><manageableState>unmanaged</manageableState><type>Package</type></fileProperties><id>09S0R000000mmd5UAA</id><status>Succeeded</status><success>true</success><zipFile>UEsDBBQACAgIAMgQ0FAAAAAAAAAAAAAAAAAWAAAAdW5wYWNrYWdlZC9wYWNrYWdlLnhtbE1OywrCMBC85ytCjoLZKEWKbNOb4M2DfsDarlpsktIE0b+39IHuaWZ2d2awfLtWvriPTfCF2mijJPsq1I2/F+pyPqxzVVqBJ6qedGc5XPtYqEdK3R4gBup0vIW+Yl0FB1tjdmAycJyopkTKCjkMpk/HccIjd+yuQ6RdISzwt/Tk2B59TNS2XM/BCKM82cGfH87dbZZrg7AwgTB/WvEFUEsHCM4k+iueAAAA5AAAAFBLAQIUABQACAgIAMgQ0FDOJPorngAAAOQAAAAWAAAAAAAAAAAAAAAAAAAAAAB1bnBhY2thZ2VkL3BhY2thZ2UueG1sUEsFBgAAAAABAAEARAAAAOIAAAAAAA==</zipFile></result></checkRetrieveStatusResponse></soapenv:Body></soapenv:Envelope>
+        xmlns="http://soap.sforce.com/2006/04/metadata"><soapenv:Body><checkRetrieveStatusResponse><result><done>true</done><fileProperties><createdById>00554000008s2LrAAI</createdById><createdByName>User
+        User</createdByName><createdDate>2021-01-03T01:11:11.420Z</createdDate><fileName>unpackaged/package.xml</fileName><fullName>unpackaged/package.xml</fullName><id></id><lastModifiedById>005USERID</lastModifiedById><lastModifiedByName>User
+        User</lastModifiedByName><lastModifiedDate>2021-01-03T01:11:11.420Z</lastModifiedDate><manageableState>unmanaged</manageableState><type>Package</type></fileProperties><id>0ANID</id><status>Succeeded</status><success>true</success><zipFile>UEsDBBQACAgIAOkKBFMAAAAAAAAAAAAAAAAWAAAAdW5wYWNrYWdlZC9wYWNrYWdlLnhtbE1OywrCMBC85ytCjoLdWFREtulN8OZBP2BNVy02SWmC6N9b+kD3NDO7OzNYvl0jX9zFOvhCrTKtJHsbqtrfC3U5H5Y7VRqBJ7JPurPsr30s1COldg8QA7VZvIXOcmaDg1zrLeg1OE5UUSJlhOwH06flOOKBO3bXPtIsEGb4W3pybI4+JmoarqZghEEe7eDPD6fuZpNnGmFmAmH6NOILUEsHCLM3inCeAAAA5AAAAFBLAQIUABQACAgIAOkKBFOzN4pwngAAAOQAAAAWAAAAAAAAAAAAAAAAAAAAAAB1bnBhY2thZ2VkL3BhY2thZ2UueG1sUEsFBgAAAAABAAEARAAAAOIAAAAAAA==</zipFile></result></checkRetrieveStatusResponse></soapenv:Body></soapenv:Envelope>
     headers:
       Response-Headers: Elided
     status:
