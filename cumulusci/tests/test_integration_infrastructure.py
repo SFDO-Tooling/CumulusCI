@@ -12,8 +12,29 @@ first_cassette = (
 )
 
 
+@pytest.fixture()
+def capture_orgid_using_task(create_task: callable, tmp_path: str) -> str:
+    def _capture_orgid_using_task():
+        csv_output = Path(tmp_path) / "foo.csv"
+        t = create_task(
+            SOQLQuery,
+            {
+                "query": "select Id from Organization",
+                "object": "Organization",
+                "result_file": csv_output,
+            },
+        )
+        t()
+        assert csv_output.exists()
+        org_id = csv_output.read_text().split("\n")[1].split(",")[0]
+        return org_id.strip('"')
+
+    return _capture_orgid_using_task
+
+
 class TestIntegrationInfrastructure:
     "Test our two plugins for doing integration testing"
+    remembered_cli_specified_org_id = None
 
     @pytest.mark.vcr()
     def test_integration_tests(self, create_task, run_code_without_recording):
@@ -52,7 +73,7 @@ class TestIntegrationInfrastructure:
 
         run_code_without_recording(lambda: setup())
 
-    def test_file_was_not_created(self):
+    def test_file_was_not_created(self, capture_orgid_using_task):
         filename = (
             Path(__file__).parent
             / "cassettes/TestIntegrationInfrastructure.test_run_code_without_recording.yaml"
@@ -61,21 +82,39 @@ class TestIntegrationInfrastructure:
         assert not filename.exists(), filename
 
     @pytest.mark.needs_org()
+    def test_cli_specified_org(self, capture_orgid_using_task):
+        self.__class__.remembered_cli_specified_org_id = capture_orgid_using_task()
+        assert self.remembered_cli_specified_org_id.startswith(
+            "00D"
+        ), self.__class__.remembered_cli_specified_org_id
+
+    @pytest.mark.needs_org()
     @pytest.mark.slow()
-    def test_org_shape(self, org_shape, create_task, current_org_shape, tmp_path):
-        with org_shape("qa", "qa_org"):
-            csv_output = Path(tmp_path) / "foo.csv"
-            assert (
-                current_org_shape.org_config.sfdx_alias
-                == "CumulusCI__pytest__qa__qa_org"
-            )
-            t = create_task(
-                SOQLQuery,
-                {
-                    "query": "select Id from Organization",
-                    "object": "Organization",
-                    "result_file": csv_output,
-                },
-            )
-            t()
-            assert csv_output.exists()
+    @pytest.mark.org_shape("qa", "qa_org")
+    def test_org_shape(self, capture_orgid_using_task, current_org_shape):
+        assert (
+            current_org_shape.org_config.sfdx_alias == "CumulusCI__pytest__qa__qa_org"
+        )
+        assert self.__class__.remembered_cli_specified_org_id
+        generated_org_id = capture_orgid_using_task()
+        assert self.__class__.remembered_cli_specified_org_id != generated_org_id, (
+            self.__class__.remembered_cli_specified_org_id,
+            generated_org_id,
+        )
+        self.__class__.remember_generated_org_id = generated_org_id
+
+    @pytest.mark.needs_org()
+    @pytest.mark.slow()
+    @pytest.mark.org_shape("qa", "qa_org")
+    def test_org_shape_reuse(
+        self,
+        create_task,
+        current_org_shape,
+        tmp_path,
+        capture_orgid_using_task,
+    ):
+        assert (
+            current_org_shape.org_config.sfdx_alias == "CumulusCI__pytest__qa__qa_org"
+        )
+        generated_org_id = capture_orgid_using_task()
+        assert generated_org_id == self.__class__.remember_generated_org_id

@@ -207,15 +207,20 @@ their definitions:
   and DO NOT record the network traffic in a VCR cassette
 * sf - a handle to a simple-salesforce client tied to the
   current org
-* with org_shape('qa', 'qa_org'): - switch the current
-  org to an org created with org template "qa" after running flow "qa_org".
-  Clean up any changes you make, because this org may be reused by
-  other tests.
 * mock_http_response(status) - make a mock HTTP Response with a particular status
 * runtime - Get the CumulusCI runtime for the current working directory
 * project_config - Get the project config for the current working directory
 * org_config - Get the project config for the current working directory
 * create_task - Get a task _factory_ which can be used to construct task instances.
+
+Decorators for tests:
+
+ * pytest.mark.slow(): a slow test that should only be executed when requested with --run-slow-tests
+ * pytest.mark.large_vcr(): a network-based test that generates VCR cassettes too large for version control. Use --org to generate them locally.
+ * pytest.mark.needs_org(): a test that needs an org (or at least access to the network) but should not attempt to store VCR cassettes
+ * org_shape('qa', 'qa_org'): - switch the curren org to an org created with org template "qa" after running flow "qa_org".
+   As with all tests, clean up any changes you make, because this org may be reused by
+   other tests.
 
 Randomized tests
 ~~~~~~~~~~~~~~~~
@@ -232,3 +237,7 @@ It will output something like this:
 
 Using those two parameters on the command line, you can
 replicate a particular run later.
+
+In extremely rare cases where it's not possible to make
+tests independent, you can
+`enforce an order <https://pythonhosted.org/pytest-random-order/#disable-shuffling-in-module-or-class>`_

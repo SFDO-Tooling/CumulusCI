@@ -39,6 +39,7 @@ def pytest_configure(config):
         "slow(): a slow test that should only be executed when requested with --run-slow-tests",
         "large_vcr(): a network-based test that generates VCR cassettes too large for version control. Use --org to generate them locally.",
         "needs_org(): a test that needs an org (or at least access to the network) but should not attempt to store VCR cassettes",
+        "org_shape(org_name, init_flow): a test that needs a particular org shape",
     ]
 
     for marker in markers:
@@ -199,16 +200,15 @@ def current_org_shape(request):
     return org
 
 
-@pytest.fixture(
-    scope="module",
-)
-def org_shape(request, vcr, current_org_shape):
+@pytest.fixture(scope="function", autouse=True)
+def _change_org_shape(request, current_org_shape):
     """Select an org_shape for a test
     e.g.:
 
-    with org_shape('qa', 'qa_org'):
-        t = create_task(Foo)
-        t()
+        @pytest.mark.org_shape("qa", "qa_org")
+        def test_foo(create_task);
+            t = create_task(Foo)
+            t()
 
     Switch the current org to an org created with
     org template "qa" after running flow "qa_org".
@@ -216,41 +216,49 @@ def org_shape(request, vcr, current_org_shape):
     Clean up any changes you make, because this org may be reused by
     other tests.
     """
+    marker = request.node.get_closest_marker("org_shape")
+    if marker:
+        config_name, flow_name = marker.args
+        with change_org_shape(current_org_shape, config_name, flow_name) as org_config:
+            yield org_config
+    else:
+        yield None
 
-    @contextmanager
-    def org_shape(config_name: str = pytest, flow_name: str = None):
 
-        # I don't love that we're using the user's real keychain
-        # but I get weird popups when I use the mock one.
-        with unmock_env():
-            shapes = org_shapes.get()
-            org_name = f"pytest__{config_name}__{flow_name}"
-            org = shapes.get(org_name)
-            if org:
-                return org
+@contextmanager
+def change_org_shape(current_org_shape, config_name: str, flow_name: str):
+    # I don't love that we're using the user's real keychain
+    # but I get weird popups when I use an empty keychain.
+    with unmock_env():
+        org_name = f"pytest__{config_name}__{flow_name}"
+        shapes = org_shapes.get()
+        org_config = shapes.get(org_name)
+        if not org_config:
+            org_config = _create_org(org_name, config_name, flow_name)
+            shapes[org_name] = org_config
+    current_org_shape.org_config = org_config
+    yield org_config
 
-            runtime = CliRuntime(load_keychain=True)
-            with click.Context(command=mock.Mock(), obj=runtime):
-                try:
-                    org, org_config = runtime.get_org(org_name)
-                except OrgNotFound:
-                    org = None
-                if org:
-                    org_scratch_delete.callback(org_name)
-                org_scratch.callback(
-                    config_name,
-                    org_name,
-                    default=False,
-                    devhub=None,
-                    days=1,
-                    no_password=False,
-                )
-                org, org_config = runtime.get_org(org_name)
 
-                coordinator = runtime.get_flow(flow_name)
-                coordinator.run(org_config)
-                shapes[org_name] = org_config
-                current_org_shape.org_config = org_config
-                yield org_config
+def _create_org(org_name, config_name, flow_name):
+    runtime = CliRuntime(load_keychain=True)
+    with click.Context(command=mock.Mock(), obj=runtime):
+        try:
+            org, org_config = runtime.get_org(org_name)
+        except OrgNotFound:
+            org = None
+        if org:
+            org_scratch_delete.callback(org_name)
+        org_scratch.callback(
+            config_name,
+            org_name,
+            default=False,
+            devhub=None,
+            days=1,
+            no_password=False,
+        )
+        org, org_config = runtime.get_org(org_name)
 
-    return org_shape
+        coordinator = runtime.get_flow(flow_name)
+        coordinator.run(org_config)
+        return org_config

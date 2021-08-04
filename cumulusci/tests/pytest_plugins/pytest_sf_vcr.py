@@ -178,7 +178,8 @@ def salesforce_matcher(r1, r2, should_explain=False):
     # are working properly
     if summary1 != summary2:
         if should_explain:
-            return explain_mismatch(summary1, summary2)
+            return None
+            # return explain_mismatch(summary1, summary2)
         else:
             assert summary1 == summary2
 
@@ -196,13 +197,7 @@ salesforce_vcr.__doc__ = __doc__
 orig_contains = cassette.Cassette.__contains__
 
 
-# @pytest.fixture(scope="module")
-# def vcr_cassette_dir(request):
-#     test_dir = request.node.fspath.dirname
-#     return os.path.join(test_dir, "cassettes")
-
-
-# much better error handling than the built-in VCR stuff
+# better error handling than the built-in VCR stuff
 def __contains__(self, request):
     """Return whether or not a request has been stored"""
     if orig_contains(self, request):
