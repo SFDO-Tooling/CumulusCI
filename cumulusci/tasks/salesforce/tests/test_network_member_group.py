@@ -1,8 +1,9 @@
 import unittest
 from unittest.mock import Mock, call
-from cumulusci.tasks.salesforce.tests.util import create_task
+
+from cumulusci.core.exceptions import CumulusCIException, SalesforceException
 from cumulusci.tasks.salesforce.network_member_group import CreateNetworkMemberGroups
-from cumulusci.core.exceptions import SalesforceException, CumulusCIException
+from cumulusci.tasks.salesforce.tests.util import create_task
 
 
 class TestCreateNetworkMemberGroups(unittest.TestCase):

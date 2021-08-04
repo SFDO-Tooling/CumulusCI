@@ -1,4 +1,3 @@
-from unittest import mock
 import base64
 import io
 import os
@@ -6,14 +5,15 @@ import pathlib
 import unittest
 import zipfile
 
-from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
-from cumulusci.salesforce_api.package_zip import CreatePackageZipBuilder
-from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
-from cumulusci.salesforce_api.package_zip import DestructiveChangesZipBuilder
-from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
-from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import touch
+from cumulusci.salesforce_api.package_zip import (
+    BasePackageZipBuilder,
+    CreatePackageZipBuilder,
+    DestructiveChangesZipBuilder,
+    InstallPackageZipBuilder,
+    MetadataPackageZipBuilder,
+    UninstallPackageZipBuilder,
+)
+from cumulusci.utils import temporary_dir, touch
 
 
 class TestBasePackageZipBuilder:
@@ -314,23 +314,6 @@ class TestMetadataPackageZipBuilder:
                 assert not builder._include_file(d, "file_name" + file_ending)
             for d in non_lwc_component_directories:
                 assert builder._include_file(d, "file_name" + file_ending)
-
-    def test_convert_sfdx(self):
-        with temporary_dir() as path:
-            touch("README.md")  # make sure there's something in the directory
-            with mock.patch("cumulusci.salesforce_api.package_zip.sfdx") as sfdx:
-                builder = MetadataPackageZipBuilder()
-                with builder._convert_sfdx_format(path, "Test Package"):
-                    pass
-        sfdx.assert_called_once()
-
-    def test_convert_sfdx__skipped_if_directory_empty(self):
-        with temporary_dir() as path:
-            with mock.patch("cumulusci.salesforce_api.package_zip.sfdx") as sfdx:
-                builder = MetadataPackageZipBuilder()
-                with builder._convert_sfdx_format(path, "Test Package"):
-                    pass
-        sfdx.assert_not_called()
 
     def test_removes_feature_parameters_from_unlocked_package(self):
         with temporary_dir() as path:

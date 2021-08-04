@@ -2,10 +2,10 @@
 Tests for the robot task, specifically for options related to running tests in parallel
 """
 
-from unittest import mock
-import unittest
 import sys
+import unittest
 from pathlib import Path
+from unittest import mock
 
 from cumulusci.tasks.robotframework import Robot
 from cumulusci.tasks.salesforce.tests.util import create_task

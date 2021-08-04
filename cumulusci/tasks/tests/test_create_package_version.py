@@ -2,38 +2,39 @@ import io
 import json
 import os
 import pathlib
-import pytest
 import re
-import responses
 import shutil
-import yaml
 import zipfile
-
-from pydantic import ValidationError
 from unittest import mock
 
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import TaskConfig
+import pytest
+import responses
+import yaml
+from pydantic import ValidationError
+
+from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
+    UnmanagedGitHubRefDependency,
 )
-from cumulusci.core.dependencies.dependencies import UnmanagedGitHubRefDependency
+from cumulusci.core.exceptions import (
+    CumulusCIUsageError,
+    DependencyLookupError,
+    GithubException,
+    PackageUploadFailure,
+    TaskOptionsError,
+)
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.core.exceptions import DependencyLookupError
-from cumulusci.core.exceptions import GithubException
-from cumulusci.core.exceptions import PackageUploadFailure
-from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
-from cumulusci.tasks.create_package_version import CreatePackageVersion
-from cumulusci.tasks.create_package_version import PackageConfig
-from cumulusci.tasks.create_package_version import PackageTypeEnum
-from cumulusci.tasks.create_package_version import PackageVersionNumber
-from cumulusci.tasks.create_package_version import VersionTypeEnum
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import touch
+from cumulusci.tasks.create_package_version import (
+    CreatePackageVersion,
+    PackageConfig,
+    PackageTypeEnum,
+    PackageVersionNumber,
+    VersionTypeEnum,
+)
+from cumulusci.utils import temporary_dir, touch
 
 
 @pytest.fixture
@@ -106,7 +107,7 @@ def task(project_config, devhub_config, org_config):
                     "package_name": "Test Package",
                     "static_resource_path": "static-resources",
                     "ancestor_id": "04t000000000000",
-                    "create_unlocked_dependency_packages": True
+                    "create_unlocked_dependency_packages": True,
                 }
             }
         ),
@@ -123,7 +124,7 @@ def task(project_config, devhub_config, org_config):
 @pytest.fixture
 def mock_download_extract_github():
     with mock.patch(
-        "cumulusci.tasks.create_package_version.download_extract_github"
+        "cumulusci.core.dependencies.dependencies.download_extract_github_from_repo"
     ) as download_extract_github:
         yield download_extract_github
 
@@ -199,8 +200,9 @@ class TestCreatePackageVersion:
         mock_get_static_dependencies,
         devhub_config,
     ):
-        mock_download_extract_github.return_value = zipfile.ZipFile(io.BytesIO(), "w")
-
+        zf = zipfile.ZipFile(io.BytesIO(), "w")
+        zf.writestr("unpackaged/pre/first/package.xml", "")
+        mock_download_extract_github.return_value = zf
         # _get_or_create_package() responses
         responses.add(  # query to find existing package
             "GET",
@@ -582,12 +584,17 @@ class TestCreatePackageVersion:
 
     def test_convert_project_dependencies__no_unlocked_packages(self, task):
         task.options["create_unlocked_dependency_packages"] = False
-        assert task._convert_project_dependencies(
-            [
-                PackageVersionIdDependency(version_id="04t000000000000"), 
-                UnmanagedGitHubRefDependency(github="https://github.com/test/test", ref="abcdef")
-            ]
-        ) == [{"subscriberPackageVersionId": "04t000000000000"}]
+        assert (
+            task._convert_project_dependencies(
+                [
+                    PackageVersionIdDependency(version_id="04t000000000000"),
+                    UnmanagedGitHubRefDependency(
+                        github="https://github.com/test/test", ref="abcdef"
+                    ),
+                ]
+            )
+            == [{"subscriberPackageVersionId": "04t000000000000"}]
+        )
 
     def test_unpackaged_pre_dependencies__none(self, task):
         shutil.rmtree(str(pathlib.Path(task.project_config.repo_root, "unpackaged")))

@@ -15,12 +15,11 @@ Or to give a more Salesforce-y example:
 Account
 """
 
-from typing import Union, Generator
+from typing import Generator, Union
 
 from lxml import etree
 
 from .salesforce_encoding import serialize_xml_for_salesforce
-
 
 METADATA_NAMESPACE = "http://soap.sforce.com/2006/04/metadata"
 

@@ -1,11 +1,13 @@
-import click
 import json
-
+import os
 from pathlib import Path
+
+import click
 
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import CumulusCIException, ServiceNotConfigured
-from cumulusci.core.utils import import_global, import_class
+from cumulusci.core.utils import import_class, import_global
+
 from .runtime import pass_runtime
 from .ui import CliTable
 
@@ -142,6 +144,16 @@ class ConnectServiceCommand(click.MultiCommand):
                     abort=True,
                 )
 
+            prompt_to_default_service = f"A default service already exists for service type {service_type}. Would you like to set this service as the new default?"
+            default_service_exists = (
+                True
+                if runtime.keychain.get_default_service_name(service_type) is not None
+                else False
+            )
+            set_as_default = default_service_exists and click.confirm(
+                prompt_to_default_service
+            )
+
             if runtime.project_config is None:
                 set_project_default = False
             else:
@@ -157,7 +169,9 @@ class ConnectServiceCommand(click.MultiCommand):
             validator_path = service_config.get("validator")
             if validator_path:
                 validator = import_global(validator_path)
-                validator(serv_conf)
+                updated_conf: dict = validator(serv_conf)
+                if updated_conf:
+                    serv_conf.update(updated_conf)
 
             ConfigClass = ServiceConfig
             if "class_path" in service_config:
@@ -182,6 +196,11 @@ class ConnectServiceCommand(click.MultiCommand):
             )
             click.echo(f"Service {service_type}:{service_name} is now connected")
 
+            if set_as_default:
+                runtime.keychain.set_default_service(service_type, service_name)
+                click.echo(
+                    f"Service {service_type}:{service_name} is now the default for service type: {service_type}."
+                )
             if set_global_default:
                 runtime.keychain.set_default_service(
                     service_type, service_name, project=False
@@ -290,6 +309,18 @@ def service_rename(runtime, service_type, current_name, new_name):
 @click.argument("service_name")
 @pass_runtime(require_project=False, require_keychain=True)
 def service_remove(runtime, service_type, service_name):
+    # cannot remove services defined via env vars
+    env_var_name = (
+        f"{runtime.keychain.env_service_var_prefix}{service_type}__{service_name}"
+    )
+    if os.environ.get(env_var_name):
+        message = (
+            f"The service {service_type}:{service_name} is defined by environment variables. "
+            f"If you would like it removed please delete the environment variable with name: {env_var_name}"
+        )
+        click.echo(message)
+        return
+
     new_default = None
     if len(
         runtime.keychain.services.get(service_type, {}).keys()

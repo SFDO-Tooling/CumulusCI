@@ -1,41 +1,44 @@
 # -*- coding: utf-8 -*-
-from cumulusci.core.dependencies.dependencies import (
-    PackageNamespaceVersionDependency,
-    PackageVersionIdDependency,
-)
-from distutils.version import StrictVersion
 import json
 import os
 import pathlib
 import unittest
+from distutils.version import StrictVersion
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
 
-from github3.exceptions import NotFoundError
-from simple_salesforce.exceptions import SalesforceError
 import pytest
 import responses
 import yaml
+from github3.exceptions import NotFoundError
+from simple_salesforce.exceptions import SalesforceError
 
-from cumulusci.core.config import BaseConfig
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import BaseTaskFlowConfig
-from cumulusci.core.config import OrgConfig
+from cumulusci.core.config import (
+    BaseConfig,
+    BaseProjectConfig,
+    BaseTaskFlowConfig,
+    OrgConfig,
+    UniversalConfig,
+)
 from cumulusci.core.config.OrgConfig import VersionInfo
-from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.exceptions import DependencyResolutionError
-from cumulusci.core.exceptions import GithubException
-from cumulusci.core.exceptions import KeychainNotFound
-from cumulusci.core.exceptions import FlowNotFoundError
-from cumulusci.core.exceptions import NamespaceNotFoundError
-from cumulusci.core.exceptions import TaskNotFoundError
+from cumulusci.core.dependencies.dependencies import (
+    PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
+)
+from cumulusci.core.exceptions import (
+    ConfigError,
+    CumulusCIException,
+    DependencyResolutionError,
+    FlowNotFoundError,
+    GithubException,
+    KeychainNotFound,
+    NamespaceNotFoundError,
+    TaskNotFoundError,
+)
 from cumulusci.core.source import LocalFolderSource
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import touch
 from cumulusci.tests.util import DummyKeychain
+from cumulusci.utils import temporary_dir, touch
 
 
 class TestBaseConfig(unittest.TestCase):

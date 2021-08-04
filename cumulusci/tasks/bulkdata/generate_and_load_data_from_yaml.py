@@ -1,7 +1,6 @@
 from cumulusci.tasks.bulkdata import GenerateAndLoadData
 from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateDataFromYaml
 
-
 bulkgen_task = "cumulusci.tasks.bulkdata.generate_from_yaml.GenerateDataFromYaml"
 
 

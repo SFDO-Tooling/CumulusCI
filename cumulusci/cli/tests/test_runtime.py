@@ -1,17 +1,15 @@
-from datetime import date
-from datetime import timedelta
-from unittest import mock
 import os
 import sys
 import unittest
+from datetime import date, timedelta
+from unittest import mock
 
 import click
 
 import cumulusci
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.core.config import OrgConfig
-from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.core.exceptions import ConfigError, OrgNotFound
 
 
 class TestCliRuntime(unittest.TestCase):
@@ -79,8 +77,8 @@ class TestCliRuntime(unittest.TestCase):
             del os.environ["CUMULUSCI_KEY"]
             keyring.get_password.side_effect = Exception
 
-            with self.assertRaises(click.UsageError):
-                CliRuntime()
+            runtime = CliRuntime()
+            assert runtime.keychain_key is None
 
     def test_get_org(self):
         config = CliRuntime()

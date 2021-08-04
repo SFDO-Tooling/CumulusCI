@@ -1,13 +1,15 @@
 import os
 import shutil
 
-from cumulusci.core.exceptions import DependencyResolutionError
-from cumulusci.core.github import get_github_api_for_repo
-from cumulusci.core.github import find_latest_release
-from cumulusci.core.github import find_previous_release
-from cumulusci.utils import download_extract_github
-
 from github3.exceptions import NotFoundError
+
+from cumulusci.core.exceptions import DependencyResolutionError
+from cumulusci.core.github import (
+    find_latest_release,
+    find_previous_release,
+    get_github_api_for_repo,
+)
+from cumulusci.utils import download_extract_github
 
 
 class GitHubSource:

@@ -2,10 +2,11 @@
 
 MockLoggingHandler: a logging handler that we can assert"""
 
-import cumulusci
 import collections
 import logging
 import os
+
+import cumulusci
 
 
 class MockLoggingHandler(logging.Handler):

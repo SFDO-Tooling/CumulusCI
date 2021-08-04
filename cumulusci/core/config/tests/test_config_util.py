@@ -1,18 +1,16 @@
 import json
 import os
 import pathlib
-import pytest
-import yaml
 from unittest import mock
 
-from cumulusci.utils import temporary_dir, touch
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import SfdxOrgConfig
-from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.config.project_config import BaseProjectConfig
+import pytest
+import yaml
 
+from cumulusci.core.config import ServiceConfig, SfdxOrgConfig, UniversalConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config.util import get_devhub_config
+from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.utils import temporary_dir, touch
 
 
 @pytest.fixture

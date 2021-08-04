@@ -1,15 +1,8 @@
 import re
-import pytest
-
 from unittest import mock
 
-from cumulusci.core.keychain import BaseProjectKeychain, DEFAULT_CONNECTED_APP
-from cumulusci.core.exceptions import (
-    CumulusCIException,
-    OrgNotFound,
-    ServiceNotValid,
-    ServiceNotConfigured,
-)
+import pytest
+
 from cumulusci.core.config import (
     BaseProjectConfig,
     OrgConfig,
@@ -17,6 +10,13 @@ from cumulusci.core.config import (
     ServiceConfig,
     UniversalConfig,
 )
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    OrgNotFound,
+    ServiceNotConfigured,
+    ServiceNotValid,
+)
+from cumulusci.core.keychain import DEFAULT_CONNECTED_APP, BaseProjectKeychain
 
 
 @pytest.fixture
@@ -50,10 +50,15 @@ class TestBaseProjectKeychain:
         with pytest.raises(ServiceNotValid):
             keychain.set_service("github", "alias", ServiceConfig({"name": ""}))
 
-    def test_get_service_not_in_configuration(self, keychain):
+    def test_get_service__type_not_in_configuration(self, keychain):
         """This service is not listed as a service type in cumulusci.yml"""
         with pytest.raises(ServiceNotConfigured):
             keychain.get_service("not_in_configuration")
+
+    def test_get_service__alias_not_found(self, keychain):
+        """This service is not listed as a service type in cumulusci.yml"""
+        with pytest.raises(ServiceNotConfigured):
+            keychain.get_service("connected_app", "not-in-configuration")
 
     def test_get_service_not_configured(self, keychain):
         """This service is supported by CumulusCI but is not currently configured"""
@@ -209,9 +214,12 @@ class TestBaseProjectKeychain:
     def test_validate_service_attributes(self, keychain):
         # config is missing the "name" attribute
         service_config = ServiceConfig({"password": "test123"})
+        error_message = re.escape(
+            "Missing required attribute(s) for github service: ['name']"
+        )
         with pytest.raises(
             ServiceNotValid,
-            match=re.escape("Missing required attribute(s) for service: ['name']"),
+            match=error_message,
         ):
             keychain._validate_service_attributes("github", service_config)
 

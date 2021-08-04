@@ -1,13 +1,12 @@
 import os
-import pytz
 import time
 from datetime import datetime
 from distutils.version import LooseVersion
 
 import github3.exceptions
+import pytz
 
-from cumulusci.core.exceptions import GithubApiError
-from cumulusci.core.exceptions import GithubApiNotFoundError
+from cumulusci.core.exceptions import GithubApiError, GithubApiNotFoundError
 
 
 class BaseChangeNotesProvider(object):

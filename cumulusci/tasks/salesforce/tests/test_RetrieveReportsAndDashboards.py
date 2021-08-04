@@ -1,11 +1,12 @@
-from unittest import mock
 import unittest
+from unittest import mock
 
 import responses
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import RetrieveReportsAndDashboards
 from cumulusci.utils import temporary_dir
+
 from .util import create_task
 
 

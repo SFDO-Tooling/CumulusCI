@@ -1,19 +1,16 @@
-from pathlib import Path
 import json
 import os
 import re
+from pathlib import Path
+
 import requests
 
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import FlowConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.tasks import BaseTask
-from cumulusci.core.flowrunner import FlowCoordinator
-from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.config import BaseProjectConfig, FlowConfig, TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.utils import download_extract_github
-from cumulusci.utils import cd
-from cumulusci.utils import temporary_dir
+from cumulusci.core.flowrunner import FlowCoordinator
+from cumulusci.core.tasks import BaseTask
+from cumulusci.core.utils import process_bool_arg
+from cumulusci.utils import cd, download_extract_github, temporary_dir
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 INSTALL_VERSION_RE = re.compile(r"^Install .*\d$")

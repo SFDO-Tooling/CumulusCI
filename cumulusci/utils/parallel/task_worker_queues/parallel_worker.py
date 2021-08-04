@@ -1,24 +1,23 @@
-import typing as T
-from pathlib import Path
-import logging
-from contextlib import contextmanager
-import shutil
 import json
+import logging
+import shutil
+import typing as T
+from contextlib import contextmanager
+from pathlib import Path
 from traceback import format_exc
 
 from pydantic import BaseModel
 
-from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.utils import import_global
-
 from cumulusci.core.config import (
-    UniversalConfig,
-    BaseProjectConfig,
-    OrgConfig,
     BaseConfig,
+    BaseProjectConfig,
     ConnectedAppOAuthConfig,
+    OrgConfig,
+    TaskConfig,
+    UniversalConfig,
 )
+from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.utils import import_global
 
 
 class SharedConfig(BaseModel):

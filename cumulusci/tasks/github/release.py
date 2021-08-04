@@ -6,8 +6,7 @@ import github3.exceptions
 
 from cumulusci.core.dependencies.dependencies import parse_dependencies
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
-from cumulusci.core.exceptions import GithubException
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import GithubException, TaskOptionsError
 from cumulusci.tasks.github.base import BaseGithubTask
 
 
@@ -109,7 +108,7 @@ class CreateRelease(BaseGithubTask):
             # Sleep for Github to catch up with the fact that the tag actually exists!
             time.sleep(3)
 
-        prerelease = "Beta" in version
+        prerelease = tag_prefix == self.project_config.project__git__prefix_beta
 
         # Create the Github Release
         release = repo.create_release(

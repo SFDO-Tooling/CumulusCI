@@ -1,10 +1,11 @@
-from cumulusci.tests.util import create_project_config
 import logging
-import pytest
-import responses
 from unittest import mock
 
+import pytest
+import responses
+
 from cumulusci.core.config import ServiceConfig, TaskConfig
+from cumulusci.core.dependencies.dependencies import PackageVersionIdDependency
 from cumulusci.core.exceptions import (
     CumulusCIException,
     DependencyLookupError,
@@ -12,6 +13,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.salesforce.promote_package_version import PromotePackageVersion
+from cumulusci.tests.util import create_project_config
 
 
 @pytest.fixture
@@ -208,8 +210,8 @@ class TestPromotePackageVersion(GithubApiTestMixin):
         assert task.return_values["version_id"] == "04t000000000000"
         assert task.return_values["version_number"] == "1.0.0.0"
         assert task.return_values["dependencies"] == [
-            "04t000000000001",
-            "04t000000000002",
+            PackageVersionIdDependency(version_id="04t000000000001"),
+            PackageVersionIdDependency(version_id="04t000000000002"),
         ]
 
     @responses.activate

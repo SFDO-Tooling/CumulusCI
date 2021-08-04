@@ -1,15 +1,14 @@
 import os
-from typing import Optional
-from pathlib import Path
 import shutil
 from contextlib import contextmanager
+from pathlib import Path
+from typing import Optional
 
-
-from cumulusci.core.utils import process_list_of_pairs_dict_arg, process_list_arg
+from snowfakery import generate_data
 
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.utils import process_list_arg, process_list_of_pairs_dict_arg
 from cumulusci.tasks.bulkdata.base_generate_data_task import BaseGenerateDataTask
-from snowfakery import generate_data
 
 
 class GenerateDataFromYaml(BaseGenerateDataTask):
