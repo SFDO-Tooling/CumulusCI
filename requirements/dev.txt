@@ -20,7 +20,7 @@ beautifulsoup4==4.9.3
     # via furo
 black==21.7b0
     # via -r requirements/dev.in
-bleach==3.3.1
+bleach==4.0.0
     # via readme-renderer
 certifi==2021.5.30
     # via
@@ -28,7 +28,7 @@ certifi==2021.5.30
     #   requests
 cfgv==3.3.0
     # via pre-commit
-charset-normalizer==2.0.3
+charset-normalizer==2.0.4
     # via
     #   -c requirements/prod.txt
     #   requests
@@ -55,7 +55,7 @@ docutils==0.16
     #   sphinx
 factory-boy==3.2.0
     # via -r requirements/dev.in
-faker==8.10.1
+faker==8.11.0
     # via
     #   -c requirements/prod.txt
     #   factory-boy
@@ -65,7 +65,7 @@ filelock==3.0.12
     #   virtualenv
 flake8==3.9.2
     # via -r requirements/dev.in
-furo==2021.7.5b38
+furo==2021.7.31b41
     # via -r requirements/dev.in
 identify==2.2.11
     # via pre-commit
@@ -76,7 +76,7 @@ idna==3.2
     #   yarl
 imagesize==1.2.0
     # via sphinx
-importlib-metadata==4.6.1
+importlib-metadata==4.6.3
     # via
     #   -c requirements/prod.txt
     #   keyring
@@ -115,7 +115,7 @@ pathspec==0.9.0
     # via black
 pkginfo==1.7.1
     # via twine
-platformdirs==2.0.2
+platformdirs==2.2.0
     # via virtualenv
 pluggy==0.13.1
     # via
@@ -161,7 +161,7 @@ pyyaml==5.4.1
     #   vcrpy
 readme-renderer==29.0
     # via twine
-regex==2021.7.6
+regex==2021.8.3
     # via black
 requests==2.26.0
     # via
@@ -191,7 +191,7 @@ snowballstemmer==2.1.0
     # via sphinx
 soupsieve==2.2.1
     # via beautifulsoup4
-sphinx==4.1.1
+sphinx==4.1.2
     # via
     #   -r requirements/dev.in
     #   furo
@@ -219,11 +219,11 @@ toml==0.10.2
     #   pre-commit
     #   pytest
     #   tox
-tomli==1.0.4
+tomli==1.2.0
     # via black
-tox==3.24.0
+tox==3.24.1
     # via -r requirements/dev.in
-tqdm==4.61.2
+tqdm==4.62.0
     # via twine
 twine==3.4.2
     # via -r requirements/dev.in
@@ -238,7 +238,7 @@ vcrpy==4.1.1
     # via
     #   -r requirements/dev.in
     #   pytest-vcr
-virtualenv==20.6.0
+virtualenv==20.7.0
     # via
     #   pre-commit
     #   tox
