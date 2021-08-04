@@ -1,9 +1,9 @@
 import os
 from pathlib import Path
 
-from cumulusci.core.utils import merge_config
-from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config import BaseTaskFlowConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
+from cumulusci.core.utils import merge_config
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 __location__ = os.path.dirname(os.path.realpath(__file__))

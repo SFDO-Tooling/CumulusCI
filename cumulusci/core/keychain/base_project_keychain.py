@@ -1,12 +1,8 @@
-import sarge
-
 from typing import Dict
 
-from cumulusci.core.config import (
-    BaseConfig,
-    ConnectedAppOAuthConfig,
-    ScratchOrgConfig,
-)
+import sarge
+
+from cumulusci.core.config import BaseConfig, ConnectedAppOAuthConfig, ScratchOrgConfig
 from cumulusci.core.exceptions import (
     CumulusCIException,
     OrgNotFound,

@@ -1,10 +1,10 @@
 import pytest
 
 from cumulusci.core.config import (
-    UniversalConfig,
     BaseProjectConfig,
     OrgConfig,
     ServiceConfig,
+    UniversalConfig,
 )
 
 

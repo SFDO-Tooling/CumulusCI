@@ -2,34 +2,24 @@ import itertools
 import re
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import MetaData
-from sqlalchemy import Table
-from sqlalchemy import Unicode
+from sqlalchemy import Column, Integer, MetaData, Table, Unicode, create_engine
 from sqlalchemy.orm import create_session, mapper
 
-from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
-from cumulusci.tasks.bulkdata.utils import (
-    SqlAlchemyMixin,
-    create_table,
-)
+from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
+from cumulusci.tasks.bulkdata.mapping_parser import (
+    parse_from_yaml,
+    validate_and_inject_mapping,
+)
 from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationType,
     get_query_operation,
 )
-from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
-from cumulusci.utils import os_friendly_path, log_progress
-from cumulusci.tasks.bulkdata.mapping_parser import (
-    parse_from_yaml,
-    validate_and_inject_mapping,
-)
-from cumulusci.tasks.bulkdata.utils import consume
+from cumulusci.tasks.bulkdata.utils import SqlAlchemyMixin, consume, create_table
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.utils import log_progress, os_friendly_path
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):

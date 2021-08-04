@@ -1,8 +1,10 @@
 from typing import List
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.exceptions import SalesforceException, CumulusCIException
-from cumulusci.core.utils import process_list_arg
+
 from simple_salesforce import format_soql
+
+from cumulusci.core.exceptions import CumulusCIException, SalesforceException
+from cumulusci.core.utils import process_list_arg
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class CreateNetworkMemberGroups(BaseSalesforceApiTask):

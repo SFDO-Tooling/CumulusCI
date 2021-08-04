@@ -1,23 +1,20 @@
-from unittest import mock
+from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from contextlib import contextmanager
 from threading import Thread
+from unittest import mock
 
 import pytest
-
 from sqlalchemy import create_engine
 
-from cumulusci.tasks.bulkdata.snowfakery import Snowfakery
+from cumulusci.core import exceptions as exc
+from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.bulkdata.delete import DeleteData
-
+from cumulusci.tasks.bulkdata.snowfakery import Snowfakery
+from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.utils.parallel.task_worker_queues.tests.test_parallel_worker import (
     DelaySpawner,
 )
-
-from cumulusci.tasks.bulkdata.tests.utils import _make_task
-from cumulusci.core import exceptions as exc
-from cumulusci.core.config import OrgConfig
 
 sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.recipe.yml"
 query_yaml = Path(__file__).parent / "snowfakery/query_snowfakery.recipe.yml"

@@ -1,9 +1,10 @@
-from unittest import mock
 import os
 import unittest
+from unittest import mock
 
 from cumulusci.tasks.salesforce import RetrieveUnpackaged
 from cumulusci.utils import temporary_dir
+
 from .util import create_task
 
 

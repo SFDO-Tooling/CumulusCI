@@ -1,16 +1,10 @@
 import abc
 import contextlib
-from zipfile import ZipFile
-from cumulusci.core.sfdx import (
-    SourceFormat,
-    convert_sfdx_source,
-    get_source_format_for_zipfile,
-)
-from cumulusci.utils.ziputils import zip_subfolder
 import itertools
 import logging
 import os
 from typing import List, Optional
+from zipfile import ZipFile
 
 import pydantic
 from github3.exceptions import NotFoundError
@@ -25,9 +19,11 @@ from cumulusci.core.dependencies.github import (
     get_repo,
 )
 from cumulusci.core.dependencies.utils import TaskContext
-from cumulusci.core.exceptions import (
-    DependencyParseError,
-    DependencyResolutionError,
+from cumulusci.core.exceptions import DependencyParseError, DependencyResolutionError
+from cumulusci.core.sfdx import (
+    SourceFormat,
+    convert_sfdx_source,
+    get_source_format_for_zipfile,
 )
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.package_install import (
@@ -43,6 +39,7 @@ from cumulusci.utils import (
     temporary_dir,
 )
 from cumulusci.utils.yaml.model_parser import CCIModel
+from cumulusci.utils.ziputils import zip_subfolder
 
 logger = logging.getLogger(__name__)
 

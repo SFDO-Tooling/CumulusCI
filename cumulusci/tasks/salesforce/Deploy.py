@@ -1,8 +1,8 @@
-from cumulusci.core.sfdx import convert_sfdx_source
 import pathlib
 from typing import Optional
 
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.sfdx import convert_sfdx_source
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder

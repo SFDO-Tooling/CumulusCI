@@ -1,6 +1,6 @@
+import re
 from pathlib import Path
 from unittest import mock
-import re
 
 import github3
 import pytest

@@ -1,19 +1,20 @@
-from contextvars import ContextVar
 from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from unittest import mock
 
 import click
 import pytest
-from .pytest_sf_vcr import RECORDING, READING, set_mode
 
-from cumulusci.cli.runtime import CliRuntime
-from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.core.config import TaskConfig
-from cumulusci.tests.util import unmock_env
 import cumulusci
 from cumulusci.cli.org import org_scratch, org_scratch_delete
+from cumulusci.cli.runtime import CliRuntime
+from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import OrgNotFound
+from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
+from cumulusci.tests.util import unmock_env
+
+from .pytest_sf_vcr import READING, RECORDING, set_mode
 
 
 def pytest_addoption(parser, pluginmanager):

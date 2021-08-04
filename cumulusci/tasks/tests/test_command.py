@@ -1,20 +1,19 @@
 """ Tests for the Command tasks """
 
-from unittest import mock
 import unittest
 from io import BytesIO
+from unittest import mock
 
 from sarge import Capture
 
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import (
+    BaseProjectConfig,
+    OrgConfig,
+    TaskConfig,
+    UniversalConfig,
+)
 from cumulusci.core.tests.utils import MockLoggerMixin
-
-from cumulusci.tasks.command import Command
-from cumulusci.tasks.command import SalesforceCommand
-from cumulusci.tasks.command import CommandException
+from cumulusci.tasks.command import Command, CommandException, SalesforceCommand
 
 
 class TestCommandTask(MockLoggerMixin, unittest.TestCase):

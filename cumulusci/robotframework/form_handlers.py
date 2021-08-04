@@ -1,5 +1,7 @@
 import abc
+
 from robot.libraries.BuiltIn import BuiltIn
+
 from cumulusci.utils.classutils import get_all_subclasses
 
 """

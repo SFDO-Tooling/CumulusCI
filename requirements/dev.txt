@@ -83,6 +83,8 @@ importlib-metadata==4.6.1
     #   twine
 iniconfig==1.1.1
     # via pytest
+isort==5.9.3
+    # via -r requirements/dev.in
 jinja2==2.11.3
     # via
     #   -c requirements/prod.txt

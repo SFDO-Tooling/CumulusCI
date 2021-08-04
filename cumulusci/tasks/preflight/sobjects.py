@@ -1,8 +1,8 @@
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from simple_salesforce.exceptions import SalesforceMalformedRequest
+
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-
-from simple_salesforce.exceptions import SalesforceMalformedRequest
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class CheckSObjectsAvailable(BaseSalesforceApiTask):

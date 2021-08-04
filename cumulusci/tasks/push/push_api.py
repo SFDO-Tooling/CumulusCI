@@ -2,6 +2,7 @@ import json
 from functools import lru_cache
 
 from simple_salesforce import SalesforceMalformedRequest
+
 from cumulusci.tasks.bulkdata.step import BulkApiQueryOperation
 
 

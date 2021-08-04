@@ -1,6 +1,6 @@
-from unittest import mock
 import json
 import time
+from unittest import mock
 
 import pkg_resources
 import requests

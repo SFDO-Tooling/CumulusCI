@@ -1,7 +1,8 @@
-import pytest
-from cumulusci.tasks.preflight.packages import GetInstalledPackages
 from pathlib import Path
 
+import pytest
+
+from cumulusci.tasks.preflight.packages import GetInstalledPackages
 from cumulusci.tasks.salesforce import SOQLQuery
 
 pytestmark = pytest.mark.random_order(disabled=True)

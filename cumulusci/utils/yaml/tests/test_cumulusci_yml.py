@@ -6,12 +6,11 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from cumulusci.utils import temporary_dir
-
 from cumulusci.utils.yaml.cumulusci_yml import (
-    cci_safe_load,
-    parse_from_yaml,
     _validate_files,
     _validate_url,
+    cci_safe_load,
+    parse_from_yaml,
 )
 
 

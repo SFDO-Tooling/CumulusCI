@@ -13,27 +13,28 @@ BarTestPage has two.
 
 """
 
+import os.path
 import sys
 import unittest
-import os.path
-import pytest
 from unittest import mock
+
+import pytest
+import robot.utils
+from robot.libraries.BuiltIn import BuiltIn
+
 from cumulusci.robotframework import PageObjects
 from cumulusci.robotframework.CumulusCI import CumulusCI
-from cumulusci.robotframework.pageobjects.PageObjectLibrary import _PageObjectLibrary
 from cumulusci.robotframework.pageobjects import (
     BasePage,
-    ListingPage,
-    EditModal,
-    NewModal,
-    HomePage,
     DetailPage,
+    EditModal,
+    HomePage,
+    ListingPage,
+    NewModal,
     ObjectManagerPage,
 )
+from cumulusci.robotframework.pageobjects.PageObjectLibrary import _PageObjectLibrary
 from cumulusci.utils import temporary_dir
-from robot.libraries.BuiltIn import BuiltIn
-import robot.utils
-
 
 HERE = os.path.dirname(__file__)
 FOO_PATH = os.path.join(HERE, "FooTestPage.py")

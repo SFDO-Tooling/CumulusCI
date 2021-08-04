@@ -1,36 +1,43 @@
+import datetime
 import json
 import os
 import pickle
-import pytest
 import re
 import sys
 import tempfile
-import datetime
-
 from pathlib import Path
 from unittest import mock
 
+import pytest
+
 from cumulusci.core import utils
-from cumulusci.core.config import BaseConfig
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config import UniversalConfig
+from cumulusci.core.config import (
+    BaseConfig,
+    OrgConfig,
+    ScratchOrgConfig,
+    ServiceConfig,
+    UniversalConfig,
+)
 from cumulusci.core.config.marketing_cloud_service_config import (
     MarketingCloudServiceConfig,
 )
-from cumulusci.core.exceptions import ConfigError, ServiceNotValid
-from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.core.exceptions import KeychainKeyNotFound
-from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.exceptions import (
+    ConfigError,
+    CumulusCIException,
+    CumulusCIUsageError,
+    KeychainKeyNotFound,
+    OrgNotFound,
+    ServiceNotConfigured,
+    ServiceNotValid,
+)
 from cumulusci.core.keychain import EncryptedFileProjectKeychain
-from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP
-from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
-from cumulusci.core.keychain.encrypted_file_project_keychain import GlobalOrg
+from cumulusci.core.keychain.base_project_keychain import (
+    DEFAULT_CONNECTED_APP,
+    DEFAULT_CONNECTED_APP_NAME,
+)
 from cumulusci.core.keychain.encrypted_file_project_keychain import (
     SERVICE_ORG_FILE_MODE,
+    GlobalOrg,
 )
 from cumulusci.core.tests.utils import EnvironmentVarGuard
 from cumulusci.utils import temporary_dir

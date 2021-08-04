@@ -1,8 +1,8 @@
 from typing import List, Optional, Tuple
 from unittest import mock
 
-from github3.exceptions import NotFoundError
 import pytest
+from github3.exceptions import NotFoundError
 
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config.project_config import BaseProjectConfig

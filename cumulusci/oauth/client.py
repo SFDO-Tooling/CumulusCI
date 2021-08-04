@@ -1,30 +1,25 @@
-from typing import Dict, Optional, Union
 import http.client
 import logging
 import os
-import re
-import requests
 import random
+import re
 import socket
 import ssl
 import threading
 import time
 import webbrowser
+from datetime import datetime, timedelta
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+from typing import Dict, Optional, Union
+from urllib.parse import parse_qs, quote, urlparse
 
+import requests
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
-from datetime import datetime
-from datetime import timedelta
-from http.server import BaseHTTPRequestHandler
-from http.server import HTTPServer
-from pathlib import Path
 from pydantic import BaseModel
-from urllib.parse import parse_qs
-from urllib.parse import quote
-from urllib.parse import urlparse
 
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.oauth.exceptions import OAuth2Error

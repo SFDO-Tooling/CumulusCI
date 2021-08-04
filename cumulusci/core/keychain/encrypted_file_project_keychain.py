@@ -2,29 +2,28 @@ import base64
 import json
 import os
 import pickle
-import typing as T
 import sys
+import typing as T
+from pathlib import Path
+from shutil import rmtree
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CBC
-from pathlib import Path
-from shutil import rmtree
 
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import KeychainKeyNotFound
-from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.config import OrgConfig, ScratchOrgConfig, ServiceConfig
+from cumulusci.core.exceptions import (
+    ConfigError,
+    CumulusCIException,
+    CumulusCIUsageError,
+    KeychainKeyNotFound,
+    OrgNotFound,
+    ServiceNotConfigured,
+)
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
-from cumulusci.core.utils import import_class
-from cumulusci.core.utils import import_global
+from cumulusci.core.utils import import_class, import_global
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
 

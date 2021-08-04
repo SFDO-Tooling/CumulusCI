@@ -2,8 +2,7 @@ import unittest
 
 import responses
 
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import GithubException
 from cumulusci.tasks.github import CloneTag
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin

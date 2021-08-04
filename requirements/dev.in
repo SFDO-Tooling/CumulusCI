@@ -2,8 +2,10 @@
 black
 coverage[toml]
 coveralls
+factory-boy
 flake8
 furo
+isort
 pre-commit
 pytest
 pytest-random-order
@@ -16,4 +18,3 @@ twine
 typeguard==2.10.0
 vcrpy
 wheel
-factory-boy

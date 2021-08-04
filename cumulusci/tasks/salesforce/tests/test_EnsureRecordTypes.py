@@ -1,10 +1,11 @@
-from unittest import mock
-import unittest
 import os
+import unittest
+from unittest import mock
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import EnsureRecordTypes
 from cumulusci.utils import temporary_dir
+
 from .util import create_task
 
 OPPORTUNITY_METADATA = """<?xml version="1.0" encoding="utf-8"?>

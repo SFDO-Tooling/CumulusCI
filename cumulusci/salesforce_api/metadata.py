@@ -9,24 +9,26 @@ based on mrbelvedere/mpinstaller/mdapi.py
 
 import base64
 import http.client
+import io
 import re
 import time
 from collections import defaultdict
 from xml.dom.minidom import parseString
 from xml.sax.saxutils import escape
 from zipfile import ZipFile
-import io
 
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
-from cumulusci.salesforce_api import soap_envelopes
 from cumulusci.core.exceptions import ApexTestException
-from cumulusci.utils import zip_subfolder, parse_api_datetime
-from cumulusci.salesforce_api.exceptions import MetadataComponentFailure
-from cumulusci.salesforce_api.exceptions import MetadataParseError
-from cumulusci.salesforce_api.exceptions import MetadataApiError
+from cumulusci.salesforce_api import soap_envelopes
+from cumulusci.salesforce_api.exceptions import (
+    MetadataApiError,
+    MetadataComponentFailure,
+    MetadataParseError,
+)
+from cumulusci.utils import parse_api_datetime, zip_subfolder
 
 # If pyOpenSSL is installed, make sure it's not used for requests
 # (it's not needed in the verisons of Python we support)

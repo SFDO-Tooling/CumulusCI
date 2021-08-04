@@ -1,24 +1,21 @@
 import unittest
-from unittest import mock
-import responses
-import yaml
-from tempfile import TemporaryDirectory
-from pathlib import Path
 from contextlib import contextmanager
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import mock
 
 import pytest
+import responses
+import yaml
 from sqlalchemy import create_engine
 
-from cumulusci.tasks.bulkdata import GenerateMapping
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.utils import temporary_dir
+from cumulusci.salesforce_api.org_schema import Base, Schema
+from cumulusci.salesforce_api.org_schema_models import Field as SQLField
+from cumulusci.salesforce_api.org_schema_models import SObject as SQLSObject
+from cumulusci.tasks.bulkdata import GenerateMapping
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
-
-from cumulusci.salesforce_api.org_schema_models import (
-    SObject as SQLSObject,
-    Field as SQLField,
-)
-from cumulusci.salesforce_api.org_schema import Schema, Base
+from cumulusci.utils import temporary_dir
 
 
 @contextmanager

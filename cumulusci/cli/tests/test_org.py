@@ -1,22 +1,21 @@
-import click
 import io
 import json
+from contextlib import contextmanager
+from datetime import date, datetime, timedelta
+from pathlib import Path
+from unittest import mock
+
+import click
 import pytest
 import responses
 
-from datetime import date
-from datetime import datetime
-from datetime import timedelta
-from pathlib import Path
-from unittest import mock
-from contextlib import contextmanager
-
 from cumulusci.cli import cci
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import ScratchOrgConfig
-from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.exceptions import ServiceNotConfigured
-from cumulusci.core.exceptions import ScratchOrgException
+from cumulusci.core.config import OrgConfig, ScratchOrgConfig
+from cumulusci.core.exceptions import (
+    OrgNotFound,
+    ScratchOrgException,
+    ServiceNotConfigured,
+)
 
 from .. import org
 from .utils import run_click_command

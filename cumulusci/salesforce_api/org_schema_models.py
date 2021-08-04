@@ -1,11 +1,18 @@
 from typing import Mapping, Sequence
 
+import sqlalchemy.types as types
+from sqlalchemy import (
+    Boolean,
+    Column,
+    ForeignKey,
+    Integer,
+    PrimaryKeyConstraint,
+    String,
+    Table,
+)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.collections import attribute_mapped_collection
-import sqlalchemy.types as types
-from sqlalchemy import PrimaryKeyConstraint
 
 Base = declarative_base()
 

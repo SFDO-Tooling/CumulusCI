@@ -3,9 +3,7 @@ import functools
 from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
     BaseSalesforceMetadataApiTask,
 )
-from cumulusci.utils import strip_namespace
-from cumulusci.utils import process_text_in_zipfile
-from cumulusci.utils import tokenize_namespace
+from cumulusci.utils import process_text_in_zipfile, strip_namespace, tokenize_namespace
 
 
 class BaseRetrieveMetadata(BaseSalesforceMetadataApiTask):
