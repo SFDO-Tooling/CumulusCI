@@ -41,6 +41,8 @@ Issues Closed
 
 * Fixed a couple issues with connecting CumulusCI to sandboxes using enhanced domains. (#2753 and #2765)
 
+* Fixed a bug where the github_release task was not marking the "This is a pre-release" checkbox for beta releases. (#2788)
+
 3.40.1 (2021-07-22)
 -------------------
 
