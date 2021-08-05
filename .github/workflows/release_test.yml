@@ -56,6 +56,7 @@ jobs:
           cd CumulusCI-Test
           pwd
           ls
+          sfdx force:org:create  -f orgs/dev.json -w 120 -n --durationdays 1 --dev-debug
           coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_feature --org scratch --delete-org
       - name: Run ci_beta flow
         run: |
