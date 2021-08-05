@@ -10,7 +10,7 @@ github3.py
 jinja2<3
 keyring
 lxml
-MarkupSafe<2
+MarkupSafe<3
 psutil
 pydantic
 PyJWT
