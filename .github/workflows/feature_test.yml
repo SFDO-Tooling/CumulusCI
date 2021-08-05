@@ -144,6 +144,8 @@ jobs:
           SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
       - name: Run robot tests
         run: |
+          pwd
+          ls
           coverage run --append $(which cci) task run robot \
             --org dev \
             -o name "CumulusCI" \
@@ -198,6 +200,8 @@ jobs:
           SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
       - name: Run robot tests
         run: |
+          pwd
+          ls
           coverage run --append $(which cci) task run robot \
             --org dev \
             -o suites cumulusci/robotframework/tests/salesforce \
@@ -252,6 +256,8 @@ jobs:
           SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
       - name: Run robot tests
         run: |
+          pwd
+          ls
           coverage run --append $(which cci) task run robot \
             --org dev \
             -o suites cumulusci/robotframework/tests/salesforce \
