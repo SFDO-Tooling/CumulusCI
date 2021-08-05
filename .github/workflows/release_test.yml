@@ -46,9 +46,6 @@ jobs:
       - name: Authenticate Dev Hub
         run: |
           sfdx plugins --core
-          echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
-          sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-          sfdx force:org:list
       - name: Check out CumulusCI-Test
         run: |
           git clone https://github.com/SFDO-Tooling/CumulusCI-Test
@@ -57,7 +54,8 @@ jobs:
           cd CumulusCI-Test
           pwd
           ls
-          sfdx force:org:list
+          echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
+          sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
           coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_feature --org scratch --delete-org
       - name: Run ci_beta flow
         run: |
