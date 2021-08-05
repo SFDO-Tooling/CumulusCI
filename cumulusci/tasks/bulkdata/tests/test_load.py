@@ -8,6 +8,7 @@ import string
 import unittest
 from unittest import mock
 import tempfile
+import pytest
 
 import responses
 from sqlalchemy import Column, Table, Unicode, create_engine
@@ -2367,3 +2368,37 @@ class TestLoadData(unittest.TestCase):
         with mock.patch.object(task.logger, "warning") as warning:
             task()
         assert "xyzzy" in str(warning.mock_calls[0])
+
+    def test_no_mapping(self):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                }
+            },
+        )
+        task._init_db = mock.Mock(return_value=nullcontext())
+        with pytest.raises(TaskOptionsError, match="Mapping file path required"):
+            task()
+
+
+class TestLoadDataIntegrationTests:
+    @pytest.mark.integration_test()
+    def test_error_result_counting__multi_batches(
+        self, create_task, cumulusci_test_repo_root
+    ):
+        task = create_task(
+            LoadData,
+            {
+                "sql_path": cumulusci_test_repo_root / "datasets/bad_sample.sql",
+                "mapping": cumulusci_test_repo_root / "datasets/mapping.yml",
+                "ignore_row_errors": True,
+            },
+        )
+        with mock.patch("cumulusci.tasks.bulkdata.step.BULK_BATCH_SIZE", 3):
+            task()
+        ret = task.return_values["step_results"]
+        assert ret["Account"].total_row_errors == 1
+        assert ret["Contact"].total_row_errors == 1
+        assert ret["Opportunity"].total_row_errors == 2

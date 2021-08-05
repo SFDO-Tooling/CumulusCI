@@ -21,6 +21,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     DataOperationJobResult,
     get_dml_operation,
+    BULK_BATCH_SIZE,
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import os_friendly_path
@@ -116,6 +117,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
             start_step = self.options.get("start_step")
             started = False
+            results = {}
             for name, mapping in self.mapping.items():
                 # Skip steps until start_step
                 if not started and start_step and name != start_step:
@@ -139,11 +141,13 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                             raise BulkDataException(
                                 f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
                             )
+                results[name] = result
         if self.options["set_recently_viewed"]:
             try:
                 self._set_viewed()
             except Exception as e:
                 self.logger.warning(f"Could not set recently viewed because {e}")
+        self.return_values = {"step_results": results}
 
     def _execute_step(
         self, mapping: MappingStep
@@ -189,7 +193,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 mapping.get_load_field_list(), self.org_config
             )
 
-        for row in query.yield_per(10000):
+        for row in query.yield_per(BULK_BATCH_SIZE):
             total_rows += 1
             # Add static values to row
             pkey = row[0]
@@ -465,7 +469,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _init_mapping(self):
         """Load a YAML mapping file."""
-        mapping_file_path = self.options["mapping"]
+        mapping_file_path = self.options.get("mapping")
         if not mapping_file_path:
             raise TaskOptionsError("Mapping file path required")
 

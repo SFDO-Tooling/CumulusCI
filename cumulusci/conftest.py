@@ -108,3 +108,8 @@ def temp_db():
                 yield connection, Base.metadata, session
 
         yield open_db
+
+
+@pytest.fixture(scope="session")
+def cumulusci_test_repo_root():
+    return Path(__file__).parent.parent
