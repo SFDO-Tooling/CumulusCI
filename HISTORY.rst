@@ -1,16 +1,16 @@
 =======
 History
 =======
-3.41.0 (2012-08-04)
+3.41.0 (2012-08-05)
 -------------------
 
 Changes
 
-* CCI has a new Metadata ETL task that allows adding fields to existing layouts. Sections can be selected using an index (#2766)
+* We added a new Metadata ETL task, `add_page_layout_fields`, that allows adding fields to existing layouts. (#2766)
 
 * We added a task to enable an Einstein prediction (thanks, @erikperkins!) (#2778)
 
-* We added standard flows for releasing unlocked packages: release_unlocked_beta and release_unlocked_production (#2768)
+* We added standard flows for releasing unlocked packages: `release_unlocked_beta` and `release_unlocked_production` (#2768)
  
 * We added documentation for using CumulusCI to build managed 2GP packages, 
   unlocked packages, and extending NPSP and EDA with 2GP packages. (#2768)
@@ -25,7 +25,7 @@ Changes
 
 * CumulusCI now automatically recognizes services and orgs configured via environment variables. See the `docs <https://github.com/SFDO-Tooling/CumulusCI/blob/481ab27446edbfdb038ea62834a6f276dc53bf3d/docs/headless.rst#L9>`_ for more details. (#2676 and #2776)
 
-* We've updated the Push Upgrade tasks (push_list, push_sandbox, etc) task option `start_time` to accept ISO-8601 formatted datetimes. (#2769)
+* We've updated the Push Upgrade tasks (`push_list`, `push_sandbox`, etc) task option `start_time` to accept ISO-8601 formatted datetimes. (#2769)
 
 * CumulusCI now automatically recognizes enhanced domains in sandboxes when 
   establishing a connection via JWT. (#2753)
@@ -38,7 +38,7 @@ Issues Closed
 
 * Fixed an issue where CumulusCI would fail on Linux distributions that were incompatible with the `keyring` package. 
 
-* We fixed an issue causing release_2gp_production to fail with a dependency parsing error.
+* We fixed an issue causing the `release_2gp_production` flow to fail with a dependency parsing error.
 
 
 3.40.1 (2021-07-22)
