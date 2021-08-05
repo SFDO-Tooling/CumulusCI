@@ -23,7 +23,7 @@ Changes
 
 * Updates to Github Actions configuration documentation. Thanks @Julian88Tex (#2773)
 
-* CumulusCI now automatically recognizes services and orgs configured via environment variables. See the `docs <https://github.com/SFDO-Tooling/CumulusCI/blob/481ab27446edbfdb038ea62834a6f276dc53bf3d/docs/headless.rst#L9>`_ for more details. (#2676 and #2776)
+* CumulusCI now automatically recognizes services and orgs configured via environment variables. See the `docs <https://cumulusci.readthedocs.io/en/stable/headless.html>`_ for more details. (#2676 and #2776)
 
 * We've updated the Push Upgrade tasks (`push_list`, `push_sandbox`, etc) task option `start_time` to accept ISO-8601 formatted datetimes. (#2769)
 
