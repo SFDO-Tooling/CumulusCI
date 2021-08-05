@@ -43,8 +43,8 @@ For a live demo with voiceover, please see Jason Lantz's
 `PyCon 2020 presentation <https://www.youtube.com/watch?v=XL77lRTVF3g>`_
 from minute 36 through minute 54.
 
-Questions?
-----------
+Questions??
+-----------
 
 Salesforce.org (http://salesforce.org/) customers and partners can ask in the `CumulusCI group in the Power of Us Hub <https://powerofus.force.com/s/group/0F980000000PSRHCA4/cumulusci-cci>`_.
 
