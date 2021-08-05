@@ -1,6 +1,47 @@
 =======
 History
 =======
+3.41.0 (2012-08-05)
+-------------------
+
+Changes
+
+* We added a new Metadata ETL task, `add_page_layout_fields`, that allows adding fields to existing layouts. (#2766)
+
+* We added a task to enable an Einstein prediction: `enable_einstein_prediction` (thanks, @erikperkins!) (#2778)
+
+* We added standard flows for releasing unlocked packages: `release_unlocked_beta` and `release_unlocked_production` (#2768)
+ 
+* We added `documentation <https://cumulusci.readthedocs.io/en/stable/packaging.html>`_ for using CumulusCI to build managed 2GP packages, 
+  unlocked packages, and extending NPSP and EDA with 2GP packages. (#2768)
+
+* Contributions to CCI now require verification by isort, which ensures consistency in the order that imports are used. (#2770)
+ 
+* CumulusCI now supports deploying unmanaged dependencies in SFDX source format. (#2735)
+
+* The `create_package_version` task now handles dependencies that use a `zip_url`. (#2735)
+
+* Updates to Github Actions configuration documentation. Thanks @Julian88Tex (#2773)
+
+* CumulusCI now automatically recognizes services and orgs configured via environment variables. See the `docs <https://cumulusci.readthedocs.io/en/stable/headless.html>`_ for more details. (#2676 and #2776)
+
+* We've updated the Push Upgrade tasks (`push_list`, `push_sandbox`, etc) task option `start_time` to accept ISO-8601 formatted datetimes. (#2769)
+
+* You can now specify "sandbox": true on a CUMULUSCI_ORG_* variable in headless environments to indicate that the org you want to connect to is a sandbox. when connecting sandbox orgs in a headless environment. (#2753)
+
+Issues Closed
+
+* Fixed an issue where scratch orgs failed to be deleted in CI environments. (#2676)
+
+* Fixed an issue where deleting an org failed to mark the org as deleted on CumulusCI's keychain. (#2676)
+
+* Fixed an issue where CumulusCI would fail on Linux distributions that were incompatible with the `keyring` package. (#2676)
+
+* We fixed an issue causing the `release_2gp_production` flow to fail with a dependency parsing error. (#2767)
+
+* Fixed a couple issues with connecting CumulusCI to sandboxes using enhanced domains. (#2753 and #2765)
+
+* Fixed a bug where the github_release task was not marking the "This is a pre-release" checkbox for beta releases. (#2788)
 
 3.40.1 (2021-07-22)
 -------------------
