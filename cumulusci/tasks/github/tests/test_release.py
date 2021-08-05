@@ -1,3 +1,4 @@
+import json
 import unittest
 from unittest import mock
 
@@ -95,7 +96,12 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             },
             task.return_values,
         )
-        assert "package_type: 1GP" in responses.calls._calls[3].request.body
+        # confirm the package_type was recorded in the tag message
+        tag_request = json.loads(responses.calls._calls[3].request.body)
+        assert "package_type: 1GP" in tag_request["message"]
+        # confirm we didn't create a prerelease
+        release_request = json.loads(responses.calls._calls[-1].request.body)
+        assert not release_request["prerelease"]
 
     @responses.activate
     def test_run_task__release_already_exists(self):
@@ -226,6 +232,69 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             task.return_values,
         )
         assert "package_type: 2GP" in responses.calls._calls[3].request.body
+
+    @responses.activate
+    def test_run_task__beta_1gp(self):
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url,
+            json=self._get_expected_repo(owner=self.repo_owner, name=self.repo_name),
+        )
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + "/releases/tags/beta/1.0-Beta_1",
+            status=404,
+        )
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + "/git/refs/tags/beta/1.0-Beta_1",
+            status=404,
+        )
+        responses.add(
+            method=responses.POST,
+            url=self.repo_api_url + "/git/tags",
+            json=self._get_expected_tag(
+                "beta/1.0-Beta_1", "21e04cfe480f5293e2f7103eee8a5cbdb94f7982"
+            ),
+            status=201,
+        )
+        responses.add(
+            method=responses.POST,
+            url=self.repo_api_url + "/git/refs",
+            json={},
+            status=201,
+        )
+        responses.add(
+            method=responses.POST,
+            url=self.repo_api_url + "/releases",
+            json=self._get_expected_release("release"),
+            status=201,
+        )
+
+        task = CreateRelease(
+            self.project_config,
+            TaskConfig(
+                {
+                    "options": {
+                        "version": "1.0 (Beta 1)",
+                        "version_id": "04t000000000000",
+                        "package_type": "1GP",
+                    }
+                }
+            ),
+        )
+        task()
+        self.assertEqual(
+            {
+                "tag_name": "beta/1.0-Beta_1",
+                "name": "1.0 (Beta 1)",
+                "dependencies": [],
+            },
+            task.return_values,
+        )
+        # confirm we didn't create a prerelease
+        release_request = json.loads(responses.calls._calls[-1].request.body)
+        assert release_request["prerelease"]
 
     @responses.activate
     def test_run_task__with_beta_2gp(self):
