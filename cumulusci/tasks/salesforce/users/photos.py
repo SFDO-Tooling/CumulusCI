@@ -1,11 +1,12 @@
-import re
 import base64
-import pathlib
 import json
+import pathlib
+import re
 
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.exceptions import CumulusCIException
 from simple_salesforce.exceptions import SalesforceMalformedRequest
+
+from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 def join_errors(e: SalesforceMalformedRequest) -> str:

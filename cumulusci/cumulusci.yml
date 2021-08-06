@@ -11,6 +11,10 @@ tasks:
     class_path: cumulusci.tasks.metadata_etl.AddRelatedLists
     options:
       namespace_inject: $project_config.project__package__namespace
+  add_page_layout_fields:
+    group: Metadata Transformations
+    description: Adds specified Fields or Visualforce Pages to a Page Layout.
+    class_path: cumulusci.tasks.metadata_etl.layouts.AddFieldsToPageLayout
   add_standard_value_set_entries:
     group: Metadata Transformations
     description: Adds specified picklist entries to a Standard Value Set.
@@ -233,6 +237,10 @@ tasks:
     options:
       command: "force:source:push"
     group: Salesforce DX
+  enable_einstein_prediction:
+    description: Enable an Einstein Prediction Builder prediction.
+    class_path: cumulusci.tasks.salesforce.enable_prediction.EnablePrediction
+    group: "Salesforce Metadata"
   ensure_record_types:
     description: Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
     class_path: cumulusci.tasks.salesforce.EnsureRecordTypes
@@ -1053,6 +1061,41 @@ flows:
           version_base: latest_github_release
           version_type: minor
           force_upload: True
+          create_unlocked_dependency_packages: False
+      2:
+        task: github_release
+        options:
+          version: ^^create_package_version.version_number
+          version_id: ^^create_package_version.subscriber_package_version_id
+          dependencies: ^^create_package_version.dependencies
+          package_type: 2GP
+          tag_prefix: $project_config.project__git__prefix_beta
+      3:
+        task: github_release_notes
+        ignore_failure: True # Attempt to generate release notes but don't fail build
+        options:
+          link_pr: True
+          publish: True
+          tag: ^^github_release.tag_name
+          include_empty: True
+          version_id: ^^create_package_version.subscriber_package_version_id
+      4:
+        task: github_automerge_main
+
+  release_unlocked_beta:
+    group: Release Operations
+    description: Upload and release a beta 2gp unlocked package version
+    steps:
+      1:
+        task: create_package_version
+        options:
+          package_type: Unlocked
+          package_name: $project_config.project__package__name
+          skip_validation: False
+          version_base: latest_github_release
+          version_type: minor
+          force_upload: True
+          create_unlocked_dependency_packages: False
       2:
         task: github_release
         options:
@@ -1124,6 +1167,27 @@ flows:
   release_2gp_production:
     group: Release Operations
     description: Promote the latest beta 2gp managed package version and create a new release in GitHub
+    steps:
+      1:
+        task: promote_package_version
+      2:
+        task: github_release
+        options:
+          version: ^^promote_package_version.version_number
+          version_id: ^^promote_package_version.version_id
+          dependencies: ^^promote_package_version.dependencies
+          package_type: 2GP
+      3:
+        task: github_release_notes
+        ignore_failure: True # Attempt to generate release notes but don't fail build
+        options:
+          publish: True
+          tag: ^^github_release.tag_name
+          version_id: ^^promote_package_version.version_id
+
+  release_unlocked_production:
+    group: Release Operations
+    description: Promote the latest beta 2GP unlocked package version and create a new release in GitHub
     steps:
       1:
         task: promote_package_version
@@ -1258,7 +1322,7 @@ project:
     namespace:
     install_class:
     uninstall_class:
-    api_version: "50.0"
+    api_version: "52.0"
   git:
     default_branch: master
     prefix_feature: feature/

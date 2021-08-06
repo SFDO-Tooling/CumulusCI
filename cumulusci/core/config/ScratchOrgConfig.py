@@ -3,12 +3,13 @@ import json
 import os
 import re
 
+from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG, SfdxOrgConfig
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    ScratchOrgException,
+    ServiceNotConfigured,
+)
 from cumulusci.core.sfdx import sfdx
-from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
-from cumulusci.core.config import SfdxOrgConfig
-from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.exceptions import ScratchOrgException
-from cumulusci.core.exceptions import ServiceNotConfigured
 
 nl = "\n"  # fstrings can't contain backslashes
 
@@ -203,3 +204,4 @@ class ScratchOrgConfig(SfdxOrgConfig):
         self.config["username"] = None
         self.config["date_created"] = None
         self.config["instance_url"] = None
+        self.save()

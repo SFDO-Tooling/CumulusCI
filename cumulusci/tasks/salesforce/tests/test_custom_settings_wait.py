@@ -2,13 +2,9 @@ import unittest
 
 import responses
 
-from cumulusci.core.config import (
-    UniversalConfig,
-    BaseProjectConfig,
-    TaskConfig,
-)
-from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.tests.utils import MockLoggerMixin
 from cumulusci.tasks.salesforce.custom_settings_wait import CustomSettingValueWait
 from cumulusci.tests.util import DummyOrgConfig

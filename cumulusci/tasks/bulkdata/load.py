@@ -1,37 +1,33 @@
-from collections import defaultdict
-from unittest.mock import MagicMock
-from typing import Union
 import tempfile
+from collections import defaultdict
 from contextlib import contextmanager
-from cumulusci.salesforce_api.org_schema import get_org_schema
+from typing import Union
+from unittest.mock import MagicMock
 
-from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text, func
-from sqlalchemy.orm import aliased, Session
+from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, func, text
 from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import Session, aliased
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import (
-    SqlAlchemyMixin,
-    RowErrorChecker,
-)
+from cumulusci.salesforce_api.org_schema import get_org_schema
 from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
-from cumulusci.tasks.bulkdata.step import (
-    DataOperationStatus,
-    DataOperationType,
-    DataOperationJobResult,
-    get_dml_operation,
-    BULK_BATCH_SIZE,
-)
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.utils import os_friendly_path
-
 from cumulusci.tasks.bulkdata.mapping_parser import (
+    MappingLookup,
+    MappingStep,
     parse_from_yaml,
     validate_and_inject_mapping,
-    MappingStep,
-    MappingLookup,
 )
+from cumulusci.tasks.bulkdata.step import (
+    BULK_BATCH_SIZE,
+    DataOperationJobResult,
+    DataOperationStatus,
+    DataOperationType,
+    get_dml_operation,
+)
+from cumulusci.tasks.bulkdata.utils import RowErrorChecker, SqlAlchemyMixin
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.utils import os_friendly_path
 
 
 class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):

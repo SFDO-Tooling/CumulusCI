@@ -1,25 +1,22 @@
-from unittest import mock
 import io
 import os
 import pathlib
 import unittest
-import yaml
 import zipfile
 from tempfile import TemporaryDirectory
+from unittest import mock
 
 import pytest
 import responses
+import yaml
 
-from ..source import GitHubSource
-from ..source import LocalFolderSource
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import ServiceConfig
+from cumulusci.core.config import BaseProjectConfig, ServiceConfig, UniversalConfig
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import touch
+from cumulusci.utils import temporary_dir, touch
+
+from ..source import GitHubSource, LocalFolderSource
 
 
 class TestGitHubSource(unittest.TestCase, MockUtil):

@@ -1,12 +1,13 @@
 import contextlib
 import json
-import os
+import pathlib
 import textwrap
+from typing import Optional
 
+from cumulusci.core.utils import dictmerge
+from cumulusci.tasks.metadata.package import PackageXmlGenerator
 from cumulusci.tasks.salesforce import Deploy
 from cumulusci.utils import temporary_dir
-from cumulusci.core.utils import dictmerge
-
 
 SETTINGS_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <{settingsName} xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -16,14 +17,6 @@ ORGPREF = """<preferences>
     <settingName>{name}</settingName>
     <settingValue>{value}</settingValue>
 </preferences>"""
-PACKAGE_XML = """<?xml version="1.0" encoding="UTF-8"?>
-<Package xmlns="http://soap.sforce.com/2006/04/metadata">
-    <types>
-        <members>*</members>
-        <name>Settings</name>
-    </types>
-    <version>{api_version}</version>
-</Package>"""
 
 
 class DeployOrgSettings(Deploy):
@@ -59,7 +52,7 @@ class DeployOrgSettings(Deploy):
         api_version = (
             self.options.get("api_version") or self.org_config.latest_api_version
         )
-        with build_settings_package(settings, api_version) as path:
+        with build_settings_package(settings, None, api_version) as path:
             self.options["path"] = path
             return super()._run_task()
 
@@ -74,31 +67,104 @@ def capitalize(s):
 
 
 @contextlib.contextmanager
-def build_settings_package(settings: dict, api_version: str):
+def build_settings_package(
+    settings: Optional[dict], object_settings: Optional[dict], api_version: str
+):
     with temporary_dir() as path:
-        os.mkdir("settings")
-        for section, section_settings in settings.items():
-            settings_name = capitalize(section)
-            if section == "orgPreferenceSettings":
-                values = "    " + "\n    ".join(
-                    line
-                    for line in "\n".join(
-                        ORGPREF.format(name=capitalize(k), value=v)
-                        for k, v in section_settings.items()
-                    ).splitlines()
+        if settings:
+            pathlib.Path("settings").mkdir()
+            for section, section_settings in settings.items():
+                settings_name = capitalize(section)
+                if section == "orgPreferenceSettings":
+                    values = "    " + "\n    ".join(
+                        line
+                        for line in "\n".join(
+                            ORGPREF.format(name=capitalize(k), value=v)
+                            for k, v in section_settings.items()
+                        ).splitlines()
+                    )
+                else:
+                    values = textwrap.indent(_dict_to_xml(section_settings), "    ")
+                # e.g. AccountSettings -> settings/Account.settings
+                settings_file = (
+                    pathlib.Path("settings")
+                    / f"{settings_name[: -len('Settings')]}.settings"
                 )
-            else:
-                values = textwrap.indent(_dict_to_xml(section_settings), "    ")
-            # e.g. AccountSettings -> settings/Account.settings
-            settings_file = os.path.join(
-                "settings", settings_name[: -len("Settings")] + ".settings"
-            )
-            with open(settings_file, "w") as f:
-                f.write(SETTINGS_XML.format(settingsName=settings_name, values=values))
+                with open(settings_file, "w", encoding="utf-8") as f:
+                    f.write(
+                        SETTINGS_XML.format(settingsName=settings_name, values=values)
+                    )
+
+        if object_settings:
+            pathlib.Path("objects").mkdir()
+            for obj_lower_name, this_obj_settings in object_settings.items():
+                object_name = capitalize(obj_lower_name)
+                file_content = _get_object_file(object_name, this_obj_settings)
+                with open(
+                    pathlib.Path("objects") / f"{object_name}.object",
+                    "w",
+                    encoding="utf-8",
+                ) as f:
+                    f.write(file_content)
+
+        package_generator = PackageXmlGenerator(path, api_version)
         with open("package.xml", "w") as f:
-            f.write(PACKAGE_XML.format(api_version=api_version))
+            f.write(package_generator())
 
         yield path
+
+
+def _get_object_file(object_name: str, settings: dict) -> str:
+    sharing_model = ""
+    if "sharingModel" in settings:
+        sharing_model = (
+            f"    <sharingModel>{capitalize(settings['sharingModel'])}</sharingModel>"
+        )
+
+    record_type = ""
+    business_process = ""
+    if "defaultRecordType" in settings:
+        # Use the same default picklist values as SFDX to generate a Business Process,
+        # if this object requires one.
+        picklist_value = {
+            "Case": "New",
+            "Lead": "New - Not Contacted",
+            "Opportunity": "Prospecting",
+            "Solution": "Draft",
+        }.get(object_name, "")
+        default_status = (
+            "<default>true</default>" if object_name == "Opportunity" else ""
+        )
+
+        business_process_reference = ""
+        if picklist_value:
+            # We need to add a Business Process
+            business_process_reference = (
+                f"<businessProcess>Default{object_name}</businessProcess>"
+            )
+            default_status = ""
+            business_process = f"""    <businessProcesses>
+        <fullName>Default{object_name}</fullName>
+        <isActive>true</isActive>
+        <values>
+            <fullName>{picklist_value}</fullName>
+            {default_status}
+        </values>
+    </businessProcesses>"""
+        record_type = f"""    <recordTypes>
+        <fullName>{capitalize(settings['defaultRecordType'])}</fullName>
+        <label>{capitalize(settings['defaultRecordType'])}</label>
+        <active>true</active>
+        {business_process_reference}
+    </recordTypes>
+        """
+
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<Object xmlns="http://soap.sforce.com/2006/04/metadata">
+{sharing_model}
+{record_type}
+{business_process}
+</Object>"""
 
 
 def _dict_to_xml(d: dict) -> str:

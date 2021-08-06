@@ -5,10 +5,10 @@ Classes:
     CliTable: Pretty prints tabular data to stdout, via click.echo.
 """
 import os
-import click
 import textwrap
-from terminaltables import AsciiTable, SingleTable
 
+import click
+from terminaltables import AsciiTable, SingleTable
 
 CHECKMARK = click.style("✔" if os.name == "posix" else "+", fg="green")
 CROSSMARK = click.style("✘" if os.name == "posix" else "-", fg="red")

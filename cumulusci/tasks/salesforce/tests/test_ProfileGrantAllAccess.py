@@ -5,12 +5,12 @@ from unittest import mock
 
 import pytest
 
-from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataOperation
 from cumulusci.tasks.salesforce.update_profile import ProfileGrantAllAccess
+from cumulusci.tests.util import DummyOrgConfig, create_project_config
 from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils.xml import metadata_tree
-from cumulusci.tests.util import DummyOrgConfig, create_project_config
 
 from .util import create_task
 
@@ -101,6 +101,10 @@ PACKAGE_XML_BEFORE = """<Package xmlns="http://soap.sforce.com/2006/04/metadata"
         <members>Lead</members>
         <members>Opportunity</members>
         <name>CustomObject</name>
+    </types>
+    <types>
+        <members>*</members>
+        <name>CustomTab</name>
     </types>
     <types>
         <name>Profile</name>

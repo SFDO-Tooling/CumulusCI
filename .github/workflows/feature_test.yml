@@ -1,41 +1,61 @@
 name: Feature Test
 
 on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened] # Default
   push:
     branches:
-      - feature/**
       - main
 
 env:
   COVERALLS_PARALLEL: true
   COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-  CUMULUSCI_KEY: ${{ secrets.CUMULUSCI_KEY }}
 
 jobs:
   lint:
     name: Lint
+    if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: "Checkout"
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
       - name: Set up Python 3.8
+        id: py
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
       - name: pip cache
+        id: pip_cache
         uses: actions/cache@v1
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
+      - name: pre-commit cache
+        id: pc_cache
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: ${{ steps.py.outputs.python-version }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            ${{ steps.py.outputs.python-version }}-pre-commit-
       - name: Install dependencies
         run: |
           python -m pip install -U pip
           pip install pre-commit
+      - name: Install pre-commit
+        if: steps.pc_cache.outputs.cache-hit != 'true'
+        run: |
+          pre-commit install --install-hooks
       - name: Run pre-commit on changed files
         run: |
-          git fetch --depth=1 origin main
-          pre-commit run --files $(git diff --diff-filter=d --name-only origin/main...HEAD)
+          git fetch --depth=1 --no-tags origin $GITHUB_BASE_REF:$GITHUB_BASE_REF
+          git fetch --depth=1 --no-tags origin $GITHUB_HEAD_REF:$GITHUB_HEAD_REF
+          pre-commit run --files $(git diff --diff-filter=d --name-only $GITHUB_BASE_REF..$GITHUB_HEAD_REF)
 
   unit_tests:
     name: "Unit tests: Python ${{ matrix.python-version }}"
@@ -115,6 +135,7 @@ jobs:
           echo $(realpath sfdx/bin) >> $GITHUB_PATH
       - name: Authenticate Dev Hub
         run: |
+          sfdx plugins:install salesforce-alm@52.1.0
           sfdx plugins --core
           echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
           sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
@@ -169,6 +190,7 @@ jobs:
           echo $(realpath sfdx/bin) >> $GITHUB_PATH
       - name: Authenticate Dev Hub
         run: |
+          sfdx plugins:install salesforce-alm@52.1.0
           sfdx plugins --core
           echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
           sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
@@ -223,6 +245,7 @@ jobs:
           echo $(realpath sfdx/bin) >> $GITHUB_PATH
       - name: Authenticate Dev Hub
         run: |
+          sfdx plugins:install salesforce-alm@52.1.0
           sfdx plugins --core
           echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
           sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub

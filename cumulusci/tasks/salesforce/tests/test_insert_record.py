@@ -1,12 +1,13 @@
-from unittest import mock
 import re
+from unittest import mock
 
 import pytest
 import responses
-
-from cumulusci.tasks.salesforce.insert_record import InsertRecord
-from cumulusci.core.exceptions import SalesforceException
 from simple_salesforce.exceptions import SalesforceError
+
+from cumulusci.core.exceptions import SalesforceException
+from cumulusci.tasks.salesforce.insert_record import InsertRecord
+
 from .util import create_task
 
 
@@ -88,7 +89,7 @@ class TestCreateRecord:
         )
         responses.add(
             responses.POST,
-            re.compile(r"https://test.salesforce.com/services/data/v50.0/.*"),
+            re.compile(r"https://test.salesforce.com/services/data/v52.0/.*"),
             content_type="application/json",
             status=404,
             json={

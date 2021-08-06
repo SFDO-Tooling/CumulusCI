@@ -1,23 +1,21 @@
-from typing import List, Tuple, NamedTuple, Optional, Iterable
-
+import gzip
+from collections import defaultdict
+from contextlib import ExitStack, contextmanager
+from email.utils import parsedate
 from logging import getLogger
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import gzip
-from collections import defaultdict
-from typing import Dict
-from email.utils import parsedate
-from contextlib import ExitStack, contextmanager
+from typing import Dict, Iterable, List, NamedTuple, Optional, Tuple
 
-from sqlalchemy import create_engine, MetaData
-from sqlalchemy.orm import create_session
+from sqlalchemy import MetaData, create_engine
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import sessionmaker, exc
+from sqlalchemy.orm import create_session, exc, sessionmaker
+
 from cumulusci.salesforce_api.org_schema_models import (
     Base,
-    SObject,
     Field,
     FileMetadata,
+    SObject,
 )
 from cumulusci.utils.http.multi_request import CompositeParallelSalesforce
 

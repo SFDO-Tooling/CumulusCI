@@ -1,16 +1,18 @@
 import json
-import pytest
 import re
-import responses
 import zipfile
-
 from pathlib import Path
 from unittest import mock
 
+import pytest
+import responses
+
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import DeploymentException
-from cumulusci.tasks.marketing_cloud.deploy import MarketingCloudDeployTask
-from cumulusci.tasks.marketing_cloud.deploy import MCPM_ENDPOINT
+from cumulusci.tasks.marketing_cloud.deploy import (
+    MCPM_ENDPOINT,
+    MarketingCloudDeployTask,
+)
 from cumulusci.utils import temporary_dir
 
 

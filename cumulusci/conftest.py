@@ -1,22 +1,21 @@
 import io
 import os
 from contextlib import contextmanager
-
 from http.client import HTTPMessage
-from unittest import mock
-import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest import mock
 
+import pytest
 from pytest import fixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from cumulusci.salesforce_api.org_schema_models import Base
 from cumulusci.core.github import get_github_api
-from cumulusci.tests.pytest_plugins.pytest_sf_vcr import vcr_config, salesforce_vcr
-from cumulusci.tests.util import DummyOrgConfig, mock_env, DummyKeychain
+from cumulusci.salesforce_api.org_schema_models import Base
 from cumulusci.tasks.salesforce.tests.util import create_task_fixture
+from cumulusci.tests.pytest_plugins.pytest_sf_vcr import salesforce_vcr, vcr_config
+from cumulusci.tests.util import DummyKeychain, DummyOrgConfig, mock_env
 
 
 @fixture(scope="session", autouse=True)

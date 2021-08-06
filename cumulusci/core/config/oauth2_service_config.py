@@ -1,5 +1,4 @@
-from abc import ABC
-from abc import abstractclassmethod
+from abc import ABC, abstractclassmethod
 from typing import Dict
 
 from cumulusci.core.config import ServiceConfig

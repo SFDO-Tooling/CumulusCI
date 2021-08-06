@@ -9,7 +9,7 @@ from cumulusci.core.exceptions import CumulusCIException, FlowNotFoundError
 from cumulusci.core.flowrunner import FlowCoordinator
 
 from .. import flow
-from .utils import run_click_command, DummyTask
+from .utils import DummyTask, run_click_command
 
 
 @mock.patch("cumulusci.cli.flow.CliTable")

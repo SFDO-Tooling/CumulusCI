@@ -1,33 +1,30 @@
 import csv
+from collections import defaultdict
+from distutils.version import LooseVersion
+from pathlib import PurePosixPath
+from typing import List, Optional, Union
 from unittest.mock import Mock
 from zipfile import ZipFile
 
 from github3.repos.repo import Repository
-from cumulusci.core.dependencies.github import (
-    get_package_data,
-    get_remote_project_config,
-    get_repo,
-)
-from typing import List, Optional, Union
-from cumulusci.core.dependencies.resolvers import (
-    get_static_dependencies,
-)
+from pydantic import BaseModel
+
 from cumulusci.core.dependencies.dependencies import (
     Dependency,
     GitHubDynamicDependency,
     parse_dependencies,
 )
-from pathlib import PurePosixPath
-from collections import defaultdict
-
-from distutils.version import LooseVersion
-from pydantic import BaseModel
-
-from cumulusci.tasks.github.base import BaseGithubTask
+from cumulusci.core.dependencies.github import (
+    get_package_data,
+    get_remote_project_config,
+    get_repo,
+)
+from cumulusci.core.dependencies.resolvers import get_static_dependencies
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
+from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.utils import download_extract_github_from_repo
 from cumulusci.utils.xml import metadata_tree
-from cumulusci.core.exceptions import TaskOptionsError
 
 
 class Package(BaseModel):

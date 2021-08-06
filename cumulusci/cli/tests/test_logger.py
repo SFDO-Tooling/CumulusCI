@@ -1,8 +1,8 @@
-import os
 import logging
-
+import os
 from unittest.mock import patch
-from ..logger import init_logger, get_tempfile_logger
+
+from ..logger import get_tempfile_logger, init_logger
 
 
 class TestLogger:

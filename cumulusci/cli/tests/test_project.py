@@ -1,16 +1,17 @@
+import os
 from pathlib import Path
 from unittest import mock
-import os
 
 import click
 import pytest
 
-from .. import project
-from ..runtime import CliRuntime
-from cumulusci.cli.tests.utils import run_click_command, recursive_list_files
+from cumulusci.cli.tests.utils import recursive_list_files, run_click_command
 from cumulusci.core.dependencies.dependencies import PackageNamespaceVersionDependency
 from cumulusci.core.exceptions import NotInProject
 from cumulusci.utils import temporary_dir
+
+from .. import project
+from ..runtime import CliRuntime
 
 
 class TestProjectCommands:

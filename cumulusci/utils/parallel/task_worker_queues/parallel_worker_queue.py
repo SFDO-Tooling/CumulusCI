@@ -3,18 +3,15 @@
    """
 
 
-import typing as T
-import shutil
-from pathlib import Path
 import logging
-
+import shutil
+import typing as T
 from multiprocessing import get_context
-from threading import Thread
+from pathlib import Path
 from tempfile import gettempdir
+from threading import Thread
 
-
-from .parallel_worker import SharedConfig, WorkerConfig, ParallelWorker
-
+from .parallel_worker import ParallelWorker, SharedConfig, WorkerConfig
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.DEBUG)

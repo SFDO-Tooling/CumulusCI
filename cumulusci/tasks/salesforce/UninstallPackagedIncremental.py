@@ -2,12 +2,10 @@ import os
 
 import xmltodict
 
-from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import UninstallPackaged
-from cumulusci.utils import package_xml_from_dict
-from cumulusci.utils import temporary_dir
+from cumulusci.utils import package_xml_from_dict, temporary_dir
 
-DEFAULT_IGNORE_TYPES = ["RecordType"]
+DEFAULT_IGNORE_TYPES = ["RecordType", "CustomObjectTranslation"]
 
 
 class UninstallPackagedIncremental(UninstallPackaged):

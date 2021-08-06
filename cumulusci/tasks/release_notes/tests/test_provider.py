@@ -1,23 +1,23 @@
-from datetime import datetime
-from datetime import timedelta
 import http.client
-from unittest import mock
 import os
 import shutil
 import tempfile
 import unittest
+from datetime import datetime, timedelta
+from unittest import mock
 
-from cumulusci.core.github import get_github_api
 import responses
 
-from cumulusci.core.exceptions import GithubApiError
-from cumulusci.core.exceptions import GithubApiNotFoundError
-from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
-from cumulusci.tasks.release_notes.provider import BaseChangeNotesProvider
-from cumulusci.tasks.release_notes.provider import StaticChangeNotesProvider
-from cumulusci.tasks.release_notes.provider import DirectoryChangeNotesProvider
-from cumulusci.tasks.release_notes.provider import GithubChangeNotesProvider
+from cumulusci.core.exceptions import GithubApiError, GithubApiNotFoundError
+from cumulusci.core.github import get_github_api
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
+from cumulusci.tasks.release_notes.provider import (
+    BaseChangeNotesProvider,
+    DirectoryChangeNotesProvider,
+    GithubChangeNotesProvider,
+    StaticChangeNotesProvider,
+)
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 
 __location__ = os.path.split(os.path.realpath(__file__))[0]

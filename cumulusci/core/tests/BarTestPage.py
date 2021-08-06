@@ -1,8 +1,7 @@
 """
 This class is used by test_pageobjects
 """
-from cumulusci.robotframework.pageobjects import BasePage
-from cumulusci.robotframework.pageobjects import pageobject
+from cumulusci.robotframework.pageobjects import BasePage, pageobject
 
 
 @pageobject(page_type="Test", object_name="Bar__c")

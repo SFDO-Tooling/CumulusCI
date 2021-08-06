@@ -1,22 +1,20 @@
 import copy
-import random
-from pathlib import Path
-import tracemalloc
 import gc
-import sys
-from contextlib import contextmanager
-from cumulusci.utils.backports.py36 import nullcontext
 import json
-from unittest import mock
 import os
+import random
+import sys
+import tracemalloc
+from contextlib import contextmanager
+from pathlib import Path
+from unittest import mock
 
 import responses
 
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.config import BaseProjectConfig, OrgConfig, UniversalConfig
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.bulkdata.tests import utils as bulkdata_utils
+from cumulusci.utils.backports.py36 import nullcontext
 
 
 def random_sha():
@@ -115,6 +113,9 @@ class DummyKeychain(object):
 
     def get_service(self, name):
         return DummyService(name)
+
+    def set_org(self, org: OrgConfig, global_org: bool):
+        pass
 
 
 @contextmanager

@@ -1,13 +1,13 @@
-from abc import ABCMeta, abstractmethod
-from contextlib import contextmanager
 import csv
-from enum import Enum
 import io
 import os
 import pathlib
 import tempfile
 import time
-from typing import Dict, Any, List, Optional, NamedTuple
+from abc import ABCMeta, abstractmethod
+from contextlib import contextmanager
+from enum import Enum
+from typing import Any, Dict, List, NamedTuple, Optional
 
 import lxml.etree as ET
 import requests
@@ -15,7 +15,6 @@ import requests
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import iterate_in_chunks
-
 
 BULK_BATCH_SIZE = 3
 

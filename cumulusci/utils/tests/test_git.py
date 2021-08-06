@@ -1,8 +1,8 @@
 from cumulusci.utils.git import (
+    construct_release_branch_name,
+    get_release_identifier,
     is_release_branch,
     is_release_branch_or_child,
-    get_release_identifier,
-    construct_release_branch_name,
     split_repo_url,
 )
 

@@ -1,8 +1,8 @@
-from collections import defaultdict
 import contextlib
 import os
 import re
 import time
+from collections import defaultdict
 
 import click
 import pkg_resources

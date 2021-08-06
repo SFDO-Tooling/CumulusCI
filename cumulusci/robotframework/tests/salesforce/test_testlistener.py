@@ -1,6 +1,7 @@
 import unittest
-from TestListener import TestListener
+
 import pytest
+from TestListener import TestListener
 
 
 class TestTestListener(unittest.TestCase):
