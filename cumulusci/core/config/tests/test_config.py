@@ -548,21 +548,20 @@ class TestBaseProjectConfig(unittest.TestCase):
             UniversalConfig(), {"project": {"git": {"prefix_release": "release/"}}}
         )
         self.assertEqual("beta/1.0", config.get_tag_for_version("beta/", "1.0"))
-        self.assertEqual(
-            "beta/1.117-Beta_5", config.get_tag_for_version("beta/", "1.117 (Beta 5)")
-        )
 
     def test_get_tag_for_version__1gp_beta(self):
         config = BaseProjectConfig(
             UniversalConfig(), {"project": {"git": {"prefix_beta": "beta/"}}}
         )
-        self.assertEqual("beta/1.0-Beta_1", config.get_tag_for_version("1.0 (Beta 1)"))
+        self.assertEqual(
+            "beta/1.0-Beta_1", config.get_tag_for_version("beta/", "1.0 (Beta 1)")
+        )
 
     def test_get_tag_for_version__with_tag_prefix_option(self):
         config = BaseProjectConfig(UniversalConfig(), {})
         self.assertEqual(
             "custom/1.0",
-            config.get_tag_for_version("1.0", prefix="custom/"),
+            config.get_tag_for_version("custom/", "1.0"),
         )
 
     def test_get_version_for_tag(self):
