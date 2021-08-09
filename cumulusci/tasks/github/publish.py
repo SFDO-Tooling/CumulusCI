@@ -19,9 +19,8 @@ class PublishSubtree(BaseGithubTask):
             "description": "The branch to update in the target repo",
             "required": True,
         },
-        "version": {
-            "description": "The version number to release. "
-            "Also supports latest and latest_beta to look up the latest releases. "
+        "tag_name": {
+            "description": "The name of the tag that should be associated with this release. "
             "Required if 'ref' is not set."
         },
         "ref": {
@@ -54,13 +53,8 @@ class PublishSubtree(BaseGithubTask):
 
         self.options["renames"] = self._process_renames(self.options.get("renames", []))
 
-        if self.options.get("version") in ("latest", "latest_beta"):
-            get_beta = self.options["version"] == "latest_beta"
-            self.options["version"] = str(
-                self.project_config.get_latest_version(beta=get_beta)
-            )
-        if "ref" not in self.options and "version" not in self.options:
-            raise TaskOptionsError("Either `ref` or `version` option is required")
+        if "ref" not in self.options and "tag_name" not in self.options:
+            raise TaskOptionsError("Either `ref` or `tag_name` option is required")
 
         self.options["create_release"] = process_bool_arg(
             self.options.get("create_release", False)
@@ -122,9 +116,7 @@ class PublishSubtree(BaseGithubTask):
         if "ref" in self.options:
             self.ref = self.options["ref"]
         else:
-            self.tag_name = self.project_config.get_tag_for_version(
-                self.options["version"]
-            )
+            self.tag_name = self.options["tag_name"]
             self.ref = f"tags/{self.tag_name}"
 
     def _download_repo_and_extract(self, path):
@@ -170,8 +162,8 @@ class PublishSubtree(BaseGithubTask):
     def _create_commit(self, path):
         committer = CommitDir(self.target_repo, logger=self.logger)
         message = f"Published content from ref {self.ref}"
-        if "version" in self.options:
-            message += f'\n\nVersion {self.options["version"]}'
+        if "tag_name" in self.options:
+            message += f'\n\nTag {self.options["tag_name"]}'
         return committer(
             path,
             self.options["branch"],
@@ -221,7 +213,7 @@ class PublishSubtree(BaseGithubTask):
             tagger={
                 "name": self.github_config.username,
                 "email": self.github_config.email,
-                "date": "{}Z".format(datetime.utcnow().isoformat()),
+                "date": f"{datetime.utcnow().isoformat()}Z",
             },
             lightweight=False,
         )
@@ -229,7 +221,18 @@ class PublishSubtree(BaseGithubTask):
         # Create the release
         self.target_repo.create_release(
             tag_name=self.tag_name,
-            name=self.options["version"],
+            name=self._get_release_name_from_tag(self.tag_name),
             prerelease=release.prerelease,
             body=release_body,
         )
+
+    def _get_release_name_from_tag(self, tag_name):
+        """Parse the name of the release from the tag name.
+        Example: The tag 'beta/1.117-Beta_2' should
+        return a name of '1.117 (Beta 2)'"""
+        tag_name = tag_name.split("/")[-1]
+        if "Beta" in tag_name:
+            tag_name = tag_name.replace("-", " ").replace("_", " ")
+            part = tag_name.partition("Beta")
+            tag_name = f"{part[0]}({part[1] + part[2]})"
+        return tag_name
