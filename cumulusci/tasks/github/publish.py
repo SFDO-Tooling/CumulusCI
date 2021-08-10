@@ -24,16 +24,17 @@ class PublishSubtree(BaseGithubTask):
             "required": True,
         },
         "version": {
-            "description": "(Deprecated) Only the values of 'latest' and 'latest_beta' are acceptable. "
-            "Required if 'ref' is not set. This will override any"
+            "description": "(Deprecated >= 3.42.0) Only the values of 'latest' and 'latest_beta' are acceptable. "
+            "Required if 'ref' or 'tag_name' is not set. This will override tag_name if it is provided."
         },
         "tag_name": {
             "description": "The name of the tag that should be associated with this release. "
             "Values of 'latest' and 'latest_beta' are also allowed. "
-            "Required if 'ref' is not set."
+            "Required if 'ref' or 'version' is not set."
         },
         "ref": {
-            "description": "The git reference to publish.  Takes precedence over 'version'."
+            "description": "The git reference to publish.  Takes precedence over 'version' and 'tag_name'. "
+            "Required if 'tag_name' is not set."
         },
         "include": {
             "description": "A list of paths from repo root to include. Directories must end with a trailing slash."
@@ -200,7 +201,7 @@ class PublishSubtree(BaseGithubTask):
         committer = CommitDir(self.target_repo, logger=self.logger)
         message = f"Published content from ref {self.ref}"
         if "tag_name" in self.options:
-            message += f'\n\nTag {self.options["tag_name"]}'
+            message += f"\n\nTag {self.tag_name}"
         return committer(
             path,
             self.options["branch"],
