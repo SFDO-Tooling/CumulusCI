@@ -4,7 +4,11 @@ from pathlib import Path
 
 import github3.exceptions
 
-from cumulusci.core.exceptions import GithubException, TaskOptionsError
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    GithubException,
+    TaskOptionsError,
+)
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.tasks.github.util import CommitDir
@@ -19,8 +23,13 @@ class PublishSubtree(BaseGithubTask):
             "description": "The branch to update in the target repo",
             "required": True,
         },
+        "version": {
+            "description": "(Deprecated) Only the values of 'latest' and 'latest_beta' are acceptable. "
+            "Required if 'ref' is not set. This will override any"
+        },
         "tag_name": {
             "description": "The name of the tag that should be associated with this release. "
+            "Values of 'latest' and 'latest_beta' are also allowed. "
             "Required if 'ref' is not set."
         },
         "ref": {
@@ -53,8 +62,21 @@ class PublishSubtree(BaseGithubTask):
 
         self.options["renames"] = self._process_renames(self.options.get("renames", []))
 
-        if "ref" not in self.options and "tag_name" not in self.options:
-            raise TaskOptionsError("Either `ref` or `tag_name` option is required")
+        if "version" in self.options:  # pragma: no cover
+            self.logger.warning(
+                "The `version` option is deprecated. Please use the `tag_name` option instead."
+            )
+            if self.options["version"] not in ("latest", "latest_beta"):
+                raise TaskOptionsError(
+                    f"Only `latest` and `latest_beta` are valid values for the `version` option. Found: {self.options['version']}"
+                )
+
+        if (
+            "ref" not in self.options
+            and "tag_name" not in self.options
+            and "version" not in self.options
+        ):
+            raise TaskOptionsError("Either `ref` or `tag_name` option is required.")
 
         self.options["create_release"] = process_bool_arg(
             self.options.get("create_release", False)
@@ -115,9 +137,24 @@ class PublishSubtree(BaseGithubTask):
     def _set_ref(self):
         if "ref" in self.options:
             self.ref = self.options["ref"]
-        else:
-            self.tag_name = self.options["tag_name"]
+
+        elif "version" in self.options:
+            get_beta = self.options.get("version") == "latest_beta"
+            self.tag_name = self.project_config.get_latest_tag(beta=get_beta)
             self.ref = f"tags/{self.tag_name}"
+
+        elif "tag_name" in self.options:
+            if self.options["tag_name"] in ("latest", "latest_beta"):
+                get_beta = self.options["tag_name"] == "latest_beta"
+                tag_name = self.project_config.get_latest_tag(beta=get_beta)
+            else:
+                tag_name = self.options["tag_name"]
+
+            self.tag_name = tag_name
+            self.ref = f"tags/{self.tag_name}"
+
+        else:  # pragma: no cover
+            raise CumulusCIException("No ref, version, or tag_name present")
 
     def _download_repo_and_extract(self, path):
         zf = download_extract_github_from_repo(self.get_repo(), ref=self.ref)
@@ -221,18 +258,7 @@ class PublishSubtree(BaseGithubTask):
         # Create the release
         self.target_repo.create_release(
             tag_name=self.tag_name,
-            name=self._get_release_name_from_tag(self.tag_name),
+            name=self.project_config.get_version_for_tag(self.tag_name),
             prerelease=release.prerelease,
             body=release_body,
         )
-
-    def _get_release_name_from_tag(self, tag_name):
-        """Parse the name of the release from the tag name.
-        Example: The tag 'beta/1.117-Beta_2' should
-        return a name of '1.117 (Beta 2)'"""
-        tag_name = tag_name.split("/")[-1]
-        if "Beta" in tag_name:
-            tag_name = tag_name.replace("-", " ").replace("_", " ")
-            part = tag_name.partition("Beta")
-            tag_name = f"{part[0]}({part[1] + part[2]})"
-        return tag_name
