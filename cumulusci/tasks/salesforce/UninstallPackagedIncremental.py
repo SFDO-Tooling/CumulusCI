@@ -5,7 +5,7 @@ import xmltodict
 from cumulusci.tasks.salesforce import UninstallPackaged
 from cumulusci.utils import package_xml_from_dict, temporary_dir
 
-DEFAULT_IGNORE_TYPES = ["RecordType"]
+DEFAULT_IGNORE_TYPES = ["RecordType", "CustomObjectTranslation"]
 
 
 class UninstallPackagedIncremental(UninstallPackaged):

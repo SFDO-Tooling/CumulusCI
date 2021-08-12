@@ -41,7 +41,6 @@ class TestUninstallPackagedIncremental(unittest.TestCase):
                 UninstallPackagedIncremental,
                 {
                     "ignore": {"ApexClass": ["Ignored"]},
-                    "ignore_types": ["CustomObjectTranslation", "RecordType"],
                 },
                 project_config,
             )

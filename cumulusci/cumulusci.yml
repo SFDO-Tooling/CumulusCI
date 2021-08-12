@@ -237,6 +237,10 @@ tasks:
     options:
       command: "force:source:push"
     group: Salesforce DX
+  enable_einstein_prediction:
+    description: Enable an Einstein Prediction Builder prediction.
+    class_path: cumulusci.tasks.salesforce.enable_prediction.EnablePrediction
+    group: "Salesforce Metadata"
   ensure_record_types:
     description: Ensure that a default Record Type is extant on the given standard sObject (custom objects are not supported). If Record Types are already present, do nothing.
     class_path: cumulusci.tasks.salesforce.EnsureRecordTypes
