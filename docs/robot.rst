@@ -2,9 +2,98 @@
 Acceptance Testing with Robot Framework
 =======================================
 
-CumulusCI can help automate another important aspect of building packages: acceptance testing. Acceptance testing is the process of testing an application from the user's perspective as the final proof that the product meets its requirements.While there are plenty of testing tools, we're partial to Robot Framework, an acceptance testing framework that you can use with and within CumulusCI to create and run automated acceptance tests for your Salesforce projects.
+CumulusCI comes with a testing framework called `Robot Framework <https://robotframework.org/>`_ (or just Robot), which is specifically for writing acceptance tests. These are typically end-to-end tests that verify that the high-level requirements of a project have been satisfied. (Think "Add a new student and verify they have been assigned a mentor" or "Create a case plan when the student is not enrolled in a program".) Usually, this involves automating a browser session with Salesforce, but Robot can also be used to test new APIs created by your team. 
 
-`Robot Framework <https://robotframework.org/>`_ (or just Robot) is a keyword-driven acceptance testing framework. `Keyword-driven <https://robocorp.com/docs/languages-and-frameworks/robot-framework/keywords>`_ means that users can write test cases in an intuitive, human-readable language made up of high-level, reusable keywords (``Open test browser``, ``Delete records and close browser``) rather than in a programming language. 
+Later sections of this document will show you how to write tests, call APIs, create custom keywords, and so on. Before we do that, however, there's a bit of manual configuration to do.
+
+
+
+The Perils of Browser Testing
+-----------------------------
+
+The test that comes with CumulusCI opens a browser and performs some automation. For that to work, you need to install Chrome, and a driver for your specific version of Chrome. We don't ship this driver by default because browser versions are continually updating, and different platforms require different drivers.
+
+Install Chrome on your machine in the default location (which you likely do already), and download the appropriate driver from the `chromedriver download page <https://chromedriver.chromium.org/downloads>`_. Download the latest stable version that corresponds to your Chrome version, and place it where Robot can find it. This usually means ``/usr/local/bin`` for Linux and OSX-based systems. (It can go anywhere as long as it's on your PATH.)
+
+For more information, see `Getting Started <https://sites.google.com/chromium.org/driver/getting-started?authuser=0>`_ on the chromedriver website.
+
+.. admonition:: Fun Fact
+
+    You can skip this step and see Robot in action with CumulusCI. The tests will fail, but you can still see what it's like to run a test, and the output that it produces.
+
+ 
+You Get a Test! And You Get a Test!
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When you initialize a repository to work with CumulusCI (see `Start a new CumulusCI Project <https://cumulusci.readthedocs.io/en/stable/get_started.html?highlight=project%20init#start-a-new-cumulusci-project>`_), you automatically get a preconfigured ``run robot`` task to run all of your Robot tests at the same time. We also install one example test, ``create_contact.robot``, that shows how to write both browser-based and API-based tests. In fact, we've gone ahead and created a complete folder hierarchy for tests, test results, and everything else related to Robot, all starting in a folder named ``robot`` at the top of your repository.
+
+[Image: robot_folder_structure_screenshot.png]
+
+.. tip:: 
+    The ``create_contact.robot`` file is in plain text, so you can open it with any text editor you have on your machine. One of the features we love about Robot is that the files are not in a proprietary format. 
+
+
+Run Your First Test
+^^^^^^^^^^^^^^^^^^^
+
+You can run all tests for a project with a simple command line. In case you don't have a default org defined, we'll include instructions on which scratch org to use.
+
+.. code-block:: console
+   $ cci task run robot --org dev
+
+If all goes well, the browser pops up, navigates around a bit, and then closes. The output on your screen looks something like this, though you might see additional information about creating the scratch org. 
+
+.. code-block:: console
+   $ cci task run robot --org dev
+   2021-08-04 16:28:32: Getting org info from Salesforce CLI for test-yeqqkbxks2ny@example.com
+   2021-08-04 16:28:35: Beginning task: Robot
+   2021-08-04 16:28:35: As user: test-yeqqkbxks2ny@example.com
+   2021-08-04 16:28:35: In org: 00D0R000000Tz56
+   2021-08-04 16:28:35: 
+   ==============================================================================
+   Tests                                                                         
+   ==============================================================================
+   Tests.Create Contact                                                          
+   ==============================================================================
+   Via API                                                               | PASS |
+   ------------------------------------------------------------------------------
+   Via UI                                                                | PASS |
+   ------------------------------------------------------------------------------
+   Tests.Create Contact                                                  | PASS |
+   2 tests, 2 passed, 0 failed
+   ==============================================================================
+   Tests                                                                 | PASS |
+   2 tests, 2 passed, 0 failed
+   ==============================================================================
+   Output:  robot/<ProjectName>/results/output.xml
+   Log:     robot/<ProjectName>/results/log.html
+   Report:  robot/<ProjectName>/results/report.html
+
+Notice the three lines at the end that point to an XML file and two HTML files. These paths will be different on your machine, and reflect the path to your repository. All robot results go into a folder named ``results``. These files are overwritten each time you run your robot tests.
+
+Robot places all of the test results in ``output.xml``, and then generates ``log.html`` and ``report.html``, which contain two different human-readable views of the results. ``log.html`` is more developer-friendly and contains debugging information. ``report.html`` is a high-level report of successes and failures.
+
+
+View ``log`` and ``report`` Files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can open these files in a browser with the ``open`` command.
+
+.. code-block:: console
+   $ open robot/<ProjectName>/results/log.html
+
+[Image: log_screenshot.png]
+
+Feel free to open up ``output.xml`` or ``report.html`` if you're curious. In our experience, ``log.html`` is the most useful for humans, and it's the one we use when reporting test results. 
+
+Want to learn more? The next section goes into more detail about why we love Robot Framework, and how you can write your own tests. 
+
+
+
+So Why Robot?
+-------------
+
+Robot is a `keyword-driven <https://robocorp.com/docs/languages-and-frameworks/robot-framework/keywords>`_ acceptance testing framework, which means that users can write test cases in an intuitive, human-readable language made up of high-level, reusable keywords (``Open test browser``, ``Delete records and close browser``) rather than in a programming language. 
 
 For example, this basic Robot test case creates a new ``Contact`` record, and then examines the record to confirm that the fields listed are correct. You can see how straightforward the keyword syntax is. Even someone brand new to test automation can grasp the function of the ``Salesforce Insert``, ``Salesforce Get``, and ``Should be equal`` keywords.
 
@@ -63,32 +152,14 @@ CumulusCI provides a set of keywords unique to both Salesforce and CumulusCI for
     Besides the keywords that come with CumulusCI, you can write project-specific keywords that are either based on existing keywords, or implemented in Python.
 
 
-Robot Directory Structure
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-When a project is `initialized <https://cumulusci.readthedocs.io/en/latest/get_started.html#project-initialization>`_ with ``cci project init``, this folder structure is created for Robot tests and resources.
-
-::
-
-   ProjectName/
-   ├── robot
-   │   └── ProjectName
-   │       ├── doc
-   │       ├── resources
-   │       ├── results
-   │       └── tests
-
-We're going to learn more about using these folders as we work through the examples and exercises in the rest of this documentation.
-
-
 
 Write a Sample Robot Test Case
 ------------------------------
 
-Now that you have a general understanding of how Robot is ideal for acceptance testing with CumulusCI, let's construct the test case that creates a new ``Contact`` record.
+Now that you have a general understanding of why Robot is ideal for acceptance testing with CumulusCI, let's construct a test case that creates a new ``Contact`` record.
 
-#. Run ``cci project init``, which creates a file named ``create_contact.robot`` in the ``robot/<ProjectName>/tests`` folder of your project's repository. This test case comes standard whenever you initialize a project with CumulusCI. 
-#. Save this code in a new file named ``new_contact_record.robot`` in the ``tests`` folder.
+#. Run ``cci project init``, which creates the ``create_contact.robot`` test case that comes standard whenever you initialize a project with CumulusCI. 
+#. In the ``tests`` folder, save this code in a new file named ``new_contact_record.robot``.
 
 .. code-block:: robotframework
 
@@ -472,6 +543,8 @@ To run this test from the command line:
 
 In addition to the usual output files (``log.html``, ``report.html``, ``output.xml``), this test also creates a screenshot in the ``results`` folder. If you open ``log.html``, you can see whether each step of the test case passed or failed. Toggle the ``+`` tab of the ``Take screenshot of landing page`` test header to examine the results of the test. Then toggle the ``+`` tab of the ``Capture page screenshot`` keyword to examine the screenshot taken of the landing page.
 
+[Image: Screenshot of toggled tabs in captured screenshot.]
+
 
 Open the Browser
 ^^^^^^^^^^^^^^^^
@@ -566,16 +639,18 @@ At this point, the ``robot`` folder in your project repository should look like 
    │   └── ProjectName
    │       ├── doc
    │       ├── resources
-   │		├── <ProjectName>.robot
+   │		  ├── <ProjectName>.robot
    │       ├── results
-   │		├── log.html
-   │		├── output.xml
-   │		├── report.html
+   │		    ├── log.html
+   │		    ├── output.xml
+   │		    ├── report.html
    │       ├── tests
-   │		├── create_contact.robot
-   │		├── custom_keyword.robot
-   │		├── new_contact_record.robot
-   │		└── ui.robot
+   │		    ├── create_contact.robot
+   │		    ├── custom_keyword.robot
+   │		    ├── new_contact_record.robot
+   │		    └── ui.robot
+
+[Image: Screenshot of what final Robot folder structure should look like.]
 
 While a single ``.robot`` file is considered to be a test suite, Robot also considers folders to be suites. You can pass a folder to Robot to run all tests stored in that folder. So if you've saved the ``new_contact_record.robot``, ``custom_keyword.robot`` and ``ui.robot`` test cases in your ``tests`` folder, you can run all of the tests in the command line.
 
