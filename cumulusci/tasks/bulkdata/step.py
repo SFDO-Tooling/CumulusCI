@@ -98,7 +98,7 @@ class BulkJobMixin:
             el.text for el in tree.iterfind(".//{%s}stateMessage" % self.bulk.jobNS)
         ]
 
-        # Get how many total records failed acorss all the batches.
+        # Get how many total records failed across all the batches.
         failures = tree.findall(".//{%s}numberRecordsFailed" % self.bulk.jobNS)
         record_failure_count = sum([int(failure.text) for failure in (failures or [])])
 
