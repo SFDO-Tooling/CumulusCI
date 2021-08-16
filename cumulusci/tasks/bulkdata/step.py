@@ -16,7 +16,7 @@ from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import iterate_in_chunks
 
-BULK_BATCH_SIZE = 3
+BULK_BATCH_SIZE = 10_000
 
 
 class DataOperationType(Enum):
