@@ -83,6 +83,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
                         "version_id": "04t000000000000",
                         "dependencies": [{"namespace": "foo", "version": "1.0"}],
                         "package_type": "1GP",
+                        "tag_prefix": "release/",
                     }
                 }
             ),
@@ -124,6 +125,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
                         "version": "1.0",
                         "version_id": "04t000000000000",
                         "package_type": "1GP",
+                        "tag_prefix": "release/",
                     }
                 }
             ),
@@ -279,6 +281,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
                         "version": "1.0 (Beta 1)",
                         "version_id": "04t000000000000",
                         "package_type": "1GP",
+                        "tag_prefix": "beta/",
                     }
                 }
             ),

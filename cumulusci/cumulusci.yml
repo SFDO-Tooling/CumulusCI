@@ -1131,6 +1131,7 @@ flows:
           version_id: ^^upload_beta.version_id
           dependencies: ^^upload_beta.dependencies
           package_type: 1GP
+          tag_prefix: $project_config.project__git__prefix_beta
       3:
         task: github_release_notes
         ignore_failure: True # Attempt to generate release notes but don't fail build
@@ -1156,6 +1157,7 @@ flows:
           version_id: ^^upload_production.version_id
           dependencies: ^^upload_production.dependencies
           package_type: 1GP
+          tag_prefix: $project_config.project__git__prefix_release
       3:
         task: github_release_notes
         ignore_failure: True # Attempt to generate release notes but don't fail build
@@ -1177,6 +1179,7 @@ flows:
           version_id: ^^promote_package_version.version_id
           dependencies: ^^promote_package_version.dependencies
           package_type: 2GP
+          tag_prefix: $project_config.project__git__prefix_release
       3:
         task: github_release_notes
         ignore_failure: True # Attempt to generate release notes but don't fail build
@@ -1198,6 +1201,7 @@ flows:
           version_id: ^^promote_package_version.version_id
           dependencies: ^^promote_package_version.dependencies
           package_type: 2GP
+          tag_prefix: $project_config.project__git__prefix_release
       3:
         task: github_release_notes
         ignore_failure: True # Attempt to generate release notes but don't fail build
