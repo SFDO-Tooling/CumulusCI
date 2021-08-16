@@ -15,6 +15,7 @@ import requests
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import iterate_in_chunks
+from cumulusci.utils.classutils import namedtuple_as_simple_dict
 
 BULK_BATCH_SIZE = 10_000
 
@@ -37,7 +38,7 @@ class DataApi(Enum):
     SMART = "smart"
 
 
-class DataOperationStatus(Enum):
+class DataOperationStatus(str, Enum):
     """Enum defining outcome values for a data operation."""
 
     SUCCESS = "Success"
@@ -55,9 +56,12 @@ class DataOperationResult(NamedTuple):
 
 class DataOperationJobResult(NamedTuple):
     status: DataOperationStatus
-    job_errors: List
-    records_processed: List
+    job_errors: List[str]
+    records_processed: int
     total_row_errors: int = 0
+
+    def __iter__(self):
+        yield namedtuple_as_simple_dict(self)
 
 
 @contextmanager

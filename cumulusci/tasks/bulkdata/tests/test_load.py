@@ -2398,3 +2398,30 @@ class TestLoadDataIntegrationTests:
         assert ret["Account"].total_row_errors == 1
         assert ret["Contact"].total_row_errors == 1
         assert ret["Opportunity"].total_row_errors == 2
+        expected = {
+            "Account": [
+                {
+                    "status": "Row failure",
+                    "job_errors": [],
+                    "records_processed": 2,
+                    "total_row_errors": 1,
+                }
+            ],
+            "Contact": [
+                {
+                    "status": "Row failure",
+                    "job_errors": [],
+                    "records_processed": 2,
+                    "total_row_errors": 1,
+                }
+            ],
+            "Opportunity": [
+                {
+                    "status": "Row failure",
+                    "job_errors": [],
+                    "records_processed": 4,
+                    "total_row_errors": 2,
+                }
+            ],
+        }
+        assert json.loads(json.dumps(ret)) == expected
