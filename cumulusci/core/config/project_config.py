@@ -446,18 +446,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             config = json.load(f)
         return config
 
-    def get_tag_for_version(self, version, prefix=None):
-        """Given a version, returns the appropriate tag name to use.
-        If a prefix is not specified, we infer beta vs. release based
-        on 1GP beta version naming conventions."""
-        if prefix:
-            tag_name = prefix + version
-        elif "(Beta" in version:
-            tag_version = version.replace(" (", "-").replace(")", "").replace(" ", "_")
-            tag_name = self.project__git__prefix_beta + tag_version
-        else:
-            tag_name = self.project__git__prefix_release + version
-        return tag_name
+    def get_tag_for_version(self, prefix, version):
+        """Given a prefix and version, returns the appropriate tag name to use."""
+        if "(Beta" in version:
+            version = version.replace(" (", "-").replace(")", "").replace(" ", "_")
+
+        return f"{prefix}{version}"
 
     def get_version_for_tag(self, tag, prefix_beta=None, prefix_release=None):
         if prefix_beta is None:
