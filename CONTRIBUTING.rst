@@ -216,7 +216,7 @@ Decorators for tests:
  * pytest.mark.slow(): a slow test that should only be executed when requested with --run-slow-tests
  * pytest.mark.large_vcr(): a network-based test that generates VCR cassettes too large for version control. Use --org to generate them locally.
  * pytest.mark.needs_org(): a test that needs an org (or at least access to the network) but should not attempt to store VCR cassettes
- * org_shape('qa', 'qa_org'): - switch the curren org to an org created with org template "qa" after running flow "qa_org".
+ * org_shape('qa', 'qa_org'): - switch the current org to an org created with org template "qa" after running flow "qa_org".
    As with all tests, clean up any changes you make, because this org may be reused by
    other tests.
 
