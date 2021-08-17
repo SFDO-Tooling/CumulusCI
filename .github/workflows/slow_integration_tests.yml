@@ -12,8 +12,6 @@ on:
       - feature/** # delete this once it works
 
 env:
-  COVERALLS_PARALLEL: true
-  COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
   CUMULUSCI_KEY: ${{ secrets.CUMULUSCI_KEY }}
 
 jobs:
