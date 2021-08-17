@@ -5,10 +5,9 @@ import pathlib
 import tempfile
 import time
 from abc import ABCMeta, abstractmethod
-from collections import namedtuple
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, NamedTuple, Optional
 
 import lxml.etree as ET
 import requests
@@ -16,6 +15,9 @@ import requests
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import iterate_in_chunks
+from cumulusci.utils.classutils import namedtuple_as_simple_dict
+
+BULK_BATCH_SIZE = 10_000
 
 
 class DataOperationType(Enum):
@@ -36,7 +38,7 @@ class DataApi(Enum):
     SMART = "smart"
 
 
-class DataOperationStatus(Enum):
+class DataOperationStatus(str, Enum):
     """Enum defining outcome values for a data operation."""
 
     SUCCESS = "Success"
@@ -46,11 +48,20 @@ class DataOperationStatus(Enum):
     ABORTED = "Aborted"
 
 
-DataOperationResult = namedtuple("Result", ["id", "success", "error"])
-DataOperationJobResult = namedtuple(
-    "DataOperationJobResult",
-    ["status", "job_errors", "records_processed", "total_row_errors"],
-)
+class DataOperationResult(NamedTuple):
+    id: str
+    success: bool
+    error: str
+
+
+class DataOperationJobResult(NamedTuple):
+    status: DataOperationStatus
+    job_errors: List[str]
+    records_processed: int
+    total_row_errors: int = 0
+
+    def __iter__(self):
+        yield namedtuple_as_simple_dict(self)
 
 
 @contextmanager
@@ -91,42 +102,53 @@ class BulkJobMixin:
             el.text for el in tree.iterfind(".//{%s}stateMessage" % self.bulk.jobNS)
         ]
 
-        failures = tree.find(".//{%s}numberRecordsFailed" % self.bulk.jobNS)
-        record_failure_count = int(failures.text) if failures is not None else 0
-        processed = tree.find(".//{%s}numberRecordsProcessed" % self.bulk.jobNS)
-        records_processed = int(processed.text) if processed is not None else 0
+        # Get how many total records failed across all the batches.
+        failures = tree.findall(".//{%s}numberRecordsFailed" % self.bulk.jobNS)
+        record_failure_count = sum([int(failure.text) for failure in (failures or [])])
 
+        # Get how many total records processed across all the batches.
+        processed = tree.findall(".//{%s}numberRecordsProcessed" % self.bulk.jobNS)
+        records_processed_count = sum(
+            [int(processed.text) for processed in (processed or [])]
+        )
         # FIXME: "Not Processed" to be expected for original batch with PK Chunking Query
         # PK Chunking is not currently supported.
         if "Not Processed" in statuses:
             return DataOperationJobResult(
-                DataOperationStatus.ABORTED, [], records_processed, record_failure_count
+                DataOperationStatus.ABORTED,
+                [],
+                records_processed_count,
+                record_failure_count,
             )
         elif "InProgress" in statuses or "Queued" in statuses:
             return DataOperationJobResult(
                 DataOperationStatus.IN_PROGRESS,
                 [],
-                records_processed,
+                records_processed_count,
                 record_failure_count,
             )
         elif "Failed" in statuses:
             return DataOperationJobResult(
                 DataOperationStatus.JOB_FAILURE,
                 state_messages,
-                records_processed,
+                records_processed_count,
                 record_failure_count,
             )
 
+        # All the records submitted in this job failed.
         if record_failure_count:
             return DataOperationJobResult(
                 DataOperationStatus.ROW_FAILURE,
                 [],
-                records_processed,
+                records_processed_count,
                 record_failure_count,
             )
 
         return DataOperationJobResult(
-            DataOperationStatus.SUCCESS, [], records_processed, record_failure_count
+            DataOperationStatus.SUCCESS,
+            [],
+            records_processed_count,
+            record_failure_count,
         )
 
     def _wait_for_job(self, job_id):
@@ -141,7 +163,15 @@ class BulkJobMixin:
                 break
 
             time.sleep(10)
-        self.logger.info(f"Job {job_id} finished with result: {result.status.value}")
+        plural_errors = "Errors" if result.total_row_errors != 1 else "Error"
+        errors = (
+            f": {result.total_row_errors} {plural_errors}"
+            if result.total_row_errors
+            else ""
+        )
+        self.logger.info(
+            f"Job {job_id} finished with result: {result.status.value}{errors}"
+        )
         if result.status is DataOperationStatus.JOB_FAILURE:
             for state_message in result.job_errors:
                 self.logger.error(f"Batch failure message: {state_message}")
@@ -323,7 +353,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             self.context.logger.info(f"Uploading batch {count + 1}")
             self.batch_ids.append(self.bulk.post_batch(self.job_id, iter(csv_batch)))
 
-    def _batch(self, records, n=10000, char_limit=10000000):
+    def _batch(self, records, n=BULK_BATCH_SIZE, char_limit=10000000):
         """Given an iterator of records, yields batches of
         records serialized in .csv format.
 
