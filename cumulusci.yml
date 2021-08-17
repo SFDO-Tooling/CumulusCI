@@ -67,3 +67,6 @@ orgs:
     scratch:
         prerelease:
             config_file: orgs/prerelease.json
+
+        pytest:
+            config_file: orgs/dev.json
