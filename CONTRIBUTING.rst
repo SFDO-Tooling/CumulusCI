@@ -154,7 +154,7 @@ Some tests are marked ``@pytest.mark.vcr()`` which means that they can either
 call into a real (configured) Salesforce org or use a cached YAML file of the request/response.
 
 By default using pytest will use the cached YAML. If you want to work against a
-real Scratch org, you do so like this::
+real scratch org, you do so like this::
 
     $ pytest --org qa <other arguments and options, such as filename or -k testname>
 
@@ -164,7 +164,7 @@ To regenerate the VCR file, you can run this command::
 
     $ pytest --replace-vcrs --org qa
 
-This will configure an org named "pytest" and regenerate them.
+This will configure an org named "qa" and regenerate them.
 
 That will run all VCR-backed tests against the org, including all of the slow
 integration tests.
@@ -215,7 +215,7 @@ Decorators for tests:
 
  * pytest.mark.slow(): a slow test that should only be executed when requested with --run-slow-tests
  * pytest.mark.large_vcr(): a network-based test that generates VCR cassettes too large for version control. Use --org to generate them locally.
- * pytest.mark.needs_org(): a test that needs an org (or at least access to the network) but should not attempt to store VCR cassettes
+ * pytest.mark.needs_org(): a test that needs an org (or at least access to the network) but should not attempt to store VCR cassettes. Most tests that need network access do so because they need to talk to an org, but you can also use this decorator to give access to the network to talk to github or any other API.
  * org_shape('qa', 'qa_org'): - switch the current org to an org created with org template "qa" after running flow "qa_org".
    As with all tests, clean up any changes you make, because this org may be reused by
    other tests.
