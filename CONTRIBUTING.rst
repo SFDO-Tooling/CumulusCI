@@ -198,8 +198,6 @@ the repo to see examples where they are used in context, or to see
 their definitions:
 
 * gh_api - get a fake github API
-* restore_cwd - ensure that a test finishes with the 
-  same "current working directory" that it started with
 * with temp_db():... - create a temporary SQLite Database
 * delete_data_from_org("Account,Contacts") - delete named sobjects from an org
 * run_code_without_recording(func) - run a function ONLY when
