@@ -6,11 +6,6 @@ on:
 
   workflow_dispatch:
 
-  # temp for testing. Delete before merging.
-  push:
-    branches:
-      - feature/** # delete this once it works
-
 env:
   CUMULUSCI_KEY: ${{ secrets.CUMULUSCI_KEY }}
 
