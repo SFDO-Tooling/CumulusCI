@@ -186,7 +186,7 @@ and they will run with the VCR tests.
 
 Some tests are so slow that you only want to run them on an opt-in basis.
 Mark these tests with ``@pytest.mark.slow()`` and run them with
-``pytest --run-slow`` or ``pytest --run-slow --orgname <orgname>``.
+``pytest --run-slow-tests`` or ``pytest --run-slow-tests --orgname <orgname>``.
 
 Writing Integration Tests
 ~~~~~~~~~~~~~~~~~~~~~~~~~
