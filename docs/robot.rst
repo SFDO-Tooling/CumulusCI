@@ -75,7 +75,7 @@ Notice the three lines at the end that point to an XML file and two HTML files. 
 Robot places all of the test results in ``output.xml``, and then generates ``log.html`` and ``report.html``, which contain two different human-readable views of the results. ``log.html`` is more developer-friendly and contains debugging information. ``report.html`` is a high-level report of successes and failures.
 
 
-View ``log`` and ``report`` Files
+View Log and Report Files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can open these files in a browser with the ``open`` command.
