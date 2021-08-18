@@ -33,7 +33,7 @@ def test_install_1gp(install_package_by_namespace_version):
         task.org_config,
         "test",
         "1.0",
-        PackageInstallOptions(activate_remote_site_settings=False),
+        PackageInstallOptions(),
         retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
     )
 
@@ -50,7 +50,7 @@ def test_install_2gp(install_package_by_version_id):
         task.project_config,
         task.org_config,
         "04t000000000000",
-        PackageInstallOptions(activate_remote_site_settings=False),
+        PackageInstallOptions(),
         retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
     )
 
@@ -299,7 +299,6 @@ def test_freeze():
                 "options": {
                     "version": "1.0",
                     "namespace": "ns",
-                    "security_type": "FULL",
                 },
                 "checks": [],
             },

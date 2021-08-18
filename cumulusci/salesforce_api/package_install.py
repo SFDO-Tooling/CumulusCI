@@ -9,7 +9,8 @@ from simple_salesforce.exceptions import SalesforceMalformedRequest
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.utils import TaskContext
-from cumulusci.core.exceptions import PackageInstallError
+from cumulusci.core.exceptions import PackageInstallError, TaskOptionsError
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
@@ -33,8 +34,7 @@ class SecurityType(str, Enum):
 
 
 class NameConflictResolution(str, Enum):
-    """Enum used to specify how name conflicts will be resolved when installing
-    an Unlocked Package."""
+    """Enum used to specify how name conflicts will be resolved when installing an Unlocked Package."""
 
     BLOCK = "Block"
     RENAME = "RenameMetadata"
@@ -48,6 +48,43 @@ class PackageInstallOptions(CCIModel):
     password: Optional[str]
     security_type: SecurityType = SecurityType.FULL
 
+    @staticmethod
+    def from_task_options(task_options: dict) -> "PackageInstallOptions":
+        options = PackageInstallOptions()  # all parameters are defaulted
+
+        try:
+            if "security_type" in task_options:
+                options.security_type = SecurityType(task_options["security_type"])
+            if "activate_remote_site_settings" in task_options:
+                options.activate_remote_site_settings = process_bool_arg(
+                    task_options["activate_remote_site_settings"]
+                )
+            if "name_conflict_resolution" in task_options:
+                options.name_conflict_resolution = NameConflictResolution(
+                    task_options["name_conflict_resolution"]
+                )
+            if "password" in task_options:
+                options.password = task_options["password"]
+        except ValueError as e:
+            raise TaskOptionsError(f"Invalid task options: {e}")
+
+        return options
+
+
+PackageInstallOptions.update_forward_refs()
+
+PACKAGE_INSTALL_TASK_OPTIONS = {
+    "security_type": {
+        "description": "Which Profiles to install packages for (FULL = all profiles, NONE = admins only, PUSH = no profiles, CUSTOM = custom profiles). Defaults to FULL."
+    },
+    "name_conflict_resolution": {
+        "description": "Specify how to resolve name conflicts when installing an Unlocked Package. Available values are Block and RenameMetadata. Defaults to Block."
+    },
+    "activate_remote_site_settings": {
+        "description": "Activate Remote Site Settings when installing a package. Defaults to True."
+    },
+    "password": {"description": "The installation key for the managed package."},
+}
 
 DEFAULT_PACKAGE_RETRY_OPTIONS = {
     "retries": 20,
