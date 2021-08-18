@@ -82,6 +82,8 @@ def test_init_options():
     assert task.install_options == PackageInstallOptions(
         activate_remote_site_settings=True, password="foo", security_type="PUSH"
     )
+    assert task.options["activate_remote_site_settings"] is True
+    assert "activateRSS" not in task.options
 
 
 def test_init_options__float_version():
