@@ -559,12 +559,10 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
             if source_format is SourceFormat.SFDX:
                 # Convert source first.
                 stack.enter_context(temporary_dir(chdir=True))
-                print(f"Extract dir: {os.getcwd()}")
                 zip_src.extractall()
                 real_path = stack.enter_context(
                     convert_sfdx_source(self.subfolder, None, context.logger)
                 )
-                print(f"MDAPI dir: {real_path}")
                 zip_src = None  # Don't use the zipfile if we converted source.
 
             # We now know what to send to MetadataPackageZipBuilder
