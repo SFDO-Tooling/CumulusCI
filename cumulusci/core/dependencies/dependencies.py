@@ -579,9 +579,12 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
             import psutil
 
             for p in psutil.process_iter():
-                for f in p.open_files():
-                    if os.path.basename(os.getcwd()) in f.name:
-                        print(p)
+                try:
+                    for f in p.open_files():
+                        if os.path.basename(os.getcwd()) in f.path:
+                            print(p)
+                except Exception:
+                    pass
 
         return package_zip
 
