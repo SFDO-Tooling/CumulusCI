@@ -65,7 +65,7 @@ jinja2==2.11.3
     #   snowfakery
 jwcrypto==1.0
     # via github3.py
-keyring==23.1.0
+keyring==23.0.1
     # via -r requirements/prod.in
 lxml==4.6.3
     # via -r requirements/prod.in
