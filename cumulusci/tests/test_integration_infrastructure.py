@@ -6,6 +6,7 @@ from cumulusci.tasks.preflight.packages import GetInstalledPackages
 from cumulusci.tasks.salesforce import SOQLQuery
 
 pytestmark = pytest.mark.random_order(disabled=True)
+# Some tests check the pytest/VCR "output" of other tests. Thus order matters.
 
 first_cassette = (
     Path(__file__).parent

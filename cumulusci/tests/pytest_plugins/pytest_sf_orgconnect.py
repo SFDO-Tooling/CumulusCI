@@ -18,7 +18,7 @@ from .pytest_sf_vcr import READING, RECORDING, set_mode
 
 
 def pytest_addoption(parser, pluginmanager):
-    """Pytest magic method: add --org and --run-slow-tests features"""
+    """Pytest magic method: add --org, --replace-vcrs and --run-slow-tests features"""
     parser.addoption("--org", action="store", default=None, help="org to use")
     parser.addoption(
         "--run-slow-tests",
@@ -55,7 +55,7 @@ def pytest_runtest_setup(item):
 
 
 def sf_pytest_cli_orgname(request):
-    """Helper to see what org the user has ased for"""
+    """Helper to see what org the user has asked for"""
     return request.config.getoption("--org")
 
 
@@ -170,7 +170,6 @@ def classify_and_modify_test(item, marker_names):
 
 
 # a cache of orgs matching shapes:
-#    TODO test that it is properly used
 org_shapes = ContextVar("org_shapes", default={})
 
 

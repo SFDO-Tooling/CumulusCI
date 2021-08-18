@@ -18,8 +18,6 @@ from vcr import cassette
 def simplify_body(request_or_response_body):
     decoded = request_or_response_body.decode("utf-8")
     decoded = _cleanup(decoded)
-    # if "GeocodeAccuracy" in decoded:
-    #     breakpoint()
 
     return decoded.encode()
 
@@ -40,10 +38,10 @@ replacements = [
     ),
     (r'"005[\w\d]{12,15}"', '"0050xUSERID0000000"'),
     (r'"InstanceName" : "[A-Z]{2,4}\d{1,4}",', '"InstanceName" : "CS420",'),
-    (r"<id>0.*<\/id>", lambda m: "<id>0ANID</id>"),
+    (r"<id>0.*<\/id>", "<id>SOAPID_{}</id>"),  # replace SOAP message IDs.
     (
         r"<asyncProcessId>0.*<\/asyncProcessId>",
-        lambda m: "<asyncProcessId>0ANAPPID</asyncProcessId>",
+        "<asyncProcessId>0ANAPPID</asyncProcessId>",
     ),
     (r"\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d.\d\d\dZ", "2021-01-03T01:11:11.420Z"),
     (r"/User/005[\w\d]{12,15}", "/User/0050xUSERID0000000"),
