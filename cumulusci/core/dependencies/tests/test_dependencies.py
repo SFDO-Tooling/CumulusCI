@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import time
 from distutils.version import StrictVersion
 from typing import List, Optional, Tuple
 from unittest import mock
@@ -824,6 +825,7 @@ class TestUnmanagedZipURLDependency:
         )
 
     @mock.patch("cumulusci.core.dependencies.dependencies.download_extract_zip")
+    @mock.patch("time.sleep", time.sleep)  # undo mock from conftest
     def test_get_metadata_package_zip_builder__converts_sfdx(self, download_zip_mock):
         zf = ZipFile(io.BytesIO(), "w")
         zf.writestr(
