@@ -575,6 +575,13 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
                 options=options,
                 logger=context.logger,
             )
+            print("Debugging processes...")
+            import psutil
+
+            for p in psutil.process_iter():
+                for f in p.open_files():
+                    if os.path.basename(os.getcwd()) in f.name:
+                        print(p)
 
         return package_zip
 

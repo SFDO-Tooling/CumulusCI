@@ -54,7 +54,6 @@ def sfdx(
         env=env,
     )
     p.run()
-    p.wait()
     if capture_output:
         p.stdout_text = io.TextIOWrapper(p.stdout, encoding=sys.stdout.encoding)
         p.stderr_text = io.TextIOWrapper(p.stderr, encoding=sys.stdout.encoding)
