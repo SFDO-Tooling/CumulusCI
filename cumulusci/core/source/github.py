@@ -5,12 +5,12 @@ from github3.exceptions import NotFoundError
 
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.github import (
+    GitHubURL,
     find_latest_release,
     find_previous_release,
     get_github_api_for_repo,
 )
 from cumulusci.utils import download_extract_github
-from cumulusci.utils.git import split_repo_url
 from cumulusci.utils.yaml.cumulusci_yml import GitHubSourceModel, GitHubSourceRelease
 
 
@@ -19,16 +19,9 @@ class GitHubSource:
         self.project_config = project_config
         self.spec = spec
         self.url = spec.github
-        if self.url.endswith(".git"):
-            self.url = self.url[:-4]
-
-        self.repo_owner, self.repo_name = split_repo_url(self.url)
 
         try:
-            self.gh = get_github_api_for_repo(
-                project_config.keychain, self.repo_owner, self.repo_name
-            )
-            self.repo = self.gh.repository(self.repo_owner, self.repo_name)
+            self.repo = self.url.get_repo(project_config.keychain)
         except NotFoundError:
             raise DependencyResolutionError(
                 f"We are unable to find the repository at {self.url}. Please make sure the URL is correct, that your GitHub user has read access to the repository, and that your GitHub personal access token includes the “repo” scope."
@@ -39,7 +32,7 @@ class GitHubSource:
         return f"<GitHubSource {str(self)}>"
 
     def __str__(self):
-        s = f"GitHub: {self.repo_owner}/{self.repo_name}"
+        s = f"GitHub: {self.url.repo_owner}/{self.url.repo_name}"
         if self.description:
             s += f" @ {self.description}"
         if self.commit != self.description:
@@ -47,7 +40,7 @@ class GitHubSource:
         return s
 
     def __hash__(self):
-        return hash((self.url, self.commit))
+        return hash((self.url.url, self.commit))
 
     def resolve(self):
         """Resolve a GitHub source into a specific commit.
@@ -106,7 +99,7 @@ class GitHubSource:
             )
 
             # Use resolution strategies to find the right commit.
-            dep = GitHubDynamicDependency(github=self.spec.github)
+            dep = GitHubDynamicDependency(github=self.url)
             resolve_dependency(
                 dep,
                 self.project_config,
@@ -125,7 +118,7 @@ class GitHubSource:
             path = (
                 self.project_config.cache_dir
                 / "projects"
-                / self.repo_name
+                / self.url.repo_name
                 / self.commit
             )
         if not path.exists():
@@ -145,9 +138,9 @@ class GitHubSource:
         project_config = self.project_config.construct_subproject_config(
             repo_info={
                 "root": os.path.realpath(path),
-                "owner": self.repo_owner,
-                "name": self.repo_name,
-                "url": self.url,
+                "owner": self.url.repo_owner,
+                "name": self.url.repo_name,
+                "url": self.url.url,
                 "commit": self.commit,
             }
         )
@@ -157,7 +150,7 @@ class GitHubSource:
     def frozenspec(self):
         """Return a spec to reconstruct this source at the current commit"""
         return {
-            "github": self.url,
+            "github": self.url.url,
             "commit": self.commit,
             "description": self.description,
         }

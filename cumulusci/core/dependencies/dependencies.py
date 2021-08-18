@@ -20,6 +20,7 @@ from cumulusci.core.dependencies.github import (
 )
 from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.exceptions import DependencyParseError, DependencyResolutionError
+from cumulusci.core.github import GitHubURL
 from cumulusci.core.sfdx import (
     SourceFormat,
     convert_sfdx_source,
@@ -141,7 +142,7 @@ class DynamicDependency(Dependency, abc.ABC):
 class BaseGitHubDependency(DynamicDependency, abc.ABC):
     """Base class for dynamic dependencies that reference a GitHub repo."""
 
-    github: Optional[AnyUrl]
+    github: Optional[GitHubURL]
 
     repo_owner: Optional[str]  # Deprecated - use full URL
     repo_name: Optional[str]  # Deprecated - use full URL

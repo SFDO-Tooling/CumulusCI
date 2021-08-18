@@ -7,6 +7,7 @@ from pydantic import Field, root_validator
 from pydantic.types import DirectoryPath
 from typing_extensions import Literal, TypedDict
 
+from cumulusci.core.github import GitHubURL
 from cumulusci.utils.fileutils import DataInput, load_from_source
 from cumulusci.utils.yaml.model_parser import CCIDictModel, HashableBaseModel
 from cumulusci.utils.yaml.safer_loader import load_yaml_data
@@ -82,7 +83,7 @@ class ReleaseNotes(CCIDictModel):
 
 
 class Git(CCIDictModel):
-    repo_url: str = None
+    repo_url: GitHubURL = None
     default_branch: str = None
     prefix_feature: str = None
     prefix_beta: str = None
@@ -158,7 +159,7 @@ class GitHubSourceRelease(str, enum.Enum):
 
 
 class GitHubSourceModel(HashableBaseModel):
-    github: str
+    github: GitHubURL
     resolution_strategy: Optional[str]
     commit: Optional[str]
     ref: Optional[str]

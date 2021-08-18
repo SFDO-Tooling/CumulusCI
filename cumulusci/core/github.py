@@ -456,3 +456,62 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
                 raise
 
     return inner
+
+
+SSH_URL_RE = re.compile(r"git@.+:([^/])/([^/])(\.git)?")
+
+
+class GitHubURL:
+    """Pydantic-compatible type for an SSH or HTTPS GitHub remote URL.
+    Parsing is lenient, and will handle "https://github.com/Test/TestRepo",
+    other GitHub HTTPS URLs (including different domains),
+    and SSH URLs like git@github.com:Test/TestRepo.git."""
+
+    def __init__(self, url: str):
+        ssh_match = SSH_URL_RE.match(url)
+
+        if ssh_match:
+            # We found an SSH URL.
+            self.repo_name = ssh_match.group(1)
+            self.repo_owner = ssh_match.group(2)
+        else:
+            parsed_url = urlparse(url)
+            path_components = parsed_url.path.strip("/").split("/")
+
+            if len(path_components) != 2:
+                raise ValueError(f"{url} is not a valid Git URL")
+
+            self.repo_name, self.repo_owner = path_components[1], path_components[0]
+
+        self.url = url
+
+    @property
+    def description(self):
+        return f"{self.repo_owner}/{self.repo_name}"
+
+    def get_repo(self, keychain, session=None) -> Repository:
+        return get_github_api_for_repo(
+            keychain, self.repo_owner, self.repo_name, session
+        ).repository(self.repo_owner, self.repo_name)
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def __modify_schema__(cls, field_schema):
+        field_schema.update(
+            examples=[
+                "https://github.com/Test/TestRepo",
+                "git@github.com:Test/TestRepo.git",
+            ],
+        )
+
+    @classmethod
+    def validate(cls, v):
+        if not isinstance(v, str):
+            raise TypeError("string required")
+        return cls(v)
+
+    def __repr__(self):
+        return self.url
