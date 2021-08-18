@@ -94,6 +94,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Install sfdx
+        run: npm install sfdx-cli --global
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
