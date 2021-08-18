@@ -3,6 +3,7 @@ import contextlib
 import itertools
 import logging
 import os
+import time
 from typing import List, Optional
 from zipfile import ZipFile
 
@@ -575,16 +576,8 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
                 options=options,
                 logger=context.logger,
             )
-            print("Debugging processes...")
-            import psutil
-
-            for p in psutil.process_iter():
-                try:
-                    for f in p.open_files():
-                        if os.path.basename(os.getcwd()) in f.path:
-                            print(p)
-                except Exception:
-                    pass
+            # maybe helps avoid PermissionError due to open folder on Windows?
+            time.sleep(1)
 
         return package_zip
 
