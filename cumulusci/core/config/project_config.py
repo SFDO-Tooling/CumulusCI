@@ -7,10 +7,12 @@ from distutils.version import LooseVersion
 from io import StringIO
 from itertools import chain
 from pathlib import Path
+from typing import Union
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
 import github3
+from pydantic import ValidationError
 
 from cumulusci.core.config import BaseTaskFlowConfig
 from cumulusci.core.exceptions import (
@@ -30,7 +32,11 @@ from cumulusci.core.source import GitHubSource, LocalFolderSource, NullSource
 from cumulusci.core.utils import merge_config
 from cumulusci.utils.fileutils import open_fs_resource
 from cumulusci.utils.git import current_branch, git_path, split_repo_url
-from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+from cumulusci.utils.yaml.cumulusci_yml import (
+    GitHubSourceModel,
+    LocalFolderSourceModel,
+    cci_safe_load,
+)
 
 
 class BaseProjectConfig(BaseTaskFlowConfig):
@@ -516,7 +522,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             flow_config.project_config = self
         return flow_config
 
-    def get_namespace(self, ns):
+    def get_namespace(self, ns: str):
         """Look up another project config by its name in the `sources` config.
 
         Also makes sure the project has been fetched, if it's from an external source.
@@ -524,34 +530,41 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         spec = getattr(self, f"sources__{ns}")
         if spec is None:
             raise NamespaceNotFoundError(f"Namespace not found: {ns}")
-        return self.include_source(spec)
 
-    def include_source(self, spec):
+        parsed_spec = None
+        for model_class in [GitHubSourceModel, LocalFolderSourceModel]:
+            try:
+                parsed_spec = model_class(**spec)
+            except ValidationError:
+                pass
+            else:
+                break
+
+        if not parsed_spec:
+            raise ValueError(f"Invalid source spec: {spec}")
+
+        return self.include_source(parsed_spec)
+
+    def include_source(self, spec: Union[GitHubSourceModel, LocalFolderSourceModel]):
         """Make sure a project has been fetched from its source.
-
-        `spec` is a dict which contains different keys depending on the type of source:
-
-        - `github` indicates a GitHubSource
-        - `path` indicates a LocalFolderSource
 
         This either fetches the project code and constructs its project config,
         or returns a project config that was previously loaded with the same spec.
         """
-        frozenspec = tuple(spec.items())
-        if frozenspec in self.included_sources:
-            project_config = self.included_sources[frozenspec]
+        if spec in self.included_sources:
+            project_config = self.included_sources[spec]
         else:
-            if "github" in spec:
+            if isinstance(spec, GitHubSourceModel):
                 source = GitHubSource(self, spec)
-            elif "path" in spec:
+            elif isinstance(spec, LocalFolderSourceModel):
                 source = LocalFolderSource(self, spec)
-            else:
-                raise Exception(f"Not sure how to load project: {spec}")
+
             self.logger.info(f"Fetching from {source}")
             project_config = source.fetch()
             project_config.set_keychain(self.keychain)
             project_config.source = source
-            self.included_sources[frozenspec] = project_config
+            self.included_sources[spec] = project_config
+
         return project_config
 
     def construct_subproject_config(self, **kwargs):

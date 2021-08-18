@@ -39,6 +39,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.tests.util import DummyKeychain
 from cumulusci.utils import temporary_dir, touch
+from cumulusci.utils.yaml.cumulusci_yml import GitHubSourceModel, LocalFolderSourceModel
 
 
 class TestBaseConfig(unittest.TestCase):
@@ -619,13 +620,21 @@ class TestBaseProjectConfig(unittest.TestCase):
         with self.assertRaises(NamespaceNotFoundError):
             project_config.get_namespace("test")
 
+    def test_get_namespace__bad_spec(self):
+        universal_config = UniversalConfig()
+        project_config = BaseProjectConfig(
+            universal_config, {"sources": {"test": {"foo": "some_nonsense"}}}
+        )
+        with self.assertRaises(ValueError):
+            project_config.get_namespace("test")
+
     def test_include_source__cached(self):
         universal_config = UniversalConfig()
         project_config = BaseProjectConfig(universal_config)
         with temporary_dir() as d:
             touch("cumulusci.yml")
-            other1 = project_config.include_source({"path": d})
-            other2 = project_config.include_source({"path": d})
+            other1 = project_config.include_source(LocalFolderSourceModel(path=d))
+            other2 = project_config.include_source(LocalFolderSourceModel(path=d))
         assert other1 is other2
 
     @mock.patch("cumulusci.core.config.project_config.GitHubSource")
@@ -633,14 +642,10 @@ class TestBaseProjectConfig(unittest.TestCase):
         source.return_value = expected_result = mock.Mock()
         universal_config = UniversalConfig()
         project_config = BaseProjectConfig(universal_config)
-        other_config = project_config.include_source({"github": "foo/bar"})
+        other_config = project_config.include_source(
+            GitHubSourceModel(github="foo/bar")
+        )
         assert other_config.source is expected_result
-
-    def test_include_source__unknown(self):
-        universal_config = UniversalConfig()
-        project_config = BaseProjectConfig(universal_config)
-        with self.assertRaises(Exception):
-            project_config.include_source({"foo": "bar"})
 
     def test_relpath(self):
         universal_config = UniversalConfig()
