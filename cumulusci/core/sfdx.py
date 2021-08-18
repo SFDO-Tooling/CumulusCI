@@ -137,17 +137,26 @@ def convert_sfdx_source(
         ):
             logger.info("Converting from SFDX to MDAPI format.")
             mdapi_path = stack.enter_context(temporary_dir(chdir=False))
-            args = ["-d", mdapi_path]
+            args = ["--json", "-d", mdapi_path]
             if path:
                 # No path means convert default package directory in the CWD
                 args += ["-r", str(path)]
             if name:
                 args += ["-n", name]
-            sfdx(
+            p = sfdx(
                 "force:source:convert",
                 args=args,
                 capture_output=True,
-                check_return=True,
             )
+            if p.returncode != 0:
+                try:
+                    message = json.loads(p.stdout_text.read())["message"]
+                except Exception:
+                    message = p.stderr_text.read()
+                raise Exception(
+                    f"Error while converting to Metadata API format:\n\t{message}"
+                )
+            result = json.loads(p.stdout_text.read())
+            mdapi_path = pathlib.Path(result["result"]["location"])
 
         yield mdapi_path or path

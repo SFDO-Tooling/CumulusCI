@@ -1,4 +1,5 @@
 import io
+import json
 import os
 from distutils.version import StrictVersion
 from typing import List, Optional, Tuple
@@ -822,16 +823,20 @@ class TestUnmanagedZipURLDependency:
             logger=context.logger,
         )
 
-    @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
     @mock.patch("cumulusci.core.dependencies.dependencies.download_extract_zip")
-    @mock.patch("cumulusci.core.dependencies.dependencies.zip_subfolder")
-    @mock.patch("cumulusci.core.sfdx.sfdx")
-    def test_get_metadata_package_zip_builder__sfdx(
-        self, sfdx_mock, subfolder_mock, download_zip_mock, zipbuilder_mock
-    ):
+    def test_get_metadata_package_zip_builder__converts_sfdx(self, download_zip_mock):
         zf = ZipFile(io.BytesIO(), "w")
-
-        zf.writestr("force-app/main/default/classes/", "test")
+        zf.writestr(
+            "sfdx-project.json",
+            json.dumps(
+                {"packageDirectories": [{"path": "force-app", "default": True}]}
+            ),
+        )
+        zf.writestr(
+            "force-app/main/default/classes/Test.cls-meta.xml",
+            "<ApexClass></ApexClass>",
+        )
+        zf.writestr("force-app/main/default/classes/Test.cls", "test")
 
         dep = UnmanagedZipURLDependency(zip_url="http://foo.com", subfolder="force-app")
         download_zip_mock.return_value = zf
@@ -839,27 +844,8 @@ class TestUnmanagedZipURLDependency:
         context = mock.Mock()
         org = mock.Mock()
 
-        assert (
-            dep.get_metadata_package_zip_builder(context, org)
-            == zipbuilder_mock.from_zipfile.return_value
-        )
-        subfolder_mock.assert_not_called()
-        zipbuilder_mock.from_zipfile.assert_called_once_with(
-            None,
-            path=mock.ANY,
-            options={
-                "unmanaged": True,
-                "namespace_inject": None,
-                "namespace_strip": None,
-            },
-            logger=context.logger,
-        )
-        sfdx_mock.assert_called_once_with(
-            "force:source:convert",
-            args=["-d", mock.ANY, "-r", "force-app"],
-            capture_output=True,
-            check_return=True,
-        )
+        builder = dep.get_metadata_package_zip_builder(context, org)
+        assert "classes/Test.cls" in builder.zf.namelist()
 
 
 class TestParseDependency:

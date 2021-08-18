@@ -89,14 +89,16 @@ def test_convert_sfdx():
     with temporary_dir() as path:
         touch("README.md")  # make sure there's something in the directory
         with mock.patch("cumulusci.core.sfdx.sfdx") as sfdx:
-            with convert_sfdx_source(path, "Test Package", logger) as p:
-                assert p is not None
+            sfdx.return_value = mock.Mock(
+                returncode=0, stdout_text=io.BytesIO(b'{"result": {"location": "x"}}')
+            )
+            with convert_sfdx_source(path, "Test Package", logger) as result:
+                assert str(result) == "x"
 
     sfdx.assert_called_once_with(
         "force:source:convert",
-        args=["-d", mock.ANY, "-r", path, "-n", "Test Package"],
+        args=["--json", "-d", mock.ANY, "-r", path, "-n", "Test Package"],
         capture_output=True,
-        check_return=True,
     )
 
 
@@ -105,14 +107,16 @@ def test_convert_sfdx__cwd():
     with temporary_dir(chdir=True):
         touch("README.md")  # make sure there's something in the directory
         with mock.patch("cumulusci.core.sfdx.sfdx") as sfdx:
-            with convert_sfdx_source(None, "Test Package", logger) as p:
-                assert p is not None
+            sfdx.return_value = mock.Mock(
+                returncode=0, stdout_text=io.BytesIO(b'{"result": {"location": "x"}}')
+            )
+            with convert_sfdx_source(None, "Test Package", logger) as result:
+                assert str(result) == "x"
 
     sfdx.assert_called_once_with(
         "force:source:convert",
-        args=["-d", mock.ANY, "-n", "Test Package"],
+        args=["--json", "-d", mock.ANY, "-n", "Test Package"],
         capture_output=True,
-        check_return=True,
     )
 
 
