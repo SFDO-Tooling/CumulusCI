@@ -305,3 +305,39 @@ def test_freeze():
             },
         },
     ]
+
+
+def test_freeze__2gp():
+    project_config = create_project_config()
+    project_config.config["project"]["package"]["namespace"] = "ns"
+    project_config.config["project"]["package"]["name"] = "Test"
+    task = create_task(
+        InstallPackageVersion,
+        {
+            "version": "04t000000000000",
+            "version_number": "1.0",
+        },
+        project_config=project_config,
+    )
+    step = StepSpec(1, "test_task", task.task_config.config, None, task.project_config)
+    steps = task.freeze(step)
+
+    assert steps == [
+        {
+            "is_required": True,
+            "kind": "managed",
+            "name": "Install Test 1.0",
+            "path": "test_task",
+            "step_num": "1",
+            "source": None,
+            "task_class": None,
+            "task_config": {
+                "options": {
+                    "version": "1.0",
+                    "namespace": "ns",
+                    "security_type": "FULL",
+                },
+                "checks": [],
+            },
+        },
+    ]
