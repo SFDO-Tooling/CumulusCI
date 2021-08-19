@@ -62,7 +62,7 @@ class TestMarketingCloudDeployTask:
         responses.add(
             "POST",
             f"{MCPM_ENDPOINT}/deployments",
-            json={"info": {"id": "JOBID", "status": "IN_PROGRESS"}},
+            json={"id": "JOBID", "status": "IN_PROGRESS"},
         )
         responses.add(
             "GET",
@@ -83,7 +83,7 @@ class TestMarketingCloudDeployTask:
         responses.add(
             "POST",
             f"{MCPM_ENDPOINT}/deployments",
-            json={"info": {"id": "JOBID", "status": "IN_PROGRESS"}},
+            json={"id": "JOBID", "status": "IN_PROGRESS"},
         )
         responses.add(
             "GET",
@@ -102,7 +102,7 @@ class TestMarketingCloudDeployTask:
         responses.add(
             "POST",
             f"{MCPM_ENDPOINT}/deployments",
-            json={"info": {"id": "JOBID", "status": "IN_PROGRESS"}},
+            json={"id": "JOBID", "status": "IN_PROGRESS"},
         )
         responses.add(
             "GET",
@@ -141,7 +141,9 @@ class TestMarketingCloudDeployTask:
             "Package zip file not valid: not-a-valid-file.zip"
         )
 
-    def test_construct_payload(self, task):
+    @mock.patch("cumulusci.tasks.marketing_cloud.deploy.uuid")
+    def test_construct_payload(self, uuid, task):
+        uuid.uuid4.return_value = "cci-deploy"
         pkg_zip_file = Path(task.options["package_zip_file"])
         with temporary_dir() as temp_dir:
             with zipfile.ZipFile(pkg_zip_file) as zf:

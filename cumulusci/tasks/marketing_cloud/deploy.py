@@ -1,4 +1,5 @@
 import json
+import uuid
 import zipfile
 from collections import defaultdict
 from pathlib import Path
@@ -12,7 +13,9 @@ from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 from .base import BaseMarketingCloudTask
 
-MCPM_ENDPOINT = "https://mc-package-manager.herokuapp.com"
+DEFAULT_DEPLOY_NAME = "cumulusci-deploy"
+
+MCPM_ENDPOINT = "https://mc-package-manager.herokuapp.com/api"
 
 PAYLOAD_CONFIG_VALUES = {"preserveCategories": True}
 
@@ -60,7 +63,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             "SFMC-TSSD": self.mc_config.tssd,
         }
         response = requests.post(
-            f"{MCPM_ENDPOINT}/api/deployments",
+            f"{MCPM_ENDPOINT}/deployments",
             json=payload,
             headers=self.headers,
         )
@@ -75,7 +78,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         Set `self.poll_complete = True` to break polling loop.
         """
         response = requests.get(
-            f"{MCPM_ENDPOINT}/api/deployments/{self.job_id}", headers=self.headers
+            f"{MCPM_ENDPOINT}/deployments/{self.job_id}", headers=self.headers
         )
         result = safe_json_from_response(response)
         self.logger.info(f"Waiting [{result['status']}]...")
@@ -90,7 +93,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         payload = defaultdict(lambda: defaultdict(dict))
         payload["namespace"] = PAYLOAD_NAMESPACE_VALUES
         payload["config"] = PAYLOAD_CONFIG_VALUES
-        payload["name"] = "aName"
+        payload["name"] = self.options.get("name", str(uuid.uuid4()))
 
         with open(dir_path / "references.json", "r") as f:
             payload["references"] = json.load(f)
