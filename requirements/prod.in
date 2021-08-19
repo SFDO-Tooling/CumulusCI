@@ -8,7 +8,7 @@ Faker
 fs
 github3.py
 jinja2<3
-keyring
+keyring<=23.0.1
 lxml
 MarkupSafe
 psutil

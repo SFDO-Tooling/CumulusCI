@@ -1,5 +1,6 @@
 lex_locators = {
-    "actions": "css: ul.oneActionsRibbon",
+    "actions": "//runtime_platform_actions-actions-ribbon//ul|//ul[contains(concat(' "
+    "',normalize-space(@class),' '),' oneActionsRibbon ')]",
     "app_launcher": {
         "app_link": "//one-app-launcher-modal//one-app-launcher-app-tile//a[.='{}']",
         "button": "//div[contains(@class,'appLauncher')]//button[//div[contains(@class,'slds-icon-waffle')]]",
@@ -14,21 +15,21 @@ lex_locators = {
     "div.desktop.container.oneOne.oneAppLayoutHost[data-aura-rendered-by]",
     "loading_box": "css: div.auraLoadingBox.oneLoadingBox",
     "modal": {
-        "button": "//div[contains(@class,'uiModal')]//div[contains(@class, "
-        "'modal-footer') or contains(@class, "
-        "'inlineFooter')]//button[.//*[text()='{}']]",
+        "button": "//div[contains(@class,'uiModal')]//button[.='{}']",
         "close": "css: button.slds-modal__close",
         "error_messages": "css: div.pageLevelErrors ul.errorsList li",
         "fade_in": "css: div.slds-fade-in-open",
-        "has_error": "css: div.pageLevelErrors",
+        "field_alert": "//div[contains(@class, 'forceFormPageError')]",
+        "has_error": "css: div.forceFormPageError",
         "is_open": "css: div.uiModal div.panel.slds-modal",
+        "review_alert": "//a[@force-recordediterror_recordediterror and "
+        'text()="{}"]',
     },
     "object": {
-        "button": "css: ul.forceActionsContainer.oneActionsRibbon a[title='{title}']",
-        "field": "//div[contains(@class, "
-        "'uiInput')][.//label[contains(@class, "
-        "'uiLabel')][.//span[text()='{}']]]//*[self::input or "
-        "self::textarea]",
+        "button": "//div[contains(@class, "
+        "'slds-page-header')]//*[self::a[@title='{title}'] or "
+        "self::button[@name='{title}']]",
+        "field": "//lightning-input[.//label[text()='{}']]//input",
         "field_label": "//label[@for!='' and "
         "text()='{}']|//label[@for!=''][./span[text()='{}']]",
         "field_lookup_link": "//*[@role='option'][.//*[@title='{}']]",
@@ -55,26 +56,21 @@ lex_locators = {
             "'slds-page-header__detail-block')][.//span[contains(@class, "
             "'slds-form-element__label')][@title='{}']]//span[contains(@class, "
             "'uiOutputCheckbox')]//img[@alt='True']",
-            "field_value_link": "//records-lwc-highlights-panel//force-highlights-details-item[.//*[contains(@class, "
-            "'slds-text-title') and "
-            "text()='{}']]//p[contains(@class, "
-            "'fieldComponent')]//a[text()]",
+            "field_value_link": "//records-lwc-highlights-panel//force-highlights-details-item[.//*[.='{}']]//a",
             "field_value_unchecked": "//li[contains(@class, "
             "'slds-page-header__detail-block')][.//span[contains(@class, "
             "'slds-form-element__label')][@title='{}']]//span[contains(@class, "
             "'uiOutputCheckbox')]//img[@alt='False']",
         },
         "related": {
-            "button": "//article[contains(@class, "
-            "'forceRelatedListCardDesktop')][.//img][.//span[@title='{}']]//a[@title='{}']",
-            "card": "//article[contains(@class, "
-            "'forceRelatedListCardDesktop')][.//img][.//span[@title='{}']]",
-            "count": "//article[contains(@class, "
-            "'forceRelatedListCardDesktop')][.//img]//span[@title='{}']/following-sibling::span",
-            "link": "//article[contains(@class, "
-            "'forceRelatedListCardDesktop')][.//img][.//span[@title='{}']]//*[text()='{}']",
-            "popup_trigger": "//article[.//span[@title='{}'][//a[text()='{}']]]//div[contains(@class, "
-            "'forceVirtualAction')]/a",
+            "button": "//*[@data-component-id='force_relatedListContainer']//article[contains(@class, "
+            "'slds-card "
+            "slds-card_boundary')][.//span[@title='{}']]//*[text()='{}']",
+            "card": "//*[@data-component-id='force_relatedListContainer']//article[.//span[@title='{}']]",
+            "count": "//*[@data-component-id='force_relatedListContainer']//article//span[@title='{}']/following-sibling::span",
+            "link": "//*[@data-component-id='force_relatedListContainer']//article[.//span[@title='{}']]//*[text()='{}']",
+            "popup_trigger": "//*[@data-component-id='force_relatedListContainer']//article[.//span[@title='{}']]//span[text()='Show "
+            "Actions']",
         },
     },
     "spinner": "css: div.slds-spinner",
