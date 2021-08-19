@@ -13,7 +13,6 @@ from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 from .base import BaseMarketingCloudTask
 
-DEFAULT_DEPLOY_NAME = "cumulusci-deploy"
 
 MCPM_ENDPOINT = "https://mc-package-manager.herokuapp.com/api"
 
