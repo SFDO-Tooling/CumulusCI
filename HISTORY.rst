@@ -12,7 +12,7 @@ Critical Changes
 
 Changes
 
-* ``uninstall_packaged_incremental`` now defaults to ignoring non-deletable ``CustomObjectTranslation`` metadata.
+* The ``uninstall_packaged_incremental`` task now defaults to ignoring non-deletable ``CustomObjectTranslation`` metadata.
   If your project customizes the ``ignore_types`` option on ``uninstall_packaged_incremental``, we recommend you add ``CustomObjectTranslation`` to this option. (#2790)
 
 Issues Fixed
