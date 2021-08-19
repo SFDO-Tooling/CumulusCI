@@ -13,7 +13,6 @@ from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 from .base import BaseMarketingCloudTask
 
-
 MCPM_ENDPOINT = "https://mc-package-manager.herokuapp.com/api"
 
 PAYLOAD_CONFIG_VALUES = {"preserveCategories": True}
