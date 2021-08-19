@@ -333,16 +333,20 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if commit_file_path.exists() and commit_file_path.is_file():
             return commit_file_path.read_text().strip()
         else:
-            packed_refs_path = os.path.join(self.repo_root, ".git", "packed-refs")
-            with open(packed_refs_path, "r") as f:
-                for line in f:
-                    parts = line.split(" ")
-                    if len(parts) == 1:
-                        # Skip lines showing the commit sha of a tag on the
-                        # preceeding line
-                        continue
-                    if parts[1].replace("refs/remotes/origin/", "").strip() == branch:
-                        return parts[0]
+            if branch:
+                packed_refs_path = os.path.join(self.repo_root, ".git", "packed-refs")
+                with open(packed_refs_path, "r") as f:
+                    for line in f:
+                        parts = line.split(" ")
+                        if len(parts) == 1:
+                            # Skip lines showing the commit sha of a tag on the
+                            # preceeding line
+                            continue
+                        if (
+                            parts[1].replace("refs/remotes/origin/", "").strip()
+                            == branch
+                        ):
+                            return parts[0]
 
     def get_github_api(self, owner=None, repo=None):
         return get_github_api_for_repo(
