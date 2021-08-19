@@ -323,7 +323,6 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         branch = self.repo_branch
-        commit_file_path = pathlib.Path(self.repo_root) / ".git" / "HEAD"
         if branch:
             commit_file_path = pathlib.Path(self.repo_root) / ".git" / "refs" / "heads"
             commit_file_path = commit_file_path.joinpath(*branch.split("/"))
