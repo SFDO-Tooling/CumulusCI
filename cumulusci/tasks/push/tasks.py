@@ -2,6 +2,7 @@ import csv
 import time
 from datetime import datetime, timedelta
 
+from dateutil import tz
 from dateutil.parser import isoparse
 
 from cumulusci.core.exceptions import (
@@ -273,13 +274,16 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         package = self._get_package(self.options.get("namespace"))
         version = self._get_version(package, self.options.get("version"))
 
+        utcnow = datetime.now(tz.UTC)
         start_time = self.options.get("start_time")
         if start_time:
             if start_time.lower() == "now":
-                start_time = datetime.utcnow() + timedelta(seconds=5)
+                start_time = utcnow + timedelta(seconds=5)
             else:
                 start_time = isoparse(start_time)
-            if start_time < datetime.utcnow():
+                if start_time.utcoffset() is None:
+                    start_time = start_time.replace(tzinfo=tz.tzlocal())
+            if start_time < utcnow:
                 raise CumulusCIException("Start time cannot be in the past")
         else:
             # delay a bit to allow for review
@@ -287,7 +291,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             self.logger.warning(
                 "Scheduling push for %d minutes from now", delay_minutes
             )
-            start_time = datetime.utcnow() + timedelta(minutes=delay_minutes)
+            start_time = utcnow + timedelta(minutes=delay_minutes)
 
         if self.options["dry_run"]:
             self.logger.info(
@@ -316,7 +320,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             return
 
         self.logger.info("Setting status to Pending to queue execution.")
-        self.logger.info("The push upgrade will start at UTC {}".format(start_time))
+        self.logger.info(f"The push upgrade will start at {start_time}")
 
         # Run the job
         self.logger.info(self.push.run_push_request(self.request_id))
@@ -325,7 +329,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         )
 
         # Report the status if start time is less than 1 minute from now
-        if start_time - datetime.utcnow() < timedelta(minutes=1):
+        if start_time - utcnow < timedelta(minutes=1):
             self._report_push_status(self.request_id)
         else:
             self.logger.info("Exiting early since request is in the future")
