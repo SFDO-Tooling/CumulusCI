@@ -1,7 +1,27 @@
 =======
 History
 =======
-3.41.0 (2012-08-05)
+
+3.42.0 (2021-08-19)
+-------------------
+Critical Changes
+
+* The ``github_release`` task now requires the ``tag_prefix`` option to be passed, because for 2nd-generation packages we can't tell from the version number whether it is a beta or not. We've updated the standard release flows to set the ``tag_prefix`` appropriately, but if you have custom flows using this task you will need to update them. (#2792)
+ 
+* In order to run the ``github_copy_subtree`` task for a specific package version, you must now use the ``tag_name`` option instead of the ``version`` option. Using the ``version`` option set to ``latest`` or ``latest_beta`` is deprecated; it's preferred to pass these values in the ``tag_name`` option instead. (#2792)
+
+Changes
+
+* The ``uninstall_packaged_incremental`` task now defaults to ignoring non-deletable ``CustomObjectTranslation`` metadata.
+  If your project customizes the ``ignore_types`` option on ``uninstall_packaged_incremental``, we recommend you add ``CustomObjectTranslation`` to this option. (#2790)
+
+Issues Fixed
+
+* Fixed an issue where bulk job results were being miscounted. (Thanks @sfdcale!) (#2789)
+
+* Fixed an issue where GitHub tags for a 2GP package would always include the "release" prefix (even for Beta package versions). (#2792)
+
+3.41.0 (2021-08-05)
 -------------------
 
 Changes
