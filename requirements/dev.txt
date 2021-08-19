@@ -89,7 +89,7 @@ jinja2==2.11.3
     # via
     #   -c requirements/prod.txt
     #   sphinx
-keyring==23.1.0
+keyring==23.0.1
     # via
     #   -c requirements/prod.txt
     #   twine
@@ -221,7 +221,7 @@ toml==0.10.2
     #   tox
 tomli==1.2.1
     # via black
-tox==3.24.1
+tox==3.24.2
     # via -r requirements/dev.in
 tqdm==4.62.1
     # via twine
