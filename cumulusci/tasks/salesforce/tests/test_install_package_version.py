@@ -322,18 +322,22 @@ def test_freeze__2gp():
     step = StepSpec(1, "test_task", task.task_config.config, None, task.project_config)
     steps = task.freeze(step)
 
+    # Note: because we directly specified the 04t rather than resolving a version,
+    # we don't persist the package name ("Package" below).
+    # This is as designed.
     assert steps == [
         {
             "is_required": True,
             "kind": "managed",
-            "name": "Install Test 1.0",
+            "name": "Install Package 1.0",
             "path": "test_task",
             "step_num": "1",
             "source": None,
             "task_class": None,
             "task_config": {
                 "options": {
-                    "version": "1.0",
+                    "version": "04t000000000000",
+                    "version_number": "1.0",
                     "namespace": "ns",
                     "security_type": "FULL",
                 },
