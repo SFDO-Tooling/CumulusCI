@@ -225,7 +225,8 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         "start_time": {
             "description": (
                 "Set the start time (ISO-8601) to queue a future push."
-                + " Ex: 2021-01-01T06:00Z or 2021-01-01T06:00-08:00"
+                " (Ex: 2021-01-01T06:00Z or 2021-01-01T06:00-08:00)"
+                " Times with no timezone will be interpreted as UTC."
             )
         },
         "batch_size": {
@@ -282,7 +283,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             else:
                 start_time = isoparse(start_time)
                 if start_time.utcoffset() is None:
-                    start_time = start_time.replace(tzinfo=tz.tzlocal())
+                    start_time = start_time.replace(tzinfo=tz.UTC)
             if start_time < utcnow:
                 raise CumulusCIException("Start time cannot be in the past")
         else:

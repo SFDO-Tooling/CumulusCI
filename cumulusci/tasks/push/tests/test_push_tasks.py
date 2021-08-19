@@ -610,7 +610,7 @@ def test_schedule_push_org_list_run_task_without_orgs(empty_org_file):
     task.push.create_push_request.return_value = ("0DV000000000001", 0)
     task._run_task()
     task.push.create_push_request.assert_called_once_with(
-        mock.ANY, [], datetime.datetime(2021, 8, 19, 23, 18, 0, 0, tz.tzlocal())
+        mock.ANY, [], datetime.datetime(2021, 8, 19, 23, 18, 0, 0, tz.UTC)
     )
 
 
@@ -634,7 +634,7 @@ def test_schedule_push_org_list_run_task_many_orgs(org_file):
     task.push.create_push_request.assert_called_once_with(
         mock.ANY,
         ["00DS0000003TJJ6MAO", "00DS0000003TJJ6MAL"],
-        datetime.datetime(2021, 8, 19, 23, 18, 0, 0, tz.tzlocal()),
+        datetime.datetime(2021, 8, 19, 23, 18, 0, 0, tz.UTC),
     )
 
 
