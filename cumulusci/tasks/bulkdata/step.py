@@ -19,6 +19,7 @@ from cumulusci.utils.classutils import namedtuple_as_simple_dict
 
 DEFAULT_BULK_BATCH_SIZE = 10_000
 DEFAULT_REST_BATCH_SIZE = 200
+MAX_REST_BATCH_SIZE = 200
 
 
 class DataOperationType(Enum):
@@ -333,7 +334,9 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             fields=fields,
         )
         self.api_options = api_options.copy()
-        self.api_options.setdefault("batch_size", DEFAULT_BULK_BATCH_SIZE)
+        self.api_options["batch_size"] = (
+            self.api_options.get("batch_size") or DEFAULT_BULK_BATCH_SIZE
+        )
         self.csv_buff = io.StringIO(newline="")
         self.csv_writer = csv.writer(self.csv_buff)
 
@@ -352,7 +355,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
     def load_records(self, records):
         self.batch_ids = []
 
-        batch_size = self.api_options["batch_size"] or DEFAULT_BULK_BATCH_SIZE
+        batch_size = self.api_options["batch_size"]
         for count, csv_batch in enumerate(self._batch(records, batch_size)):
             self.context.logger.info(f"Uploading batch {count + 1}")
             self.batch_ids.append(self.bulk.post_batch(self.job_id, iter(csv_batch)))
@@ -449,6 +452,12 @@ class RestApiDmlOperation(BaseDmlOperation):
             for field in getattr(context.sf, sobject).describe()["fields"]
         }
         self.boolean_fields = [f for f in fields if describe[f]["type"] == "boolean"]
+        self.api_options["batch_size"] = (
+            self.api_options.get("batch_size") or DEFAULT_REST_BATCH_SIZE
+        )
+        self.api_options["batch_size"] = min(
+            self.api_options["batch_size"], MAX_REST_BATCH_SIZE
+        )
 
     def load_records(self, records):
         def _convert(rec):
@@ -481,9 +490,7 @@ class RestApiDmlOperation(BaseDmlOperation):
             DataOperationType.DELETE: "DELETE",
         }[self.operation]
 
-        for chunk in iterate_in_chunks(
-            self.api_options.get("batch_size") or DEFAULT_REST_BATCH_SIZE, records
-        ):
+        for chunk in iterate_in_chunks(self.api_options.get("batch_size"), records):
             if self.operation is DataOperationType.DELETE:
                 url_string = "?ids=" + ",".join(_convert(rec)["Id"] for rec in chunk)
                 json = None
