@@ -90,7 +90,7 @@ class MappingStep(CCIDictModel):
     filters: List[str] = []
     action: DataOperationType = DataOperationType.INSERT
     api: DataApi = DataApi.SMART
-    batch_size: int = 200
+    batch_size: int = None
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
     record_type: Optional[str] = None  # should be discussed and probably deprecated
     bulk_mode: Optional[
@@ -187,8 +187,12 @@ class MappingStep(CCIDictModel):
 
     @validator("batch_size")
     @classmethod
-    def validate_batch_size(cls, v):
-        assert v <= 200 and v > 0
+    def validate_batch_size(cls, v, values):
+        if values["api"] == DataApi.REST:
+            assert 0 < v <= 200, "Max 200 batch_size for REST loads"
+        else:
+            assert values["api"] in (DataApi.SMART, DataApi.BULK)
+            assert 0 < v <= 10_000, "Max 10,000 batch_size for bulk or smart loads"
         return v
 
     @validator("anchor_date")

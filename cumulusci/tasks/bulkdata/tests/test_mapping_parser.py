@@ -89,7 +89,7 @@ class TestMappingParser:
     def test_bad_mapping_batch_size(self):
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
-            data = f.read().replace("record_type: HH_Account", "batch_size: 500")
+            data = f.read().replace("record_type: HH_Account", "batch_size: 50000")
             with pytest.raises(ValidationError):
                 parse_from_yaml(StringIO(data))
 

@@ -17,6 +17,7 @@ from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 from cumulusci.tasks.bulkdata.step import (
+    BulkApiDmlOperation,
     DataApi,
     DataOperationJobResult,
     DataOperationResult,
@@ -2425,3 +2426,38 @@ class TestLoadDataIntegrationTests:
             ],
         }
         assert json.loads(json.dumps(ret)) == expected
+
+    @pytest.mark.integration_test()
+    def test_bulk_batch_size(self, create_task):
+        base_path = os.path.dirname(__file__)
+        sql_path = os.path.join(base_path, "testdata.sql")
+        mapping_path = os.path.join(base_path, "mapping_simple.yml")
+
+        orig_batch = BulkApiDmlOperation._batch
+        counts = {}
+
+        def _batch(self, records, n, *args, **kwargs):
+            records = list(records)
+            if records == [["TestHousehold"]]:
+                counts.setdefault("Account", []).append(n)
+            elif records[0][1] == "User":
+                counts.setdefault("Contact", []).append(n)
+            else:
+                assert 0, "Data in SQL must have changed!"
+            records = list(records)
+            return orig_batch(self, records, n, *args, **kwargs)
+
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation._batch",
+            _batch,
+        ):
+            task = create_task(
+                LoadData,
+                {
+                    "sql_path": sql_path,
+                    "mapping": mapping_path,
+                    "ignore_row_errors": True,
+                },
+            )
+            task()
+            assert counts == {"Account": [10000], "Contact": [1]}
