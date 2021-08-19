@@ -60,12 +60,12 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             "SFMC-TSSD": self.mc_config.tssd,
         }
         response = requests.post(
-            f"{MCPM_ENDPOINT}/deployments",
+            f"{MCPM_ENDPOINT}/api/deployments",
             json=payload,
             headers=self.headers,
         )
         result = safe_json_from_response(response)
-        self.job_id = result["info"]["id"]
+        self.job_id = result["id"]
         self.logger.info(f"Started job {self.job_id}")
         self._poll()
 
@@ -75,7 +75,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         Set `self.poll_complete = True` to break polling loop.
         """
         response = requests.get(
-            f"{MCPM_ENDPOINT}/deployments/{self.job_id}", headers=self.headers
+            f"{MCPM_ENDPOINT}/api/deployments/{self.job_id}", headers=self.headers
         )
         result = safe_json_from_response(response)
         self.logger.info(f"Waiting [{result['status']}]...")
@@ -90,6 +90,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         payload = defaultdict(lambda: defaultdict(dict))
         payload["namespace"] = PAYLOAD_NAMESPACE_VALUES
         payload["config"] = PAYLOAD_CONFIG_VALUES
+        payload["name"] = "aName"
 
         with open(dir_path / "references.json", "r") as f:
             payload["references"] = json.load(f)
