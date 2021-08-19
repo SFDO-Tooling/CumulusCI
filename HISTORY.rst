@@ -6,7 +6,7 @@ History
 -------------------
 Critical Changes
 
-* The ``github_release`` task now requires the ``tag_prefix`` option to be passed. (#2792)
+* The ``github_release`` task now requires the ``tag_prefix`` option to be passed, because for 2nd-generation packages we can't tell from the version number whether it is a beta or not. We've updated the standard release flows to set the ``tag_prefix`` appropriately, but if you have custom flows using this task you will need to update them. (#2792)
  
 * The ``github_copy_subtree`` task now requires a ``tag_name`` option to be passed. (#2792)
 
