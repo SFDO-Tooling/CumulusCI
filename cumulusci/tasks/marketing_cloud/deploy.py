@@ -38,6 +38,10 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             "description": "Specify custom inputs to the deployment task. Takes a mapping from input key to input value (e.g. 'companyName:Acme,companyWebsite:https://www.salesforce.org:8080').",
             "required": False,
         },
+        "name": {
+            "description": "The name to give to this particular deploy call. Defaults to a universally unique identifier.",
+            "required": False,
+        },
     }
 
     def _init_options(self, kwargs):
