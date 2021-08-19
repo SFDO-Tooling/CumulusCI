@@ -452,6 +452,7 @@ class RestApiDmlOperation(BaseDmlOperation):
             for field in getattr(context.sf, sobject).describe()["fields"]
         }
         self.boolean_fields = [f for f in fields if describe[f]["type"] == "boolean"]
+        self.api_options = api_options.copy()
         self.api_options["batch_size"] = (
             self.api_options.get("batch_size") or DEFAULT_REST_BATCH_SIZE
         )
