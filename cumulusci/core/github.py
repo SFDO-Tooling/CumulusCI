@@ -461,7 +461,7 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
 SSH_URL_RE = re.compile(r"git@.+:([^/])/([^/])(\.git)?")
 
 
-class GitHubURL:
+class GitHubURL(str):
     """Pydantic-compatible type for an SSH or HTTPS GitHub remote URL.
     Parsing is lenient, and will handle "https://github.com/Test/TestRepo",
     other GitHub HTTPS URLs (including different domains),

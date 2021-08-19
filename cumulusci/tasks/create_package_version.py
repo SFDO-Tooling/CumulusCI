@@ -25,7 +25,7 @@ from cumulusci.core.exceptions import (
     PackageUploadFailure,
     TaskOptionsError,
 )
-from cumulusci.core.github import get_version_id_from_tag
+from cumulusci.core.github import GitHubURL, get_version_id_from_tag
 from cumulusci.core.sfdx import convert_sfdx_source
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_zip import (
@@ -35,7 +35,6 @@ from cumulusci.salesforce_api.package_zip import (
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce.org_settings import build_settings_package
-from cumulusci.utils.git import split_repo_url
 
 VERSION_RE = re.compile(
     r"^(?P<MajorVersion>\d+)"
@@ -669,8 +668,8 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         self, dependency: UnmanagedDependency, dependencies
     ) -> str:
         if isinstance(dependency, UnmanagedGitHubRefDependency):
-            repo_owner, repo_name = split_repo_url(dependency.github)
-            package_name = f"{repo_owner}/{repo_name} {dependency.subfolder}"
+            url = GitHubURL(dependency.github)
+            package_name = f"{url.repo_owner}/{url.repo_name} {dependency.subfolder}"
         else:
             package_name = dependency.description
 

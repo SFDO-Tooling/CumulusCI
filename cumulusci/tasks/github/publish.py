@@ -9,11 +9,11 @@ from cumulusci.core.exceptions import (
     GithubException,
     TaskOptionsError,
 )
+from cumulusci.core.github import GitHubURL
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.tasks.github.util import CommitDir
 from cumulusci.utils import download_extract_github_from_repo
-from cumulusci.utils.git import split_repo_url
 
 
 class PublishSubtree(BaseGithubTask):
@@ -120,9 +120,7 @@ class PublishSubtree(BaseGithubTask):
         return local_to_target_paths
 
     def _get_target_repo_api(self):
-        owner, name = split_repo_url(self.options["repo_url"])
-        gh = self.project_config.get_github_api(owner, name)
-        return gh.repository(owner, name)
+        return GitHubURL(self.options["repo_url"]).get_repo(self.project_config)
 
     def _run_task(self):
         self.target_repo = self._get_target_repo_api()
