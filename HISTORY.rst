@@ -19,7 +19,7 @@ Issues Fixed
 
 * Fixed an issue where bulk job results were being miscounted. (Thanks @sfdcale!) (#2789)
 
-* Fixed an issue where GitHub tags for 2GP package would always include the "release" prefix (even for Beta packages). (#2792)
+* Fixed an issue where GitHub tags for a 2GP package would always include the "release" prefix (even for Beta package versions). (#2792)
 
 3.41.0 (2021-08-05)
 -------------------
