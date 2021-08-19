@@ -100,7 +100,7 @@ To prefer a specific API, set the ``api`` key within any mapping step; allowed v
 CumulusCI defaults to using the Bulk API in Parallel mode. If required to avoid row locks,
 specify the key ``bulk_mode: Serial`` in each step requiring the use of serial mode.
 
-For REST API and smart-API modes, you can specify a batch size using the ``batch_size`` key.
+For all API modes, you can specify a batch size using the ``batch_size`` key.
 Allowed values are between 1 and 200 for the REST API and 1 and 10000 for the Bulk API, 
 
 Database Mapping
