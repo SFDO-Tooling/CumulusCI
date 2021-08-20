@@ -95,7 +95,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install sfdx
-        run:
+        run: |
           npm install sfdx-cli --global
           sfdx version
       - name: Set up Python 3.8
