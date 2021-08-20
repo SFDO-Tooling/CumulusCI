@@ -100,8 +100,16 @@ To prefer a specific API, set the ``api`` key within any mapping step; allowed v
 CumulusCI defaults to using the Bulk API in Parallel mode. If required to avoid row locks,
 specify the key ``bulk_mode: Serial`` in each step requiring the use of serial mode.
 
-For REST API and smart-API modes, you can specify a batch size using the ``batch_size`` key.
-Legal values are between 1 and 200. The batch size cannot be set for the Bulk API.
+For all API modes, you can specify a batch size using the ``batch_size`` key.
+Allowed values are between 1 and 200 for the REST API and 1 and 10,000 for the Bulk
+API. 
+
+Note that the semantics of batch sizes differ somewhat between the REST API and the Bulk API.
+In the REST API, the batch size is the size of upload batches and also the actual size of individual transactions.
+In the Bulk API, the batch size is the maximum record count in a Bulk API upload batch,
+which is subject to its own limits, including restrictions on total processing time.
+Bulk API batches are automatically chunked further into transactions by the platform,
+and the transaction size cannot be controlled.
 
 Database Mapping
 ----------------

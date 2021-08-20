@@ -17,7 +17,9 @@ from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import iterate_in_chunks
 from cumulusci.utils.classutils import namedtuple_as_simple_dict
 
-BULK_BATCH_SIZE = 10_000
+DEFAULT_BULK_BATCH_SIZE = 10_000
+DEFAULT_REST_BATCH_SIZE = 200
+MAX_REST_BATCH_SIZE = 200
 
 
 class DataOperationType(Enum):
@@ -331,6 +333,10 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             context=context,
             fields=fields,
         )
+        self.api_options = api_options.copy()
+        self.api_options["batch_size"] = (
+            self.api_options.get("batch_size") or DEFAULT_BULK_BATCH_SIZE
+        )
         self.csv_buff = io.StringIO(newline="")
         self.csv_writer = csv.writer(self.csv_buff)
 
@@ -349,11 +355,12 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
     def load_records(self, records):
         self.batch_ids = []
 
-        for count, csv_batch in enumerate(self._batch(records)):
+        batch_size = self.api_options["batch_size"]
+        for count, csv_batch in enumerate(self._batch(records, batch_size)):
             self.context.logger.info(f"Uploading batch {count + 1}")
             self.batch_ids.append(self.bulk.post_batch(self.job_id, iter(csv_batch)))
 
-    def _batch(self, records, n=BULK_BATCH_SIZE, char_limit=10000000):
+    def _batch(self, records, n, char_limit=10000000):
         """Given an iterator of records, yields batches of
         records serialized in .csv format.
 
@@ -445,6 +452,13 @@ class RestApiDmlOperation(BaseDmlOperation):
             for field in getattr(context.sf, sobject).describe()["fields"]
         }
         self.boolean_fields = [f for f in fields if describe[f]["type"] == "boolean"]
+        self.api_options = api_options.copy()
+        self.api_options["batch_size"] = (
+            self.api_options.get("batch_size") or DEFAULT_REST_BATCH_SIZE
+        )
+        self.api_options["batch_size"] = min(
+            self.api_options["batch_size"], MAX_REST_BATCH_SIZE
+        )
 
     def load_records(self, records):
         def _convert(rec):
@@ -477,9 +491,7 @@ class RestApiDmlOperation(BaseDmlOperation):
             DataOperationType.DELETE: "DELETE",
         }[self.operation]
 
-        for chunk in iterate_in_chunks(
-            self.api_options.get("batch_size", 200), records
-        ):
+        for chunk in iterate_in_chunks(self.api_options.get("batch_size"), records):
             if self.operation is DataOperationType.DELETE:
                 url_string = "?ids=" + ",".join(_convert(rec)["Id"] for rec in chunk)
                 json = None
