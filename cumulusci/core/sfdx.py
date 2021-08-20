@@ -9,6 +9,7 @@ import platform
 import sys
 import typing as T
 from os import PathLike
+from time import sleep
 from zipfile import ZipFile
 
 import sarge
@@ -54,6 +55,10 @@ def sfdx(
         env=env,
     )
     p.run()
+    if platform.system() == "Windows" and "pytest" in sys.argv:
+        # Horrible hack to give sfdx subprocesses a chance to finish
+        # before we try to delete the temporary dir in tests
+        sleep(1)
     if capture_output:
         p.stdout_text = io.TextIOWrapper(p.stdout, encoding=sys.stdout.encoding)
         p.stderr_text = io.TextIOWrapper(p.stderr, encoding=sys.stdout.encoding)
