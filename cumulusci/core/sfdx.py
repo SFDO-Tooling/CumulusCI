@@ -55,10 +55,12 @@ def sfdx(
         env=env,
     )
     p.run()
+    breakpoint()
     if platform.system() == "Windows" and "pytest" in sys.argv:
         # Horrible hack to give sfdx subprocesses a chance to finish
         # before we try to delete the temporary dir in tests
-        sleep(1)
+        print("Sleeping 5 seconds to avoid race condition in tests")
+        sleep(5)
     if capture_output:
         p.stdout_text = io.TextIOWrapper(p.stdout, encoding=sys.stdout.encoding)
         p.stderr_text = io.TextIOWrapper(p.stderr, encoding=sys.stdout.encoding)
