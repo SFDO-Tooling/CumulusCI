@@ -4,6 +4,7 @@ import os
 from unittest import mock
 
 import pytest
+from dateutil import tz
 
 from cumulusci.core.exceptions import (
     CumulusCIException,
@@ -298,7 +299,7 @@ def test_schedule_push_org_list_get_orgs(org_file):
             "orgs": ORG_FILE,
             "version": VERSION,
             "namespace": NAMESPACE,
-            "start_time": datetime.datetime.now(),
+            "start_time": datetime.datetime.now(tz.UTC),
             "batch_size": 10,
         },
     )
@@ -313,7 +314,7 @@ def test_schedule_push_org_list__get_orgs__non_default_csv_field(tmp_path):
         options={
             "version": VERSION,
             "namespace": NAMESPACE,
-            "start_time": datetime.datetime.now(),
+            "start_time": datetime.datetime.now(tz.UTC),
             "batch_size": 10,
             "csv": orgs,
             "csv_field_name": "OrgId",
@@ -332,7 +333,7 @@ def test_schedule_push_org_list_get_orgs_and_csv(tmp_path):
                 "orgs": orgs,
                 "version": VERSION,
                 "namespace": NAMESPACE,
-                "start_time": datetime.datetime.now(),
+                "start_time": datetime.datetime.now(tz.UTC),
                 "batch_size": 10,
                 "csv_field_name": "OrganizationId",
                 "csv": orgs,
@@ -346,7 +347,7 @@ def test_schedule_push_org_list_init_options(org_file):
         options={
             "orgs": ORG_FILE,
             "version": VERSION,
-            "start_time": datetime.datetime.now(),
+            "start_time": datetime.datetime.now(tz.UTC),
         },
     )
     task._init_task()
@@ -396,7 +397,7 @@ def test_schedule_push_org_list_start_time_in_past(org_file):
         options={
             "orgs": ORG_FILE,
             "version": VERSION,
-            "start_time": "2020-06-10T10:15",
+            "start_time": "2020-06-10T10:15Z",
             "namespace": NAMESPACE,
         },
     )
@@ -552,7 +553,7 @@ def test_schedule_push_org_list_run_task_with_bad_datestr(org_file, test_date_st
 
 
 def test_schedule_push_org_list_run_task_with_isofmt_assertion(org_file):
-    target_dt = datetime.datetime.utcnow().replace(microsecond=0)
+    target_dt = datetime.datetime.now(tz.UTC).replace(microsecond=0)
     target_dt += datetime.timedelta(hours=8)
     start_time_str = target_dt.isoformat()
 
@@ -591,15 +592,16 @@ def test_schedule_push_org_list_run_task_without_time(org_file):
 
 
 def test_schedule_push_org_list_run_task_without_orgs(empty_org_file):
+    target_date = (datetime.datetime.now() + datetime.timedelta(days=1)).replace(
+        second=0, microsecond=0
+    )
     task = create_task(
         SchedulePushOrgList,
         options={
             "orgs": ORG_FILE,
             "version": VERSION,
             "namespace": NAMESPACE,
-            "start_time": datetime.datetime(2021, 8, 19, 23, 18, 34).strftime(
-                "%Y-%m-%dT%H:%M"
-            ),
+            "start_time": target_date.strftime("%Y-%m-%dT%H:%M"),
         },
     )
     task.push = mock.MagicMock()
@@ -609,20 +611,21 @@ def test_schedule_push_org_list_run_task_without_orgs(empty_org_file):
     task.push.create_push_request.return_value = ("0DV000000000001", 0)
     task._run_task()
     task.push.create_push_request.assert_called_once_with(
-        mock.ANY, [], datetime.datetime(2021, 8, 19, 23, 18)
+        mock.ANY, [], target_date.replace(tzinfo=tz.UTC)
     )
 
 
 def test_schedule_push_org_list_run_task_many_orgs(org_file):
+    target_date = (datetime.datetime.now() + datetime.timedelta(days=1)).replace(
+        second=0, microsecond=0
+    )
     task = create_task(
         SchedulePushOrgList,
         options={
             "orgs": ORG_FILE,
             "version": VERSION,
             "namespace": NAMESPACE,
-            "start_time": datetime.datetime(2021, 8, 19, 23, 18, 34).strftime(
-                "%Y-%m-%dT%H:%M"
-            ),
+            "start_time": target_date.strftime("%Y-%m-%dT%H:%M"),
         },
     )
     task.push = mock.MagicMock()
@@ -633,7 +636,7 @@ def test_schedule_push_org_list_run_task_many_orgs(org_file):
     task.push.create_push_request.assert_called_once_with(
         mock.ANY,
         ["00DS0000003TJJ6MAO", "00DS0000003TJJ6MAL"],
-        datetime.datetime(2021, 8, 19, 23, 18),
+        target_date.replace(tzinfo=tz.UTC),
     )
 
 

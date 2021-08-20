@@ -19,7 +19,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     validate_and_inject_mapping,
 )
 from cumulusci.tasks.bulkdata.step import (
-    BULK_BATCH_SIZE,
+    DEFAULT_BULK_BATCH_SIZE,
     DataOperationJobResult,
     DataOperationStatus,
     DataOperationType,
@@ -190,8 +190,11 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             date_context = mapping.get_relative_date_context(
                 mapping.get_load_field_list(), self.org_config
             )
-
-        for row in query.yield_per(BULK_BATCH_SIZE):
+        # Clamping the yield from the query ensures we do not
+        # create more Bulk API batches than expected, regardless
+        # of batch size, while capping memory usage.
+        batch_size = mapping.batch_size or DEFAULT_BULK_BATCH_SIZE
+        for row in query.yield_per(batch_size):
             total_rows += 1
             # Add static values to row
             pkey = row[0]
@@ -453,7 +456,12 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 self.models = {}
                 for name, mapping in self.mapping.items():
                     if mapping.table not in self.models:
-                        self.models[mapping.table] = self.base.classes[mapping.table]
+                        try:
+                            self.models[mapping.table] = self.base.classes[
+                                mapping.table
+                            ]
+                        except KeyError as e:
+                            raise BulkDataException(f"Table not found in dataset: {e}")
 
                     # create any Record Type tables we need
                     if "RecordTypeId" in mapping.fields:
