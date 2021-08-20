@@ -3,7 +3,6 @@ import contextlib
 import itertools
 import logging
 import os
-import time
 from typing import List, Optional
 from zipfile import ZipFile
 
@@ -576,8 +575,7 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
                 options=options,
                 logger=context.logger,
             )
-            # maybe helps avoid PermissionError due to open folder on Windows?
-            time.sleep(1)
+            print(f"cwd: {os.getcwd()}")
 
         return package_zip
 
