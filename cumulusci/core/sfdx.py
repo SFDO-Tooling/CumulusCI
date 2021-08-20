@@ -55,7 +55,6 @@ def sfdx(
         env=env,
     )
     p.run()
-    breakpoint()
     if platform.system() == "Windows" and "pytest" in sys.argv:
         # Horrible hack to give sfdx subprocesses a chance to finish
         # before we try to delete the temporary dir in tests
