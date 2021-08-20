@@ -2379,6 +2379,22 @@ class TestLoadData(unittest.TestCase):
         with pytest.raises(TaskOptionsError, match="Mapping file path required"):
             task()
 
+    @mock.patch("cumulusci.tasks.bulkdata.load.validate_and_inject_mapping")
+    def test_mapping_contains_extra_sobjects(self, _):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "mapping": mapping_path,
+                    "database_url": "sqlite://",
+                }
+            },
+        )
+        with pytest.raises(BulkDataException):
+            task()
+
 
 class TestLoadDataIntegrationTests:
     @pytest.mark.integration_test()
