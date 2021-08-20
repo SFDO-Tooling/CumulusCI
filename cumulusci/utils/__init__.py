@@ -554,10 +554,12 @@ def cd(path):
         yield
         return
     cwd = os.getcwd()
+    print(f"chdir to {path}")
     os.chdir(path)
     try:
         yield
     finally:
+        print(f"chdir back to {cwd}")
         os.chdir(cwd)
 
 

@@ -575,7 +575,6 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
                 options=options,
                 logger=context.logger,
             )
-            print(f"cwd: {os.getcwd()}")
 
         return package_zip
 
