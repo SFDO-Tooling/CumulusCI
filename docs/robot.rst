@@ -261,7 +261,7 @@ Test Cases
 
 In the ``Test Cases`` section of the ``.robot`` file, each test case gets its own code block; the test case name is the first line of code, with no indentation. The body of the test case is all the indented text underneath.
 
-For example, these are the test cases stored inside the ``new_contact_record.robot`` test case file.
+For example, here is the ``Test Cases`` section of the ``new_contact_record.robot`` test case file. It has a single test case named ``Create a Contact using the API``.
 
 .. code-block:: robotframework
 
@@ -278,7 +278,7 @@ For example, these are the test cases stored inside the ``new_contact_record.rob
       Should be equal  ${contact}[FirstName]    Eleanor
       Should be equal  ${contact}[LastName]     Rigby
 
-Notice these keywords used in the test cases.
+Notice these keywords used in the test case.
 
 * ``Salesforce Insert`` creates a new ``Contact`` record with the arguments it's given for the ``FirstName`` and ``LastName`` fields.
 * ``Salesforce Get`` retrieves the requested record, a ``Contact`` record, based on its ID.
@@ -474,7 +474,7 @@ Next, let's modify the ``custom_keyword.robot`` test case file. Remove the ``Key
       Log  Contact name: ${contact}[Name]
 
 .. note::
-    Variables defined in resource files are accessible to all tests in a suite that imports the resource files.
+    Keywords defined in resource files are accessible to all tests in a suite that imports the resource files.
 
 
 
@@ -495,9 +495,13 @@ Let's create a Robot test that uses ``Suite Setup`` to call the ``Open test brow
 
    *** Test Cases ***
    Take screenshot of landing page
+      Wait until page contains  Most Recently Used
       Capture page screenshot
 
 Because this test case file calls ``Open test browser``, a browser window appears while the test runs. The test case takes a screenshot, which can be a useful tool when debugging tests (a tool used sparingly because screenshots can take up a lot of disk space). ``Suite Teardown`` then calls the ``Delete records and close browser`` keyword to complete the test. 
+
+.. note:: 
+   "Open test browser" doesn't always wait long enough for Salesforce to render. That's why the ``Wait until page contains`` keyword comes in handy. It waits until the "Most Recently Used" section of the web page appears, which is a good indication that the site has loaded.
 
 To run this test from the command line:
 
