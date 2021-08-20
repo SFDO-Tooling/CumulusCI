@@ -556,6 +556,7 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
         real_path = None
         package_zip = None
         with contextlib.ExitStack() as stack:
+            print("Entered context manager in get_metadata_package_zip_builder")
             if source_format is SourceFormat.SFDX:
                 # Convert source first.
                 stack.enter_context(temporary_dir(chdir=True))
@@ -575,6 +576,7 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
                 options=options,
                 logger=context.logger,
             )
+            print("About to exit context manager in get_metadata_package_zip_builder")
 
         return package_zip
 

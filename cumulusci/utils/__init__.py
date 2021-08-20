@@ -571,6 +571,7 @@ def temporary_dir(chdir=True):
     and deletes the temporary directory.
     """
     d = tempfile.mkdtemp()
+    print(f"Created {d}")
     try:
         with contextlib.ExitStack() as stack:
             if chdir:
@@ -578,6 +579,7 @@ def temporary_dir(chdir=True):
             yield d
     finally:
         if os.path.exists(d):
+            print(f"Removing {d}")
             shutil.rmtree(d)
 
 
