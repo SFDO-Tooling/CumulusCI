@@ -9,7 +9,6 @@ import platform
 import sys
 import typing as T
 from os import PathLike
-from time import sleep
 from zipfile import ZipFile
 
 import sarge
@@ -55,11 +54,6 @@ def sfdx(
         env=env,
     )
     p.run()
-    if platform.system() == "Windows" and "pytest" in sys.argv:
-        # Horrible hack to give sfdx subprocesses a chance to finish
-        # before we try to delete the temporary dir in tests
-        print("Sleeping 5 seconds to avoid race condition in tests")
-        sleep(5)
     if capture_output:
         p.stdout_text = io.TextIOWrapper(p.stdout, encoding=sys.stdout.encoding)
         p.stderr_text = io.TextIOWrapper(p.stderr, encoding=sys.stdout.encoding)
@@ -135,7 +129,6 @@ def convert_sfdx_source(
     path: T.Optional[PathLike], name: T.Optional[str], logger: logging.Logger
 ):
     mdapi_path = None
-    print("Entering convert_sfdx_source")
     with contextlib.ExitStack() as stack:
         # Convert SFDX -> MDAPI format if path exists but does not have package.xml
         if (
@@ -167,4 +160,3 @@ def convert_sfdx_source(
             mdapi_path = pathlib.Path(result["result"]["location"])
 
         yield mdapi_path or path
-    print("Exiting convert_sfdx_source")

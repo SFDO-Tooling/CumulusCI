@@ -554,12 +554,10 @@ def cd(path):
         yield
         return
     cwd = os.getcwd()
-    print(f"chdir to {path}")
     os.chdir(path)
     try:
         yield
     finally:
-        print(f"chdir back to {cwd}")
         os.chdir(cwd)
 
 
@@ -571,7 +569,6 @@ def temporary_dir(chdir=True):
     and deletes the temporary directory.
     """
     d = tempfile.mkdtemp()
-    print(f"Created {d}")
     try:
         with contextlib.ExitStack() as stack:
             if chdir:
@@ -579,7 +576,6 @@ def temporary_dir(chdir=True):
             yield d
     finally:
         if os.path.exists(d):
-            print(f"Removing {d}")
             shutil.rmtree(d)
 
 
