@@ -69,6 +69,7 @@ class WorkerQueue:
         # convenience access to names
         self._create_dirs()
         self.workers = []
+        self.results_reporter = self.context.Queue()
 
     def __getattr__(self, name):
         """Convenience proxy for config values
@@ -213,7 +214,9 @@ class WorkerQueue:
             **worker_config_data,
         )
 
-        worker = ParallelWorker(self.config.spawn_class, worker_config)
+        worker = ParallelWorker(
+            self.config.spawn_class, worker_config, self.results_reporter
+        )
         worker.start()
         self.workers.append(worker)
 

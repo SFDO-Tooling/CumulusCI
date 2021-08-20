@@ -143,7 +143,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 self._set_viewed()
             except Exception as e:
                 self.logger.warning(f"Could not set recently viewed because {e}")
-        self.return_values = {"step_results": results}
+        self.return_values = {
+            "step_results": {key: value.simplify() for key, value in results.items()}
+        }
 
     def _execute_step(
         self, mapping: MappingStep

@@ -60,8 +60,8 @@ class DataOperationJobResult(NamedTuple):
     records_processed: int
     total_row_errors: int = 0
 
-    def __iter__(self):
-        yield namedtuple_as_simple_dict(self)
+    def simplify(self):
+        return namedtuple_as_simple_dict(self)
 
 
 @contextmanager

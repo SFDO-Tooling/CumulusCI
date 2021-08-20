@@ -5,6 +5,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
+from queue import Empty
 from tempfile import TemporaryDirectory, mkdtemp
 
 import psutil
@@ -130,6 +131,9 @@ class Snowfakery(BaseSalesforceApiTask):
         "num_processes": {
             "description": "Number of data generating processes. Defaults to matching the number of CPUs."
         },
+        "ignore_row_errors": {
+            "description": "Boolean: should we continue loading even after running into row errors?"
+        },
     }
 
     def _validate_options(self):
@@ -141,6 +145,9 @@ class Snowfakery(BaseSalesforceApiTask):
             raise exc.TaskOptionsError(f"Cannot find recipe `{recipe}`")
 
         self.num_generator_workers = self.options.get("num_processes", None)
+        if self.num_generator_workers is not None:
+            self.num_generator_workers = int(self.num_generator_workers)
+        self.ignore_row_errors = self.options.get("ignore_row_errors", False)
 
     @property
     def num_loader_workers(self):
@@ -160,6 +167,7 @@ class Snowfakery(BaseSalesforceApiTask):
         self.recipe = Path(self.options.get("recipe"))
         self.job_counter = 0
         self.cached_counts = {}
+        self.running_totals_by_sobject = {}
 
     ## Todo: Consider when this process runs longer than 2 Hours,
     # what will happen to my sf connection?
@@ -313,6 +321,32 @@ class Snowfakery(BaseSalesforceApiTask):
 
         return upload_status
 
+    def check_load_results(self):
+        while True:
+            try:
+                results = self.load_data_q.results_reporter.get(block=False)
+                step_results = (
+                    (name, step_result)
+                    for (name, step_result) in results["results"][
+                        "step_results"
+                    ].items()
+                )
+                for name, result in step_results:
+                    totals = self.running_totals_by_sobject.setdefault(
+                        name, {"errors": 0, "successes": 0}
+                    )
+                    totals["errors"] += result["total_row_errors"]
+                    totals["successes"] += (
+                        result["records_processed"] - result["total_row_errors"]
+                    )
+                self.logger.info("Data Load Results: Load completed. Running totals:")
+                for name, result in self.running_totals_by_sobject.items():
+                    self.logger.info(
+                        f"{name}: {totals['successes']:,} successes, {totals['errors']:,} errors"
+                    )
+            except Empty:
+                break
+
     def tick(
         self,
         upload_status,
@@ -328,8 +362,6 @@ class Snowfakery(BaseSalesforceApiTask):
         ):  # pragma: no cover
             self.logger.info("Finished Generating")
         # queue is full
-        elif self.data_gen_q.full:
-            self.logger.info("Waiting before datagen (queue full)")
         else:
             for i in range(self.data_gen_q.num_free_workers):
                 upload_status = self.generate_upload_status(
@@ -353,6 +385,7 @@ class Snowfakery(BaseSalesforceApiTask):
     def finish(self, upload_status, data_gen_q, load_data_q):
         """Wait for jobs to finish"""
         while data_gen_q.workers + load_data_q.workers:
+            self.check_load_results()
             self.logger.info(
                 f"Waiting for {len(data_gen_q.workers)} datagen, {len(load_data_q.workers)} upload workers to finish"
             )
@@ -404,6 +437,7 @@ class Snowfakery(BaseSalesforceApiTask):
             "reset_oids": False,
             "database_url": wd.database_url,
             "set_recently_viewed": False,
+            "ignore_row_errors": self.ignore_row_errors,
         }
         return options
 
@@ -411,7 +445,6 @@ class Snowfakery(BaseSalesforceApiTask):
         """Change the directory name to reflect the true number of sets created."""
 
         wd = SnowfakeryWorkingDirectory(working_dir)
-
         key = wd.index
         if key not in self.cached_counts:
             self.cached_counts[key] = wd.get_record_counts()
@@ -533,6 +566,7 @@ class Snowfakery(BaseSalesforceApiTask):
             **options,
             "working_directory": tempdir,
             "set_recently_viewed": False,
+            "ignore_row_errors": self.ignore_row_errors,
         }
         subtask_config = TaskConfig({"options": options})
         subtask = GenerateAndLoadDataFromYaml(
@@ -606,10 +640,13 @@ class UploadStatus(T.NamedTuple):
         ]
 
         def display_stats(keys):
+            def format(a):
+                return f"{a.replace('_', ' ').title()}: {getattr(self, a):,}"
+
             return (
                 "\n"
                 + "\n".join(
-                    f"{a.replace('_', ' ').title()}: {getattr(self, a):,}"
+                    format(a)
                     for a in keys
                     if not a[0] == "_" and not callable(getattr(self, a))
                 )
@@ -617,9 +654,9 @@ class UploadStatus(T.NamedTuple):
             )
 
         rc = display_stats(most_important_stats)
+        rc += "\n   ** Workers **\n"
+        rc += display_stats(queue_stats)
         if detailed:
-            rc += "\n   ** Queues **\n"
-            rc += display_stats(queue_stats)
             rc += "\n   ** Internals **\n"
             rc += display_stats(
                 set(dir(self)) - (set(most_important_stats) & set(queue_stats))
