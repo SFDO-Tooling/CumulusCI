@@ -197,7 +197,7 @@ class MappingStep(CCIDictModel):
             logger.warning(
                 "If you set a `batch_size` you should also set an `api` to `rest` or `bulk`. "
                 "`batch_size` means different things for `rest` and `bulk`. "
-                "Please see the documentation for further details."
+                "Please see the documentation for further details. "
                 "https://cumulusci.readthedocs.io/en/latest/data.html#api-selection"
             )
         else:  # pragma: no cover
