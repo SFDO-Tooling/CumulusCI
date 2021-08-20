@@ -120,7 +120,7 @@ jobs:
       - name: pip cache
         uses: actions/cache@v1
         with:
-          path: ~\AppData\Local\pip\Cache
+          path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -175,7 +175,7 @@ jobs:
       - name: pip cache
         uses: actions/cache@v1
         with:
-          path: ~\AppData\Local\pip\Cache
+          path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -230,7 +230,7 @@ jobs:
       - name: pip cache
         uses: actions/cache@v1
         with:
-          path: ~\AppData\Local\pip\Cache
+          path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
@@ -285,7 +285,7 @@ jobs:
       - name: pip cache
         uses: actions/cache@v1
         with:
-          path: ~\AppData\Local\pip\Cache
+          path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-

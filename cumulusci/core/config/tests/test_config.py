@@ -403,7 +403,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             with open(os.path.join(d, ".git", "HEAD"), "w") as f:
                 f.write("abcdef")
 
-            self.assertIsNone(config.repo_commit)
+            assert config.repo_commit == "abcdef"
 
     def test_repo_commit_packed_refs(self):
         config = BaseProjectConfig(UniversalConfig())
