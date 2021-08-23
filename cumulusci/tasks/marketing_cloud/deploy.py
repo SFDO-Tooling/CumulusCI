@@ -1,4 +1,5 @@
 import json
+import uuid
 import zipfile
 from collections import defaultdict
 from pathlib import Path
@@ -12,7 +13,7 @@ from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 from .base import BaseMarketingCloudTask
 
-MCPM_ENDPOINT = "https://mc-package-manager.herokuapp.com"
+MCPM_ENDPOINT = "https://mc-package-manager.herokuapp.com/api"
 
 PAYLOAD_CONFIG_VALUES = {"preserveCategories": True}
 
@@ -33,6 +34,10 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         },
         "custom_inputs": {
             "description": "Specify custom inputs to the deployment task. Takes a mapping from input key to input value (e.g. 'companyName:Acme,companyWebsite:https://www.salesforce.org:8080').",
+            "required": False,
+        },
+        "name": {
+            "description": "The name to give to this particular deploy call. Defaults to a universally unique identifier.",
             "required": False,
         },
     }
@@ -65,7 +70,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             headers=self.headers,
         )
         result = safe_json_from_response(response)
-        self.job_id = result["info"]["id"]
+        self.job_id = result["id"]
         self.logger.info(f"Started job {self.job_id}")
         self._poll()
 
@@ -90,6 +95,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         payload = defaultdict(lambda: defaultdict(dict))
         payload["namespace"] = PAYLOAD_NAMESPACE_VALUES
         payload["config"] = PAYLOAD_CONFIG_VALUES
+        payload["name"] = self.options.get("name", str(uuid.uuid4()))
 
         with open(dir_path / "references.json", "r") as f:
             payload["references"] = json.load(f)

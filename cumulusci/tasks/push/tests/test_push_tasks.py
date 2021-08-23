@@ -592,15 +592,16 @@ def test_schedule_push_org_list_run_task_without_time(org_file):
 
 
 def test_schedule_push_org_list_run_task_without_orgs(empty_org_file):
+    target_date = (datetime.datetime.now() + datetime.timedelta(days=1)).replace(
+        second=0, microsecond=0
+    )
     task = create_task(
         SchedulePushOrgList,
         options={
             "orgs": ORG_FILE,
             "version": VERSION,
             "namespace": NAMESPACE,
-            "start_time": datetime.datetime(2021, 8, 19, 23, 18, 34).strftime(
-                "%Y-%m-%dT%H:%M"
-            ),
+            "start_time": target_date.strftime("%Y-%m-%dT%H:%M"),
         },
     )
     task.push = mock.MagicMock()
@@ -610,20 +611,21 @@ def test_schedule_push_org_list_run_task_without_orgs(empty_org_file):
     task.push.create_push_request.return_value = ("0DV000000000001", 0)
     task._run_task()
     task.push.create_push_request.assert_called_once_with(
-        mock.ANY, [], datetime.datetime(2021, 8, 19, 23, 18, 0, 0, tz.UTC)
+        mock.ANY, [], target_date.replace(tzinfo=tz.UTC)
     )
 
 
 def test_schedule_push_org_list_run_task_many_orgs(org_file):
+    target_date = (datetime.datetime.now() + datetime.timedelta(days=1)).replace(
+        second=0, microsecond=0
+    )
     task = create_task(
         SchedulePushOrgList,
         options={
             "orgs": ORG_FILE,
             "version": VERSION,
             "namespace": NAMESPACE,
-            "start_time": datetime.datetime(2021, 8, 19, 23, 18, 34).strftime(
-                "%Y-%m-%dT%H:%M"
-            ),
+            "start_time": target_date.strftime("%Y-%m-%dT%H:%M"),
         },
     )
     task.push = mock.MagicMock()
@@ -634,7 +636,7 @@ def test_schedule_push_org_list_run_task_many_orgs(org_file):
     task.push.create_push_request.assert_called_once_with(
         mock.ANY,
         ["00DS0000003TJJ6MAO", "00DS0000003TJJ6MAL"],
-        datetime.datetime(2021, 8, 19, 23, 18, 0, 0, tz.UTC),
+        target_date.replace(tzinfo=tz.UTC),
     )
 
 

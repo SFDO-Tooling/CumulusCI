@@ -89,7 +89,26 @@ class TestMappingParser:
     def test_bad_mapping_batch_size(self):
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
-            data = f.read().replace("record_type: HH_Account", "batch_size: 500")
+            data = f.read().replace("record_type: HH_Account", "batch_size: 50000")
+            with pytest.raises(ValidationError):
+                parse_from_yaml(StringIO(data))
+
+    def test_ambiguous_mapping_batch_size_default(self, caplog):
+        caplog.set_level(logging.WARNING)
+        base_path = Path(__file__).parent / "mapping_vanilla_sf.yml"
+        with open(base_path, "r") as f:
+            data = f.read().replace("table: Opportunity", "batch_size: 150")
+            data = data.replace("api: bulk", "")
+            parse_from_yaml(StringIO(data))
+
+        assert "If you set a `batch_size` you should also set" in caplog.text
+
+    def test_bad_mapping_batch_size_default(self, caplog):
+        caplog.set_level(logging.WARNING)
+        base_path = Path(__file__).parent / "mapping_vanilla_sf.yml"
+        with open(base_path, "r") as f:
+            data = f.read().replace("table: Opportunity", "batch_size: 1000")
+            data = f.read().replace("api: bulk", "")
             with pytest.raises(ValidationError):
                 parse_from_yaml(StringIO(data))
 

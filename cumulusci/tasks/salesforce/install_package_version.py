@@ -170,7 +170,7 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         name = options.pop("name")
         task_config = {"options": options, "checks": self.task_config.checks or []}
         ui_step = {
-            "name": f"Install {name} {options['version']}",
+            "name": f"Install {name} {options.get('version_number') or options['version']}",
             "kind": "managed",
             "is_required": True,
         }
