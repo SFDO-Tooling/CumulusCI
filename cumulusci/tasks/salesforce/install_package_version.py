@@ -35,7 +35,6 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         "activateRSS": {
             "description": "Deprecated. Use activate_remote_site_settings instead."
         },
-        "password": {"description": "The package password. Optional."},
         "retries": {"description": "Number of retries (default=5)"},
         "retry_interval": {
             "description": "Number of seconds to wait before the next retry (default=5),"

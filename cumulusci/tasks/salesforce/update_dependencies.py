@@ -56,7 +56,7 @@ class UpdateDependencies(BaseSalesforceTask):
         "packages_only": {
             "description": "Install only packaged dependencies. Ignore all unmanaged metadata. Defaults to False."
         },
-        **PACKAGE_INSTALL_TASK_OPTIONS,
+        **{k: v for k, v in PACKAGE_INSTALL_TASK_OPTIONS.items() if k != "password"},
     }
 
     def _init_options(self, kwargs):
