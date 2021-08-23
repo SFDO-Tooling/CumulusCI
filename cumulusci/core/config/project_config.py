@@ -1,5 +1,6 @@
 import json
 import os
+import pathlib
 import re
 from configparser import ConfigParser
 from contextlib import contextmanager
@@ -328,31 +329,30 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         branch = self.repo_branch
-        if not branch:
-            return
-
-        join_args = [self.repo_root, ".git", "refs", "heads"]
-        join_args.extend(branch.split("/"))
-        commit_file = os.path.join(*join_args)
-
-        commit_sha = None
-        if os.path.isfile(commit_file):
-            with open(commit_file, "r") as f:
-                commit_sha = f.read().strip()
+        if branch:
+            commit_file_path = pathlib.Path(self.repo_root) / ".git" / "refs" / "heads"
+            commit_file_path = commit_file_path.joinpath(*branch.split("/"))
         else:
-            packed_refs_path = os.path.join(self.repo_root, ".git", "packed-refs")
-            with open(packed_refs_path, "r") as f:
-                for line in f:
-                    parts = line.split(" ")
-                    if len(parts) == 1:
-                        # Skip lines showing the commit sha of a tag on the
-                        # preceeding line
-                        continue
-                    if parts[1].replace("refs/remotes/origin/", "").strip() == branch:
-                        commit_sha = parts[0]
-                        break
+            # We're in detached HEAD mode; .git/HEAD contains the SHA
+            commit_file_path = pathlib.Path(self.repo_root) / ".git" / "HEAD"
 
-        return commit_sha
+        if commit_file_path.exists() and commit_file_path.is_file():
+            return commit_file_path.read_text().strip()
+        else:
+            if branch:
+                packed_refs_path = os.path.join(self.repo_root, ".git", "packed-refs")
+                with open(packed_refs_path, "r") as f:
+                    for line in f:
+                        parts = line.split(" ")
+                        if len(parts) == 1:
+                            # Skip lines showing the commit sha of a tag on the
+                            # preceeding line
+                            continue
+                        if (
+                            parts[1].replace("refs/remotes/origin/", "").strip()
+                            == branch
+                        ):
+                            return parts[0]
 
     def get_github_api(self, owner=None, repo=None):
         return get_github_api_for_repo(
