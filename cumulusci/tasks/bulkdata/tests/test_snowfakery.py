@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from itertools import cycle
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
@@ -20,11 +21,52 @@ query_yaml = Path(__file__).parent / "snowfakery/query_snowfakery.recipe.yml"
 
 original_refresh_token = OrgConfig.refresh_oauth_token
 
+FAKE_LOAD_RESULTS = (
+    {
+        "Insert Account": {
+            "mapping": {"sf_object": "Account"},
+            "records_processed": 2,
+            "total_row_errors": 0,
+        },
+        "Insert Contact": {
+            "mapping": {"sf_object": "Contact"},
+            "records_processed": 2,
+            "total_row_errors": 0,
+        },
+    },
+    {
+        "Insert Account": {
+            "mapping": {"sf_object": "Account"},
+            "records_processed": 3,
+            "total_row_errors": 0,
+        },
+        "Insert Contact": {
+            "mapping": {"sf_object": "Contact"},
+            "records_processed": 3,
+            "total_row_errors": 0,
+        },
+    },
+)
+
+
+def call_closure():
+    return_values = cycle(iter(FAKE_LOAD_RESULTS))
+
+    def __call__(self, *args, **kwargs):
+        self.return_values = {"step_results": next(return_values)}
+        return __call__.mock(*args, **kwargs)
+
+    __call__.mock = mock.Mock()
+
+    return __call__
+
 
 @pytest.fixture
 def mock_load_data(request):
-    with mock.patch("cumulusci.tasks.bulkdata.load.LoadData.__call__") as y:
-        yield y
+    with mock.patch(
+        "cumulusci.tasks.bulkdata.load.LoadData.__call__", call_closure()
+    ) as __call__:
+        yield __call__.mock
 
 
 @pytest.fixture
@@ -239,8 +281,8 @@ class TestSnowfakery:
         with mock.patch.object(task, "logger") as logger:
             task()
         mock_calls_as_string = str(logger.mock_calls)
-        assert "Account: 5 records" in mock_calls_as_string, mock_calls_as_string[-500:]
-        assert "Contact: 5 records" in mock_calls_as_string, mock_calls_as_string[-500:]
+        assert "Account: 5 succe" in mock_calls_as_string, mock_calls_as_string[-500:]
+        assert "Contact: 5 succe" in mock_calls_as_string, mock_calls_as_string[-500:]
 
     def test_run_until_wrong_format(self, snowfakery):
         with pytest.raises(exc.TaskOptionsError, match="Ten"):
@@ -318,6 +360,7 @@ class TestSnowfakery:
         task = snowfakery(
             recipe=sample_yaml,
             run_until_records_loaded="Account:10",
+            num_processes=3,  # todo: test this is enforced
         )
         with mock.patch.object(task, "logger") as logger:
             with pytest.raises(exc.BulkDataException):

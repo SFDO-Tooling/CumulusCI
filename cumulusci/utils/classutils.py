@@ -6,12 +6,4 @@ def get_all_subclasses(cls):
 
 
 def namedtuple_as_simple_dict(self):
-    def simplify(x):
-        if hasattr(x, "simplify"):
-            return x.simplify()
-        else:
-            return x
-
-    return {
-        name: simplify(getattr(self, name, None)) for name in self.__class__._fields
-    }
+    return {name: getattr(self, name, None) for name in self.__class__._fields}

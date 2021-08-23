@@ -167,7 +167,7 @@ class Snowfakery(BaseSalesforceApiTask):
         self.recipe = Path(self.options.get("recipe"))
         self.job_counter = 0
         self.cached_counts = {}
-        self.running_totals_by_sobject = {}
+        self.sobject_counts = defaultdict(RunningTotals)
 
     ## Todo: Consider when this process runs longer than 2 Hours,
     # what will happen to my sf connection?
@@ -321,31 +321,31 @@ class Snowfakery(BaseSalesforceApiTask):
 
         return upload_status
 
-    def check_load_results(self):
+    def update_running_totals(self) -> None:
         while True:
             try:
                 results = self.load_data_q.results_reporter.get(block=False)
-                step_results = (
-                    (name, step_result)
-                    for (name, step_result) in results["results"][
-                        "step_results"
-                    ].items()
-                )
-                for name, result in step_results:
-                    totals = self.running_totals_by_sobject.setdefault(
-                        name, {"errors": 0, "successes": 0}
-                    )
-                    totals["errors"] += result["total_row_errors"]
-                    totals["successes"] += (
-                        result["records_processed"] - result["total_row_errors"]
-                    )
-                self.logger.info("Data Load Results: Load completed. Running totals:")
-                for name, result in self.running_totals_by_sobject.items():
-                    self.logger.info(
-                        f"{name}: {totals['successes']:,} successes, {totals['errors']:,} errors"
-                    )
             except Empty:
                 break
+            if "results" in results:
+                self.update_running_totals_from_load_step_results(results["results"])
+            elif "error" in results:
+                self.logger.info(f"Error in load: {results}")
+            else:  # pragma: no cover
+                self.logger.info(f"Unexpected message from subtask: {results}")
+
+    def update_running_totals_from_load_step_results(self, results: dict) -> None:
+        for result in results["step_results"].values():
+            sobject_name = result["mapping"]["sf_object"]
+            totals = self.sobject_counts[sobject_name]
+            totals.errors += result["total_row_errors"]
+            totals.successes += result["records_processed"] - result["total_row_errors"]
+
+    def print_running_totals(self):
+        for name, result in self.sobject_counts.items():
+            self.logger.info(
+                f"       {name}: {result.successes:,} successes, {result.errors:,} errors"
+            )
 
     def tick(
         self,
@@ -381,30 +381,41 @@ class Snowfakery(BaseSalesforceApiTask):
                     self.job_counter, template_path, batch_size, tempdir
                 )
                 self.data_gen_q.push(job_dir)
+                self.update_running_totals()
+                self.print_running_totals()
 
     def finish(self, upload_status, data_gen_q, load_data_q):
         """Wait for jobs to finish"""
+        old_message = None
+        cooldown = 5
         while data_gen_q.workers + load_data_q.workers:
-            self.check_load_results()
-            self.logger.info(
-                f"Waiting for {len(data_gen_q.workers)} datagen, {len(load_data_q.workers)} upload workers to finish"
-            )
+            datagen_workers = f"{len(data_gen_q.workers)} datagen, "
+            msg = f"Waiting for {datagen_workers}{len(load_data_q.workers)} upload workers to finish"
+            if old_message != msg or cooldown < 1:
+                old_message = msg
+                self.logger.info(msg)
+                self.update_running_totals()
+                self.print_running_totals()
+                cooldown = 5
+            else:
+                cooldown -= 1
             data_gen_q.tick()
             time.sleep(WAIT_TIME)
 
         self.log_failures(set(load_data_q.failed_job_dirs + data_gen_q.failed_job_dirs))
 
-        self.log_upload_counts(load_data_q.outbox_job_dirs)
+        self.logger.info("")
+        self.logger.info(" == Results == ")
+        self.update_running_totals()
+        self.print_running_totals()
         elapsed = format_duration(timedelta(seconds=time.time() - self.start_time))
 
         if self.run_until.sobject_name:
-            set_name = f"{self.run_until.sobject_name} records and associated records"
+            result_msg = f"{self.sobject_counts[self.run_until.sobject_name].successes} {self.run_until.sobject_name} records and associated records"
         else:
-            set_name = "iterations"
+            result_msg = f"{upload_status.target_count:,} iterations"
 
-        self.logger.info(
-            f"☃ Snowfakery created {upload_status.target_count:,} {set_name} in {elapsed}."
-        )
+        self.logger.info(f"☃ Snowfakery created {result_msg} in {elapsed}.")
 
     def log_failures(self, dirs=T.Sequence[Path]):
         """Log failures from sub-processes to main process"""
@@ -414,20 +425,6 @@ class Snowfakery(BaseSalesforceApiTask):
                 continue
             exception = f.read_text(encoding="utf-8").strip().split("\n")[-1]
             self.logger.info(exception)
-
-    def log_upload_counts(self, dirs=T.Sequence[Path]):
-        """Write upload counts to logs."""
-        total_count = defaultdict(int)
-
-        for upload_dir in dirs:
-            wd = SnowfakeryWorkingDirectory(upload_dir)
-            key = wd.index
-            for sobject, count in self.cached_counts[key].items():
-                total_count[sobject] += count
-
-        self.logger.info(" == Results == ")
-        for name, count in total_count.items():
-            self.logger.info(f"       {name}: {count} records")
 
     def data_loader_opts(self, working_dir: Path):
         wd = SnowfakeryWorkingDirectory(working_dir)
@@ -441,6 +438,11 @@ class Snowfakery(BaseSalesforceApiTask):
         }
         return options
 
+    # TODO: This method is actually based on the number generated,
+    #       because it is called before the load.
+    #       If there are row errors, it will drift out of correctness
+    #       Code needs to be updated to rename again after load.
+    #       Or move away from using directory names for math altogether.
     def data_loader_new_directory_name(self, working_dir: Path):
         """Change the directory name to reflect the true number of sets created."""
 
@@ -507,6 +509,7 @@ class Snowfakery(BaseSalesforceApiTask):
             user_max_num_generator_workers=self.num_generator_workers,
             user_max_num_loader_workers=self.num_loader_workers,
             elapsed_seconds=int(time.time() - self.start_time),
+            # todo: use row-level result from org load for better accuracy
             sets_finished=set_count_from_names(self.load_data_q.outbox_jobs),
             sets_failed=len(self.load_data_q.failed_jobs),
             batch_size=batch_size,
@@ -539,7 +542,7 @@ class Snowfakery(BaseSalesforceApiTask):
 
         template_dir = Path(working_directory) / "template_1"
         template_dir.mkdir()
-        self._generate_and_load_batch(
+        results = self._generate_and_load_batch(
             template_dir,
             {
                 "generator_yaml": self.options.get("recipe"),
@@ -547,6 +550,7 @@ class Snowfakery(BaseSalesforceApiTask):
                 "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
             },
         )
+        self.update_running_totals_from_load_step_results(results)
 
         # rename directory to reflect real number of sets created.
         wd = SnowfakeryWorkingDirectory(template_dir)
@@ -561,7 +565,7 @@ class Snowfakery(BaseSalesforceApiTask):
 
         return template_dir, wd.relevant_sobjects()
 
-    def _generate_and_load_batch(self, tempdir, options):
+    def _generate_and_load_batch(self, tempdir, options) -> dict:
         options = {
             **options,
             "working_directory": tempdir,
@@ -578,6 +582,7 @@ class Snowfakery(BaseSalesforceApiTask):
             stepnum=self.stepnum,
         )
         subtask()
+        return subtask.return_values["load_results"][0]
 
     def _cleanup_object_tables(self, engine, metadata):
         """Delete all tables that do not relate to id->OID mapping"""
@@ -713,3 +718,11 @@ class SnowfakeryWorkingDirectory:
         with open(self.mapping_file, encoding="utf-8") as f:
             mapping = yaml.safe_load(f)
             return [m.get("sf_object") for m in mapping.values() if m.get("sf_object")]
+
+
+class RunningTotals:
+    errors: int = 0
+    successes: int = 0
+
+    def __repr__(self):  # pragma: no cover
+        return f"<{self.__class__.__name__} {self.__dict__}>"

@@ -1,7 +1,7 @@
 import tempfile
+import typing as T
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Union
 from unittest.mock import MagicMock
 
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, func, text
@@ -137,19 +137,24 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                             raise BulkDataException(
                                 f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
                             )
-                results[name] = result
+                results[name] = StepResultInfo(mapping, result)
         if self.options["set_recently_viewed"]:
             try:
+                self.logger.info("Setting records to 'recently viewed'.")
                 self._set_viewed()
             except Exception as e:
                 self.logger.warning(f"Could not set recently viewed because {e}")
+
         self.return_values = {
-            "step_results": {key: value.simplify() for key, value in results.items()}
+            "step_results": {
+                step_name: result_info.simplify()
+                for step_name, result_info in results.items()
+            }
         }
 
     def _execute_step(
         self, mapping: MappingStep
-    ) -> Union[DataOperationJobResult, MagicMock]:
+    ) -> T.Union[DataOperationJobResult, MagicMock]:
         """Load data for a single step."""
 
         if "RecordTypeId" in mapping.fields:
@@ -691,3 +696,11 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                         self.logger.warning(
                             f"Cannot set recently viewed status for {mapped_item}. Error: {e}"
                         )
+
+
+class StepResultInfo(T.NamedTuple):
+    mapping: dict
+    result: DataOperationJobResult
+
+    def simplify(self):
+        return {"mapping": self.mapping.dict(), **self.result.simplify()}

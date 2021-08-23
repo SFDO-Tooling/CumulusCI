@@ -136,7 +136,11 @@ class TaskWorker:
                 logger.info(str(self.subtask.return_values))
                 logger.info("SubTask Success!")
                 self.results_reporter.put(
-                    {"status": "success", "results": self.subtask.return_values}
+                    {
+                        "status": "success",
+                        "results": self.subtask.return_values,
+                        "directory": str(self.working_dir),
+                    }
                 )
             except BaseException as e:
                 logger.info(f"Failure detected: {e}")
