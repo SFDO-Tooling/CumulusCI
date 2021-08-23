@@ -340,7 +340,6 @@ def test_freeze__2gp():
                     "version": "04t000000000000",
                     "version_number": "1.0",
                     "namespace": "ns",
-                    "security_type": "FULL",
                 },
                 "checks": [],
             },
