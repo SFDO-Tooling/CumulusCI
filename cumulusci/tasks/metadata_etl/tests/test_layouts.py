@@ -808,3 +808,59 @@ class TestAddFieldsToPageLayout(unittest.TestCase):
 
         with self.assertRaises(TaskOptionsError):
             task._transform_entity(tree, "Layout")
+
+    def test_add_fields_position_type_column(self):
+        """Check positioning root validators column relative"""
+
+        with self.assertRaises(ValueError):
+            task = create_task(
+                AddFieldsToPageLayout,
+                {
+                    "api_names": "Account-Account Layout",
+                    "fields": [
+                        {
+                            "api_name": "Top",
+                            "position": [
+                                {
+                                    "field": "Name",
+                                    "relative": "top",
+                                    "column": "last",
+                                    "section": 0,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            )
+
+        # Running task to stop flake8 from compaining
+        tree = metadata_tree.fromstring(MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8"))
+        task._transform_entity(tree, "Layout")
+
+    def test_add_fields_position_type_field(self):
+        """Check positioning root validators field relative"""
+
+        with self.assertRaises(ValueError):
+            task = create_task(
+                AddFieldsToPageLayout,
+                {
+                    "api_names": "Account-Account Layout",
+                    "fields": [
+                        {
+                            "api_name": "After",
+                            "position": [
+                                {
+                                    "field": "Name",
+                                    "relative": "after",
+                                    "column": "last",
+                                    "section": 0,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            )
+
+        # Running task to stop flake8 from compaining
+        tree = metadata_tree.fromstring(MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8"))
+        task._transform_entity(tree, "Layout")
