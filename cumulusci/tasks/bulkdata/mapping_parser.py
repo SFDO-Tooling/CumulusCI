@@ -90,7 +90,7 @@ class MappingStep(CCIDictModel):
     filters: List[str] = []
     action: DataOperationType = DataOperationType.INSERT
     api: DataApi = DataApi.SMART
-    batch_size: int = 200
+    batch_size: int = None
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
     record_type: Optional[str] = None  # should be discussed and probably deprecated
     bulk_mode: Optional[
@@ -187,8 +187,22 @@ class MappingStep(CCIDictModel):
 
     @validator("batch_size")
     @classmethod
-    def validate_batch_size(cls, v):
-        assert v <= 200 and v > 0
+    def validate_batch_size(cls, v, values):
+        if values["api"] == DataApi.REST:
+            assert 0 < v <= 200, "Max 200 batch_size for REST loads"
+        elif values["api"] == DataApi.BULK:
+            assert 0 < v <= 10_000, "Max 10,000 batch_size for bulk or smart loads"
+        elif values["api"] == DataApi.SMART and v is not None:
+            assert 0 < v < 200, "Max 200 batch_size for Smart loads"
+            logger.warning(
+                "If you set a `batch_size` you should also set an `api` to `rest` or `bulk`. "
+                "`batch_size` means different things for `rest` and `bulk`. "
+                "Please see the documentation for further details. "
+                "https://cumulusci.readthedocs.io/en/latest/data.html#api-selection"
+            )
+        else:  # pragma: no cover
+            # should not happen
+            assert f"Unknown API {values['api']}"
         return v
 
     @validator("anchor_date")
