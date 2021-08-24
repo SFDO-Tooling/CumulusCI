@@ -33,7 +33,7 @@ def test_install_1gp(install_package_by_namespace_version):
         task.org_config,
         "test",
         "1.0",
-        PackageInstallOptions(activate_remote_site_settings=False),
+        PackageInstallOptions(),
         retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
     )
 
@@ -50,7 +50,7 @@ def test_install_2gp(install_package_by_version_id):
         task.project_config,
         task.org_config,
         "04t000000000000",
-        PackageInstallOptions(activate_remote_site_settings=False),
+        PackageInstallOptions(),
         retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
     )
 
@@ -82,6 +82,8 @@ def test_init_options():
     assert task.install_options == PackageInstallOptions(
         activate_remote_site_settings=True, password="foo", security_type="PUSH"
     )
+    assert task.options["activate_remote_site_settings"] is True
+    assert "activateRSS" not in task.options
 
 
 def test_init_options__float_version():
@@ -299,7 +301,6 @@ def test_freeze():
                 "options": {
                     "version": "1.0",
                     "namespace": "ns",
-                    "security_type": "FULL",
                 },
                 "checks": [],
             },
@@ -339,7 +340,6 @@ def test_freeze__2gp():
                     "version": "04t000000000000",
                     "version_number": "1.0",
                     "namespace": "ns",
-                    "security_type": "FULL",
                 },
                 "checks": [],
             },
