@@ -6,15 +6,6 @@ from .base import BaseMarketingCloudTask
 
 MC_API_ENDPOINT = "https://{tssd}.soap.marketingcloudapis.com/Service.asmx"
 
-PAYLOAD_CONFIG_VALUES = {"preserveCategories": True}
-
-PAYLOAD_NAMESPACE_VALUES = {
-    "category": "",
-    "prepend": "",
-    "append": "",
-    "timestamp": True,
-}
-
 
 class MarketingCloudDeploySubscriberAttribute(BaseMarketingCloudTask):
     task_options = {
@@ -33,17 +24,21 @@ class MarketingCloudDeploySubscriberAttribute(BaseMarketingCloudTask):
         envelope = envelopes.SUBSCRIBER_ATTRIBUTE_DEPLOY
         # fill the merge fields
         envelope.format(
+            soap_instance_url=self.mc_config.soap_instance_url,
             access_token=self.mc_config.access_token,
             attribute_name=attribute_name,
-            tssd=self.mc_config.tssd,
         )
         # construct request
-        headers = {"Content-Type": "text/xml", "charset": "utf-8"}
+        headers = {
+            "Content-Type": "text/xml",
+            "charset": "utf-8",
+            "SOAPAction": "Create",
+        }
 
         response = requests.post(
-            MC_API_ENDPOINT.format(
-                tssd=self.mc_config.tssd, data=envelope, headers=headers
-            )
+            f"{self.mc_config.soap_instance_url}Service.asmx",
+            data=envelope,
+            headers=headers,
         )
         print(response.status_code, response.text)
         # send request
