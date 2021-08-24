@@ -1,9 +1,10 @@
 - object: Account
-  count: 3
+  count: 2
   fields:
     name:
       fake: name
 - object: Account
+  count: 3
   fields:
     name:
       fake: name

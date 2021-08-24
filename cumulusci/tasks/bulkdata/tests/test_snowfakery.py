@@ -23,15 +23,15 @@ original_refresh_token = OrgConfig.refresh_oauth_token
 
 FAKE_LOAD_RESULTS = (
     {
-        "Insert Account": {
+        "Insert Account (from FAKE_LOAD_RESULTS)": {
             "mapping": {"sf_object": "Account"},
-            "records_processed": 2,
-            "total_row_errors": 0,
+            "records_processed": 5,
+            "total_row_errors": 3,
         },
-        "Insert Contact": {
+        "Insert Contact (from FAKE_LOAD_RESULTS)": {
             "mapping": {"sf_object": "Contact"},
-            "records_processed": 2,
-            "total_row_errors": 0,
+            "records_processed": 5,
+            "total_row_errors": 3,
         },
     },
     {
@@ -367,17 +367,71 @@ class TestSnowfakery:
                 task()
         assert "XYZZY" in str(logger.mock_calls)
 
+    @pytest.mark.integration_test()
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
+    def test_ignore_errors(self, snowfakery):
+        task = snowfakery(
+            recipe="datasets/include_row_errors.yml",
+            run_until_records_loaded="Account:10",
+            ignore_row_errors=True,
+        )
+        task()
+        assert (
+            task.return_values["sobjects"]["Account"]["errors"] == 3
+        ), task.return_values["sobjects"]["Account"]["errors"]
+
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 1)
+    def test_num_processes_is_respected(
+        self, snowfakery, mock_load_data, fake_processes_and_threads
+    ):
+        live_processes = set()
+        dead_processes = set()
+
+        class FakeProcess(DelaySpawner):
+            max_processes = 0
+
+            def __init__(self, target, args, daemon, index):
+                super().__init__(target, args, daemon)
+                self.counter = 0
+                self.task_class = args[0]["task_class"]
+                self.index = index
+                live_processes.add(self)
+                print("Creating", self.index)
+
+            def is_alive(self):
+                # print("Alive?", self.task_classs, self.index, self.counter, self)
+                self.counter += 1
+                assert len(live_processes) <= 5
+                FakeProcess.max_processes = max(
+                    FakeProcess.max_processes, len(live_processes)
+                )
+
+                # wait for 100 checks...enough to cause a backlog,
+                if self.counter > 100:
+                    if self in live_processes:
+                        live_processes.remove(self)
+                        dead_processes.add(self)
+                        print("Destroying", self.index)
+                    return False
+                return True
+
+        fake_processes_and_threads.process_handler = FakeProcess
+
+        task = snowfakery(
+            recipe=sample_yaml,
+            run_until_records_loaded="Account:20",
+            num_processes=5,
+        )
+        task()
+        assert FakeProcess.max_processes == 5, FakeProcess.max_processes
+
     ## TODO: Test First batch
     ## TODO: Test Intermediate batch
 
     # def test_vars(self):
     #     with temp_sqlite_database_url() as database_url:
     #         with self.assertWarns(UserWarning):
-    #             task = _make_task(
-    #                 GenerateDataFromYaml,
-    #                 {
     #                     "options": {
-    #                         "generator_yaml": sample_yaml,
     #                         "vars": "xyzzy:foo",
     #                         "database_url": database_url,
     #                     }

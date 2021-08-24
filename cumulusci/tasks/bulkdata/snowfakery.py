@@ -190,7 +190,8 @@ class Snowfakery(BaseSalesforceApiTask):
                 self.logger.info(
                     f"Dataload is finished before it started! {self.run_until.nothing_to_do_because}"
                 )
-                return
+                self.return_values = {"status": "Skipped"}
+                return self.return_values
 
             template_path, relevant_sobjects = self._generate_and_load_initial_batch(
                 self.load_data_q.outbox_dir
@@ -209,6 +210,18 @@ class Snowfakery(BaseSalesforceApiTask):
                 portions,
             )
             self.finish(upload_status, self.data_gen_q, self.load_data_q)
+
+        self.return_values = {
+            "status": "success",
+            "sobjects": {
+                name: {
+                    "successes": result.successes,
+                    "errors": result.errors,
+                }
+                for name, result in self.sobject_counts.items()
+            },
+        }
+        return self.return_values
 
     def configure_queues(self, working_directory):
         """Configure two ParallelWorkerQueues for datagen and dataload"""
