@@ -16,7 +16,7 @@ from sqlalchemy import MetaData, Table, create_engine, func, select
 import cumulusci.core.exceptions as exc
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.debug import get_debug_mode
-from cumulusci.core.utils import format_duration
+from cumulusci.core.utils import format_duration, process_bool_arg
 from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
     GenerateAndLoadDataFromYaml,
 )
@@ -132,7 +132,8 @@ class Snowfakery(BaseSalesforceApiTask):
             "description": "Number of data generating processes. Defaults to matching the number of CPUs."
         },
         "ignore_row_errors": {
-            "description": "Boolean: should we continue loading even after running into row errors?"
+            "description": "Boolean: should we continue loading even after running into row errors? "
+            "Defaults to False."
         },
     }
 
@@ -147,7 +148,9 @@ class Snowfakery(BaseSalesforceApiTask):
         self.num_generator_workers = self.options.get("num_processes", None)
         if self.num_generator_workers is not None:
             self.num_generator_workers = int(self.num_generator_workers)
-        self.ignore_row_errors = self.options.get("ignore_row_errors", False)
+        self.ignore_row_errors = process_bool_arg(
+            self.options.get("ignore_row_errors", False)
+        )
 
     @property
     def num_loader_workers(self):
@@ -330,9 +333,9 @@ class Snowfakery(BaseSalesforceApiTask):
             if "results" in results:
                 self.update_running_totals_from_load_step_results(results["results"])
             elif "error" in results:
-                self.logger.info(f"Error in load: {results}")
+                self.logger.warning(f"Error in load: {results}")
             else:  # pragma: no cover
-                self.logger.info(f"Unexpected message from subtask: {results}")
+                self.logger.warning(f"Unexpected message from subtask: {results}")
 
     def update_running_totals_from_load_step_results(self, results: dict) -> None:
         for result in results["step_results"].values():
@@ -362,6 +365,8 @@ class Snowfakery(BaseSalesforceApiTask):
         ):  # pragma: no cover
             self.logger.info("Finished Generating")
         # queue is full
+        elif self.data_gen_q.num_free_workers and self.data_gen_q.full:
+            self.logger.info("Waiting before datagen (load queue is full)")
         else:
             for i in range(self.data_gen_q.num_free_workers):
                 upload_status = self.generate_upload_status(
@@ -546,7 +551,7 @@ class Snowfakery(BaseSalesforceApiTask):
             template_dir,
             {
                 "generator_yaml": self.options.get("recipe"),
-                "num_records": 1,  # smallest possible batch to get to paralleizing fast
+                "num_records": 1,  # smallest possible batch to get to parallelizing fast
                 "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
             },
         )
@@ -724,5 +729,5 @@ class RunningTotals:
     errors: int = 0
     successes: int = 0
 
-    def __repr__(self):  # pragma: no cover
+    def __repr__(self):
         return f"<{self.__class__.__name__} {self.__dict__}>"

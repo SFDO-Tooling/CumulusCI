@@ -137,7 +137,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                             raise BulkDataException(
                                 f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
                             )
-                results[name] = StepResultInfo(mapping, result)
+                results[name] = StepResultInfo(
+                    mapping.sf_object, result, mapping.record_type
+                )
         if self.options["set_recently_viewed"]:
             try:
                 self.logger.info("Setting records to 'recently viewed'.")
@@ -699,8 +701,13 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
 
 class StepResultInfo(T.NamedTuple):
-    mapping: dict
+    sobject: str
     result: DataOperationJobResult
+    record_type: str = None
 
     def simplify(self):
-        return {"mapping": self.mapping.dict(), **self.result.simplify()}
+        return {
+            "sobject": self.sobject,
+            "record_type": self.record_type,
+            **self.result.simplify(),
+        }
