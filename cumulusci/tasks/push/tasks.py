@@ -70,21 +70,22 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
         version = package.get_package_version_objs(version_where, limit=1)
         if not version:
             raise PushApiObjectNotFound(
-                "PackageVersion not found."
-                + " Namespace = {}, Version Info = {}".format(
-                    package.namespace, version_info
-                )
+                "PackageVersion not found. "
+                + f"Namespace = {package.namespace}, Version Info = {version_info}"
             )
         return version[0]
 
-    def _get_package(self, namespace):
-        package = self.push.get_package_objs(
-            "NamespacePrefix = '{}'".format(namespace), limit=1
-        )
+    def _get_package(self, metadata_package_id: str = None, namespace: str = None):
+        if metadata_package_id:
+            where_clause = f"Id = '{metadata_package_id}'"
+        else:
+            where_clause = f"NamespacePrefix = '{namespace}'"
+
+        package = self.push.get_package_objs(where_clause, limit=1)
 
         if not package:
             raise PushApiObjectNotFound(
-                "The package with namespace {} was not found".format(namespace)
+                f"No package was found using the following query: {where_clause}"
             )
 
         return package[0]
@@ -214,7 +215,12 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         },
         "version": {
             "description": "The managed package version to push",
-            "required": True,
+        },
+        "version_id": {
+            "description": "The MetadataPackageVersionId (ID prefix `04t`) to push",
+        },
+        "metadata_package_id": {
+            "description": "The MetadataPackageId (ID prefix `033`) to push.",
         },
         "namespace": {
             "description": (
@@ -234,6 +240,9 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
                 "Break pull requests into batches of this many orgs."
                 + " Defaults to 200."
             )
+        },
+        "dry_run": {
+            "description": "If True, log how many orgs were selected but skip creating a PackagePushRequest.  Defaults to False"
         },
     }
 
@@ -258,6 +267,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             self.options["batch_size"] = 200
         if "csv" not in self.options and "csv_field_name" in self.options:
             raise TaskOptionsError("Please provide a csv file for this task to run.")
+        # self.options["dry_run"] = process_bool_arg()
 
     def _get_orgs(self):
         if "csv" in self.options:
@@ -272,8 +282,14 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
     def _run_task(self):
         orgs = self._get_orgs()
-        package = self._get_package(self.options.get("namespace"))
-        version = self._get_version(package, self.options.get("version"))
+        package = self._get_package(
+            metadata_package_id=self.options.get("metadata_package_id"),
+            namespace=self.options.get("namespace"),
+        )
+        if self.options.get("version_id"):
+            version = self.options.get("version_id")
+        else:
+            version = self._get_version(package, self.options.get("version")).sf_id
 
         utcnow = datetime.now(tz.UTC)
         start_time = self.options.get("start_time")
@@ -294,6 +310,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             )
             start_time = utcnow + timedelta(minutes=delay_minutes)
 
+        print(f"{self.options.get('dry_run')=}")
         if self.options["dry_run"]:
             self.logger.info(
                 f"Selected {len(orgs)} orgs. "
@@ -354,6 +371,10 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
                 + " will be selected for push"
             )
         },
+        "metadata_package_id": {
+            "description": "The MetadataPackageId (ID prefix `033`) to push.",
+            "required": False,
+        },
         "namespace": {
             "description": (
                 "The managed package namespace to push."
@@ -362,8 +383,9 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
         },
         "start_time": {
             "description": (
-                "Set the start time (UTC) to queue a future push."
-                + " Ex: 2016-10-19T10:00"
+                "Set the start time (ISO-8601) to queue a future push."
+                " (Ex: 2021-01-01T06:00Z or 2021-01-01T06:00-08:00)"
+                " Times with no timezone will be interpreted as UTC."
             )
         },
         "dry_run": {
@@ -393,7 +415,10 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             self.sf, self.logger, default_where=default_where.copy(), bulk=self.bulk
         )
 
-        package = self._get_package(self.options.get("namespace"))
+        package = self._get_package(
+            metadata_package_id=self.options.get("metadata_package_id"),
+            namespace=self.options.get("namespace"),
+        )
         version = self._get_version(package, self.options.get("version"))
         min_version = self.options.get("min_version")
         if min_version:
