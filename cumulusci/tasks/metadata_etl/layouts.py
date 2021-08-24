@@ -155,7 +155,7 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
 
         - pages:
 
-            - api_name:[visualforce page api_name]
+            - api_name: [Visualforce Page API name]
             - height: int (Optional. Default: 200)
             - show_label: Boolean (Optional. Default: False)
             - show_scrollbars: Boolean (Optional. Default: False)
