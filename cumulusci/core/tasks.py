@@ -56,7 +56,6 @@ def redirect_output_to_logger(logger):
     orig_stderr = sys.stderr
     sys.stdout = StreamToLog(logger, logging.INFO)
     sys.stderr = StreamToLog(logger, logging.WARNING)
-    breakpoint()
     try:
         yield
     finally:
