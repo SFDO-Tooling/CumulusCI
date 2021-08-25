@@ -4,8 +4,6 @@ from cumulusci.salesforce_api import mc_soap_envelopes as envelopes
 
 from .base import BaseMarketingCloudTask
 
-MC_API_ENDPOINT = "https://{tssd}.soap.marketingcloudapis.com/Service.asmx"
-
 
 class MarketingCloudDeploySubscriberAttribute(BaseMarketingCloudTask):
     task_options = {
@@ -23,21 +21,17 @@ class MarketingCloudDeploySubscriberAttribute(BaseMarketingCloudTask):
         # get soap envelope
         envelope = envelopes.SUBSCRIBER_ATTRIBUTE_DEPLOY
         # fill the merge fields
-        envelope.format(
+        envelope = envelope.format(
             soap_instance_url=self.mc_config.soap_instance_url,
             access_token=self.mc_config.access_token,
             attribute_name=attribute_name,
         )
         # construct request
-        headers = {
-            "Content-Type": "text/xml",
-            "charset": "utf-8",
-            "SOAPAction": "Create",
-        }
+        headers = {"Content-Type": "text/xml; charset=utf-8"}
 
         response = requests.post(
             f"{self.mc_config.soap_instance_url}Service.asmx",
-            data=envelope,
+            data=envelope.encode("utf-8"),
             headers=headers,
         )
         print(response.status_code, response.text)
