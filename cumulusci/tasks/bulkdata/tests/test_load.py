@@ -2397,7 +2397,7 @@ class TestLoadData(unittest.TestCase):
 
 
 class TestLoadDataIntegrationTests:
-    @pytest.mark.integration_test()
+    @pytest.mark.large_vcr()
     def test_error_result_counting__multi_batches(
         self, create_task, cumulusci_test_repo_root
     ):
@@ -2409,7 +2409,7 @@ class TestLoadDataIntegrationTests:
                 "ignore_row_errors": True,
             },
         )
-        with mock.patch("cumulusci.tasks.bulkdata.step.BULK_BATCH_SIZE", 3):
+        with mock.patch("cumulusci.tasks.bulkdata.step.DEFAULT_BULK_BATCH_SIZE", 3):
             task()
         ret = task.return_values["step_results"]
         assert ret["Account"].total_row_errors == 1
@@ -2443,7 +2443,7 @@ class TestLoadDataIntegrationTests:
         }
         assert json.loads(json.dumps(ret)) == expected
 
-    @pytest.mark.integration_test()
+    @pytest.mark.large_vcr()
     def test_bulk_batch_size(self, create_task):
         base_path = os.path.dirname(__file__)
         sql_path = os.path.join(base_path, "testdata.sql")

@@ -8,7 +8,7 @@ Records transactions if there is an org specified and does not if there is not.
 
 import re
 from contextlib import contextmanager
-from contextvars import ContextVar
+from functools import partial
 from pathlib import Path
 
 import pytest
@@ -38,7 +38,7 @@ replacements = [
     ),
     (r'"005[\w\d]{12,15}"', '"0050xUSERID0000000"'),
     (r'"InstanceName" : "[A-Z]{2,4}\d{1,4}",', '"InstanceName" : "CS420",'),
-    (r"<id>0.*<\/id>", "<id>SOAPID_{}</id>"),  # replace SOAP message IDs.
+    (r"<id>0.*<\/id>", "<id>0ANAPPID{}</id>"),  # replace SOAP message IDs.
     (
         r"<asyncProcessId>0.*<\/asyncProcessId>",
         "<asyncProcessId>0ANAPPID</asyncProcessId>",
@@ -53,8 +53,14 @@ replacements = [
 ]
 
 
-RECORDING = ContextVar("RECORDING", default=True)
-READING = ContextVar("READING", default=True)
+@pytest.fixture(scope="function")
+def vcr_cassette_path(vcr_cassette_dir, vcr_cassette_name):
+    return Path(vcr_cassette_dir, vcr_cassette_name + ".yaml")
+
+
+class VcrState:
+    reading: bool = True
+    recording: bool = True
 
 
 @contextmanager
@@ -67,9 +73,9 @@ def set_mode(mode, value):
         mode.set(orig)
 
 
-@pytest.fixture(scope="function")
-def vcr_cassette_path(vcr_cassette_dir, vcr_cassette_name):
-    return Path(vcr_cassette_dir, vcr_cassette_name + ".yaml")
+@pytest.fixture(scope="session")
+def vcr_state():
+    return VcrState()
 
 
 @pytest.fixture(autouse=True)
@@ -78,9 +84,11 @@ def configure_recording_mode(
     user_requested_network_access,
     vcr_cassette_path,
     user_requested_cassette_replacement,
+    vcr_state,
+    monkeypatch,
 ):
-    recording_mode = RECORDING.get()
-    reading_mode = READING.get()
+    recording_mode = vcr_state.recording
+    reading_mode = vcr_state.reading
     if (
         user_requested_network_access
         and vcr_cassette_path.exists()
@@ -101,13 +109,15 @@ def configure_recording_mode(
         recording_mode = False
         reading_mode = True
 
-    with set_mode(RECORDING, recording_mode), set_mode(READING, reading_mode):
+    with monkeypatch.context() as m:
+        m.setattr(vcr_state, "recording", recording_mode)
+        m.setattr(vcr_state, "reading", reading_mode)
         yield
 
 
-def sf_before_record_request(http_request):
+def sf_before_record_request(vcr_state, http_request):
 
-    if not (READING.get() or RECORDING.get()):
+    if not (vcr_state.reading or vcr_state.recording):
         return None
     if http_request.body:
         http_request.body = simplify_body(http_request.body)
@@ -126,7 +136,7 @@ def sf_before_record_response(response):
     return response
 
 
-def vcr_config(request, user_requested_network_access):
+def vcr_config(request, user_requested_network_access, vcr_state):
     "Fixture for configuring VCR"
 
     # https://vcrpy.readthedocs.io/en/latest/usage.html#record-modes
@@ -139,7 +149,7 @@ def vcr_config(request, user_requested_network_access):
         "record_mode": record_mode,
         "decode_compressed_response": True,
         "before_record_response": sf_before_record_response,
-        "before_record_request": sf_before_record_request,
+        "before_record_request": partial(sf_before_record_request, vcr_state),
         # this is redundant, but I guess its a form of
         # security in-depth
         "filter_headers": [
@@ -149,6 +159,14 @@ def vcr_config(request, user_requested_network_access):
             "Last-Modified",
         ],
     }
+
+
+@pytest.fixture(scope="function")
+def bind_vcr_state(request, vcr_state):
+    "Give the vcr_state object access to the request"
+    vcr_state.request = request
+    yield
+    vcr_state.request = None
 
 
 def _cleanup(s: str):

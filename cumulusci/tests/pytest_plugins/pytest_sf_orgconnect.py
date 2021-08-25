@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-from contextvars import ContextVar
 from pathlib import Path
 from unittest import mock
 
@@ -13,8 +12,6 @@ from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tests.util import unmock_env
-
-from .pytest_sf_vcr import READING, RECORDING, set_mode
 
 
 def pytest_addoption(parser, pluginmanager):
@@ -169,18 +166,18 @@ def classify_and_modify_test(item, marker_names):
         pytest.skip("needs_org: test requires --org")
 
 
-# a cache of orgs matching shapes:
-org_shapes = ContextVar("org_shapes", default={})
-
-
 @pytest.fixture(
     scope="function",
 )
-def run_code_without_recording(request, vcr, user_requested_network_access):
+def run_code_without_recording(
+    request, vcr, user_requested_network_access, vcr_state, monkeypatch
+):
     def really_run_code_without_recording(func):
         if user_requested_network_access:
             # Run the setup code, but don't record it
-            with set_mode(RECORDING, False), set_mode(READING, False):
+            with monkeypatch.context() as m:
+                m.setattr(vcr_state, "recording", False)
+                m.setattr(vcr_state, "recording", False)
                 return func()
 
     return really_run_code_without_recording
@@ -194,6 +191,16 @@ class CurrentOrg:
 
 
 @pytest.fixture(scope="session")
+def org_shapes():
+    org_shapes = {}
+    yield org_shapes
+    runtime = CliRuntime(load_keychain=True)
+    for org_name in org_shapes.keys():
+        with click.Context(command=mock.Mock(), obj=runtime):
+            org_scratch_delete.callback(org_name)
+
+
+@pytest.fixture(scope="session")
 def current_org_shape(request):
     """Internal: shared state for fixtures"""
     org = CurrentOrg()
@@ -201,7 +208,7 @@ def current_org_shape(request):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def _change_org_shape(request, current_org_shape):
+def _change_org_shape(request, current_org_shape, org_shapes):
     """Select an org_shape for a test
     e.g.:
 
@@ -219,23 +226,26 @@ def _change_org_shape(request, current_org_shape):
     marker = request.node.get_closest_marker("org_shape")
     if marker:
         config_name, flow_name = marker.args
-        with change_org_shape(current_org_shape, config_name, flow_name) as org_config:
+        with change_org_shape(
+            current_org_shape, config_name, flow_name, org_shapes
+        ) as org_config:
             yield org_config
     else:
         yield None
 
 
 @contextmanager
-def change_org_shape(current_org_shape, config_name: str, flow_name: str):
+def change_org_shape(
+    current_org_shape, config_name: str, flow_name: str, org_shapes: dict
+):
     # I don't love that we're using the user's real keychain
     # but I get weird popups when I use an empty keychain.
     with unmock_env():
         org_name = f"pytest__{config_name}__{flow_name}"
-        shapes = org_shapes.get()
-        org_config = shapes.get(org_name)
+        org_config = org_shapes.get(org_name)
         if not org_config:
             org_config = _create_org(org_name, config_name, flow_name)
-            shapes[org_name] = org_config
+            org_shapes[org_name] = org_config
     current_org_shape.org_config = org_config
     yield org_config
 
