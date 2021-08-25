@@ -4,8 +4,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-from robot import pythonpathsetter
-from robot import run as robot_run
 from robot.testdoc import testdoc
 
 from cumulusci.core.exceptions import (
@@ -19,6 +17,8 @@ from cumulusci.robotframework.utils import set_pdb_trace
 from cumulusci.tasks.robotframework.debugger import DebugListener
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
+from robot import pythonpathsetter
+from robot import run as robot_run
 
 
 class Robot(BaseSalesforceTask):
@@ -265,6 +265,8 @@ class Robot(BaseSalesforceTask):
             if self.project_config.repo_root not in sys.path:
                 pythonpathsetter.add_path(self.project_config.repo_root)
 
+            options["stdout"] = sys.stdout
+            options["stderr"] = sys.stderr
             try:
                 num_failed = robot_run(*self.options["suites"], **options)
             finally:

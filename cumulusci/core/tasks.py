@@ -3,9 +3,11 @@
 Subclass BaseTask or a descendant to define custom task logic
 """
 import contextlib
+import io
 import logging
 import os
 import re
+import sys
 import threading
 import time
 
@@ -33,6 +35,33 @@ def stacked_task(task):
         yield
     finally:
         CURRENT_TASK.stack.pop()
+
+
+class StreamToLog(io.TextIOBase):
+    def __init__(self, logger, level=logging.INFO):
+        self.logger = logger
+        self.level = level
+        self.buffer = []
+
+    def write(self, s):
+        self.buffer.append(s)
+        if s.endswith("\n"):
+            self.logger.log(self.level, "".join(self.buffer).strip())
+            self.buffer = []
+
+
+@contextlib.contextmanager
+def redirect_output_to_logger(logger):
+    orig_stdout = sys.stdout
+    orig_stderr = sys.stderr
+    sys.stdout = StreamToLog(logger, logging.INFO)
+    sys.stderr = StreamToLog(logger, logging.WARNING)
+    breakpoint()
+    try:
+        yield
+    finally:
+        sys.stdout = orig_stdout
+        sys.stderr = orig_stderr
 
 
 class BaseTask(object):
@@ -148,9 +177,10 @@ class BaseTask(object):
             self.working_path = os.getcwd()
             path = self.project_config.repo_root if self.project_config else None
             with cd(path):
-                self._log_begin()
-                self.result = self._run_task()
-                return self.return_values
+                with redirect_output_to_logger(self.logger):
+                    self._log_begin()
+                    self.result = self._run_task()
+                    return self.return_values
 
     def _run_task(self):
         """Subclasses should override to provide their implementation"""
