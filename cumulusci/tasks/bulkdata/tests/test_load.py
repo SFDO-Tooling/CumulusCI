@@ -9,6 +9,7 @@ import unittest
 from datetime import date, timedelta
 from unittest import mock
 
+import pytest
 import responses
 from sqlalchemy import Column, Table, Unicode, create_engine
 
@@ -16,6 +17,7 @@ from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 from cumulusci.tasks.bulkdata.step import (
+    BulkApiDmlOperation,
     DataApi,
     DataOperationJobResult,
     DataOperationResult,
@@ -135,8 +137,8 @@ class TestLoadData(unittest.TestCase):
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
         task.mapping = {}
-        task.mapping["Insert Households"] = 1
-        task.mapping["Insert Contacts"] = 2
+        one = task.mapping["Insert Households"] = mock.Mock()
+        two = task.mapping["Insert Contacts"] = mock.Mock()
         households_steps = {}
         households_steps["four"] = 4
         households_steps["five"] = 5
@@ -149,7 +151,7 @@ class TestLoadData(unittest.TestCase):
         )
         task()
         task._execute_step.assert_has_calls(
-            [mock.call(1), mock.call(4), mock.call(5), mock.call(2), mock.call(3)]
+            [mock.call(one), mock.call(4), mock.call(5), mock.call(two), mock.call(3)]
         )
 
     def test_run_task__after_steps_failure(self):
@@ -2363,3 +2365,115 @@ class TestLoadData(unittest.TestCase):
         with mock.patch.object(task.logger, "warning") as warning:
             task()
         assert "xyzzy" in str(warning.mock_calls[0])
+
+    def test_no_mapping(self):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                }
+            },
+        )
+        task._init_db = mock.Mock(return_value=nullcontext())
+        with pytest.raises(TaskOptionsError, match="Mapping file path required"):
+            task()
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.validate_and_inject_mapping")
+    def test_mapping_contains_extra_sobjects(self, _):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "mapping": mapping_path,
+                    "database_url": "sqlite://",
+                }
+            },
+        )
+        with pytest.raises(BulkDataException):
+            task()
+
+
+class TestLoadDataIntegrationTests:
+    @pytest.mark.integration_test()
+    def test_error_result_counting__multi_batches(
+        self, create_task, cumulusci_test_repo_root
+    ):
+        task = create_task(
+            LoadData,
+            {
+                "sql_path": cumulusci_test_repo_root / "datasets/bad_sample.sql",
+                "mapping": cumulusci_test_repo_root / "datasets/mapping.yml",
+                "ignore_row_errors": True,
+            },
+        )
+        with mock.patch("cumulusci.tasks.bulkdata.step.BULK_BATCH_SIZE", 3):
+            task()
+        ret = task.return_values["step_results"]
+        assert ret["Account"].total_row_errors == 1
+        assert ret["Contact"].total_row_errors == 1
+        assert ret["Opportunity"].total_row_errors == 2
+        expected = {
+            "Account": [
+                {
+                    "status": "Row failure",
+                    "job_errors": [],
+                    "records_processed": 2,
+                    "total_row_errors": 1,
+                }
+            ],
+            "Contact": [
+                {
+                    "status": "Row failure",
+                    "job_errors": [],
+                    "records_processed": 2,
+                    "total_row_errors": 1,
+                }
+            ],
+            "Opportunity": [
+                {
+                    "status": "Row failure",
+                    "job_errors": [],
+                    "records_processed": 4,
+                    "total_row_errors": 2,
+                }
+            ],
+        }
+        assert json.loads(json.dumps(ret)) == expected
+
+    @pytest.mark.integration_test()
+    def test_bulk_batch_size(self, create_task):
+        base_path = os.path.dirname(__file__)
+        sql_path = os.path.join(base_path, "testdata.sql")
+        mapping_path = os.path.join(base_path, "mapping_simple.yml")
+
+        orig_batch = BulkApiDmlOperation._batch
+        counts = {}
+
+        def _batch(self, records, n, *args, **kwargs):
+            records = list(records)
+            if records == [["TestHousehold"]]:
+                counts.setdefault("Account", []).append(n)
+            elif records[0][1] == "User":
+                counts.setdefault("Contact", []).append(n)
+            else:
+                assert 0, "Data in SQL must have changed!"
+            records = list(records)
+            return orig_batch(self, records, n, *args, **kwargs)
+
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation._batch",
+            _batch,
+        ):
+            task = create_task(
+                LoadData,
+                {
+                    "sql_path": sql_path,
+                    "mapping": mapping_path,
+                    "ignore_row_errors": True,
+                },
+            )
+            task()
+            assert counts == {"Account": [10000], "Contact": [1]}

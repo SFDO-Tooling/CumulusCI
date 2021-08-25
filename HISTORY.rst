@@ -2,6 +2,67 @@
 History
 =======
 
+3.42.0 (2021-08-19)
+-------------------
+Critical Changes
+
+* The ``github_release`` task now requires the ``tag_prefix`` option to be passed, because for 2nd-generation packages we can't tell from the version number whether it is a beta or not. We've updated the standard release flows to set the ``tag_prefix`` appropriately, but if you have custom flows using this task you will need to update them. (#2792)
+ 
+* In order to run the ``github_copy_subtree`` task for a specific package version, you must now use the ``tag_name`` option instead of the ``version`` option. Using the ``version`` option set to ``latest`` or ``latest_beta`` is deprecated; it's preferred to pass these values in the ``tag_name`` option instead. (#2792)
+
+Changes
+
+* The ``uninstall_packaged_incremental`` task now defaults to ignoring non-deletable ``CustomObjectTranslation`` metadata.
+  If your project customizes the ``ignore_types`` option on ``uninstall_packaged_incremental``, we recommend you add ``CustomObjectTranslation`` to this option. (#2790)
+
+Issues Fixed
+
+* Fixed an issue where bulk job results were being miscounted. (Thanks @sfdcale!) (#2789)
+
+* Fixed an issue where GitHub tags for a 2GP package would always include the "release" prefix (even for Beta package versions). (#2792)
+
+3.41.0 (2021-08-05)
+-------------------
+
+Changes
+
+* We added a new Metadata ETL task, `add_page_layout_fields`, that allows adding fields to existing layouts. (#2766)
+
+* We added a task to enable an Einstein prediction: `enable_einstein_prediction` (thanks, @erikperkins!) (#2778)
+
+* We added standard flows for releasing unlocked packages: `release_unlocked_beta` and `release_unlocked_production` (#2768)
+ 
+* We added `documentation <https://cumulusci.readthedocs.io/en/stable/packaging.html>`_ for using CumulusCI to build managed 2GP packages, 
+  unlocked packages, and extending NPSP and EDA with 2GP packages. (#2768)
+
+* Contributions to CCI now require verification by isort, which ensures consistency in the order that imports are used. (#2770)
+ 
+* CumulusCI now supports deploying unmanaged dependencies in SFDX source format. (#2735)
+
+* The `create_package_version` task now handles dependencies that use a `zip_url`. (#2735)
+
+* Updates to Github Actions configuration documentation. Thanks @Julian88Tex (#2773)
+
+* CumulusCI now automatically recognizes services and orgs configured via environment variables. See the `docs <https://cumulusci.readthedocs.io/en/stable/headless.html>`_ for more details. (#2676 and #2776)
+
+* We've updated the Push Upgrade tasks (`push_list`, `push_sandbox`, etc) task option `start_time` to accept ISO-8601 formatted datetimes. (#2769)
+
+* You can now specify "sandbox": true on a CUMULUSCI_ORG_* variable in headless environments to indicate that the org you want to connect to is a sandbox. when connecting sandbox orgs in a headless environment. (#2753)
+
+Issues Closed
+
+* Fixed an issue where scratch orgs failed to be deleted in CI environments. (#2676)
+
+* Fixed an issue where deleting an org failed to mark the org as deleted on CumulusCI's keychain. (#2676)
+
+* Fixed an issue where CumulusCI would fail on Linux distributions that were incompatible with the `keyring` package. (#2676)
+
+* We fixed an issue causing the `release_2gp_production` flow to fail with a dependency parsing error. (#2767)
+
+* Fixed a couple issues with connecting CumulusCI to sandboxes using enhanced domains. (#2753 and #2765)
+
+* Fixed a bug where the github_release task was not marking the "This is a pre-release" checkbox for beta releases. (#2788)
+
 3.40.1 (2021-07-22)
 -------------------
 

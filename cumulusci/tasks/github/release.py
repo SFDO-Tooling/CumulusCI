@@ -39,7 +39,8 @@ class CreateRelease(BaseGithubTask):
             "required": True,
         },
         "tag_prefix": {
-            "description": "The prefix to use for the release tag created in github."
+            "description": "The prefix to use for the release tag created in github.",
+            "required": True,
         },
     }
 
@@ -58,7 +59,7 @@ class CreateRelease(BaseGithubTask):
         repo = self.get_repo()
         version = self.options["version"]
         tag_prefix = self.options.get("tag_prefix")
-        tag_name = self.project_config.get_tag_for_version(version, prefix=tag_prefix)
+        tag_name = self.project_config.get_tag_for_version(tag_prefix, version)
 
         # Make sure release doesn't already exist
         try:
@@ -108,7 +109,7 @@ class CreateRelease(BaseGithubTask):
             # Sleep for Github to catch up with the fact that the tag actually exists!
             time.sleep(3)
 
-        prerelease = tag_prefix == self.project_config.project__git__prefix_beta
+        prerelease = tag_name.startswith(self.project_config.project__git__prefix_beta)
 
         # Create the Github Release
         release = repo.create_release(

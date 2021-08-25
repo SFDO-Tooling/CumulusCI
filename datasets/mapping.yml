@@ -1,0 +1,46 @@
+Account:
+  sf_object: Account
+  api: bulk
+  fields:
+    - Name
+    - Description
+    - NumberOfEmployees
+    - BillingStreet
+    - BillingCity
+    - BillingState
+    - BillingPostalCode
+    - BillingCountry
+    - ShippingStreet
+    - ShippingCity
+    - ShippingState
+    - ShippingPostalCode
+    - ShippingCountry
+    - Phone
+    - Fax
+    - Website
+    - AccountNumber
+
+Contact:
+  sf_object: Contact
+  api: bulk
+  fields:
+    - FirstName
+    - LastName
+    - Salutation
+    - Email
+    - Phone
+    - MobilePhone
+    - Title
+    - Birthdate
+  lookups:
+    AccountId:
+      table: Account
+Opportunity:
+  sf_object: Opportunity
+  api: bulk
+  batch_size: 2
+  fields:
+    - Name
+    - CloseDate
+    - Amount
+    - StageName

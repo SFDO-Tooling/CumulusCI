@@ -136,13 +136,14 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
                 batches = generate_batches(self.num_records, self.batch_size)
             else:
                 batches = [(None, 0, 1)]
+            results = []
             for current_batch_size, index, total_batches in batches:
                 if total_batches > 1:
                     self.logger.info(
                         f"Generating a data batch, batch_size={current_batch_size} "
                         f"index={index} total_records={self.num_records}"
                     )
-                self._generate_batch(
+                res = self._generate_batch(
                     database_url=self.database_url,
                     tempdir=self.working_directory or tempdir,
                     mapping_file=self.mapping_file,
@@ -150,6 +151,9 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
                     index=index,
                     total_batches=total_batches,
                 )
+                results.append(res)
+        self.return_values = {"load_results": results}
+        return self.return_values
 
     def _datagen(self, subtask_options):
         task_config = TaskConfig({"options": subtask_options})
@@ -158,7 +162,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         )
         data_gen_task()
 
-    def _dataload(self, subtask_options):
+    def _dataload(self, subtask_options) -> dict:
         subtask_config = TaskConfig({"options": subtask_options})
         subtask = LoadData(
             project_config=self.project_config,
@@ -169,6 +173,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
             stepnum=self.stepnum,
         )
         subtask()
+        return subtask.return_values
 
     def _generate_batch(
         self,
@@ -179,7 +184,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         batch_size: Optional[int],
         index: int,
         total_batches: int,
-    ):
+    ) -> dict:
         """Generate a batch in database_url or a tempfile if it isn't specified."""
         if not database_url:
             sqlite_path = Path(tempdir) / "generated_data.db"
@@ -205,7 +210,7 @@ class GenerateAndLoadData(BaseSalesforceApiTask):
         self._datagen(subtask_options)
         if not subtask_options.get("mapping"):
             subtask_options["mapping"] = mapping_file
-        self._dataload(subtask_options)
+        return self._dataload(subtask_options)
 
     def _setup_engine(self, database_url):
         """Set up the database engine"""

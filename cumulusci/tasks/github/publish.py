@@ -4,7 +4,11 @@ from pathlib import Path
 
 import github3.exceptions
 
-from cumulusci.core.exceptions import GithubException, TaskOptionsError
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    GithubException,
+    TaskOptionsError,
+)
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.tasks.github.util import CommitDir
@@ -20,12 +24,17 @@ class PublishSubtree(BaseGithubTask):
             "required": True,
         },
         "version": {
-            "description": "The version number to release. "
-            "Also supports latest and latest_beta to look up the latest releases. "
-            "Required if 'ref' is not set."
+            "description": "(Deprecated >= 3.42.0) Only the values of 'latest' and 'latest_beta' are acceptable. "
+            "Required if 'ref' or 'tag_name' is not set. This will override tag_name if it is provided."
+        },
+        "tag_name": {
+            "description": "The name of the tag that should be associated with this release. "
+            "Values of 'latest' and 'latest_beta' are also allowed. "
+            "Required if 'ref' or 'version' is not set."
         },
         "ref": {
-            "description": "The git reference to publish.  Takes precedence over 'version'."
+            "description": "The git reference to publish.  Takes precedence over 'version' and 'tag_name'. "
+            "Required if 'tag_name' is not set."
         },
         "include": {
             "description": "A list of paths from repo root to include. Directories must end with a trailing slash."
@@ -54,13 +63,21 @@ class PublishSubtree(BaseGithubTask):
 
         self.options["renames"] = self._process_renames(self.options.get("renames", []))
 
-        if self.options.get("version") in ("latest", "latest_beta"):
-            get_beta = self.options["version"] == "latest_beta"
-            self.options["version"] = str(
-                self.project_config.get_latest_version(beta=get_beta)
+        if "version" in self.options:  # pragma: no cover
+            self.logger.warning(
+                "The `version` option is deprecated. Please use the `tag_name` option instead."
             )
-        if "ref" not in self.options and "version" not in self.options:
-            raise TaskOptionsError("Either `ref` or `version` option is required")
+            if self.options["version"] not in ("latest", "latest_beta"):
+                raise TaskOptionsError(
+                    f"Only `latest` and `latest_beta` are valid values for the `version` option. Found: {self.options['version']}"
+                )
+
+        if (
+            "ref" not in self.options
+            and "tag_name" not in self.options
+            and "version" not in self.options
+        ):
+            raise TaskOptionsError("Either `ref` or `tag_name` option is required.")
 
         self.options["create_release"] = process_bool_arg(
             self.options.get("create_release", False)
@@ -121,11 +138,24 @@ class PublishSubtree(BaseGithubTask):
     def _set_ref(self):
         if "ref" in self.options:
             self.ref = self.options["ref"]
-        else:
-            self.tag_name = self.project_config.get_tag_for_version(
-                self.options["version"]
-            )
+
+        elif "version" in self.options:
+            get_beta = self.options.get("version") == "latest_beta"
+            self.tag_name = self.project_config.get_latest_tag(beta=get_beta)
             self.ref = f"tags/{self.tag_name}"
+
+        elif "tag_name" in self.options:
+            if self.options["tag_name"] in ("latest", "latest_beta"):
+                get_beta = self.options["tag_name"] == "latest_beta"
+                tag_name = self.project_config.get_latest_tag(beta=get_beta)
+            else:
+                tag_name = self.options["tag_name"]
+
+            self.tag_name = tag_name
+            self.ref = f"tags/{self.tag_name}"
+
+        else:  # pragma: no cover
+            raise CumulusCIException("No ref, version, or tag_name present")
 
     def _download_repo_and_extract(self, path):
         zf = download_extract_github_from_repo(self.get_repo(), ref=self.ref)
@@ -170,8 +200,8 @@ class PublishSubtree(BaseGithubTask):
     def _create_commit(self, path):
         committer = CommitDir(self.target_repo, logger=self.logger)
         message = f"Published content from ref {self.ref}"
-        if "version" in self.options:
-            message += f'\n\nVersion {self.options["version"]}'
+        if "tag_name" in self.options:
+            message += f"\n\nTag {self.tag_name}"
         return committer(
             path,
             self.options["branch"],
@@ -221,7 +251,7 @@ class PublishSubtree(BaseGithubTask):
             tagger={
                 "name": self.github_config.username,
                 "email": self.github_config.email,
-                "date": "{}Z".format(datetime.utcnow().isoformat()),
+                "date": f"{datetime.utcnow().isoformat()}Z",
             },
             lightweight=False,
         )
@@ -229,7 +259,7 @@ class PublishSubtree(BaseGithubTask):
         # Create the release
         self.target_repo.create_release(
             tag_name=self.tag_name,
-            name=self.options["version"],
+            name=self.project_config.get_version_for_tag(self.tag_name),
             prerelease=release.prerelease,
             body=release_body,
         )

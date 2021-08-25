@@ -40,7 +40,7 @@ Then, run your 2GP builds against the org `build`:
 .. code-block:: console
 
     $ cci flow run dependencies --org build
-    $ cci flow run upload_2gp_beta --org build
+    $ cci flow run release_2gp_beta --org build
 
 
 This will result in the creation of default Record Types in the build org, allowing NPSP to be installed. Meanwhile,
