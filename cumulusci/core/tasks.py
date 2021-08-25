@@ -6,6 +6,7 @@ import contextlib
 import io
 import logging
 import os
+import pdb
 import re
 import sys
 import threading
@@ -48,6 +49,20 @@ class StreamToLog(io.TextIOBase):
         if s.endswith("\n"):
             self.logger.log(self.level, "".join(self.buffer).strip())
             self.buffer = []
+
+
+# Make sure pdb uses unredirected stdout by default
+orig_init = pdb.Pdb.__init__
+
+
+def pdb_init(self, *args, **kw):
+    orig_init(self, *args, **kw)
+    if self.stdout is sys.stdout:
+        self.stdout = sys.__stdout__
+        self.use_rawinput = 0
+
+
+pdb.Pdb.__init__ = pdb_init
 
 
 @contextlib.contextmanager
