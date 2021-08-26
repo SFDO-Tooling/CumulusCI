@@ -235,7 +235,7 @@ def run_code_without_recording(
         if user_requested_network_access:
             # Run the setup code, but don't record it
             with monkeypatch.context() as m:
-                m.setattr(vcr_state, "recording", RecordingMode.disabled)
+                m.setattr(vcr_state, "recording", RecordingMode.DISABLE)
                 return func()
 
     return really_run_code_without_recording

@@ -1,12 +1,10 @@
 from contextlib import contextmanager
 from pathlib import Path
-from unittest import mock
 
-import click
 import pytest
 
 import cumulusci
-from cumulusci.cli.org import org_scratch, org_scratch_delete
+from cumulusci.cli.org import org_remove, org_scratch, org_scratch_delete
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import OrgNotFound
@@ -179,11 +177,35 @@ class CurrentOrg:
 @pytest.fixture(scope="session")
 def org_shapes():
     org_shapes = {}
-    yield org_shapes
+    try:
+        yield org_shapes
+    finally:
+        cleanup_org_shapes(org_shapes)
+
+
+def cleanup_org_shapes(org_shapes):
     runtime = CliRuntime(load_keychain=True)
+    errors = []
     for org_name in org_shapes.keys():
-        with click.Context(command=mock.Mock(), obj=runtime):
-            org_scratch_delete.callback(org_name)
+        cleanup_org(runtime, org_name, errors)
+
+    if errors:
+        raise AssertionError(str(errors))
+
+
+def cleanup_org(runtime, org_name, errors):
+    try:
+        org_scratch_delete.callback.__wrapped__(
+            runtime,
+            org_name,
+        )
+    except Exception as e:
+        print(f"EXCEPTION deleting org {e}")
+        errors.append(e)
+    try:
+        org_remove.callback.__wrapped__(runtime, org_name, False)
+    except Exception:
+        pass
 
 
 @pytest.fixture(scope="session")
@@ -238,23 +260,23 @@ def change_org_shape(
 
 def _create_org(org_name, config_name, flow_name):
     runtime = CliRuntime(load_keychain=True)
-    with click.Context(command=mock.Mock(), obj=runtime):
-        try:
-            org, org_config = runtime.get_org(org_name)
-        except OrgNotFound:
-            org = None
-        if org:
-            org_scratch_delete.callback(org_name)
-        org_scratch.callback(
-            config_name,
-            org_name,
-            default=False,
-            devhub=None,
-            days=1,
-            no_password=False,
-        )
+    try:
         org, org_config = runtime.get_org(org_name)
+    except OrgNotFound:
+        org = None
+    if org:
+        cleanup_org_shapes(org_name)
+    org_scratch.callback.__wrapped__(
+        runtime,
+        config_name,
+        org_name,
+        default=False,
+        devhub=None,
+        days=1,
+        no_password=False,
+    )
+    org, org_config = runtime.get_org(org_name)
 
-        coordinator = runtime.get_flow(flow_name)
-        coordinator.run(org_config)
-        return org_config
+    coordinator = runtime.get_flow(flow_name)
+    coordinator.run(org_config)
+    return org_config
