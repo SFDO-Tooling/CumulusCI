@@ -27,7 +27,15 @@ You Get a Test! And You Get a Test!
 
 When you initialize a repository to work with CumulusCI (see `Start a new CumulusCI Project <https://cumulusci.readthedocs.io/en/stable/get_started.html?highlight=project%20init#start-a-new-cumulusci-project>`_), you automatically get a preconfigured ``robot`` task to run all of your Robot tests at the same time. We also install one example test, ``create_contact.robot``, that shows how to write both browser-based and API-based tests. In fact, we've gone ahead and created a complete folder hierarchy for tests, test results, and everything else related to Robot, all starting in a folder named ``robot`` at the top of your repository.
 
-.. image:: images/robot_structure_screenshot.png
+.. code-block:: console
+
+   ProjectName
+   ├── robot
+   │   └── ProjectName
+   │       ├── doc
+   │       ├── resources
+   │       └── tests
+   │           └── create_contact.robot
 
 .. tip:: 
     The ``create_contact.robot`` file is in plain text, so you can open it with any text editor you have on your machine. One of the features we love about Robot is that the files are not in a proprietary format. 
@@ -373,7 +381,7 @@ Create Custom Keywords
 
 We mentioned earlier that Robot makes use of a domain-specific language. By creating a collection of reusable custom keywords, we can create this DSL for testing Salesforce apps.
 
-Let's now create a new Robot test that includes a custom keyword called ``Create a test Contact``, which creates a ``Contact`` record. Save this code in a file named ``custom_keyword.robot`` in the ``tests`` folder of your project's repository.
+Let's create a new Robot test that includes a custom keyword called ``Create a test Contact``, which creates a ``Contact`` record and then saves the data for this record in a test variable. Save this code in a file named ``custom_keyword.robot`` in the ``tests`` folder of your project's repository.
 
 .. code-block:: robotframework
 
@@ -385,14 +393,13 @@ Let's now create a new Robot test that includes a custom keyword called ``Create
    Example of using a custom keyword in a setup step
       [Setup]      Create a test Contact
 
-      # Get the new Contact and add name to the log
-      &{contact}=      Salesforce Get  Contact  ${contact id}
-      Log  Contact name: ${contact}[Name]
+      # Get the new Contact that's stored in a test variable,
+      # and add the name to the log
+      Log  New Contact: ${new contact}[Name]
 
    *** Keywords ***
    Create a test Contact
       [Documentation]  Create a temporary Contact and return it
-      [Return]         ${contact}
 
       # Generate a name to use for Contact
       ${first name}=   Get fake data  first_name
@@ -403,15 +410,18 @@ Let's now create a new Robot test that includes a custom keyword called ``Create
       ...  FirstName=${first name}
       ...  LastName=${last name}
 
-      # Fetch the Contact to be returned
-      &{contact} = Salesforce Get  Contact ${contact_id}
+      # Fetch the Contact object to be returned and save
+      # it to a test variable
+      &{new contact}=    Salesforce Get    Contact    ${contact_id}
+      Set test variable  &{new contact}
+
+Because the ``Contact`` was created in a keyword, the variable that refers to the keyword is not going to be visible to the test case by default. In this example, the built-in keyword `Set test variable <http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Set%20Test%20Variable>`_ makes the newly created ``Contact`` variable visible in the test case that calls this keyword. 
 
 .. note::
-    Each test case and keyword can have its own settings. However, instead of a ``Settings`` section inside of a test case or keyword, test case or keyword settings are specified with the setting name in square brackets. In the previous example:
+    Each test case and keyword can have its own settings. However, instead of a ``Settings`` section inside of a test case or keyword, test case or keyword settings are specified with the setting name in square brackets. In the previous example: 
+      * ``[Setup]`` is a setting for the ``Example of using a custom keyword in a setup step`` test case.
+      * ``[Documentation]`` is a setting for the ``Create a test Contact`` keyword. 
 
-    * ``[Setup]`` is a setting for the ``Example of using a custom keyword in a setup step`` test case.
-    * ``[Documentation]`` and ``[Return]`` are settings for the ``Create a test Contact`` keyword.
-    
     For details, see the `Settings in the Test Case section <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#settings-in-the-test-case-section>`_ in the official Robot Framework documentation.
 
 To run this test from the command line:
@@ -438,10 +448,8 @@ For this example, we'll stick to this convention and create a file named after y
    *** Settings ***
    Resource        cumulusci/robotframework/Salesforce.robot
 
-   *** Keywords ***
    Create a test Contact
-      [Documentation]  Create a temporary Contact and return the ID
-      [Return]         ${contact id}
+      [Documentation]  Create a temporary Contact and return it
 
       # Generate a name to use for Contact
       ${first name}=   Get fake data  first_name
@@ -451,6 +459,11 @@ For this example, we'll stick to this convention and create a file named after y
       ${contact id}=   Salesforce Insert  Contact
       ...  FirstName=${first name}
       ...  LastName=${last name}
+
+      # Fetch the Contact object to be returned and save
+      # it to a test variable
+      &{new contact}=    Salesforce Get   Contact    ${contact_id}
+      Set test variable  &{new contact}
 
 .. note::
     Along with moving the ``Keywords`` section in the ``custom_keyword.robot`` test case file to this file, you must also import ``Salesforce.robot`` as a ``Resource`` because that's where the Faker library is defined.
@@ -469,9 +482,9 @@ Next, let's modify the ``custom_keyword.robot`` test case file. Remove the ``Key
    Example of using a custom keyword in a setup step
       [Setup]      Create a test Contact
 
-      # Get the new Contact and add name to the log
-      &{contact}=      Salesforce Get  Contact  ${contact id}
-      Log  Contact name: ${contact}[Name]
+      # Get the new Contact that's stored in a test variable,
+      # and add the name to the log
+      Log  New Contact: ${new contact}[Name]
 
 .. note::
     Keywords defined in resource files are accessible to all tests in a suite that imports the resource files.
@@ -600,7 +613,25 @@ Run an Entire Test Suite
 
 At this point, the ``robot`` folder in your project repository should look like this.
 
-.. image:: images/robot_final_structure_screenshot.png
+.. code-block:: console
+
+   ProjectName
+   ├── robot
+   │   └── ProjectName
+   │       ├── doc
+   │       ├── resources
+   │       │   └── ProjectName.robot
+   │       ├── results
+   │       │   ├── log.html
+   │       │   ├── output.xml
+   │       │   ├── report.html
+   │       │   ├── selenium-screenshot-1.png
+   │       │   └── selenium-screenshot-2.png
+   │       └── tests
+   │           ├── create_contact.robot
+   │           ├── custom_keyword.robot
+   │           ├── new_contact_record.robot
+   │           └── ui.robot
 
 While a single ``.robot`` file is considered to be a test suite, Robot also considers folders to be suites. You can pass a folder to Robot to run all tests stored in that folder. So if you've saved the ``new_contact_record.robot``, ``custom_keyword.robot``, and ``ui.robot`` test case files in the ``tests`` folder, you can run all of the tests in the command line.
 
@@ -610,7 +641,54 @@ While a single ``.robot`` file is considered to be a test suite, Robot also cons
 
 In the output, you can see that all of the test case files in the ``tests`` folder have been run, including the ``create_contact.robot`` test case file that comes with CumulusCI. 
 
-INCLUDE OUTPUT HERE
+.. code-block:: console
+
+   $ cci task run robot --suites robot/<ProjectName>/tests
+   2021-08-24 16:45:36: Getting org info from Salesforce CLI for test-4g5sxdzt9sj3@example.com
+   2021-08-24 16:45:39: Beginning task: Robot
+   2021-08-24 16:45:39: As user: test-4g5sxdzt9sj3@example.com
+   2021-08-24 16:45:39: In org: 00D56000000KC1g
+   2021-08-24 16:45:39: 
+   ==============================================================================
+   Tests                                                                         
+   ==============================================================================
+   Tests.Create Contact                                                          
+   ==============================================================================
+   Via API                                                               | PASS |
+   ------------------------------------------------------------------------------
+   Via UI                                                                | PASS |
+   ------------------------------------------------------------------------------
+   Tests.Create Contact                                                  | PASS |
+   2 tests, 2 passed, 0 failed
+   ==============================================================================
+   Tests.Custom Keyword                                                          
+   ==============================================================================
+   Example of using a custom keyword in a setup step                     | PASS |
+   ------------------------------------------------------------------------------
+   Tests.Custom Keyword                                                  | PASS |
+   1 test, 1 passed, 0 failed
+   ==============================================================================
+   Tests.New Contact Record :: A simple Robot test                               
+   ==============================================================================
+   Take screenshot of list of Contacts                                   | PASS |
+   ------------------------------------------------------------------------------
+   Tests.New Contact Record :: A simple Robot test                       | PASS |
+   1 test, 1 passed, 0 failed
+   ==============================================================================
+   Tests.Ui :: A simple Robot test                                               
+   ==============================================================================
+   Take screenshot of list of Contacts                                   | PASS |
+   ------------------------------------------------------------------------------
+   Tests.Ui :: A simple Robot test                                       | PASS |
+   1 test, 1 passed, 0 failed
+   ==============================================================================
+   Tests                                                                 | PASS |
+   5 tests, 5 passed, 0 failed
+   ==============================================================================
+   Output:  /private/tmp/<ProjectName>/robot/<ProjectName>/results/output.xml
+   Log:     /private/tmp/<ProjectName>/robot/<ProjectName>/results/log.html
+   Report:  /private/tmp/<ProjectName>/robot/<ProjectName>/results/report.html
+
 
 .. tip:: 
     Test suite folders can also contain nested folders of tests, which makes it easy to organize tests into functional groups. For example, you can store all API tests in a ``tests/api`` folder, and store all UI tests in a ``tests/ui`` folder.
@@ -630,4 +708,12 @@ Learn More About Robot Framework
 
 Learn more about Robot with these resources.
 
-* `Robot Framework <https://robotframework.org/>`_
+.. toctree::
+    :maxdepth: 1
+
+    robot_advanced.rst
+    robot_tutorial.rst
+    robot_debugger.rst
+   `Robot Framework <https://robotframework.org/>`_
+
+
