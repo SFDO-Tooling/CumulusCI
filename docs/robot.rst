@@ -711,11 +711,11 @@ Learn More About Robot Framework
 
 Learn more about Robot with these resources.
 
+* `Robot Framework <https://robotframework.org/>`_
+
 .. toctree::
     :maxdepth: 1
 
     robot_advanced.rst
     robot_tutorial.rst
     robot_debugger.rst
-   `Robot Framework <https://robotframework.org/>`_
-
