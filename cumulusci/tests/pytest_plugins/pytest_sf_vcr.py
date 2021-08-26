@@ -30,28 +30,29 @@ class RecordingMode(Enum):
 
 replacements = [
     (r"/v?\d\d.0/", r"/vxx.0/"),
-    (r"/00D[\w\d]{12,15}", "/00D0xORGID00000000"),
-    (r'"00D[\w\d]{12,15}"', '"00D0xORGID00000000"'),
+    # (r"/00D[\w\d]{12,15}", "/00D0xORGID00000000"),
+    # (r'"00D[\w\d]{12,15}"', '"00D0xORGID00000000"'),
     (r".com//", r".com/"),
     (r"ersion>\d\d.0<", r"ersion>vxx.0<"),
     (r"<sessionId>.*</sessionId>", r"<sessionId>**Elided**</sessionId>"),
-    (r"001[\w\d]{12,15}", "0010xACCOUNTID0000"),
+    # (r"001[\w\d]{12,15}", "0010xACCOUNTID0000"),
     (r"//.*.my.salesforce.com", "//orgname.my.salesforce.com"),
     (r"//.*\d+.*.salesforce.com/", "//orgname.my.salesforce.com/"),
-    (
-        r"202\d-\d\d-\d\dT\d\d:\d\d\:\d\d.\d\d\d\+0000",
-        "2021-01-01T01:02:01.000+0000",
-    ),
-    (r'"005[\w\d]{12,15}"', '"0050xUSERID0000000"'),
+    # (
+    #     r"202\d-\d\d-\d\dT\d\d:\d\d\:\d\d.\d\d\d\+0000",
+    #     "2021-01-01T01:02:01.000+0000",
+    # ),
+    # (r'"005[\w\d]{12,15}"', '"0050xUSERID0000000"'),
     (r'"InstanceName" : "[A-Z]{2,4}\d{1,4}",', '"InstanceName" : "CS420",'),
-    (r"<id>0.*<\/id>", "<id>0ANAPPID{}</id>"),  # replace SOAP message IDs.
+    # (r"<id>0.*<\/id>", "<id>0ANAPPID{}</id>"),  # replace SOAP message IDs.
     (
         r"<asyncProcessId>0.*<\/asyncProcessId>",
         "<asyncProcessId>0ANAPPID</asyncProcessId>",
     ),
-    (r"\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d.\d\d\dZ", "2021-01-03T01:11:11.420Z"),
-    (r"/User/005[\w\d]{12,15}", "/User/0050xUSERID0000000"),
-    (r"<lastModifiedById>005[\w\d]{12,15}", "<lastModifiedById>005USERID"),
+    # in case we ever want to normalize dates again, here is how we would do it.
+    # (r"\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d.\d\d\dZ", "2021-01-03T01:11:11.420Z"),
+    # (r"/User/005[\w\d]{12,15}", "/User/0050xUSERID0000000"),
+    # (r"<lastModifiedById>005[\w\d]{12,15}", "<lastModifiedById>005USERID"),
 ]
 
 replacements = [
