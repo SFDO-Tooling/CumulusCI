@@ -137,8 +137,8 @@ class TestLoadData(unittest.TestCase):
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
         task.mapping = {}
-        task.mapping["Insert Households"] = 1
-        task.mapping["Insert Contacts"] = 2
+        one = task.mapping["Insert Households"] = mock.Mock()
+        two = task.mapping["Insert Contacts"] = mock.Mock()
         households_steps = {}
         households_steps["four"] = 4
         households_steps["five"] = 5
@@ -151,7 +151,7 @@ class TestLoadData(unittest.TestCase):
         )
         task()
         task._execute_step.assert_has_calls(
-            [mock.call(1), mock.call(4), mock.call(5), mock.call(2), mock.call(3)]
+            [mock.call(one), mock.call(4), mock.call(5), mock.call(two), mock.call(3)]
         )
 
     def test_run_task__after_steps_failure(self):
