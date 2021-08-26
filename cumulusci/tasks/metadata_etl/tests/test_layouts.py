@@ -833,9 +833,11 @@ class TestAddFieldsToPageLayout(unittest.TestCase):
                 },
             )
 
-        # Running task to stop flake8 from compaining
-        tree = metadata_tree.fromstring(MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8"))
-        task._transform_entity(tree, "Layout")
+            # Running task to stop flake8 from compaining
+            tree = metadata_tree.fromstring(
+                MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8")
+            )
+            task._transform_entity(tree, "Layout")
 
     def test_add_fields_position_type_field(self):
         """Check positioning root validators field relative"""
@@ -861,6 +863,8 @@ class TestAddFieldsToPageLayout(unittest.TestCase):
                 },
             )
 
-        # Running task to stop flake8 from compaining
-        tree = metadata_tree.fromstring(MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8"))
-        task._transform_entity(tree, "Layout")
+            # Running task to stop flake8 from compaining
+            tree = metadata_tree.fromstring(
+                MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8")
+            )
+            task._transform_entity(tree, "Layout")
