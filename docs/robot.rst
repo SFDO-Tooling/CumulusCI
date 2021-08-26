@@ -48,11 +48,13 @@ Run Your First Test
 You can run all tests for a project with a simple command line. In case you don't have a default org defined, we'll include instructions on which scratch org to use.
 
 .. code-block:: console
+
    $ cci task run robot --org dev
 
 If all goes well, the browser pops up, navigates around a bit, and then closes. The output on your screen looks something like this, though you might see additional information about creating the scratch org. 
 
 .. code-block:: console
+
    $ cci task run robot --org dev
    2021-08-04 16:28:32: Getting org info from Salesforce CLI for test-yeqqkbxks2ny@example.com
    2021-08-04 16:28:35: Beginning task: Robot
@@ -74,9 +76,9 @@ If all goes well, the browser pops up, navigates around a bit, and then closes. 
    Tests                                                                 | PASS |
    2 tests, 2 passed, 0 failed
    ==============================================================================
-   Output:  robot/<ProjectName>/results/output.xml
-   Log:     robot/<ProjectName>/results/log.html
-   Report:  robot/<ProjectName>/results/report.html
+   Output:  /projects/<ProjectName>/robot/<ProjectName>/results/output.xml
+   Log:     /projects/<ProjectName>/robot/<ProjectName>/results/log.html
+   Report:  /projects/<ProjectName>/robot/<ProjectName>/results/report.html
 
 Notice the three lines at the end that point to an XML file and two HTML files. These paths will be different on your machine, and reflect the path to your repository. All Robot results go into the ``robot/<ProjectName>/results`` folder. These files are overwritten each time you run your Robot tests.
 
@@ -89,6 +91,7 @@ View Log and Report Files
 You can open these files in a browser with the ``open`` command.
 
 .. code-block:: console
+
    $ open robot/<ProjectName>/results/log.html
 
 .. image:: images/robot_log_screenshot.png
@@ -415,7 +418,7 @@ Let's create a new Robot test that includes a custom keyword called ``Create a t
       &{new contact}=    Salesforce Get    Contact    ${contact_id}
       Set test variable  &{new contact}
 
-Because the ``Contact`` was created in a keyword, the variable that refers to the keyword is not going to be visible to the test case by default. In this example, the built-in keyword `Set test variable <http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Set%20Test%20Variable>`_ makes the newly created ``Contact`` variable visible in the test case that calls this keyword. 
+Because the ``Contact`` record was created inside the ``Create a test Contact`` keyword, the ``&{new contact}`` variable is not going to be visible to any test case or keyword that calls the ``Create a test Contact`` keyword. It's only when we use the built-in keyword `Set test variable <http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Set%20Test%20Variable>`_ that the newly created ``&{new contact}`` variable becomes visible in the ``Example of using a custom keyword in a setup step`` test case.
 
 .. note::
     Each test case and keyword can have its own settings. However, instead of a ``Settings`` section inside of a test case or keyword, test case or keyword settings are specified with the setting name in square brackets. In the previous example: 
@@ -685,9 +688,9 @@ In the output, you can see that all of the test case files in the ``tests`` fold
    Tests                                                                 | PASS |
    5 tests, 5 passed, 0 failed
    ==============================================================================
-   Output:  /private/tmp/<ProjectName>/robot/<ProjectName>/results/output.xml
-   Log:     /private/tmp/<ProjectName>/robot/<ProjectName>/results/log.html
-   Report:  /private/tmp/<ProjectName>/robot/<ProjectName>/results/report.html
+   Output:  /projects/<ProjectName>/robot/<ProjectName>/results/output.xml
+   Log:     /projects/<ProjectName>/robot/<ProjectName>/results/log.html
+   Report:  /projects/<ProjectName>/robot/<ProjectName>/results/report.html
 
 
 .. tip:: 
@@ -715,5 +718,4 @@ Learn more about Robot with these resources.
     robot_tutorial.rst
     robot_debugger.rst
    `Robot Framework <https://robotframework.org/>`_
-
 
