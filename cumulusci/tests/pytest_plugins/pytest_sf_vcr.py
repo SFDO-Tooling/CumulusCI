@@ -7,7 +7,7 @@ Records transactions if there is an org specified and does not if there is not.
 """
 
 import re
-from contextlib import contextmanager
+from enum import Enum
 from functools import partial
 from pathlib import Path
 
@@ -20,6 +20,12 @@ def simplify_body(request_or_response_body):
     decoded = _cleanup(decoded)
 
     return decoded.encode()
+
+
+class RecordingMode(Enum):
+    RECORD = "Recording"
+    READ = "Reading"
+    DISABLE = "Disabled"
 
 
 replacements = [
@@ -59,18 +65,7 @@ def vcr_cassette_path(vcr_cassette_dir, vcr_cassette_name):
 
 
 class VcrState:
-    reading: bool = True
-    recording: bool = True
-
-
-@contextmanager
-def set_mode(mode, value):
-    orig = mode.get()
-    mode.set(value)
-    try:
-        yield
-    finally:
-        mode.set(orig)
+    recording: RecordingMode = RecordingMode.READ
 
 
 @pytest.fixture(scope="session")
@@ -88,36 +83,30 @@ def configure_recording_mode(
     monkeypatch,
 ):
     recording_mode = vcr_state.recording
-    reading_mode = vcr_state.reading
     if (
         user_requested_network_access
         and vcr_cassette_path.exists()
         and user_requested_cassette_replacement
     ):
         vcr_cassette_path.unlink()
-        recording_mode = True
-        reading_mode = "irrelevant"  # reading from missing file
+        recording_mode = RecordingMode.RECORD
     elif user_requested_network_access and vcr_cassette_path.exists():
         # user wants to keep existing cassette, so disable VCR usage entirely, like:
-        # https://github.com/ktosiek/pytest-vcr/blob/08482cf0724697c14b63ad17752a0f13f7670add/pytest_vcr.py#L56
-        recording_mode = False
-        reading_mode = False
+        # https://github.com/ktosiek/pytest-vcr/blob/08482cf0724697c14b63ad17752a0f13f7670add/pytest_vcr.py#L59
+        recording_mode = RecordingMode.disabled
     elif user_requested_network_access:
-        recording_mode = True
-        reading_mode = "irrelevant"  # file doesn't exist, so reading missing file
+        recording_mode = RecordingMode.RECORD
     else:
-        recording_mode = False
-        reading_mode = True
+        # reading
+        recording_mode = RecordingMode.READ
 
     with monkeypatch.context() as m:
         m.setattr(vcr_state, "recording", recording_mode)
-        m.setattr(vcr_state, "reading", reading_mode)
         yield
 
 
 def sf_before_record_request(vcr_state, http_request):
-
-    if not (vcr_state.reading or vcr_state.recording):
+    if vcr_state.recording == RecordingMode.DISABLE:
         return None
     if http_request.body:
         http_request.body = simplify_body(http_request.body)
@@ -128,9 +117,13 @@ def sf_before_record_request(vcr_state, http_request):
     return http_request
 
 
-# junk_headers = ["Public-Key-Pins-Report-Only", ]
 def sf_before_record_response(response):
-    response["headers"] = {"Response-Headers": "Elided"}
+    response["headers"] = {
+        "Response-Headers": {
+            "Content-Type": response["headers"].get("Content-Type", "None"),
+            "Others": "Elided",
+        }
+    }
     if response.get("body"):
         response["body"]["string"] = simplify_body(response["body"]["string"])
     return response
@@ -230,6 +223,22 @@ def __contains__(self, request):
         salesforce_matcher(request, stored_request, should_explain=True)
 
     return False
+
+
+@pytest.fixture(
+    scope="function",
+)
+def run_code_without_recording(
+    request, vcr, user_requested_network_access, vcr_state, monkeypatch
+):
+    def really_run_code_without_recording(func):
+        if user_requested_network_access:
+            # Run the setup code, but don't record it
+            with monkeypatch.context() as m:
+                m.setattr(vcr_state, "recording", RecordingMode.disabled)
+                return func()
+
+    return really_run_code_without_recording
 
 
 cassette.Cassette.__contains__ = __contains__

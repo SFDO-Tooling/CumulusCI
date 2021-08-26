@@ -98,8 +98,11 @@ def cli_org_config(request):
 def org_config(request, current_org_shape, cli_org_config, fallback_org_config):
     """Get an org config with an active access token.
 
-    Specify the org name using the --org option when running pytest.
-    Or else it will use a dummy org.
+    If an org was requested by the org_shape feature, it is used.
+
+    Otherwise, you can specify the org name using the --org option when running pytest.
+
+    If there was no org provided by those mechanisms, it will use a dummy org.
     """
     org_config = current_org_shape.org_config or cli_org_config
     if org_config:
@@ -164,23 +167,6 @@ def classify_and_modify_test(item, marker_names):
 
     elif "needs_org" in marker_names and not item.config.getoption("--org"):
         pytest.skip("needs_org: test requires --org")
-
-
-@pytest.fixture(
-    scope="function",
-)
-def run_code_without_recording(
-    request, vcr, user_requested_network_access, vcr_state, monkeypatch
-):
-    def really_run_code_without_recording(func):
-        if user_requested_network_access:
-            # Run the setup code, but don't record it
-            with monkeypatch.context() as m:
-                m.setattr(vcr_state, "recording", False)
-                m.setattr(vcr_state, "recording", False)
-                return func()
-
-    return really_run_code_without_recording
 
 
 class CurrentOrg:

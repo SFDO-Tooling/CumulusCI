@@ -39,7 +39,10 @@ interactions:
         \ \"CreatedById\" : \"0050xUSERID0000000\",\n  \"LastModifiedDate\" : \"2021-01-01T01:02:01.000+0000\",\n
         \ \"LastModifiedById\" : \"0050xUSERID0000000\"\n}"
     headers:
-      Response-Headers: Elided
+      Response-Headers:
+        Content-Type:
+        - application/json;charset=UTF-8
+        Others: Elided
     status:
       code: 200
       message: OK
@@ -83,7 +86,10 @@ interactions:
         \ \"CreatedById\" : \"0050xUSERID0000000\",\n  \"LastModifiedDate\" : \"2021-01-01T01:02:01.000+0000\",\n
         \ \"LastModifiedById\" : \"0050xUSERID0000000\"\n}"
     headers:
-      Response-Headers: Elided
+      Response-Headers:
+        Content-Type:
+        - application/json;charset=UTF-8
+        Others: Elided
     status:
       code: 200
       message: OK
@@ -101,7 +107,10 @@ interactions:
         \   },\n    \"FirstName\" : \"Automated\",\n    \"LastName\" : \"Process\"\n
         \ } ]\n}"
     headers:
-      Response-Headers: Elided
+      Response-Headers:
+        Content-Type:
+        - application/json;charset=UTF-8
+        Others: Elided
     status:
       code: 200
       message: OK

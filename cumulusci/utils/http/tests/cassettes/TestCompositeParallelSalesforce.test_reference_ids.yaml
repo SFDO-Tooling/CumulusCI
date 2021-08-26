@@ -17,7 +17,10 @@ interactions:
         : [ ]\n    },\n    \"httpHeaders\" : { },\n    \"httpStatusCode\" : 200,\n
         \   \"referenceId\" : \"two\"\n  } ]\n}"
     headers:
-      Response-Headers: Elided
+      Response-Headers:
+        Content-Type:
+        - application/json;charset=UTF-8
+        Others: Elided
     status:
       code: 200
       message: OK
@@ -36,7 +39,10 @@ interactions:
         : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"three\"\n  }
         ]\n}"
     headers:
-      Response-Headers: Elided
+      Response-Headers:
+        Content-Type:
+        - application/json;charset=UTF-8
+        Others: Elided
     status:
       code: 200
       message: OK

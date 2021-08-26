@@ -14,7 +14,10 @@ interactions:
         \   } ],\n    \"httpHeaders\" : { },\n    \"httpStatusCode\" : 404,\n    \"referenceId\"
         : \"CCI__RefId__0__\"\n  } ]\n}"
     headers:
-      Response-Headers: Elided
+      Response-Headers:
+        Content-Type:
+        - application/json;charset=UTF-8
+        Others: Elided
     status:
       code: 200
       message: OK

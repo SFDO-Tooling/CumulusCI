@@ -10,7 +10,10 @@ interactions:
     body:
       string: "- sf_object: Account\n  api: bulk\n"
     headers:
-      Response-Headers: Elided
+      Response-Headers:
+        Content-Type:
+        - text/plain; charset=utf-8
+        Others: Elided
     status:
       code: 200
       message: OK

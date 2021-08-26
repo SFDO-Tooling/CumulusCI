@@ -2,8 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from cumulusci.tasks.preflight.packages import GetInstalledPackages
-from cumulusci.tasks.salesforce import SOQLQuery
+from cumulusci.tasks.salesforce import ListCommunities, SOQLQuery
 
 pytestmark = pytest.mark.random_order(disabled=True)
 # Some tests check the pytest/VCR "output" of other tests. Thus order matters.
@@ -39,14 +38,20 @@ class TestIntegrationInfrastructure:
     remembered_cli_specified_org_id = None
 
     @pytest.mark.vcr()
-    def test_integration_tests(self, create_task, run_code_without_recording):
+    def test_prepare_for__test_integration_tests(
+        self, create_task, run_code_without_recording
+    ):
+        "Delete a VCR Cassette to ensure next test creates it."
         # only delete the cassette if we can replace it
         def delete_cassette():
             if first_cassette.exists():
                 first_cassette.unlink()
 
         run_code_without_recording(delete_cassette)
-        task = create_task(GetInstalledPackages, {})
+
+    @pytest.mark.vcr()
+    def test_integration_tests(self, create_task, run_code_without_recording):
+        task = create_task(ListCommunities, {})
         assert task() is not None
 
     def test_file_was_created(self):
@@ -73,7 +78,7 @@ class TestIntegrationInfrastructure:
             )
             task()
 
-        run_code_without_recording(lambda: setup())
+        run_code_without_recording(setup)
 
     def test_file_was_not_created(self, capture_orgid_using_task):
         filename = (
