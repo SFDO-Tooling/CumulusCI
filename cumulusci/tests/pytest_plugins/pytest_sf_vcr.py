@@ -93,7 +93,7 @@ def configure_recording_mode(
     elif user_requested_network_access and vcr_cassette_path.exists():
         # user wants to keep existing cassette, so disable VCR usage entirely, like:
         # https://github.com/ktosiek/pytest-vcr/blob/08482cf0724697c14b63ad17752a0f13f7670add/pytest_vcr.py#L59
-        recording_mode = RecordingMode.disabled
+        recording_mode = RecordingMode.DISABLE
     elif user_requested_network_access:
         recording_mode = RecordingMode.RECORD
     else:
