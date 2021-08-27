@@ -80,7 +80,7 @@ class AddFieldsPosition(BaseModel):
     section: Optional[int]
 
     @root_validator
-    def columns_not_compatable_with_fields(cls, values):
+    def columns_not_compatible_with_fields(cls, values):
         field, column, section = (
             values.get("field"),
             values.get("column"),
@@ -88,7 +88,7 @@ class AddFieldsPosition(BaseModel):
         )
         if (column is not None or section is not None) and field is not None:
             raise ValueError(
-                "Section/Column positioning is not compatable with Field positioning"
+                "Section/Column positioning is not compatible with Field positioning"
             )
         return values
 
@@ -104,7 +104,7 @@ class AddFieldsPosition(BaseModel):
         column, relative = values.get("column"), values.get("relative")
         if (relative == "before" or relative == "after") and column is not None:
             raise ValueError(
-                "Before/After relative positions are not compatable with Column positioning"
+                "Before/After relative positions are not compatible with Column positioning"
             )
         return values
 
@@ -112,8 +112,8 @@ class AddFieldsPosition(BaseModel):
 class AddFieldOptions(BaseModel):
     api_name: str
     position: Optional[List[AddFieldsPosition]]
-    required: Optional[bool]
-    read_only: Optional[bool]
+    required: bool = False
+    read_only: bool = False
 
 
 class AddPagesOptions(BaseModel):
