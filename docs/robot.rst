@@ -533,7 +533,7 @@ In addition to the usual output files (``log.html``, ``report.html``, ``output.x
 Open the Browser
 ^^^^^^^^^^^^^^^^
 
-The Selenium library comes with a keyword for opening the browser. However, CumulusCI comes with its own keyword, `Open Test Browser <https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.robot.Open%20Test%20Browser>`_, which not only opens the browser but takes care of the details of logging into the org. This keyword uses a variable named ``${BROWSER}``, which can be set from the command line or in the ``cumulusci.yml`` file to specify which browser to use.
+The Selenium library comes with a keyword for opening the browser. However, CumulusCI comes with its own keyword, `Open Test Browser <https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.robot.Open%20Test%20Browser>`_, which not only opens the browser but also takes care of the details of logging into the org. This keyword uses a variable named ``${BROWSER}``, which can be set from the command line or in the ``cumulusci.yml`` file to specify which browser to use.
 
 Specify variables in the ``cumulusci.yml`` file or in the ``vars`` option under ``robot`` in the ``tasks`` section. For example, ``${BROWSER}`` defaults to ``chrome`` in Robot, but it can be set to ``firefox``.
 
