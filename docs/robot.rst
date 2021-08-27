@@ -422,8 +422,8 @@ Because the ``Contact`` record was created inside the ``Create a test Contact`` 
 
 .. note::
    Each test case and keyword can have its own settings. However, instead of a ``Settings`` section inside of a test case or keyword, test case or keyword settings are specified with the setting name in square brackets. In the previous example: 
-     * ``[Setup]`` is a setting for the ``Example of using a custom keyword in a setup step`` test case.
-     * ``[Documentation]`` is a setting for the ``Create a test Contact`` keyword. 
+   * ``[Setup]`` is a setting for the ``Example of using a custom keyword in a setup step`` test case.
+   * ``[Documentation]`` is a setting for the ``Create a test Contact`` keyword. 
 
    For details, see the `Settings in the Test Case section <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#settings-in-the-test-case-section>`_ in the official Robot Framework documentation.
 
