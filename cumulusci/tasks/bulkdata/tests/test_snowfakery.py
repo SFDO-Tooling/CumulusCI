@@ -24,24 +24,32 @@ original_refresh_token = OrgConfig.refresh_oauth_token
 FAKE_LOAD_RESULTS = (
     {
         "Insert Account": {
-            "mapping": {"sf_object": "Account"},
+            "sobject": "Account",
+            "record_type": None,
+            "status": "Success",
             "records_processed": 2,
             "total_row_errors": 0,
         },
         "Insert Contact": {
-            "mapping": {"sf_object": "Contact"},
+            "sobject": "Contact",
+            "record_type": None,
+            "status": "Success",
             "records_processed": 2,
             "total_row_errors": 0,
         },
     },
     {
         "Insert Account": {
-            "mapping": {"sf_object": "Account"},
+            "sobject": "Account",
+            "record_type": None,
+            "status": "Success",
             "records_processed": 3,
             "total_row_errors": 0,
         },
         "Insert Contact": {
-            "mapping": {"sf_object": "Contact"},
+            "sobject": "Contact",
+            "record_type": None,
+            "status": "Success",
             "records_processed": 3,
             "total_row_errors": 0,
         },
