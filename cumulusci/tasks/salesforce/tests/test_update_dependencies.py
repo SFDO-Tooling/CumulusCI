@@ -320,22 +320,6 @@ def test_install_dependency_installs_unmanaged():
     )
 
 
-def test_run_task__bad_security_type():
-    with pytest.raises(TaskOptionsError):
-        create_task(
-            UpdateDependencies,
-            {
-                "security_type": "BOGUS",
-                "dependencies": [
-                    {
-                        "namespace": "ns",
-                        "version": "1.0",
-                    },
-                ],
-            },
-        )
-
-
 @mock.patch("cumulusci.tasks.salesforce.update_dependencies.get_static_dependencies")
 def test_freeze(get_static_dependencies):
     get_static_dependencies.return_value = [
@@ -377,7 +361,6 @@ def test_freeze(get_static_dependencies):
             "task_config": {
                 "options": {
                     "dependencies": [{"namespace": "ns", "version": "1.0"}],
-                    "security_type": "FULL",
                     "packages_only": False,
                 },
                 "checks": [],
@@ -398,9 +381,8 @@ def test_freeze(get_static_dependencies):
                             "ref": "abcdef",
                             "github": "https://github.com/SFDO-Tooling/CumulusCI-Test",
                             "subfolder": "src",
-                        }
+                        },
                     ],
-                    "security_type": "FULL",
                     "packages_only": False,
                 },
                 "checks": [],
@@ -451,7 +433,6 @@ def test_freeze__packages_only(get_static_dependencies):
             "task_config": {
                 "options": {
                     "dependencies": [{"namespace": "ns", "version": "1.0"}],
-                    "security_type": "FULL",
                     "packages_only": True,
                 },
                 "checks": [],

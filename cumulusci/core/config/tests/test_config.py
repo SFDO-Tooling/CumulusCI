@@ -403,7 +403,7 @@ class TestBaseProjectConfig(unittest.TestCase):
             with open(os.path.join(d, ".git", "HEAD"), "w") as f:
                 f.write("abcdef")
 
-            self.assertIsNone(config.repo_commit)
+            assert config.repo_commit == "abcdef"
 
     def test_repo_commit_packed_refs(self):
         config = BaseProjectConfig(UniversalConfig())
@@ -547,19 +547,21 @@ class TestBaseProjectConfig(unittest.TestCase):
         config = BaseProjectConfig(
             UniversalConfig(), {"project": {"git": {"prefix_release": "release/"}}}
         )
-        self.assertEqual("release/1.0", config.get_tag_for_version("1.0"))
+        self.assertEqual("beta/1.0", config.get_tag_for_version("beta/", "1.0"))
 
     def test_get_tag_for_version__1gp_beta(self):
         config = BaseProjectConfig(
             UniversalConfig(), {"project": {"git": {"prefix_beta": "beta/"}}}
         )
-        self.assertEqual("beta/1.0-Beta_1", config.get_tag_for_version("1.0 (Beta 1)"))
+        self.assertEqual(
+            "beta/1.0-Beta_1", config.get_tag_for_version("beta/", "1.0 (Beta 1)")
+        )
 
     def test_get_tag_for_version__with_tag_prefix_option(self):
         config = BaseProjectConfig(UniversalConfig(), {})
         self.assertEqual(
             "custom/1.0",
-            config.get_tag_for_version("1.0", prefix="custom/"),
+            config.get_tag_for_version("custom/", "1.0"),
         )
 
     def test_get_version_for_tag(self):

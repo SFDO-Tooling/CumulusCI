@@ -5,7 +5,10 @@ from cumulusci.utils.http.multi_request import CompositeParallelSalesforce
 
 class TestCompositeParallelSalesforce:
     @pytest.mark.vcr()
-    def test_composite_parallel_salesforce(self, sf):
+    def test_composite_parallel_salesforce(
+        self, sf, run_code_without_recording, delete_data_from_org
+    ):
+        run_code_without_recording(lambda: delete_data_from_org("Entitlement,Account"))
         sf.Account.create(
             {"Name": "Smith Corp."},
         )
@@ -39,10 +42,8 @@ class TestCompositeParallelSalesforce:
             results = cpsf.do_composite_requests([])
             assert list(results) == []
 
-    # don't re-record this one because you'll need to fiddle
-    # with the date
-    @pytest.mark.vcr(record_mode="none")
-    def test_http_headers(self, sf):
+    @pytest.mark.vcr()
+    def test_http_headers(self, sf, vcr):
         requests = [
             {
                 "method": "GET",
@@ -50,12 +51,18 @@ class TestCompositeParallelSalesforce:
                 "httpHeaders": {"If-Modified-Since": "Thu, 03 Sep 2020 21:35:07 GMT"},
             },
         ] * 3
-        with CompositeParallelSalesforce(sf, 4, max_workers=1) as cpsf:
-            results = cpsf.do_composite_requests(requests)
+        # don't re-record this one because you'll need to fiddle
+        # with the dates
+        with vcr.use_cassette(
+            "ManualEditTestCompositeParallelSalesforce.test_http_headers.yaml"
+        ):
+            with CompositeParallelSalesforce(sf, 4, max_workers=1) as cpsf:
+                results = cpsf.do_composite_requests(requests)
         assert results[0]["httpStatusCode"] == 304
 
     @pytest.mark.vcr()
-    def test_reference_ids(self, sf):
+    def test_reference_ids(self, sf, run_code_without_recording, delete_data_from_org):
+        run_code_without_recording(lambda: delete_data_from_org("Account"))
         requests = [
             {
                 "method": "GET",

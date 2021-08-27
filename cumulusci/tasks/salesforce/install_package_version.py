@@ -1,5 +1,3 @@
-from pydantic import ValidationError
-
 from cumulusci.core.dependencies.dependencies import (
     GitHubDynamicDependency,
     PackageInstallOptions,
@@ -7,10 +5,12 @@ from cumulusci.core.dependencies.dependencies import (
     PackageVersionIdDependency,
 )
 from cumulusci.core.dependencies.resolvers import get_resolver_stack
-from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.github import find_previous_release
-from cumulusci.core.utils import process_bool_arg
-from cumulusci.salesforce_api.package_install import DEFAULT_PACKAGE_RETRY_OPTIONS
+from cumulusci.salesforce_api.package_install import (
+    DEFAULT_PACKAGE_RETRY_OPTIONS,
+    PACKAGE_INSTALL_TASK_OPTIONS,
+)
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 
 
@@ -33,11 +33,8 @@ class InstallPackageVersion(BaseSalesforceApiTask):
             "number to the user and in logs. Has no effect otherwise."
         },
         "activateRSS": {
-            "description": "If True, preserve the isActive state of "
-            "Remote Site Settings and Content Security Policy "
-            "in the package. Default: False."
+            "description": "Deprecated. Use activate_remote_site_settings instead."
         },
-        "password": {"description": "The package password. Optional."},
         "retries": {"description": "Number of retries (default=5)"},
         "retry_interval": {
             "description": "Number of seconds to wait before the next retry (default=5),"
@@ -45,9 +42,7 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         "retry_interval_add": {
             "description": "Number of seconds to add before each retry (default=30),"
         },
-        "security_type": {
-            "description": "Which users to install package for (FULL = all users, NONE = admins only)"
-        },
+        **PACKAGE_INSTALL_TASK_OPTIONS,
     }
 
     def _init_options(self, kwargs):
@@ -130,18 +125,14 @@ class InstallPackageVersion(BaseSalesforceApiTask):
                     f"The release for {version} does not identify a package version."
                 )
 
-        # Ensure that this option is frozen in case the defaults ever change.
-        self.options["security_type"] = self.options.get("security_type") or "FULL"
-        try:
-            self.install_options = PackageInstallOptions(
-                activate_remote_site_settings=process_bool_arg(
-                    self.options.get("activateRSS") or False
-                ),
-                password=self.options.get("password"),
-                security_type=self.options["security_type"],
+        if "activateRSS" in self.options:
+            self.logger.warning(
+                "The activateRSS option is deprecated. Please use activate_remote_site_settings."
             )
-        except ValidationError as e:
-            raise TaskOptionsError(f"Invalid options: {e}")
+            self.options["activate_remote_site_settings"] = self.options["activateRSS"]
+            del self.options["activateRSS"]
+
+        self.install_options = PackageInstallOptions.from_task_options(self.options)
 
     def _run_task(self):
         version = self.options["version"]
@@ -179,7 +170,7 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         name = options.pop("name")
         task_config = {"options": options, "checks": self.task_config.checks or []}
         ui_step = {
-            "name": f"Install {name} {options['version']}",
+            "name": f"Install {name} {options.get('version_number') or options['version']}",
             "kind": "managed",
             "is_required": True,
         }

@@ -133,10 +133,46 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
 
         assert mixin._parse_job_state(
             '<root xmlns="http://ns">'
-            "  <batch><state>Completed</state></batch>"
-            "  <numberRecordsFailed>200</numberRecordsFailed>"
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    </batch>"
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    </batch>"
             "</root>"
-        ) == DataOperationJobResult(DataOperationStatus.ROW_FAILURE, [], 0, 200)
+        ) == DataOperationJobResult(
+            DataOperationStatus.ROW_FAILURE, [], 0, 400
+        ), "Multiple batches in single job"
+
+        assert mixin._parse_job_state(
+            '<root xmlns="http://ns">'
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    </batch>"
+            "</root>"
+        ) == DataOperationJobResult(
+            DataOperationStatus.ROW_FAILURE, [], 0, 200
+        ), "Single batch"
+
+        assert mixin._parse_job_state(
+            '<root xmlns="http://ns">'
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    <numberRecordsProcessed>10</numberRecordsProcessed>"
+            "    </batch>"
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    <numberRecordsProcessed>10</numberRecordsProcessed>"
+            "    </batch>"
+            "</root>"
+        ) == DataOperationJobResult(
+            DataOperationStatus.ROW_FAILURE, [], 20, 400
+        ), "Multiple batches in single job"
 
         assert mixin._parse_job_state(
             '<root xmlns="http://ns">'
@@ -144,7 +180,9 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
             "  <numberRecordsFailed>200</numberRecordsFailed>"
             "  <numberRecordsProcessed>10</numberRecordsProcessed>"
             "</root>"
-        ) == DataOperationJobResult(DataOperationStatus.ROW_FAILURE, [], 10, 200)
+        ) == DataOperationJobResult(
+            DataOperationStatus.ROW_FAILURE, [], 10, 200
+        ), "Single batch"
 
     @mock.patch("time.sleep")
     def test_wait_for_job(self, sleep_patch):

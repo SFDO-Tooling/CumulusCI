@@ -33,7 +33,7 @@ def test_install_1gp(install_package_by_namespace_version):
         task.org_config,
         "test",
         "1.0",
-        PackageInstallOptions(activate_remote_site_settings=False),
+        PackageInstallOptions(),
         retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
     )
 
@@ -50,7 +50,7 @@ def test_install_2gp(install_package_by_version_id):
         task.project_config,
         task.org_config,
         "04t000000000000",
-        PackageInstallOptions(activate_remote_site_settings=False),
+        PackageInstallOptions(),
         retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
     )
 
@@ -82,6 +82,8 @@ def test_init_options():
     assert task.install_options == PackageInstallOptions(
         activate_remote_site_settings=True, password="foo", security_type="PUSH"
     )
+    assert task.options["activate_remote_site_settings"] is True
+    assert "activateRSS" not in task.options
 
 
 def test_init_options__float_version():
@@ -299,7 +301,45 @@ def test_freeze():
                 "options": {
                     "version": "1.0",
                     "namespace": "ns",
-                    "security_type": "FULL",
+                },
+                "checks": [],
+            },
+        },
+    ]
+
+
+def test_freeze__2gp():
+    project_config = create_project_config()
+    project_config.config["project"]["package"]["namespace"] = "ns"
+    project_config.config["project"]["package"]["name"] = "Test"
+    task = create_task(
+        InstallPackageVersion,
+        {
+            "version": "04t000000000000",
+            "version_number": "1.0",
+        },
+        project_config=project_config,
+    )
+    step = StepSpec(1, "test_task", task.task_config.config, None, task.project_config)
+    steps = task.freeze(step)
+
+    # Note: because we directly specified the 04t rather than resolving a version,
+    # we don't persist the package name ("Package" below).
+    # This is as designed.
+    assert steps == [
+        {
+            "is_required": True,
+            "kind": "managed",
+            "name": "Install Package 1.0",
+            "path": "test_task",
+            "step_num": "1",
+            "source": None,
+            "task_class": None,
+            "task_config": {
+                "options": {
+                    "version": "04t000000000000",
+                    "version_number": "1.0",
+                    "namespace": "ns",
                 },
                 "checks": [],
             },

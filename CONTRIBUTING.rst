@@ -147,47 +147,78 @@ Finally, post the release notes to our usual channels:
 .. _Homebrew Tap: https://github.com/SFDO-Tooling/homebrew-sfdo
 .. _jq: https://stedolan.github.io/jq/
 
-Org-reliant Integration tests
+Org-reliant Automated Tests
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some tests are marked ``@pytest.mark.vcr()`` which means that they can either
 call into a real (configured) Salesforce org or use a cached YAML file of the request/response.
-To regenerate the VCR file, you can run pytest like this::
 
-    $ pytest cumulusci/.../test_<something>.py --org <orgname>
+By default using pytest will use the cached YAML. If you want to work against a
+real scratch org, you do so like this::
+
+    $ pytest --org qa <other arguments and options, such as filename or -k testname>
 
 Where "orgname" is a configured org name like "qa", "dev", etc.
 
-Periodically you can also do this, but it will take a LONG time::
+To regenerate the VCR file, you can run this command::
 
-    $ pytest --org <orgname>
+    $ pytest --replace-vcrs --org qa
+
+This will configure an org named "qa" and regenerate them.
 
 That will run all VCR-backed tests against the org, including all of the slow
 integration tests.
 
-Some of these tests generate so much data or run so slowly that even the VCR tool does not
-help much. For example, if you are testing something that needs to download an
-entire org schema.
+Running Integration Tests
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-These tests can be marked with ``@pytest.mark.integration_test()``. In that case,
-you can invoke them the same way as above, but you should not check in their
-YAML file into the repo. One of our files generates more than 300MB of cache data.
-
-You can invoke these tests the same way::
-
-    $ pytest cumulusci/.../test_<something>.py --org qa
-
-This will generate the cached data.
-
-Later, you can use the cached data like this::
-
-    $ pytest cumulusci/.../test_<something>.py --accelerate-integration-tests
-
-It will usually be  much faster than calling into the Salesforce org, but it will
-still be quite slow compared to normal unit tests. Nevertheless, if you are changing feature tested by
-these tests, you should run them periodically.
+Some tests generate so much data that we do not want to store the VCR cassettes
+in our repo. You can mark tests like that with ``@pytest.mark.large_vcr()``. When
+they are executed, their cassettes will go in a .gitignore'd folder called
+`large_cassettes`.
 
 Do not commit the files ("large_cassettes/\*.yml") to the repository.
+
+Some tests generate even more network traffic data and it isn't practical 
+to use VCR at all. Still, we'd like to run them when we run all of the
+other org-reliant tests with --org. Mark them with ``@pytest.mark.needs_org()``
+and they will run with the VCR tests.
+
+Some tests are so slow that you only want to run them on an opt-in basis.
+Mark these tests with ``@pytest.mark.slow()`` and run them with
+``pytest --run-slow-tests`` or ``pytest --run-slow-tests --orgname <orgname>``.
+
+Writing Integration Tests
+~~~~~~~~~~~~~~~~~~~~~~~~~
+All features should have integration tests which work against
+real orgs or APIs.
+
+You will need to use some the following fixtures in your tests. Search
+the repo to see examples where they are used in context, or to see
+their definitions:
+
+* gh_api - get a fake github API
+* with temp_db():... - create a temporary SQLite Database
+* delete_data_from_org("Account,Contacts") - delete named sobjects from an org
+* run_code_without_recording(func) - run a function ONLY when
+  the integration tests are being used against real orgs
+  and DO NOT record the network traffic in a VCR cassette
+* sf - a handle to a simple-salesforce client tied to the
+  current org
+* mock_http_response(status) - make a mock HTTP Response with a particular status
+* runtime - Get the CumulusCI runtime for the current working directory
+* project_config - Get the project config for the current working directory
+* org_config - Get the project config for the current working directory
+* create_task - Get a task _factory_ which can be used to construct task instances.
+
+Decorators for tests:
+
+ * pytest.mark.slow(): a slow test that should only be executed when requested with --run-slow-tests
+ * pytest.mark.large_vcr(): a network-based test that generates VCR cassettes too large for version control. Use --org to generate them locally.
+ * pytest.mark.needs_org(): a test that needs an org (or at least access to the network) but should not attempt to store VCR cassettes. Most tests that need network access do so because they need to talk to an org, but you can also use this decorator to give access to the network to talk to github or any other API.
+ * org_shape('qa', 'qa_org'): - switch the current org to an org created with org template "qa" after running flow "qa_org".
+   As with all tests, clean up any changes you make, because this org may be reused by
+   other tests.
 
 Randomized tests
 ~~~~~~~~~~~~~~~~
@@ -204,3 +235,7 @@ It will output something like this:
 
 Using those two parameters on the command line, you can
 replicate a particular run later.
+
+In extremely rare cases where it's not possible to make
+tests independent, you can
+`enforce an order <https://pythonhosted.org/pytest-random-order/#disable-shuffling-in-module-or-class>`_
