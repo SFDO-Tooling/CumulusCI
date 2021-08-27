@@ -10,6 +10,7 @@ from sqlalchemy import create_engine
 
 from cumulusci.core import exceptions as exc
 from cumulusci.core.config import OrgConfig
+from cumulusci.tasks.bulkdata.delete import DeleteData
 from cumulusci.tasks.bulkdata.snowfakery import RunningTotals, Snowfakery
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.utils.parallel.task_worker_queues.tests.test_parallel_worker import (
@@ -122,6 +123,25 @@ def temporary_file_path(filename):
         yield path
 
 
+@pytest.fixture()
+def ensure_accounts(create_task, run_code_without_recording, sf):
+    """Delete all accounts and create a certain number of new ones"""
+
+    @contextmanager
+    def _ensure_accounts(number_of_accounts):
+        def setup(number):
+            task = create_task(DeleteData, {"objects": "Entitlement, Account"})
+            task()
+            for i in range(0, number):
+                sf.Account.create({"Name": f"Account {i}"})
+
+        run_code_without_recording(lambda: setup(number_of_accounts))
+        yield
+        run_code_without_recording(lambda: setup(0))
+
+    return _ensure_accounts
+
+
 class TestSnowfakery:
     def assertRowsCreated(self, database_url):
         engine = create_engine(database_url)
@@ -229,43 +249,62 @@ class TestSnowfakery:
     # Could try again after Snowfakery 2.0 launch.
     # https://github.com/SFDO-Tooling/CumulusCI/blob/c7e0d7552394b3ac268cb373ffb24b72b5c059f3/cumulusci/tasks/bulkdata/tests/test_snowfakery.py#L165-L197https://github.com/SFDO-Tooling/CumulusCI/blob/c7e0d7552394b3ac268cb373ffb24b72b5c059f3/cumulusci/tasks/bulkdata/tests/test_snowfakery.py#L165-L197
 
-    @pytest.mark.vcr(mode="none")
+    @pytest.mark.vcr()
     def test_run_until_records_in_org__none_needed(
-        self, sf, threads_instead_of_processes, mock_load_data, create_task
+        self, threads_instead_of_processes, mock_load_data, create_task, ensure_accounts
     ):
-        # cassette reports 100 records in org
-        task = create_task(
-            Snowfakery, {"recipe": sample_yaml, "run_until_records_in_org": "Account:6"}
-        )
-        task()
-        assert len(mock_load_data.mock_calls) == 0
-        assert len(threads_instead_of_processes.mock_calls) == 0
+        with ensure_accounts(6):
+            task = create_task(
+                Snowfakery,
+                {"recipe": sample_yaml, "run_until_records_in_org": "Account:6"},
+            )
+            task()
+        assert len(mock_load_data.mock_calls) == 0, mock_load_data.mock_calls
+        assert (
+            len(threads_instead_of_processes.mock_calls) == 0
+        ), threads_instead_of_processes.mock_calls
 
     @pytest.mark.vcr()
     def test_run_until_records_in_org__one_needed(
-        self, sf, threads_instead_of_processes, mock_load_data, create_task
+        self,
+        sf,
+        threads_instead_of_processes,
+        mock_load_data,
+        create_task,
+        ensure_accounts,
     ):
-        # cassette reports 100 records in org
-        # so we only need 6 more.
-        # That will be one "initial" batch plus one "parallel" batch
-        task = create_task(
-            Snowfakery,
-            {"recipe": sample_yaml, "run_until_records_in_org": "Account:106"},
-        )
-        task()
+        with ensure_accounts(10):
+            # org reports 10 records in org
+            # so we only need 6 more.
+            # That will be one "initial" batch plus one "parallel" batch
+            task = create_task(
+                Snowfakery,
+                {"recipe": sample_yaml, "run_until_records_in_org": "Account:16"},
+            )
+            task.logger = mock.Mock()
+            task()
+        print(task.logger.mock_calls)
         assert len(mock_load_data.mock_calls) == 2, mock_load_data.mock_calls
         assert len(threads_instead_of_processes.mock_calls) == 1
 
     @pytest.mark.vcr()
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_run_until_records_in_org__multiple_needed(
-        self, sf, threads_instead_of_processes, mock_load_data, snowfakery
+        self,
+        threads_instead_of_processes,
+        mock_load_data,
+        snowfakery,
+        ensure_accounts,
+        create_task,
     ):
-        # cassette reports 100 records in org
-        task = snowfakery(recipe=sample_yaml, run_until_records_in_org="Account:106")
-        task()
-        assert len(mock_load_data.mock_calls) == 2
-        assert len(threads_instead_of_processes.mock_calls) == 1
+        with ensure_accounts(10):
+            task = snowfakery(recipe=sample_yaml, run_until_records_in_org="Account:16")
+            task()
+
+        assert len(mock_load_data.mock_calls) == 2, mock_load_data.mock_calls
+        assert (
+            len(threads_instead_of_processes.mock_calls) == 1
+        ), threads_instead_of_processes.mock_calls
 
     def test_inaccessible_generator_yaml(self, snowfakery):
         with pytest.raises(exc.TaskOptionsError, match="recipe"):
