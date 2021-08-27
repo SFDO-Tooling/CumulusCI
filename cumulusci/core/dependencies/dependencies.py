@@ -383,6 +383,7 @@ class PackageNamespaceVersionDependency(StaticDependency):
     namespace: str
     version: str
     package_name: Optional[str]
+    version_id: Optional[str]
 
     password_env_name: Optional[str]
 
