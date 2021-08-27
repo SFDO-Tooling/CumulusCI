@@ -11,15 +11,15 @@ Later sections of this document will show you how to write tests, call APIs, cre
 Get Started
 -----------
 
-The test that comes with CumulusCI opens a browser and performs some automation. For that to work, you need to install Chrome, and a driver for your specific version of Chrome. We don't ship this driver by default because browser versions are continually updating, and different platforms require different drivers.
+The test that comes with CumulusCI opens a browser and performs some automation. For that to work, you need to install `Chrome <https://www.google.com/chrome/>`_, and a driver for your specific version of Chrome. We don't ship this driver by default because browser versions are continually updating, and different platforms require different drivers.
 
-Install Chrome on your machine in the default location (which you likely do already), and download the appropriate driver from the `chromedriver download page <https://chromedriver.chromium.org/downloads>`_. Download the latest stable version that corresponds to your Chrome version, and place it where Robot can find it. This usually means ``/usr/local/bin`` for Linux and OSX-based systems. (It can go anywhere as long as it's on your PATH.)
+If you don't already have Chrome on your machine, download and install it in the default location, and then download the appropriate driver from the `chromedriver download page <https://chromedriver.chromium.org/downloads>`_. Download the latest stable version that corresponds to your Chrome version, and place it where Robot can find it. This usually means ``/usr/local/bin`` for Linux and OSX-based systems. (It can go anywhere as long as it's on your PATH.)
 
 For more information, see `Getting Started <https://sites.google.com/chromium.org/driver/getting-started?authuser=0>`_ on the chromedriver website.
 
 .. admonition:: Fun Fact
 
-    You can skip this step and see Robot in action with CumulusCI. The tests will fail, but you can still see what it's like to run a test, and the output that it produces.
+    You can skip this step and still see Robot in action with CumulusCI. The tests will fail, but you can still see what it's like to run a test, and the output that it produces.
 
 
 You Get a Test! And You Get a Test!
@@ -709,9 +709,7 @@ To run an entire suite of tests with the ``robot`` task:
 Learn More About Robot Framework
 --------------------------------
 
-Learn more about Robot with these resources.
-
-* `Robot Framework <https://robotframework.org/>`_
+To learn more about Robot, visit the `Robot Framework User Guide <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html>`_. We also have these resources in the CumulusCI documentation.
 
 .. toctree::
     :maxdepth: 1
