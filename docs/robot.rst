@@ -421,6 +421,7 @@ Let's create a new Robot test that includes a custom keyword called ``Create a t
 Because the ``Contact`` record was created inside the ``Create a test Contact`` keyword, the ``&{new contact}`` variable is not going to be visible to any test case or keyword that calls the ``Create a test Contact`` keyword. It's only when we use the built-in keyword `Set test variable <http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Set%20Test%20Variable>`_ that the newly created ``&{new contact}`` variable becomes visible in the ``Example of using a custom keyword in a setup step`` test case.
 
 Each test case and keyword can have its own settings. However, instead of a ``Settings`` section inside of a test case or keyword, test case or keyword settings are specified with the setting name in square brackets. In the previous example: 
+
 * ``[Setup]`` is a setting for the ``Example of using a custom keyword in a setup step`` test case.
 * ``[Documentation]`` is a setting for the ``Create a test Contact`` keyword. 
 
