@@ -625,7 +625,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         project_config = BaseProjectConfig(
             universal_config, {"sources": {"test": {"foo": "some_nonsense"}}}
         )
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError, match="Invalid source spec"):
             project_config.get_namespace("test")
 
     def test_include_source__cached(self):
