@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 from pathlib import Path
+from typing import Dict
 
 import click
 from jinja2 import Environment, PackageLoader
@@ -45,15 +46,6 @@ def project_init(runtime):
         raise click.ClickException("This project already has a cumulusci.yml file")
 
     context = {"cci_version": cumulusci.__version__}
-
-    # Prep jinja2 environment for rendering files
-    env = Environment(
-        loader=PackageLoader(
-            "cumulusci", os.path.join("files", "templates", "project")
-        ),
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
 
     # Project and Package Info
     click.echo()
@@ -217,6 +209,19 @@ def project_init(runtime):
         context["code_coverage"] = click.prompt(
             click.style("Minimum code coverage percentage", bold=True), default=75
         )
+
+    init_from_context(context)
+
+
+def init_from_context(context: Dict[str, object]):
+    # Prep jinja2 environment for rendering files
+    env = Environment(
+        loader=PackageLoader(
+            "cumulusci", os.path.join("files", "templates", "project")
+        ),
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
 
     # Render templates
     for name in (".gitignore", "README.md", "cumulusci.yml"):
