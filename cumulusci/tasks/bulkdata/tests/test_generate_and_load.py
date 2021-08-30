@@ -171,7 +171,7 @@ class TestGenerateAndLoadData(unittest.TestCase):
                 assert "mapping_vanilla_sf" in options["mapping"]
 
             def __call__(self):
-                pass
+                self.return_values = {}
 
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_vanilla_sf.yml")
 
@@ -227,7 +227,7 @@ class TestGenerateAndLoadData(unittest.TestCase):
                 assert Path(options["working_directory"]).exists()
 
             def __call__(self):
-                pass
+                self.return_values = {}
 
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_vanilla_sf.yml")
 

@@ -343,14 +343,12 @@ tasks:
     class_path: cumulusci.tasks.salesforce.InstallPackageVersion
     options:
       version: latest
-      activateRSS: True
     group: Salesforce Packages
   install_managed_beta:
     description: Installs the latest managed beta release
     class_path: cumulusci.tasks.salesforce.InstallPackageVersion
     options:
       version: latest_beta
-      activateRSS: True
     group: Salesforce Packages
   list_communities:
     description: Lists Communities for the current org using the Connect API.
@@ -1135,6 +1133,7 @@ flows:
           version_id: ^^upload_beta.version_id
           dependencies: ^^upload_beta.dependencies
           package_type: 1GP
+          tag_prefix: $project_config.project__git__prefix_beta
       3:
         task: github_release_notes
         ignore_failure: True # Attempt to generate release notes but don't fail build
@@ -1160,6 +1159,7 @@ flows:
           version_id: ^^upload_production.version_id
           dependencies: ^^upload_production.dependencies
           package_type: 1GP
+          tag_prefix: $project_config.project__git__prefix_release
       3:
         task: github_release_notes
         ignore_failure: True # Attempt to generate release notes but don't fail build
@@ -1181,6 +1181,7 @@ flows:
           version_id: ^^promote_package_version.version_id
           dependencies: ^^promote_package_version.dependencies
           package_type: 2GP
+          tag_prefix: $project_config.project__git__prefix_release
       3:
         task: github_release_notes
         ignore_failure: True # Attempt to generate release notes but don't fail build
@@ -1202,6 +1203,7 @@ flows:
           version_id: ^^promote_package_version.version_id
           dependencies: ^^promote_package_version.dependencies
           package_type: 2GP
+          tag_prefix: $project_config.project__git__prefix_release
       3:
         task: github_release_notes
         ignore_failure: True # Attempt to generate release notes but don't fail build

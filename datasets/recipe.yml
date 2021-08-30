@@ -22,26 +22,26 @@
     Name:
       fake: Company
     Description:
-      fake: catch_phrase
+      fake: CatchPhrase
     BillingStreet:
-      fake: street_address
+      fake: StreetAddress
     BillingCity:
-      fake: city
+      fake: City
     BillingState:
       fake: state
     BillingPostalCode:
-      fake: postalcode
+      fake: Postalcode
     BillingCountry: Canada
     ShippingStreet:
-      fake: street_address
+      fake: StreetAddress
     ShippingCity:
-      fake: city
+      fake: City
     ShippingState:
-      fake: state
+      fake: State
     ShippingPostalCode:
-      fake: postalcode
+      fake: PostalCode
     ShippingCountry:
-      fake: country
+      fake: Country
     Phone:
       fake: PhoneNumber
     Fax:
@@ -74,7 +74,7 @@
     Title:
       fake: job
     Birthdate:
-      fake.date_between:
+      date_between:
         start_date: -50y
         end_date: -20y
     AccountId:

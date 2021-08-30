@@ -1,7 +1,7 @@
 import tempfile
+import typing as T
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Union
 from unittest.mock import MagicMock
 
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, func, text
@@ -19,6 +19,7 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     validate_and_inject_mapping,
 )
 from cumulusci.tasks.bulkdata.step import (
+    DEFAULT_BULK_BATCH_SIZE,
     DataOperationJobResult,
     DataOperationStatus,
     DataOperationType,
@@ -112,6 +113,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
             start_step = self.options.get("start_step")
             started = False
+            results = {}
             for name, mapping in self.mapping.items():
                 # Skip steps until start_step
                 if not started and start_step and name != start_step:
@@ -135,15 +137,26 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                             raise BulkDataException(
                                 f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
                             )
+                results[name] = StepResultInfo(
+                    mapping.sf_object, result, mapping.record_type
+                )
         if self.options["set_recently_viewed"]:
             try:
+                self.logger.info("Setting records to 'recently viewed'.")
                 self._set_viewed()
             except Exception as e:
                 self.logger.warning(f"Could not set recently viewed because {e}")
 
+        self.return_values = {
+            "step_results": {
+                step_name: result_info.simplify()
+                for step_name, result_info in results.items()
+            }
+        }
+
     def _execute_step(
         self, mapping: MappingStep
-    ) -> Union[DataOperationJobResult, MagicMock]:
+    ) -> T.Union[DataOperationJobResult, MagicMock]:
         """Load data for a single step."""
 
         if "RecordTypeId" in mapping.fields:
@@ -184,8 +197,11 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             date_context = mapping.get_relative_date_context(
                 mapping.get_load_field_list(), self.org_config
             )
-
-        for row in query.yield_per(10000):
+        # Clamping the yield from the query ensures we do not
+        # create more Bulk API batches than expected, regardless
+        # of batch size, while capping memory usage.
+        batch_size = mapping.batch_size or DEFAULT_BULK_BATCH_SIZE
+        for row in query.yield_per(batch_size):
             total_rows += 1
             # Add static values to row
             pkey = row[0]
@@ -447,7 +463,12 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 self.models = {}
                 for name, mapping in self.mapping.items():
                     if mapping.table not in self.models:
-                        self.models[mapping.table] = self.base.classes[mapping.table]
+                        try:
+                            self.models[mapping.table] = self.base.classes[
+                                mapping.table
+                            ]
+                        except KeyError as e:
+                            raise BulkDataException(f"Table not found in dataset: {e}")
 
                     # create any Record Type tables we need
                     if "RecordTypeId" in mapping.fields:
@@ -461,7 +482,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _init_mapping(self):
         """Load a YAML mapping file."""
-        mapping_file_path = self.options["mapping"]
+        mapping_file_path = self.options.get("mapping")
         if not mapping_file_path:
             raise TaskOptionsError("Mapping file path required")
 
@@ -677,3 +698,16 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                         self.logger.warning(
                             f"Cannot set recently viewed status for {mapped_item}. Error: {e}"
                         )
+
+
+class StepResultInfo(T.NamedTuple):
+    sobject: str
+    result: DataOperationJobResult
+    record_type: str = None
+
+    def simplify(self):
+        return {
+            "sobject": self.sobject,
+            "record_type": self.record_type,
+            **self.result.simplify(),
+        }

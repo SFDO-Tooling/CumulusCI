@@ -29,16 +29,16 @@ When you're ready, and your org is prepared, to upload a package version, run th
 
 .. code-block:: console
 
-    $ cci flow run upload_unlocked_beta --org dev
+    $ cci flow run release_unlocked_beta --org dev
 
 .. important::
     
-    The org supplied to ``upload_unlocked_beta`` has two purposes. One is to look up the Ids of dependency packages (see above). The other is to provide the configuration for the *build org* used to upload the 2GP package version. CumulusCI will use the scratch org definition file used to create the specified org (``dev`` here) to create the build org, which defines the features and settings available during package upload.
+    The org supplied to ``release_unlocked_beta`` has two purposes. One is to look up the Ids of dependency packages (see above). The other is to provide the configuration for the *build org* used to upload the 2GP package version. CumulusCI will use the scratch org definition file used to create the specified org (``dev`` here) to create the build org, which defines the features and settings available during package upload.
 
     You may wish to define a separate scratch org configuration (``build``) just for package uploads to ensure only your required features are present.
 
 
-The ``upload_unlocked_beta`` flow executes these tasks:
+The ``release_unlocked_beta`` flow executes these tasks:
 
 * Uploads a new beta version of the unlocked package.
 * Creates a new GitHub release tag for the new beta version. Extension packages that also use CumulusCI require this release tag to find the latest version when this repository is listed as a dependency.
@@ -47,12 +47,12 @@ The ``upload_unlocked_beta`` flow executes these tasks:
 
 .. tip:: 
 
-    To list each step in the ``upload_unlocked_beta`` flow, run ``cci flow info upload_unlocked_beta``.
+    To list each step in the ``release_unlocked_beta`` flow, run ``cci flow info release_unlocked_beta``.
 
 Customizing Package Uploads
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2GP package uploads are performed by the ``create_package_version`` task. If the built-in configuration used by ``upload_unlocked_beta`` does not suit the needs of your project - for example, if you want to increment version numbers differently, or build an org-dependent package - you can customize the options for that task in ``upload_unlocked_beta`` or invoke the task directly.
+2GP package uploads are performed by the ``create_package_version`` task. If the built-in configuration used by ``release_unlocked_beta`` does not suit the needs of your project - for example, if you want to increment version numbers differently, or build an org-dependent package - you can customize the options for that task in ``release_unlocked_beta`` or invoke the task directly.
 
 To learn more about the available options, run
 

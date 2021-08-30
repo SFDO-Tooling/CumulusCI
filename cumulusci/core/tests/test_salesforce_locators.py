@@ -13,7 +13,7 @@ class TestLocators(unittest.TestCase):
     @mock.patch("cumulusci.robotframework.Salesforce.Salesforce.get_latest_api_version")
     def test_locators_in_robot_context(self, get_latest_api_version):
         """Verify we can get locators for the current org api version"""
-        get_latest_api_version.return_value = 50.0
+        get_latest_api_version.return_value = 53.0
 
         # This instantiates the robot library, mimicking a robot library import.
         # We've mocked out the code that would otherwise throw an error since
@@ -21,12 +21,10 @@ class TestLocators(unittest.TestCase):
         # return the latest version of the locators.
         sf = Salesforce()
 
-        expected = "cumulusci.robotframework.locators_50"
+        expected = "cumulusci.robotframework.locators_53"
         actual = sf.locators_module.__name__
         message = "expected to load '{}', actually loaded '{}'".format(expected, actual)
         self.assertEqual(expected, actual, message)
-
-        pass
 
     @mock.patch(
         "robot.libraries.BuiltIn.BuiltIn.get_library_instance",
@@ -50,8 +48,8 @@ class TestLocators(unittest.TestCase):
         message = "expected to load '{}', actually loaded '{}'".format(expected, actual)
         self.assertEqual(expected, actual, message)
 
-    def test_locators_51(self):
-        """Verify that locators_51 is a superset of the locators_50
+    def test_locators_53(self):
+        """Verify that locators_53 is a superset of the locators_52
 
         This test is far from perfect, but it should at least flag a
         catastrophic error in how locators for a version that augments
@@ -61,16 +59,16 @@ class TestLocators(unittest.TestCase):
         keys from 50.
 
         """
-        import cumulusci.robotframework.locators_50 as locators_50
-        import cumulusci.robotframework.locators_51 as locators_51
+        import cumulusci.robotframework.locators_52 as locators_52
+        import cumulusci.robotframework.locators_53 as locators_53
 
-        keys_50 = set(locators_50.lex_locators)
-        keys_51 = set(locators_51.lex_locators)
+        keys_50 = set(locators_52.lex_locators)
+        keys_51 = set(locators_53.lex_locators)
 
         self.assertNotEqual(
-            id(locators_50.lex_locators),
-            id(locators_51.lex_locators),
-            "locators_50.lex_locators and locators_51.lex_locators are the same object",
+            id(locators_52.lex_locators),
+            id(locators_53.lex_locators),
+            "locators_52.lex_locators and locators_53.lex_locators are the same object",
         )
         self.assertTrue(len(keys_50) > 0)
         self.assertTrue(keys_50.issubset(keys_51))

@@ -41,9 +41,25 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             ),
         )
 
+    def test_run_task__invalid_version_option_value(self):
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "branch": "main",
+                    "version": "invalue_value",
+                    "create_release": True,
+                    "repo_url": self.public_repo_url,
+                    "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
+                }
+            }
+        )
+
+        with pytest.raises(TaskOptionsError):
+            PublishSubtree(self.project_config, task_config)
+
     @mock.patch("cumulusci.tasks.github.publish.download_extract_github_from_repo")
     @mock.patch("cumulusci.tasks.github.publish.CommitDir")
-    def test_run_task_version(self, commit_dir, extract_github):
+    def test_run_task_tag_name__explicit_tag_name(self, commit_dir, extract_github):
         with responses.RequestsMock() as rsps:
             rsps.add(
                 method=responses.GET,
@@ -51,11 +67,6 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
                 json=self._get_expected_repo(
                     owner=self.repo_owner, name=self.repo_name
                 ),
-            )
-            rsps.add(
-                responses.GET,
-                self.repo_api_url + "/releases/latest",
-                json=self._get_expected_release("release/1.0"),
             )
             rsps.add(
                 method=responses.GET,
@@ -95,7 +106,92 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
                 {
                     "options": {
                         "branch": "main",
-                        "version": "latest",
+                        "tag_name": "release/1.0",
+                        "create_release": True,
+                        "repo_url": self.public_repo_url,
+                        "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
+                    }
+                }
+            )
+            extract_github.return_value.namelist.return_value = [
+                "tasks/foo.py",
+                "unpackaged/pre/foo/package.xml",
+                "force-app",
+            ]
+
+            task = PublishSubtree(self.project_config, task_config)
+            task()
+
+            expected_release_body = json.dumps(
+                {
+                    "tag_name": "release/1.0",
+                    "name": "1.0",
+                    "body": "",
+                    "draft": False,
+                    "prerelease": False,
+                }
+            )
+            create_release_call = rsps.calls[7]
+            assert create_release_call.request.url == self.public_repo_url + "/releases"
+            assert create_release_call.request.method == responses.POST
+            assert create_release_call.request.body == expected_release_body
+
+    @mock.patch("cumulusci.tasks.github.publish.download_extract_github_from_repo")
+    @mock.patch("cumulusci.tasks.github.publish.CommitDir")
+    def test_run_task_tag_name__latest(self, commit_dir, extract_github):
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                method=responses.GET,
+                url=self.repo_api_url,
+                json=self._get_expected_repo(
+                    owner=self.repo_owner, name=self.repo_name
+                ),
+            )
+            rsps.add(
+                method=responses.GET,
+                url=self.public_repo_url,
+                json=self._get_expected_repo(
+                    owner=self.public_owner, name=self.public_name
+                ),
+            )
+            rsps.add(
+                method=responses.GET,
+                url=self.repo_api_url + "/releases/latest",
+                status=200,
+                json=self._get_expected_release("release/1.0"),
+            )
+            rsps.add(
+                method=responses.GET,
+                url=self.repo_api_url + "/git/refs/tags/release/1.0",
+                status=200,
+                json=self._get_expected_tag_ref("release/1.0", "SHA"),
+            )
+            rsps.add(
+                method=responses.GET,
+                url=self.repo_api_url + "/git/tags/SHA",
+                json=self._get_expected_tag("release/1.0", "SHA"),
+                status=200,
+            )
+            rsps.add(
+                responses.GET,
+                self.repo_api_url + "/releases/tags/release/1.0",
+                json=self._get_expected_release("release/1.0"),
+            )
+            rsps.add(
+                responses.GET,
+                self.public_repo_url + "/git/refs/tags/release/1.0",
+                status=404,
+            )
+            rsps.add(
+                responses.POST,
+                self.public_repo_url + "/releases",
+                json=self._get_expected_release("release"),
+            )
+            task_config = TaskConfig(
+                {
+                    "options": {
+                        "branch": "main",
+                        "tag_name": "latest",
                         "create_release": True,
                         "repo_url": self.public_repo_url,
                         "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
@@ -125,38 +221,92 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             assert create_release_call.request.method == responses.POST
             assert create_release_call.request.body == expected_release_body
 
-    @responses.activate
-    @mock.patch("cumulusci.core.config.project_config.BaseProjectConfig.get_latest_tag")
     @mock.patch("cumulusci.tasks.github.publish.download_extract_github_from_repo")
-    @mock.patch("cumulusci.tasks.github.publish.CommitDir.__call__")
-    def test_run_task_latest_beta(self, commit_dir, download, get_tag):
-        responses.add(
-            method=responses.GET,
-            url=self.repo_api_url,
-            json=self._get_expected_repo(owner=self.repo_owner, name=self.repo_name),
-        )
-        responses.add(
-            method=responses.GET,
-            url=self.public_repo_url,
-            json=self._get_expected_repo(
-                owner=self.public_owner, name=self.public_name
-            ),
-        )
-        task_config = TaskConfig(
-            {
-                "options": {
-                    "branch": "main",
-                    "version": "latest_beta",
-                    "repo_url": self.public_repo_url,
-                    "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
+    @mock.patch("cumulusci.tasks.github.publish.CommitDir")
+    def test_run_task_version(self, commit_dir, extract_github):
+        with responses.RequestsMock() as rsps:
+            rsps.add(
+                method=responses.GET,
+                url=self.repo_api_url,
+                json=self._get_expected_repo(
+                    owner=self.repo_owner, name=self.repo_name
+                ),
+            )
+            rsps.add(
+                method=responses.GET,
+                url=self.public_repo_url,
+                json=self._get_expected_repo(
+                    owner=self.public_owner, name=self.public_name
+                ),
+            )
+            rsps.add(
+                method=responses.GET,
+                url=self.repo_api_url + "/releases",
+                status=200,
+                json=self._get_expected_releases(
+                    "TestOwner", "TestRepo", ["beta/1.0-Beta_1"]
+                ),
+            )
+            rsps.add(
+                method=responses.GET,
+                url=self.repo_api_url + "/git/refs/tags/beta/1.0-Beta_1",
+                status=200,
+                json=self._get_expected_tag_ref("release/1.0", "SHA"),
+            )
+            rsps.add(
+                method=responses.GET,
+                url=self.repo_api_url + "/git/tags/SHA",
+                json=self._get_expected_tag("release/1.0", "SHA"),
+                status=200,
+            )
+            rsps.add(
+                responses.GET,
+                self.repo_api_url + "/releases/tags/beta/1.0-Beta_1",
+                json=self._get_expected_release("release/1.0"),
+            )
+            rsps.add(
+                responses.GET,
+                self.public_repo_url + "/git/refs/tags/beta/1.0-Beta_1",
+                status=404,
+            )
+            rsps.add(
+                responses.POST,
+                self.public_repo_url + "/releases",
+                json=self._get_expected_release("beta/1.0-Beta_1"),
+            )
+            task_config = TaskConfig(
+                {
+                    "options": {
+                        "branch": "main",
+                        "version": "latest_beta",
+                        "create_release": True,
+                        "repo_url": self.public_repo_url,
+                        "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
+                    }
                 }
-            }
-        )
-        get_tag.return_value = "beta/1.0_Beta_1"
-        commit_dir.return_value = None
-        task = PublishSubtree(self.project_config, task_config)
-        task()
-        get_tag.assert_called_once_with(True)
+            )
+            extract_github.return_value.namelist.return_value = [
+                "tasks/foo.py",
+                "unpackaged/pre/foo/package.xml",
+                "force-app",
+            ]
+
+            task = PublishSubtree(self.project_config, task_config)
+            task()
+
+            expected_release_body = json.dumps(
+                {
+                    "tag_name": "beta/1.0-Beta_1",
+                    "name": "1.0 (Beta 1)",
+                    "body": "",
+                    "draft": False,
+                    "prerelease": False,
+                }
+            )
+            create_release_call = rsps.calls[9]
+            assert create_release_call.request.url == self.public_repo_url + "/releases"
+            assert create_release_call.request.method == responses.POST
+            assert create_release_call.request.body == expected_release_body
 
     @responses.activate
     @mock.patch("cumulusci.tasks.github.publish.download_extract_github_from_repo")
@@ -188,7 +338,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             {
                 "options": {
                     "branch": "main",
-                    "version": "latest",
+                    "tag_name": "release/1.0",
                     "create_release": True,
                     "repo_url": self.public_repo_url,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
@@ -244,7 +394,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             {
                 "options": {
                     "branch": "main",
-                    "version": "latest",
+                    "tag_name": "release/1.0",
                     "create_release": True,
                     "repo_url": self.public_repo_url,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
@@ -301,7 +451,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             {
                 "options": {
                     "branch": "master",
-                    "version": "latest",
+                    "tag_name": "release/1.0",
                     "create_release": True,
                     "repo_url": self.public_repo_url,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
@@ -371,7 +521,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             {
                 "options": {
                     "branch": "master",
-                    "version": "latest",
+                    "tag_name": "release/1.0",
                     "create_release": True,
                     "repo_url": self.public_repo_url,
                     "includes": ["tasks/foo.py", "unpackaged/pre/foo/package.xml"],
@@ -388,7 +538,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             task()
         assert "Ref for tag release/1.0 already exists in target repo" == str(exc.value)
 
-    def test_ref_nor_version_error(self):
+    def test_ref_nor_tag_name_error(self):
         task_config = TaskConfig(
             {
                 "options": {
@@ -400,7 +550,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         )
         with pytest.raises(TaskOptionsError) as exc:
             PublishSubtree(self.project_config, task_config)
-        assert "Either `ref` or `version` option is required" == str(exc.value)
+        assert "Either `ref` or `tag_name` option is required." == str(exc.value)
 
     def test_renames_not_list_error(self):
         task_config = TaskConfig(

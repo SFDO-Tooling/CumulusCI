@@ -97,7 +97,7 @@ class ConnectServiceCommand(click.MultiCommand):
             click.Option(
                 ("--default",),
                 is_flag=True,
-                help="Set this service as the global defualt.",
+                help="Set this service as the global default.",
             )
         )
         if runtime.project_config is not None:

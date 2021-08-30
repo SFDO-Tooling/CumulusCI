@@ -55,7 +55,7 @@ docutils==0.16
     #   sphinx
 factory-boy==3.2.0
     # via -r requirements/dev.in
-faker==8.11.0
+faker==8.10.3
     # via
     #   -c requirements/prod.txt
     #   factory-boy
@@ -65,9 +65,9 @@ filelock==3.0.12
     #   virtualenv
 flake8==3.9.2
     # via -r requirements/dev.in
-furo==2021.7.31b41
+furo==2021.8.17b43
     # via -r requirements/dev.in
-identify==2.2.11
+identify==2.2.13
     # via pre-commit
 idna==3.2
     # via
@@ -76,7 +76,7 @@ idna==3.2
     #   yarl
 imagesize==1.2.0
     # via sphinx
-importlib-metadata==4.6.3
+importlib-metadata==4.6.1
     # via
     #   -c requirements/prod.txt
     #   keyring
@@ -93,7 +93,7 @@ keyring==23.0.1
     # via
     #   -c requirements/prod.txt
     #   twine
-markupsafe==1.1.1
+markupsafe==2.0.1
     # via
     #   -c requirements/prod.txt
     #   jinja2
@@ -121,7 +121,7 @@ pluggy==0.13.1
     # via
     #   pytest
     #   tox
-pre-commit==2.13.0
+pre-commit==2.14.0
     # via -r requirements/dev.in
 py==1.10.0
     # via
@@ -131,7 +131,7 @@ pycodestyle==2.7.0
     # via flake8
 pyflakes==2.3.1
     # via flake8
-pygments==2.9.0
+pygments==2.10.0
     # via
     #   readme-renderer
     #   sphinx
@@ -173,7 +173,7 @@ requests==2.26.0
     #   twine
 requests-toolbelt==0.9.1
     # via twine
-responses==0.13.3
+responses==0.13.4
     # via -r requirements/dev.in
 rfc3986==1.5.0
     # via twine
@@ -219,11 +219,11 @@ toml==0.10.2
     #   pre-commit
     #   pytest
     #   tox
-tomli==1.2.0
+tomli==1.2.1
     # via black
-tox==3.24.1
+tox==3.24.2
     # via -r requirements/dev.in
-tqdm==4.62.0
+tqdm==4.62.1
     # via twine
 twine==3.4.2
     # via -r requirements/dev.in
@@ -238,13 +238,13 @@ vcrpy==4.1.1
     # via
     #   -r requirements/dev.in
     #   pytest-vcr
-virtualenv==20.7.0
+virtualenv==20.7.2
     # via
     #   pre-commit
     #   tox
 webencodings==0.5.1
     # via bleach
-wheel==0.36.2
+wheel==0.37.0
     # via -r requirements/dev.in
 wrapt==1.12.1
     # via

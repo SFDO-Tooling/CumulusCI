@@ -307,7 +307,7 @@ class TestParallelWorker:
                 outbox_dir=outbox_dir,
                 working_dir=working_dir,
             )
-            worker = ParallelWorker(DelaySpawner, config)
+            worker = ParallelWorker(DelaySpawner, config, None)
             worker.start()
             worker.terminate()
             assert "Alive: False" in repr(worker)
@@ -327,7 +327,7 @@ class TestTaskWorker:
                 outbox_dir=outbox_dir,
                 working_dir=working_dir,
             )
-            p = TaskWorker(config.as_dict())
+            p = TaskWorker(config.as_dict(), None)
             with mock.patch("shutil.move", side_effect=AssertionError):
                 with pytest.raises(AssertionError):
                     p.run()
