@@ -144,3 +144,12 @@ def _add_filenames(e: ValidationError, filename):
         assert processed, f"Should have processed by now {val}, {repr(val)}"
 
     _recursively_add_filenames(e.raw_errors)
+
+
+class HashableBaseModel(CCIModel):
+    """Base Pydantic model class that has a functional `hash()` method.
+    Requires that model can be converted to JSON."""
+
+    # See https://github.com/samuelcolvin/pydantic/issues/1303
+    def __hash__(self):
+        return hash((type(self),) + tuple(self.json()))
