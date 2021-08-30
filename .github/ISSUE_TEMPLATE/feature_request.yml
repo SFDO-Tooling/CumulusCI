@@ -1,0 +1,44 @@
+name: Feature request
+description: Suggest a feature or capability for CumulusCI
+labels: enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If you are seeking support on using CumulusCI, please do not open an Issue. Instead, please visit us on the [Trailblazer Community](https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9Z), or, for Nonprofit and Education customers, the [Power of Us Hub](https://powerofus.force.com/s/group/0F980000000PSRHCA4/cumulusci-cci)
+  - type: dropdown
+    id: issue_type
+    validations:
+      required: true
+    attributes:
+      label: Feature Type
+      description: Please describe the nature of this feature request
+      options:
+        - I'm interested in functionality that solves a current problem or limitation in how CumulusCI works.
+        - I'm interested in extensions to existing CumulusCI functionality (e.g., broader applicability of an existing Task or Flow).
+        - I'm interested in a new Task or Flow for CumulusCI.
+        - I'm interested in functionality that has to do with CumulusCI's architecture or overall capabilities.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Does your feature request solve a current problem?
+      description: A clear and concise description of what the problem is.
+      placeholder: |
+        Please include information about how the problem is produced, i.e., what CumulusCI task or flow is run and in what context.
+  - type: textarea
+    id: solution
+    validations:
+      required: true
+    attributes:
+      label: Describe the solution you'd like
+      description: A clear and concise description of what you want to happen.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Describe alternatives you've considered
+      description: A concise description of any alternative solutions or features you've considered.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add any other context or screenshots about the feature request here.
