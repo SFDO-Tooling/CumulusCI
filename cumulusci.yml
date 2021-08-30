@@ -35,6 +35,11 @@ tasks:
               - cumulusci/robotframework/pageobjects/BasePageObjects.py
 
 flows:
+    qa_org:
+        steps:
+            2:
+                flow: None
+
     robot_docs:
         description: Generates documentation for robot framework libraries
         steps:
@@ -62,3 +67,6 @@ orgs:
     scratch:
         prerelease:
             config_file: orgs/prerelease.json
+
+        pytest:
+            config_file: orgs/dev.json
