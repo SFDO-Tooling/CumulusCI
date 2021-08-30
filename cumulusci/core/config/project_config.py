@@ -531,26 +531,32 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if spec is None:
             raise NamespaceNotFoundError(f"Namespace not found: {ns}")
 
-        parsed_spec = None
-        for model_class in [GitHubSourceModel, LocalFolderSourceModel]:
-            try:
-                parsed_spec = model_class(**spec)
-            except ValidationError:
-                pass
-            else:
-                break
+        return self.include_source(spec)
 
-        if not parsed_spec:
-            raise ValueError(f"Invalid source spec: {spec}")
-
-        return self.include_source(parsed_spec)
-
-    def include_source(self, spec: Union[GitHubSourceModel, LocalFolderSourceModel]):
+    def include_source(
+        self, spec: Union[GitHubSourceModel, LocalFolderSourceModel, dict]
+    ):
         """Make sure a project has been fetched from its source.
 
         This either fetches the project code and constructs its project config,
         or returns a project config that was previously loaded with the same spec.
         """
+
+        if isinstance(spec, dict):
+            parsed_spec = None
+            for model_class in [GitHubSourceModel, LocalFolderSourceModel]:
+                try:
+                    parsed_spec = model_class(**spec)
+                except ValidationError:
+                    pass
+                else:
+                    break
+
+            if not parsed_spec:
+                raise ValueError(f"Invalid source spec: {spec}")
+
+            spec = parsed_spec
+
         if spec in self.included_sources:
             project_config = self.included_sources[spec]
         else:

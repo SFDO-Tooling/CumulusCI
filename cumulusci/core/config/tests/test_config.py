@@ -620,13 +620,13 @@ class TestBaseProjectConfig(unittest.TestCase):
         with self.assertRaises(NamespaceNotFoundError):
             project_config.get_namespace("test")
 
-    def test_get_namespace__bad_spec(self):
+    def test_include_source__bad_spec(self):
         universal_config = UniversalConfig()
         project_config = BaseProjectConfig(
             universal_config, {"sources": {"test": {"foo": "some_nonsense"}}}
         )
         with pytest.raises(ValueError, match="Invalid source spec"):
-            project_config.get_namespace("test")
+            project_config.include_source(project_config.get_namespace("test"))
 
     def test_include_source__cached(self):
         universal_config = UniversalConfig()
