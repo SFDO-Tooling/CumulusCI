@@ -813,7 +813,7 @@ class TestAddFieldsToPageLayout(unittest.TestCase):
         """Check positioning root validators column relative"""
 
         with self.assertRaises(ValueError):
-            task = create_task(
+            create_task(
                 AddFieldsToPageLayout,
                 {
                     "api_names": "Account-Account Layout",
@@ -833,17 +833,11 @@ class TestAddFieldsToPageLayout(unittest.TestCase):
                 },
             )
 
-            # Running task to stop flake8 from compaining
-            tree = metadata_tree.fromstring(
-                MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8")
-            )
-            task._transform_entity(tree, "Layout")
-
     def test_add_fields_position_type_field(self):
         """Check positioning root validators field relative"""
 
         with self.assertRaises(ValueError):
-            task = create_task(
+            create_task(
                 AddFieldsToPageLayout,
                 {
                     "api_names": "Account-Account Layout",
@@ -862,9 +856,3 @@ class TestAddFieldsToPageLayout(unittest.TestCase):
                     ],
                 },
             )
-
-            # Running task to stop flake8 from compaining
-            tree = metadata_tree.fromstring(
-                MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8")
-            )
-            task._transform_entity(tree, "Layout")

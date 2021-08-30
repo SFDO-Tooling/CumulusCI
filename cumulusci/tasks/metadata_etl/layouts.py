@@ -80,6 +80,31 @@ class AddFieldsPosition(BaseModel):
     section: Optional[int]
 
     @root_validator
+    def enforce_field_specifiers(cls, values):
+        field, relative = (
+            values.get("field"),
+            values.get("relative"),
+        )
+        if field is not None and relative is None:
+            raise ValueError(
+                "Please specify a relative position when specifying a field"
+            )
+        return values
+
+    @root_validator
+    def enforce_section_specifiers(cls, values):
+        column, section, relative = (
+            values.get("column"),
+            values.get("section"),
+            values.get("relative"),
+        )
+        if section is not None and (relative is None or column is None):
+            raise ValueError(
+                "A Section was specified but is missing a column or relative column position"
+            )
+        return values
+
+    @root_validator
     def columns_not_compatible_with_fields(cls, values):
         field, column, section = (
             values.get("field"),
@@ -88,7 +113,7 @@ class AddFieldsPosition(BaseModel):
         )
         if (column is not None or section is not None) and field is not None:
             raise ValueError(
-                "Section/Column positioning is not compatible with Field positioning"
+                "Section/Column positioning is not compatible when setting a field based position"
             )
         return values
 
@@ -96,7 +121,9 @@ class AddFieldsPosition(BaseModel):
     def field_uses_before_after(cls, values):
         field, relative = values.get("field"), values.get("relative")
         if (relative == "top" or relative == "bottom") and field is not None:
-            raise ValueError('Please use "before" or "after" with Field positioning.')
+            raise ValueError(
+                'Please use "before" or "after" when setting a field based position.'
+            )
         return values
 
     @root_validator
@@ -104,7 +131,7 @@ class AddFieldsPosition(BaseModel):
         column, relative = values.get("column"), values.get("relative")
         if (relative == "before" or relative == "after") and column is not None:
             raise ValueError(
-                "Before/After relative positions are not compatible with Column positioning"
+                'Please use "top" or "bottom" when setting a column based position.'
             )
         return values
 
@@ -119,8 +146,8 @@ class AddFieldOptions(BaseModel):
 class AddPagesOptions(BaseModel):
     api_name: str
     height: Optional[int]
-    show_label: Optional[bool]
-    show_scrollbars: Optional[bool]
+    show_label: bool = False
+    show_scrollbars: bool = False
     width: Optional[str]
     position: Optional[List[AddFieldsPosition]]
 
@@ -146,7 +173,7 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
 
             - api_name: [field API name]
             - required: Boolean (default False)
-            - read_only: Boolean (default False, not compatable with required)
+            - read_only: Boolean (default False, not compatible with required)
             - position: (Optional: A list of single or multiple position options.)
 
                 - relative: [before | after | top | bottom]
@@ -184,8 +211,8 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
-        fields_options = process_list_arg(self.options.get("fields", []))
-        pages_options = process_list_arg(self.options.get("pages", []))
+        fields_options = self.options.get("fields")
+        pages_options = self.options.get("pages")
 
         self._validated_options = AddFieldsToLayoutOptions(
             fields=fields_options,
