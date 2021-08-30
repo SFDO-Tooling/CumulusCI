@@ -241,9 +241,6 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
                 + " Defaults to 200."
             )
         },
-        "dry_run": {
-            "description": "If True, log how many orgs were selected but skip creating a PackagePushRequest.  Defaults to False"
-        },
     }
 
     def _init_task(self):
@@ -267,7 +264,6 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             self.options["batch_size"] = 200
         if "csv" not in self.options and "csv_field_name" in self.options:
             raise TaskOptionsError("Please provide a csv file for this task to run.")
-        # self.options["dry_run"] = process_bool_arg()
 
     def _get_orgs(self):
         if "csv" in self.options:
