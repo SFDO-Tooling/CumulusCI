@@ -10,22 +10,23 @@ from cumulusci.core.github import (
     get_github_api_for_repo,
 )
 from cumulusci.utils import download_extract_github
+from cumulusci.utils.git import split_repo_url
+from cumulusci.utils.yaml.cumulusci_yml import GitHubSourceModel, GitHubSourceRelease
 
 
 class GitHubSource:
-    def __init__(self, project_config, spec):
+    def __init__(self, project_config, spec: GitHubSourceModel):
         self.project_config = project_config
         self.spec = spec
-        self.url = spec["github"]
+        self.url = spec.github
         if self.url.endswith(".git"):
             self.url = self.url[:-4]
 
-        repo_owner, repo_name = self.url.split("/")[-2:]
-        self.repo_owner = repo_owner
-        self.repo_name = repo_name
+        self.repo_owner, self.repo_name = split_repo_url(self.url)
+
         try:
             self.gh = get_github_api_for_repo(
-                project_config.keychain, repo_owner, repo_name
+                project_config.keychain, self.repo_owner, self.repo_name
             )
             self.repo = self.gh.repository(self.repo_owner, self.repo_name)
         except NotFoundError:
@@ -49,52 +50,71 @@ class GitHubSource:
         return hash((self.url, self.commit))
 
     def resolve(self):
-        """Resolve a github source into a specific commit.
+        """Resolve a GitHub source into a specific commit.
 
         The spec must include:
-        - github: the URL of the github repository
+        - github: the URL of the GitHub repository
 
-        The spec may include one of:
+        It's recommended that the source include:
+        - resolution_strategy: [production | preproduction | <strategy-name>]
+
+        The spec may instead be specific about the desired ref or release:
         - commit: a commit hash
-        - ref: a git ref
-        - branch: a git branch
-        - tag: a git tag
+        - ref: a Git ref
+        - branch: a Git branch
+        - tag: a Git tag
         - release: "latest" | "previous" | "latest_beta"
 
-        If none of these are specified, CumulusCI will look for the latest release.
-        If there is no release, it will use the default branch.
+        If none of these are specified, CumulusCI will use the resolution strategy "production"
+        to locate the appropriate release or ref.
         """
         ref = None
-        if "commit" in self.spec:
-            self.commit = self.description = self.spec["commit"]
+        # These branches preserve some existing behavior: when a source is set to
+        # a specific tag or release, there's no fallback, as there would be
+        # if we were subsumed within the dependency resolution machinery.
+
+        # If the user was _not_ specific, we will use the full resolution stack,
+        # including fallback behaviors.
+        if self.spec.commit:
+            self.commit = self.description = self.spec.commit
             return
-        elif "ref" in self.spec:
-            ref = self.spec["ref"]
-        elif "tag" in self.spec:
-            ref = "tags/" + self.spec["tag"]
-        elif "branch" in self.spec:
-            ref = "heads/" + self.spec["branch"]
-        elif "release" in self.spec:
-            release_spec = self.spec["release"]
-            if release_spec == "latest":
+        elif self.spec.ref:
+            ref = self.spec.ref
+        elif self.spec.tag:
+            ref = "tags/" + self.spec.tag
+        elif self.spec.branch:
+            ref = "heads/" + self.spec.branch
+        elif self.spec.release:
+            release = None
+            if self.spec.release is GitHubSourceRelease.LATEST:
                 release = find_latest_release(self.repo, include_beta=False)
-            elif release_spec == "latest_beta":
+            elif self.spec.release is GitHubSourceRelease.LATEST_BETA:
                 release = find_latest_release(self.repo, include_beta=True)
-            elif release_spec == "previous":
+            elif self.spec.release is GitHubSourceRelease.PREVIOUS:
                 release = find_previous_release(self.repo)
-            else:
-                raise DependencyResolutionError(f"Unknown release: {release_spec}")
             if release is None:
                 raise DependencyResolutionError(
-                    f"Could not find release: {release_spec}"
+                    f"Could not find release {self.spec.release}."
                 )
             ref = "tags/" + release.tag_name
-        if ref is None:
-            release = find_latest_release(self.repo, include_beta=False)
-            if release:
-                ref = "tags/" + release.tag_name
-            else:
-                ref = "heads/" + self.repo.default_branch
+        else:
+            # Avoid circular import issues
+            from cumulusci.core.dependencies.dependencies import GitHubDynamicDependency
+            from cumulusci.core.dependencies.resolvers import (
+                get_resolver_stack,
+                resolve_dependency,
+            )
+
+            # Use resolution strategies to find the right commit.
+            dep = GitHubDynamicDependency(github=self.spec.github)
+            resolve_dependency(
+                dep,
+                self.project_config,
+                get_resolver_stack(self.project_config, self.spec.resolution_strategy),
+            )
+            self.commit = self.description = dep.ref
+            return
+
         self.description = ref[6:] if ref.startswith("heads/") else ref
         self.commit = self.repo.ref(ref).object.sha
 
