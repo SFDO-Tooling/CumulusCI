@@ -210,10 +210,10 @@ def project_init(runtime):
             click.style("Minimum code coverage percentage", bold=True), default=75
         )
 
-    init_from_context(context)
+    init_from_context(context, echo=True)
 
 
-def init_from_context(context: Dict[str, object]):
+def init_from_context(context: Dict[str, object], echo: bool = False):
     # Prep jinja2 environment for rendering files
     env = Environment(
         loader=PackageLoader(
@@ -229,7 +229,7 @@ def init_from_context(context: Dict[str, object]):
         file_path = Path(name)
         if not file_path.is_file():
             file_path.write_text(template.render(**context))
-        else:
+        elif echo:
             click.echo(
                 click.style(
                     f"{name} already exists. As a reference, here is what would be placed in the file if it didn't already exist:",
@@ -329,13 +329,14 @@ def init_from_context(context: Dict[str, object]):
         with open(os.path.join("datasets", "mapping.yml"), "w") as f:
             f.write(template.render(**context))
 
-    click.echo(
-        click.style(
-            "Your project is now initialized for use with CumulusCI",
-            bold=True,
-            fg="green",
+    if echo:
+        click.echo(
+            click.style(
+                "Your project is now initialized for use with CumulusCI",
+                bold=True,
+                fg="green",
+            )
         )
-    )
 
 
 @project.command(
