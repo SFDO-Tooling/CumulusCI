@@ -310,7 +310,6 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             )
             start_time = utcnow + timedelta(minutes=delay_minutes)
 
-        print(f"{self.options.get('dry_run')=}")
         if self.options["dry_run"]:
             self.logger.info(
                 f"Selected {len(orgs)} orgs. "
