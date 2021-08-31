@@ -15,7 +15,14 @@ from requests.models import Response
 
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_PORT
-from cumulusci.oauth.client import PORT_IN_USE_ERR, OAuth2Client
+from cumulusci.oauth.client import (
+    PORT_IN_USE_ERR,
+    OAuth2Client,
+    OAuth2ClientConfig,
+    OAuth2DeviceConfig,
+    get_device_code,
+    get_device_oauth_token,
+)
 from cumulusci.oauth.exceptions import OAuth2Error
 from cumulusci.oauth.salesforce import jwt_session
 
@@ -229,3 +236,45 @@ class TestOAuth2Client:
         response.status_code = 400
         with pytest.raises(OAuth2Error):
             client.validate_response(response)
+
+
+@pytest.fixture
+def device_client_config():
+    """Modified client_config for device auth flow"""
+    client_config = {
+        "auth_uri": "https://github.com/login/device/code",
+        "client_id": "2a4bc3e5ce4f2c49a957",
+        "token_uri": "https://github.com/login/oauth/access_token",
+        "scope": "repo gist",
+    }
+    return OAuth2ClientConfig(**client_config)
+
+
+@pytest.fixture
+def device_user_code_resp():
+    return {
+        "device_code": "b16373d7bac49a3e93971615f929fea54106040e",
+        "user_code": "679B-1C70",
+        "verification_uri": "https://github.com/login/device",
+        "expires_in": 899,
+        "interval": 5,
+    }
+
+
+@pytest.fixture
+def device_device_config(device_user_code_resp):
+    return OAuth2DeviceConfig(device_user_code_resp)
+
+
+@pytest.mark.vcr()
+def test_get_device_code(device_client_config, device_user_code_resp):
+    response_dict: dict = get_device_code(device_client_config)
+    expected = device_user_code_resp
+    assert expected == response_dict
+
+
+@pytest.mark.vcr()
+def test_get_device_oauth_token(device_client_config, device_user_code_resp):
+    device_config = OAuth2DeviceConfig(**device_user_code_resp)
+    response_dict = get_device_oauth_token(device_client_config, device_config)
+    assert response_dict

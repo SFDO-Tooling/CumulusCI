@@ -23,9 +23,21 @@ from cumulusci.core.exceptions import (
     GithubApiError,
     GithubException,
 )
+from cumulusci.oauth.client import (
+    OAuth2ClientConfig,
+    OAuth2DeviceConfig,
+    get_device_code,
+    get_device_oauth_token,
+)
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
+OAUTH_DEVICE_APP = {
+    "client_id": "2a4bc3e5ce4f2c49a957",
+    "auth_uri": "https://github.com/login/device/code",
+    "token_uri": "https://github.com/login/oauth/access_token",
+    "scope": "repo gist",
+}
 SSO_WARNING = """Results may be incomplete. You have not granted your Personal Access token access to the following organizations:"""
 UNAUTHORIZED_WARNING = """
 Bad credentials. Verify that your personal access token is correct and that you are authorized to access this resource.
@@ -456,3 +468,15 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
                 raise
 
     return inner
+
+
+def get_oauth_device_flow_token():
+    """Interactive github authorization"""
+    config = OAuth2ClientConfig(**OAUTH_DEVICE_APP)
+    device_code = OAuth2DeviceConfig(**get_device_code(config))
+    print("Login in the browser, man.")
+    webbrowser.open(device_code.verification_uri)
+    device_token: dict = get_device_oauth_token(
+        client_config=config, device_config=device_code
+    )
+    return device_token.get("access_token")

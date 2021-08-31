@@ -1,0 +1,40 @@
+interactions:
+    - request:
+          body: '{"device_code": "b16373d7bac49a3e93971615f929fea54106040e", "grant_type":
+              "urn:ietf:params:oauth:grant-type:device_code"}'
+          headers:
+              Request-Headers:
+                  - Elided
+          method: POST
+          uri: https://github.com/login/oauth/access_token
+      response:
+          body:
+              string: '{"error": "authorization_pending", "error_description": "The authorization request is still pending.", "error_uri": "https://docs.github.com/developers/apps/authorizing-oauth-apps#error-codes-for-the-device-flow"}'
+          headers:
+              Response-Headers:
+                  Content-Type:
+                      - application/json; charset=utf-8
+                  Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: '{"device_code": "b16373d7bac49a3e93971615f929fea54106040e", "grant_type":
+              "urn:ietf:params:oauth:grant-type:device_code"}'
+          headers:
+              Request-Headers:
+                  - Elided
+          method: POST
+          uri: https://github.com/login/oauth/access_token
+      response:
+          body:
+              string: '{"access_token": "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", "token_type": "bearer", "scope": "gist,repo"}'
+          headers:
+              Response-Headers:
+                  Content-Type:
+                      - application/json; charset=utf-8
+                  Others: Elided
+          status:
+              code: 200
+              message: OK
+version: 1

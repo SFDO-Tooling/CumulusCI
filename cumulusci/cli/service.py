@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from typing import Callable, Optional
 
 import click
 
@@ -81,9 +82,27 @@ class ConnectServiceCommand(click.MultiCommand):
         services = self._get_services_config(runtime)
         return sorted(services.keys())
 
-    def _build_param(self, attribute, details):
+    def _build_param(self, attribute: str, details: dict) -> click.Option:
         req = details["required"]
-        return click.Option((f"--{attribute}",), prompt=req, required=req)
+        wizard: Optional[Callable] = self._get_callable_default(details.get("wizard"))
+        prompt = None if wizard else req
+
+        kwargs = {
+            "prompt": prompt,
+            "required": req,
+            "help": details.get("description"),
+            "default": wizard,
+        }
+        return click.Option((f"--{attribute}",), **kwargs)
+
+    def _get_callable_default(self, wizard_path) -> Optional[Callable]:
+        """
+        Given a class_path, return a callable providing a default value for click.Option.
+        """
+        wizard: Optional[Callable] = None
+        if wizard_path:
+            wizard = import_global(wizard_path)
+        return wizard
 
     def _get_default_options(self, runtime):
         options = []

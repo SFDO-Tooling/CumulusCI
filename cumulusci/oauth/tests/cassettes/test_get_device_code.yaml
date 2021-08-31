@@ -1,0 +1,37 @@
+interactions:
+    - request:
+          body: '{"client_id": "2a4bc3e5ce4f2c49a957", "scope": "repo gist"}'
+          headers:
+              Request-Headers:
+                  - Elided
+          method: POST
+          uri: https://github.com/login/device/code
+      response:
+          body:
+              string: '{"device_code":"b16373d7bac49a3e93971615f929fea54106040e","user_code":"679B-1C70","verification_uri":"https://github.com/login/device","expires_in":899,"interval":5}'
+          headers:
+              Response-Headers:
+                  Content-Type: None
+                  Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: '{"client_id": "2a4bc3e5ce4f2c49a957", "scope": "repo gist"}'
+          headers:
+              Request-Headers:
+                  - Elided
+          method: POST
+          uri: https://github.com/login/device/code
+      response:
+          body:
+              string: '{"error":"Not Found"}'
+          headers:
+              Response-Headers:
+                  Content-Type:
+                      - application/json; charset=utf-8
+                  Others: Elided
+          status:
+              code: 404
+              message: Not Found
+version: 1
