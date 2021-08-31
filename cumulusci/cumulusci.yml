@@ -195,6 +195,14 @@ tasks:
     class_path: cumulusci.tasks.marketing_cloud.api.MarketingCloudCreateSubscriberAttribute
     description: Creates a Subscriber Attribute via the Marketing Cloud SOAP API.
     group: Marketing Cloud
+  marketing_cloud_create_user:
+    class_path: cumulusci.tasks.marketing_cloud.api.MarketingCloudCreateUser
+    description: Creates a new User via the Marketing Cloud SOAP API.
+    group: Marketing Cloud
+  marketing_cloud_update_user_role:
+    class_path: cumulusci.tasks.marketing_cloud.api.MarketingCloudUpdateUserRole
+    description: Assigns a Role to an existing User via the Marketing Cloud SOAP API.
+    group: Marketing Cloud
   deploy_pre:
     description: Deploys all metadata bundles under unpackaged/pre/
     class_path: cumulusci.tasks.salesforce.DeployBundles
