@@ -686,9 +686,12 @@ def parse_dependency(dep_dict: dict) -> Optional[Dependency]:
     # GitHubDynamicDependency has an optional `ref` field, but we want
     # any dependencies with a populated `ref` to be parsed as static deps.
 
+    # We also want PackageVersionIdDependency to match before
+    # PackageNamespaceVersionDependency, which can also accept a `version_id`.
+
     for dependency_class in [
-        PackageNamespaceVersionDependency,
         PackageVersionIdDependency,
+        PackageNamespaceVersionDependency,
         UnmanagedGitHubRefDependency,
         UnmanagedZipURLDependency,
         GitHubDynamicDependency,
