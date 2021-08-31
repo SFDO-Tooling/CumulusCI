@@ -1,12 +1,14 @@
+import enum
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from pydantic import Field, root_validator
+from pydantic.types import DirectoryPath
 from typing_extensions import Literal, TypedDict
 
 from cumulusci.utils.fileutils import DataInput, load_from_source
-from cumulusci.utils.yaml.model_parser import CCIDictModel
+from cumulusci.utils.yaml.model_parser import CCIDictModel, HashableBaseModel
 from cumulusci.utils.yaml.safer_loader import load_yaml_data
 
 default_logger = getLogger(__name__)
@@ -149,12 +151,44 @@ class CumulusCIConfig(CCIDictModel):
     keychain: PythonClassPath
 
 
-class Source(CCIDictModel):
-    github: URL = None
-    release: Literal["latest", "previous", "latest_beta"] = None
-    ref: str = None
-    branch: str = None
-    tag: str = None
+class GitHubSourceRelease(str, enum.Enum):
+    LATEST = "latest"
+    PREVIOUS = "previous"
+    LATEST_BETA = "latest_beta"
+
+
+class GitHubSourceModel(HashableBaseModel):
+    github: str
+    resolution_strategy: Optional[str]
+    commit: Optional[str]
+    ref: Optional[str]
+    branch: Optional[str]
+    tag: Optional[str]
+    release: Optional[GitHubSourceRelease]
+
+    @root_validator
+    def validate(cls, values):
+        exclusive_keys = [
+            "resolution_strategy",
+            "commit",
+            "ref",
+            "branch",
+            "tag",
+            "release",
+        ]
+        key_count = len([x for x in exclusive_keys if x in values and values[x]])
+        if key_count > 1:
+            raise ValueError(
+                'Sources must use only one of "resolution_strategy", "commit", "ref", "branch", "tag", or "release".'
+            )
+        elif key_count == 0:
+            values["resolution_strategy"] = "production"
+
+        return values
+
+
+class LocalFolderSourceModel(HashableBaseModel):
+    path: DirectoryPath
 
 
 class CumulusCLIConfig(CCIDictModel):
@@ -169,9 +203,9 @@ class CumulusCIRoot(CCIDictModel):
     orgs: Orgs = {}
     services: Dict[str, Service] = {}
     cumulusci: CumulusCIConfig = None
-    plans: Dict[str, Plan] = []
+    plans: Dict[str, Plan] = {}
     minimum_cumulusci_version: str = None
-    sources: Dict[str, Source] = []
+    sources: Dict[str, Union[LocalFolderSourceModel, GitHubSourceModel]] = {}
     cli: CumulusCLIConfig = None
 
 

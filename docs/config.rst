@@ -377,7 +377,7 @@ Tasks and Flows from a Different Project
 
 It's also possible to use tasks and flows from another project with CumulusCI. The other project must be named under the ``sources`` section of the project ``cumulusci.yml`` file.
 
-For example, when tasks or flows are referenced using the `npsp` namespace, CumulusCI fetches the source from the NPSP GitHub repository.
+For example, when tasks or flows are referenced using the ``npsp`` namespace, CumulusCI fetches the source from the NPSP GitHub repository.
 
 .. code-block:: yaml
 
@@ -385,7 +385,7 @@ For example, when tasks or flows are referenced using the `npsp` namespace, Cumu
         npsp:
             github: https://github.com/SalesforceFoundation/NPSP
 
-By default, CumulusCI fetches the most recent release, or the default branch if there are no releases.
+By default, CumulusCI uses the resolution strategy ``production``, which will fetch the most recent production release, or the default branch if there are no releases. By specifying ``resolution_strategy``, the behavior can be changed to match desired dependency resolution behavior, such as using beta releases or retrieving feature test packages from a commit status. See :ref:`dependency-resolution` for more details about resolution strategies.
 
 .. note::
 
@@ -402,7 +402,7 @@ It's also possible to fetch a specific ``tag``...
             github: https://github.com/SalesforceFoundation/NPSP
             tag: rel/3.163
 
-or a specific ``commit`` or ``branch``.
+or a specific ``commit`` or ``branch``. We recommend that most projects, however, use a resolution strategy.
 
 When the repo is listed under ``sources``, it's possible to run a task from NPSP...
 

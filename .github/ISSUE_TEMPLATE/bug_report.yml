@@ -1,0 +1,78 @@
+---
+name: Bug report
+description: Report a problem in CumulusCI functionality
+labels: bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If you are seeking support on using CumulusCI, please do not open an Issue. Instead, please visit us on the [Trailblazer Community](https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9Z), or, for Nonprofit and Education customers, the [Power of Us Hub](https://powerofus.force.com/s/group/0F980000000PSRHCA4/cumulusci-cci)
+  - type: textarea
+    id: bug_description
+    validations:
+      required: true
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: |
+        Please make sure to describe the expected behavior and how your experience differs from it.
+  - type: textarea
+    id: repro
+    validations:
+      required: true
+    attributes:
+      label: Reproduction steps
+      description: "Steps to reproduce the behavior:"
+      value: |
+        1.
+        2.
+        3.
+        n. ...
+  - type: markdown
+    attributes:
+      value: |
+        ## Context
+        Please include the following information at minimum.
+  - type: textarea
+    id: cci
+    validations:
+      required: true
+    attributes:
+      label: Your CumulusCI and Python versions
+      placeholder: Paste the output of `cci version` here
+  - type: input
+    id: os
+    validations:
+      required: true
+    attributes:
+      label: Operating System
+      description: Your operating system and version.
+  - type: checkboxes
+    id: win
+    attributes:
+      label: Windows environment
+      description: If using Windows, how are you running CumulusCI?
+      options:
+        - label: Command Prompt
+        - label: PowerShell
+        - label: Bash on Windows
+        - label: WSL
+  - type: dropdown
+    id: install
+    attributes:
+      label: CumulusCI installation method
+      description: How did you install CumulusCI?
+      options:
+        - brew
+        - pip
+        - pipx
+  - type: input
+    id: error_gist
+    attributes:
+      label: Error Gist
+      description: If applicable, please use the `cci error gist` command to create a Gist from your error log and include the link here. See the [documentation](https://cumulusci.readthedocs.io/en/latest/features.html#working-with-errors) to learn how to create a Gist.
+  - type: textarea
+    id: additional_information
+    attributes:
+      label: Additional information
+      placeholder: Add any other context about the problem here.
