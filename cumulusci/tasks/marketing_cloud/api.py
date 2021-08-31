@@ -6,7 +6,7 @@ from cumulusci.salesforce_api import mc_soap_envelopes as envelopes
 from .base import BaseMarketingCloudTask
 
 
-class MarketingCloudDeploySubscriberAttribute(BaseMarketingCloudTask):
+class MarketingCloudCreateSubscriberAttribute(BaseMarketingCloudTask):
     task_options = {
         "attribute_name": {
             "description": "The name of the Subscriber Attribute to deploy via the Marketing Cloud API.",
@@ -17,7 +17,7 @@ class MarketingCloudDeploySubscriberAttribute(BaseMarketingCloudTask):
     def _run_task(self):
         attribute_name = self.options["attribute_name"]
         # get soap envelope
-        envelope = envelopes.SUBSCRIBER_ATTRIBUTE_DEPLOY
+        envelope = envelopes.CREATE_SUBSCRIBER_ATTRIBUTE
         # fill the merge fields
         envelope = envelope.format(
             soap_instance_url=self.mc_config.soap_instance_url,
@@ -33,12 +33,19 @@ class MarketingCloudDeploySubscriberAttribute(BaseMarketingCloudTask):
         response.raise_for_status()
         # check resulting status code
         root = etree.fromstring(response.content)
-        status = root.find(".//{http://exacttarget.com/wsdl/partnerAPI}StatusCode").text
+        status_code = root.find(
+            ".//{http://exacttarget.com/wsdl/partnerAPI}StatusCode"
+        ).text
+        status_message = root.find(
+            ".//{http://exacttarget.com/wsdl/partnerAPI}StatusMessage"
+        ).text
         success = True
-        if status == "OK":
+        if status_code == "OK":
             self.logger.info(
-                f"Successfully deployed subscriber attribute: {attribute_name}."
+                f"Successfully created subscriber attribute: {attribute_name}."
             )
-        if status != "OK":
-            raise Exception(f"Error from Marketing Cloud: {response.text}")
+        if status_code != "OK":
+            raise Exception(
+                f"Error from Marketing Cloud: {status_message} \n\nFull response text: {response.text}"
+            )
         self.return_values = {"success": success}

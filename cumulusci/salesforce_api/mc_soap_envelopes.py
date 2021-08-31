@@ -1,4 +1,4 @@
-SUBSCRIBER_ATTRIBUTE_DEPLOY = """<?xml version="1.0" encoding="utf-8"?>
+CREATE_SUBSCRIBER_ATTRIBUTE = """<?xml version="1.0" encoding="utf-8"?>
 <s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:u="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">
 <s:Header>
   <a:Action s:mustUnderstand="1">Configure</a:Action>

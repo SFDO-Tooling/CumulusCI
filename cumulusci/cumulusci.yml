@@ -191,9 +191,9 @@ tasks:
     class_path: cumulusci.tasks.marketing_cloud.deploy.MarketingCloudDeployTask
     description: Deploys a package zip file to a Marketing Cloud Tenant via the Marketing Cloud Package Manager API.
     group: Marketing Cloud
-  deploy_marketing_cloud_subscriber_attribute:
-    class_path: cumulusci.tasks.marketing_cloud.api.MarketingCloudDeploySubscriberAttribute
-    description: Deploys a Subscriber Attribute via the Marketing Cloud SOAP API.
+  marketing_cloud_create_subscriber_attribute:
+    class_path: cumulusci.tasks.marketing_cloud.api.MarketingCloudCreateSubscriberAttribute
+    description: Creates a Subscriber Attribute via the Marketing Cloud SOAP API.
     group: Marketing Cloud
   deploy_pre:
     description: Deploys all metadata bundles under unpackaged/pre/

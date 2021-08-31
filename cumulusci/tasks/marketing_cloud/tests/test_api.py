@@ -6,7 +6,7 @@ from cumulusci.core.config.marketing_cloud_service_config import (
 )
 from cumulusci.tests.util import create_project_config
 
-from ..api import MarketingCloudDeploySubscriberAttribute
+from ..api import MarketingCloudCreateSubscriberAttribute
 
 EXPECTED_SOAP_RESPONSE = """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope"
@@ -52,7 +52,7 @@ EXPECTED_SOAP_RESPONSE = """<?xml version="1.0" encoding="utf-8"?>
 
 
 @responses.activate
-def test_deploy_marketing_cloud_subscriber_attribute_task(create_task):
+def test_marketing_cloud_create_subscriber_attribute_task(create_task):
     project_config = create_project_config()
     project_config.keychain.set_service(
         "oauth2_client",
@@ -97,7 +97,7 @@ def test_deploy_marketing_cloud_subscriber_attribute_task(create_task):
     )
 
     task = create_task(
-        MarketingCloudDeploySubscriberAttribute,
+        MarketingCloudCreateSubscriberAttribute,
         {
             "attribute_name": "test",
         },
