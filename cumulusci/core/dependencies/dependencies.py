@@ -38,7 +38,7 @@ from cumulusci.utils import (
     download_extract_zip,
     temporary_dir,
 )
-from cumulusci.utils.yaml.model_parser import CCIModel
+from cumulusci.utils.yaml.model_parser import HashableBaseModel
 from cumulusci.utils.ziputils import zip_subfolder
 
 logger = logging.getLogger(__name__)
@@ -63,15 +63,6 @@ def _validate_github_parameters(values):
         values.pop("repo_name")
 
     return values
-
-
-class HashableBaseModel(CCIModel):
-    """Base Pydantic model class that has a functional `hash()` method.
-    Requires that model can be converted to JSON."""
-
-    # See https://github.com/samuelcolvin/pydantic/issues/1303
-    def __hash__(self):
-        return hash((type(self),) + tuple(self.json()))
 
 
 class Dependency(HashableBaseModel, abc.ABC):
