@@ -1,71 +1,71 @@
 project:
+  name: CumulusCI
+  package:
     name: CumulusCI
-    package:
-        name: CumulusCI
 
 tasks:
-    robot:
-        options:
-            suites: cumulusci/robotframework/tests
-            options:
-                outputdir: robot/CumulusCI/results
-                noncritical: noncritical # allows testing failure conditions
+  robot:
+    options:
+      suites: cumulusci/robotframework/tests
+      options:
+        outputdir: robot/CumulusCI/results
+        noncritical: noncritical # allows testing failure conditions
 
-    robot_testdoc:
-        options:
-            path: cumulusci/robotframework/tests
-            output: docs/robot/Test_Suite.html
-    robot_lint:
-        options:
-            path:
-                - cumulusci/robotframework
-            ignore:
-                - RequireTestDocumentation
-    robot_libdoc:
-        description: Generates html documentation for the Salesorce and CumulusCI libraries and resource files
-        class_path: cumulusci.tasks.robotframework.RobotLibDoc
-        options:
-            title: CumulusCI Robot Framework Keywords
-            output: docs/robot/Keywords.html
-            path:
-                - cumulusci.robotframework.CumulusCI
-                - cumulusci.robotframework.PageObjects
-                - cumulusci.robotframework.Salesforce
-                - cumulusci/robotframework/Salesforce.robot
-                - cumulusci/robotframework/pageobjects/BasePageObjects.py
+  robot_testdoc:
+    options:
+      path: cumulusci/robotframework/tests
+      output: docs/robot/Test_Suite.html
+  robot_lint:
+    options:
+      path:
+        - cumulusci/robotframework
+      ignore:
+        - RequireTestDocumentation
+  robot_libdoc:
+    description: Generates html documentation for the Salesorce and CumulusCI libraries and resource files
+    class_path: cumulusci.tasks.robotframework.RobotLibDoc
+    options:
+      title: CumulusCI Robot Framework Keywords
+      output: docs/robot/Keywords.html
+      path:
+        - cumulusci.robotframework.CumulusCI
+        - cumulusci.robotframework.PageObjects
+        - cumulusci.robotframework.Salesforce
+        - cumulusci/robotframework/Salesforce.robot
+        - cumulusci/robotframework/pageobjects/BasePageObjects.py
 
 flows:
-    qa_org:
-        steps:
-            2:
-                flow: None
+  qa_org:
+    steps:
+      2:
+        flow: None
 
-    robot_docs:
-        description: Generates documentation for robot framework libraries
-        steps:
-            1:
-                task: robot_libdoc
-            2:
-                task: robot_testdoc
-    test_performance_scratch:
-        description: Test performance of a scratch org
-        steps:
-            1:
-                task: robot
-                options:
-                    suites: cumulusci/robotframework/perftests/short
-    test_performance_LDV:
-        description: Test performance in an LDV org
-        steps:
-            1:
-                task: robot
-                options:
-                    suites: cumulusci/robotframework/perftests
+  robot_docs:
+    description: Generates documentation for robot framework libraries
+    steps:
+      1:
+        task: robot_libdoc
+      2:
+        task: robot_testdoc
+  test_performance_scratch:
+    description: Test performance of a scratch org
+    steps:
+      1:
+        task: robot
+        options:
+          suites: cumulusci/robotframework/perftests/short
+  test_performance_LDV:
+    description: Test performance in an LDV org
+    steps:
+      1:
+        task: robot
+        options:
+          suites: cumulusci/robotframework/perftests
 
 orgs:
-    scratch:
-        prerelease:
-            config_file: orgs/prerelease.json
+  scratch:
+    prerelease:
+      config_file: orgs/prerelease.json
 
-        pytest:
-            config_file: orgs/dev.json
+    pytest:
+      config_file: orgs/dev.json
