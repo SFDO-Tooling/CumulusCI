@@ -1,4 +1,7 @@
-from typing import Optional
+from typing import List, Optional
+
+from pydantic import BaseModel, root_validator
+from typing_extensions import Literal
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg, process_list_arg
@@ -70,6 +73,65 @@ class AddRelatedLists(MetadataSingleEntityTransformTask):
         elem.append("relatedList", text=related_list)
 
 
+class AddFieldsPosition(BaseModel):
+    field: Optional[str]
+    column: Optional[Literal["first", "last"]]
+    relative: Literal["before", "after", "top", "bottom"]
+    section: Optional[int]
+
+    @root_validator
+    def columns_not_compatible_with_fields(cls, values):
+        field, column, section = (
+            values.get("field"),
+            values.get("column"),
+            values.get("section"),
+        )
+        if (column is not None or section is not None) and field is not None:
+            raise ValueError(
+                "Section/Column positioning is not compatible when setting a field based position"
+            )
+        return values
+
+    @root_validator
+    def field_uses_before_after(cls, values):
+        field, relative = values.get("field"), values.get("relative")
+        if (relative == "top" or relative == "bottom") and field is not None:
+            raise ValueError(
+                'Please use "before" or "after" when setting a field based position.'
+            )
+        return values
+
+    @root_validator
+    def column_uses_before_after(cls, values):
+        column, relative = values.get("column"), values.get("relative")
+        if (relative == "before" or relative == "after") and column is not None:
+            raise ValueError(
+                'Please use "top" or "bottom" when setting a column based position.'
+            )
+        return values
+
+
+class AddFieldOptions(BaseModel):
+    api_name: str
+    position: Optional[List[AddFieldsPosition]]
+    required: bool = False
+    read_only: bool = False
+
+
+class AddPagesOptions(BaseModel):
+    api_name: str
+    height: Optional[int]
+    show_label: bool = False
+    show_scrollbars: bool = False
+    width: Optional[str]
+    position: Optional[List[AddFieldsPosition]]
+
+
+class AddFieldsToLayoutOptions(BaseModel):
+    fields: Optional[List[AddFieldOptions]]
+    pages: Optional[List[AddPagesOptions]]
+
+
 class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
     task_docs = """
         Inserts the listed fields or Visualforce pages into page layouts
@@ -86,7 +148,7 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
 
             - api_name: [field API name]
             - required: Boolean (default False)
-            - read_only: Boolean (default False, not compatable with required)
+            - read_only: Boolean (default False, not compatible with required)
             - position: (Optional: A list of single or multiple position options.)
 
                 - relative: [before | after | top | bottom]
@@ -124,8 +186,16 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
-        self._adding_fields = process_list_arg(self.options.get("fields", []))
-        self._adding_pages = process_list_arg(self.options.get("pages", []))
+        fields_options = self.options.get("fields")
+        pages_options = self.options.get("pages")
+
+        self._validated_options = AddFieldsToLayoutOptions(
+            fields=fields_options,
+            pages=pages_options,
+        )
+
+        self._adding_fields = fields_options
+        self._adding_pages = pages_options
         # Split because a page could share an api name with a field in the same namespace
         self._existing_field_names = []
         self._existing_page_names = []
@@ -290,6 +360,8 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
         else:
             relative_section_index = default_position.get("section")
             relative_position = default_position.get("position")
+
+        new_layout_item = None
 
         # Field relative
         if relative_field_name is not None and relative_position in (
