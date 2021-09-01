@@ -1,6 +1,8 @@
 import contextlib
+import io
 import logging
 import os
+import pdb
 import re
 import sys
 from logging.handlers import RotatingFileHandler
@@ -77,3 +79,50 @@ def strip_ansi_sequences(input):
     """Strip ANSI sequences from what's in buffer"""
     ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
     return ansi_escape.sub("", input)
+
+
+class StreamToLog(io.TextIOBase):
+    """An IO stream which relays writes to a logger.
+
+    Writes without a newline at the end are buffered
+    so we can send a complete line to the logger.
+    """
+
+    def __init__(self, logger, level=logging.INFO):
+        self.logger = logger
+        self.level = level
+        self.buffer = []
+
+    def write(self, s):
+        self.buffer.append(s)
+        if s.endswith("\n"):
+            self.logger.log(self.level, "".join(self.buffer).strip())
+            self.buffer = []
+
+
+# Monkey-patch pdb to make sure it uses unredirected stdout by default
+orig_init = pdb.Pdb.__init__
+
+
+def pdb_init(self, *args, **kw):
+    orig_init(self, *args, **kw)
+    if self.stdout is sys.stdout:
+        self.stdout = sys.__stdout__
+        self.use_rawinput = 0
+
+
+pdb.Pdb.__init__ = pdb_init
+
+
+@contextlib.contextmanager
+def redirect_output_to_logger(logger):
+    """Context manager which redirects stdout and stderr to a logger"""
+    orig_stdout = sys.stdout
+    orig_stderr = sys.stderr
+    sys.stdout = StreamToLog(logger, logging.INFO)
+    sys.stderr = StreamToLog(logger, logging.WARNING)
+    try:
+        yield
+    finally:
+        sys.stdout = orig_stdout
+        sys.stderr = orig_stderr

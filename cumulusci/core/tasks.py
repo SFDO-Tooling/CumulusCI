@@ -3,12 +3,9 @@
 Subclass BaseTask or a descendant to define custom task logic
 """
 import contextlib
-import io
 import logging
 import os
-import pdb
 import re
-import sys
 import threading
 import time
 
@@ -21,10 +18,12 @@ from cumulusci.core.exceptions import (
     TaskRequiresSalesforceOrg,
 )
 from cumulusci.utils import cd
+from cumulusci.utils.logging import redirect_output_to_logger
 
 CURRENT_TASK = threading.local()
 
 PROJECT_CONFIG_RE = re.compile(r"\$project_config.(\w+)")
+CAPTURE_TASK_OUTPUT = os.environ.get("CAPTURE_TASK_OUTPUT")
 
 
 @contextlib.contextmanager
@@ -36,46 +35,6 @@ def stacked_task(task):
         yield
     finally:
         CURRENT_TASK.stack.pop()
-
-
-class StreamToLog(io.TextIOBase):
-    def __init__(self, logger, level=logging.INFO):
-        self.logger = logger
-        self.level = level
-        self.buffer = []
-
-    def write(self, s):
-        self.buffer.append(s)
-        if s.endswith("\n"):
-            self.logger.log(self.level, "".join(self.buffer).strip())
-            self.buffer = []
-
-
-# Make sure pdb uses unredirected stdout by default
-orig_init = pdb.Pdb.__init__
-
-
-def pdb_init(self, *args, **kw):
-    orig_init(self, *args, **kw)
-    if self.stdout is sys.stdout:
-        self.stdout = sys.__stdout__
-        self.use_rawinput = 0
-
-
-pdb.Pdb.__init__ = pdb_init
-
-
-@contextlib.contextmanager
-def redirect_output_to_logger(logger):
-    orig_stdout = sys.stdout
-    orig_stderr = sys.stderr
-    sys.stdout = StreamToLog(logger, logging.INFO)
-    sys.stderr = StreamToLog(logger, logging.WARNING)
-    try:
-        yield
-    finally:
-        sys.stdout = orig_stdout
-        sys.stderr = orig_stderr
 
 
 class BaseTask(object):
@@ -191,7 +150,11 @@ class BaseTask(object):
             self.working_path = os.getcwd()
             path = self.project_config.repo_root if self.project_config else None
             with cd(path):
-                with redirect_output_to_logger(self.logger):
+                with (
+                    redirect_output_to_logger(self.logger)
+                    if CAPTURE_TASK_OUTPUT
+                    else contextlib.nullcontext()
+                ):
                     self._log_begin()
                     self.result = self._run_task()
                     return self.return_values
