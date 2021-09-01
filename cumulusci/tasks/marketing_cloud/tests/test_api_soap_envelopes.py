@@ -28,7 +28,7 @@ CREATE_SUBSCRIBER_ATTRIBUTE_EXPECTED_SOAP_RESPONSE = """<?xml version="1.0" enco
                         <PartnerKey xsi:nil="true" />
                         <ID>126713</ID>
                         <ObjectID xsi:nil="true" />
-                        <Name>test</Name>
+                        <Name>Test Subscriber Attribute</Name>
                         <PropertyType>string</PropertyType>
                     </Object>
                 </Result>
@@ -63,16 +63,16 @@ CREATE_USER_EXPECTED_SOAP_RESPONSE = """<?xml version="1.0" encoding="utf-8"?>
                 <NewID>0</NewID>
                 <Object xsi:type="AccountUser">
                     <Client>
-                        <ID>523007680</ID>
+                        <ID>523005197</ID>
                     </Client>
                     <PartnerKey xsi:nil="true" />
                     <ID>722602484</ID>
                     <ObjectID xsi:nil="true" />
-                    <CustomerKey>John_Doe_Key</CustomerKey>
-                    <UserID>la-dglick-jdoe</UserID>
+                    <CustomerKey>Don_Draper_Key_1926</CustomerKey>
+                    <UserID>sterling-don</UserID>
                     <Password />
-                    <Name>John Doe</Name>
-                    <Email>marcel.pufal@salesforce.com</Email>
+                    <Name>Don Draper</Name>
+                    <Email>don.draper@sterlingcooper.com</Email>
                     <UserPermissions>
                         <PartnerKey xsi:nil="true" />
                         <ID>31</ID>
@@ -84,7 +84,7 @@ CREATE_USER_EXPECTED_SOAP_RESPONSE = """<?xml version="1.0" encoding="utf-8"?>
                     </UserPermissions>
                     <Delete>0</Delete>
                     <IsAPIUser>true</IsAPIUser>
-                    <DefaultBusinessUnit>523007680</DefaultBusinessUnit>
+                    <DefaultBusinessUnit>523008403</DefaultBusinessUnit>
                 </Object>
             </Results>
             <RequestID>09647ed9-38d4-4431-9fa2-ae29df011a5a</RequestID>
@@ -115,16 +115,16 @@ UPDATE_USER_ROLE_EXPECTED_SOAP_RESPONSE = """<?xml version="1.0" encoding="utf-8
                 <OrdinalID>0</OrdinalID>
                 <Object xsi:type="AccountUser">
                     <Client>
-                        <ID>523007680</ID>
+                        <ID>523005197</ID>
                     </Client>
                     <PartnerKey xsi:nil="true" />
                     <ID>722602484</ID>
                     <ObjectID xsi:nil="true" />
-                    <CustomerKey>John_Doe_Key</CustomerKey>
+                    <CustomerKey>Don_Draper_Key_1926</CustomerKey>
                     <AccountUserID>722602484</AccountUserID>
                     <Password />
-                    <Name>Admin John Doe</Name>
-                    <Email>marcel.pufal@salesforce.com</Email>
+                    <Name>Partner Don Draper</Name>
+                    <Email>don.draper@sterlingcooper.com</Email>
                     <UserPermissions>
                         <PartnerKey xsi:nil="true" />
                         <ID>31</ID>
