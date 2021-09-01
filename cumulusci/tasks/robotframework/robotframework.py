@@ -4,6 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from robot import pythonpathsetter
+from robot import run as robot_run
 from robot.testdoc import testdoc
 
 from cumulusci.core.exceptions import (
@@ -17,8 +19,6 @@ from cumulusci.robotframework.utils import set_pdb_trace
 from cumulusci.tasks.robotframework.debugger import DebugListener
 from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
-from robot import pythonpathsetter
-from robot import run as robot_run
 
 
 class Robot(BaseSalesforceTask):
