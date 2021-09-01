@@ -10,6 +10,8 @@ class BaseMarketingCloudTask(BaseTask):
     self.mc_config.access_token
     """
 
+    salesforce_task = False
+
     def _init_task(self):
         super()._init_task()
         self.mc_config = self.project_config.keychain.get_service("marketing_cloud")
