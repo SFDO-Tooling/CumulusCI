@@ -6,7 +6,7 @@ from cumulusci.salesforce_api import mc_soap_envelopes as envelopes
 from .base import BaseMarketingCloudTask
 
 
-class MarketingCloudCreateSubscriberAttribute(BaseMarketingCloudTask):
+class CreateSubscriberAttribute(BaseMarketingCloudTask):
     task_options = {
         "attribute_name": {
             "description": "The name of the Subscriber Attribute to deploy via the Marketing Cloud API.",
@@ -51,7 +51,7 @@ class MarketingCloudCreateSubscriberAttribute(BaseMarketingCloudTask):
         self.return_values = {"success": success}
 
 
-class MarketingCloudCreateUser(BaseMarketingCloudTask):
+class CreateUser(BaseMarketingCloudTask):
     task_options = {
         "parent_bu_mid": {
             "description": "Specify the MID for Parent BU.",
@@ -91,8 +91,6 @@ class MarketingCloudCreateUser(BaseMarketingCloudTask):
         # get soap envelope
         envelope = envelopes.CREATE_USER
         # fill the merge fields
-        # TO DO: this is ugly: there's probably already a constructor for this
-        # also handle empty or optional inputs as an empty strings into the merge field
         envelope = envelope.format(
             soap_instance_url=self.mc_config.soap_instance_url,
             access_token=self.mc_config.access_token,
@@ -133,7 +131,7 @@ class MarketingCloudCreateUser(BaseMarketingCloudTask):
         self.return_values = {"success": success}
 
 
-class MarketingCloudUpdateUserRole(BaseMarketingCloudTask):
+class UpdateUserRole(BaseMarketingCloudTask):
     task_options = {
         "account_mid": {
             "description": "Specify the Account MID.",

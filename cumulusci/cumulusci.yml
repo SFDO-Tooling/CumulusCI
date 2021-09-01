@@ -192,15 +192,15 @@ tasks:
     description: Deploys a package zip file to a Marketing Cloud Tenant via the Marketing Cloud Package Manager API.
     group: Marketing Cloud
   marketing_cloud_create_subscriber_attribute:
-    class_path: cumulusci.tasks.marketing_cloud.api.MarketingCloudCreateSubscriberAttribute
+    class_path: cumulusci.tasks.marketing_cloud.api.CreateSubscriberAttribute
     description: Creates a Subscriber Attribute via the Marketing Cloud SOAP API.
     group: Marketing Cloud
   marketing_cloud_create_user:
-    class_path: cumulusci.tasks.marketing_cloud.api.MarketingCloudCreateUser
+    class_path: cumulusci.tasks.marketing_cloud.api.CreateUser
     description: Creates a new User via the Marketing Cloud SOAP API.
     group: Marketing Cloud
   marketing_cloud_update_user_role:
-    class_path: cumulusci.tasks.marketing_cloud.api.MarketingCloudUpdateUserRole
+    class_path: cumulusci.tasks.marketing_cloud.api.UpdateUserRole
     description: Assigns a Role to an existing User via the Marketing Cloud SOAP API.
     group: Marketing Cloud
   deploy_pre:
