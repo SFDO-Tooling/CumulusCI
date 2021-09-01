@@ -21,7 +21,7 @@ Part 1: Folder Structure
 
 We recommend that all Robot tests, keywords, data, and log and report files live under
 a folder named ``robot``, at the root of your repository. If you worked
-through the CumulusCI :doc:`tutorial`, the following folders will
+through the :doc:`Get Started <get_started>` section, the following folders will
 have been created under ``MyProject/robot/MyProject``:
 
 - ``doc`` - a place to put documentation for your tests
