@@ -79,7 +79,9 @@ def test_flow_info__verbose(echo):
 
     run_click_command(flow.flow_info, runtime=runtime, flow_name="test", verbose=True)
 
-    echo.assert_called_with("\nFlow Steps\n1) task: test_task [from current folder]\n   options:\n   option_name: option_value")
+    echo.assert_called_with(
+        "\nFlow Steps\n1) task: test_task [from current folder]\n   options:\n   option_name: option_value"
+    )
 
 
 def test_flow_info__not_found():
