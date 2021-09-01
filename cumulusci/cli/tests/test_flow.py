@@ -44,18 +44,51 @@ def test_flow_list_json(json_):
 def test_flow_info(echo):
     runtime = mock.Mock()
     flow_config = FlowConfig({"description": "Test Flow", "steps": {}})
+
     runtime.get_flow.return_value = FlowCoordinator(None, flow_config)
 
-    run_click_command(flow.flow_info, runtime=runtime, flow_name="test")
+    run_click_command(flow.flow_info, runtime=runtime, flow_name="test", verbose=False)
 
     echo.assert_called_with("Description: Test Flow")
+
+
+@mock.patch("click.echo")
+def test_flow_info__verbose(echo):
+
+    runtime = CliRuntime(
+        config={
+            "flows": {
+                "test": {
+                    "steps": {
+                        1: {
+                            "task": "test_task",
+                            "options": {"option_name": "option_value"},
+                        }
+                    }
+                }
+            },
+            "tasks": {
+                "test_task": {
+                    "class_path": "cumulusci.cli.tests.test_flow.DummyTask",
+                    "description": "Test Task",
+                }
+            },
+        },
+        load_keychain=False,
+    )
+
+    run_click_command(flow.flow_info, runtime=runtime, flow_name="test", verbose=True)
+
+    echo.assert_called_with("\nFlow Steps\n1) task: test_task [from current folder]\n   options:\n   option_name: option_value")
 
 
 def test_flow_info__not_found():
     runtime = mock.Mock()
     runtime.get_flow.side_effect = FlowNotFoundError
     with pytest.raises(click.UsageError):
-        run_click_command(flow.flow_info, runtime=runtime, flow_name="test")
+        run_click_command(
+            flow.flow_info, runtime=runtime, flow_name="test", verbose=False
+        )
 
 
 @mock.patch("cumulusci.cli.flow.group_items")

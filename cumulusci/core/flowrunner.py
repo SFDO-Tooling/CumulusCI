@@ -319,7 +319,7 @@ class FlowCoordinator(object):
         if new_line:
             self.logger.info("")
 
-    def get_summary(self, verbose):
+    def get_summary(self, verbose=False):
         """Returns an output string that contains the description of the flow
         and its steps."""
         lines = []
