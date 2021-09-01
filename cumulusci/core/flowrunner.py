@@ -319,27 +319,28 @@ class FlowCoordinator(object):
         if new_line:
             self.logger.info("")
 
-    def get_summary(self):
+    def get_summary(self, verbose):
         """Returns an output string that contains the description of the flow
         and its steps."""
         lines = []
         if "description" in self.flow_config.config:
             lines.append(f"Description: {self.flow_config.config['description']}")
 
-        step_lines = self.get_flow_steps()
+        step_lines = self.get_flow_steps(verbose=verbose)
         if step_lines:
             lines.append("\nFlow Steps")
         lines.extend(step_lines)
 
         return "\n".join(lines)
 
-    def get_flow_steps(self, for_docs=False):
+    def get_flow_steps(self, for_docs=False, verbose=False):
         """Returns a list of flow steps (tasks and sub-flows) for the given flow.
         For docs, indicates whether or not we want to use the string for use in a code-block
         of an rst file. If True, will omit output of source information."""
         lines = []
         previous_parts = []
         previous_source = None
+        options_defined = False
         for step in self.steps:
             parts = step.path.split(".")
             steps = str(step.step_num).split("/")
@@ -354,6 +355,8 @@ class FlowCoordinator(object):
                 if step.project_config.source is not previous_source
                 else ""
             )
+            has_options = ""
+            options_info = ""
             for i, flow_name in enumerate(parts):
                 if not any(":" in part for part in step.path.split(".")[i + 1 :]):
                     source = new_source
@@ -373,14 +376,32 @@ class FlowCoordinator(object):
             if for_docs:
                 new_source = ""
 
+            if step.task_config.get("options"):
+                options_defined = True
+                if verbose:
+                    options = step.task_config.get("options")
+                    options_info = f"{padding}  options:"
+
+                    for option, value in options.items():
+                        options_info += f"\n{padding}{padding} {option}: {value}"
+                else:
+                    has_options = " [options defined]"
+
             lines.append(
-                f"{'    ' * (i + 1)}{steps[i + 1]}) task: {task_name}{new_source}"
+                f"{'    ' * (i + 1)}{steps[i + 1]}) task: {task_name}{new_source}{has_options}"
             )
+
             if when:
                 lines.append(when)
 
+            if options_info:
+                lines.append(options_info)
+
             previous_parts = parts
             previous_source = step.project_config.source
+
+        if options_defined and not verbose:
+            lines.append("\nUse the --verbose flag to see all defined options")
 
         return lines
 

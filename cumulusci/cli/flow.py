@@ -92,11 +92,16 @@ def flow_list(runtime, plain, print_json):
 
 @flow.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="If set, displays all defined options",
+)
 @pass_runtime(require_keychain=True)
-def flow_info(runtime, flow_name):
+def flow_info(runtime, flow_name, verbose):
     try:
         coordinator = runtime.get_flow(flow_name)
-        output = coordinator.get_summary()
+        output = coordinator.get_summary(verbose)
         click.echo(output)
     except FlowNotFoundError as e:
         raise click.UsageError(str(e))
