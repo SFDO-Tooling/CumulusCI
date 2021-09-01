@@ -1,25 +1,69 @@
-import os.path
+from contextlib import contextmanager
+from pathlib import Path
 
 import pytest
 
+import cumulusci
+from cumulusci.cli.org import org_remove, org_scratch, org_scratch_delete
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.core.config import TaskConfig
+from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tests.util import unmock_env
 
 
 def pytest_addoption(parser, pluginmanager):
+    """Pytest magic method: add --org, --replace-vcrs and --run-slow-tests features"""
     parser.addoption("--org", action="store", default=None, help="org to use")
     parser.addoption(
-        "--accelerate-integration-tests",
+        "--run-slow-tests",
         action="store_true",
         default=False,
-        help="DO run integration tests. Do NOT make calls to a real org. This will error out if you have not run with '--org blah' so that you have cached org output.",
+        help="Include slow tests.",
+    )
+    parser.addoption(
+        "--replace-vcrs",
+        action="store_true",
+        default=False,
+        help="Replace VCR files.",
     )
 
 
-def sf_pytest_orgname(request):
+def pytest_configure(config):
+    """Pytest magic method: add pytest markers/decorators"""
+    markers = [
+        "slow(): a slow test that should only be executed when requested with --run-slow-tests",
+        "large_vcr(): a network-based test that generates VCR cassettes too large for version control. Use --org to generate them locally.",
+        "needs_org(): a test that needs an org (or at least access to the network) but should not attempt to store VCR cassettes",
+        "org_shape(org_name, init_flow): a test that needs a particular org shape",
+    ]
+
+    for marker in markers:
+        # register additional markers
+        config.addinivalue_line("markers", marker)
+
+
+def pytest_runtest_setup(item):
+    """Pytest magic method"""
+    marker_names = set(marker.name for marker in item.iter_markers())
+    classify_and_modify_test(item, marker_names)
+
+
+def sf_pytest_cli_orgname(request):
+    """Helper to see what org the user has asked for"""
     return request.config.getoption("--org")
+
+
+@pytest.fixture(scope="session")
+def user_requested_network_access(request):
+    """Did the user ask to enable network access by specifying an org?"""
+    return bool(sf_pytest_cli_orgname(request))
+
+
+@pytest.fixture(scope="session")
+def user_requested_cassette_replacement(request):
+    """Did the user ask to delete VCR cassettes?"""
+    return request.config.getoption("--replace-vcrs")
 
 
 @pytest.fixture(scope="session")
@@ -35,28 +79,40 @@ def project_config(runtime):
 
 
 @pytest.fixture(scope="session")
-def org_config(request, fallback_org_config):
-    """Get an org config with an active access token.
-
-    Specify the org name using the --org option when running pytest.
-    Or else it will use a dummy org.
-    """
-    org_name = sf_pytest_orgname(request)
-    if org_name:
+def cli_org_config(request):
+    """What org did the user specify on the CLI or pytest options?"""
+    cli_org_name = sf_pytest_cli_orgname(request)
+    if cli_org_name:
         with unmock_env():  # restore real homedir
             runtime = CliRuntime()
             runtime.keychain._load_orgs()
-            org_name, org_config = runtime.get_org(org_name)
+            org_name, org_config = runtime.get_org(cli_org_name)
             assert org_config.scratch, "You should only run tests against scratch orgs."
             org_config.refresh_oauth_token(runtime.keychain)
-    else:
-        # fallback_org_config can be defined in "conftest" based
-        # on the needs of the test suite. For example, for
-        # fast running test suites it might return a hardcoded
-        # org and for integration test suites it might return
-        # a specific default org or throw an exception.
-        return fallback_org_config()
+            return org_config
 
+
+@pytest.fixture(scope="function")
+def org_config(request, current_org_shape, cli_org_config, fallback_org_config):
+    """Get an org config with an active access token.
+
+    If an org was requested by the org_shape feature, it is used.
+
+    Otherwise, you can specify the org name using the --org option when running pytest.
+
+    If there was no org provided by those mechanisms, it will use a dummy org.
+    """
+    org_config = current_org_shape.org_config or cli_org_config
+    if org_config:
+        org_config.user_specified = True
+    else:
+        org_config = fallback_org_config()
+
+    # fallback_org_config can be defined in "conftest" based
+    # on the needs of the test suite. For example, for
+    # fast running test suites it might return a hardcoded
+    # org and for integration test suites it might return
+    # a specific default org or throw an exception.
     return org_config
 
 
@@ -85,36 +141,142 @@ def create_task(request, project_config, org_config):
     return create_task
 
 
-def pytest_configure(config):
-    # register an additional marker
-    config.addinivalue_line(
-        "markers",
-        "integration_test(): an integration test that should only be executed when requested",
+def vcr_cassette_name_for_item(item):
+    """Name of the VCR cassette"""
+    test_class = item.cls
+    if test_class:
+        return "{}.{}".format(test_class.__name__, item.name)
+    return item.name
+
+
+def classify_and_modify_test(item, marker_names):
+    if "slow" in marker_names:
+        if not item.config.getoption("--run-slow-tests"):
+            pytest.skip("slow: test requires --run-slow-tests")
+
+    if "large_vcr" in marker_names:
+        library_dir = Path(cumulusci.__file__).parent.parent / "large_cassettes"
+        item.add_marker(pytest.mark.vcr(cassette_library_dir=str(library_dir)))
+
+        test_name = vcr_cassette_name_for_item(item)
+        test_path = Path(library_dir) / (test_name + ".yaml")
+        if not (test_path.exists() or item.config.getoption("--org")):
+            pytest.skip("large_vcr: test requires --org to generate large cassette")
+
+    elif "needs_org" in marker_names and not item.config.getoption("--org"):
+        pytest.skip("needs_org: test requires --org")
+
+
+class CurrentOrg:
+    __slots__ = ("org_config",)
+
+    def __init__(self):
+        self.org_config = None
+
+
+@pytest.fixture(scope="session")
+def org_shapes():
+    org_shapes = {}
+    try:
+        yield org_shapes
+    finally:
+        cleanup_org_shapes(org_shapes)
+
+
+def cleanup_org_shapes(org_shapes):
+    runtime = CliRuntime(load_keychain=True)
+    errors = []
+    for org_name in org_shapes.keys():
+        cleanup_org(runtime, org_name, errors)
+
+    if errors:
+        raise AssertionError(str(errors))
+
+
+def cleanup_org(runtime, org_name, errors):
+    try:
+        org_scratch_delete.callback.__wrapped__(
+            runtime,
+            org_name,
+        )
+    except Exception as e:
+        print(f"EXCEPTION deleting org {e}")
+        errors.append(e)
+    try:
+        org_remove.callback.__wrapped__(runtime, org_name, False)
+    except Exception:
+        pass
+
+
+@pytest.fixture(scope="session")
+def current_org_shape(request):
+    """Internal: shared state for fixtures"""
+    org = CurrentOrg()
+    return org
+
+
+@pytest.fixture(scope="function", autouse=True)
+def _change_org_shape(request, current_org_shape, org_shapes):
+    """Select an org_shape for a test
+    e.g.:
+
+        @pytest.mark.org_shape("qa", "qa_org")
+        def test_foo(create_task);
+            t = create_task(Foo)
+            t()
+
+    Switch the current org to an org created with
+    org template "qa" after running flow "qa_org".
+
+    Clean up any changes you make, because this org may be reused by
+    other tests.
+    """
+    marker = request.node.get_closest_marker("org_shape")
+    if marker:
+        config_name, flow_name = marker.args
+        with change_org_shape(
+            current_org_shape, config_name, flow_name, org_shapes
+        ) as org_config:
+            yield org_config
+    else:
+        yield None
+
+
+@contextmanager
+def change_org_shape(
+    current_org_shape, config_name: str, flow_name: str, org_shapes: dict
+):
+    # I don't love that we're using the user's real keychain
+    # but I get weird popups when I use an empty keychain.
+    with unmock_env():
+        org_name = f"pytest__{config_name}__{flow_name}"
+        org_config = org_shapes.get(org_name)
+        if not org_config:
+            org_config = _create_org(org_name, config_name, flow_name)
+            org_shapes[org_name] = org_config
+    current_org_shape.org_config = org_config
+    yield org_config
+
+
+def _create_org(org_name, config_name, flow_name):
+    runtime = CliRuntime(load_keychain=True)
+    try:
+        org, org_config = runtime.get_org(org_name)
+    except OrgNotFound:
+        org = None
+    if org:
+        cleanup_org_shapes(org_name)
+    org_scratch.callback.__wrapped__(
+        runtime,
+        config_name,
+        org_name,
+        default=False,
+        devhub=None,
+        days=1,
+        no_password=False,
     )
-    config.addinivalue_line(
-        "markers",
-        "no_vcr(): an integration test that should not attempt to store VCR cassettes",
-    )
+    org, org_config = runtime.get_org(org_name)
 
-
-def pytest_runtest_setup(item):
-    is_integration_test = any(item.iter_markers(name="integration_test"))
-    if is_integration_test:
-        if not item.config.getoption(
-            "--accelerate-integration-tests"
-        ) and not item.config.getoption("--org"):
-            pytest.skip("test requires --org or --accelerate-integration-tests")
-        no_vcr = any(item.iter_markers(name="no_vcr"))
-        if no_vcr and item.config.getoption("--accelerate-integration-tests"):
-            pytest.skip("test cannot be accelerated. " "It is not compatible with VCR.")
-
-
-@pytest.fixture(scope="module")
-def vcr_cassette_dir(request):
-    is_integration_test = any(request.node.iter_markers(name="integration_test"))
-    test_dir = request.node.fspath.dirname
-    if is_integration_test:
-        return os.path.join(test_dir, "large_cassettes")  # 8-tracks
-    else:  # standard behaviour from
-        # https://github.com/ktosiek/pytest-vcr/blob/master/pytest_vcr.py
-        return os.path.join(test_dir, "cassettes")
+    coordinator = runtime.get_flow(flow_name)
+    coordinator.run(org_config)
+    return org_config

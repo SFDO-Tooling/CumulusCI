@@ -2397,7 +2397,8 @@ class TestLoadData(unittest.TestCase):
 
 
 class TestLoadDataIntegrationTests:
-    @pytest.mark.integration_test()
+    # bulk API not supported by VCR yet
+    @pytest.mark.needs_org()
     def test_error_result_counting__multi_batches(
         self, create_task, cumulusci_test_repo_root
     ):
@@ -2409,41 +2410,42 @@ class TestLoadDataIntegrationTests:
                 "ignore_row_errors": True,
             },
         )
-        with mock.patch("cumulusci.tasks.bulkdata.step.BULK_BATCH_SIZE", 3):
+        with mock.patch("cumulusci.tasks.bulkdata.step.DEFAULT_BULK_BATCH_SIZE", 3):
             task()
         ret = task.return_values["step_results"]
-        assert ret["Account"].total_row_errors == 1
-        assert ret["Contact"].total_row_errors == 1
-        assert ret["Opportunity"].total_row_errors == 2
+        assert ret["Account"]["total_row_errors"] == 1
+        assert ret["Contact"]["total_row_errors"] == 1
+        assert ret["Opportunity"]["total_row_errors"] == 2
         expected = {
-            "Account": [
-                {
-                    "status": "Row failure",
-                    "job_errors": [],
-                    "records_processed": 2,
-                    "total_row_errors": 1,
-                }
-            ],
-            "Contact": [
-                {
-                    "status": "Row failure",
-                    "job_errors": [],
-                    "records_processed": 2,
-                    "total_row_errors": 1,
-                }
-            ],
-            "Opportunity": [
-                {
-                    "status": "Row failure",
-                    "job_errors": [],
-                    "records_processed": 4,
-                    "total_row_errors": 2,
-                }
-            ],
+            "Account": {
+                "sobject": "Account",
+                "status": "Row failure",
+                "job_errors": [],
+                "records_processed": 2,
+                "total_row_errors": 1,
+                "record_type": None,
+            },
+            "Contact": {
+                "sobject": "Contact",
+                "status": "Row failure",
+                "job_errors": [],
+                "records_processed": 2,
+                "total_row_errors": 1,
+                "record_type": None,
+            },
+            "Opportunity": {
+                "sobject": "Opportunity",
+                "status": "Row failure",
+                "job_errors": [],
+                "records_processed": 4,
+                "total_row_errors": 2,
+                "record_type": None,
+            },
         }
-        assert json.loads(json.dumps(ret)) == expected
+        assert json.loads(json.dumps(ret)) == expected, json.dumps(ret)
 
-    @pytest.mark.integration_test()
+    # bulk API not supported by VCR yet
+    @pytest.mark.needs_org()
     def test_bulk_batch_size(self, create_task):
         base_path = os.path.dirname(__file__)
         sql_path = os.path.join(base_path, "testdata.sql")
