@@ -8,7 +8,8 @@ object. It is not a comprehensive tutorial on using Robot
 Framework. For Robot Framework documentation see the
 `Robot Framework User Guide <http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html>`_
 
-It is assumed you've worked through the CumulusCI :doc:`tutorial` at least up to the
+It is assumed you've worked through the CumulusCI :doc:`Get Started
+<get_started>` section at least up to the
 point where you've called ``cci project init``. It is also assumed
 that you've read the :doc:`robotframework` section of this document, which gives
 an overview of CumulusCI / Robot Framework integration.
