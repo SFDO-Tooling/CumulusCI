@@ -8,7 +8,7 @@ from cumulusci.core.config.marketing_cloud_service_config import (
 from cumulusci.tasks.marketing_cloud.tests import test_api_soap_envelopes as envelopes
 from cumulusci.tests.util import create_project_config
 
-from ..api import MarketingCloudCreateSubscriberAttribute
+from ..api import CreateSubscriberAttribute
 
 
 @pytest.fixture
@@ -61,7 +61,7 @@ def test_marketing_cloud_create_subscriber_attribute_task(create_task, project_c
     )
 
     task = create_task(
-        MarketingCloudCreateSubscriberAttribute,
+        CreateSubscriberAttribute,
         {
             "attribute_name": "test",
         },

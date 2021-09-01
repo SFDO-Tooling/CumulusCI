@@ -91,17 +91,30 @@ class CreateUser(BaseMarketingCloudTask):
         # get soap envelope
         envelope = envelopes.CREATE_USER
         # fill the merge fields
+        # check for optional parameters, construct xml nodes as required
+        external_key = self.options.get("external_key", "")
+        if external_key != "":
+            external_key = f"<CustomerKey>{external_key}</CustomerKey>"
+
+        user_name = self.options.get("user_name", "")
+        if user_name != "":
+            user_name = f"<Name>{user_name}</Name>"
+
+        role_id = self.options.get("role_id", "")
+        if role_id != "":
+            role_id = f"<UserPermissions><ID>{role_id}</ID></UserPermissions>"
+
         envelope = envelope.format(
             soap_instance_url=self.mc_config.soap_instance_url,
             access_token=self.mc_config.access_token,
             parent_bu_mid=self.options.get("parent_bu_mid"),
             default_bu_mid=self.options.get("default_bu_mid"),
-            external_key=self.options.get("external_key"),
-            user_name=self.options.get("user_name"),
+            external_key=external_key,
+            user_name=user_name,
             user_email=self.options.get("user_email"),
             user_password=self.options.get("user_password"),
             user_username=self.options.get("user_username"),
-            role_id=self.options.get("role_id"),
+            role_id=role_id,
         )
         # construct request
         # TO DO: DRY refactor
@@ -112,7 +125,6 @@ class CreateUser(BaseMarketingCloudTask):
         )
         response.raise_for_status()
         # check resulting status code
-        # TO DO: DRY refactor
         root = etree.fromstring(response.content)
         status_code = root.find(
             ".//{http://exacttarget.com/wsdl/partnerAPI}StatusCode"
@@ -163,14 +175,21 @@ class UpdateUserRole(BaseMarketingCloudTask):
         # get soap envelope
         envelope = envelopes.UPDATE_USER_ROLE
         # fill the merge fields
-        # TO DO: this is ugly: there's probably already a constructor for this
-        # also handle empty or optional inputs as an empty strings into the merge field
+        # check for optional parameters, construct xml nodes as required
+        external_key = self.options.get("external_key", "")
+        if external_key != "":
+            external_key = f"<CustomerKey>{external_key}</CustomerKey>"
+
+        user_name = self.options.get("user_name", "")
+        if user_name != "":
+            user_name = f"<Name>{user_name}</Name>"
+
         envelope = envelope.format(
             soap_instance_url=self.mc_config.soap_instance_url,
             access_token=self.mc_config.access_token,
             account_mid=self.options.get("account_mid"),
-            external_key=self.options.get("external_key"),
-            user_name=self.options.get("user_name"),
+            external_key=external_key,
+            user_name=user_name,
             user_email=self.options.get("user_email"),
             user_password=self.options.get("user_password"),
             role_id=self.options.get("role_id"),
@@ -184,7 +203,6 @@ class UpdateUserRole(BaseMarketingCloudTask):
         )
         response.raise_for_status()
         # check resulting status code
-        # TO DO: DRY refactor
         root = etree.fromstring(response.content)
         status_code = root.find(
             ".//{http://exacttarget.com/wsdl/partnerAPI}StatusCode"

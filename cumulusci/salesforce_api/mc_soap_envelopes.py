@@ -39,9 +39,9 @@ CREATE_USER = """<?xml version="1.0" encoding="utf-8"?>
                 <!-- REQUIRED: Set MID for BU to use as default (can be same as the parent) -->
                 <DefaultBusinessUnit>{default_bu_mid}</DefaultBusinessUnit>
                 <!-- Set external key for user -->
-                <CustomerKey>{external_key}</CustomerKey>
+                {external_key}
                 <!-- Set name of user -->
-                <Name>{user_name}</Name>
+                {user_name}
                 <!-- REQUIRED: Set the user email -->
                 <Email>{user_email}</Email>
                 <!-- REQUIRED: Set the user password -->
@@ -51,9 +51,7 @@ CREATE_USER = """<?xml version="1.0" encoding="utf-8"?>
                 <IsAPIUser>true</IsAPIUser>
                 <!-- OPTIONAL: Include this if you want to assign roles to new user -->
                 <!-- IDs for system defined roles located here: https://developer.salesforce.com/docs/atlas.en-us.noversion.mc-apis.meta/mc-apis/setting_user_permissions_via_the_web_services_api.htm -->
-                <UserPermissions>
-                    <ID>{role_id}</ID>
-                </UserPermissions>
+                {role_id}
             </Objects>
         </CreateRequest>
     </s:Body>
@@ -73,9 +71,9 @@ UPDATE_USER_ROLE = """<?xml version="1.0" encoding="utf-8"?>
                 <Client>
                     <ID>{account_mid}</ID> <!-- Account MID -->
                 </Client>
-                <CustomerKey>{external_key}</CustomerKey> <!-- External key for user to update -->
+                {external_key} <!-- External key for user to update -->
                 <IsAPIUser>true</IsAPIUser>
-                <Name>{user_name}</Name>
+                {user_name}
                 <Email>{user_email}</Email>
                 <Password>{user_password}</Password>
                 <!-- IDs for system defined roles located here: https://developer.salesforce.com/docs/atlas.en-us.noversion.mc-apis.meta/mc-apis/setting_user_permissions_via_the_web_services_api.htm -->
