@@ -26,6 +26,13 @@ PROJECT_CONFIG_RE = re.compile(r"\$project_config.(\w+)")
 CAPTURE_TASK_OUTPUT = os.environ.get("CAPTURE_TASK_OUTPUT")
 
 
+# We can't use contextlib.nullcontext yet
+# because it isn't present in Python 3.6
+@contextlib.contextmanager
+def nullcontext():
+    yield
+
+
 @contextlib.contextmanager
 def stacked_task(task):
     if not hasattr(CURRENT_TASK, "stack"):
@@ -153,7 +160,7 @@ class BaseTask(object):
                 with (
                     redirect_output_to_logger(self.logger)
                     if CAPTURE_TASK_OUTPUT
-                    else contextlib.nullcontext()
+                    else nullcontext()
                 ):
                     self._log_begin()
                     self.result = self._run_task()
