@@ -329,8 +329,14 @@ class GitHubDynamicDependency(BaseGitHubDependency):
             )
         )
 
-        # Deploy the project, if unmanaged.
-        if not managed:
+        if not self.managed_dependency:
+            if managed:
+                # We had an expectation of finding a package version and did not.
+                raise DependencyResolutionError(
+                    f"Could not find latest release for {self}"
+                )
+
+            # Deploy the project, if unmanaged.
             deps.append(
                 UnmanagedGitHubRefDependency(
                     github=self.github,
@@ -341,11 +347,6 @@ class GitHubDynamicDependency(BaseGitHubDependency):
                 )
             )
         else:
-            if self.managed_dependency is None:
-                raise DependencyResolutionError(
-                    f"Could not find latest release for {self}"
-                )
-
             deps.append(self.managed_dependency)
 
         # We always inject the project's namespace into unpackaged/post metadata if managed
