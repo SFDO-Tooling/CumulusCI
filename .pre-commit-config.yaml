@@ -11,6 +11,7 @@ repos:
           - id: check-merge-conflict
           - id: flake8
           - id: debug-statements
+            exclude: "cumulusci/(utils/logging|cli/cci|tasks/robotframework/debugger/ui|cli/task|robotframework/utils).py"
     - repo: https://github.com/Lucas-C/pre-commit-hooks-markup
       rev: v1.0.1
       hooks:
