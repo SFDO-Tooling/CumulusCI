@@ -69,7 +69,7 @@ bot:
       class: MetadataXmlElementParser
       extension: bot
       options:
-            item_xpath: './sf:botVersions'    
+          item_xpath: "./sf:botVersions"
 brandingSets:
     - type: BrandingSet
       class: MetadataFilenameParser
@@ -340,7 +340,7 @@ labels:
       class: CustomLabelsParser
       extension: labels
       options:
-            item_xpath: './sf:labels'
+          item_xpath: "./sf:labels"
     - type: CustomLabels
       class: MetadataFilenameParser
       extension: labels
@@ -396,7 +396,7 @@ matchingRules:
       class: MetadataXmlElementParser
       extension: matchingRule
       options:
-            item_xpath: './sf:matchingRules'
+          item_xpath: "./sf:matchingRules"
 messageChannels:
     - type: LightningMessageChannel
       class: MetadataFilenameParser
@@ -451,7 +451,7 @@ navigationMenus:
 networkBranding:
     - type: NetworkBranding
       class: MetadataFilenameParser
-      extension: networkBranding            
+      extension: networkBranding
 networks:
     - type: Network
       class: MetadataFilenameParser
@@ -467,7 +467,7 @@ notificationtypes:
 oauthcustomscopes:
     - type: OauthCustomScope
       class: MetadataFilenameParser
-      extension: oauthcustomscope    
+      extension: oauthcustomscope
 objects:
     - type: CustomObject
       class: CustomObjectParser
@@ -476,57 +476,57 @@ objects:
       class: BusinessProcessParser
       extension: object
       options:
-            item_xpath: './sf:businessProcesses'
+          item_xpath: "./sf:businessProcesses"
     - type: CompactLayout
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:compactLayouts'
+          item_xpath: "./sf:compactLayouts"
     - type: CustomField
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:fields'
+          item_xpath: "./sf:fields"
     - type: FieldSet
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:fieldSets'
+          item_xpath: "./sf:fieldSets"
     - type: Index
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:indexes'
+          item_xpath: "./sf:indexes"
     - type: ListView
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:listViews'
+          item_xpath: "./sf:listViews"
     - type: NamedFilter
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:namedFilters'
+          item_xpath: "./sf:namedFilters"
     - type: RecordType
       class: RecordTypeParser
       extension: object
       options:
-            item_xpath: './sf:recordTypes'
+          item_xpath: "./sf:recordTypes"
     - type: SharingReason
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:sharingReasons'
+          item_xpath: "./sf:sharingReasons"
     - type: ValidationRule
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:validationRules'
+          item_xpath: "./sf:validationRules"
     - type: WebLink
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:webLinks'
+          item_xpath: "./sf:webLinks"
 objectSourceTargetMaps:
     - type: ObjectSourceTargetMap
       class: MetadataFilenameParser
@@ -639,7 +639,7 @@ reportTypes:
       class: MetadataFilenameParser
       extension: reportType
 roles:
-    - type: Role 
+    - type: Role
       class: MetadataFilenameParser
       extension: role
 s3DataConnectors:
@@ -671,32 +671,32 @@ sharingRules:
       class: MetadataXmlElementParser
       extension: sharingRules
       options:
-            item_xpath: './sf:sharingCriteriaRules'
+          item_xpath: "./sf:sharingCriteriaRules"
     - type: SharingGuestRule
       class: MetadataXmlElementParser
       extension: sharingRules
       options:
-            item_xpath: './sf:sharingGuestRules'
+          item_xpath: "./sf:sharingGuestRules"
     - type: SharingOwnerRule
       class: MetadataXmlElementParser
       extension: sharingRules
       options:
-            item_xpath: './sf:sharingOwnerRules'
+          item_xpath: "./sf:sharingOwnerRules"
     - type: SharingTerritoryRule
       class: MetadataXmlElementParser
       extension: sharingRules
       options:
-            item_xpath: './sf:sharingTerritoryRules'
+          item_xpath: "./sf:sharingTerritoryRules"
 sharingSets:
     - type: SharingSet
       class: MetadataFilenameParser
-      extension: sharingSet  
+      extension: sharingSet
 siteDotComSites:
-    - type: SiteDotCom 
+    - type: SiteDotCom
       class: MetadataFilenameParser
-      extension: site 
+      extension: site
 sites:
-    - type: CustomSite 
+    - type: CustomSite
       class: MetadataFilenameParser
       extension: site
 skills:
@@ -789,27 +789,27 @@ workflows:
       class: MetadataXmlElementParser
       extension: workflow
       options:
-            item_xpath: './sf:alerts'
+          item_xpath: "./sf:alerts"
     - type: WorkflowFieldUpdate
       class: MetadataXmlElementParser
       extension: workflow
       options:
-            item_xpath: './sf:fieldUpdates'
+          item_xpath: "./sf:fieldUpdates"
     - type: WorkflowOutboundMessage
       class: MetadataXmlElementParser
       extension: workflow
       options:
-            item_xpath: './sf:outboundMessages'    
+          item_xpath: "./sf:outboundMessages"
     - type: WorkflowRule
       class: MetadataXmlElementParser
       extension: workflow
       options:
-            item_xpath: './sf:rules'
+          item_xpath: "./sf:rules"
     - type: WorkflowTask
       class: MetadataXmlElementParser
       extension: workflow
       options:
-            item_xpath: './sf:tasks'
+          item_xpath: "./sf:tasks"
 workSkillRoutings:
     - type: WorkSkillRouting
       class: MetadataFilenameParser
