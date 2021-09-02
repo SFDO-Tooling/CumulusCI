@@ -1,29 +1,30 @@
-from datetime import date, timedelta
 import os
-from unittest import mock
-from tempfile import TemporaryDirectory
 from contextlib import contextmanager
-from cumulusci.tests.util import mock_salesforce_client, mock_describe_calls
-
-from sqlalchemy import create_engine
+from datetime import date, timedelta
+from tempfile import TemporaryDirectory
+from unittest import mock
 
 import pytest
+import responses
+from sqlalchemy import create_engine
 
-from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
+from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.tasks.bulkdata import ExtractData
+from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 from cumulusci.tasks.bulkdata.step import (
     BaseQueryOperation,
-    DataOperationStatus,
-    DataOperationJobResult,
-    DataOperationType,
     DataApi,
+    DataOperationJobResult,
+    DataOperationStatus,
+    DataOperationType,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
-from cumulusci.tests.util import assert_max_memory_usage
+from cumulusci.tests.util import (
+    assert_max_memory_usage,
+    mock_describe_calls,
+    mock_salesforce_client,
+)
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
-
-import responses
 
 
 @contextmanager
@@ -999,3 +1000,100 @@ class TestExtractData:
 
                 assert output_opportunities[0].AccountId == "2"
                 assert output_opportunities[0].ContactId == "1"
+
+    def test_run_soql_filter(self):
+        """This test case is to verify when soql_filter is specified with valid filter in the mapping yml"""
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_v1)
+        mock_describe_calls()
+        with temporary_dir() as d:
+            tmp_db_path = os.path.join(d, "testdata.db")
+
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{tmp_db_path}",
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+
+            mapping = MappingStep(
+                sf_object="Contact",
+                fields={"Id": "Id", "Name": "Name"},
+                record_type="Business",
+                soql_filter="Name = 'John Doe'",
+            )
+
+            soql = task._soql_for_mapping(mapping)
+            assert (
+                "WHERE RecordType.DeveloperName = 'Business' AND Name = 'John Doe'"
+                in soql
+            ), "Filter should be applied on Name and DeveloperName"
+
+    def test_run_soql_filter_where_specified(self):
+        """This test case is to verify when soql_filter is specified with mapping yml with WHERE keyword in it"""
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_v1)
+        mock_describe_calls()
+        with temporary_dir() as d:
+            tmp_db_path = os.path.join(d, "testdata.db")
+
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{tmp_db_path}",
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+
+            mapping = MappingStep(
+                sf_object="Contact",
+                fields={"Id": "Id", "Name": "Name"},
+                record_type="Business",
+                soql_filter=" wHeRe Name = 'John Doe'",
+            )
+
+            soql = task._soql_for_mapping(mapping)
+            assert (
+                "WHERE RecordType.DeveloperName = 'Business' AND Name = 'John Doe'"
+                in soql
+            ), "Filter should be applied on Name and RecordType"
+
+    def test_run_soql_filter_no_record_type(self):
+        """This test case is to verify when soql_filter is specified in mapping yml file but no record_type"""
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_v1)
+        mock_describe_calls()
+        with temporary_dir() as d:
+            tmp_db_path = os.path.join(d, "testdata.db")
+
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{tmp_db_path}",
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+
+            mapping = MappingStep(
+                sf_object="Contact",
+                fields={"Id": "Id", "Name": "Name"},
+                soql_filter=" wHeRe Name = 'John Doe'",
+            )
+
+            soql = task._soql_for_mapping(mapping)
+            assert (
+                "WHERE Name = 'John Doe'" in soql
+            ), "filter should be applied just on name"
+            assert (
+                "DeveloperName" not in soql
+            ), "DeveloperName should not appear in the soql query as it is missing in mapping"

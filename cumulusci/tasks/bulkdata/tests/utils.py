@@ -1,11 +1,11 @@
-from cumulusci.core.config import UniversalConfig, BaseProjectConfig, TaskConfig
+from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.tests import util as cci_test_utils
 from cumulusci.tasks.bulkdata.step import (
-    DataOperationStatus,
-    DataOperationJobResult,
     BaseDmlOperation,
+    DataOperationJobResult,
+    DataOperationStatus,
 )
+from cumulusci.tests import util as cci_test_utils
 
 
 def _make_task(task_class, task_config):

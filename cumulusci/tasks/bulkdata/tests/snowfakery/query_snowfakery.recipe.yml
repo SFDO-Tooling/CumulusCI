@@ -1,0 +1,17 @@
+- plugin: snowfakery.standard_plugins.Salesforce.SalesforceQuery
+- include_file: npsp_standard_objects_macros.yml
+
+# contact based on a user
+- object: Contact
+  include: SFStandardContact
+  fields:
+      __user:
+          SalesforceQuery.find_record:
+              from: User
+              fields: FirstName,LastName
+      FirstName: ${{__user.FirstName}}
+      LastName: ${{__user.LastName}}
+      AccountId:
+          object: Account
+          fields:
+              Name: <<Contact.LastName>> incorporated

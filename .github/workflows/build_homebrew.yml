@@ -1,36 +1,36 @@
 name: Build Homebrew formula
 
 on:
-  release:
-    types:
-    - created
+    release:
+        types:
+            - created
 
 jobs:
-  build:
-    name: Build Homebrew formula
-    runs-on: macos-10.15
-    steps:
-      - uses: actions/checkout@main
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.8
-      - name: Build formula
-        run: |
-          utility/build-homebrew.sh cumulusci.rb
-      - name: Test formula
-        run: |
-          brew audit cumulusci.rb
-          brew install cumulusci.rb
-          brew test cumulusci.rb
-      - name: Create branch in homebrew-sfdo repository
-        run: |
-          VERSION=$(python setup.py --version)
-          BRANCH="cci-$VERSION"
-          git clone https://HOMEBREW_GITHUB_USER:HOMEBREW_GITHUB_TOKEN@github.com/SFDO-Tooling/homebrew-sfdo.git
-          cd homebrew-sfdo
-          git checkout -b $BRANCH
-          cp ../cumulusci.rb ./
-          git add cumulusci.rb
-          git commit -m "Bump cumulusci to version $VERSION"
-          git push origin $BRANCH
+    build:
+        name: Build Homebrew formula
+        runs-on: macos-10.15
+        steps:
+            - uses: actions/checkout@main
+            - name: Set up Python 3.8
+              uses: actions/setup-python@v1
+              with:
+                  python-version: 3.8
+            - name: Build formula
+              run: |
+                  utility/build-homebrew.sh cumulusci.rb
+            - name: Test formula
+              run: |
+                  brew audit cumulusci.rb
+                  brew install cumulusci.rb
+                  brew test cumulusci.rb
+            - name: Create branch in homebrew-sfdo repository
+              run: |
+                  VERSION=$(python setup.py --version)
+                  BRANCH="cci-$VERSION"
+                  git clone https://HOMEBREW_GITHUB_USER:HOMEBREW_GITHUB_TOKEN@github.com/SFDO-Tooling/homebrew-sfdo.git
+                  cd homebrew-sfdo
+                  git checkout -b $BRANCH
+                  cp ../cumulusci.rb ./
+                  git add cumulusci.rb
+                  git commit -m "Bump cumulusci to version $VERSION"
+                  git push origin $BRANCH

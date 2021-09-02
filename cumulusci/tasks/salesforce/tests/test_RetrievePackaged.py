@@ -1,12 +1,13 @@
 import io
-from unittest import mock
 import os
 import unittest
 import zipfile
+from unittest import mock
 
 from cumulusci.tasks.salesforce import RetrievePackaged
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
+
 from .util import create_task
 
 

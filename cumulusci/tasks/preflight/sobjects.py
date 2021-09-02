@@ -1,8 +1,8 @@
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from simple_salesforce.exceptions import SalesforceMalformedRequest
+
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-
-from simple_salesforce.exceptions import SalesforceMalformedRequest
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class CheckSObjectsAvailable(BaseSalesforceApiTask):
@@ -60,7 +60,7 @@ class CheckSObjectPerms(BaseSalesforceApiTask):
             "description": "The object permissions to check. Each key should be an sObject API name, whose value is a map of describe keys, "
             "such as `queryable` and `createable`, to their desired values (True or False). The output is True if all sObjects and permissions "
             "are present and matching the specification. See the task documentation for examples.",
-            "required": True
+            "required": True,
         }
     }
 
@@ -68,14 +68,18 @@ class CheckSObjectPerms(BaseSalesforceApiTask):
         super()._init_options(kwargs)
 
         if type(self.options.get("permissions")) is not dict:
-            raise TaskOptionsError("Each sObject should contain a map of permissions to desired values")
+            raise TaskOptionsError(
+                "Each sObject should contain a map of permissions to desired values"
+            )
 
         self.permissions = {}
         for sobject, perms in self.options["permissions"].items():
-            self.permissions[sobject] = {perm: process_bool_arg(value) for perm, value in perms.items()}
+            self.permissions[sobject] = {
+                perm: process_bool_arg(value) for perm, value in perms.items()
+            }
 
     def _run_task(self):
-        describe = {s["name"]: s for s in self.sf.describe()['sobjects']}
+        describe = {s["name"]: s for s in self.sf.describe()["sobjects"]}
 
         success = True
 
@@ -87,11 +91,15 @@ class CheckSObjectPerms(BaseSalesforceApiTask):
                 for perm in perms:
                     if perm not in describe[sobject]:
                         success = False
-                        self.logger.info(f"Permission {perm} is not present for sObject {sobject}.")
+                        self.logger.info(
+                            f"Permission {perm} is not present for sObject {sobject}."
+                        )
                     else:
                         if describe[sobject][perm] is not perms[perm]:
                             success = False
-                            self.logger.info(f"Permission {perm} for sObject {sobject} is {describe[sobject][perm]}, not {perms[perm]}.")
+                            self.logger.info(
+                                f"Permission {perm} for sObject {sobject} is {describe[sobject][perm]}, not {perms[perm]}."
+                            )
 
         self.return_values = success
         self.logger.info(f"Completing preflight check with result {self.return_values}")

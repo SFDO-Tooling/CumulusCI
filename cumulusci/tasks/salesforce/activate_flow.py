@@ -1,6 +1,6 @@
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.utils import process_list_arg
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.utils import process_list_arg
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class ActivateFlow(BaseSalesforceApiTask):

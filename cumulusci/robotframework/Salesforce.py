@@ -3,30 +3,33 @@ import logging
 import re
 import time
 from datetime import datetime
-from dateutil.parser import parse as parse_date, ParserError
-
 from pprint import pformat
-from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
-from robot.utils import timestr_to_secs
-from cumulusci.robotframework.utils import get_locator_module_name
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.common.exceptions import (
-    StaleElementReferenceException,
-    NoSuchElementException,
-    JavascriptException,
-    WebDriverException,
-)
 
 import faker
-
-from simple_salesforce import SalesforceResourceNotFound
-from cumulusci.robotframework.utils import selenium_retry, capture_screenshot_on_error
+from dateutil.parser import ParserError
+from dateutil.parser import parse as parse_date
+from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
+from robot.utils import timestr_to_secs
+from selenium.common.exceptions import (
+    JavascriptException,
+    NoSuchElementException,
+    StaleElementReferenceException,
+    WebDriverException,
+)
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
 from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
+from simple_salesforce import SalesforceResourceNotFound
 from urllib3.exceptions import ProtocolError
 
 from cumulusci.core.template_utils import format_str
 from cumulusci.robotframework import locator_manager
+from cumulusci.robotframework.form_handlers import get_form_handler
+from cumulusci.robotframework.utils import (
+    capture_screenshot_on_error,
+    get_locator_module_name,
+    selenium_retry,
+)
 
 OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
 STATUS_KEY = ("status",)
@@ -95,19 +98,28 @@ class Salesforce(object):
         return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
 
     def initialize_location_strategies(self):
-        """Initialize the Salesforce location strategies 'text' and 'title'
-        plus any strategies registered by other keyword libraries
+        """Initialize the Salesforce custom location strategies
 
         Note: This keyword is called automatically from *Open Test Browser*
         """
-        locator_manager.register_locators("sf", lex_locators)
-        locator_manager.register_locators("text", "Salesforce.Locate Element by Text")
-        locator_manager.register_locators("title", "Salesforce.Locate Element by Title")
 
-        # This does the work of actually adding all of the above-registered
-        # location strategies, plus any that were registered by keyword
-        # libraries.
-        locator_manager.add_location_strategies()
+        if not self.builtin.get_variable_value(
+            "${LOCATION STRATEGIES INITIALIZED}", False
+        ):
+            # this manages strategies based on locators in a dictionary
+            locator_manager.register_locators("sf", lex_locators)
+            locator_manager.add_location_strategies()
+
+            # these are more traditional location strategies based on keywords
+            # or functions
+            self.selenium.add_location_strategy(
+                "text", "Salesforce.Locate Element by Text"
+            )
+            self.selenium.add_location_strategy(
+                "title", "Salesforce.Locate Element by Title"
+            )
+            self.selenium.add_location_strategy("label", self.locate_element_by_label)
+            self.builtin.set_suite_variable("${LOCATION STRATEGIES INITIALIZED}", True)
 
     @selenium_retry(False)
     def _jsclick(self, locator):
@@ -243,6 +255,23 @@ class Salesforce(object):
         self.wait_until_modal_is_open()
 
     @capture_screenshot_on_error
+    def scroll_element_into_view(self, locator):
+        """Scroll the element identified by 'locator'
+
+        This is a replacement for the keyword of the same name in
+        SeleniumLibrary. The SeleniumLibrary implementation uses
+        an unreliable method on Firefox. This keyword uses
+        a more reliable technique.
+
+        For more info see https://stackoverflow.com/a/52045231/7432
+        """
+        element = self.selenium.get_webelement(locator)
+        self.selenium.driver.execute_script(
+            "arguments[0].scrollIntoView({behavior: 'auto', block: 'center', inline: 'center'})",
+            element,
+        )
+
+    @capture_screenshot_on_error
     def load_related_list(self, heading, tries=10):
         """Scrolls down until the specified related list loads.
 
@@ -256,7 +285,7 @@ class Salesforce(object):
         locator = lex_locators["record"]["related"]["card"].format(heading)
         for i in range(tries):
             try:
-                self.selenium.scroll_element_into_view(locator)
+                self.scroll_element_into_view(locator)
                 return
             except (ElementNotFound, JavascriptException, WebDriverException):
                 self.builtin.log(
@@ -314,12 +343,12 @@ class Salesforce(object):
         self.wait_until_loading_is_complete()
 
     def close_modal(self):
-        """ Closes the open modal """
+        """Closes the open modal"""
         locator = lex_locators["modal"]["close"]
         self._jsclick(locator)
 
     def current_app_should_be(self, app_name):
-        """ Validates the currently selected Salesforce App """
+        """Validates the currently selected Salesforce App"""
         locator = lex_locators["app_launcher"]["current_app"].format(app_name)
         elem = self.selenium.get_webelement(locator)
         assert app_name == elem.text, "Expected app to be {} but found {}".format(
@@ -432,14 +461,14 @@ class Salesforce(object):
         return int(count)
 
     def go_to_object_home(self, obj_name):
-        """ Navigates to the Home view of a Salesforce Object """
+        """Navigates to the Home view of a Salesforce Object"""
         url = self.cumulusci.org.lightning_base_url
         url = "{}/lightning/o/{}/home".format(url, obj_name)
         self.selenium.go_to(url)
         self.wait_until_loading_is_complete(lex_locators["actions"])
 
     def go_to_object_list(self, obj_name, filter_name=None):
-        """ Navigates to the Home view of a Salesforce Object """
+        """Navigates to the Home view of a Salesforce Object"""
         url = self.cumulusci.org.lightning_base_url
         url = "{}/lightning/o/{}/list".format(url, obj_name)
         if filter_name:
@@ -448,20 +477,20 @@ class Salesforce(object):
         self.wait_until_loading_is_complete(lex_locators["actions"])
 
     def go_to_record_home(self, obj_id):
-        """ Navigates to the Home view of a Salesforce Object """
+        """Navigates to the Home view of a Salesforce Object"""
         url = self.cumulusci.org.lightning_base_url
         url = "{}/lightning/r/{}/view".format(url, obj_id)
         self.selenium.go_to(url)
         self.wait_until_loading_is_complete(lex_locators["actions"])
 
     def go_to_setup_home(self):
-        """ Navigates to the Home tab of Salesforce Setup """
+        """Navigates to the Home tab of Salesforce Setup"""
         url = self.cumulusci.org.lightning_base_url
         self.selenium.go_to(url + "/lightning/setup/SetupOneHome/home")
         self.wait_until_loading_is_complete()
 
     def go_to_setup_object_manager(self):
-        """ Navigates to the Object Manager tab of Salesforce Setup """
+        """Navigates to the Object Manager tab of Salesforce Setup"""
         url = self.cumulusci.org.lightning_base_url
         self.selenium.go_to(url + "/lightning/setup/ObjectManager/home")
         self.wait_until_loading_is_complete()
@@ -481,12 +510,12 @@ class Salesforce(object):
         self.selenium.page_should_not_contain_element(locator)
 
     def header_field_should_have_link(self, label):
-        """ Validates that a field in the record header has a link as its value """
+        """Validates that a field in the record header has a link as its value"""
         locator = lex_locators["record"]["header"]["field_value_link"].format(label)
         self.selenium.page_should_contain_element(locator)
 
     def header_field_should_not_have_link(self, label):
-        """ Validates that a field in the record header does not have a link as its value """
+        """Validates that a field in the record header does not have a link as its value"""
         locator = lex_locators["record"]["header"]["field_value_link"].format(label)
         self.selenium.page_should_not_contain_element(locator)
 
@@ -496,12 +525,12 @@ class Salesforce(object):
         self._jsclick(locator)
 
     def header_field_should_be_checked(self, label):
-        """ Validates that a checkbox field in the record header is checked """
+        """Validates that a checkbox field in the record header is checked"""
         locator = lex_locators["record"]["header"]["field_value_checked"].format(label)
         self.selenium.page_should_contain_element(locator)
 
     def header_field_should_be_unchecked(self, label):
-        """ Validates that a checkbox field in the record header is unchecked """
+        """Validates that a checkbox field in the record header is unchecked"""
         locator = lex_locators["record"]["header"]["field_value_unchecked"].format(
             label
         )
@@ -634,9 +663,8 @@ class Salesforce(object):
         In addition to merely setting the focus, we click the mouse
         to the field in case there are functions tied to that event.
         """
-        actions = ActionChains(self.selenium.driver)
-        actions.move_to_element(element).click().perform()
         self.selenium.set_focus_to_element(element)
+        element.click()
 
     def _clear(self, element):
         """Clear the field, using any means necessary
@@ -704,7 +732,7 @@ class Salesforce(object):
 
     @capture_screenshot_on_error
     def select_app_launcher_app(self, app_name):
-        """Navigates to a Salesforce App via the App Launcher """
+        """Navigates to a Salesforce App via the App Launcher"""
         locator = lex_locators["app_launcher"]["app_link"].format(app_name)
         self.open_app_launcher()
         self.selenium.wait_until_page_contains_element(locator, timeout=30)
@@ -1075,7 +1103,7 @@ class Salesforce(object):
 
     @capture_screenshot_on_error
     def wait_until_modal_is_open(self):
-        """ Wait for modal to open """
+        """Wait for modal to open"""
         self.selenium.wait_until_page_contains_element(
             lex_locators["modal"]["is_open"],
             timeout=15,
@@ -1083,7 +1111,7 @@ class Salesforce(object):
         )
 
     def wait_until_modal_is_closed(self):
-        """ Wait for modal to close """
+        """Wait for modal to close"""
         self.selenium.wait_until_page_does_not_contain_element(
             lex_locators["modal"]["is_open"], timeout=15
         )
@@ -1368,7 +1396,7 @@ class Salesforce(object):
 
         Example:
 
-            Set Test Metric    Max_CPU_Percent    30
+        | Set Test Metric    Max_CPU_Percent    30
 
         Performance test metrics are output in the CCI logs, log.html and output.xml.
         MetaCI captures them but does not currently have a user interface for displaying
@@ -1380,6 +1408,138 @@ class Salesforce(object):
 
         builtins.set_tags("cci_metric")
         builtins.set_test_variable("${cci_metric_%s}" % metric, value)
+
+    @capture_screenshot_on_error
+    def input_form_data(self, *args):
+        """Fill in one or more labeled input fields fields with data
+
+        Arguments should be pairs of field labels and values. Labels
+        for required fields should not include the asterisk. Labels
+        must be exact, including case.
+
+        This keyword uses the keyword *Locate Element by Label* to
+        locate elements. More details about how elements are found are
+        in the documentation for that keyword.
+
+        For most input form fields the actual value string will be
+        used.  For a checkbox, passing the value "checked" will check
+        the checkbox and any other value will uncheck it. Using
+        "unchecked" is recommended for clarity.
+
+        Example:
+
+        | Input form data
+        | ...  Opportunity Name         The big one       # required text field
+        | ...  Amount                   1b                # currency field
+        | ...  Close Date               4/01/2022         # date field
+        | ...  Private                  checked           # checkbox
+        | ...  Type                     New Customer      # combobox
+        | ...  Primary Campaign Source  The Big Campaign  # picklist
+
+        This keyword will eventually replace the "populate form"
+        keyword once it has been more thoroughly tested in production.
+
+        """
+
+        it = iter(args)
+        errors = []
+        for label, value in list(zip(it, it)):
+            # this uses our custom "label" locator strategy
+            locator = f"label:{label}"
+            # FIXME: we should probably only wait for the first label;
+            # after that we can assume the fields have been rendered
+            # so that we fail quickly if we can't find the element
+            element = self.selenium.get_webelement(locator)
+            handler = get_form_handler(element, locator)
+            try:
+                if handler:
+                    handler.set(value)
+                else:
+                    raise Exception(
+                        f"No form handler found for tag '{element.tag_name}'"
+                    )
+            except Exception as e:
+                errors.append(f"{label}: {str(e)}")
+
+        if errors:
+            message = "There were errors with the following fields:\n"
+            message += "\n".join(errors)
+            raise Exception(message)
+
+        # FIXME: maybe we should automatically set the focus to some
+        # other element to trigger any event handlers on the last
+        # element? But what should we set the focus to?
+
+    def locate_element_by_label(self, browser, locator, tag, constraints):
+        """Find a lightning component, input, or textarea based on a label
+
+        If the component is inside a fieldset, the fieldset label can
+        be prefixed to the label with a double colon in order to
+        disambiguate the label.  (eg: Other address::First Name)
+
+        If the label is inside nested ligntning components (eg:
+        ``<lightning-input>...<lightning-combobox>...<label>``), the
+        lightning component closest to the label will be
+        returned (in this case, ``lightning-combobox``).
+
+        If a lightning component cannot be found for the label, an
+        attempt will be made to find an input or textarea associated
+        with the label.
+
+        This is registered as a custom locator strategy named "label"
+
+        Example:
+
+        The following example is for a form with a formset named
+        "Expected Delivery Date", and inside of that a date input field
+        with a label of "Date".
+
+        These examples produce identical results:
+
+        | ${element}=  Locate element by label    Expected Delivery Date::Date
+        | ${element}=  Get webelement             label:Expected Delivery Date::Date
+
+        """
+
+        if "::" in locator:
+            fieldset, label = [x.strip() for x in locator.split("::", 1)]
+            fieldset_prefix = f'//fieldset[.//*[.="{fieldset}"]]'
+        else:
+            label = locator
+            fieldset_prefix = ""
+
+        xpath = fieldset_prefix + (
+            # a label with the given text, optionally with a leading
+            # or trailing "*" (ie: required field)
+            f'//label[.="{label}" or .="*{label}" or .="{label}*"]'
+            # then find the nearest ancestor lightning component
+            '/ancestor::*[starts-with(local-name(), "lightning-")][1]'
+        )
+        elements = browser.find_elements_by_xpath(xpath)
+
+        if not elements:
+            # fall back to finding an input or textarea based on the 'for'
+            # attribute of a label
+            xpath = fieldset_prefix + (
+                "//*[self::input or self::textarea]"
+                f'[@id=string(//label[.="{label}" or .="*{label}" or .="{label}*"]/@for)]'
+            )
+            elements = browser.find_elements_by_xpath(xpath)
+
+        return elements
+
+    def select_window(self, locator="MAIN", timeout=None):
+        """Alias for SeleniuimLibrary 'Switch Window'
+
+        This keyword was removed from SeleniumLibrary 5.x, but some of our
+        tests still use this keyword. You can continue to use this,
+        but should replace any calls to this keyword with calls to
+        'Switch Window' instead.
+        """
+        self.builtin.log(
+            "'Select Window' is deprecated; use 'Switch Window' instead", "WARN"
+        )
+        self.selenium.switch_window(locator=locator, timeout=timeout)
 
 
 def _duration(start_date: str, end_date: str, record: dict):

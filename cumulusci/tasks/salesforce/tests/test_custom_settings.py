@@ -1,35 +1,34 @@
-import unittest
+import pathlib
+from unittest.mock import Mock, call
+
+import pytest
 import yaml
-from unittest.mock import Mock, patch, call, mock_open
 
-from cumulusci.tasks.salesforce import LoadCustomSettings
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.tasks.salesforce.custom_settings import LoadCustomSettings
 from cumulusci.tasks.salesforce.tests.util import create_task
-from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
+from cumulusci.utils import temporary_dir
 
 
-class TestLoadCustomSettings(unittest.TestCase):
-    @patch("os.path.isfile")
-    def test_init_options__exception(self, isfile):
-        isfile.return_value = False
-        with self.assertRaises(TaskOptionsError):
-            create_task(LoadCustomSettings, {"settings_path": "test.yml"})
-
-    @patch("os.path.isfile")
-    def test_load_settings_bad_yaml(self, isfile):
-        isfile.return_value = True
+class TestLoadCustomSettings:
+    def test_run_task__bad_path(self):
         task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
+        with pytest.raises(TaskOptionsError):
+            task()
 
-        task.sf = Mock()
+    def test_run_task__wrong_format(self):
+        with temporary_dir():
+            pathlib.Path("test.yml").write_text("Test__c: Test")
+            task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
+            task.sf = Mock()
 
-        task.settings = {"Test__c": "Test"}
-        with self.assertRaises(CumulusCIException):
-            task._load_settings()
+            with pytest.raises(
+                CumulusCIException, match="must be a list or a map structure"
+            ):
+                task._run_task()
 
-    @patch("os.path.isfile")
-    def test_load_settings_list_setting(self, isfile):
-        isfile.return_value = True
+    def test_load_settings_list_setting(self):
         task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
-
         task.sf = Mock()
 
         task.settings = {"Test__c": {"Name": {"Field__c": "Test"}}}
@@ -39,9 +38,7 @@ class TestLoadCustomSettings(unittest.TestCase):
             "Name/Name", {"Field__c": "Test"}
         )
 
-    @patch("os.path.isfile")
-    def test_load_settings_hierarchy_setting_profile(self, isfile):
-        isfile.return_value = True
+    def test_load_settings_hierarchy_setting_profile(self):
         task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
@@ -64,9 +61,7 @@ class TestLoadCustomSettings(unittest.TestCase):
             ]
         )
 
-    @patch("os.path.isfile")
-    def test_load_settings_hierarchy_setting_profile__error(self, isfile):
-        isfile.return_value = True
+    def test_load_settings_hierarchy_setting_profile__error(self):
         task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
@@ -80,7 +75,7 @@ class TestLoadCustomSettings(unittest.TestCase):
         task.settings = {
             "Test__c": [{"location": {"profile": "Test"}, "data": {"Field__c": "Test"}}]
         }
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             task._load_settings()
 
         task.sf.Test__c.create.assert_not_called()
@@ -88,9 +83,7 @@ class TestLoadCustomSettings(unittest.TestCase):
             [call("SELECT Id FROM Profile WHERE Name = 'Test'")]
         )
 
-    @patch("os.path.isfile")
-    def test_load_settings_hierarchy_setting_user(self, isfile):
-        isfile.return_value = True
+    def test_load_settings_hierarchy_setting_user(self):
         task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
@@ -119,9 +112,7 @@ class TestLoadCustomSettings(unittest.TestCase):
             ]
         )
 
-    @patch("os.path.isfile")
-    def test_load_settings_hierarchy_setting_user_email(self, isfile):
-        isfile.return_value = True
+    def test_load_settings_hierarchy_setting_user_email(self):
         task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
@@ -150,9 +141,7 @@ class TestLoadCustomSettings(unittest.TestCase):
             ]
         )
 
-    @patch("os.path.isfile")
-    def test_load_settings_hierarchy_org(self, isfile):
-        isfile.return_value = True
+    def test_load_settings_hierarchy_org(self):
         task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
@@ -174,9 +163,7 @@ class TestLoadCustomSettings(unittest.TestCase):
             ]
         )
 
-    @patch("os.path.isfile")
-    def test_load_settings_hierarchy_no_location(self, isfile):
-        isfile.return_value = True
+    def test_load_settings_hierarchy_no_location(self):
         task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
@@ -185,14 +172,12 @@ class TestLoadCustomSettings(unittest.TestCase):
             {"totalSize": 0},
         ]
         task.settings = {"Test__c": [{"data": {"Field__c": "Test"}}]}
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             task._load_settings()
 
         task.sf.Test__c.create.assert_not_called()
 
-    @patch("os.path.isfile")
-    def test_load_settings_hierarchy_update(self, isfile):
-        isfile.return_value = True
+    def test_load_settings_hierarchy_update(self):
         task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
 
         task.sf = Mock()
@@ -214,23 +199,21 @@ class TestLoadCustomSettings(unittest.TestCase):
             ]
         )
 
-    @patch("os.path.isfile")
-    @patch("simple_salesforce.Salesforce")
-    def test_run_task(self, sf, isfile):
-        isfile.return_value = True
-        m = mock_open(
-            read_data=yaml.dump(
-                {"Test__c": [{"location": "org", "data": {"Field__c": "Test"}}]}
+    def test_run_task(self, sf):
+        with temporary_dir():
+            pathlib.Path("test.yml").write_text(
+                yaml.dump(
+                    {"Test__c": [{"location": "org", "data": {"Field__c": "Test"}}]}
+                )
             )
-        )
-        task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
+            task = create_task(LoadCustomSettings, {"settings_path": "test.yml"})
+            task.sf = Mock()
+            task.sf.query.side_effect = [
+                {"totalSize": 1, "records": [{"Id": "001000000000000"}]},
+                {"totalSize": 1, "records": [{"Id": "001000000000001"}]},
+            ]
 
-        sf.return_value.query.side_effect = [
-            {"totalSize": 1, "records": [{"Id": "001000000000000"}]},
-            {"totalSize": 1, "records": [{"Id": "001000000000001"}]},
-        ]
-        with patch("builtins.open", m):
-            task()
+            task._run_task()
 
         task.sf.Test__c.update.assert_called_once_with(
             "001000000000001", {"Field__c": "Test", "SetupOwnerId": "001000000000000"}

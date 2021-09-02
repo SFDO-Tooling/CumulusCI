@@ -2,17 +2,17 @@
 
 import io
 import os
-import sarge
-import pytest
 import zipfile
 from datetime import datetime
-
-from xml.etree import ElementTree as ET
 from unittest import mock
+from xml.etree import ElementTree as ET
+
+import pytest
 import responses
+import sarge
 
 from cumulusci import utils
-from cumulusci.core.config import TaskConfig, FlowConfig
+from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tests.util import create_project_config
@@ -431,6 +431,12 @@ Options\n------------------------------------------\n\n
         )
         assert name == "ns__test"
         assert content == "ns__|ns.|ns__|ns|ns"
+
+    def test_inject_namespace__filename_token_in_package_xml(self):
+        name, content = utils.inject_namespace(
+            "package.xml", "___NAMESPACE___", namespace="ns", managed=True
+        )
+        assert content == "ns__"
 
     def test_strip_namespace(self):
         logger = mock.Mock()

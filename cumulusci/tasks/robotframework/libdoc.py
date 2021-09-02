@@ -2,19 +2,19 @@ import os
 import os.path
 import re
 import time
+
 import jinja2
 import robot.utils
+from robot.libdocpkg.builder import DocumentationBuilder
+from robot.libdocpkg.robotbuilder import LibraryDocBuilder
+from robot.libraries.BuiltIn import RobotNotRunningError
+from robot.utils import Importer
 
 import cumulusci
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_glob_list_arg
 from cumulusci.robotframework import PageObjects
-
-from robot.libdocpkg.builder import DocumentationBuilder
-from robot.libraries.BuiltIn import RobotNotRunningError
-from robot.libdocpkg.robotbuilder import LibraryDocBuilder
-from robot.utils import Importer
 
 
 class RobotLibDoc(BaseTask):
@@ -110,7 +110,9 @@ class RobotLibDoc(BaseTask):
             except RobotNotRunningError as e:
                 # oddly, robot's exception has a traceback embedded in the message, so we'll
                 # only print out the first line to hide most of the noise
-                self.logger.warn("unexpected error: {}".format(str(e).split("\n")[0]))
+                self.logger.warning(
+                    "unexpected error: {}".format(str(e).split("\n")[0])
+                )
 
         try:
             with open(self.options["output"], "w") as f:

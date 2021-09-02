@@ -1,6 +1,6 @@
 import logging
 
-from robot.api import logger
+import robot.api.logger
 from robot.libraries.BuiltIn import BuiltIn
 
 from cumulusci.cli.runtime import CliRuntime
@@ -55,12 +55,11 @@ class CumulusCI(object):
                 # If CumulusCI is running a task, use that task's config
                 return CURRENT_TASK.stack[0].project_config
             else:
-                logger.console("Initializing CumulusCI config\n")
+                robot.api.logger.console("Initializing CumulusCI config\n")
                 self._project_config = CliRuntime().project_config
         return self._project_config
 
     def set_project_config(self, project_config):
-        logger.console("\n")
         self._project_config = project_config
 
     @property
@@ -178,16 +177,22 @@ class CumulusCI(object):
         """Runs a named CumulusCI task for the current project with optional
         support for overriding task options via kwargs.
 
+        Note: task_name can be prefixed with the name of another project,
+        just the same as when running the task from the command line. The other
+        project needs to have been defined in the 'sources' section of cumulusci.yml.
+
+        The task output will appear in the robot log.
+
         Examples:
         | =Keyword= | =task_name= | =task_options=             | =comment=                        |
         | Run Task  | deploy      |                            | Run deploy with standard options |
         | Run Task  | deploy      | path=path/to/some/metadata | Run deploy with custom path      |
+        | Run task  | npsp:deploy_rd2_config  |                | Run the deploy_rd2_config task from the NPSP project |
         """
         task_config = self.project_config.get_task(task_name)
         class_path = task_config.class_path
-        logger.console("\n")
-        task_class, task_config = self._init_task(class_path, options, task_config)
-        return self._run_task(task_class, task_config)
+        task = self._init_task(class_path, options, task_config)
+        return self._run_task(task)
 
     def run_task_class(self, class_path, **options):
         """Runs a CumulusCI task class with task options via kwargs.
@@ -198,13 +203,14 @@ class CumulusCI(object):
         logic unique to the test and thus not worth making into a named
         task for the project
 
+        The task output will appear in the robot log.
+
         Examples:
         | =Keyword=      | =task_class=                     | =task_options=                            |
         | Run Task Class | cumulusci.task.utils.DownloadZip | url=http://test.com/test.zip dir=test_zip |
         """
-        logger.console("\n")
-        task_class, task_config = self._init_task(class_path, options, TaskConfig())
-        return self._run_task(task_class, task_config)
+        task = self._init_task(class_path, options, TaskConfig())
+        return self._run_task(task)
 
     def _init_api(self, base_url=None):
         client = get_simple_salesforce_connection(self.project_config, self.org)
@@ -215,7 +221,19 @@ class CumulusCI(object):
     def _init_task(self, class_path, options, task_config):
         task_class = import_global(class_path)
         task_config = self._parse_task_options(options, task_class, task_config)
-        return task_class, task_config
+        # Python deprecated the logger method "warn" in favor of
+        # "warning". Robot didn't get the memo and only has a "warn"
+        # method. Some tasks use "warning", so this makes sure the
+        # robot logger can handle that.
+        if not hasattr(robot.api.logger, "warning"):
+            robot.api.logger.warning = robot.api.logger.warn
+        task = task_class(
+            task_config.project_config or self.project_config,
+            task_config,
+            org_config=self.org,
+            logger=robot.api.logger,
+        )
+        return task
 
     def _parse_task_options(self, options, task_class, task_config):
         if "options" not in task_config.config:
@@ -236,9 +254,7 @@ class CumulusCI(object):
 
         return task_config
 
-    def _run_task(self, task_class, task_config):
-        task = task_class(self.project_config, task_config, org_config=self.org)
-
+    def _run_task(self, task):
         task()
         return task.return_values
 

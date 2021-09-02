@@ -3,21 +3,20 @@ import fnmatch
 import io
 import math
 import os
-
 import re
 import shutil
 import sys
 import tempfile
 import textwrap
+import xml.etree.ElementTree as ET
 import zipfile
 from datetime import datetime
-from .ziputils import zip_subfolder
-from .ziputils import process_text_in_zipfile  # noqa
 
 import requests
 import sarge
-import xml.etree.ElementTree as ET
 
+from .ziputils import process_text_in_zipfile  # noqa
+from .ziputils import zip_subfolder
 
 CUMULUSCI_PATH = os.path.realpath(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "../..")
@@ -110,7 +109,7 @@ def elementtree_parse_file(path):
 
 
 def remove_xml_element_directory(name, directory, file_pattern, logger=None):
-    """ Recursively walk a directory and remove XML elements """
+    """Recursively walk a directory and remove XML elements"""
     for path, dirs, files in os.walk(os.path.abspath(directory)):
         for filename in fnmatch.filter(files, file_pattern):
             filepath = os.path.join(path, filename)
@@ -125,7 +124,7 @@ removeXmlElement = remove_xml_element_directory
 
 
 def remove_xml_element_file(name, path):
-    """ Remove XML elements from a single file """
+    """Remove XML elements from a single file"""
     ET.register_namespace("", "http://soap.sforce.com/2006/04/metadata")
     tree = elementtree_parse_file(path)
     tree = remove_xml_element(name, tree)
@@ -133,7 +132,7 @@ def remove_xml_element_file(name, path):
 
 
 def remove_xml_element_string(name, content):
-    """ Remove XML elements from a string """
+    """Remove XML elements from a string"""
     ET.register_namespace("", "http://soap.sforce.com/2006/04/metadata")
     tree = ET.fromstring(content)
     tree = remove_xml_element(name, tree)
@@ -142,7 +141,7 @@ def remove_xml_element_string(name, content):
 
 
 def remove_xml_element(name, tree):
-    """ Removes XML elements from an ElementTree content tree """
+    """Removes XML elements from an ElementTree content tree"""
     # root = tree.getroot()
     remove = tree.findall(
         ".//{{http://soap.sforce.com/2006/04/metadata}}{}".format(name)
@@ -282,6 +281,14 @@ def inject_namespace(
             f'  {name}: Replaced {namespace_or_c_token} with "{namespace_or_c}"'
         )
 
+    if name == "package.xml":
+        prev_content = content
+        content = content.replace(filename_token, namespace_prefix)
+        if logger and content != prev_content:
+            logger.info(
+                f'  {name}: Replaced {filename_token} with "{namespace_prefix}"'
+            )
+
     prev_content = content
     content = content.replace(namespaced_org_token, namespaced_org)
     if logger and content != prev_content:
@@ -370,7 +377,7 @@ def zip_clean_metaxml(zip_src, logger=None):
 
 
 def doc_task(task_name, task_config, project_config=None, org_config=None):
-    """ Document a (project specific) task configuration in RST format. """
+    """Document a (project specific) task configuration in RST format."""
     from cumulusci.core.utils import import_global
 
     doc = []
@@ -483,9 +490,6 @@ def flow_ref_title_and_intro(intro_blurb):
     return f"""Flow Reference
 ==========================================
 \n{intro_blurb}
-.. contents::
-    :depth: 2
-    :local:
 
 """
 

@@ -2,10 +2,11 @@
 
 MockLoggingHandler: a logging handler that we can assert"""
 
-import cumulusci
 import collections
 import logging
 import os
+
+import cumulusci
 
 
 class MockLoggingHandler(logging.Handler):
@@ -34,7 +35,7 @@ class MockLoggingHandler(logging.Handler):
             self.release()
 
     def reset(self):
-        """ Reset the handler in TestCase.setUp() to clear the msg list """
+        """Reset the handler in TestCase.setUp() to clear the msg list"""
         self.acquire()
         try:
             for message_list in list(self.messages.values()):

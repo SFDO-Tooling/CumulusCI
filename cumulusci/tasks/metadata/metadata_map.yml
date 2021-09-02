@@ -1,7 +1,15 @@
+accountRelationshipShareRules:
+    - type: AccountRelationshipShareRule
+      class: MetadataFilenameParser
+      extension: accountRelationshipShareRule
 actionLinkGroupTemplates:
     - type: ActionLinkGroupTemplate
       class: MetadataFilenameParser
       extension: actionLinkGroupTemplate
+actionPlanTemplates:
+    - type: ActionPlanTemplate
+      class: MetadataFilenameParser
+      extension: apt
 analyticSnapshots:
     - type: AnalyticSnapshot
       class: MetadataFilenameParser
@@ -10,6 +18,10 @@ animationRules:
     - type: AnimationRule
       class: MetadataFilenameParser
       extension: animationRule
+apexEmailNotifications:
+    - type: ApexEmailNotifications
+      class: MetadataFilenameParser
+      extension: notifications
 applications:
     - type: CustomApplication
       class: MetadataFilenameParser
@@ -41,10 +53,35 @@ autoResponseRules:
     - type: AutoResponseRules
       class: MetadataFilenameParser
       extension: autoResponseRules
+batchCalcJobDefinitions:
+    - type: BatchCalcJobDefinition
+      class: MetadataFilenameParser
+      extension: batchCalcJobDefinition
+batchProcessJobDefinitions:
+    - type: BatchProcessJobDefinition
+      class: MetadataFilenameParser
+      extension: batchProcessJobDefinition
+bot:
+    - type: Bot
+      class: MetadataFilenameParser
+      extension: bot
+    - type: BotVersion
+      class: MetadataXmlElementParser
+      extension: bot
+      options:
+          item_xpath: "./sf:botVersions"
 brandingSets:
     - type: BrandingSet
       class: MetadataFilenameParser
       extension: brandingSet
+briefcaseDefinitions:
+    - type: BriefcaseDefinition
+      class: MetadataFilenameParser
+      extension: briefcaseDefinition
+businessProcessGroups:
+    - type: BusinessProcessGroup
+      class: MetadataFilenameParser
+      extension: businessProcessGroup
 cachePartitions:
     - type: PlatformCachePartition
       class: MetadataFilenameParser
@@ -57,6 +94,14 @@ campaignInfluenceModels:
     - type: CampaignInfluenceModel
       class: MetadataFilenameParser
       extension: campaignInfluenceModel
+careProviderSearchConfigs:
+    - type: CareProviderSearchConfig
+      class: MetadataFilenameParser
+      extension: careProviderSearchConfig
+careSystemFieldMappings:
+    - type: CareSystemFieldMapping
+      class: MetadataFilenameParser
+      extension: careSystemFieldMapping
 CaseSubjectParticles:
     - type: CaseSubjectParticle
       class: MetadataFilenameParser
@@ -113,6 +158,10 @@ cspTrustedSites:
     - type: CspTrustedSite
       class: MetadataFilenameParser
       extension: cspTrustedSite
+customApplicationComponents:
+    - type: CustomApplicationComponent
+      class: MetadataFilenameParser
+      extension: customApplicationComponent
 customHelpMenuSections:
     - type: CustomHelpMenuSection
       class: MetadataFilenameParser
@@ -136,10 +185,29 @@ dataSources:
     - type: ExternalDataSource
       class: MetadataFilenameParser
       extension: dataSource
+dataStreamDefinitions:
+    - type: DataStreamDefinition
+      class: MetadataFilenameParser
+      extension: dataStreamDefinition
+decisionTables:
+    - type: DecisionTable
+      class: MetadataFilenameParser
+      extension: decisionTable
+decisionTableDatasetLinks:
+    - type: DecisionTableDatasetLink
+      class: MetadataFilenameParser
+      extension: decisionTableDatasetLink
 delegateGroups:
     - type: DelegateGroup
       class: MetadataFilenameParser
       extension: delegateGroup
+discovery:
+    - type: DiscoveryAIModel
+      class: MetadataFilenameParser
+      extension: model
+    - type: DiscoveryGoal
+      class: MetadataFilenameParser
+      extension: goal
 documents:
     - type: Document
       class: DocumentParser
@@ -166,6 +234,10 @@ EmbeddedServiceConfig:
     - type: EmbeddedServiceConfig
       class: MetadataFilenameParser
       extension: EmbeddedServiceConfig
+EmbeddedServiceFieldService:
+    - type: EmbeddedServiceFieldService
+      class: MetadataFilenameParser
+      extension: EmbeddedServiceFieldService
 EmbeddedServiceFlowConfig:
     - type: EmbeddedServiceFlowConfig
       class: MetadataFilenameParser
@@ -174,13 +246,29 @@ EmbeddedServiceLiveAgent:
     - type: EmbeddedServiceLiveAgent
       class: MetadataFilenameParser
       extension: EmbeddedServiceLiveAgent
+entitlementProcesses:
+    - type: EntitlementProcess
+      class: MetadataFilenameParser
+      extension: entitlementProcess
+entitlementTemplates:
+    - type: EntitlementTemplate
+      class: MetadataFilenameParser
+      extension: entitlementTemplate
 escalationRules:
     - type: EscalationRules
       class: MetadataFilenameParser
       extension: escalationRules
+eventDeliveries:
+    - type: EventDelivery
+      class: MetadataFilenameParser
+      extension: delivery
 experiences:
     - type: ExperienceBundle
       class: BundleParser
+externalDataConnectors:
+    - type: ExternalDataConnector
+      class: MetadataFilenameParser
+      extension: externalDataConnector
 externalServiceRegistrations:
     - type: ExternalServiceRegistration
       class: MetadataFilenameParser
@@ -195,14 +283,18 @@ featureParameters:
     - type: FeatureParameterInteger
       class: MetadataFilenameParser
       extension: featureParameterInteger
+feedFilters:
+    - type: CustomFeedFilter
+      class: MetadataFilenameParser
+      extension: feedFilter
+fieldSrcTrgtRelationship:
+    - type: FieldSrcTrgtRelationship
+      class: MetadataFilenameParser
+      extension: fieldSrcTrgtRelationship
 flexipages:
     - type: FlexiPage
       class: MetadataFilenameParser
       extension: flexipage
-flows:
-    - type: Flow
-      class: MetadataFilenameParser
-      extension: flow
 flowCategories:
     - type: FlowCategory
       class: MetadataFilenameParser
@@ -211,6 +303,10 @@ flowDefinitions:
     - type: FlowDefinition
       class: MetadataFilenameParser
       extension: flowDefinition
+flows:
+    - type: Flow
+      class: MetadataFilenameParser
+      extension: flow
 globalPicklist:
     - type: GlobalPicklist
       class: MetadataFilenameParser
@@ -235,12 +331,16 @@ homePageLayouts:
     - type: HomePageLayout
       class: MetadataFilenameParser
       extension: homePageLayout
+inboundNetworkConnections:
+    - type: InboundNetworkConnection
+      class: MetadataFilenameParser
+      extension: inboundNetworkConnection
 labels:
     - type: CustomLabel
       class: CustomLabelsParser
       extension: labels
       options:
-            item_xpath: './sf:labels'
+          item_xpath: "./sf:labels"
     - type: CustomLabels
       class: MetadataFilenameParser
       extension: labels
@@ -260,6 +360,14 @@ lightningExperienceThemes:
     - type: LightningExperienceTheme
       class: MetadataFilenameParser
       extension: lightningExperienceTheme
+lightningOnboardingConfigs:
+    - type: LightningOnboardingConfig
+      class: MetadataFilenameParser
+      extension: lightningOnboardingConfig
+liveChatAgentConfigs:
+    - type: LiveChatAgentConfig
+      class: MetadataFilenameParser
+      extension: liveChatAgentConfig
 liveChatButtons:
     - type: LiveChatButton
       class: MetadataFilenameParser
@@ -268,20 +376,47 @@ liveChatDeployments:
     - type: LiveChatDeployment
       class: MetadataFilenameParser
       extension: liveChatDeployment
-
+liveChatSensitiveDataRule:
+    - type: LiveChatSensitiveDataRule
+      class: MetadataFilenameParser
+      extension: liveChatSensitiveDataRule
 lwc:
     - type: LightningComponentBundle
       class: LWCBundleParser
+managedContentTypes:
+    - type: ManagedContentType
+      class: MetadataFilenameParser
+      extension: managedContentType
+managedTopics:
+    - type: ManagedTopics
+      class: MetadataFilenameParser
+      extension: managedTopics
 matchingRules:
     - type: MatchingRule
       class: MetadataXmlElementParser
       extension: matchingRule
       options:
-            item_xpath: './sf:matchingRules'
+          item_xpath: "./sf:matchingRules"
 messageChannels:
     - type: LightningMessageChannel
       class: MetadataFilenameParser
       extension: messageChannel
+milestoneTypes:
+    - type: MilestoneType
+      class: MetadataFilenameParser
+      extension: milestoneType
+mktDataSourceObjects:
+    - type: DataSourceObject
+      class: MetadataFilenameParser
+      extension: dataSourceObject
+mktDataSources:
+    - type: DataSource
+      class: MetadataFilenameParser
+      extension: dataSource
+mktDataTranObjects:
+    - type: MktDataTranObject
+      class: MetadataFilenameParser
+      extension: mktDataTranObject
 mlDomains:
     - type: MlDomain
       class: MetadataFilenameParser
@@ -290,22 +425,33 @@ MobileApplicationDetails:
     - type: MobileApplicationDetail
       class: MetadataFilenameParser
       extension: MobileApplicationDetail
+moderation:
+    - type: KeywordList
+      class: MetadataFilenameParser
+      extension: keywords
+    - type: ModerationRule
+      class: MetadataFilenameParser
+      extension: rule
 mutingpermissionsets:
     - type: MutingPermissionSet
       class: MetadataFilenameParser
       extension: mutingpermissionset
-navigationMenus:
-    - type: NavigationMenu
+myDomainDiscoverableLogins:
+    - type: MyDomainDiscoverableLogin
       class: MetadataFilenameParser
-      extension: navigationMenu
+      extension: myDomainDiscoverableLogin
 namedCredentials:
     - type: NamedCredential
       class: MetadataFilenameParser
       extension: namedCredential
+navigationMenus:
+    - type: NavigationMenu
+      class: MetadataFilenameParser
+      extension: navigationMenu
 networkBranding:
     - type: NetworkBranding
       class: MetadataFilenameParser
-      extension: networkBranding            
+      extension: networkBranding
 networks:
     - type: Network
       class: MetadataFilenameParser
@@ -321,7 +467,7 @@ notificationtypes:
 oauthcustomscopes:
     - type: OauthCustomScope
       class: MetadataFilenameParser
-      extension: oauthcustomscope    
+      extension: oauthcustomscope
 objects:
     - type: CustomObject
       class: CustomObjectParser
@@ -330,61 +476,69 @@ objects:
       class: BusinessProcessParser
       extension: object
       options:
-            item_xpath: './sf:businessProcesses'
+          item_xpath: "./sf:businessProcesses"
     - type: CompactLayout
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:compactLayouts'
+          item_xpath: "./sf:compactLayouts"
     - type: CustomField
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:fields'
+          item_xpath: "./sf:fields"
     - type: FieldSet
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:fieldSets'
+          item_xpath: "./sf:fieldSets"
     - type: Index
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:indexes'
+          item_xpath: "./sf:indexes"
     - type: ListView
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:listViews'
+          item_xpath: "./sf:listViews"
     - type: NamedFilter
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:namedFilters'
+          item_xpath: "./sf:namedFilters"
     - type: RecordType
       class: RecordTypeParser
       extension: object
       options:
-            item_xpath: './sf:recordTypes'
+          item_xpath: "./sf:recordTypes"
     - type: SharingReason
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:sharingReasons'
+          item_xpath: "./sf:sharingReasons"
     - type: ValidationRule
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:validationRules'
+          item_xpath: "./sf:validationRules"
     - type: WebLink
       class: MetadataXmlElementParser
       extension: object
       options:
-            item_xpath: './sf:webLinks'
+          item_xpath: "./sf:webLinks"
+objectSourceTargetMaps:
+    - type: ObjectSourceTargetMap
+      class: MetadataFilenameParser
+      extension: objectSourceTargetMap
 objectTranslations:
     - type: CustomObjectTranslation
       class: MetadataFilenameParser
       extension: objectTranslation
+outboundNetworkConnections:
+    - type: OutboundNetworkConnection
+      class: MetadataFilenameParser
+      extension: outboundNetworkConnection
 pages:
     - type: ApexPage
       class: MetadataFilenameParser
@@ -397,34 +551,50 @@ paymentGatewayProviders:
     - type: PaymentGatewayProvider
       class: MetadataFilenameParser
       extension: paymentGatewayProvider
-permissionsets:
-    - type: PermissionSet
-      class: MetadataFilenameParser
-      extension: permissionset
 permissionsetgroups:
     - type: PermissionSetGroup
       class: MetadataFilenameParser
       extension: permissionsetgroup
-platformEventChannels:
-    - type: PlatformEventChannel
+permissionsets:
+    - type: PermissionSet
       class: MetadataFilenameParser
-      extension: platformEventChannel
+      extension: permissionset
 platformEventChannelMembers:
     - type: PlatformEventChannelMember
       class: MetadataFilenameParser
       extension: platformEventChannelMember
+platformEventChannels:
+    - type: PlatformEventChannel
+      class: MetadataFilenameParser
+      extension: platformEventChannel
+PlatformEventSubscriberConfigs:
+    - type: PlatformEventSubscriberConfig
+      class: MetadataFilenameParser
+      extension: platformEventSubscriberConfig
+portals:
+    - type: Portal
+      class: MetadataFilenameParser
+      extension: portal
 postTemplates:
     - type: PostTemplate
       class: MetadataFilenameParser
       extension: postTemplate
-profiles:
-    - type: Profile
+presenceDeclineReasons:
+    - type: PresenceDeclineReason
       class: MetadataFilenameParser
-      extension: profile
+      extension: presenceDeclineReason
+presenceUserConfigs:
+    - type: PresenceUserConfig
+      class: MetadataFilenameParser
+      extension: presenceUserConfig
 profilePasswordPolicies:
     - type: ProfilePasswordPolicy
       class: MetadataFilenameParser
       extension: profilePasswordPolicy
+profiles:
+    - type: Profile
+      class: MetadataFilenameParser
+      extension: profile
 profileSessionSettings:
     - type: ProfileSessionSetting
       class: MetadataFilenameParser
@@ -433,6 +603,10 @@ prompts:
     - type: Prompt
       class: MetadataFilenameParser
       extension: prompt
+queueRoutingConfigs:
+    - type: QueueRoutingConfig
+      class: MetadataFilenameParser
+      extension: queueRoutingConfig
 queues:
     - type: Queue
       class: MetadataFilenameParser
@@ -441,10 +615,6 @@ quickActions:
     - type: QuickAction
       class: MetadataFilenameParser
       extension: quickAction
-queueRoutingConfigs:
-    - type: QueueRoutingConfig
-      class: MetadataFilenameParser
-      extension: queueRoutingConfig
 recommendationStrategies:
     - type: RecommendationStrategy
       class: MetadataFilenameParser
@@ -453,64 +623,80 @@ recordActionDeployments:
     - type: RecordActionDeployment
       class: MetadataFilenameParser
       extension: deployment
+redirectWhitelistUrls:
+    - type: RedirectWhitelistUrl
+      class: MetadataFilenameParser
+      extension: redirectWhitelistUrl
 remoteSiteSettings:
     - type: RemoteSiteSetting
       class: MetadataFilenameParser
       extension: remoteSite
+reports:
+    - type: Report
+      class: MetadataFolderParser
 reportTypes:
     - type: ReportType
       class: MetadataFilenameParser
       extension: reportType
-reports:
-    - type: Report
-      class: MetadataFolderParser
 roles:
-    - type: Role 
+    - type: Role
       class: MetadataFilenameParser
       extension: role
+s3DataConnectors:
+    - type: DataConnectorS3
+      class: MetadataFilenameParser
+      extension: s3DataConnector
 samlssoconfigs:
     - type: SamlSsoConfig
       class: MetadataFilenameParser
       extension: samlssoconfig
-settings:
-    - type: Settings
-      class: MetadataFilenameParser
-      extension: settings
 scontrols:
     - type: Scontrol
       class: MetadataFilenameParser
       extension: scf
+settings:
+    - type: Settings
+      class: MetadataFilenameParser
+      extension: settings
+serviceChannels:
+    - type: ServiceChannel
+      class: MetadataFilenameParser
+      extension: serviceChannel
+servicePresenceStatuses:
+    - type: ServicePresenceStatus
+      class: MetadataFilenameParser
+      extension: servicePresenceStatus
 sharingRules:
     - type: SharingCriteriaRule
       class: MetadataXmlElementParser
       extension: sharingRules
       options:
-            item_xpath: './sf:sharingCriteriaRules'
+          item_xpath: "./sf:sharingCriteriaRules"
     - type: SharingGuestRule
       class: MetadataXmlElementParser
       extension: sharingRules
       options:
-            item_xpath: './sf:sharingGuestRules'
+          item_xpath: "./sf:sharingGuestRules"
     - type: SharingOwnerRule
       class: MetadataXmlElementParser
       extension: sharingRules
       options:
-            item_xpath: './sf:sharingOwnerRules'
+          item_xpath: "./sf:sharingOwnerRules"
     - type: SharingTerritoryRule
       class: MetadataXmlElementParser
       extension: sharingRules
       options:
-            item_xpath: './sf:sharingTerritoryRules'
+          item_xpath: "./sf:sharingTerritoryRules"
 sharingSets:
     - type: SharingSet
       class: MetadataFilenameParser
-      extension: sharingSet  
+      extension: sharingSet
 siteDotComSites:
-    - type: SiteDotCom 
+    - type: SiteDotCom
       class: MetadataFilenameParser
-      extension: site 
+      extension: site
 sites:
-    - type: CustomSite 
+    - type: CustomSite
       class: MetadataFilenameParser
       extension: site
 skills:
@@ -549,6 +735,10 @@ topicsForObjects:
     - type: TopicsForObjects
       class: MetadataFilenameParser
       extension: topicsForObjects
+transactionSecurityPolicies:
+    - type: TransactionSecurityPolicy
+      class: MetadataFilenameParser
+      extension: transactionSecurityPolicy
 translations:
     - type: Translations
       class: MetadataFilenameParser
@@ -557,6 +747,10 @@ triggers:
     - type: ApexTrigger
       class: MetadataFilenameParser
       extension: trigger
+userCriteria:
+    - type: UserCriteria
+      class: MetadataFilenameParser
+      extension: userCriteria
 wave:
     - type: WaveApplication
       class: MetadataFilenameParser
@@ -586,29 +780,37 @@ weblinks:
     - type: CustomPageWebLink
       class: MetadataFilenameParser
       extension: weblink
+webstoretemplate:
+    - type: WebStoreTemplate
+      class: MetadataFilenameParser
+      extension: webstoretemplate
 workflows:
     - type: WorkflowAlert
       class: MetadataXmlElementParser
       extension: workflow
       options:
-            item_xpath: './sf:alerts'
+          item_xpath: "./sf:alerts"
     - type: WorkflowFieldUpdate
       class: MetadataXmlElementParser
       extension: workflow
       options:
-            item_xpath: './sf:fieldUpdates'
+          item_xpath: "./sf:fieldUpdates"
     - type: WorkflowOutboundMessage
       class: MetadataXmlElementParser
       extension: workflow
       options:
-            item_xpath: './sf:outboundMessages'    
+          item_xpath: "./sf:outboundMessages"
     - type: WorkflowRule
       class: MetadataXmlElementParser
       extension: workflow
       options:
-            item_xpath: './sf:rules'
+          item_xpath: "./sf:rules"
     - type: WorkflowTask
       class: MetadataXmlElementParser
       extension: workflow
       options:
-            item_xpath: './sf:tasks'
+          item_xpath: "./sf:tasks"
+workSkillRoutings:
+    - type: WorkSkillRouting
+      class: MetadataFilenameParser
+      extension: workSkillRouting

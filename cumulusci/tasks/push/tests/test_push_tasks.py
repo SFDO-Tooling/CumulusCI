@@ -1,8 +1,10 @@
 import datetime
+import logging
 import os
 from unittest import mock
+
 import pytest
-import logging
+from dateutil import tz
 
 from cumulusci.core.exceptions import (
     CumulusCIException,
@@ -12,8 +14,9 @@ from cumulusci.core.exceptions import (
 from cumulusci.tasks.push.push_api import (
     MetadataPackage,
     MetadataPackageVersion,
-    PackagePushRequest,
     PackagePushJob,
+    PackagePushRequest,
+    SalesforcePushApi,
 )
 from cumulusci.tasks.push.tasks import (
     BaseSalesforcePushTask,
@@ -21,7 +24,6 @@ from cumulusci.tasks.push.tasks import (
     SchedulePushOrgQuery,
 )
 from cumulusci.tasks.salesforce.tests.util import create_task
-
 
 SF_ID = "033xxxxxxxxx"
 NAMESPACE = "foo"
@@ -297,7 +299,7 @@ def test_schedule_push_org_list_get_orgs(org_file):
             "orgs": ORG_FILE,
             "version": VERSION,
             "namespace": NAMESPACE,
-            "start_time": datetime.datetime.now(),
+            "start_time": datetime.datetime.now(tz.UTC),
             "batch_size": 10,
         },
     )
@@ -312,7 +314,7 @@ def test_schedule_push_org_list__get_orgs__non_default_csv_field(tmp_path):
         options={
             "version": VERSION,
             "namespace": NAMESPACE,
-            "start_time": datetime.datetime.now(),
+            "start_time": datetime.datetime.now(tz.UTC),
             "batch_size": 10,
             "csv": orgs,
             "csv_field_name": "OrgId",
@@ -331,7 +333,7 @@ def test_schedule_push_org_list_get_orgs_and_csv(tmp_path):
                 "orgs": orgs,
                 "version": VERSION,
                 "namespace": NAMESPACE,
-                "start_time": datetime.datetime.now(),
+                "start_time": datetime.datetime.now(tz.UTC),
                 "batch_size": 10,
                 "csv_field_name": "OrganizationId",
                 "csv": orgs,
@@ -345,7 +347,7 @@ def test_schedule_push_org_list_init_options(org_file):
         options={
             "orgs": ORG_FILE,
             "version": VERSION,
-            "start_time": datetime.datetime.now(),
+            "start_time": datetime.datetime.now(tz.UTC),
         },
     )
     task._init_task()
@@ -389,13 +391,13 @@ def test_schedule_push_org_list__init_options__missing_csv(tmp_path):
         )
 
 
-def test_schedule_push_org_list_bad_start_time(org_file):
+def test_schedule_push_org_list_start_time_in_past(org_file):
     task = create_task(
         SchedulePushOrgList,
         options={
             "orgs": ORG_FILE,
             "version": VERSION,
-            "start_time": "2020-06-10T10:15",
+            "start_time": "2020-06-10T10:15Z",
             "namespace": NAMESPACE,
         },
     )
@@ -446,14 +448,13 @@ def test_schedule_push_org_query_get_org_error():
         options={
             "orgs": ORG,
             "version": VERSION,
-            "namespace": NAMESPACE,
             "start_time": None,
-            "batch_size": "200",
             "min_version": "1.1",
         },
     )
     task.push = mock.MagicMock()
     task.push_api = mock.MagicMock()
+    task.bulk = mock.MagicMock()
     task.sf = mock.Mock()
     task.push_api.return_query_records = mock.MagicMock()
     task.push_api.return_query_records.return_value = {"totalSize": "1"}
@@ -474,22 +475,94 @@ def test_schedule_push_org_query_get_org():
             "subscriber_where": "OrgType = 'Sandbox'",
         },
     )
+
     task.push = mock.MagicMock()
     task.push_api = mock.MagicMock()
+    task.bulk = None
     task.sf = mock.Mock()
+    task.sf.query_all = mock.MagicMock()
     task.sf.query_all.return_value = PACKAGE_OBJ_SUBSCRIBER
+    # task.push_api.return_query_records.return_value = {"totalSize": "1"}
     assert task._get_orgs() == ["bar"]
 
 
-def test_schedule_push_org_list_run_task_with_time_assertion(org_file):
+@mock.patch("cumulusci.tasks.push.push_api.BulkApiQueryOperation")
+def test_schedule_push_org_bulk_query_get_org(BulkAPI):  # push_api):
+    expected_result = [
+        {
+            "Id": "0Hb0R0000009fPASAY",
+            "MetadataPackageVersionId": "04t1J000000gQziQAE",
+            "InstalledStatus": "i",
+            "OrgName": "CumulusCI-Test Dev Workspace",
+            "OrgKey": "00D0R0000000kN4",
+            "OrgStatus": "Trial",
+            "OrgType": "Sandbox",
+        }
+    ]
+    push_api = SalesforcePushApi(
+        mock.MagicMock(), mock.MagicMock(), None, None, None, mock.MagicMock()
+    )
+    bulk_api = mock.MagicMock(get_results=mock.MagicMock())
+    bulk_api.get_results.return_value = [
+        [
+            "0Hb0R0000009fPASAY",
+            "04t1J000000gQziQAE",
+            "i",
+            "CumulusCI-Test Dev Workspace",
+            "00D0R0000000kN4",
+            "Trial",
+            "Sandbox",
+        ]
+    ]
+    BulkAPI.return_value = bulk_api
+    result = push_api.return_query_records(
+        "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE (InstalledStatus = 'i' AND (OrgType = 'Sandbox')",
+        [
+            "Id",
+            "MetadataPackageVersionId",
+            "InstalledStatus",
+            "OrgName",
+            "OrgKey",
+            "OrgStatus",
+            "OrgType",
+        ],
+        "foo",
+    )
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "test_date_str", ["2028-01-01 12:30:30 CST", "06-18-2022 07:21PM PDT", "2028-28-01"]
+)
+def test_schedule_push_org_list_run_task_with_bad_datestr(org_file, test_date_str):
     task = create_task(
         SchedulePushOrgList,
         options={
             "orgs": ORG_FILE,
             "version": VERSION,
-            "start_time": datetime.datetime(2021, 8, 20, 3, 55).strftime(
-                "%Y-%m-%dT%H:%M"
-            ),
+            "start_time": test_date_str,
+            "namespace": NAMESPACE,
+        },
+    )
+    task.push = mock.MagicMock()
+    task.sf = mock.MagicMock()
+    task.sf.query_all.return_value = PACKAGE_OBJS
+    task.push.create_push_request.return_value = ("0DV000000000001", 2)
+    with pytest.raises((ValueError, CumulusCIException)):
+        task._run_task()
+
+
+def test_schedule_push_org_list_run_task_with_isofmt_assertion(org_file):
+    target_dt = datetime.datetime.now(tz.UTC).replace(microsecond=0)
+    target_dt += datetime.timedelta(hours=8)
+    start_time_str = target_dt.isoformat()
+
+    task = create_task(
+        SchedulePushOrgList,
+        options={
+            "orgs": ORG_FILE,
+            "version": VERSION,
+            "start_time": start_time_str,
             "namespace": NAMESPACE,
         },
     )
@@ -501,7 +574,7 @@ def test_schedule_push_org_list_run_task_with_time_assertion(org_file):
     task.push.create_push_request.assert_called_once_with(
         mock.ANY,
         ["00DS0000003TJJ6MAO", "00DS0000003TJJ6MAL"],
-        datetime.datetime(2021, 8, 20, 3, 55),
+        target_dt,
     )
 
 
@@ -519,15 +592,16 @@ def test_schedule_push_org_list_run_task_without_time(org_file):
 
 
 def test_schedule_push_org_list_run_task_without_orgs(empty_org_file):
+    target_date = (datetime.datetime.now() + datetime.timedelta(days=1)).replace(
+        second=0, microsecond=0
+    )
     task = create_task(
         SchedulePushOrgList,
         options={
             "orgs": ORG_FILE,
             "version": VERSION,
             "namespace": NAMESPACE,
-            "start_time": datetime.datetime(2021, 8, 19, 23, 18, 34).strftime(
-                "%Y-%m-%dT%H:%M"
-            ),
+            "start_time": target_date.strftime("%Y-%m-%dT%H:%M"),
         },
     )
     task.push = mock.MagicMock()
@@ -537,20 +611,21 @@ def test_schedule_push_org_list_run_task_without_orgs(empty_org_file):
     task.push.create_push_request.return_value = ("0DV000000000001", 0)
     task._run_task()
     task.push.create_push_request.assert_called_once_with(
-        mock.ANY, [], datetime.datetime(2021, 8, 19, 23, 18)
+        mock.ANY, [], target_date.replace(tzinfo=tz.UTC)
     )
 
 
 def test_schedule_push_org_list_run_task_many_orgs(org_file):
+    target_date = (datetime.datetime.now() + datetime.timedelta(days=1)).replace(
+        second=0, microsecond=0
+    )
     task = create_task(
         SchedulePushOrgList,
         options={
             "orgs": ORG_FILE,
             "version": VERSION,
             "namespace": NAMESPACE,
-            "start_time": datetime.datetime(2021, 8, 19, 23, 18, 34).strftime(
-                "%Y-%m-%dT%H:%M"
-            ),
+            "start_time": target_date.strftime("%Y-%m-%dT%H:%M"),
         },
     )
     task.push = mock.MagicMock()
@@ -561,7 +636,7 @@ def test_schedule_push_org_list_run_task_many_orgs(org_file):
     task.push.create_push_request.assert_called_once_with(
         mock.ANY,
         ["00DS0000003TJJ6MAO", "00DS0000003TJJ6MAL"],
-        datetime.datetime(2021, 8, 19, 23, 18),
+        target_date.replace(tzinfo=tz.UTC),
     )
 
 

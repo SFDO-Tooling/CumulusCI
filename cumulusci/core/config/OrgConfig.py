@@ -1,9 +1,8 @@
-from collections import defaultdict
-from collections import namedtuple
-from distutils.version import StrictVersion
 import os
 import re
+from collections import defaultdict, namedtuple
 from contextlib import contextmanager
+from distutils.version import StrictVersion
 from urllib.parse import urlparse
 
 import requests
@@ -11,14 +10,11 @@ from simple_salesforce import Salesforce
 from simple_salesforce.exceptions import SalesforceError, SalesforceResourceNotFound
 
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.exceptions import DependencyResolutionError
-from cumulusci.core.exceptions import SalesforceCredentialsException
-from cumulusci.oauth.salesforce import SalesforceOAuth2
-from cumulusci.oauth.salesforce import jwt_session
+from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
+from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
+from cumulusci.oauth.salesforce import SANDBOX_LOGIN_URL, jwt_session
 from cumulusci.utils.fileutils import open_fs_resource
 from cumulusci.utils.http.requests_utils import safe_json_from_response
-
 
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
 SANDBOX_MYDOMAIN_RE = re.compile(r"\.cs\d+\.my\.(.*)salesforce\.com")
@@ -29,22 +25,24 @@ VersionInfo = namedtuple("VersionInfo", ["id", "number"])
 
 
 class OrgConfig(BaseConfig):
-    """ Salesforce org configuration (i.e. org credentials) """
+    """Salesforce org configuration (i.e. org credentials)"""
 
     # make sure it can be mocked for tests
-    SalesforceOAuth2 = SalesforceOAuth2
+    OAuth2Client = OAuth2Client
 
     def __init__(self, config: dict, name: str, keychain=None, global_org=False):
         self.keychain = keychain
         self.global_org = global_org
 
         self.name = name
+        self.force_sandbox = config.get("sandbox", False) if config else False
         self._community_info_cache = {}
         self._latest_api_version = None
         self._installed_packages = None
         self._is_person_accounts_enabled = None
         self._multiple_currencies_is_enabled = False
-        super(OrgConfig, self).__init__(config)
+
+        super().__init__(config)
 
     def refresh_oauth_token(self, keychain, connected_app=None):
         """Get a fresh access token and store it in the org config.
@@ -61,12 +59,13 @@ class OrgConfig(BaseConfig):
             SFDX_CLIENT_ID = os.environ.get("SFDX_CLIENT_ID")
             SFDX_HUB_KEY = os.environ.get("SFDX_HUB_KEY")
             if SFDX_CLIENT_ID and SFDX_HUB_KEY:
+                auth_url = SANDBOX_LOGIN_URL if self.force_sandbox else self.id
                 info = jwt_session(
                     SFDX_CLIENT_ID,
                     SFDX_HUB_KEY,
                     self.username,
                     self.instance_url,
-                    auth_url=self.id,
+                    auth_url=auth_url,
                 )
             else:
                 info = self._refresh_token(keychain, connected_app)
@@ -95,19 +94,16 @@ class OrgConfig(BaseConfig):
         if not client_id:
             client_id = connected_app.client_id
             client_secret = connected_app.client_secret
-        sf_oauth = self.SalesforceOAuth2(
-            client_id,
-            client_secret,
-            connected_app.callback_url,  # Callback url isn't really used for this call
-            auth_site=self.instance_url,
-        )
 
-        resp = sf_oauth.refresh_token(self.refresh_token)
-        if resp.status_code != 200:
-            raise SalesforceCredentialsException(
-                f"Error refreshing OAuth token: {resp.text}"
-            )
-        return safe_json_from_response(resp)
+        sf_oauth_config = OAuth2ClientConfig(
+            client_id=client_id,
+            client_secret=client_secret,
+            auth_uri=f"{self.instance_url}/services/oauth2/authorize",
+            token_uri=f"{self.instance_url}/services/oauth2/token",
+            scope="web full refresh_token",
+        )
+        sf_oauth = self.OAuth2Client(sf_oauth_config)
+        return sf_oauth.refresh_token(self.refresh_token)
 
     @property
     def lightning_base_url(self):
@@ -162,7 +158,7 @@ class OrgConfig(BaseConfig):
 
     @property
     def username(self):
-        """ Username for the org connection. """
+        """Username for the org connection."""
         username = self.config.get("username")
         if not username:
             username = self.userinfo__preferred_username
@@ -316,6 +312,8 @@ class OrgConfig(BaseConfig):
             cache_dir = self.keychain.global_config_dir
         else:
             cache_dir = self.keychain.cache_dir
+        assert self.get_domain()
+        assert self.username
         uniqifier = self.get_domain() + "__" + str(self.username).replace("@", "__")
         cache_dir = cache_dir / "orginfo" / uniqifier / cachename
 
@@ -487,27 +485,32 @@ class OrgConfig(BaseConfig):
             return False
 
     def resolve_04t_dependencies(self, dependencies):
-        """Look up 04t SubscriberPackageVersion ids for 1gp project dependencies"""
+        """Look up 04t SubscriberPackageVersion ids for 1GP project dependencies"""
+        from cumulusci.core.dependencies.dependencies import (
+            PackageNamespaceVersionDependency,
+            PackageVersionIdDependency,
+        )
+
+        # Circular dependency.
+
         new_dependencies = []
         for dependency in dependencies:
-            dependency = {**dependency}
-
-            if "namespace" in dependency:
+            if isinstance(dependency, PackageNamespaceVersionDependency):
                 # get the SubscriberPackageVersion id
-                key = f"{dependency['namespace']}@{dependency['version']}"
+                key = f"{dependency.namespace}@{dependency.version}"
                 version_info = self.installed_packages.get(key)
                 if version_info:
-                    dependency["version_id"] = version_info[0].id
+                    new_dependencies.append(
+                        PackageVersionIdDependency(
+                            version_id=version_info[0].id,
+                            package_name=dependency.package_name,
+                        )
+                    )
                 else:
                     raise DependencyResolutionError(
                         f"Could not find 04t id for package {key} in org {self.name}"
                     )
+            else:
+                new_dependencies.append(dependency)
 
-            # recurse
-            if "dependencies" in dependency:
-                dependency["dependencies"] = self.resolve_04t_dependencies(
-                    dependency["dependencies"]
-                )
-
-            new_dependencies.append(dependency)
         return new_dependencies

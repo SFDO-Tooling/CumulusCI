@@ -1,0 +1,89 @@
+- include_file: npsp_standard_objects_macros.yml
+- option: num_accounts
+  default: 5
+
+- object: General_Accounting_Unit__c
+  include: Standard General_Accounting_Unit__c
+  nickname: Sponsorship GAU
+  count: 5
+  fields:
+      Name: Sponsorship
+
+- object: Account # one account with 90% of the contacts to test data skew
+  include: SFStandardAccount
+  count: 1
+  fields:
+      Name: Big Account <<this.id>>
+  friends:
+      - object: Contact
+        include: SFStandardContact
+        count: 5
+        fields:
+            Title: None
+        friends:
+            - object: Opportunity
+              include: SFStandardOpportunity
+              count:
+                  random_number:
+                      min: 0
+                      max: 2
+              fields:
+                  Name: Opportunity relating to <<Account.Name>>
+                  AccountId:
+                      reference: Account
+              friends:
+                  - object: npe01__OppPayment__c
+                    include: Standard npe01__OppPayment__c
+                    count:
+                        random_number:
+                            min: 0
+                            max: 12
+                    fields:
+                        npe01__Opportunity__c:
+                            reference: Opportunity
+                        npe01__Payment_Amount__c: <<Opportunity.Amount / 12>>
+
+- object: Account # 10% accounts with no contacts
+  count: <<num_accounts * 0.10>>
+  include: SFStandardAccount
+
+- object: Account
+  include: SFStandardAccount
+  count: <<num_accounts * 0.90 - 1>>
+  friends:
+      - object: Contact
+        include: SFStandardContact
+        count:
+            random_number:
+                min: 0
+                max: 5
+        fields:
+            Title: None
+        friends:
+            - object: Opportunity
+              include: SFStandardOpportunity
+              fields:
+                  Name: Opportunity relating to <<Account.Name>>
+                  AccountId:
+                      reference: Account
+              friends:
+                  - object: npe01__OppPayment__c
+                    include: Standard npe01__OppPayment__c
+                    fields:
+                        npe01__Opportunity__c:
+                            reference: Opportunity
+                        npe01__Payment_Amount__c: <<Opportunity.Amount / 2>>
+                  - object: npe01__OppPayment__c
+                    include: Standard npe01__OppPayment__c
+                    fields:
+                        npe01__Opportunity__c:
+                            reference: Opportunity
+                        npe01__Payment_Amount__c: <<Opportunity.Amount / 2>>
+
+- object: Contact
+  include: SFStandardContact
+  fields:
+      AccountId:
+          object: Account
+          fields:
+              Name: <<Contact.LastName>> incorporated

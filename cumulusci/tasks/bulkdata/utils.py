@@ -1,22 +1,16 @@
 import collections
-import itertools
 import logging
 import tempfile
-import typing
 from contextlib import contextmanager
 from pathlib import Path
 
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import MetaData
-from sqlalchemy import Table
-from sqlalchemy import Unicode
-from sqlalchemy.orm import mapper
-from sqlalchemy.orm import Session
 from simple_salesforce import Salesforce
+from sqlalchemy import Column, Integer, MetaData, Table, Unicode
+from sqlalchemy.orm import Session, mapper
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.utils.backports.py36 import nullcontext
+from cumulusci.utils.iterators import iterate_in_chunks
 
 
 class SqlAlchemyMixin:
@@ -48,10 +42,11 @@ class SqlAlchemyMixin:
         Yields after every batch."""
         table = self.metadata.tables[table]
         dict_iterable = (dict(zip(columns, row)) for row in record_iterable)
-        for group in get_batch_iterator(10000, dict_iterable):
+        for group in iterate_in_chunks(10000, dict_iterable):
             with connection.begin():
-                yield connection.execute(table.insert(), group)
+                connection.execute(table.insert(), group)
             self.session.flush()
+            yield
 
     def _create_record_type_table(self, table_name):
         """Create a table to store mapping between Record Type Ids and Developer Names."""
@@ -178,12 +173,3 @@ def consume(iterator):
     Simplified from the function in https://docs.python.org/3/library/itertools.html
     """
     collections.deque(iterator, maxlen=0)
-
-
-def get_batch_iterator(n: int, iterable: typing.Iterable):
-    it = iter(iterable)
-    while True:
-        chunk = tuple(itertools.islice(it, n))
-        if not chunk:
-            return
-        yield chunk

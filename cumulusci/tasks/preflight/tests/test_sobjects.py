@@ -1,11 +1,15 @@
-from cumulusci.core.exceptions import TaskOptionsError
-from unittest.mock import Mock
 import unittest
-
-from cumulusci.tasks.preflight.sobjects import CheckSObjectOWDs, CheckSObjectsAvailable, CheckSObjectPerms
-from cumulusci.tasks.salesforce.tests.util import create_task
+from unittest.mock import Mock
 
 from simple_salesforce.exceptions import SalesforceMalformedRequest
+
+from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.tasks.preflight.sobjects import (
+    CheckSObjectOWDs,
+    CheckSObjectPerms,
+    CheckSObjectsAvailable,
+)
+from cumulusci.tasks.salesforce.tests.util import create_task
 
 
 class TestCheckSObjectsAvailable(unittest.TestCase):
@@ -25,12 +29,23 @@ class TestCheckSObjectsAvailable(unittest.TestCase):
 
 class TestCheckSObjectPerms(unittest.TestCase):
     def test_sobject_perms_preflight(self):
-        task = create_task(CheckSObjectPerms, {"permissions": {"Network": {"createable": "false"}, "Account": {"createable": True}}})
+        task = create_task(
+            CheckSObjectPerms,
+            {
+                "permissions": {
+                    "Network": {"createable": "false"},
+                    "Account": {"createable": True},
+                }
+            },
+        )
 
         task._init_task = Mock()
         task.sf = Mock()
         task.sf.describe.return_value = {
-            "sobjects": [{"name": "Network", "createable": False}, {"name": "Account", "createable": True}]
+            "sobjects": [
+                {"name": "Network", "createable": False},
+                {"name": "Account", "createable": True},
+            ]
         }
 
         task()
@@ -38,12 +53,23 @@ class TestCheckSObjectPerms(unittest.TestCase):
         assert task.return_values is True
 
     def test_sobject_perms_preflight__negative(self):
-        task = create_task(CheckSObjectPerms, {"permissions": {"Network": {"createable": "false"}, "Account": {"createable": True}}})
+        task = create_task(
+            CheckSObjectPerms,
+            {
+                "permissions": {
+                    "Network": {"createable": "false"},
+                    "Account": {"createable": True},
+                }
+            },
+        )
 
         task._init_task = Mock()
         task.sf = Mock()
         task.sf.describe.return_value = {
-            "sobjects": [{"name": "Network", "createable": False}, {"name": "Account", "createable": False}]
+            "sobjects": [
+                {"name": "Network", "createable": False},
+                {"name": "Account", "createable": False},
+            ]
         }
 
         task()
@@ -51,13 +77,19 @@ class TestCheckSObjectPerms(unittest.TestCase):
         assert task.return_values is False
 
     def test_sobject_perms_preflight__missing(self):
-        task = create_task(CheckSObjectPerms, {"permissions": {"Network": {"createable": "false"}, "Account": { "createable": True}}})
+        task = create_task(
+            CheckSObjectPerms,
+            {
+                "permissions": {
+                    "Network": {"createable": "false"},
+                    "Account": {"createable": True},
+                }
+            },
+        )
 
         task._init_task = Mock()
         task.sf = Mock()
-        task.sf.describe.return_value = {
-            "sobjects": [{"name": "Network"}]
-        }
+        task.sf.describe.return_value = {"sobjects": [{"name": "Network"}]}
 
         task()
 

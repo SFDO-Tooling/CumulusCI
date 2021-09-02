@@ -1,0 +1,20 @@
+-c prod.txt
+black
+coverage[toml]
+coveralls
+factory-boy
+flake8
+furo
+isort
+pre-commit
+pytest
+pytest-random-order
+pytest-vcr
+responses
+Sphinx
+testfixtures
+tox
+twine
+typeguard==2.10.0
+vcrpy
+wheel

@@ -3,29 +3,28 @@ import json
 import unittest
 from unittest import mock
 
-import responses
 import pytest
+import responses
 
 from cumulusci.core.exceptions import BulkDataException
-from cumulusci.tasks.bulkdata.step import (
-    download_file,
-    DataOperationType,
-    DataOperationStatus,
-    DataOperationResult,
-    DataOperationJobResult,
-    BulkJobMixin,
-    BulkApiQueryOperation,
-    BulkApiDmlOperation,
-    RestApiQueryOperation,
-    RestApiDmlOperation,
-    DataApi,
-    get_query_operation,
-    get_dml_operation,
-)
 from cumulusci.tasks.bulkdata.load import LoadData
-from cumulusci.tests.util import mock_describe_calls
+from cumulusci.tasks.bulkdata.step import (
+    BulkApiDmlOperation,
+    BulkApiQueryOperation,
+    BulkJobMixin,
+    DataApi,
+    DataOperationJobResult,
+    DataOperationResult,
+    DataOperationStatus,
+    DataOperationType,
+    RestApiDmlOperation,
+    RestApiQueryOperation,
+    download_file,
+    get_dml_operation,
+    get_query_operation,
+)
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
-
+from cumulusci.tests.util import mock_describe_calls
 
 BULK_BATCH_RESPONSE = """<root xmlns="http://ns">
 <batch>
@@ -134,10 +133,46 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
 
         assert mixin._parse_job_state(
             '<root xmlns="http://ns">'
-            "  <batch><state>Completed</state></batch>"
-            "  <numberRecordsFailed>200</numberRecordsFailed>"
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    </batch>"
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    </batch>"
             "</root>"
-        ) == DataOperationJobResult(DataOperationStatus.ROW_FAILURE, [], 0, 200)
+        ) == DataOperationJobResult(
+            DataOperationStatus.ROW_FAILURE, [], 0, 400
+        ), "Multiple batches in single job"
+
+        assert mixin._parse_job_state(
+            '<root xmlns="http://ns">'
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    </batch>"
+            "</root>"
+        ) == DataOperationJobResult(
+            DataOperationStatus.ROW_FAILURE, [], 0, 200
+        ), "Single batch"
+
+        assert mixin._parse_job_state(
+            '<root xmlns="http://ns">'
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    <numberRecordsProcessed>10</numberRecordsProcessed>"
+            "    </batch>"
+            "  <batch>"
+            "    <state>Completed</state>"
+            "    <numberRecordsFailed>200</numberRecordsFailed>"
+            "    <numberRecordsProcessed>10</numberRecordsProcessed>"
+            "    </batch>"
+            "</root>"
+        ) == DataOperationJobResult(
+            DataOperationStatus.ROW_FAILURE, [], 20, 400
+        ), "Multiple batches in single job"
 
         assert mixin._parse_job_state(
             '<root xmlns="http://ns">'
@@ -145,7 +180,9 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
             "  <numberRecordsFailed>200</numberRecordsFailed>"
             "  <numberRecordsProcessed>10</numberRecordsProcessed>"
             "</root>"
-        ) == DataOperationJobResult(DataOperationStatus.ROW_FAILURE, [], 10, 200)
+        ) == DataOperationJobResult(
+            DataOperationStatus.ROW_FAILURE, [], 10, 200
+        ), "Single batch"
 
     @mock.patch("time.sleep")
     def test_wait_for_job(self, sleep_patch):
@@ -1165,7 +1202,7 @@ class TestGetOperationFunctions:
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
-    def test_get_query_operation__old_api(self, rest_query, bulk_query):
+    def test_get_query_operation__old_api_version(self, rest_query, bulk_query):
         context = mock.Mock()
         context.sf.sf_version = "39.0"
         op = get_query_operation(
@@ -1179,6 +1216,40 @@ class TestGetOperationFunctions:
         assert op == bulk_query.return_value
 
         context.sf.restful.assert_not_called()
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
+    def test_get_query_operation__bad_api(self, rest_query, bulk_query):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        with pytest.raises(AssertionError, match="Unknown API"):
+            get_query_operation(
+                sobject="Test",
+                fields=["Id"],
+                api_options={},
+                context=context,
+                query="SELECT Id FROM Test",
+                api="foo",
+            )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiQueryOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
+    def test_get_query_operation__inferred_api(self, rest_query, bulk_query):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        context.sf.restful.return_value = {
+            "sObjects": [{"name": "Test", "count": 10000}]
+        }
+        op = get_query_operation(
+            sobject="Test",
+            fields=["Id"],
+            api_options={},
+            context=context,
+            query="SELECT Id FROM Test",
+        )
+        assert op == bulk_query.return_value
+
+        context.sf.restful.called_once_with("limits/recordCount?sObjects=Test")
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
@@ -1269,7 +1340,24 @@ class TestGetOperationFunctions:
 
     @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
-    def test_get_dml_operation__old_api(self, rest_dml, bulk_dml):
+    def test_get_dml_operation__inferred_api(self, rest_dml, bulk_dml):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        assert (
+            get_dml_operation(
+                sobject="Test",
+                operation=DataOperationType.INSERT,
+                fields=["Name"],
+                api_options={},
+                context=context,
+                volume=1,
+            )
+            == rest_dml.return_value
+        )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
+    def test_get_dml_operation__old_api_version(self, rest_dml, bulk_dml):
         context = mock.Mock()
         context.sf.sf_version = "39.0"
         assert (
@@ -1284,3 +1372,19 @@ class TestGetOperationFunctions:
             )
             == bulk_dml.return_value
         )
+
+    @mock.patch("cumulusci.tasks.bulkdata.step.BulkApiDmlOperation")
+    @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
+    def test_get_dml_operation__bad_api(self, rest_dml, bulk_dml):
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        with pytest.raises(AssertionError, match="Unknown API"):
+            get_dml_operation(
+                sobject="Test",
+                operation=DataOperationType.INSERT,
+                fields=["Name"],
+                api_options={},
+                context=context,
+                api=42,
+                volume=1,
+            )

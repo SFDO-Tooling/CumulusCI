@@ -1,5 +1,6 @@
-from datetime import datetime, date
+from datetime import date, datetime
 from typing import List, Optional
+
 from cumulusci.tasks.bulkdata.step import DataOperationType
 
 

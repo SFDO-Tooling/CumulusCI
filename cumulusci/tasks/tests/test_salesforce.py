@@ -1,13 +1,13 @@
 import unittest
+from unittest.mock import MagicMock, patch
 
-from unittest.mock import MagicMock
-from unittest.mock import patch
-
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.config import ServiceConfig
+from cumulusci.core.config import (
+    BaseProjectConfig,
+    OrgConfig,
+    ServiceConfig,
+    TaskConfig,
+    UniversalConfig,
+)
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
@@ -61,7 +61,7 @@ class TestSalesforceToolingTask(unittest.TestCase):
 
     def test_connected_app_client_name(self):
         self.project_config.keychain.set_service(
-            "connectedapp", ServiceConfig({"client_id": "test123"})
+            "connectedapp", "test_alias", ServiceConfig({"client_id": "test123"})
         )
 
         task = BaseSalesforceApiTask(

@@ -1,17 +1,15 @@
-import github3
 import http.client
-import responses
 import unittest
 
+import github3
+import responses
 from testfixtures import LogCapture
 
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.tasks.github import MergeBranch
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
-from cumulusci.tests.util import create_project_config
-from cumulusci.tests.util import DummyOrgConfig
+from cumulusci.tests.util import DummyOrgConfig, create_project_config
 
 
 class TestMergeBranch(unittest.TestCase, MockUtil):
@@ -28,6 +26,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         self.project_config.config["project"]["git"]["default_branch"] = self.branch
         self.project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",
@@ -659,6 +658,35 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         actual_branches = [branch.name for branch in task._get_branches_to_merge()]
 
         assert ["feature/232", "feature/300"] == actual_branches
+        assert 2 == len(responses.calls)
+
+    @responses.activate
+    def test_merge_to_future_release_branches_missing_slash(self):
+        """Tests that commits to the main branch are merged to the expected feature branches"""
+        self._setup_mocks(
+            [
+                "main",
+                "prefix-no-slash230",
+                "prefix-no-slash232",
+                "prefix-no-slash300",
+                "prefix-no-slashwork-item",
+            ]
+        )
+
+        task = self._create_task(
+            task_config={
+                "options": {
+                    "source_branch": "prefix-no-slash230",
+                    "branch_prefix": "prefix-no-slash",
+                    "update_future_releases": True,
+                }
+            }
+        )
+        task._init_task()
+
+        actual_branches = [branch.name for branch in task._get_branches_to_merge()]
+
+        assert ["prefix-no-slash232", "prefix-no-slash300"] == actual_branches
         assert 2 == len(responses.calls)
 
     @responses.activate

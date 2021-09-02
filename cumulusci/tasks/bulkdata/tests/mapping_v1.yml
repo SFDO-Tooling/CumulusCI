@@ -12,7 +12,7 @@ Insert Contacts:
     sf_object: Contact
     table: contacts
     filters:
-        - 'household_id is not null'
+        - "household_id is not null"
     fields:
         Id: sf_id
         FirstName: first_name

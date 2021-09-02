@@ -1,9 +1,12 @@
 import json
 from unittest.mock import patch
+
 import pytest
 import responses
-from cumulusci.tasks.salesforce.composite import CompositeApi, API_ROLLBACK_MESSAGE
+
 from cumulusci.core.exceptions import SalesforceException
+from cumulusci.tasks.salesforce.composite import API_ROLLBACK_MESSAGE, CompositeApi
+
 from .util import create_task
 
 COMPOSITE_REQUEST = {
@@ -105,7 +108,7 @@ class TestCompositeApi:
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/composite",
+            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
             status=200,
             json=COMPOSITE_RESPONSE,
         )
@@ -135,7 +138,7 @@ class TestCompositeApi:
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/composite",
+            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
             status=200,
             json=COMPOSITE_RESPONSE,
         )
@@ -193,7 +196,7 @@ class TestCompositeApi:
         }
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v50.0/composite",
+            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
             status=200,
             json=error_response,
         )
@@ -211,7 +214,8 @@ class TestCompositeApi:
         table.assert_called_once_with((expected_table_data), wrap_cols=["Message"])
 
     def test_json_processing(self):
-        COMPOSITE_REQUEST["compositeRequest"].append(
+        request = COMPOSITE_REQUEST["compositeRequest"].copy()
+        request.append(
             {
                 "method": "PATCH",
                 "url": "/services/data/v46.0/sobjects/User",
@@ -222,7 +226,7 @@ class TestCompositeApi:
                 },
             }
         )
-        body = json.dumps(COMPOSITE_REQUEST)
+        body = json.dumps(request)
         task = create_task(
             CompositeApi,
             {

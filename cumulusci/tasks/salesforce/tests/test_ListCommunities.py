@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-import responses
 import unittest
-from cumulusci.tasks.salesforce import ListCommunities
-from .util import create_task
 
+import responses
+
+from cumulusci.tasks.salesforce import ListCommunities
+
+from .util import create_task
 
 task_options = {}
 
@@ -32,39 +34,33 @@ class test_ListCommunities(unittest.TestCase):
                         "allowChatterAccessWithoutLogin": "false",
                         "allowMembersToFlag": "false",
                         "description": "This is a test community",
-                        "id": "{}".format(community_id),
+                        "id": community_id,
                         "invitationsEnabled": "false",
                         "knowledgeableEnabled": "false",
-                        "loginUrl": "https://mydomain.force.com/{}/s/login".format(
-                            community_url_prefix
-                        ),
+                        "loginUrl": f"https://mydomain.force.com/{community_url_prefix}/s/login",
                         "memberVisibilityEnabled": "true",
-                        "name": "{}".format(community_name),
+                        "name": community_name,
                         "nicknameDisplayEnabled": "false",
                         "privateMessagesEnabled": "false",
                         "reputationEnabled": "false",
                         "sendWelcomeEmail": "true",
                         "siteAsContainerEnabled": "true",
-                        "siteUrl": "https://mydomain.force.com/{}".format(
-                            community_url_prefix
-                        ),
+                        "siteUrl": f"https://mydomain.force.com/{community_url_prefix}",
                         "status": "Live",
                         "templateName": "VF Template",
-                        "url": "/services/data/v46.0/connect/communities/{}".format(
-                            community_id
-                        ),
-                        "urlPathPrefix": "{}".format(community_url_prefix),
+                        "url": f"/services/data/v46.0/connect/communities/{community_id}",
+                        "urlPathPrefix": community_url_prefix,
                     },
                     {
                         "allowChatterAccessWithoutLogin": "false",
                         "allowMembersToFlag": "false",
                         "description": "This is a test community",
-                        "id": "{}".format(community2_id),
+                        "id": community2_id,
                         "invitationsEnabled": "false",
                         "knowledgeableEnabled": "false",
                         "loginUrl": "https://mydomain.force.com/s/login",
                         "memberVisibilityEnabled": "true",
-                        "name": "{}".format(community2_name),
+                        "name": community2_name,
                         "nicknameDisplayEnabled": "false",
                         "privateMessagesEnabled": "false",
                         "reputationEnabled": "false",
@@ -73,9 +69,7 @@ class test_ListCommunities(unittest.TestCase):
                         "siteUrl": "https://mydomain.force.com/",
                         "status": "Live",
                         "templateName": "VF Template",
-                        "url": "/services/data/v46.0/connect/communities/{}".format(
-                            community2_id
-                        ),
+                        "url": f"/services/data/v46.0/connect/communities/{community2_id}",
                         "urlPathPrefix": None,
                     },
                 ],
@@ -85,5 +79,6 @@ class test_ListCommunities(unittest.TestCase):
 
         cc_task()
 
-        self.assertEqual(1, len(responses.calls))
-        self.assertEqual(communities_url, responses.calls[0].request.url)
+        assert 1 == len(responses.calls)
+        assert communities_url == responses.calls[0].request.url
+        assert cc_task.return_values == [community_name, community2_name]

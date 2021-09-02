@@ -1,7 +1,8 @@
-from pathlib import Path
 import os
 import re
 import urllib.parse
+from pathlib import Path
+
 import yaml
 
 from cumulusci.core.tasks import BaseTask
@@ -299,7 +300,7 @@ class MetadataXmlElementParser(BaseMetadataParser):
         return item.findall(self.name_xpath, self.namespaces)
 
     def get_item_name(self, item, parent):
-        """ Returns the value of the first name element found inside of element """
+        """Returns the value of the first name element found inside of element"""
         names = self.get_name_elements(item)
         if not names:
             raise MissingNameElementError

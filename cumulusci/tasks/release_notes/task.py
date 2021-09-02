@@ -1,16 +1,58 @@
+from cumulusci.core.github import (
+    get_pull_requests_by_commit,
+    get_pull_requests_with_base_branch,
+    is_label_on_pull_request,
+    is_pull_request_merged,
+    markdown_link_to_pr,
+)
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.tasks.release_notes.generator import (
     GithubReleaseNotesGenerator,
     ParentPullRequestNotesGenerator,
 )
-from cumulusci.core.github import (
-    markdown_link_to_pr,
-    is_pull_request_merged,
-    is_label_on_pull_request,
-    get_pull_requests_by_commit,
-    get_pull_requests_with_base_branch,
-)
+
+
+class AllGithubReleaseNotes(BaseGithubTask):
+
+    task_options = {
+        "repos": {
+            "description": (
+                "The list of owner, repo key pairs for which to generate release notes."
+                + " Ex: 'owner': SalesforceFoundation 'repo': 'NPSP'"
+            ),
+            "required": True,
+        },
+    }
+
+    def _run_task(self):
+        table_of_contents = "<h1>Table of Contents</h1><ul>"
+        body = ""
+        for project in self.options["repos"]:
+            if project["owner"] and project["repo"]:
+                release = (
+                    self.github.repository(project["owner"], project["repo"])
+                    .latest_release()
+                    .body
+                )
+                table_of_contents += (
+                    f"""<li><a href="#{project['repo']}">{project['repo']}</a></li>"""
+                )
+                release_project_header = (
+                    f"""<h1 id="{project['repo']}">{project['repo']}</h1>"""
+                )
+                release_html = self.github.markdown(
+                    release,
+                    mode="gfm",
+                    context="{}/{}".format(project["owner"], project["repo"]),
+                )
+                body += f"{release_project_header}<hr>{release_html}<hr>"
+        table_of_contents += "</ul><br><hr>"
+        head = "<head><title>Release Notes</title></head>"
+        body = f"<body>{table_of_contents}{body}</body>"
+        result = f"<html>{head}{body}</html>"
+        with open("github_release_notes.html", "w") as f:
+            f.write(result)
 
 
 class GithubReleaseNotes(BaseGithubTask):
@@ -85,8 +127,7 @@ class GithubReleaseNotes(BaseGithubTask):
 
 class ParentPullRequestNotes(BaseGithubTask):
     task_docs = """
-    Aggregate change notes from child pull request(s) to its corresponding
-    parent's pull request.
+    Aggregate change notes from child pull request(s) to a corresponding parent pull request.
 
     When given the branch_name option, this task will: (1) check if the base branch
     of the corresponding pull request starts with the feature branch prefix and if so (2) attempt
@@ -98,9 +139,9 @@ class ParentPullRequestNotes(BaseGithubTask):
     is not detected on the parent pull request then a link to the child pull request
     is placed under the "Unaggregated Pull Requests" header.
 
-    When given the parent_branch_name option, this task will query for a corresponding pull request.
-    If a pull request is not found, the task exits. If a pull request is found, then all notes
-    from child pull requests are re-aggregated and the body of the parent is replaced entirely.
+    If you have a pull request on branch feature/myFeature that you would like to rebuild notes
+    for use the branch_name and force options:
+        cci task run github_parent_pr_notes --branch-name feature/myFeature --force True
     """
     UNAGGREGATED_PR_HEADER = "\r\n\r\n# Unaggregated Pull Requests"
 

@@ -1,19 +1,16 @@
-from pathlib import Path
 import json
 import os
 import re
+from pathlib import Path
+
 import requests
 
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import FlowConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.tasks import BaseTask
-from cumulusci.core.flowrunner import FlowCoordinator
-from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.config import BaseProjectConfig, FlowConfig, TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.utils import download_extract_github
-from cumulusci.utils import cd
-from cumulusci.utils import temporary_dir
+from cumulusci.core.flowrunner import FlowCoordinator
+from cumulusci.core.tasks import BaseTask
+from cumulusci.core.utils import process_bool_arg
+from cumulusci.utils import cd, download_extract_github, temporary_dir
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 INSTALL_VERSION_RE = re.compile(r"^Install .*\d$")
@@ -72,7 +69,7 @@ class Publish(BaseMetaDeployTask):
 
     def _init_task(self):
         super(Publish, self)._init_task()
-        self.dry_run = self.options.get("dry_run")
+        self.dry_run = process_bool_arg(self.options.get("dry_run") or False)
         self.publish = not self.dry_run and process_bool_arg(
             self.options.get("publish") or False
         )
@@ -107,6 +104,7 @@ class Publish(BaseMetaDeployTask):
         # Check out the specified tag
         repo_owner = self.project_config.repo_owner
         repo_name = self.project_config.repo_name
+        repo_url = f"https://github.com/{repo_owner}/{repo_name}"
         gh = self.project_config.get_github_api()
         repo = gh.repository(repo_owner, repo_name)
         if self.tag:
@@ -126,7 +124,7 @@ class Publish(BaseMetaDeployTask):
                     "root": project_dir,
                     "owner": repo_owner,
                     "name": repo_name,
-                    "url": self.project_config.repo_url,
+                    "url": repo_url,
                     "branch": self.tag or self.commit,
                     "commit": self.commit,
                 },

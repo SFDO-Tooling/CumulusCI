@@ -1,20 +1,20 @@
 import copy
-import random
-from pathlib import Path
-import tracemalloc
 import gc
-import sys
-from contextlib import contextmanager
 import json
+import os
+import random
+import sys
+import tracemalloc
+from contextlib import contextmanager
+from pathlib import Path
 from unittest import mock
 
 import responses
 
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.config import BaseProjectConfig, OrgConfig, UniversalConfig
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.bulkdata.tests import utils as bulkdata_utils
+from cumulusci.utils.backports.py36 import nullcontext
 
 
 def random_sha():
@@ -60,6 +60,14 @@ class DummyProjectConfig(BaseProjectConfig):
 
 class DummyOrgConfig(OrgConfig):
     def __init__(self, config=None, name=None, keychain=None, global_org=False):
+        if config is None:
+            config = {
+                "instance_url": "https://orgname.my.salesforce.com",
+                "access_token": "pytest_sf_orgconnect_abc123",
+                "id": "https://test.salesforce.com/id/00D0xORGID00000000/USERID",
+                "username": "sfuser@example.com",
+            }
+
         if not name:
             name = "test"
         super(DummyOrgConfig, self).__init__(config, name, keychain, global_org)
@@ -91,16 +99,23 @@ class DummyService(object):
 
 
 class DummyKeychain(object):
-    def get_service(self, name):
-        return DummyService(name)
+    def __init__(self, global_config_dir=None, cache_dir=None):
+        self._global_config_dir = global_config_dir
+        self._cache_dir = cache_dir
 
     @property
     def global_config_dir(self):
-        return Path.home() / "cumulusci"
+        return self._global_config_dir or Path.home() / "cumulusci"
 
     @property
     def cache_dir(self):
-        return Path.home() / "project/.cci"
+        return self._cache_dir or Path.home() / "project/.cci"
+
+    def get_service(self, name):
+        return DummyService(name)
+
+    def set_org(self, org: OrgConfig, global_org: bool):
+        pass
 
 
 @contextmanager
@@ -213,3 +228,36 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
         lambda: is_person_accounts_enabled,
     ), mock.patch.object(task, "_init_task", _init_task):
         yield
+
+
+@contextmanager
+def mock_env(home, cumulusci_key="0123456789ABCDEF"):
+    real_homedir = str(Path.home())
+    patches = {
+        "HOME": home,
+        "USERPROFILE": home,
+        "REAL_HOME": real_homedir,
+    }
+
+    with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(
+        os.environ, patches
+    ):
+        # don't use the real CUMULUSCI_KEY for tests
+        if "CUMULUSCI_KEY" in os.environ:
+            del os.environ["CUMULUSCI_KEY"]
+        if cumulusci_key is not None:
+            # do use a fake one, if it was supplied
+            os.environ["REAL_CUMULUSCI_KEY"] = os.environ.get("CUMULUSCI_KEY", "")
+            os.environ["CUMULUSCI_KEY"] = cumulusci_key
+
+        yield
+
+
+def unmock_env():
+    """Reset homedir and CCI environment variable or leave them if they weren't changed"""
+    if "REAL_HOME" in os.environ:
+        cci_key = os.environ.get("REAL_CUMULUSCI_KEY") or None
+        homedir = os.environ["REAL_HOME"]
+        return mock_env(homedir, cci_key)
+    else:
+        return nullcontext()

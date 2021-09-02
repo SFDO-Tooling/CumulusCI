@@ -10,10 +10,11 @@ file.
 """
 
 import re
-from SeleniumLibrary.errors import ElementNotFound
+
 from selenium.common.exceptions import NoSuchElementException
-from cumulusci.robotframework.pageobjects import pageobject
-from cumulusci.robotframework.pageobjects import BasePage
+from SeleniumLibrary.errors import ElementNotFound
+
+from cumulusci.robotframework.pageobjects import BasePage, pageobject
 from cumulusci.robotframework.utils import capture_screenshot_on_error
 
 # This will appear in the generated documentation in place of
@@ -65,7 +66,7 @@ class ModalMixin:
 
     @capture_screenshot_on_error
     def close_the_modal(self):
-        """ Closes the open modal """
+        """Closes the open modal"""
 
         locator = "css: button.slds-modal__close"
         self.selenium.wait_until_element_is_enabled(locator)

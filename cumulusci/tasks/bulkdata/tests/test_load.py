@@ -1,38 +1,36 @@
-from datetime import date, timedelta
 import io
-import os
 import json
-import shutil
+import os
 import random
+import shutil
 import string
-import unittest
-from unittest import mock
 import tempfile
+import unittest
+from datetime import date, timedelta
+from unittest import mock
 
+import pytest
 import responses
 from sqlalchemy import Column, Table, Unicode, create_engine
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.tasks.bulkdata import LoadData
+from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 from cumulusci.tasks.bulkdata.step import (
-    DataOperationResult,
-    DataOperationJobResult,
-    DataOperationType,
-    DataOperationStatus,
+    BulkApiDmlOperation,
     DataApi,
+    DataOperationJobResult,
+    DataOperationResult,
+    DataOperationStatus,
+    DataOperationType,
 )
 from cumulusci.tasks.bulkdata.tests.utils import (
-    _make_task,
     FakeBulkAPI,
     FakeBulkAPIDmlOperation,
+    _make_task,
 )
+from cumulusci.tests.util import assert_max_memory_usage, mock_describe_calls
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
-from cumulusci.tests.util import (
-    assert_max_memory_usage,
-    mock_describe_calls,
-)
-
 from cumulusci.utils.backports.py36 import nullcontext
 
 
@@ -63,6 +61,7 @@ class TestLoadData(unittest.TestCase):
                     "options": {
                         "database_url": f"sqlite:///{tmp_db_path}",
                         "mapping": mapping_path,
+                        "set_recently_viewed": False,
                     }
                 },
             )
@@ -105,6 +104,7 @@ class TestLoadData(unittest.TestCase):
                     "database_url": "sqlite://",
                     "mapping": "mapping.yml",
                     "start_step": "Insert Contacts",
+                    "set_recently_viewed": False,
                 }
             },
         )
@@ -125,14 +125,20 @@ class TestLoadData(unittest.TestCase):
     def test_run_task__after_steps(self):
         task = _make_task(
             LoadData,
-            {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": "mapping.yml",
+                    "set_recently_viewed": False,
+                }
+            },
         )
         task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
         task.mapping = {}
-        task.mapping["Insert Households"] = 1
-        task.mapping["Insert Contacts"] = 2
+        one = task.mapping["Insert Households"] = mock.Mock()
+        two = task.mapping["Insert Contacts"] = mock.Mock()
         households_steps = {}
         households_steps["four"] = 4
         households_steps["five"] = 5
@@ -145,7 +151,7 @@ class TestLoadData(unittest.TestCase):
         )
         task()
         task._execute_step.assert_has_calls(
-            [mock.call(1), mock.call(4), mock.call(5), mock.call(2), mock.call(3)]
+            [mock.call(one), mock.call(4), mock.call(5), mock.call(two), mock.call(3)]
         )
 
     def test_run_task__after_steps_failure(self):
@@ -190,7 +196,14 @@ class TestLoadData(unittest.TestCase):
         mapping_path = os.path.join(base_path, self.mapping_file)
 
         task = _make_task(
-            LoadData, {"options": {"sql_path": sql_path, "mapping": mapping_path}}
+            LoadData,
+            {
+                "options": {
+                    "sql_path": sql_path,
+                    "mapping": mapping_path,
+                    "set_recently_viewed": False,
+                }
+            },
         )
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
@@ -1538,6 +1551,7 @@ class TestLoadData(unittest.TestCase):
                     "options": {
                         "database_url": f"sqlite:///{tmp_db_path}",
                         "mapping": mapping_path,
+                        "set_recently_viewed": False,
                     }
                 },
             )
@@ -2205,7 +2219,13 @@ class TestLoadData(unittest.TestCase):
 
             task = _make_task(
                 NetworklessLoadData,
-                {"options": {"sql_path": tmp_sql_path, "mapping": mapping_path}},
+                {
+                    "options": {
+                        "sql_path": tmp_sql_path,
+                        "mapping": mapping_path,
+                        "set_recently_viewed": False,
+                    }
+                },
             )
 
             numrecords = 5000
@@ -2251,3 +2271,211 @@ class TestLoadData(unittest.TestCase):
                 15 * MEGABYTE
             ):
                 task()
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock.MagicMock())
+    def test_set_viewed(self):
+        base_path = os.path.dirname(__file__)
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "sql_path": "test.sql",
+                    "mapping": os.path.join(base_path, self.mapping_file),
+                }
+            },
+        )
+        queries = []
+
+        def _query_all(query):
+            queries.append(query)
+            return {
+                "records": [
+                    {
+                        "SobjectName": "Account",
+                    },
+                    {
+                        "SobjectName": "Custom__c",
+                    },
+                ],
+            }
+
+        task.sf = mock.Mock()
+        task.sf.query_all = _query_all
+        task.mapping = {}
+        task.mapping["Insert Households"] = MappingStep(sf_object="Account", fields={})
+        task.mapping["Insert Custom__c"] = MappingStep(sf_object="Custom__c", fields={})
+
+        task._set_viewed()
+
+        assert queries == [
+            "SELECT SObjectName FROM TabDefinition WHERE IsCustom = true AND SObjectName IN ('Custom__c')",
+            "SELECT Id FROM Account ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW",
+            "SELECT Id FROM Custom__c ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW",
+        ], queries
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock.MagicMock())
+    def test_set_viewed__SOQL_error_1(self):
+        base_path = os.path.dirname(__file__)
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "sql_path": "test.sql",
+                    "mapping": os.path.join(base_path, self.mapping_file),
+                }
+            },
+        )
+
+        def _query_all(query):
+            assert 0
+
+        task.sf = mock.Mock()
+        task.sf.query_all = _query_all
+        task.mapping = {}
+        task.mapping["Insert Households"] = MappingStep(sf_object="Account", fields={})
+        task.mapping["Insert Custom__c"] = MappingStep(sf_object="Custom__c", fields={})
+
+        with mock.patch.object(task.logger, "warning") as warning:
+            task._set_viewed()
+
+        assert "custom tabs" in str(warning.mock_calls[0])
+        assert "Account" in str(warning.mock_calls[1])
+
+    def test_set_viewed__exception(self):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                    "mapping": "mapping.yml",
+                    "set_recently_viewed": True,
+                }
+            },
+        )
+        task._init_db = mock.Mock(return_value=nullcontext())
+        task._init_mapping = mock.Mock()
+        task.mapping = {}
+        task.after_steps = {}
+
+        def raise_exception():
+            assert 0, "xyzzy"
+
+        task._set_viewed = raise_exception
+
+        with mock.patch.object(task.logger, "warning") as warning:
+            task()
+        assert "xyzzy" in str(warning.mock_calls[0])
+
+    def test_no_mapping(self):
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "database_url": "sqlite://",
+                }
+            },
+        )
+        task._init_db = mock.Mock(return_value=nullcontext())
+        with pytest.raises(TaskOptionsError, match="Mapping file path required"):
+            task()
+
+    @mock.patch("cumulusci.tasks.bulkdata.load.validate_and_inject_mapping")
+    def test_mapping_contains_extra_sobjects(self, _):
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file)
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "mapping": mapping_path,
+                    "database_url": "sqlite://",
+                }
+            },
+        )
+        with pytest.raises(BulkDataException):
+            task()
+
+
+class TestLoadDataIntegrationTests:
+    # bulk API not supported by VCR yet
+    @pytest.mark.needs_org()
+    def test_error_result_counting__multi_batches(
+        self, create_task, cumulusci_test_repo_root
+    ):
+        task = create_task(
+            LoadData,
+            {
+                "sql_path": cumulusci_test_repo_root / "datasets/bad_sample.sql",
+                "mapping": cumulusci_test_repo_root / "datasets/mapping.yml",
+                "ignore_row_errors": True,
+            },
+        )
+        with mock.patch("cumulusci.tasks.bulkdata.step.DEFAULT_BULK_BATCH_SIZE", 3):
+            task()
+        ret = task.return_values["step_results"]
+        assert ret["Account"]["total_row_errors"] == 1
+        assert ret["Contact"]["total_row_errors"] == 1
+        assert ret["Opportunity"]["total_row_errors"] == 2
+        expected = {
+            "Account": {
+                "sobject": "Account",
+                "status": "Row failure",
+                "job_errors": [],
+                "records_processed": 2,
+                "total_row_errors": 1,
+                "record_type": None,
+            },
+            "Contact": {
+                "sobject": "Contact",
+                "status": "Row failure",
+                "job_errors": [],
+                "records_processed": 2,
+                "total_row_errors": 1,
+                "record_type": None,
+            },
+            "Opportunity": {
+                "sobject": "Opportunity",
+                "status": "Row failure",
+                "job_errors": [],
+                "records_processed": 4,
+                "total_row_errors": 2,
+                "record_type": None,
+            },
+        }
+        assert json.loads(json.dumps(ret)) == expected, json.dumps(ret)
+
+    # bulk API not supported by VCR yet
+    @pytest.mark.needs_org()
+    def test_bulk_batch_size(self, create_task):
+        base_path = os.path.dirname(__file__)
+        sql_path = os.path.join(base_path, "testdata.sql")
+        mapping_path = os.path.join(base_path, "mapping_simple.yml")
+
+        orig_batch = BulkApiDmlOperation._batch
+        counts = {}
+
+        def _batch(self, records, n, *args, **kwargs):
+            records = list(records)
+            if records == [["TestHousehold"]]:
+                counts.setdefault("Account", []).append(n)
+            elif records[0][1] == "User":
+                counts.setdefault("Contact", []).append(n)
+            else:
+                assert 0, "Data in SQL must have changed!"
+            records = list(records)
+            return orig_batch(self, records, n, *args, **kwargs)
+
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.step.BulkApiDmlOperation._batch",
+            _batch,
+        ):
+            task = create_task(
+                LoadData,
+                {
+                    "sql_path": sql_path,
+                    "mapping": mapping_path,
+                    "ignore_row_errors": True,
+                },
+            )
+            task()
+            assert counts == {"Account": [10000], "Contact": [1]}

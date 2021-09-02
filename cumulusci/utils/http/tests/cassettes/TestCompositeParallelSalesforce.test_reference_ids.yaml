@@ -1,0 +1,49 @@
+interactions:
+- request:
+    body: '{"compositeRequest": [{"referenceId": "one", "method": "GET", "url": "/services/data/vxx.0/query?q=SELECT
+      Id FROM Account LIMIT 1"}, {"referenceId": "two", "method": "GET", "url": "/services/data/vxx.0/query?q=SELECT
+      Name FROM Account LIMIT 1"}]}'
+    headers:
+      Request-Headers:
+      - Elided
+    method: POST
+    uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite
+  response:
+    body:
+      string: "{\n  \"compositeResponse\" : [ {\n    \"body\" : {\n      \"totalSize\"
+        : 0,\n      \"done\" : true,\n      \"records\" : [ ]\n    },\n    \"httpHeaders\"
+        : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"one\"\n  },
+        {\n    \"body\" : {\n      \"totalSize\" : 0,\n      \"done\" : true,\n      \"records\"
+        : [ ]\n    },\n    \"httpHeaders\" : { },\n    \"httpStatusCode\" : 200,\n
+        \   \"referenceId\" : \"two\"\n  } ]\n}"
+    headers:
+      Response-Headers:
+        Content-Type:
+        - application/json;charset=UTF-8
+        Others: Elided
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"compositeRequest": [{"referenceId": "three", "method": "GET", "url":
+      "/services/data/vxx.0/query?q=SELECT Name FROM Account LIMIT 1"}]}'
+    headers:
+      Request-Headers:
+      - Elided
+    method: POST
+    uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite
+  response:
+    body:
+      string: "{\n  \"compositeResponse\" : [ {\n    \"body\" : {\n      \"totalSize\"
+        : 0,\n      \"done\" : true,\n      \"records\" : [ ]\n    },\n    \"httpHeaders\"
+        : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"three\"\n  }
+        ]\n}"
+    headers:
+      Response-Headers:
+        Content-Type:
+        - application/json;charset=UTF-8
+        Others: Elided
+    status:
+      code: 200
+      message: OK
+version: 1

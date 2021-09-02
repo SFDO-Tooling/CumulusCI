@@ -1,8 +1,7 @@
-from unittest import mock
 import unittest
+from unittest import mock
 
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.tasks.github import PullRequests
 from cumulusci.tests.util import create_project_config
 
@@ -12,6 +11,7 @@ class TestPullRequests(unittest.TestCase):
         project_config = create_project_config()
         project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",

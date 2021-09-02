@@ -1,19 +1,20 @@
+import functools
 import os
 import sys
+from logging import getLogger
 from subprocess import call
 
 import click
 import keyring
 import pkg_resources
 
-from cumulusci import __version__
+from cumulusci.cli.utils import get_installed_version
+from cumulusci.core.exceptions import ConfigError, KeychainKeyNotFound, OrgNotFound
 from cumulusci.core.runtime import BaseCumulusCI
-from cumulusci.core.exceptions import ConfigError
-from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.core.exceptions import KeychainKeyNotFound
 from cumulusci.core.utils import import_global
-from cumulusci.utils import get_cci_upgrade_command
-from cumulusci.utils import random_alphanumeric_underscore
+from cumulusci.utils import get_cci_upgrade_command, random_alphanumeric_underscore
+
+logger = getLogger(__name__)
 
 
 class CliRuntime(BaseCumulusCI):
@@ -39,11 +40,12 @@ class CliRuntime(BaseCumulusCI):
 
     def get_keychain_key(self):
         key_from_env = os.environ.get("CUMULUSCI_KEY")
+        keychain_exception = ""
         try:
             key_from_keyring = keyring.get_password("cumulusci", "CUMULUSCI_KEY")
             has_functioning_keychain = True
         except Exception as e:
-            keychain_exception = e
+            keychain_exception = str(e)
             key_from_keyring = None
             has_functioning_keychain = False
         # If no key in environment or file, generate one
@@ -52,12 +54,18 @@ class CliRuntime(BaseCumulusCI):
             if has_functioning_keychain:
                 key = random_alphanumeric_underscore(length=16)
             else:
-                raise KeychainKeyNotFound(
-                    "Unable to store CumulusCI encryption key. "
-                    "You can configure it manually by setting the CUMULUSCI_KEY "
-                    "environment variable to a random 16-character string. "
-                    f"ERROR: {keychain_exception}"
+                # Log why the keychain isn't working,
+                # but suppress recommendation to install keyrings.alt on Linux
+                keychain_exception = (
+                    f"({keychain_exception}) "
+                    if "install the keyrings.alt package" not in keychain_exception
+                    else ""
                 )
+                logger.warning(
+                    f"Unable to store an encryption key. {keychain_exception}"
+                    "Any orgs or services written to disk will not be encrypted. "
+                )
+
         if has_functioning_keychain and not key_from_keyring:
             keyring.set_password("cumulusci", "CUMULUSCI_KEY", key)
         return key
@@ -161,6 +169,22 @@ class CliRuntime(BaseCumulusCI):
 CliConfig = CliRuntime
 
 
-def get_installed_version():
-    """ returns the version name (e.g. 2.0.0b58) that is installed """
-    return pkg_resources.parse_version(__version__)
+def pass_runtime(func=None, require_project=True, require_keychain=False):
+    """Decorator which passes the CCI runtime object as the first arg to a click command."""
+
+    def decorate(func):
+        @click.pass_context
+        def new_func(ctx, *args, **kw):
+            runtime = ctx.obj
+            if require_project and runtime.project_config is None:
+                raise runtime.project_config_error
+            if require_keychain:
+                runtime._load_keychain()
+            func(runtime, *args, **kw)
+
+        return functools.update_wrapper(new_func, func)
+
+    if func is None:
+        return decorate
+    else:
+        return decorate(func)

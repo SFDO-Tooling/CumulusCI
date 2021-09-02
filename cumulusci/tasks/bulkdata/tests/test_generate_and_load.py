@@ -1,12 +1,11 @@
 import os.path
-
 import unittest
-from unittest import mock
-from tempfile import TemporaryDirectory
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import mock
 
-from cumulusci.tasks.bulkdata import GenerateAndLoadData
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.tasks.bulkdata import GenerateAndLoadData
 
 from .utils import _make_task
 
@@ -172,7 +171,7 @@ class TestGenerateAndLoadData(unittest.TestCase):
                 assert "mapping_vanilla_sf" in options["mapping"]
 
             def __call__(self):
-                pass
+                self.return_values = {}
 
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_vanilla_sf.yml")
 
@@ -228,7 +227,7 @@ class TestGenerateAndLoadData(unittest.TestCase):
                 assert Path(options["working_directory"]).exists()
 
             def __call__(self):
-                pass
+                self.return_values = {}
 
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_vanilla_sf.yml")
 

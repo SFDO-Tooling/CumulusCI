@@ -1,23 +1,19 @@
-""" Utilities for CumulusCI Core
+""" Utilities for CumulusCI Core"""
 
-import_global: task class defn import helper
-process_bool_arg: determine true/false for a commandline arg
-decode_to_unicode: get unicode string from sf api """
-
-from datetime import datetime, timedelta
 import copy
 import glob
-import pytz
 import time
-from shutil import rmtree
-from typing import Union
+import typing as T
 import warnings
+from datetime import datetime, timedelta
+
+import pytz
 
 from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 
 
 def import_global(path):
-    """ Import a class from a string module class path """
+    """Import a class from a string module class path"""
     components = path.split(".")
     module = components[:-1]
     module = ".".join(module)
@@ -35,7 +31,7 @@ def parse_datetime(dt_str, format):
     return datetime(t[0], t[1], t[2], t[3], t[4], t[5], t[6], pytz.UTC)
 
 
-def process_bool_arg(arg: Union[int, str, None]):
+def process_bool_arg(arg: T.Union[int, str, None]):
     """Determine True/False from argument.
 
     Similar to parts of the Salesforce API, there are a few true-ish and false-ish strings,
@@ -99,7 +95,7 @@ def process_glob_list_arg(arg):
 
 
 def process_list_arg(arg):
-    """ Parse a string into a list separated by commas with whitespace stripped """
+    """Parse a string into a list separated by commas with whitespace stripped"""
     if isinstance(arg, list):
         return arg
     elif isinstance(arg, str):
@@ -116,7 +112,7 @@ def process_list_of_pairs_dict_arg(arg):
     elif isinstance(arg, str):
         rc = {}
         for key_value in arg.split(","):
-            subparts = key_value.split(":")
+            subparts = key_value.split(":", 1)
             if len(subparts) == 2:
                 key, value = subparts
                 if key in rc:
@@ -130,7 +126,7 @@ def process_list_of_pairs_dict_arg(arg):
 
 
 def decode_to_unicode(content):
-    """ decode ISO-8859-1 to unicode, when using sf api """
+    """decode ISO-8859-1 to unicode, when using sf api"""
     if content and not isinstance(content, str):
         try:
             # Try to decode ISO-8859-1 to unicode
@@ -142,7 +138,7 @@ def decode_to_unicode(content):
 
 
 def merge_config(configs):
-    """ recursively deep-merge the configs into one another (highest priority comes first) """
+    """recursively deep-merge the configs into one another (highest priority comes first)"""
     new_config = {}
 
     for name, config in configs.items():
@@ -197,29 +193,6 @@ def dictmerge(a, b, name=None):
             config_name=name,
         )
     return a
-
-
-def cleanup_org_cache_dirs(keychain, project_config):
-    """Cleanup directories that are not associated with a connected/live org."""
-
-    if not project_config or not project_config.cache_dir:
-        return
-    domains = set()
-    for org in keychain.list_orgs():
-        org_config = keychain.get_org(org)
-        domain = org_config.get_domain()
-        if domain:
-            domains.add(domain)
-
-    assert project_config.cache_dir
-    assert keychain.global_config_dir
-
-    project_org_directories = (project_config.cache_dir / "orginfo").glob("*")
-    global_org_directories = (keychain.global_config_dir / "orginfo").glob("*")
-
-    for path in list(project_org_directories) + list(global_org_directories):
-        if path.is_dir() and path.name not in domains:
-            rmtree(path)
 
 
 def format_duration(duration: timedelta):

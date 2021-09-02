@@ -1,35 +1,33 @@
-from collections import defaultdict
-from unittest.mock import MagicMock
-from typing import Union
 import tempfile
+import typing as T
+from collections import defaultdict
 from contextlib import contextmanager
+from unittest.mock import MagicMock
 
-from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, text, func
-from sqlalchemy.orm import aliased, Session
+from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, func, text
 from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import Session, aliased
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.bulkdata.utils import (
-    SqlAlchemyMixin,
-    RowErrorChecker,
-)
+from cumulusci.salesforce_api.org_schema import get_org_schema
 from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
-from cumulusci.tasks.bulkdata.step import (
-    DataOperationStatus,
-    DataOperationType,
-    DataOperationJobResult,
-    get_dml_operation,
-)
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.utils import os_friendly_path
-
 from cumulusci.tasks.bulkdata.mapping_parser import (
+    MappingLookup,
+    MappingStep,
     parse_from_yaml,
     validate_and_inject_mapping,
-    MappingStep,
-    MappingLookup,
 )
+from cumulusci.tasks.bulkdata.step import (
+    DEFAULT_BULK_BATCH_SIZE,
+    DataOperationJobResult,
+    DataOperationStatus,
+    DataOperationType,
+    get_dml_operation,
+)
+from cumulusci.tasks.bulkdata.utils import RowErrorChecker, SqlAlchemyMixin
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.utils import os_friendly_path
 
 
 class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -68,6 +66,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         "drop_missing_schema": {
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
         },
+        "set_recently_viewed": {
+            "description": "By default, the first 1000 records inserted via the Bulk API will be set as recently viewed. If fewer than 1000 records are inserted, existing objects of the same type being inserted will also be set as recently viewed.",
+        },
     }
     row_warning_limit = 10
 
@@ -101,6 +102,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.options["drop_missing_schema"] = process_bool_arg(
             self.options.get("drop_missing_schema") or False
         )
+        self.options["set_recently_viewed"] = process_bool_arg(
+            self.options.get("set_recently_viewed", True)
+        )
 
     def _run_task(self):
         self._init_mapping()
@@ -109,6 +113,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
             start_step = self.options.get("start_step")
             started = False
+            results = {}
             for name, mapping in self.mapping.items():
                 # Skip steps until start_step
                 if not started and start_step and name != start_step:
@@ -132,10 +137,26 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                             raise BulkDataException(
                                 f"Step {after_name} did not complete successfully: {','.join(result.job_errors)}"
                             )
+                results[name] = StepResultInfo(
+                    mapping.sf_object, result, mapping.record_type
+                )
+        if self.options["set_recently_viewed"]:
+            try:
+                self.logger.info("Setting records to 'recently viewed'.")
+                self._set_viewed()
+            except Exception as e:
+                self.logger.warning(f"Could not set recently viewed because {e}")
+
+        self.return_values = {
+            "step_results": {
+                step_name: result_info.simplify()
+                for step_name, result_info in results.items()
+            }
+        }
 
     def _execute_step(
         self, mapping: MappingStep
-    ) -> Union[DataOperationJobResult, MagicMock]:
+    ) -> T.Union[DataOperationJobResult, MagicMock]:
         """Load data for a single step."""
 
         if "RecordTypeId" in mapping.fields:
@@ -176,8 +197,11 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             date_context = mapping.get_relative_date_context(
                 mapping.get_load_field_list(), self.org_config
             )
-
-        for row in query.yield_per(10000):
+        # Clamping the yield from the query ensures we do not
+        # create more Bulk API batches than expected, regardless
+        # of batch size, while capping memory usage.
+        batch_size = mapping.batch_size or DEFAULT_BULK_BATCH_SIZE
+        for row in query.yield_per(batch_size):
             total_rows += 1
             # Add static values to row
             pkey = row[0]
@@ -267,9 +291,15 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             query = query.filter(*filter_args)
 
         if "RecordTypeId" in mapping.fields:
-            rt_source_table = self.metadata.tables[
-                mapping.get_source_record_type_table()
-            ]
+            try:
+                rt_source_table = self.metadata.tables[
+                    mapping.get_source_record_type_table()
+                ]
+            except KeyError as e:
+                raise BulkDataException(
+                    "A record type mapping table was not found in your dataset. "
+                    f"Was it generated by extract_data? {e}",
+                ) from e
             rt_dest_table = self.metadata.tables[
                 mapping.get_destination_record_type_table()
             ]
@@ -433,7 +463,12 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 self.models = {}
                 for name, mapping in self.mapping.items():
                     if mapping.table not in self.models:
-                        self.models[mapping.table] = self.base.classes[mapping.table]
+                        try:
+                            self.models[mapping.table] = self.base.classes[
+                                mapping.table
+                            ]
+                        except KeyError as e:
+                            raise BulkDataException(f"Table not found in dataset: {e}")
 
                     # create any Record Type tables we need
                     if "RecordTypeId" in mapping.fields:
@@ -447,7 +482,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _init_mapping(self):
         """Load a YAML mapping file."""
-        mapping_file_path = self.options["mapping"]
+        mapping_file_path = self.options.get("mapping")
         if not mapping_file_path:
             raise TaskOptionsError("Mapping file path required")
 
@@ -625,3 +660,54 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
                 # Join maps together to get tuple (Contact ID, Contact SF ID) to insert into step's ID Table.
                 yield (contact_id, contact_sf_id)
+
+    def _set_viewed(self):
+        """Set items as recently viewed. Filter out custom objects without custom tabs."""
+        object_names = set()
+        custom_objects = set()
+
+        # Separate standard and custom objects
+        for mapping in self.mapping.values():
+            object_name = mapping.sf_object
+            if object_name.endswith("__c"):
+                custom_objects.add(object_name)
+            else:
+                object_names.add(object_name)
+        # collect SobjectName that have custom tabs
+        if custom_objects:
+            try:
+                custom_tab_objects = self.sf.query_all(
+                    "SELECT SObjectName FROM TabDefinition WHERE IsCustom = true AND SObjectName IN ('{}')".format(
+                        "','".join(sorted(custom_objects))
+                    )
+                )
+                for record in custom_tab_objects["records"]:
+                    object_names.add(record["SobjectName"])
+            except Exception as e:
+                self.logger.warning(
+                    f"Cannot get the list of custom tabs to set recently viewed status on them. Error: {e}"
+                )
+        with get_org_schema(self.sf, self.org_config) as org_schema:
+            for mapped_item in sorted(object_names):
+                if org_schema[mapped_item].mruEnabled:
+                    try:
+                        self.sf.query_all(
+                            f"SELECT Id FROM {mapped_item} ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW"
+                        )
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Cannot set recently viewed status for {mapped_item}. Error: {e}"
+                        )
+
+
+class StepResultInfo(T.NamedTuple):
+    sobject: str
+    result: DataOperationJobResult
+    record_type: str = None
+
+    def simplify(self):
+        return {
+            "sobject": self.sobject,
+            "record_type": self.record_type,
+            **self.result.simplify(),
+        }

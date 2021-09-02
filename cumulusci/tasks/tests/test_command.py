@@ -1,24 +1,23 @@
 """ Tests for the Command tasks """
 
-from unittest import mock
 import unittest
 from io import BytesIO
+from unittest import mock
 
 from sarge import Capture
 
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import (
+    BaseProjectConfig,
+    OrgConfig,
+    TaskConfig,
+    UniversalConfig,
+)
 from cumulusci.core.tests.utils import MockLoggerMixin
-
-from cumulusci.tasks.command import Command
-from cumulusci.tasks.command import SalesforceCommand
-from cumulusci.tasks.command import CommandException
+from cumulusci.tasks.command import Command, CommandException, SalesforceCommand
 
 
 class TestCommandTask(MockLoggerMixin, unittest.TestCase):
-    """ Tests for the basic command task """
+    """Tests for the basic command task"""
 
     def setUp(self):
         self.universal_config = UniversalConfig()
@@ -50,6 +49,21 @@ class TestCommandTask(MockLoggerMixin, unittest.TestCase):
             self.assertTrue(any("Return code" in s for s in self.task_log["error"]))
 
         self.assertTrue(any("total" in s for s in self.task_log["info"]))
+
+    def test_return_values_success(self):
+        """Verify return_values is set when command succeeds"""
+        self.task_config.config["options"] = {"command": "ls"}
+        task = Command(self.project_config, self.task_config)
+        task()
+        self.assertEqual(task.return_values, {"returncode": 0})
+
+    def test_return_values_exception(self):
+        """Verify return_values is set when command fails"""
+        self.task_config.config["options"] = {"command": "exit 1"}
+        task = Command(self.project_config, self.task_config)
+        with self.assertRaises(CommandException):
+            task()
+        self.assertEqual(task.return_values, {"returncode": 1})
 
     def test_init__json_env(self):
         task_config = TaskConfig({"options": {"env": "{}", "command": "ls"}})

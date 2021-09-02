@@ -1,0 +1,20 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Request-Headers:
+      - Elided
+    method: GET
+    uri: https://raw.githubusercontent.com/SFDO-Tooling/CumulusCI/8b8d1eb9a1593503bf625030fa702b6d4651cb55/cumulusci/tasks/bulkdata/tests/snowfakery/simple_snowfakery.load.yml
+  response:
+    body:
+      string: "- sf_object: Account\n  api: bulk\n"
+    headers:
+      Response-Headers:
+        Content-Type:
+        - text/plain; charset=utf-8
+        Others: Elided
+    status:
+      code: 200
+      message: OK
+version: 1

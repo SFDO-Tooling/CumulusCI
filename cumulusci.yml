@@ -9,7 +9,7 @@ tasks:
             suites: cumulusci/robotframework/tests
             options:
                 outputdir: robot/CumulusCI/results
-                noncritical: noncritical    # allows testing failure conditions
+                noncritical: noncritical # allows testing failure conditions
 
     robot_testdoc:
         options:
@@ -18,9 +18,9 @@ tasks:
     robot_lint:
         options:
             path:
-              - cumulusci/robotframework
+                - cumulusci/robotframework
             ignore:
-              - RequireTestDocumentation
+                - RequireTestDocumentation
     robot_libdoc:
         description: Generates html documentation for the Salesorce and CumulusCI libraries and resource files
         class_path: cumulusci.tasks.robotframework.RobotLibDoc
@@ -28,13 +28,18 @@ tasks:
             title: CumulusCI Robot Framework Keywords
             output: docs/robot/Keywords.html
             path:
-              - cumulusci.robotframework.CumulusCI
-              - cumulusci.robotframework.PageObjects
-              - cumulusci.robotframework.Salesforce
-              - cumulusci/robotframework/Salesforce.robot
-              - cumulusci/robotframework/pageobjects/BasePageObjects.py
+                - cumulusci.robotframework.CumulusCI
+                - cumulusci.robotframework.PageObjects
+                - cumulusci.robotframework.Salesforce
+                - cumulusci/robotframework/Salesforce.robot
+                - cumulusci/robotframework/pageobjects/BasePageObjects.py
 
 flows:
+    qa_org:
+        steps:
+            2:
+                flow: None
+
     robot_docs:
         description: Generates documentation for robot framework libraries
         steps:
@@ -57,8 +62,10 @@ flows:
                 options:
                     suites: cumulusci/robotframework/perftests
 
-
 orgs:
     scratch:
         prerelease:
             config_file: orgs/prerelease.json
+
+        pytest:
+            config_file: orgs/dev.json

@@ -1,19 +1,19 @@
 from datetime import date
-from typing import Dict, List, Union, IO, Optional, Any, Callable, Mapping
+from enum import Enum
 from logging import getLogger
 from pathlib import Path
-from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
+from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Union
 
-from pydantic import Field, validator, root_validator, ValidationError
+from pydantic import Field, ValidationError, root_validator, validator
+from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
+from typing_extensions import Literal
 
 from cumulusci.core.config.OrgConfig import OrgConfig
 from cumulusci.core.exceptions import BulkDataException
-from cumulusci.tasks.bulkdata.step import DataOperationType, DataApi
 from cumulusci.tasks.bulkdata.dates import iso_to_date
-from cumulusci.utils.yaml.model_parser import CCIDictModel
+from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
 from cumulusci.utils import convert_to_snake_case
-
-from typing_extensions import Literal
+from cumulusci.utils.yaml.model_parser import CCIDictModel
 
 logger = getLogger(__name__)
 
@@ -68,6 +68,18 @@ class MappingLookup(CCIDictModel):
 SHOULD_REPORT_RECORD_TYPE_DEPRECATION = True
 
 
+class BulkMode(Enum):
+    serial = Serial = "Serial"
+    parallel = Parallel = "Parallel"
+
+
+ENUM_VALUES = {
+    v.value.lower(): v.value
+    for enum in [BulkMode, DataApi, DataOperationType]
+    for v in enum.__members__.values()
+}
+
+
 class MappingStep(CCIDictModel):
     "Step in a load or extract process"
     sf_object: str
@@ -78,13 +90,20 @@ class MappingStep(CCIDictModel):
     filters: List[str] = []
     action: DataOperationType = DataOperationType.INSERT
     api: DataApi = DataApi.SMART
-    batch_size: int = 200
+    batch_size: int = None
     oid_as_pk: bool = False  # this one should be discussed and probably deprecated
     record_type: Optional[str] = None  # should be discussed and probably deprecated
     bulk_mode: Optional[
         Literal["Serial", "Parallel"]
     ] = None  # default should come from task options
     anchor_date: Optional[Union[str, date]] = None
+    soql_filter: Optional[str] = None  # soql_filter property
+
+    @validator("bulk_mode", "api", "action", pre=True)
+    def case_normalize(cls, val):
+        if isinstance(val, Enum):
+            return val
+        return ENUM_VALUES.get(val.lower())
 
     def get_oid_as_pk(self):
         """Returns True if using Salesforce Ids as primary keys."""
@@ -168,8 +187,22 @@ class MappingStep(CCIDictModel):
 
     @validator("batch_size")
     @classmethod
-    def validate_batch_size(cls, v):
-        assert v <= 200 and v > 0
+    def validate_batch_size(cls, v, values):
+        if values["api"] == DataApi.REST:
+            assert 0 < v <= 200, "Max 200 batch_size for REST loads"
+        elif values["api"] == DataApi.BULK:
+            assert 0 < v <= 10_000, "Max 10,000 batch_size for bulk or smart loads"
+        elif values["api"] == DataApi.SMART and v is not None:
+            assert 0 < v < 200, "Max 200 batch_size for Smart loads"
+            logger.warning(
+                "If you set a `batch_size` you should also set an `api` to `rest` or `bulk`. "
+                "`batch_size` means different things for `rest` and `bulk`. "
+                "Please see the documentation for further details. "
+                "https://cumulusci.readthedocs.io/en/latest/data.html#api-selection"
+            )
+        else:  # pragma: no cover
+            # should not happen
+            assert f"Unknown API {values['api']}"
         return v
 
     @validator("anchor_date")
@@ -323,23 +356,16 @@ class MappingStep(CCIDictModel):
         self,
         global_describe: CaseInsensitiveDict,
         inject: Optional[Callable[[str], str]],
+        strip: Optional[Callable[[str], str]],
         data_operation_type: DataOperationType,
     ) -> bool:
-        # Determine whether we need to inject our sObject.
-        if inject and self._is_injectable(self.sf_object):
-            if (
-                self.sf_object in global_describe
-                and inject(self.sf_object) in global_describe
-            ):
-                logger.warning(
-                    f"Both {self.sf_object} and {inject(self.sf_object)} are present in the target org. Using {self.sf_object}."
-                )
+        # Determine whether we need to inject or strip our sObject.
 
-            if (
-                self.sf_object not in global_describe
-                and inject(self.sf_object) in global_describe
-            ):
-                self.sf_object = inject(self.sf_object)
+        self.sf_object = (
+            _inject_or_strip_name(self.sf_object, inject, global_describe)
+            or _inject_or_strip_name(self.sf_object, strip, global_describe)
+            or self.sf_object
+        )
 
         try:
             self.sf_object = global_describe.canonical_key(self.sf_object)
@@ -402,7 +428,7 @@ class MappingStep(CCIDictModel):
             }
         )
 
-        if not self._validate_sobject(global_describe, inject, operation):
+        if not self._validate_sobject(global_describe, inject, strip, operation):
             # Don't attempt to validate field permissions if the object doesn't exist.
             return False
 
@@ -505,3 +531,23 @@ def validate_and_inject_mapping(
         for step in mapping.values():
             if step["sf_object"] in ("Account", "Contact"):
                 step["fields"]["IsPersonAccount"] = "IsPersonAccount"
+
+
+def _inject_or_strip_name(name, transform, global_describe):
+    if not transform:
+        return None
+    new_name = transform(name)
+
+    if name == new_name:
+        return None
+
+    if name in global_describe and new_name in global_describe:
+        logger.warning(
+            f"Both {name} and {new_name} are present in the target org. Using {name}."
+        )
+        return None
+
+    if name not in global_describe and new_name in global_describe:
+        return new_name
+
+    return None

@@ -1,0 +1,65 @@
+interactions:
+- request:
+    body: '{"Name": "Smith Corp."}'
+    headers:
+      Request-Headers:
+      - Elided
+    method: POST
+    uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects/Account/
+  response:
+    body:
+      string: "{\n  \"id\" : \"0010xACCOUNTID0000\",\n  \"success\" : true,\n  \"errors\"
+        : [ ]\n}"
+    headers:
+      Response-Headers:
+        Content-Type:
+        - application/json;charset=UTF-8
+        Others: Elided
+    status:
+      code: 201
+      message: Created
+- request:
+    body: '{"compositeRequest": [{"referenceId": "CCI__RefId__0__", "method": "GET",
+      "url": "/services/data/vxx.0/query?q=SELECT Id FROM Account LIMIT 1"}, {"referenceId":
+      "CCI__RefId__1__", "method": "GET", "url": "/services/data/vxx.0/query?q=SELECT
+      Name FROM Account LIMIT 1"}, {"referenceId": "CCI__RefId__2__", "method": "GET",
+      "url": "/services/data/vxx.0/query?q=SELECT Id FROM Account LIMIT 1"}, {"referenceId":
+      "CCI__RefId__3__", "method": "GET", "url": "/services/data/vxx.0/query?q=SELECT
+      Name FROM Account LIMIT 1"}]}'
+    headers:
+      Request-Headers:
+      - Elided
+    method: POST
+    uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite
+  response:
+    body:
+      string: "{\n  \"compositeResponse\" : [ {\n    \"body\" : {\n      \"totalSize\"
+        : 1,\n      \"done\" : true,\n      \"records\" : [ {\n        \"attributes\"
+        : {\n          \"type\" : \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/0010xACCOUNTID0000\"\n
+        \       },\n        \"Id\" : \"0010xACCOUNTID0000\"\n      } ]\n    },\n    \"httpHeaders\"
+        : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__0__\"\n
+        \ }, {\n    \"body\" : {\n      \"totalSize\" : 1,\n      \"done\" : true,\n
+        \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
+        \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/0010xACCOUNTID0000\"\n
+        \       },\n        \"Name\" : \"Smith Corp.\"\n      } ]\n    },\n    \"httpHeaders\"
+        : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__1__\"\n
+        \ }, {\n    \"body\" : {\n      \"totalSize\" : 1,\n      \"done\" : true,\n
+        \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
+        \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/0010xACCOUNTID0000\"\n
+        \       },\n        \"Id\" : \"0010xACCOUNTID0000\"\n      } ]\n    },\n    \"httpHeaders\"
+        : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__2__\"\n
+        \ }, {\n    \"body\" : {\n      \"totalSize\" : 1,\n      \"done\" : true,\n
+        \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
+        \"Account\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Account/0010xACCOUNTID0000\"\n
+        \       },\n        \"Name\" : \"Smith Corp.\"\n      } ]\n    },\n    \"httpHeaders\"
+        : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"CCI__RefId__3__\"\n
+        \ } ]\n}"
+    headers:
+      Response-Headers:
+        Content-Type:
+        - application/json;charset=UTF-8
+        Others: Elided
+    status:
+      code: 200
+      message: OK
+version: 1

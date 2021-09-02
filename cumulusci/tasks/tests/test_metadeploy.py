@@ -1,21 +1,20 @@
-from pathlib import Path
 import io
 import json
 import shutil
 import tempfile
 import unittest
 import zipfile
+from base64 import b64encode
+from pathlib import Path
 
 import requests
 import responses
 import yaml
 
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
-from cumulusci.tasks.metadeploy import BaseMetaDeployTask
-from cumulusci.tasks.metadeploy import Publish
+from cumulusci.tasks.metadeploy import BaseMetaDeployTask, Publish
 from cumulusci.tests.util import create_project_config
 
 
@@ -28,7 +27,9 @@ class TestBaseMetaDeployTask(unittest.TestCase):
 
         project_config = create_project_config()
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig()
         task = BaseMetaDeployTask(project_config, task_config)
@@ -51,7 +52,9 @@ class TestBaseMetaDeployTask(unittest.TestCase):
 
         project_config = create_project_config()
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig()
         task = BaseMetaDeployTask(project_config, task_config)
@@ -83,10 +86,13 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             }
         }
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {"username": "foo", "token": "bar", "email": "foo@example.com"}
             ),
@@ -150,6 +156,35 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+            json={
+                "url": "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+                "download_url": "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+                "git_url": "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+                "html_url": "https://api.github.com/repos/TestOwner/TestRepo/contents/cumulusci.yml?ref=commit_sha",
+                "_links": {},
+                "name": "cumulusci.yml",
+                "path": "cumulusci.yml",
+                "sha": "commit_sha",
+                "size": 100,
+                "type": "yaml",
+                "encoding": "base64",
+                "content": b64encode(
+                    yaml.dump(
+                        {
+                            "project": {
+                                "package": {
+                                    "name_managed": "Test Product",
+                                    "namespace": "ns",
+                                }
+                            }
+                        }
+                    ).encode("utf-8")
+                ).decode("utf-8"),
+            },
+        )
+        responses.add(
+            "GET",
             "https://metadeploy/versions?product=abcdef&label=1.0",
             json={"data": []},
         )
@@ -183,6 +218,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                 "options": {
                     "tag": "release/1.0",
                     "publish": True,
+                    "dry_run": "False",
                     "labels_path": labels_path,
                 }
             }
@@ -191,6 +227,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         task()
 
         steps = json.loads(responses.calls[-2].request.body)["steps"]
+        self.maxDiff = None
         self.assertEqual(
             [
                 {
@@ -203,12 +240,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     "task_class": "cumulusci.tasks.salesforce.InstallPackageVersion",
                     "task_config": {
                         "options": {
-                            "activateRSS": True,
                             "namespace": "ns",
-                            "retries": 10,
-                            "retry_interval": 5,
-                            "retry_interval_add": 30,
-                            "security_type": "FULL",
                             "version": "1.0",
                         },
                         "checks": [],
@@ -292,7 +324,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             }
         }
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig({"options": {"tag": "release/1.0"}})
         task = Publish(project_config, task_config)
@@ -321,7 +355,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             }
         }
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig({"options": {"commit": "abcdef"}})
         task = Publish(project_config, task_config)
@@ -341,7 +377,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         project_config = create_project_config()
         project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig({"options": {"tag": "release/1.0"}})
         task = Publish(project_config, task_config)
@@ -352,7 +390,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
     def test_init_task__no_tag_or_commit(self):
         project_config = create_project_config()
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig({"options": {}})
         task = Publish(project_config, task_config)
@@ -373,7 +413,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         }
         project_config.config["plans"] = expected_plans
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig({"options": {"tag": "release/1.0", "plan": "install"}})
         task = Publish(project_config, task_config)
@@ -408,7 +450,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         }
         project_config.config["plans"] = expected_plans
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         task_config = TaskConfig({"options": {"tag": "release/1.0"}})
         task = Publish(project_config, task_config)
@@ -423,7 +467,9 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
     def test_freeze_steps__skip(self):
         project_config = create_project_config()
         project_config.keychain.set_service(
-            "metadeploy", ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"})
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
         )
         plan_config = {
             "title": "Test Install",

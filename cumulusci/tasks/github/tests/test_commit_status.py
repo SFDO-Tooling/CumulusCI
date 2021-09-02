@@ -1,15 +1,13 @@
-from cumulusci.core.exceptions import DependencyLookupError
 from datetime import datetime
 
 import pytest
 import responses
 
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.tests.util import create_project_config
+from cumulusci.core.config import OrgConfig, ServiceConfig, TaskConfig
+from cumulusci.core.exceptions import DependencyLookupError
 from cumulusci.tasks.github.commit_status import GetPackageDataFromCommitStatus
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
+from cumulusci.tests.util import create_project_config
 
 
 class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
@@ -50,7 +48,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
         )
         responses.add(
             "GET",
-            "https://salesforce/services/data/v50.0/tooling/query/",
+            "https://salesforce/services/data/v52.0/tooling/query/",
             json={
                 "records": [
                     {"Dependencies": {"ids": [{"subscriberPackageVersionId": "04t_2"}]}}
@@ -61,6 +59,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
         project_config = create_project_config(repo_commit="abcdef")
         project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",
@@ -90,12 +89,13 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
             json=self._get_expected_repo("TestOwner", "TestRepo"),
         )
         responses.add(
-            method=responses.GET, url=f"{self.repo_api_url}/commits/abcdef", status=404
+            method=responses.GET, url=f"{self.repo_api_url}/commits/abcdef", status=422
         )
 
         project_config = create_project_config(repo_commit="abcdef")
         project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",
@@ -111,7 +111,8 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
         task = GetPackageDataFromCommitStatus(project_config, task_config, org_config)
         task._init_task()
         with pytest.raises(
-            DependencyLookupError, match="Could not find commit abcdef on GitHub"
+            DependencyLookupError,
+            match="Could not find package version id in '2gp' commit status for commit abcdef.",
         ):
             task._run_task()
 
@@ -142,6 +143,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
         project_config = create_project_config(repo_commit="abcdef")
         project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",
@@ -166,13 +168,14 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
     def test_get_dependencies__version_not_found(self):
         responses.add(
             "GET",
-            "https://salesforce/services/data/v50.0/tooling/query/",
+            "https://salesforce/services/data/v52.0/tooling/query/",
             json={"records": []},
         )
 
         project_config = create_project_config(repo_commit="abcdef")
         project_config.keychain.set_service(
             "github",
+            "test_alias",
             ServiceConfig(
                 {
                     "username": "TestUser",

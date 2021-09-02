@@ -1,35 +1,25 @@
-import csv
 import itertools
+import re
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import MetaData
-from sqlalchemy import Table
-from sqlalchemy import Unicode
+from sqlalchemy import Column, Integer, MetaData, Table, Unicode, create_engine
 from sqlalchemy.orm import create_session, mapper
 
-from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
-from cumulusci.tasks.bulkdata.utils import (
-    SqlAlchemyMixin,
-    create_table,
-)
+from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
+from cumulusci.tasks.bulkdata.mapping_parser import (
+    parse_from_yaml,
+    validate_and_inject_mapping,
+)
 from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationType,
     get_query_operation,
 )
-from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
-from cumulusci.utils import os_friendly_path, log_progress
-from cumulusci.tasks.bulkdata.mapping_parser import (
-    parse_from_yaml,
-    validate_and_inject_mapping,
-)
-from cumulusci.tasks.bulkdata.utils import consume
+from cumulusci.tasks.bulkdata.utils import SqlAlchemyMixin, consume, create_table
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.utils import log_progress, os_friendly_path
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -139,10 +129,16 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if mapping.record_type:
             soql += f" WHERE RecordType.DeveloperName = '{mapping.record_type}'"
 
+        if mapping.soql_filter is not None:
+            soql = self.append_filter_clause(
+                soql=soql, filter_clause=mapping.soql_filter
+            )
+
         return soql
 
     def _run_query(self, soql, mapping):
         """Execute a Bulk or REST API query job and store the results."""
+
         step = get_query_operation(
             sobject=mapping.sf_object,
             api=mapping.api,
@@ -266,7 +262,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 self.metadata.tables[m.get_sf_id_table()].drop()
 
     def _get_mapping_for_table(self, table):
-        """Return the first mapping for a table name """
+        """Return the first mapping for a table name"""
         for mapping in self.mapping.values():
             if mapping["table"] == table:
                 return mapping
@@ -336,3 +332,26 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         with open(path, "w", encoding="utf-8") as f:
             for line in self.session.connection().connection.iterdump():
                 f.write(line + "\n")
+
+    def append_filter_clause(self, soql, filter_clause):
+        """Function that applies filter clause to soql if it is defined in mapping yml file"""
+
+        if not filter_clause:
+            return soql
+
+        # If WHERE keyword is specified in the maping file replace it with empty string.
+        # match WHERE keyword only at the start of the string and whitespace after it.
+        filter_clause = re.sub(
+            pattern=r"^WHERE\s+",
+            repl="",
+            string=filter_clause.strip(),
+            flags=re.IGNORECASE,
+        )
+
+        # If WHERE keyword is already in soql query(because of record type filter) add AND clause
+        if " WHERE " in soql:
+            soql = f"{soql} AND {filter_clause}"
+        else:
+            soql = f"{soql} WHERE {filter_clause}"
+
+        return soql

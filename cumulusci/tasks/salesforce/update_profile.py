@@ -1,15 +1,14 @@
-from collections import defaultdict
 import os
+from collections import defaultdict
 
 import pkg_resources
 
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.metadata_etl import (
     MetadataOperation,
     MetadataSingleEntityTransformTask,
 )
-
-from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
-from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils.xml import metadata_tree

@@ -6,18 +6,31 @@ import contextlib
 import logging
 import os
 import re
-import time
 import threading
+import time
 
 from cumulusci import __version__
+from cumulusci.core.debug import get_debug_mode
+from cumulusci.core.exceptions import (
+    ServiceNotConfigured,
+    ServiceNotValid,
+    TaskOptionsError,
+    TaskRequiresSalesforceOrg,
+)
 from cumulusci.utils import cd
-from cumulusci.core.exceptions import ServiceNotValid, ServiceNotConfigured
-from cumulusci.core.exceptions import TaskRequiresSalesforceOrg
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.utils.logging import redirect_output_to_logger
 
 CURRENT_TASK = threading.local()
 
 PROJECT_CONFIG_RE = re.compile(r"\$project_config.(\w+)")
+CAPTURE_TASK_OUTPUT = os.environ.get("CAPTURE_TASK_OUTPUT")
+
+
+# We can't use contextlib.nullcontext yet
+# because it isn't present in Python 3.6
+@contextlib.contextmanager
+def nullcontext():
+    yield
 
 
 @contextlib.contextmanager
@@ -50,11 +63,13 @@ class BaseTask(object):
         flow=None,
         name=None,
         stepnum=None,
+        logger=None,
         **kwargs,
     ):
         self.project_config = project_config
         self.task_config = task_config
         self.org_config = org_config
+        self.logger = logger
         self._reset_poll()
 
         # dict of return_values that can be used by task callers
@@ -72,19 +87,23 @@ class BaseTask(object):
         # the tasks stepnumber in the flow
         self.stepnum = stepnum
 
-        self._init_logger()
+        self.debug_mode = get_debug_mode()
+
+        if not self.logger:
+            self._init_logger()
+
         self._init_options(kwargs)
         self._validate_options()
 
     def _init_logger(self):
-        """ Initializes self.logger """
+        """Initializes self.logger"""
         if self.flow:
             self.logger = self.flow.logger.getChild(self.__class__.__name__)
         else:
             self.logger = logging.getLogger(__name__)
 
     def _init_options(self, kwargs):
-        """ Initializes self.options """
+        """Initializes self.options"""
         if self.task_config.options is None:
             self.options = {}
         else:
@@ -117,11 +136,11 @@ class BaseTask(object):
             )
 
     def _update_credentials(self):
-        """ Override to do any logic to refresh credentials """
+        """Override to do any logic to refresh credentials"""
         pass
 
     def _init_task(self):
-        """ Override to implement dynamic logic for initializing the task. """
+        """Override to implement dynamic logic for initializing the task."""
         pass
 
     def __call__(self):
@@ -138,16 +157,21 @@ class BaseTask(object):
             self.working_path = os.getcwd()
             path = self.project_config.repo_root if self.project_config else None
             with cd(path):
-                self._log_begin()
-                self.result = self._run_task()
-                return self.return_values
+                with (
+                    redirect_output_to_logger(self.logger)
+                    if CAPTURE_TASK_OUTPUT
+                    else nullcontext()
+                ):
+                    self._log_begin()
+                    self.result = self._run_task()
+                    return self.return_values
 
     def _run_task(self):
-        """ Subclasses should override to provide their implementation """
+        """Subclasses should override to provide their implementation"""
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     def _log_begin(self):
-        """ Log the beginning of the task execution """
+        """Log the beginning of the task execution"""
         self.logger.info(f"Beginning task: {self.__class__.__name__}")
         if self.salesforce_task and not self.flow:
             self.logger.info(f"As user: {self.org_config.username}")
@@ -189,7 +213,7 @@ class BaseTask(object):
         self.poll_interval_s = 1
 
     def _poll(self):
-        """ poll for a result in a loop """
+        """poll for a result in a loop"""
         while True:
             self.poll_count += 1
             self._poll_action()
@@ -206,7 +230,7 @@ class BaseTask(object):
         raise NotImplementedError("Subclasses should provide their own implementation")
 
     def _poll_update_interval(self):
-        """ update the polling interval to be used next iteration """
+        """update the polling interval to be used next iteration"""
         # Increase by 1 second every 3 polls
         if self.poll_count // 3 > self.poll_interval_level:
             self.poll_interval_level += 1
