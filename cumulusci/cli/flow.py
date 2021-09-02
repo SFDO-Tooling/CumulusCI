@@ -93,7 +93,7 @@ def flow_list(runtime, plain, print_json):
 @flow.command(name="info", help="Displays information for a flow")
 @click.argument("flow_name")
 @click.option(
-    "--verbose",
+    "--verbose", "-v"
     is_flag=True,
     help="If set, displays all defined options",
 )
