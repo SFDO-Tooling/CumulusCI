@@ -597,6 +597,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         """Returns true if any dependencies are specified using a namespace rather than 04t"""
         return any(
             isinstance(dependency, PackageNamespaceVersionDependency)
+            and not dependency.version_id
             for dependency in project_dependencies
         )
 

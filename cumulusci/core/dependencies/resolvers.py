@@ -6,25 +6,23 @@ from typing import Callable, Iterable, List, Optional, Tuple
 from github3.exceptions import NotFoundError
 
 from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.dependencies.github import (
-    get_2gp_version_id_from_tag,
-    get_package_data,
-    get_remote_project_config,
-    get_repo,
-)
 from cumulusci.core.dependencies.dependencies import (
     BaseGitHubDependency,
     Dependency,
     DynamicDependency,
-    StaticDependency,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
+    StaticDependency,
     parse_dependencies,
 )
-from cumulusci.core.exceptions import (
-    CumulusCIException,
-    DependencyResolutionError,
+from cumulusci.core.dependencies.github import (
+    PackageType,
+    get_package_data,
+    get_package_details_from_tag,
+    get_remote_project_config,
+    get_repo,
 )
+from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
 from cumulusci.core.github import (
     find_latest_release,
     find_repo_2gp_context,
@@ -93,9 +91,9 @@ class GitHubTagResolver(Resolver):
             if dep.is_unmanaged or not namespace:
                 return ref, None
             else:
-                version_id = get_2gp_version_id_from_tag(tag)
+                version_id, package_type = get_package_details_from_tag(tag)
 
-                if version_id:
+                if package_type is PackageType.SECOND_GEN:
                     package_dep = PackageVersionIdDependency(
                         version_id=version_id,
                         version_number=release.name,
@@ -106,6 +104,7 @@ class GitHubTagResolver(Resolver):
                         namespace=namespace,
                         version=release.name,
                         package_name=package_name,
+                        version_id=version_id,
                     )
 
                 return (ref, package_dep)
@@ -129,7 +128,7 @@ class GitHubReleaseTagResolver(Resolver):
         release = find_latest_release(repo, include_beta=self.include_beta)
         if release:
             tag = repo.tag(repo.ref(f"tags/{release.tag_name}").object.sha)
-            version_id = get_2gp_version_id_from_tag(tag)
+            version_id, package_type = get_package_details_from_tag(tag)
 
             ref = tag.object.sha
             package_config = get_remote_project_config(repo, ref)
@@ -138,7 +137,7 @@ class GitHubReleaseTagResolver(Resolver):
             if dep.is_unmanaged or not namespace:
                 return ref, None
             else:
-                if version_id:
+                if package_type is PackageType.SECOND_GEN:
                     package_dep = PackageVersionIdDependency(
                         version_id=version_id,
                         version_number=release.name,
@@ -149,6 +148,7 @@ class GitHubReleaseTagResolver(Resolver):
                         namespace=namespace,
                         version=release.name,
                         package_name=package_name,
+                        version_id=version_id,
                     )
                 return (ref, package_dep)
 
@@ -450,7 +450,7 @@ def get_static_dependencies(
     if resolution_strategy:
         strategies = get_resolver_stack(context, resolution_strategy)
     if filter_function is None:
-        filter_function = lambda x: True
+        filter_function = lambda x: True  # noqa: E731
 
     while any(not d.is_flattened or not d.is_resolved for d in dependencies):
         for d in dependencies:
