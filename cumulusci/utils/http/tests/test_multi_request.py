@@ -1,6 +1,51 @@
+import json
+
 import pytest
+import responses
+from requests.exceptions import ReadTimeout
 
 from cumulusci.utils.http.multi_request import CompositeParallelSalesforce
+
+COMPOSITE_RESPONSE = {
+    "compositeResponse": [
+        {
+            "body": {
+                "totalSize": 1,
+                "done": True,
+                "records": [
+                    {
+                        "attributes": {
+                            "type": "Account",
+                            "url": "/services/data/v49.0/sobjects/Account/0013B00000ddh3PQAQ",
+                        },
+                        "Id": "0013B00000ddh3PQAQ",
+                    }
+                ],
+            },
+            "httpHeaders": {},
+            "httpStatusCode": 200,
+            "referenceId": "one",
+        },
+        {
+            "body": {
+                "totalSize": 1,
+                "done": True,
+                "records": [
+                    {
+                        "attributes": {
+                            "type": "Account",
+                            "url": "/services/data/v49.0/sobjects/Account/0013B00000ddh7qQAA",
+                        },
+                        "Name": "Elizabeth Foster",
+                    }
+                ],
+            },
+            "httpHeaders": {},
+            "httpStatusCode": 200,
+            "referenceId": "two",
+        },
+    ]
+}
 
 
 class TestCompositeParallelSalesforce:
@@ -23,7 +68,8 @@ class TestCompositeParallelSalesforce:
             },
         ] * 2
         with CompositeParallelSalesforce(sf, 5, max_workers=1) as cpsf:
-            results = cpsf.do_composite_requests(requests)
+            results, errors = cpsf.do_composite_requests(requests)
+
         assert len(list(results)) == len(requests)
         for result in results:
             assert result["body"]
@@ -39,7 +85,7 @@ class TestCompositeParallelSalesforce:
     @pytest.mark.vcr()
     def test_empty(self, sf):
         with CompositeParallelSalesforce(sf, 5, max_workers=1) as cpsf:
-            results = cpsf.do_composite_requests([])
+            results, errors = cpsf.do_composite_requests([])
             assert list(results) == []
 
     @pytest.mark.vcr()
@@ -57,7 +103,7 @@ class TestCompositeParallelSalesforce:
             "ManualEditTestCompositeParallelSalesforce.test_http_headers.yaml"
         ):
             with CompositeParallelSalesforce(sf, 4, max_workers=1) as cpsf:
-                results = cpsf.do_composite_requests(requests)
+                results, errors = cpsf.do_composite_requests(requests)
         assert results[0]["httpStatusCode"] == 304
 
     @pytest.mark.vcr()
@@ -81,7 +127,7 @@ class TestCompositeParallelSalesforce:
             },
         ]
         with CompositeParallelSalesforce(sf, 2, max_workers=1) as cpsf:
-            results = cpsf.do_composite_requests(requests)
+            results, errors = cpsf.do_composite_requests(requests)
         assert len(list(results)) == len(requests)
         assert set(result["referenceId"] for result in results) == set(
             request["referenceId"] for request in requests
@@ -91,5 +137,64 @@ class TestCompositeParallelSalesforce:
     def test_errors(self, sf):
         requests = [{"method": "GET", "url": "/services/data/v50.0/sobjects/Foo"}]
         with CompositeParallelSalesforce(sf, 4, max_workers=1) as cpsf:
-            results = cpsf.do_composite_requests(requests)
+            results, errors = cpsf.do_composite_requests(requests)
         assert results[0]["httpStatusCode"] == 404, results[0]["httpStatusCode"]
+
+    @responses.activate
+    def test_multirequest_timeout(self, sf):
+        requests = [
+            {
+                "method": "GET",
+                "url": "/services/data/v50.0/query?q=SELECT Id FROM Account LIMIT 1",
+                "referenceId": "one",
+            },
+            {
+                "method": "GET",
+                "url": "/services/data/v50.0/query?q=SELECT Name FROM Account LIMIT 1",
+                "referenceId": "two",
+            },
+            {
+                "method": "GET",
+                "url": "/services/data/v50.0/query?q=SELECT Name FROM Account LIMIT 1",
+                "referenceId": "three",
+            },
+        ] * 2
+
+        class FakeRequestHandler:
+            counter = 0
+
+            def request_callback(self, request):
+                should_return_error = self.counter == 1  # fail the second request of 3
+                self.counter += 1
+                if should_return_error:
+                    raise ReadTimeout()
+                else:
+                    return (
+                        200,
+                        {},
+                        json.dumps(COMPOSITE_RESPONSE),
+                    )
+
+        composite_handler = FakeRequestHandler()
+        responses.add_callback(
+            responses.POST,
+            f"{sf.base_url}composite",
+            callback=composite_handler.request_callback,
+            content_type="application/json",
+        )
+
+        single_request_handler = FakeRequestHandler()
+        responses.add_callback(
+            responses.GET,
+            "https://orgname.my.salesforce.com/services/data/v52.0/query?q=SELECT%20Id%20FROM%20Account%20LIMIT%201",
+            callback=single_request_handler.request_callback,
+            content_type="application/json",
+        )
+
+        with CompositeParallelSalesforce(sf, 2, max_workers=1) as cpsf:
+            results, errors = cpsf.do_composite_requests(requests)
+        assert len(errors) == 1  # one of the single requests fails after retry
+        assert len(results) == 5  # 4 succeed first time, one fails on retry
+
+        assert single_request_handler.counter == 2
+        assert composite_handler.counter == 3

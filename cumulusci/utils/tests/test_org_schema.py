@@ -1,11 +1,14 @@
 import gzip
 import json
+import re
 from itertools import chain
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import responses
 import yaml
+from requests.exceptions import ReadTimeout
 from sqlalchemy import create_engine
 
 from cumulusci.salesforce_api.org_schema import (
@@ -18,6 +21,8 @@ from cumulusci.salesforce_api.org_schema_models import Base
 
 class FakeSF:
     """A pretend version of Salesforce for composite testing"""
+
+    sf_version = "99.0"
 
     base_url = "https://innovation-page-2420-dev-ed.cs50.my.salesforce.com/"
     headers = {}
@@ -45,7 +50,7 @@ def makeFakeCompositeParallelSalesforce(responses):
             pass
 
         def do_composite_requests(self, requests):
-            return responses()
+            return responses(), []
 
     return FakeCompositeParallelSalesforce
 
@@ -202,6 +207,73 @@ class TestDescribeOrg:
             with get_org_schema(FakeSF(), org_config) as schema:
                 assert "Account" in schema
             assert caplog.text
+
+    @responses.activate
+    def test_http_level_errors(self, sf, org_config, global_describe):
+        # This is a bit complex. We're trying to test what happens
+        # when a composite request fails. That should trigger a retry
+        # of each item in the request. So we have to provide responses
+        # at the level of the original describe, the composite request and
+        # the single requests.
+
+        # use just a subset for test perf reasons
+        responses.add("GET", f"{sf.base_url}sobjects", json=global_describe(50))
+
+        class FakeRequestHandler:
+            counter = 0
+
+            def __init__(self, response=None):
+                self.response = response
+
+            def request_callback(self, request):
+                should_return_error = self.counter == 1  # fail the second request of X
+                self.counter += 1
+                if should_return_error:
+                    raise ReadTimeout()
+                else:
+                    return (
+                        200,
+                        {"Last-Modified": "Wed, 01 Jan 2000 01:01:01 GMT"},
+                        json.dumps(self.real_reliable_request_callback(request)),
+                    )
+
+            def real_reliable_request_callback(self, request):
+                return self.response
+
+        sobject_describes = json.loads(
+            self.cassette_data["interactions"][0]["response"]["body"]["string"]
+        )
+        composite_handler = FakeRequestHandler(sobject_describes)
+        responses.add_callback(
+            method="POST",
+            url=f"{sf.base_url}composite",
+            callback=composite_handler.request_callback,
+            content_type="application/json",
+        )
+
+        class SingleSobjFakeRequestHandler(FakeRequestHandler):
+            def real_reliable_request_callback(self, request):
+                sobject = request.url.split("/")[-2]
+                fake_describe = sobject_describes["compositeResponse"][0]["body"].copy()
+                fake_describe["name"] = sobject
+                return fake_describe
+
+        single_sobj_handler = SingleSobjFakeRequestHandler()
+        responses.add_callback(
+            method="GET",
+            url=re.compile(r"https://.*/sobjects/.*/describe"),
+            callback=single_sobj_handler.request_callback,
+            content_type="application/json",
+        )
+
+        with get_org_schema(sf, org_config) as schema:
+            assert "Account" in schema
+            assert schema["Account"].labelPlural
+
+        # check that the single_sobj_handler was called because of
+        # the timeout. If you comment out the branch line
+        # that raises the exception then this assertion will fail.
+        assert single_sobj_handler.counter > 0
 
 
 @pytest.mark.needs_org()  # too hard to make these VCR-compatible due to data volume
