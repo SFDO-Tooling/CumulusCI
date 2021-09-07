@@ -359,6 +359,26 @@ may be specified using the namespace and version or the version id. Dependencies
 
 
 
+Package Install Keys (Passwords)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some packages are protected by an install key, which must be present in order to install the package.
+CumulusCI dependencies can use the ``password_env_name`` key to instruct CumulusCI to retrieve
+the package install key from an environment variable. This key is available on both package version
+dependencies and on GitHub dependencies: 
+
+.. code-block:: yaml
+
+    project:
+        dependencies:
+            - namespace: my_namespace
+              version: 3.6
+              password_env_name: INSTALL_KEY
+            - github: https://github.com/MyOrg/MyRepo
+              password_env_name: MY_REPO_KEY
+
+
+
 Unmanaged Metadata Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Specify unmanaged metadata to be deployed by specifying a ``zip_url`` or a ``github`` URL, and, optionally,
