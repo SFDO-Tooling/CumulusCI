@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 from pathlib import Path
+from typing import Dict
 
 import click
 from jinja2 import Environment, PackageLoader
@@ -45,15 +46,6 @@ def project_init(runtime):
         raise click.ClickException("This project already has a cumulusci.yml file")
 
     context = {"cci_version": cumulusci.__version__}
-
-    # Prep jinja2 environment for rendering files
-    env = Environment(
-        loader=PackageLoader(
-            "cumulusci", os.path.join("files", "templates", "project")
-        ),
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
 
     # Project and Package Info
     click.echo()
@@ -218,13 +210,26 @@ def project_init(runtime):
             click.style("Minimum code coverage percentage", bold=True), default=75
         )
 
+    init_from_context(context, echo=True)
+
+
+def init_from_context(context: Dict[str, object], echo: bool = False):
+    # Prep jinja2 environment for rendering files
+    env = Environment(
+        loader=PackageLoader(
+            "cumulusci", os.path.join("files", "templates", "project")
+        ),
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+
     # Render templates
     for name in (".gitignore", "README.md", "cumulusci.yml"):
         template = env.get_template(name)
         file_path = Path(name)
         if not file_path.is_file():
             file_path.write_text(template.render(**context))
-        else:
+        elif echo:
             click.echo(
                 click.style(
                     f"{name} already exists. As a reference, here is what would be placed in the file if it didn't already exist:",
@@ -324,13 +329,14 @@ def project_init(runtime):
         with open(os.path.join("datasets", "mapping.yml"), "w") as f:
             f.write(template.render(**context))
 
-    click.echo(
-        click.style(
-            "Your project is now initialized for use with CumulusCI",
-            bold=True,
-            fg="green",
+    if echo:
+        click.echo(
+            click.style(
+                "Your project is now initialized for use with CumulusCI",
+                bold=True,
+                fg="green",
+            )
         )
-    )
 
 
 @project.command(
