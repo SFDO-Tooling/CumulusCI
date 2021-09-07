@@ -1,9 +1,7 @@
-import json
-
 import pytest
 import responses
-from requests.exceptions import ReadTimeout
 
+from cumulusci.tests.util import FakeUnreliableRequestHandler
 from cumulusci.utils.http.multi_request import CompositeParallelSalesforce
 
 COMPOSITE_RESPONSE = {
@@ -160,22 +158,7 @@ class TestCompositeParallelSalesforce:
             },
         ] * 2
 
-        class FakeRequestHandler:
-            counter = 0
-
-            def request_callback(self, request):
-                should_return_error = self.counter == 1  # fail the second request of 3
-                self.counter += 1
-                if should_return_error:
-                    raise ReadTimeout()
-                else:
-                    return (
-                        200,
-                        {},
-                        json.dumps(COMPOSITE_RESPONSE),
-                    )
-
-        composite_handler = FakeRequestHandler()
+        composite_handler = FakeUnreliableRequestHandler(COMPOSITE_RESPONSE)
         responses.add_callback(
             responses.POST,
             f"{sf.base_url}composite",
@@ -183,7 +166,7 @@ class TestCompositeParallelSalesforce:
             content_type="application/json",
         )
 
-        single_request_handler = FakeRequestHandler()
+        single_request_handler = FakeUnreliableRequestHandler(COMPOSITE_RESPONSE)
         responses.add_callback(
             responses.GET,
             "https://orgname.my.salesforce.com/services/data/v52.0/query?q=SELECT%20Id%20FROM%20Account%20LIMIT%201",

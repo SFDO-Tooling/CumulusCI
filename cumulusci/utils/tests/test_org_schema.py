@@ -8,7 +8,6 @@ from unittest.mock import patch
 import pytest
 import responses
 import yaml
-from requests.exceptions import ReadTimeout
 from sqlalchemy import create_engine
 
 from cumulusci.salesforce_api.org_schema import (
@@ -17,6 +16,7 @@ from cumulusci.salesforce_api.org_schema import (
     zip_database,
 )
 from cumulusci.salesforce_api.org_schema_models import Base
+from cumulusci.tests.util import FakeUnreliableRequestHandler
 
 
 class FakeSF:
@@ -219,31 +219,10 @@ class TestDescribeOrg:
         # use just a subset for test perf reasons
         responses.add("GET", f"{sf.base_url}sobjects", json=global_describe(50))
 
-        class FakeRequestHandler:
-            counter = 0
-
-            def __init__(self, response=None):
-                self.response = response
-
-            def request_callback(self, request):
-                should_return_error = self.counter == 1  # fail the second request of X
-                self.counter += 1
-                if should_return_error:
-                    raise ReadTimeout()
-                else:
-                    return (
-                        200,
-                        {"Last-Modified": "Wed, 01 Jan 2000 01:01:01 GMT"},
-                        json.dumps(self.real_reliable_request_callback(request)),
-                    )
-
-            def real_reliable_request_callback(self, request):
-                return self.response
-
         sobject_describes = json.loads(
             self.cassette_data["interactions"][0]["response"]["body"]["string"]
         )
-        composite_handler = FakeRequestHandler(sobject_describes)
+        composite_handler = FakeUnreliableRequestHandler(sobject_describes)
         responses.add_callback(
             method="POST",
             url=f"{sf.base_url}composite",
@@ -251,14 +230,14 @@ class TestDescribeOrg:
             content_type="application/json",
         )
 
-        class SingleSobjFakeRequestHandler(FakeRequestHandler):
+        class SingleSobjFakeUnreliableRequestHandler(FakeUnreliableRequestHandler):
             def real_reliable_request_callback(self, request):
                 sobject = request.url.split("/")[-2]
                 fake_describe = sobject_describes["compositeResponse"][0]["body"].copy()
                 fake_describe["name"] = sobject
                 return fake_describe
 
-        single_sobj_handler = SingleSobjFakeRequestHandler()
+        single_sobj_handler = SingleSobjFakeUnreliableRequestHandler()
         responses.add_callback(
             method="GET",
             url=re.compile(r"https://.*/sobjects/.*/describe"),

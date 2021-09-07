@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 import responses
+from requests import ReadTimeout
 
 from cumulusci.core.config import BaseProjectConfig, OrgConfig, UniversalConfig
 from cumulusci.core.keychain import BaseProjectKeychain
@@ -261,3 +262,25 @@ def unmock_env():
         return mock_env(homedir, cci_key)
     else:
         return nullcontext()
+
+
+class FakeUnreliableRequestHandler:
+    counter = 0
+
+    def __init__(self, response=None):
+        self.response = response
+
+    def request_callback(self, request):
+        should_return_error = self.counter == 1  # fail the second request of X
+        self.counter += 1
+        if should_return_error:
+            raise ReadTimeout()
+        else:
+            return (
+                200,
+                {"Last-Modified": "Wed, 01 Jan 2000 01:01:01 GMT"},
+                json.dumps(self.real_reliable_request_callback(request)),
+            )
+
+    def real_reliable_request_callback(self, request):
+        return self.response
