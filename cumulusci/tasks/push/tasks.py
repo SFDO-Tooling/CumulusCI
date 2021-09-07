@@ -281,14 +281,15 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
         package_id = self.options.get("metadata_package_id")
         version_id = self.options.get("version_id")
-        if package_id is not None and version_id is not None:
+        namespace_opt = self.options.get("namespace")
+        if package_id is not None and namespace_opt is not None:
             raise TaskOptionsError(
-                "'metadata_package_id' and 'version_id' options cannot both be set."
+                "'metadata_package_id' and 'namespace' options cannot both be set."
             )
 
         package = self._get_package(
             metadata_package_id=package_id,
-            namespace=self.options.get("namespace"),
+            namespace=namespace_opt,
         )
         if version_id:
             version = version_id
