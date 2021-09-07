@@ -167,20 +167,11 @@ Common Tasks
 
 
 
-Deploy updated code into an org (any project)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deploy updated code into an org
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. code-block:: console
 
-    $ cci task run deploy_unmanaged 
-
-
-
-Deploy updated code into an org (Salesforce DX projects only)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: console
-
-    $ cci task run dx_push
+    $ cci flow run deploy_unmanaged 
 
 
 Execute Apex unit tests in an org
@@ -215,5 +206,3 @@ Retrieve changes to local repository
 .. code-block::
 
     $ cci task run retrieve_changes
-
-
