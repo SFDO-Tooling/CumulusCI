@@ -117,6 +117,8 @@ class TestRobot(unittest.TestCase):
             outputdir=outputdir,
             variable=["org:test"],
             tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
+            stdout=sys.stdout,
+            stderr=sys.stderr,
         )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
@@ -134,6 +136,8 @@ class TestRobot(unittest.TestCase):
             outputdir=outputdir,
             variable=["org:test"],
             tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
+            stdout=sys.stdout,
+            stderr=sys.stderr,
         )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
@@ -150,6 +154,8 @@ class TestRobot(unittest.TestCase):
             outputdir=outputdir,
             variable=["org:test"],
             tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
+            stdout=sys.stdout,
+            stderr=sys.stderr,
         )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
@@ -174,6 +180,8 @@ class TestRobot(unittest.TestCase):
             outputdir=outputdir,
             variable=["org:test"],
             tagstatexclude=["this", "that", "cci_metric_elapsed_time", "cci_metric"],
+            stdout=sys.stdout,
+            stderr=sys.stderr,
         )
 
     def test_default_listeners(self):

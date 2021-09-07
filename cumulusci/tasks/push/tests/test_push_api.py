@@ -372,12 +372,13 @@ def test_sf_push_get_package_version_by_id(sf_push_api, metadata_package_version
 
 
 def test_sf_push_get_subscribers(sf_push_api):
-    query = "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE Name='foo'"
+    query = "SELECT Id, MetadataPackageVersionId, InstalledStatus, InstanceName, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE Name='foo'"
     sf_push_api.return_query_records = mock.MagicMock()
     field_names = [
         "Id",
         "MetadataPackageVersionId",
         "InstalledStatus",
+        "InstanceName",
         "OrgName",
         "OrgKey",
         "OrgStatus",
@@ -390,13 +391,14 @@ def test_sf_push_get_subscribers(sf_push_api):
 
 
 def test_sf_push_get_subscriber_objs(sf_push_api):
-    query = "SELECT Id, MetadataPackageVersionId, InstalledStatus, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE Name='foo'"
+    query = "SELECT Id, MetadataPackageVersionId, InstalledStatus, InstanceName, OrgName, OrgKey, OrgStatus, OrgType from PackageSubscriber WHERE Name='foo'"
     sf_push_api.return_query_records = mock.MagicMock()
     sf_push_api.get_subscriber_objs("Name='foo'", None)
     field_names = [
         "Id",
         "MetadataPackageVersionId",
         "InstalledStatus",
+        "InstanceName",
         "OrgName",
         "OrgKey",
         "OrgStatus",

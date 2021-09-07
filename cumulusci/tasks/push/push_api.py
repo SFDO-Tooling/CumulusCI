@@ -373,6 +373,7 @@ class SalesforcePushApi(object):
             "Id",
             "MetadataPackageVersionId",
             "InstalledStatus",
+            "InstanceName",
             "OrgName",
             "OrgKey",
             "OrgStatus",

@@ -218,6 +218,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                 "options": {
                     "tag": "release/1.0",
                     "publish": True,
+                    "dry_run": "False",
                     "labels_path": labels_path,
                 }
             }

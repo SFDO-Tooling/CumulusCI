@@ -1,8 +1,8 @@
 version: 2
 updates:
-- package-ecosystem: pip
-  directory: "/"
-  schedule:
-    interval: weekly
-    day: tuesday
-  open-pull-requests-limit: 99
+    - package-ecosystem: pip
+      directory: "/"
+      schedule:
+          interval: weekly
+          day: tuesday
+      open-pull-requests-limit: 99

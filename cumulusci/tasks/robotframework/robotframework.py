@@ -265,6 +265,8 @@ class Robot(BaseSalesforceTask):
             if self.project_config.repo_root not in sys.path:
                 pythonpathsetter.add_path(self.project_config.repo_root)
 
+            options["stdout"] = sys.stdout
+            options["stderr"] = sys.stderr
             try:
                 num_failed = robot_run(*self.options["suites"], **options)
             finally:
