@@ -123,7 +123,7 @@ class DynamicDependency(Dependency, abc.ABC):
     """Abstract base class for dependencies with dynamic references, like GitHub.
     These dependencies must be resolved and flattened before they can be installed."""
 
-    managed_dependency: Optional[StaticDependency]
+    package_dependency: Optional[StaticDependency]
     password_env_name: Optional[str]
 
     @property
