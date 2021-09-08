@@ -6,6 +6,7 @@ from threading import Thread
 from unittest import mock
 
 import pytest
+import yaml
 from sqlalchemy import create_engine
 
 from cumulusci.core import exceptions as exc
@@ -17,6 +18,9 @@ from cumulusci.utils.parallel.task_worker_queues.tests.test_parallel_worker impo
     DelaySpawner,
 )
 
+simple_salesforce_yaml = (
+    Path(__file__).parent / "snowfakery/simple_snowfakery.recipe.yml"
+)
 sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.recipe.yml"
 query_yaml = Path(__file__).parent / "snowfakery/query_snowfakery.recipe.yml"
 
@@ -148,6 +152,30 @@ def ensure_accounts(create_task, run_code_without_recording, sf):
         run_code_without_recording(lambda: setup(0))
 
     return _ensure_accounts
+
+
+@pytest.fixture()
+def get_mapping_file(snowfakery, threads_instead_of_processes, mock_load_data):
+    def _get_mapping_file(**options):
+        with TemporaryDirectory() as workingdir:
+            workingdir = Path(workingdir) / "tempdir"
+            task = snowfakery(
+                run_until_recipe_repeated=2,
+                working_directory=workingdir,
+                **options,
+            )
+            task()
+            temp_mapping = (
+                Path(workingdir) / "data_load_outbox/template_1/temp_mapping.yml"
+            )
+            with open(temp_mapping) as f:
+                mapping = yaml.safe_load(f)
+
+            other_mapping = Path(str(temp_mapping).replace("template_1", "1_1"))
+            assert temp_mapping.read_text() == other_mapping.read_text()
+        return mapping
+
+    return _get_mapping_file
 
 
 class TestSnowfakery:
@@ -303,7 +331,6 @@ class TestSnowfakery:
         mock_load_data,
         snowfakery,
         ensure_accounts,
-        create_task,
     ):
         with ensure_accounts(10):
             task = snowfakery(recipe=sample_yaml, run_until_records_in_org="Account:16")
@@ -430,8 +457,39 @@ class TestSnowfakery:
         r.successes = 11
         assert "11" in repr(r)
 
-    ## TODO: Test First batch
-    ## TODO: Test Intermediate batch
+    def test_generate_mapping_file__loadfile__inferred(self, get_mapping_file):
+
+        mapping = get_mapping_file(recipe=simple_salesforce_yaml)
+
+        assert mapping["Insert Account"]["api"] == "bulk"
+        assert mapping["Insert Contact"].get("bulk_mode") is None
+        assert list(mapping.keys()) == ["Insert Account", "Insert Contact"]
+
+    def test_generate_mapping_file__loadfile__overridden(self, get_mapping_file):
+        loading_rules = str(simple_salesforce_yaml).replace(
+            ".recipe.yml", "_2.load.yml"
+        )
+        mapping = get_mapping_file(
+            recipe=simple_salesforce_yaml, loading_rules=str(loading_rules)
+        )
+
+        assert mapping["Insert Account"].get("api") is None
+        assert mapping["Insert Contact"]["bulk_mode"].lower() == "parallel"
+        assert list(mapping.keys()) == ["Insert Contact", "Insert Account"]
+
+    def test_generate_mapping_file__loadfile_multiple_files(self, get_mapping_file):
+        loading_rules = (
+            str(simple_salesforce_yaml).replace(".recipe.yml", "_2.load.yml")
+            + ","
+            + str(simple_salesforce_yaml).replace(".recipe.yml", ".load.yml")
+        )
+        mapping = get_mapping_file(
+            recipe=simple_salesforce_yaml, loading_rules=str(loading_rules)
+        )
+
+        assert mapping["Insert Account"]["api"] == "bulk"
+        assert mapping["Insert Contact"]["bulk_mode"].lower() == "parallel"
+        assert list(mapping.keys()) == ["Insert Contact", "Insert Account"]
 
     # def test_vars(self):
     #     with temp_sqlite_database_url() as database_url:
@@ -675,39 +733,6 @@ class TestSnowfakery:
     #         with open(temp_mapping) as f:
     #             mapping = yaml.safe_load(f)
     #     return mapping
-
-    # def test_generate_mapping_file__loadfile__inferred(self):
-    #     mapping = self._get_mapping_file(generator_yaml=simple_snowfakery_yaml)
-
-    #     assert mapping["Insert Account"]["api"] == "bulk"
-    #     assert mapping["Insert Contact"].get("bulk_mode") is None
-    #     assert list(mapping.keys()) == ["Insert Account", "Insert Contact"]
-
-    # def test_generate_mapping_file__loadfile__overridden(self):
-    #     loading_rules = str(simple_snowfakery_yaml).replace(
-    #         ".recipe.yml", "_2.load.yml"
-    #     )
-    #     mapping = self._get_mapping_file(
-    #         generator_yaml=simple_snowfakery_yaml, loading_rules=str(loading_rules)
-    #     )
-
-    #     assert mapping["Insert Account"].get("api") is None
-    #     assert mapping["Insert Contact"]["bulk_mode"].lower() == "parallel"
-    #     assert list(mapping.keys()) == ["Insert Contact", "Insert Account"]
-
-    # def test_generate_mapping_file__loadfile_multiple_files(self):
-    #     loading_rules = (
-    #         str(simple_snowfakery_yaml).replace(".recipe.yml", "_2.load.yml")
-    #         + ","
-    #         + str(simple_snowfakery_yaml).replace(".recipe.yml", ".load.yml")
-    #     )
-    #     mapping = self._get_mapping_file(
-    #         generator_yaml=simple_snowfakery_yaml, loading_rules=str(loading_rules)
-    #     )
-
-    #     assert mapping["Insert Account"]["api"] == "bulk"
-    #     assert mapping["Insert Contact"]["bulk_mode"].lower() == "parallel"
-    #     assert list(mapping.keys()) == ["Insert Contact", "Insert Account"]
 
     # def test_generate_mapping_file__loadfile_missing(self):
     #     loading_rules = str(simple_snowfakery_yaml).replace(

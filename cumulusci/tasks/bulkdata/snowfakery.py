@@ -16,7 +16,7 @@ from sqlalchemy import MetaData, Table, create_engine, func, select
 import cumulusci.core.exceptions as exc
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.debug import get_debug_mode
-from cumulusci.core.utils import format_duration, process_bool_arg
+from cumulusci.core.utils import format_duration, process_bool_arg, process_list_arg
 from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
     GenerateAndLoadDataFromYaml,
 )
@@ -151,6 +151,8 @@ class Snowfakery(BaseSalesforceApiTask):
         self.ignore_row_errors = process_bool_arg(
             self.options.get("ignore_row_errors", False)
         )
+        loading_rules = process_list_arg(self.options.get("loading_rules")) or []
+        self.loading_rules = [Path(path) for path in loading_rules if path]
 
     @property
     def num_loader_workers(self):
@@ -440,6 +442,8 @@ class Snowfakery(BaseSalesforceApiTask):
             "database_url": wd.database_url,
             "set_recently_viewed": False,
             "ignore_row_errors": self.ignore_row_errors,
+            # don't need to pass loading_rules because they are merged into mapping
+            # "loading_rules": self.loading_rules,
         }
         return options
 
@@ -553,6 +557,7 @@ class Snowfakery(BaseSalesforceApiTask):
                 "generator_yaml": self.options.get("recipe"),
                 "num_records": 1,  # smallest possible batch to get to parallelizing fast
                 "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
+                "loading_rules": self.loading_rules,
             },
         )
         self.update_running_totals_from_load_step_results(results)
