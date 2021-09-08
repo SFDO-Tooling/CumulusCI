@@ -561,11 +561,14 @@ def test_sf_push_create_push_request(sf_push_api, metadata_package_version):
     sf_push_api._add_batch = mock.MagicMock(side_effect=[batch_0, batch_1])
 
     actual_id, actual_org_count = sf_push_api.create_push_request(
-        metadata_package_version, orgs, start_time
+        metadata_package_version.sf_id, orgs, start_time
     )
 
     sf_push_api.sf.PackagePushRequest.create.assert_called_once_with(
-        {"PackageVersionId": version_id, "ScheduledStartTime": start_time.isoformat()}
+        {
+            "PackageVersionId": version_id,
+            "ScheduledStartTime": start_time.isoformat(timespec="seconds"),
+        }
     )
     assert mock.call(batch_0, push_request_id) in sf_push_api._add_batch.call_args_list
     assert mock.call(batch_1, push_request_id) in sf_push_api._add_batch.call_args_list
