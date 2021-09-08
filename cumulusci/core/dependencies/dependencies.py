@@ -329,7 +329,7 @@ class GitHubDynamicDependency(BaseGitHubDependency):
             )
         )
 
-        if not self.managed_dependency:
+        if not self.package_dependency:
             if managed:
                 # We had an expectation of finding a package version and did not.
                 raise DependencyResolutionError(
@@ -347,7 +347,7 @@ class GitHubDynamicDependency(BaseGitHubDependency):
                 )
             )
         else:
-            deps.append(self.managed_dependency)
+            deps.append(self.package_dependency)
 
         # We always inject the project's namespace into unpackaged/post metadata if managed
         deps.extend(

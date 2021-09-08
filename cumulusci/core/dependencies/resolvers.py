@@ -503,7 +503,7 @@ def resolve_dependency(
 ):
     """Resolve a DynamicDependency that is not pinned to a specific version into one that is.
 
-    If successful, sets `dependency.ref` and optionally `dependency.managed_dependency`
+    If successful, sets `dependency.ref` and optionally `dependency.package_dependency`
     (if a package release is found).
 
     Otherwise raises DependencyResolutionError.
@@ -517,12 +517,12 @@ def resolve_dependency(
 
         if resolver and resolver.can_resolve(dependency, context):
             try:
-                dependency.ref, dependency.managed_dependency = resolver.resolve(
+                dependency.ref, dependency.package_dependency = resolver.resolve(
                     dependency, context
                 )
-                if dependency.managed_dependency:
+                if dependency.package_dependency:
                     try:
-                        dependency.managed_dependency.password_env_name = (
+                        dependency.package_dependency.password_env_name = (
                             dependency.password_env_name
                         )
                     except AttributeError:  # pragma: no cover
