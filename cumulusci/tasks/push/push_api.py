@@ -373,6 +373,7 @@ class SalesforcePushApi(object):
             "Id",
             "MetadataPackageVersionId",
             "InstalledStatus",
+            "InstanceName",
             "OrgName",
             "OrgKey",
             "OrgStatus",
@@ -556,7 +557,10 @@ class SalesforcePushApi(object):
 
         # Create the request
         res = self.sf.PackagePushRequest.create(
-            {"PackageVersionId": version.sf_id, "ScheduledStartTime": start.isoformat()}
+            {
+                "PackageVersionId": version,
+                "ScheduledStartTime": start.isoformat(timespec="seconds"),
+            }
         )
         request_id = res["id"]
 

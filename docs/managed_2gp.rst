@@ -22,13 +22,18 @@ CumulusCI uses the ``dependencies`` section of your ``cumulusci.yml`` file to de
 CumulusCI uses GitHub releases to identify the ancestor id and new version number for the beta package version. By default,
 the new beta version will increment the minor version number from the most recent GitHub release.
 
-Because Salesforce requires package version Ids (``04txxxxxxxxxxxx``) for 2GP package dependencies, some CumulusCI
-dependencies must be installed in an org to make those Ids available. If your project has dependencies that are not
-specified as a ``version_id``, start by running
+Because Salesforce requires package version Ids (``04txxxxxxxxxxxx``) for 2GP package dependencies,
+dependencies with 1GP releases created *before CumulusCI 3.34.0* must be installed in an org to make those Ids available. 
+If your project has such dependencies, start by running
 
 .. code-block:: console
 
     $ cci flow run dependencies --org dev
+
+If you are using CumulusCI 3.43.0 or later, your project uses dependencies specified as a ``version_id``, 
+2GP dependencies, or dependencies whose releases were created by CumulusCI 3.34.0 or later, you do not need
+to execute this step. Current versions of CumulusCI automatically store and consume the package version Id
+in GitHub releases.
 
 When you're ready, and your org is prepared, to upload a package version, run the command
 
