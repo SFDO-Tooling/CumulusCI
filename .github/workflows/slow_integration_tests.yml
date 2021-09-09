@@ -1,52 +1,52 @@
 name: Integration Tests
 
 on:
-  pull_request_review:
-    types: [submitted]
+    pull_request_review:
+        types: [submitted]
 
-  workflow_dispatch:
+    workflow_dispatch:
 
 env:
-  CUMULUSCI_KEY: ${{ secrets.CUMULUSCI_KEY }}
+    CUMULUSCI_KEY: ${{ secrets.CUMULUSCI_KEY }}
 
 jobs:
-  org_backed_tests:
-    name: "Org-connected Tests"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-      - name: pip cache
-        uses: actions/cache@v1
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install -U pip
-          make dev-install
-      - name: Install sfdx
-        run: |
-          mkdir sfdx
-          wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
-          echo $(realpath sfdx/bin) >> $GITHUB_PATH
-      - name: Authenticate Dev Hub
-        run: |
-          sfdx plugins --core
-          echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
-          sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-        env:
-          SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
-          SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
-          SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
-      - name: Re-make VCR tapes (transiently)
-        run: make vcr
-      - name: Delete scratch org
-        if: always()
-        run: |
-          cci org scratch_delete pytest
+    org_backed_tests:
+        name: "Org-connected Tests"
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - name: Set up Python 3.8
+              uses: actions/setup-python@v2
+              with:
+                  python-version: 3.8
+            - name: pip cache
+              uses: actions/cache@v1
+              with:
+                  path: ~/.cache/pip
+                  key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pip-
+            - name: Install Python dependencies
+              run: |
+                  python -m pip install -U pip
+                  make dev-install
+            - name: Install sfdx
+              run: |
+                  mkdir sfdx
+                  wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
+                  echo $(realpath sfdx/bin) >> $GITHUB_PATH
+            - name: Authenticate Dev Hub
+              run: |
+                  sfdx plugins --core
+                  echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
+                  sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
+              env:
+                  SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
+                  SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
+                  SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
+            - name: Re-make VCR tapes (transiently)
+              run: make vcr
+            - name: Delete scratch org
+              if: always()
+              run: |
+                  cci org scratch_delete pytest

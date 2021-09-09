@@ -2,6 +2,55 @@
 History
 =======
 
+3.43.0 (2021-09-02)
+-------------------
+
+Critical Changes
+
+* We now support all package installation options for the ``update_dependencies`` and ``install_managed`` tasks, including ``activate_remote_site_settings``, ``security_type``, ``name_conflict_resolution``, and ``password`` (password not available for ``update_dependencies``). (#2811)
+
+  We also fixed a minor inconsistency in defaulting the ``activate_remote_site_settings`` (or formerly ``activateRSS``) option. Projects that define custom tasks based on the ``InstallPackageVersion`` class should ensure they explicitly set the ``activate_remote_site_settings`` option, or accept the new default of True.
+
+  MetaDeploy install plans now *do not* freeze defaulted package install options. If your install plans are dependent on specific install options, we recommend explicitly specifying them. Install plans without explicit options will use the defaults at the time of execution.
+
+Changes
+
+* The ``sources`` feature, which allows CumulusCI projects to consume automation from other projects, now supports specifying a ``resolution_strategy``, just like dependencies. Sources can now resolve to the same GitHub refs as corresponding dependencies, including branch matching. The default behavior is to use the ``production`` resolution strategy. (#2807) 
+
+* Added several new tasks for configuring Marketing Cloud: ``marketing_cloud_create_subscriber_attribute``, ``marketing_cloud_create_user``, and ``marketing_cloud_update_user_role``. (#2838)
+
+* In the mapping file for the ``load_dataset`` task, the ``batch_size`` can now be specified for Bulk API steps in addition to REST API steps. (#2813)
+
+* The ``snowfakery`` task now supports the ``ignore_row_errors`` option to continue loading even if there are row errors. (#2819)
+
+* We made significant updates to the `documentation for Robot Framework <https://cumulusci.readthedocs.io/en/stable/robot.html>`_. (#2834, #2847)
+
+* We improved option validation for the ``add_page_layout_fields`` task. (#2828)
+
+Issues Fixed
+
+* Fixed handling of timezones when the ``start_time`` option is specified for the push tasks. (#2814)
+
+* Fixed the ``deploy_marketing_cloud_package`` task to handle changes to the Marketing Cloud API. (#2816)
+
+* Fixed an issue where MetaDeploy install steps that used 04t package version Ids, including 2GP installations, were frozen with incorrect titles. (#2817)
+
+* Fixed an issue causing 2GP commit-status builds to fail when the local Git repository has a detached HEAD (#2818)
+
+* Fixed a bug in the ``dry_run`` option for the ``metadeploy_publish`` task where explicitly setting the option to ``False`` did not disable the dry run. (#2836)
+
+* Improved the error message shown by the ``load_dataset`` task if a table is missing from the dataset. (#2813)
+  
+* Improved the warning message shown when CumulusCI can't encrypt org and service config files. (#2839)
+
+Internal Changes
+
+* CumulusCI has improved infrastructure for its own integration tests. (#2783)
+
+* Filing a CumulusCI issue on GitHub now presents a form to enter details. (#2829)
+
+* Added a linter to ensure consistent formatting of YAML files within the CumulusCI codebase. (#2844)
+
 3.42.0 (2021-08-19)
 -------------------
 Critical Changes
