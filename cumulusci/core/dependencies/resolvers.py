@@ -87,12 +87,20 @@ class GitHubTagResolver(Resolver):
             ref = tag.object.sha
             package_config = get_remote_project_config(repo, ref)
             package_name, namespace = get_package_data(package_config)
+            version_id, package_type = get_package_details_from_tag(tag)
 
-            if dep.is_unmanaged or not namespace:
+            install_unmanaged = (
+                dep.is_unmanaged  # We've been told to use this dependency unmanaged
+                or not (
+                    # We will install managed if:
+                    namespace  # the package has a namespace
+                    or version_id  # or is a non-namespaced Unlocked Package
+                )
+            )
+
+            if install_unmanaged:
                 return ref, None
             else:
-                version_id, package_type = get_package_details_from_tag(tag)
-
                 if package_type is PackageType.SECOND_GEN:
                     package_dep = PackageVersionIdDependency(
                         version_id=version_id,
@@ -134,7 +142,16 @@ class GitHubReleaseTagResolver(Resolver):
             package_config = get_remote_project_config(repo, ref)
             package_name, namespace = get_package_data(package_config)
 
-            if dep.is_unmanaged or not namespace:
+            install_unmanaged = (
+                dep.is_unmanaged  # We've been told to use this dependency unmanaged
+                or not (
+                    # We will install managed if:
+                    namespace  # the package has a namespace
+                    or version_id  # or is a non-namespaced Unlocked Package
+                )
+            )
+
+            if install_unmanaged:
                 return ref, None
             else:
                 if package_type is PackageType.SECOND_GEN:
@@ -486,7 +503,7 @@ def resolve_dependency(
 ):
     """Resolve a DynamicDependency that is not pinned to a specific version into one that is.
 
-    If successful, sets `dependency.ref` and optionally `dependency.managed_dependency`
+    If successful, sets `dependency.ref` and optionally `dependency.package_dependency`
     (if a package release is found).
 
     Otherwise raises DependencyResolutionError.
@@ -500,12 +517,12 @@ def resolve_dependency(
 
         if resolver and resolver.can_resolve(dependency, context):
             try:
-                dependency.ref, dependency.managed_dependency = resolver.resolve(
+                dependency.ref, dependency.package_dependency = resolver.resolve(
                     dependency, context
                 )
-                if dependency.managed_dependency:
+                if dependency.package_dependency:
                     try:
-                        dependency.managed_dependency.password_env_name = (
+                        dependency.package_dependency.password_env_name = (
                             dependency.password_env_name
                         )
                     except AttributeError:  # pragma: no cover
