@@ -135,7 +135,6 @@ jobs:
                   echo $(realpath sfdx/bin) >> $GITHUB_PATH
             - name: Authenticate Dev Hub
               run: |
-                  sfdx plugins:install salesforce-alm@52.1.0
                   sfdx plugins --core
                   echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
                   sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
@@ -190,7 +189,6 @@ jobs:
                   echo $(realpath sfdx/bin) >> $GITHUB_PATH
             - name: Authenticate Dev Hub
               run: |
-                  sfdx plugins:install salesforce-alm@52.1.0
                   sfdx plugins --core
                   echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
                   sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
@@ -245,7 +243,6 @@ jobs:
                   echo $(realpath sfdx/bin) >> $GITHUB_PATH
             - name: Authenticate Dev Hub
               run: |
-                  sfdx plugins:install salesforce-alm@52.1.0
                   sfdx plugins --core
                   echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
                   sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
