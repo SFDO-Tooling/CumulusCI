@@ -48,25 +48,24 @@ class ParallelHTTP:
         Returns a tuple with a sequence of successes and a sequence of failures.
         """
 
-        def catch(future, futures_to_requests):
-            try:
-                return future.result()
-            except Exception as e:
-                return HTTPRequestError(
-                    exception=e, request=futures_to_requests[future]
-                )
-
         futures_to_requests = {
             self._async_request(**request): request for request in requests
         }
 
         results = (
-            catch(future, futures_to_requests)
+            future_with_exception_handling(future, futures_to_requests)
             for future in as_completed(futures_to_requests.keys())
         )
         successes, errors = collate_results(results)
 
         return successes, errors
+
+
+def future_with_exception_handling(future, futures_to_requests):
+    try:
+        return future.result()
+    except Exception as e:
+        return HTTPRequestError(exception=e, request=futures_to_requests[future])
 
 
 def collate_results(result_iterable: T.Sequence) -> (T.Generator, T.Generator):
