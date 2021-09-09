@@ -10,6 +10,11 @@ from cumulusci.utils.iterators import iterate_in_chunks, partition
 RECOVERABLE_ERRORS = (ReadTimeout, ConnectionError)
 
 
+class HTTPRequestError(T.NamedTuple):
+    exception: Exception
+    request: dict
+
+
 class ParallelHTTP:
     """A parallelized HTTP client as a context manager"""
 
@@ -39,14 +44,17 @@ class ParallelHTTP:
 
     def do_requests(self, requests: T.Iterable[T.Dict]):
         """Initiate requests and wait for them to complete.
-        
+
         Returns a tuple with a sequence of successes and a sequence of failures.
         """
+
         def catch(future, futures_to_requests):
             try:
                 return future.result()
             except Exception as e:
-                return (e, futures_to_requests[future])
+                return HTTPRequestError(
+                    exception=e, request=futures_to_requests[future]
+                )
 
         futures_to_requests = {
             self._async_request(**request): request for request in requests
@@ -63,7 +71,7 @@ class ParallelHTTP:
 
 def collate_results(result_iterable: T.Sequence) -> (T.Generator, T.Generator):
     """Partition results into separate sequences of successes and errors."""
-    return partition(lambda r: isinstance(r, tuple), result_iterable)
+    return partition(lambda r: isinstance(r, HTTPRequestError), result_iterable)
 
 
 class ParallelSalesforce(ParallelHTTP):
@@ -156,14 +164,15 @@ class CompositeParallelSalesforce:
         individual_results += list(singleton_results)
         return individual_results, unrecoverable_errors
 
-    def retry_errors(self, errors):
+    def retry_errors(self, errors: T.List[HTTPRequestError]):
+        "Retry all composite requests that had errors."
         unrecoverable_errors = []
         singleton_requests = []
-        for exception, failed_composite_request in errors:
-            if isinstance(exception, RECOVERABLE_ERRORS):
-                singleton_requests.extend(split_requests(failed_composite_request))
+        for error in errors:
+            if isinstance(error.exception, RECOVERABLE_ERRORS):
+                singleton_requests.extend(split_requests(error.request))
             else:
-                unrecoverable_errors.append((exception, failed_composite_request))
+                unrecoverable_errors.append((error.exception, error.request))
 
         singleton_results, errors = self.psf.do_requests(singleton_requests)
 
