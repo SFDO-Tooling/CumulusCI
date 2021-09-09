@@ -340,7 +340,6 @@ class FlowCoordinator(object):
         lines = []
         previous_parts = []
         previous_source = None
-        options_defined = False
         for step in self.steps:
             parts = step.path.split(".")
             steps = str(step.step_num).split("/")
@@ -355,7 +354,6 @@ class FlowCoordinator(object):
                 if step.project_config.source is not previous_source
                 else ""
             )
-            has_options = ""
             options_info = ""
             for i, flow_name in enumerate(parts):
                 if not any(":" in part for part in step.path.split(".")[i + 1 :]):
@@ -377,18 +375,15 @@ class FlowCoordinator(object):
                 new_source = ""
 
             if step.task_config.get("options"):
-                options_defined = True
                 if verbose:
                     options = step.task_config.get("options")
                     options_info = f"{padding}  options:"
 
                     for option, value in options.items():
-                        options_info += f"\n{padding}{padding} {option}: {value}"
-                else:
-                    has_options = " [options defined]"
+                        options_info += f"\n{padding}      {option}: {value}"
 
             lines.append(
-                f"{'    ' * (i + 1)}{steps[i + 1]}) task: {task_name}{new_source}{has_options}"
+                f"{'    ' * (i + 1)}{steps[i + 1]}) task: {task_name}{new_source}"
             )
 
             if when:
@@ -399,9 +394,6 @@ class FlowCoordinator(object):
 
             previous_parts = parts
             previous_source = step.project_config.source
-
-        if options_defined and not verbose:
-            lines.append("\nUse the --verbose flag to see all defined options")
 
         return lines
 
