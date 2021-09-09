@@ -38,6 +38,10 @@ class ParallelHTTP:
         )
 
     def do_requests(self, requests: T.Iterable[T.Dict]):
+        """Initiate requests and wait for them to complete.
+        
+        Returns a tuple with a sequence of successes and a sequence of failures.
+        """
         def catch(future, futures_to_requests):
             try:
                 return future.result()
@@ -52,12 +56,13 @@ class ParallelHTTP:
             catch(future, futures_to_requests)
             for future in as_completed(futures_to_requests.keys())
         )
-        successes, errors = parition_errors(results)
+        successes, errors = collate_results(results)
 
         return successes, errors
 
 
-def parition_errors(result_iterable: T.Sequence) -> (T.Generator, T.Generator):
+def collate_results(result_iterable: T.Sequence) -> (T.Generator, T.Generator):
+    """Partition results into separate sequences of successes and errors."""
     return partition(lambda r: isinstance(r, tuple), result_iterable)
 
 
@@ -129,7 +134,7 @@ class CompositeParallelSalesforce:
 
     def do_composite_requests(
         self, requests
-    ) -> T.Tuple[T.Sequence, T.Sequence]:  # results, erros
+    ) -> T.Tuple[T.Sequence, T.Sequence]:  # results, errors
         if not self.psf:
             raise AssertionError(
                 "Session was not opened. Please call open() or use as a context manager"
