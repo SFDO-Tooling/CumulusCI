@@ -265,6 +265,8 @@ def unmock_env():
 
 
 class FakeUnreliableRequestHandler:
+    """Fake a request handler which fails its second request."""
+
     counter = 0
 
     def __init__(self, response=None):
