@@ -192,11 +192,12 @@ class CompositeParallelSalesforce:
 
 
 def split_requests(composite_request: dict):
-    # need to remove this prefix-pattern because it will be added again laters
+    # need to remove this prefix-pattern because it will be added again later
     prefix = "/services/data/vxx.x"
     single_requests = [r.copy() for r in composite_request["json"]["compositeRequest"]]
     for request in single_requests:
         del request["referenceId"]
-        if request["url"].startswith(prefix[0:-4]):
+        version_independent_prefix = prefix[0:-4]
+        if request["url"].startswith(version_independent_prefix):
             request["url"] = request["url"][len(prefix) :]
     return single_requests
