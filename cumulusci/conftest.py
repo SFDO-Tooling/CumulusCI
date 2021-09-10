@@ -136,12 +136,12 @@ def global_describe(cumulusci_test_repo_root):
         data = yaml.safe_load(f)
 
     def global_describe_specific_sobjects(sobjects: int = None):
-        if sobjects is None:
+        if sobjects is None:  # pragma: no cover
             subset = data.copy()
         elif isinstance(sobjects, int):
             subset = data.copy()
             subset["sobjects"] = subset["sobjects"][0:sobjects]
-        elif isinstance(sobjects, (list, tuple)):
+        elif isinstance(sobjects, (list, tuple)):  # pragma: no cover
             raise NotImplementedError(
                 "We could implement a by-name subsetting here when we need it."
             )

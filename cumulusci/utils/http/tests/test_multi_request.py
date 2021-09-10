@@ -181,3 +181,75 @@ class TestCompositeParallelSalesforce:
 
         assert single_request_handler.counter == 2
         assert composite_handler.counter == 3
+
+    @responses.activate
+    def test_multirequest_unknown_exception(self, sf):
+        requests = [
+            {
+                "method": "GET",
+                "url": "/services/data/v50.0/query?q=SELECT Id FROM Account LIMIT 1",
+                "referenceId": "one",
+            },
+            {
+                "method": "GET",
+                "url": "/services/data/v50.0/query?q=SELECT Name FROM Account LIMIT 1",
+                "referenceId": "two",
+            },
+            {
+                "method": "GET",
+                "url": "/services/data/v50.0/query?q=SELECT Name FROM Account LIMIT 1",
+                "referenceId": "three",
+            },
+        ] * 2
+
+        with CompositeParallelSalesforce(sf, 2, max_workers=1) as cpsf:
+            results, errors = cpsf.do_composite_requests(requests)
+        assert len(errors) == 3  # all should be rejected by Responses.
+        assert len(results) == 0
+
+    @responses.activate
+    def test_multirequest_timeout_POSTs(self, sf):
+        requests = [
+            {
+                "method": "GET",
+                "url": "/services/data/v50.0/query?q=SELECT Id FROM Account LIMIT 1",
+                "referenceId": "one",
+            },
+            {
+                "method": "GET",
+                "url": "/services/data/v50.0/query?q=SELECT Name FROM Account LIMIT 1",
+                "referenceId": "two",
+            },
+            {
+                "method": "POST",
+                "url": "/services/data/v50.0/query?q=SELECT Name FROM Account LIMIT 1",
+                "referenceId": "three",
+            },
+        ] * 2
+
+        composite_handler = FakeUnreliableRequestHandler(COMPOSITE_RESPONSE)
+        responses.add_callback(
+            responses.POST,
+            f"{sf.base_url}composite",
+            callback=composite_handler.request_callback,
+            content_type="application/json",
+        )
+
+        single_request_handler = FakeUnreliableRequestHandler(COMPOSITE_RESPONSE)
+        responses.add_callback(
+            responses.GET,
+            "https://orgname.my.salesforce.com/services/data/v52.0/query?q=SELECT%20Id%20FROM%20Account%20LIMIT%201",
+            callback=single_request_handler.request_callback,
+            content_type="application/json",
+        )
+
+        with CompositeParallelSalesforce(sf, 2, max_workers=1) as cpsf:
+            results, errors = cpsf.do_composite_requests(requests)
+
+        # Three chunks of 2. SUCCEED, FAIL, SUCCEED
+        assert composite_handler.counter == 3
+
+        # The GET in the failing chunk should be retried and succeed
+        # The POST should not.
+        assert single_request_handler.counter == 1
+        assert len(errors) == 1

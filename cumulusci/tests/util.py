@@ -269,14 +269,15 @@ class FakeUnreliableRequestHandler:
 
     counter = 0
 
-    def __init__(self, response=None):
+    def __init__(self, response=None, exception=ReadTimeout):
         self.response = response
+        self.exception = exception
 
     def request_callback(self, request):
         should_return_error = self.counter == 1  # fail the second request of X
         self.counter += 1
         if should_return_error:
-            raise ReadTimeout()
+            raise self.exception()
         else:
             return (
                 200,

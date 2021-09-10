@@ -254,6 +254,42 @@ class TestDescribeOrg:
         # that raises the exception then this assertion will fail.
         assert single_sobj_handler.counter > 0
 
+    @responses.activate
+    def test_http_level_errors_after_retries(self, sf, org_config, global_describe):
+        # This is a bit complex. We're trying to test what happens
+        # when a composite request fails. That should trigger a retry
+        # of each item in the request. So we have to provide responses
+        # at the level of the original describe, the composite request and
+        # the single requests.
+
+        # use just a subset for test perf reasons
+        responses.add("GET", f"{sf.base_url}sobjects", json=global_describe(50))
+
+        sobject_describes = json.loads(
+            self.cassette_data["interactions"][0]["response"]["body"]["string"]
+        )
+        composite_handler = FakeUnreliableRequestHandler(sobject_describes)
+        responses.add_callback(
+            method="POST",
+            url=f"{sf.base_url}composite",
+            callback=composite_handler.request_callback,
+            content_type="application/json",
+        )
+
+        def throw_exception(*args, **kwargs):
+            raise AssertionError()
+
+        responses.add_callback(
+            method="GET",
+            url=re.compile(r"https://.*/sobjects/.*/describe"),
+            callback=throw_exception,
+            content_type="application/json",
+        )
+
+        with pytest.raises(AssertionError):
+            with get_org_schema(sf, org_config):
+                pass
+
 
 @pytest.mark.needs_org()  # too hard to make these VCR-compatible due to data volume
 @pytest.mark.slow()
