@@ -98,7 +98,7 @@ class TestDynamicDependency:
             ],
         )
 
-        assert d.managed_dependency == PackageNamespaceVersionDependency(
+        assert d.package_dependency == PackageNamespaceVersionDependency(
             namespace="foo", version="1.0"
         )
         assert d.ref == "aaaaaaaaaaaaaaaa"
@@ -225,7 +225,7 @@ class TestGitHubDynamicDependency:
     def test_flatten(self, project_config):
         gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
         gh.ref = "aaaaa"
-        gh.managed_dependency = PackageNamespaceVersionDependency(
+        gh.package_dependency = PackageNamespaceVersionDependency(
             namespace="bar", version="2.0"
         )
 
@@ -262,7 +262,7 @@ class TestGitHubDynamicDependency:
             skip="unpackaged/pre/first",
         )
         gh.ref = "aaaaa"
-        gh.managed_dependency = PackageNamespaceVersionDependency(
+        gh.package_dependency = PackageNamespaceVersionDependency(
             namespace="bar", version="2.0"
         )
 
@@ -292,7 +292,7 @@ class TestGitHubDynamicDependency:
             github="https://github.com/SFDO-Tooling/NoUnmanagedPreRepo",
         )
         gh.ref = "aaaaa"
-        gh.managed_dependency = PackageNamespaceVersionDependency(
+        gh.package_dependency = PackageNamespaceVersionDependency(
             namespace="foo", version="2.0"
         )
 

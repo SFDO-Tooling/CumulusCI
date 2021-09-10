@@ -24,12 +24,12 @@ contextvars==2.4
     # via
     #   -r requirements/prod.in
     #   snowfakery
-cryptography==3.4.7
+cryptography==3.4.8
     # via
     #   -r requirements/prod.in
     #   authlib
     #   jwcrypto
-deprecated==1.2.12
+deprecated==1.2.13
     # via jwcrypto
 docutils==0.16
     # via -r requirements/prod.in
@@ -108,7 +108,7 @@ requests==2.26.0
     #   simple-salesforce
 requests-futures==1.0.0
     # via -r requirements/prod.in
-robotframework==4.1
+robotframework==4.1.1
     # via
     #   -r requirements/prod.in
     #   robotframework-lint
@@ -182,5 +182,5 @@ zipp==3.5.0
     #   snowfakery
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==57.4.0
+setuptools==58.0.3
     # via fs
