@@ -30,6 +30,8 @@ Contributors
 Thanks to the many community and Salesforce.org staff
 contributors!
 
-For example: 
+For example:
 
 (add your name here, when you contribute through a Pull Request!)
+
+* Ed Rivas (jerivas)

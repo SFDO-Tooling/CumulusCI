@@ -18,10 +18,19 @@ from cumulusci.core.exceptions import (
     TaskRequiresSalesforceOrg,
 )
 from cumulusci.utils import cd
+from cumulusci.utils.logging import redirect_output_to_logger
 
 CURRENT_TASK = threading.local()
 
 PROJECT_CONFIG_RE = re.compile(r"\$project_config.(\w+)")
+CAPTURE_TASK_OUTPUT = os.environ.get("CAPTURE_TASK_OUTPUT")
+
+
+# We can't use contextlib.nullcontext yet
+# because it isn't present in Python 3.6
+@contextlib.contextmanager
+def nullcontext():
+    yield
 
 
 @contextlib.contextmanager
@@ -148,9 +157,14 @@ class BaseTask(object):
             self.working_path = os.getcwd()
             path = self.project_config.repo_root if self.project_config else None
             with cd(path):
-                self._log_begin()
-                self.result = self._run_task()
-                return self.return_values
+                with (
+                    redirect_output_to_logger(self.logger)
+                    if CAPTURE_TASK_OUTPUT
+                    else nullcontext()
+                ):
+                    self._log_begin()
+                    self.result = self._run_task()
+                    return self.return_values
 
     def _run_task(self):
         """Subclasses should override to provide their implementation"""

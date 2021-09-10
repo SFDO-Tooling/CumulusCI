@@ -60,7 +60,7 @@ Standard Metadata ETL Tasks
 ---------------------------
 
 CumulusCI includes several Metadata ETL tasks in its standard library.
-For information about all of the available tasks, see ``cci org list`` for tasks in the group Metadata Transformations.
+For information about all of the available tasks, see ``cci task list`` for tasks in the group Metadata Transformations.
 
 Most Metadata ETL tasks accept the option ``api_names``, which specifies the developer names of the specific metadata components which should be included in the operation.
 In most cases, more than one entity may be transformed in a single operation.
