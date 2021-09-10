@@ -107,19 +107,19 @@ class InstallPackageVersion(BaseSalesforceApiTask):
             self.options["version"] = str(version)
 
         if dependency:
-            if dependency.managed_dependency:
+            if dependency.package_dependency:
                 # Handle 2GP and 1GP releases in a backwards-compatible way.
                 if isinstance(
-                    dependency.managed_dependency, PackageNamespaceVersionDependency
+                    dependency.package_dependency, PackageNamespaceVersionDependency
                 ):
-                    self.options["version"] = dependency.managed_dependency.version
+                    self.options["version"] = dependency.package_dependency.version
                 elif isinstance(
-                    dependency.managed_dependency, PackageVersionIdDependency
+                    dependency.package_dependency, PackageVersionIdDependency
                 ):
-                    self.options["version"] = dependency.managed_dependency.version_id
+                    self.options["version"] = dependency.package_dependency.version_id
                     self.options[
                         "version_number"
-                    ] = dependency.managed_dependency.version_number
+                    ] = dependency.package_dependency.version_number
             else:
                 raise CumulusCIException(
                     f"The release for {version} does not identify a package version."

@@ -1,10 +1,12 @@
 import gzip
 import json
+import re
 from itertools import chain
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import responses
 import yaml
 from sqlalchemy import create_engine
 
@@ -14,10 +16,13 @@ from cumulusci.salesforce_api.org_schema import (
     zip_database,
 )
 from cumulusci.salesforce_api.org_schema_models import Base
+from cumulusci.tests.util import FakeUnreliableRequestHandler
 
 
 class FakeSF:
     """A pretend version of Salesforce for composite testing"""
+
+    sf_version = "99.0"
 
     base_url = "https://innovation-page-2420-dev-ed.cs50.my.salesforce.com/"
     headers = {}
@@ -45,7 +50,7 @@ def makeFakeCompositeParallelSalesforce(responses):
             pass
 
         def do_composite_requests(self, requests):
-            return responses()
+            return responses(), []
 
     return FakeCompositeParallelSalesforce
 
@@ -202,6 +207,88 @@ class TestDescribeOrg:
             with get_org_schema(FakeSF(), org_config) as schema:
                 assert "Account" in schema
             assert caplog.text
+
+    @responses.activate
+    def test_http_level_errors(self, sf, org_config, global_describe):
+        # This is a bit complex. We're trying to test what happens
+        # when a composite request fails. That should trigger a retry
+        # of each item in the request. So we have to provide responses
+        # at the level of the original describe, the composite request and
+        # the single requests.
+
+        # use just a subset for test perf reasons
+        responses.add("GET", f"{sf.base_url}sobjects", json=global_describe(50))
+
+        sobject_describes = json.loads(
+            self.cassette_data["interactions"][0]["response"]["body"]["string"]
+        )
+        composite_handler = FakeUnreliableRequestHandler(sobject_describes)
+        responses.add_callback(
+            method="POST",
+            url=f"{sf.base_url}composite",
+            callback=composite_handler.request_callback,
+            content_type="application/json",
+        )
+
+        class SingleSobjFakeUnreliableRequestHandler(FakeUnreliableRequestHandler):
+            def real_reliable_request_callback(self, request):
+                sobject = request.url.split("/")[-2]
+                fake_describe = sobject_describes["compositeResponse"][0]["body"].copy()
+                fake_describe["name"] = sobject
+                return fake_describe
+
+        single_sobj_handler = SingleSobjFakeUnreliableRequestHandler()
+        responses.add_callback(
+            method="GET",
+            url=re.compile(r"https://.*/sobjects/.*/describe"),
+            callback=single_sobj_handler.request_callback,
+            content_type="application/json",
+        )
+
+        with get_org_schema(sf, org_config) as schema:
+            assert "Account" in schema
+            assert schema["Account"].labelPlural
+
+        # check that the single_sobj_handler was called because of
+        # the timeout. If you comment out the branch line
+        # that raises the exception then this assertion will fail.
+        assert single_sobj_handler.counter > 0
+
+    @responses.activate
+    def test_http_level_errors_after_retries(self, sf, org_config, global_describe):
+        # This is a bit complex. We're trying to test what happens
+        # when a composite request fails. That should trigger a retry
+        # of each item in the request. So we have to provide responses
+        # at the level of the original describe, the composite request and
+        # the single requests.
+
+        # use just a subset for test perf reasons
+        responses.add("GET", f"{sf.base_url}sobjects", json=global_describe(50))
+
+        sobject_describes = json.loads(
+            self.cassette_data["interactions"][0]["response"]["body"]["string"]
+        )
+        composite_handler = FakeUnreliableRequestHandler(sobject_describes)
+        responses.add_callback(
+            method="POST",
+            url=f"{sf.base_url}composite",
+            callback=composite_handler.request_callback,
+            content_type="application/json",
+        )
+
+        def throw_exception(*args, **kwargs):
+            raise AssertionError()
+
+        responses.add_callback(
+            method="GET",
+            url=re.compile(r"https://.*/sobjects/.*/describe"),
+            callback=throw_exception,
+            content_type="application/json",
+        )
+
+        with pytest.raises(AssertionError):
+            with get_org_schema(sf, org_config):
+                pass
 
 
 @pytest.mark.needs_org()  # too hard to make these VCR-compatible due to data volume

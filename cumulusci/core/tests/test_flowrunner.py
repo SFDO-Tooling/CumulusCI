@@ -193,6 +193,25 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         ]
         self.assertEqual(expected_output, actual_output)
 
+    def test_get_flow_steps__verbose(self):
+        self.project_config.config["flows"]["test"] = {
+            "description": "test description",
+            "steps": {
+                "1": {
+                    "task": "pass_name",
+                    "options": {"option_name": "option_value"},
+                }
+            },
+        }
+        flow_config = self.project_config.get_flow("test")
+        flow = FlowCoordinator(self.project_config, flow_config, name="test_flow")
+        actual_output = flow.get_flow_steps(verbose=True)
+        expected_output = [
+            "1) task: pass_name [from current folder]",
+            "   options:\n       option_name: option_value",
+        ]
+        self.assertEqual(expected_output, actual_output)
+
     def test_get_summary__substeps(self):
         flow = FlowCoordinator.from_steps(
             self.project_config,
