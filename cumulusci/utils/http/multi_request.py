@@ -111,6 +111,9 @@ def parse_composite_results(composite_results):
     return individual_results
 
 
+IDEMPOTENT_METHODS = ("GET", "PUT")
+
+
 class CompositeParallelSalesforce:
     """Salesforce Session which uses the Composite API multiple times
     in parallel.
@@ -169,9 +172,16 @@ class CompositeParallelSalesforce:
         singleton_requests = []
         for error in errors:
             if isinstance(error.exception, RECOVERABLE_ERRORS):
-                singleton_requests.extend(split_requests(error.request))
+                single_requests = split_requests(error.request)
+                for request in single_requests:
+                    if request["method"] in IDEMPOTENT_METHODS:
+                        singleton_requests.append(request)
+                    else:
+                        unrecoverable_errors.append(
+                            HTTPRequestError(error.exception, request)
+                        )
             else:
-                unrecoverable_errors.append((error.exception, error.request))
+                unrecoverable_errors.append(error)
 
         singleton_results, errors = self.psf.do_requests(singleton_requests)
 
