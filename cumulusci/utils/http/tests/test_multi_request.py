@@ -169,7 +169,7 @@ class TestCompositeParallelSalesforce:
         single_request_handler = FakeUnreliableRequestHandler(COMPOSITE_RESPONSE)
         responses.add_callback(
             responses.GET,
-            "https://orgname.my.salesforce.com/services/data/v52.0/query?q=SELECT%20Id%20FROM%20Account%20LIMIT%201",
+            f"{sf.base_url}query?q=SELECT%20Id%20FROM%20Account%20LIMIT%201",
             callback=single_request_handler.request_callback,
             content_type="application/json",
         )
