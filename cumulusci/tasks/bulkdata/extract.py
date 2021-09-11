@@ -293,7 +293,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 f"Cannot find key field for {lookup_info}"
             )
             key_attr = getattr(model, key_field, None) or throw(
-                f"Cannot find key attr for {key_field}"
+                f"key_field {key_field} not found in table {mapping.table}"
             )
             try:
                 self.session.query(model).filter(
