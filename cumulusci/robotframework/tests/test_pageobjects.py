@@ -112,14 +112,11 @@ class TestPageObjects(unittest.TestCase):
         """Verify we can find a page object via PYTHONPATH"""
         # PageObjects will throw an error if it can't find the file.
         # As long as this doesn't throw an error, we're golden.
-        try:
-            sys_path = sys.path
-            if HERE not in sys.path:
-                sys.path.append(HERE)
-
+        sys_path = sys.path.copy()
+        if HERE not in sys.path:
+            sys_path.append(HERE)
+        with mock.patch.object(sys, "path", sys_path):
             PageObjects("FooTestPage.py")
-        finally:
-            sys.path = sys_path
 
     def test_exception_not_found(self, get_context_mock, get_library_instance_mock):
         """Verify we get an assertion of we can't find a page object file"""
@@ -133,16 +130,12 @@ class TestPageObjects(unittest.TestCase):
             with open("busted.py", "w") as f:
                 f.write("class Busted  # incomplete class\n")
                 f.close()
-                try:
-                    sys_path = sys.path
-                    sys.path.append(d)
+                with mock.patch.object(sys, "path", sys.path + [d]):
                     with pytest.raises(
                         ImportError,
                         match="Unable to import page object 'busted.py': .*",
                     ):
                         PageObjects("busted.py")
-                finally:
-                    sys.path = sys_path
 
     def test_PageObject_registry_with_custom_pageobjects(
         self, get_context_mock, get_library_instance_mock
