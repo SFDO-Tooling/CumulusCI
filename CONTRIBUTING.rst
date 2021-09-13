@@ -210,6 +210,7 @@ their definitions:
 * project_config - Get the project config for the current working directory
 * org_config - Get the project config for the current working directory
 * create_task - Get a task _factory_ which can be used to construct task instances.
+* global_describe - Get a function that will generate the JSON that Salesforce would generate if you do a GET on the /sobjects endpoint
 
 Decorators for tests:
 
