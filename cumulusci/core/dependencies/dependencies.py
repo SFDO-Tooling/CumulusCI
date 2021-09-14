@@ -123,7 +123,7 @@ class DynamicDependency(Dependency, abc.ABC):
     """Abstract base class for dependencies with dynamic references, like GitHub.
     These dependencies must be resolved and flattened before they can be installed."""
 
-    managed_dependency: Optional[StaticDependency]
+    package_dependency: Optional[StaticDependency]
     password_env_name: Optional[str]
 
     @property
@@ -329,8 +329,14 @@ class GitHubDynamicDependency(BaseGitHubDependency):
             )
         )
 
-        # Deploy the project, if unmanaged.
-        if not managed:
+        if not self.package_dependency:
+            if managed:
+                # We had an expectation of finding a package version and did not.
+                raise DependencyResolutionError(
+                    f"Could not find latest release for {self}"
+                )
+
+            # Deploy the project, if unmanaged.
             deps.append(
                 UnmanagedGitHubRefDependency(
                     github=self.github,
@@ -341,12 +347,7 @@ class GitHubDynamicDependency(BaseGitHubDependency):
                 )
             )
         else:
-            if self.managed_dependency is None:
-                raise DependencyResolutionError(
-                    f"Could not find latest release for {self}"
-                )
-
-            deps.append(self.managed_dependency)
+            deps.append(self.package_dependency)
 
         # We always inject the project's namespace into unpackaged/post metadata if managed
         deps.extend(
