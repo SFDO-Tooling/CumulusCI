@@ -277,21 +277,16 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             lookup_info = mapping.lookups.get(lookup_key) or throw(
                 f"Cannot find lookup info {lookup_key}"
             )
-            model = self.models.get(mapping.table) or throw(
-                f"Cannot find model for {mapping.table}"
-            )
+            model = self.models.get(mapping.table)
 
             lookup_mapping = self._get_mapping_for_table(lookup_info.table) or throw(
                 f"Cannot find lookup mapping for {lookup_info.table}"
             )
 
-            lookup_model = self.models.get(lookup_mapping.get_sf_id_table()) or throw(
-                f"Cannot find lookup model for {lookup_mapping}"
-            )
+            lookup_model = self.models.get(lookup_mapping.get_sf_id_table())
 
-            key_field = lookup_info.get_lookup_key_field() or throw(
-                f"Cannot find key field for {lookup_info}"
-            )
+            key_field = lookup_info.get_lookup_key_field()
+
             key_attr = getattr(model, key_field, None) or throw(
                 f"key_field {key_field} not found in table {mapping.table}"
             )
