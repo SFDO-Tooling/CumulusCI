@@ -16,7 +16,12 @@ from sqlalchemy import MetaData, Table, create_engine, func, select
 import cumulusci.core.exceptions as exc
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.debug import get_debug_mode
-from cumulusci.core.utils import format_duration, process_bool_arg, process_list_arg
+from cumulusci.core.utils import (
+    format_duration,
+    process_bool_arg,
+    process_list_arg,
+    process_list_of_pairs_dict_arg,
+)
 from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
     GenerateAndLoadDataFromYaml,
 )
@@ -121,7 +126,12 @@ class Snowfakery(BaseSalesforceApiTask):
             "load the file. Defaults to `<recipename>.load.yml`. "
             "Multiple files can be comma separated."
         },
-        # "recipe_options": {},  # TODO: Snowfakery 2.1
+        "recipe_options": {
+            "required": False,
+            "description": """Pass values to override options in the format VAR1:foo,VAR2:bar
+       Example: --recipe_options num_accounts:10,myRecipeOpt2:value2
+             """,
+        },
         "bulk_mode": {
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
         },
@@ -136,6 +146,7 @@ class Snowfakery(BaseSalesforceApiTask):
             "Defaults to False."
         },
     }
+    recipe_options = None
 
     def _validate_options(self):
         super()._validate_options()
@@ -153,6 +164,10 @@ class Snowfakery(BaseSalesforceApiTask):
         )
         loading_rules = process_list_arg(self.options.get("loading_rules")) or []
         self.loading_rules = [Path(path) for path in loading_rules if path]
+        if "recipe_options" in self.options:
+            self.recipe_options = process_list_of_pairs_dict_arg(
+                self.options["recipe_options"]
+            )
 
     @property
     def num_loader_workers(self):
@@ -490,6 +505,7 @@ class Snowfakery(BaseSalesforceApiTask):
             "reset_oids": False,
             "continuation_file": wd.continuation_file,
             "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
+            "vars": self.recipe_options,
         }
 
     def generate_upload_status(
@@ -558,6 +574,7 @@ class Snowfakery(BaseSalesforceApiTask):
                 "num_records": 1,  # smallest possible batch to get to parallelizing fast
                 "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
                 "loading_rules": self.loading_rules,
+                "vars": self.recipe_options,
             },
         )
         self.update_running_totals_from_load_step_results(results)

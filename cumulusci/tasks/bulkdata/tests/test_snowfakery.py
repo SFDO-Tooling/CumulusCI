@@ -1,3 +1,5 @@
+import typing as T
+from collections import Counter
 from contextlib import contextmanager
 from itertools import cycle
 from pathlib import Path
@@ -12,7 +14,11 @@ from sqlalchemy import create_engine
 from cumulusci.core import exceptions as exc
 from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.bulkdata.delete import DeleteData
-from cumulusci.tasks.bulkdata.snowfakery import RunningTotals, Snowfakery
+from cumulusci.tasks.bulkdata.snowfakery import (
+    RunningTotals,
+    Snowfakery,
+    SnowfakeryWorkingDirectory,
+)
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.utils.parallel.task_worker_queues.tests.test_parallel_worker import (
     DelaySpawner,
@@ -154,9 +160,50 @@ def ensure_accounts(create_task, run_code_without_recording, sf):
     return _ensure_accounts
 
 
+class GenResults(T.NamedTuple):
+    task: Snowfakery
+    outbox: Path
+
+
 @pytest.fixture()
-def get_mapping_file(snowfakery, threads_instead_of_processes, mock_load_data):
+def get_mapping_file(get_mapping_file_and_record_counts):
     def _get_mapping_file(**options):
+        with get_mapping_file_and_record_counts(**options) as results:
+            template_dir = SnowfakeryWorkingDirectory(results.outbox / "template_1/")
+            temp_mapping = template_dir.mapping_file
+            with open(temp_mapping) as f:
+                mapping = yaml.safe_load(f)
+
+            other_mapping = Path(str(temp_mapping).replace("template_1", "1_1"))
+            assert temp_mapping.read_text() == other_mapping.read_text()
+            return mapping
+
+    return _get_mapping_file
+
+
+@pytest.fixture()
+def get_record_counts(get_mapping_file_and_record_counts):
+    def _get_record_counts(**options):
+        with get_mapping_file_and_record_counts(**options) as results:
+            outdirs = [
+                SnowfakeryWorkingDirectory(subdir)
+                for subdir in results.outbox.glob("*")
+                if "template_" not in str(subdir)
+            ]
+            rollups = Counter()
+            for outdir in outdirs:
+                rollups.update(outdir.get_record_counts())
+            return rollups
+
+    return _get_record_counts
+
+
+@pytest.fixture()
+def get_mapping_file_and_record_counts(
+    snowfakery, threads_instead_of_processes, mock_load_data
+):
+    @contextmanager
+    def _get_mapping_file_and_example_records(**options):
         with TemporaryDirectory() as workingdir:
             workingdir = Path(workingdir) / "tempdir"
             task = snowfakery(
@@ -165,17 +212,10 @@ def get_mapping_file(snowfakery, threads_instead_of_processes, mock_load_data):
                 **options,
             )
             task()
-            temp_mapping = (
-                Path(workingdir) / "data_load_outbox/template_1/temp_mapping.yml"
-            )
-            with open(temp_mapping) as f:
-                mapping = yaml.safe_load(f)
+            outbox = Path(workingdir) / "data_load_outbox/"
+            yield GenResults(task, outbox)
 
-            other_mapping = Path(str(temp_mapping).replace("template_1", "1_1"))
-            assert temp_mapping.read_text() == other_mapping.read_text()
-        return mapping
-
-    return _get_mapping_file
+    return _get_mapping_file_and_example_records
 
 
 class TestSnowfakery:
@@ -491,21 +531,17 @@ class TestSnowfakery:
         assert mapping["Insert Contact"]["bulk_mode"].lower() == "parallel"
         assert list(mapping.keys()) == ["Insert Contact", "Insert Account"]
 
-    # def test_vars(self):
-    #     with temp_sqlite_database_url() as database_url:
-    #         with self.assertWarns(UserWarning):
-    #             task = _make_task(
-    #                 GenerateDataFromYaml,
-    #                 {
-    #                     "options": {
-    #                         "generator_yaml": sample_yaml,
-    #                         "vars": "xyzzy:foo",
-    #                         "database_url": database_url,
-    #                     }
-    #                 },
-    #             )
-    #             task()
-    #             self.assertRowsCreated(database_url)
+    def test_options(
+        self,
+        mock_load_data,
+        threads_instead_of_processes,
+        get_record_counts,
+    ):
+        options_yaml = str(sample_yaml).replace(
+            "gen_npsp_standard_objects.recipe.yml", "options.recipe.yml"
+        )
+        record_counts = get_record_counts(recipe=options_yaml, recipe_options="xyzzy:7")
+        assert record_counts["Account"] == 7
 
     # def test_generate_mapping_file(self):
     #     with temporary_file_path("mapping.yml") as temp_mapping:
