@@ -163,7 +163,9 @@ class Snowfakery(BaseSalesforceApiTask):
         )
         loading_rules = process_list_arg(self.options.get("loading_rules")) or []
         self.loading_rules = [Path(path) for path in loading_rules if path]
-        self.recipe_options = process_list_of_pairs_dict_arg(self.options.get("recipe_options") or {})
+        self.recipe_options = process_list_of_pairs_dict_arg(
+            self.options.get("recipe_options") or {}
+        )
 
     @property
     def num_loader_workers(self):
