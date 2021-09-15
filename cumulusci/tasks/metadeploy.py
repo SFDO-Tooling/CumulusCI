@@ -69,7 +69,7 @@ class Publish(BaseMetaDeployTask):
 
     def _init_task(self):
         super(Publish, self)._init_task()
-        self.dry_run = self.options.get("dry_run")
+        self.dry_run = process_bool_arg(self.options.get("dry_run") or False)
         self.publish = not self.dry_run and process_bool_arg(
             self.options.get("publish") or False
         )

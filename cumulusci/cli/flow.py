@@ -96,7 +96,7 @@ def flow_list(runtime, plain, print_json):
 def flow_info(runtime, flow_name):
     try:
         coordinator = runtime.get_flow(flow_name)
-        output = coordinator.get_summary()
+        output = coordinator.get_summary(verbose=True)
         click.echo(output)
     except FlowNotFoundError as e:
         raise click.UsageError(str(e))

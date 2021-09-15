@@ -148,7 +148,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 
     def _construct_config(self, config_class, args):
         if args[0].get("scratch"):
-            config_class = ScratchOrgConfig
+            config_class = scratch_org_factory
 
         return config_class(*args)
 

@@ -1,7 +1,8 @@
+import enum
 import functools
 import io
 import re
-from typing import Optional
+from typing import Optional, Tuple
 
 from github3.exceptions import NotFoundError
 from github3.git import Tag
@@ -14,6 +15,11 @@ from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 PACKAGE_TYPE_RE = re.compile(r"^package_type: (.*)$", re.MULTILINE)
 VERSION_ID_RE = re.compile(r"^version_id: (04t[a-zA-Z0-9]{12,15})$", re.MULTILINE)
+
+
+class PackageType(str, enum.Enum):
+    FIRST_GEN = "1GP"
+    SECOND_GEN = "2GP"
 
 
 def get_repo(github: str, context: BaseProjectConfig) -> Repository:
@@ -48,14 +54,15 @@ def get_package_data(config: BaseConfig):
     return package_name, namespace
 
 
-def get_2gp_version_id_from_tag(tag: Tag) -> Optional[str]:
+def get_package_details_from_tag(
+    tag: Tag,
+) -> Tuple[Optional[str], Optional[PackageType]]:
     message = tag.message
     version_id = VERSION_ID_RE.search(message)
     if version_id:
         version_id = version_id.group(1)
     package_type = PACKAGE_TYPE_RE.search(message)
     if package_type:
-        package_type = package_type.group(1)
+        package_type = PackageType(package_type.group(1))
 
-    if package_type == "2GP" and version_id:
-        return version_id
+    return version_id, package_type

@@ -56,6 +56,15 @@ class ConcreteDynamicDependency(DynamicDependency):
 
 class TestGitHubTagResolver:
     def test_github_tag_resolver(self, project_config):
+        tag = mock.Mock()
+        tag.return_value.object.sha = "tag_sha"
+        tag.return_value.message = """
+package_type: 1GP
+
+version_id: 04t000000000000"""
+        project_config.get_repo_from_url(
+            "https://github.com/SFDO-Tooling/ReleasesRepo"
+        ).tag = tag
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/ReleasesRepo",
             tag="release/1.0",  # Not the most recent release
@@ -66,7 +75,10 @@ class TestGitHubTagResolver:
         assert resolver.resolve(dep, project_config) == (
             "tag_sha",
             PackageNamespaceVersionDependency(
-                namespace="ccitestdep", version="1.0", package_name="CumulusCI-Test-Dep"
+                namespace="ccitestdep",
+                version="1.0",
+                package_name="CumulusCI-Test-Dep",
+                version_id="04t000000000000",
             ),
         )
 
@@ -94,6 +106,36 @@ version_id: 04t000000000000"""
                 version_id="04t000000000000",
                 version_number="1.0",
                 package_name="CumulusCI-Test-Dep",
+            ),
+        )
+
+    def test_github_tag_resolver__2gp_no_namespace(self, project_config):
+        tag = mock.Mock()
+        tag.return_value.object.sha = "tag_sha"
+        tag.return_value.message = """
+package_type: 2GP
+
+version_id: 04t000000000000"""
+        project_config.get_repo_from_url(
+            "https://github.com/SFDO-Tooling/UnmanagedRepo"
+        ).tag = tag
+
+        # UnmanagedRepo contains a release but no namespace,
+        # and we mock out the tag details for an Unlocked,
+        # no-namespace 2GP above.
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/UnmanagedRepo",
+            tag="release/1.0",  # Not the most recent release
+        )
+        resolver = GitHubTagResolver()
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (
+            "tag_sha",
+            PackageVersionIdDependency(
+                version_id="04t000000000000",
+                version_number="1.0",
+                package_name="CumulusCI-Test",
             ),
         )
 
@@ -148,6 +190,15 @@ version_id: 04t000000000000"""
 
 class TestGitHubReleaseTagResolver:
     def test_github_release_tag_resolver(self, project_config):
+        tag = mock.Mock()
+        tag.return_value.object.sha = "tag_sha"
+        tag.return_value.message = """
+package_type: 1GP
+
+version_id: 04t000000000000"""
+        project_config.get_repo_from_url(
+            "https://github.com/SFDO-Tooling/ReleasesRepo"
+        ).tag = tag
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/ReleasesRepo"
         )
@@ -157,7 +208,10 @@ class TestGitHubReleaseTagResolver:
         assert resolver.resolve(dep, project_config) == (
             "tag_sha",
             PackageNamespaceVersionDependency(
-                namespace="ccitestdep", version="2.0", package_name="CumulusCI-Test-Dep"
+                namespace="ccitestdep",
+                version="2.0",
+                package_name="CumulusCI-Test-Dep",
+                version_id="04t000000000000",
             ),
         )
 
@@ -184,6 +238,35 @@ version_id: 04t000000000000"""
                 version_id="04t000000000000",
                 version_number="1.0",
                 package_name="CumulusCI-2GP-Test",
+            ),
+        )
+
+    def test_github_release_tag_resolver__2gp_no_namespace(self, project_config):
+        tag = mock.Mock()
+        tag.return_value.object.sha = "tag_sha"
+        tag.return_value.message = """
+package_type: 2GP
+
+version_id: 04t000000000000"""
+        project_config.get_repo_from_url(
+            "https://github.com/SFDO-Tooling/UnmanagedRepo"
+        ).tag = tag
+
+        # UnmanagedRepo contains a release but no namespace,
+        # and we mock out the tag details for an Unlocked,
+        # no-namespace 2GP above.
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/UnmanagedRepo",
+        )
+        resolver = GitHubReleaseTagResolver()
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (
+            "tag_sha",
+            PackageVersionIdDependency(
+                version_id="04t000000000000",
+                version_number="1.0",
+                package_name="CumulusCI-Test",
             ),
         )
 

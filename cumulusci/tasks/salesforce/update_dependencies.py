@@ -15,7 +15,10 @@ from cumulusci.core.dependencies.resolvers import (
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.salesforce_api.package_install import PackageInstallOptions
+from cumulusci.salesforce_api.package_install import (
+    PACKAGE_INSTALL_TASK_OPTIONS,
+    PackageInstallOptions,
+)
 
 
 class UpdateDependencies(BaseSalesforceTask):
@@ -42,9 +45,6 @@ class UpdateDependencies(BaseSalesforceTask):
             "to avoid installing a package that can't be upgraded in persistent orgs."
         },
         "allow_newer": {"description": "Deprecated. This option has no effect."},
-        "security_type": {
-            "description": "Which users to install packages for (FULL = all users, NONE = admins only)"
-        },
         "prefer_2gp_from_release_branch": {
             "description": "If True and this build is on a release branch (feature/NNN, where NNN is an integer), "
             "or a child branch of a release branch, resolve GitHub managed package dependencies to 2GP builds present on "
@@ -56,6 +56,7 @@ class UpdateDependencies(BaseSalesforceTask):
         "packages_only": {
             "description": "Install only packaged dependencies. Ignore all unmanaged metadata. Defaults to False."
         },
+        **{k: v for k, v in PACKAGE_INSTALL_TASK_OPTIONS.items() if k != "password"},
     }
 
     def _init_options(self, kwargs):
@@ -68,12 +69,6 @@ class UpdateDependencies(BaseSalesforceTask):
         self.options["packages_only"] = process_bool_arg(
             self.options.get("packages_only") or False
         )
-        self.options["security_type"] = self.options.get("security_type", "FULL")
-        if self.options["security_type"] not in ("FULL", "NONE", "PUSH"):
-            raise TaskOptionsError(
-                f"Unsupported value for security_type: {self.options['security_type']}"
-            )
-
         if "allow_uninstalls" in self.options or "allow_newer" in self.options:
             self.logger.warning(
                 "The allow_uninstalls and allow_newer options for update_dependencies are no longer supported. "
@@ -156,9 +151,7 @@ class UpdateDependencies(BaseSalesforceTask):
                 "for update_dependencies are deprecated. Use resolution strategies instead."
             )
 
-        self.install_options = PackageInstallOptions(
-            security_type=self.options.get("security_type", "FULL"),
-        )
+        self.install_options = PackageInstallOptions.from_task_options(self.options)
 
     def _filter_dependencies(self, deps: List[Dependency]) -> List[Dependency]:
         return [

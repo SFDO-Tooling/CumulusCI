@@ -218,6 +218,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                 "options": {
                     "tag": "release/1.0",
                     "publish": True,
+                    "dry_run": "False",
                     "labels_path": labels_path,
                 }
             }
@@ -239,9 +240,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     "task_class": "cumulusci.tasks.salesforce.InstallPackageVersion",
                     "task_config": {
                         "options": {
-                            "activateRSS": True,
                             "namespace": "ns",
-                            "security_type": "FULL",
                             "version": "1.0",
                         },
                         "checks": [],

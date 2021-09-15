@@ -33,7 +33,7 @@ def test_install_1gp(install_package_by_namespace_version):
         task.org_config,
         "test",
         "1.0",
-        PackageInstallOptions(activate_remote_site_settings=False),
+        PackageInstallOptions(),
         retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
     )
 
@@ -50,7 +50,7 @@ def test_install_2gp(install_package_by_version_id):
         task.project_config,
         task.org_config,
         "04t000000000000",
-        PackageInstallOptions(activate_remote_site_settings=False),
+        PackageInstallOptions(),
         retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
     )
 
@@ -82,6 +82,8 @@ def test_init_options():
     assert task.install_options == PackageInstallOptions(
         activate_remote_site_settings=True, password="foo", security_type="PUSH"
     )
+    assert task.options["activate_remote_site_settings"] is True
+    assert "activateRSS" not in task.options
 
 
 def test_init_options__float_version():
@@ -112,7 +114,7 @@ def test_init_options__dynamic_version_latest(mock_GitHubDynamicDependency):
     project_config = create_project_config()
     project_config.config["project"]["package"]["namespace"] = "ns"
 
-    mock_GitHubDynamicDependency.return_value.managed_dependency = (
+    mock_GitHubDynamicDependency.return_value.package_dependency = (
         PackageNamespaceVersionDependency(namespace="ns", version="2.0")
     )
 
@@ -136,7 +138,7 @@ def test_init_options__dynamic_version_latest__2gp(mock_GitHubDynamicDependency)
     project_config = create_project_config()
     project_config.config["project"]["package"]["namespace"] = "ns"
 
-    mock_GitHubDynamicDependency.return_value.managed_dependency = (
+    mock_GitHubDynamicDependency.return_value.package_dependency = (
         PackageVersionIdDependency(
             version_id="04t000000000000", package_name="Test", version_number="2.0"
         )
@@ -163,7 +165,7 @@ def test_init_options__dynamic_version_latest_beta(mock_GitHubDynamicDependency)
     project_config = create_project_config()
     project_config.config["project"]["package"]["namespace"] = "ns"
 
-    mock_GitHubDynamicDependency.return_value.managed_dependency = (
+    mock_GitHubDynamicDependency.return_value.package_dependency = (
         PackageNamespaceVersionDependency(namespace="ns", version="2.0 Beta 1")
     )
 
@@ -191,7 +193,7 @@ def test_init_options__dynamic_version_previous(
     project_config.config["project"]["package"]["namespace"] = "ns"
 
     mock_find_previous_release.return_value.tag_name = "release/1.0"
-    mock_GitHubDynamicDependency.return_value.managed_dependency = (
+    mock_GitHubDynamicDependency.return_value.package_dependency = (
         PackageNamespaceVersionDependency(namespace="ns", version="1.0")
     )
     project_config.get_repo = mock.Mock()
@@ -222,7 +224,7 @@ def test_init_options__dynamic_version_no_managed_release(mock_GitHubDynamicDepe
     project_config = create_project_config()
     project_config.config["project"]["package"]["namespace"] = "ns"
 
-    mock_GitHubDynamicDependency.return_value.managed_dependency = None
+    mock_GitHubDynamicDependency.return_value.package_dependency = None
 
     with pytest.raises(CumulusCIException, match="does not identify"):
         create_task(
@@ -299,7 +301,6 @@ def test_freeze():
                 "options": {
                     "version": "1.0",
                     "namespace": "ns",
-                    "security_type": "FULL",
                 },
                 "checks": [],
             },
@@ -339,7 +340,6 @@ def test_freeze__2gp():
                     "version": "04t000000000000",
                     "version_number": "1.0",
                     "namespace": "ns",
-                    "security_type": "FULL",
                 },
                 "checks": [],
             },

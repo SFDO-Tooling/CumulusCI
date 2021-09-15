@@ -10,7 +10,8 @@ from sqlalchemy import create_engine
 
 from cumulusci.core import exceptions as exc
 from cumulusci.core.config import OrgConfig
-from cumulusci.tasks.bulkdata.snowfakery import Snowfakery
+from cumulusci.tasks.bulkdata.delete import DeleteData
+from cumulusci.tasks.bulkdata.snowfakery import RunningTotals, Snowfakery
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.utils.parallel.task_worker_queues.tests.test_parallel_worker import (
     DelaySpawner,
@@ -23,25 +24,33 @@ original_refresh_token = OrgConfig.refresh_oauth_token
 
 FAKE_LOAD_RESULTS = (
     {
-        "Insert Account (from FAKE_LOAD_RESULTS)": {
-            "mapping": {"sf_object": "Account"},
-            "records_processed": 5,
-            "total_row_errors": 3,
+        "Insert Account  (from FAKE_LOAD_RESULTS)": {
+            "sobject": "Account",
+            "record_type": None,
+            "status": "Success",
+            "records_processed": 2,
+            "total_row_errors": 0,
         },
-        "Insert Contact (from FAKE_LOAD_RESULTS)": {
-            "mapping": {"sf_object": "Contact"},
-            "records_processed": 5,
-            "total_row_errors": 3,
+        "Insert Contact  (from FAKE_LOAD_RESULTS)": {
+            "sobject": "Contact",
+            "record_type": None,
+            "status": "Success",
+            "records_processed": 2,
+            "total_row_errors": 0,
         },
     },
     {
         "Insert Account": {
-            "mapping": {"sf_object": "Account"},
+            "sobject": "Account",
+            "record_type": None,
+            "status": "Success",
             "records_processed": 3,
             "total_row_errors": 0,
         },
         "Insert Contact": {
-            "mapping": {"sf_object": "Contact"},
+            "sobject": "Contact",
+            "record_type": None,
+            "status": "Success",
             "records_processed": 3,
             "total_row_errors": 0,
         },
@@ -50,9 +59,15 @@ FAKE_LOAD_RESULTS = (
 
 
 def call_closure():
+    """Simulate a cycle of load results without doing a real load."""
     return_values = cycle(iter(FAKE_LOAD_RESULTS))
 
     def __call__(self, *args, **kwargs):
+        """Like the __call__ of _run_task, but also capture calls
+        in a normal mock_values structure."""
+
+        # Manipulating "self" from a mock side-effect is a challenge.
+        # So we need a "real function"
         self.return_values = {"step_results": next(return_values)}
         return __call__.mock(*args, **kwargs)
 
@@ -114,6 +129,25 @@ def temporary_file_path(filename):
     with TemporaryDirectory() as tmpdirname:
         path = Path(tmpdirname) / filename
         yield path
+
+
+@pytest.fixture()
+def ensure_accounts(create_task, run_code_without_recording, sf):
+    """Delete all accounts and create a certain number of new ones"""
+
+    @contextmanager
+    def _ensure_accounts(number_of_accounts):
+        def setup(number):
+            task = create_task(DeleteData, {"objects": "Entitlement, Account"})
+            task()
+            for i in range(0, number):
+                sf.Account.create({"Name": f"Account {i}"})
+
+        run_code_without_recording(lambda: setup(number_of_accounts))
+        yield
+        run_code_without_recording(lambda: setup(0))
+
+    return _ensure_accounts
 
 
 class TestSnowfakery:
@@ -223,43 +257,62 @@ class TestSnowfakery:
     # Could try again after Snowfakery 2.0 launch.
     # https://github.com/SFDO-Tooling/CumulusCI/blob/c7e0d7552394b3ac268cb373ffb24b72b5c059f3/cumulusci/tasks/bulkdata/tests/test_snowfakery.py#L165-L197https://github.com/SFDO-Tooling/CumulusCI/blob/c7e0d7552394b3ac268cb373ffb24b72b5c059f3/cumulusci/tasks/bulkdata/tests/test_snowfakery.py#L165-L197
 
-    @pytest.mark.vcr(mode="none")
+    @pytest.mark.vcr()
     def test_run_until_records_in_org__none_needed(
-        self, sf, threads_instead_of_processes, mock_load_data, create_task
+        self, threads_instead_of_processes, mock_load_data, create_task, ensure_accounts
     ):
-        # cassette reports 100 records in org
-        task = create_task(
-            Snowfakery, {"recipe": sample_yaml, "run_until_records_in_org": "Account:6"}
-        )
-        task()
-        assert len(mock_load_data.mock_calls) == 0
-        assert len(threads_instead_of_processes.mock_calls) == 0
+        with ensure_accounts(6):
+            task = create_task(
+                Snowfakery,
+                {"recipe": sample_yaml, "run_until_records_in_org": "Account:6"},
+            )
+            task()
+        assert len(mock_load_data.mock_calls) == 0, mock_load_data.mock_calls
+        assert (
+            len(threads_instead_of_processes.mock_calls) == 0
+        ), threads_instead_of_processes.mock_calls
 
     @pytest.mark.vcr()
     def test_run_until_records_in_org__one_needed(
-        self, sf, threads_instead_of_processes, mock_load_data, create_task
+        self,
+        sf,
+        threads_instead_of_processes,
+        mock_load_data,
+        create_task,
+        ensure_accounts,
     ):
-        # cassette reports 100 records in org
-        # so we only need 6 more.
-        # That will be one "initial" batch plus one "parallel" batch
-        task = create_task(
-            Snowfakery,
-            {"recipe": sample_yaml, "run_until_records_in_org": "Account:106"},
-        )
-        task()
+        with ensure_accounts(10):
+            # org reports 10 records in org
+            # so we only need 6 more.
+            # That will be one "initial" batch plus one "parallel" batch
+            task = create_task(
+                Snowfakery,
+                {"recipe": sample_yaml, "run_until_records_in_org": "Account:16"},
+            )
+            task.logger = mock.Mock()
+            task()
+        print(task.logger.mock_calls)
         assert len(mock_load_data.mock_calls) == 2, mock_load_data.mock_calls
         assert len(threads_instead_of_processes.mock_calls) == 1
 
     @pytest.mark.vcr()
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_run_until_records_in_org__multiple_needed(
-        self, sf, threads_instead_of_processes, mock_load_data, snowfakery
+        self,
+        threads_instead_of_processes,
+        mock_load_data,
+        snowfakery,
+        ensure_accounts,
+        create_task,
     ):
-        # cassette reports 100 records in org
-        task = snowfakery(recipe=sample_yaml, run_until_records_in_org="Account:106")
-        task()
-        assert len(mock_load_data.mock_calls) == 2
-        assert len(threads_instead_of_processes.mock_calls) == 1
+        with ensure_accounts(10):
+            task = snowfakery(recipe=sample_yaml, run_until_records_in_org="Account:16")
+            task()
+
+        assert len(mock_load_data.mock_calls) == 2, mock_load_data.mock_calls
+        assert (
+            len(threads_instead_of_processes.mock_calls) == 1
+        ), threads_instead_of_processes.mock_calls
 
     def test_inaccessible_generator_yaml(self, snowfakery):
         with pytest.raises(exc.TaskOptionsError, match="recipe"):
@@ -281,8 +334,12 @@ class TestSnowfakery:
         with mock.patch.object(task, "logger") as logger:
             task()
         mock_calls_as_string = str(logger.mock_calls)
-        assert "Account: 5 succe" in mock_calls_as_string, mock_calls_as_string[-500:]
-        assert "Contact: 5 succe" in mock_calls_as_string, mock_calls_as_string[-500:]
+        assert "Account: 5 successes" in mock_calls_as_string, mock_calls_as_string[
+            -500:
+        ]
+        assert "Contact: 5 successes" in mock_calls_as_string, mock_calls_as_string[
+            -500:
+        ]
 
     def test_run_until_wrong_format(self, snowfakery):
         with pytest.raises(exc.TaskOptionsError, match="Ten"):
@@ -424,6 +481,12 @@ class TestSnowfakery:
         )
         task()
         assert FakeProcess.max_processes == 5, FakeProcess.max_processes
+
+    def test_running_totals_repr(self):
+        r = RunningTotals()
+        r.errors = 12
+        r.successes = 11
+        assert "11" in repr(r)
 
     ## TODO: Test First batch
     ## TODO: Test Intermediate batch

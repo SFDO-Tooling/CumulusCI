@@ -1,11 +1,11 @@
 - object: Account
   count: 2
   fields:
-    name:
-      fake: name
+      name:
+          fake: name
 - object: Account
   count: 3
   fields:
-    name:
-      fake: name
-    NumberOfEmployees: 99981919191919191
+      name:
+          fake: name
+      NumberOfEmployees: 99981919191919191

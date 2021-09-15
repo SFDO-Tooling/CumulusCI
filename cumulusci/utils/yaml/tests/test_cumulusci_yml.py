@@ -4,9 +4,11 @@ from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from cumulusci.utils import temporary_dir
 from cumulusci.utils.yaml.cumulusci_yml import (
+    GitHubSourceModel,
     _validate_files,
     _validate_url,
     cci_safe_load,
@@ -51,7 +53,7 @@ class TestCumulusciYml:
         logfunc.assert_called()
         validate_data.assert_called()
 
-    @pytest.mark.integration_test()  # turn this on if you don't mind Internet access in your tests
+    @pytest.mark.large_vcr()
     def test_from_web(self):
         good_urls = """
             https://raw.githubusercontent.com/SalesforceFoundation/NPSP/master/cumulusci.yml
@@ -159,12 +161,13 @@ class TestCumulusciYml:
         errs = _validate_files([str(Path(codedir / "bad_cci.yml"))])
         assert errs
 
-    @pytest.mark.vcr(record_mode="none")
+    @pytest.mark.vcr()
     def test_validate_url__with_errors(self, caplog):
-        url = "https://test/bad/cumulusci.yml"
+        url = "https://raw.githubusercontent.com/SFDO-Tooling/CumulusCI/8b8d1eb9a1593503bf625030fa702b6d4651cb55/cumulusci/tasks/bulkdata/tests/snowfakery/simple_snowfakery.load.yml"
         errs = _validate_url(url)
-        assert "foo" in str(errs)
+        assert "sf_object" in str(errs)
         assert "extra fields not permitted" in str(errs)
+        assert "snowfakery.load.yml" in str(errs)
 
 
 @pytest.fixture
@@ -181,3 +184,17 @@ def test_mutually_exclusive_options():
     logger = MagicMock()
     with pytest.raises(AssertionError):
         cci_safe_load(StringIO(""), on_error=lambda *args: args, logger=logger)
+
+
+def test_github_source():
+    with pytest.raises(ValidationError):
+        GitHubSourceModel(
+            github="https://github.com/Test/TestRepo", commit="abcdef", release="foo"
+        )
+
+    GitHubSourceModel(github="https://github.com/Test/TestRepo", release="latest")
+
+    assert (
+        GitHubSourceModel(github="https://github.com/Test/TestRepo").resolution_strategy
+        == "production"
+    )
