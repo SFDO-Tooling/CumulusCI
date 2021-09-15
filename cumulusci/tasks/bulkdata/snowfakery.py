@@ -129,8 +129,8 @@ class Snowfakery(BaseSalesforceApiTask):
         "recipe_options": {
             "required": False,
             "description": """Pass values to override options in the format VAR1:foo,VAR2:bar
-       Example: --recipe_options num_accounts:10,myRecipeOpt2:value2
-             """,
+
+             Example: --recipe_options weight:10,color:purple""",
         },
         "bulk_mode": {
             "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
@@ -146,7 +146,6 @@ class Snowfakery(BaseSalesforceApiTask):
             "Defaults to False."
         },
     }
-    recipe_options = None
 
     def _validate_options(self):
         super()._validate_options()
@@ -168,6 +167,8 @@ class Snowfakery(BaseSalesforceApiTask):
             self.recipe_options = process_list_of_pairs_dict_arg(
                 self.options["recipe_options"]
             )
+        else:
+            self.recipe_options = {}
 
     @property
     def num_loader_workers(self):
