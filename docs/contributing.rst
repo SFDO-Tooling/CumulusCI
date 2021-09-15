@@ -141,7 +141,7 @@ Writing Integration Tests
 All features should have integration tests which work against
 real orgs or APIs.
 
-You will need to use some the following fixtures in your tests. Search
+Our test suite makes extensive use of pytest fixtures; the ones below should be used in your tests where appropriate. Search
 the repo to see examples where they are used in context, or to see
 their definitions:
 
