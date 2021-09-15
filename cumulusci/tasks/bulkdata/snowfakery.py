@@ -163,12 +163,7 @@ class Snowfakery(BaseSalesforceApiTask):
         )
         loading_rules = process_list_arg(self.options.get("loading_rules")) or []
         self.loading_rules = [Path(path) for path in loading_rules if path]
-        if "recipe_options" in self.options:
-            self.recipe_options = process_list_of_pairs_dict_arg(
-                self.options["recipe_options"]
-            )
-        else:
-            self.recipe_options = {}
+        self.recipe_options = process_list_of_pairs_dict_arg(self.options.get("recipe_options") or {})
 
     @property
     def num_loader_workers(self):
@@ -459,7 +454,6 @@ class Snowfakery(BaseSalesforceApiTask):
             "set_recently_viewed": False,
             "ignore_row_errors": self.ignore_row_errors,
             # don't need to pass loading_rules because they are merged into mapping
-            # "loading_rules": self.loading_rules,
         }
         return options
 
