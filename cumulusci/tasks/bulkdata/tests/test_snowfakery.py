@@ -160,50 +160,62 @@ def ensure_accounts(create_task, run_code_without_recording, sf):
     return _ensure_accounts
 
 
-class GenResults(T.NamedTuple):
-    task: Snowfakery
-    outbox: Path
+class SnowfakeryTaskResults(T.NamedTuple):
+    """Results from a Snowfakery data generation process"""
+
+    task: Snowfakery  # The task, so we can inspect its return_values
+    outbox: Path  # The working directory, to look at mapping files, DB files, etc.
 
 
 @pytest.fixture()
-def get_mapping_file(get_mapping_file_and_record_counts):
-    def _get_mapping_file(**options):
-        with get_mapping_file_and_record_counts(**options) as results:
-            template_dir = SnowfakeryWorkingDirectory(results.outbox / "template_1/")
-            temp_mapping = template_dir.mapping_file
-            with open(temp_mapping) as f:
-                mapping = yaml.safe_load(f)
+def run_snowfakery_and_inspect_mapping(
+    run_snowfakery_and_yield_results,
+):
+    """Run Snowfakery with some defaulted or overriden options.
+    Yield a mapping file for inspection that it was the right file.
 
-            other_mapping = Path(str(temp_mapping).replace("template_1", "1_1"))
-            assert temp_mapping.read_text() == other_mapping.read_text()
-            return mapping
+    Defaults are same as run_snowfakery_and_yield_results.
+    """
 
-    return _get_mapping_file
+    def _run_snowfakery_and_inspect_mapping(**options):
+        with run_snowfakery_and_yield_results(**options) as results:
+            return get_mapping_from_snowfakery_task_results(results)
+
+    return _run_snowfakery_and_inspect_mapping
+
+
+def get_mapping_from_snowfakery_task_results(results: SnowfakeryTaskResults):
+    """Find the shared mapping file and return it."""
+    template_dir = SnowfakeryWorkingDirectory(results.outbox / "template_1/")
+    temp_mapping = template_dir.mapping_file
+    with open(temp_mapping) as f:
+        mapping = yaml.safe_load(f)
+
+    other_mapping = Path(str(temp_mapping).replace("template_1", "1_1"))
+    # check that it's truly shared
+    assert temp_mapping.read_text() == other_mapping.read_text()
+    return mapping
+
+
+def get_record_counts_from_snowfakery_results(
+    results: SnowfakeryTaskResults,
+) -> Counter:
+    """Collate the record counts from Snowfakery outbox directories"""
+
+    rollups = Counter()
+    for subdir in results.outbox.glob("*"):
+        if "template" not in subdir.name:
+            record_counts = SnowfakeryWorkingDirectory(subdir).get_record_counts()
+            rollups.update(record_counts)
+    return rollups
 
 
 @pytest.fixture()
-def get_record_counts(get_mapping_file_and_record_counts):
-    def _get_record_counts(**options):
-        with get_mapping_file_and_record_counts(**options) as results:
-            outdirs = [
-                SnowfakeryWorkingDirectory(subdir)
-                for subdir in results.outbox.glob("*")
-                if "template_" not in str(subdir)
-            ]
-            rollups = Counter()
-            for outdir in outdirs:
-                rollups.update(outdir.get_record_counts())
-            return rollups
-
-    return _get_record_counts
-
-
-@pytest.fixture()
-def get_mapping_file_and_record_counts(
+def run_snowfakery_and_yield_results(
     snowfakery, threads_instead_of_processes, mock_load_data
 ):
     @contextmanager
-    def _get_mapping_file_and_example_records(**options):
+    def _run_snowfakery_and_inspect_mapping_and_example_records(**options):
         with TemporaryDirectory() as workingdir:
             workingdir = Path(workingdir) / "tempdir"
             task = snowfakery(
@@ -213,9 +225,9 @@ def get_mapping_file_and_record_counts(
             )
             task()
             outbox = Path(workingdir) / "data_load_outbox/"
-            yield GenResults(task, outbox)
+            yield SnowfakeryTaskResults(task, outbox)
 
-    return _get_mapping_file_and_example_records
+    return _run_snowfakery_and_inspect_mapping_and_example_records
 
 
 class TestSnowfakery:
@@ -427,7 +439,7 @@ class TestSnowfakery:
             task = snowfakery(recipe=sample_yaml, run_until_recipe_repeated="Ten")
             task()
 
-    def test_run_until_conflcting_params(self, snowfakery):
+    def test_run_until_conflicting_params(self, snowfakery):
         with pytest.raises(exc.TaskOptionsError, match="only one of"):
             task = snowfakery(
                 recipe=sample_yaml,
@@ -497,19 +509,23 @@ class TestSnowfakery:
         r.successes = 11
         assert "11" in repr(r)
 
-    def test_generate_mapping_file__loadfile__inferred(self, get_mapping_file):
+    def test_generate_mapping_file__loadfile__inferred(
+        self, run_snowfakery_and_inspect_mapping
+    ):
 
-        mapping = get_mapping_file(recipe=simple_salesforce_yaml)
+        mapping = run_snowfakery_and_inspect_mapping(recipe=simple_salesforce_yaml)
 
         assert mapping["Insert Account"]["api"] == "bulk"
         assert mapping["Insert Contact"].get("bulk_mode") is None
         assert list(mapping.keys()) == ["Insert Account", "Insert Contact"]
 
-    def test_generate_mapping_file__loadfile__overridden(self, get_mapping_file):
+    def test_generate_mapping_file__loadfile__overridden(
+        self, run_snowfakery_and_inspect_mapping
+    ):
         loading_rules = str(simple_salesforce_yaml).replace(
             ".recipe.yml", "_2.load.yml"
         )
-        mapping = get_mapping_file(
+        mapping = run_snowfakery_and_inspect_mapping(
             recipe=simple_salesforce_yaml, loading_rules=str(loading_rules)
         )
 
@@ -517,13 +533,15 @@ class TestSnowfakery:
         assert mapping["Insert Contact"]["bulk_mode"].lower() == "parallel"
         assert list(mapping.keys()) == ["Insert Contact", "Insert Account"]
 
-    def test_generate_mapping_file__loadfile_multiple_files(self, get_mapping_file):
+    def test_generate_mapping_file__loadfile_multiple_files(
+        self, run_snowfakery_and_inspect_mapping
+    ):
         loading_rules = (
             str(simple_salesforce_yaml).replace(".recipe.yml", "_2.load.yml")
             + ","
             + str(simple_salesforce_yaml).replace(".recipe.yml", ".load.yml")
         )
-        mapping = get_mapping_file(
+        mapping = run_snowfakery_and_inspect_mapping(
             recipe=simple_salesforce_yaml, loading_rules=str(loading_rules)
         )
 
@@ -535,12 +553,15 @@ class TestSnowfakery:
         self,
         mock_load_data,
         threads_instead_of_processes,
-        get_record_counts,
+        run_snowfakery_and_yield_results,
     ):
         options_yaml = str(sample_yaml).replace(
             "gen_npsp_standard_objects.recipe.yml", "options.recipe.yml"
         )
-        record_counts = get_record_counts(recipe=options_yaml, recipe_options="xyzzy:7")
+        with run_snowfakery_and_yield_results(
+            recipe=options_yaml, recipe_options="xyzzy:7"
+        ) as results:
+            record_counts = get_record_counts_from_snowfakery_results(results)
         assert record_counts["Account"] == 7
 
     # def test_generate_mapping_file(self):
@@ -752,7 +773,7 @@ class TestSnowfakery:
     #         continuation_file = yaml.safe_load(open(temp_continuation_file))
     #         assert continuation_file  # internals of this file are not important to CumulusCI
 
-    # def _get_mapping_file(self, **options):
+    # def _run_snowfakery_and_inspect_mapping(self, **options):
     #     with temporary_file_path("mapping.yml") as temp_mapping:
     #         with temp_sqlite_database_url() as database_url:
     #             task = _make_task(
@@ -775,6 +796,6 @@ class TestSnowfakery:
     #         ".recipe.yml", "_3.load.yml"
     #     )
     #     with pytest.raises(FileNotFoundError):
-    #         self._get_mapping_file(
+    #         self._run_snowfakery_and_inspect_mapping(
     #             generator_yaml=simple_snowfakery_yaml, loading_rules=str(loading_rules)
     #         )
