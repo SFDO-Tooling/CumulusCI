@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 from unittest import mock
 
 import pytest
+import yaml
 from pytest import fixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -109,6 +110,41 @@ def temp_db():
         yield open_db
 
 
+@pytest.fixture()
+def delete_data_from_org(create_task):
+    def delete_data_from_org(object_names):
+        from cumulusci.tasks.bulkdata.delete import DeleteData
+
+        t = create_task(DeleteData, {"objects": object_names})
+        assert t.org_config.scratch
+        t()
+
+    return delete_data_from_org
+
+
 @pytest.fixture(scope="session")
 def cumulusci_test_repo_root():
     return Path(__file__).parent.parent
+
+
+@pytest.fixture(scope="session")
+def global_describe(cumulusci_test_repo_root):
+    global_describe_file = (
+        cumulusci_test_repo_root / "cumulusci/tasks/bulkdata/tests/global_describe.json"
+    )
+    with global_describe_file.open() as f:
+        data = yaml.safe_load(f)
+
+    def global_describe_specific_sobjects(sobjects: int = None):
+        if sobjects is None:  # pragma: no cover
+            subset = data.copy()
+        elif isinstance(sobjects, int):
+            subset = data.copy()
+            subset["sobjects"] = subset["sobjects"][0:sobjects]
+        elif isinstance(sobjects, (list, tuple)):  # pragma: no cover
+            raise NotImplementedError(
+                "We could implement a by-name subsetting here when we need it."
+            )
+        return subset
+
+    return global_describe_specific_sobjects

@@ -339,7 +339,7 @@ class Snowfakery(BaseSalesforceApiTask):
 
     def update_running_totals_from_load_step_results(self, results: dict) -> None:
         for result in results["step_results"].values():
-            sobject_name = result["mapping"]["sf_object"]
+            sobject_name = result["sobject"]
             totals = self.sobject_counts[sobject_name]
             totals.errors += result["total_row_errors"]
             totals.successes += result["records_processed"] - result["total_row_errors"]

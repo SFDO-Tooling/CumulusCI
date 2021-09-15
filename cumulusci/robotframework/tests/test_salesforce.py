@@ -72,7 +72,7 @@ class TestKeyword_wait_until_salesforce_is_ready(unittest.TestCase):
                 # test, it just makes the test run longer than necessary.
                 self.sflib.wait_until_salesforce_is_ready(timeout=0.1)
 
-            self.sflib.selenium.failure_occurred.assert_called()
+            self.sflib.selenium.capture_page_screenshot.assert_called()
 
 
 @mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")

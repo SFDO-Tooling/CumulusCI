@@ -137,4 +137,6 @@ class TestRobotParallel(unittest.TestCase):
             outputdir=outputdir,
             variable=["org:test"],
             tagstatexclude=["cci_metric_elapsed_time", "cci_metric"],
+            stdout=sys.stdout,
+            stderr=sys.stderr,
         )

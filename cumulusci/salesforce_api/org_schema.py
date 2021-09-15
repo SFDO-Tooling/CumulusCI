@@ -17,7 +17,10 @@ from cumulusci.salesforce_api.org_schema_models import (
     FileMetadata,
     SObject,
 )
-from cumulusci.utils.http.multi_request import CompositeParallelSalesforce
+from cumulusci.utils.http.multi_request import (
+    RECOVERABLE_ERRORS,
+    CompositeParallelSalesforce,
+)
 
 y2k = "Sat, 1 Jan 2000 00:00:01 GMT"
 
@@ -109,7 +112,7 @@ class Schema:
         sobjs = sf.describe()["sobjects"]
         sobj_names = [obj["name"] for obj in sobjs]
 
-        responses = list(deep_describe(sf, last_modified_date, sobj_names))
+        responses = list(deep_describe(sf, last_modified_date, sobj_names, logger))
         changes = [
             (resp.body, resp.last_modified_date)
             for resp in responses
@@ -284,20 +287,20 @@ class DescribeResponse(NamedTuple):
     status: int
     body: dict
     last_modified_date: str = None
-    refId: str = None
 
 
 def deep_describe(
-    sf, last_modified_date: Optional[str], objs: List[str]
+    sf, last_modified_date: Optional[str], objs: List[str], logger
 ) -> Iterable[DescribeResponse]:
     """Fetch describe data for changed sobjects
 
     Fetch describe data for sobjects from the list 'objs'
     which have changed since last_modified_date (in HTTP
     proto format) and yield each object as a DescribeResponse object."""
+    logger = logger or getLogger(__name__)
     last_modified_date = last_modified_date or y2k
     with CompositeParallelSalesforce(sf, max_workers=8) as cpsf:
-        responses = cpsf.do_composite_requests(
+        responses, errors = cpsf.do_composite_requests(
             (
                 {
                     "method": "GET",
@@ -309,12 +312,25 @@ def deep_describe(
             )
         )
 
+        for error in errors[0:5]:
+            logger.warning(f"Error calling Salesforce API: {error}")
+        if len(errors) > 5:
+            logger.warning(f"...Total {len(errors)} errors")
+
+        unrecoverable_errors = (
+            error
+            for error, matching_request in errors
+            if not isinstance(error, RECOVERABLE_ERRORS)
+        )
+        first_unrecoverable_error = next(unrecoverable_errors, None)
+        if first_unrecoverable_error:
+            raise first_unrecoverable_error
+
         responses = (
             DescribeResponse(
                 response["httpStatusCode"],
                 response["body"],
                 response["httpHeaders"].get("Last-Modified"),
-                response["referenceId"],
             )
             for response in responses
         )

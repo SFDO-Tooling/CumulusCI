@@ -40,11 +40,12 @@ class CliRuntime(BaseCumulusCI):
 
     def get_keychain_key(self):
         key_from_env = os.environ.get("CUMULUSCI_KEY")
+        keychain_exception = ""
         try:
             key_from_keyring = keyring.get_password("cumulusci", "CUMULUSCI_KEY")
             has_functioning_keychain = True
         except Exception as e:
-            keychain_exception = e
+            keychain_exception = str(e)
             key_from_keyring = None
             has_functioning_keychain = False
         # If no key in environment or file, generate one
@@ -53,8 +54,15 @@ class CliRuntime(BaseCumulusCI):
             if has_functioning_keychain:
                 key = random_alphanumeric_underscore(length=16)
             else:
+                # Log why the keychain isn't working,
+                # but suppress recommendation to install keyrings.alt on Linux
+                keychain_exception = (
+                    f"({keychain_exception}) "
+                    if "install the keyrings.alt package" not in keychain_exception
+                    else ""
+                )
                 logger.warning(
-                    f"Unable to store an encryption key. ({keychain_exception})"
+                    f"Unable to store an encryption key. {keychain_exception}"
                     "Any orgs or services written to disk will not be encrypted. "
                 )
 
