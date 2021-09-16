@@ -12,13 +12,12 @@ Changes
 - ``cci flow info`` will now output all flow options defined. (#2845)
 - We improved error messages for incorrect data mapping files (#2831).
 - The ``snowfakery`` task supports ``loading_rules`` to be supplied in addition to implied by filename (#2861)
-- The ``snowfakery`` task supports recipe options being supplied to recipes as the older ``generate_and_load_from_yaml`` task did (#2861).
+- The ``snowfakery`` task supports recipe options being supplied to recipes using the ``recipe_options`` option (#2861).
 
 
 Issues Fixed
 
 - We fixed some errors in the documentation (#2854)
-- We added a workaround for issue #2809.
 - We fixed an issue causing CumulusCI to fail to install releases that contain an Unlocked Package without a namespace. (#2851)
 - We added handling for issues that occur when loading the schema for very large orgs (#2860).
 - We fixed a regression in using cross-project sources in MetaDeploy installers (#2875).
