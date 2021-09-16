@@ -27,8 +27,9 @@ from cumulusci.utils.parallel.task_worker_queues.tests.test_parallel_worker impo
 simple_salesforce_yaml = (
     Path(__file__).parent / "snowfakery/simple_snowfakery.recipe.yml"
 )
-sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.recipe.yml"
-query_yaml = Path(__file__).parent / "snowfakery/query_snowfakery.recipe.yml"
+samples_dir = Path(__file__).parent / "snowfakery"
+sample_yaml = samples_dir / "gen_npsp_standard_objects.recipe.yml"
+query_yaml = samples_dir / "query_snowfakery.recipe.yml"
 
 original_refresh_token = OrgConfig.refresh_oauth_token
 
@@ -555,14 +556,23 @@ class TestSnowfakery:
         threads_instead_of_processes,
         run_snowfakery_and_yield_results,
     ):
-        options_yaml = str(sample_yaml).replace(
-            "gen_npsp_standard_objects.recipe.yml", "options.recipe.yml"
-        )
+        options_yaml = samples_dir / "options.recipe.yml"
         with run_snowfakery_and_yield_results(
             recipe=options_yaml, recipe_options="xyzzy:7"
         ) as results:
             record_counts = get_record_counts_from_snowfakery_results(results)
         assert record_counts["Account"] == 7
+
+    @pytest.mark.needs_org()
+    @pytest.mark.slow()
+    @pytest.mark.org_shape("qa", "qa_org")
+    def test_record_types(self, snowfakery):
+        record_type_recipe = samples_dir / "record_types.recipe.yml"
+        task = snowfakery(recipe=record_type_recipe)
+        task()
+        account_info = task.return_values["sobject_counts"]["Account"]
+        assert account_info["successes"] == 1
+        assert account_info["errors"] == 0
 
     # def test_generate_mapping_file(self):
     #     with temporary_file_path("mapping.yml") as temp_mapping:

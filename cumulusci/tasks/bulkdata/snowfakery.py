@@ -227,6 +227,10 @@ class Snowfakery(BaseSalesforceApiTask):
                 portions,
             )
             self.finish(upload_status, self.data_gen_q, self.load_data_q)
+            sobject_counts = {
+                name: value.as_dict() for name, value in self.sobject_counts.items()
+            }
+            self.return_values = {"sobject_counts": sobject_counts}
 
     def configure_queues(self, working_directory):
         """Configure two ParallelWorkerQueues for datagen and dataload"""
@@ -750,3 +754,6 @@ class RunningTotals:
 
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.__dict__}>"
+
+    def as_dict(self):
+        return self.__dict__.copy()

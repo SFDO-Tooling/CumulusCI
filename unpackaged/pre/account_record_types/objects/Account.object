@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <recordTypes>
+        <fullName>HH_Account</fullName>
+        <active>true</active>
+        <description>An Account representing a Household containing one or more individuals</description>
+        <label>Household Account</label>
+    </recordTypes>
+    <recordTypes>
+        <fullName>Organization</fullName>
+        <active>true</active>
+        <description>An Account representing an organization</description>
+        <label>Organization</label>
+    </recordTypes>
+</CustomObject>
