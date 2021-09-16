@@ -4,6 +4,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 from unittest.mock import MagicMock
 
+from requests.structures import CaseInsensitiveDict
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, func, text
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session, aliased
@@ -276,7 +277,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             columns.append(lookup.aliased_table.columns.sf_id)
 
         if "RecordTypeId" in mapping.fields:
-            rt_dest_table = self.metadata.tables[
+            rt_dest_table = CaseInsensitiveDict(self.metadata.tables)[
                 mapping.get_destination_record_type_table()
             ]
             columns.append(rt_dest_table.columns.record_type_id)
@@ -292,7 +293,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         if "RecordTypeId" in mapping.fields:
             try:
-                rt_source_table = self.metadata.tables[
+                rt_source_table = CaseInsensitiveDict(self.metadata.tables)[
                     mapping.get_source_record_type_table()
                 ]
             except KeyError as e:
