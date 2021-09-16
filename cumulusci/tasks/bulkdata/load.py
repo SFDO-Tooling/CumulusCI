@@ -5,7 +5,16 @@ from contextlib import contextmanager
 from unittest.mock import MagicMock
 
 from requests.structures import CaseInsensitiveDict
-from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, func, text
+from sqlalchemy import (
+    Column,
+    MetaData,
+    Table,
+    Unicode,
+    create_engine,
+    func,
+    inspect,
+    text,
+)
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session, aliased
 
@@ -422,7 +431,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 Column("id", Unicode(255), primary_key=True),
                 Column("sf_id", Unicode(18)),
             )
-            if id_table.exists():
+            if self.inspector.has_table(id_table_name):
                 id_table.drop()
             id_table.create()
             self._initialized_id_tables.add(id_table_name)
@@ -455,6 +464,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 # initialize DB metadata
                 self.metadata = MetaData()
                 self.metadata.bind = connection
+                self.inspector = inspect(parent_engine)
 
                 # initialize the automap mapping
                 self.base = automap_base(bind=connection, metadata=self.metadata)
