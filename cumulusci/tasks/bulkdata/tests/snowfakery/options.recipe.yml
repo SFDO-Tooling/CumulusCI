@@ -1,0 +1,5 @@
+- option: xyzzy
+- object: Account
+  count: ${{xyzzy}}
+  fields:
+      value: ${{xyzzy}}
