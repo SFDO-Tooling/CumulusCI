@@ -2,6 +2,14 @@
 History
 =======
 
+3.44.1 (2021-09-17)
+-------------------
+
+Issues Fixed
+
+- We fixed a regression that resulted in upload failures for 2GP packages that extend 1GP packages (closes #2880).
+
+
 3.44.0 (2021-09-16)
 -------------------
 
