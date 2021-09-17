@@ -32,7 +32,6 @@ CumulusCI can also execute flows in GitHub Actions, making it possible to run sc
 To learn more about these custom workflows, see our `template repository <https://github.com/SFDO-Tooling/CumulusCI-CI-Demo>`_ which is configured to run :doc:`CumulusCI Flow <cumulusci_flow>` using :doc:`GitHub Actions <github_actions>`.
 
 
-
 MetaCI
 ------
 Salesforce.org Release Engineering also maintains a continuous integration system called *MetaCI*.
@@ -46,6 +45,20 @@ MetaCI's advantages for CumulusCI-based development processes include:
 Setting up MetaCI requires experience working with apps on Heroku and CumulusCI.
 To learn more about MetaCI and how to run it with a project, see `MetaCI <https://github.com/SFDO-Tooling/MetaCI>`_.
  
+
+Other CI Systems and Servers
+----------------------------
+
+One can run CumulusCI in other CI systems and server environments without either logging into the servers
+nor using a Web front-end (like MetaCI) by running :doc:`Headlessly <headless>`.
+
+Testing with Second-Generation Packaging
+----------------------------------------
+
+CumulusCI makes it easy to harness the power of second-generation managed packages to implement an advanced,
+comprehensive testing process for both first- and second-generation managed package products.
+This is described in :doc:`Testing with Second-Generation Packaging <2gp_testing>`.
+
 
 
 Further Reading
