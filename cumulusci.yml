@@ -4,6 +4,13 @@ project:
         name: CumulusCI
 
 tasks:
+    update_admin_profile:
+        options:
+            record_types:
+                - record_type: Account.HH_Account
+                  default: True
+                - record_type: Account.Organization
+
     robot:
         options:
             suites: cumulusci/robotframework/tests

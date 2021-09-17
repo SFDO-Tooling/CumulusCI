@@ -315,13 +315,13 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             ]
             query = query.outerjoin(
                 rt_source_table,
-                rt_source_table.columns.record_type_id
-                == getattr(model, mapping.fields["RecordTypeId"]),
+                func.lower(rt_source_table.columns.record_type_id)
+                == func.lower(getattr(model, mapping.fields["RecordTypeId"])),
             )
             query = query.outerjoin(
                 rt_dest_table,
-                rt_dest_table.columns.developer_name
-                == rt_source_table.columns.developer_name,
+                func.lower(rt_dest_table.columns.developer_name)
+                == func.lower(rt_source_table.columns.developer_name),
             )
 
         for sf_field, lookup in lookups.items():

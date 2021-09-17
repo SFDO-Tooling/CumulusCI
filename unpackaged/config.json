@@ -2,7 +2,7 @@
     "pre": [
         {
             "bundle": "Account Record Types",
-            "description": "Creates the Household Account record types",
+            "description": "Creates the Household and Organization Account record types",
             "path": "pre/account_record_types"
         }
     ],

@@ -566,13 +566,22 @@ class TestSnowfakery:
     @pytest.mark.needs_org()
     @pytest.mark.slow()
     @pytest.mark.org_shape("qa", "qa_org")
-    def test_record_types(self, snowfakery):
+    def test_record_types(self, snowfakery, sf):
+        data = sf.query(
+            "SELECT Name,RecordType.Name from Account where RecordTypeId != NULL"
+        )["records"]
+        assert not data, data
         record_type_recipe = samples_dir / "record_types.recipe.yml"
         task = snowfakery(recipe=record_type_recipe)
         task()
         account_info = task.return_values["sobject_counts"]["Account"]
         assert account_info["successes"] == 1
         assert account_info["errors"] == 0
+        data = sf.query(
+            "SELECT Name,RecordType.Name from Account where RecordTypeId != NULL"
+        )["records"]
+        assert len(data) == 1
+        assert data[0]["RecordType"]["Name"] == "Organization"
 
     # def test_generate_mapping_file(self):
     #     with temporary_file_path("mapping.yml") as temp_mapping:

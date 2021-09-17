@@ -1,5 +1,4 @@
-# contact based on a user
 - object: ACCOUNT
   fields:
       name: Name
-      RecordType: hh_Account2
+      RecordType: Organization
