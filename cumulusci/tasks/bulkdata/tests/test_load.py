@@ -1476,10 +1476,10 @@ class TestLoadData(unittest.TestCase):
 
         # Validate that we asked for the right joins on the record type tables
         task.session.query.return_value.outerjoin.assert_called_once_with(
-            task.metadata.tables["Account_rt_mapping"], False
+            task.metadata.tables["Account_rt_mapping"], mock.ANY
         )
         task.session.query.return_value.outerjoin.return_value.outerjoin.assert_called_once_with(
-            task.metadata.tables["Account_rt_target_mapping"], False
+            task.metadata.tables["Account_rt_target_mapping"], mock.ANY
         )
 
     @mock.patch("cumulusci.tasks.bulkdata.load.automap_base")
