@@ -611,3 +611,36 @@ class ApiListMetadata(BaseMetadataApiCall):
             metadata.append(result_data)
         self.metadata[self.metadata_type].extend(metadata)
         return self.metadata
+
+
+class ApiNewProfile(BaseMetadataApiCall):
+    check_interval = 1
+    soap_envelope_start = soap_envelopes.CREATE_PROFILE
+    soap_action_start = "create"
+
+    def __init__(
+        self,
+        task,
+        api_version=None,
+        name=None,
+        description=None,
+        license_id=None,
+    ):
+        super(ApiNewProfile, self).__init__(task, api_version)
+
+        self.name = name
+        self.description = description
+        self.license_id = license_id
+
+    def _build_endpoint_url(self):
+        org_id = self.task.org_config.org_id
+        instance_url = self.task.org_config.instance_url
+        endpoint = f"{instance_url}/services/Soap/u/53.0/{org_id}"
+        return endpoint
+
+    def _build_envelope_start(self):
+        return self.soap_envelope_start.format(
+            name=self.name,
+            description=self.description,
+            license_id=self.license_id,
+        )
