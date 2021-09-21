@@ -47,16 +47,17 @@ body:
       attributes:
           label: Operating System
           description: Your operating system and version.
-    - type: checkboxes
+    - type: dropdown
       id: win
       attributes:
           label: Windows environment
           description: If using Windows, how are you running CumulusCI?
+          multiple: true
           options:
-              - label: Command Prompt
-              - label: PowerShell
-              - label: Bash on Windows
-              - label: WSL
+              - Bash on Windows
+              - Command Prompt
+              - PowerShell
+              - WSL
     - type: dropdown
       id: install
       attributes:
