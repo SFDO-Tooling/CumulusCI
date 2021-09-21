@@ -158,7 +158,6 @@ def test_flow_run():
         delete_org=True,
         debug=False,
         o=[("test_task__color", "blue")],
-        skip=(),
         no_prompt=True,
     )
 
@@ -196,7 +195,6 @@ def test_flow_run__delete_org_when_error_occurs_in_flow():
             delete_org=True,
             debug=False,
             o=[("test_task__color", "blue")],
-            skip=(),
             no_prompt=True,
         )
 
@@ -220,7 +218,6 @@ def test_flow_run__option_error():
             delete_org=True,
             debug=False,
             o=[("test_task", "blue")],
-            skip=(),
             no_prompt=True,
         )
 
@@ -239,7 +236,6 @@ def test_flow_run__delete_non_scratch():
             delete_org=True,
             debug=False,
             o=None,
-            skip=(),
             no_prompt=True,
         )
 
@@ -273,7 +269,6 @@ def test_flow_run__org_delete_error(echo):
         "debug": False,
         "no_prompt": True,
         "o": (("test_task__color", "blue"),),
-        "skip": (),
     }
 
     run_click_command(flow.flow_run, **kwargs)
