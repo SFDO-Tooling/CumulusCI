@@ -269,13 +269,27 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _convert_lookups_to_id(self, mapping, lookup_keys):
         """Rewrite persisted Salesforce Ids to refer to auto-PKs."""
+
+        def throw(string):  # pragma: no cover
+            raise BulkDataException(string)
+
         for lookup_key in lookup_keys:
-            lookup_info = mapping.lookups[lookup_key]
-            model = self.models[mapping.table]
-            lookup_mapping = self._get_mapping_for_table(lookup_info.table)
-            lookup_model = self.models[lookup_mapping.get_sf_id_table()]
+            lookup_info = mapping.lookups.get(lookup_key) or throw(
+                f"Cannot find lookup info {lookup_key}"
+            )
+            model = self.models.get(mapping.table)
+
+            lookup_mapping = self._get_mapping_for_table(lookup_info.table) or throw(
+                f"Cannot find lookup mapping for {lookup_info.table}"
+            )
+
+            lookup_model = self.models.get(lookup_mapping.get_sf_id_table())
+
             key_field = lookup_info.get_lookup_key_field()
-            key_attr = getattr(model, key_field)
+
+            key_attr = getattr(model, key_field, None) or throw(
+                f"key_field {key_field} not found in table {mapping.table}"
+            )
             try:
                 self.session.query(model).filter(
                     key_attr.isnot(None), key_attr == lookup_model.sf_id

@@ -166,6 +166,7 @@ class GitHubSourceModel(HashableBaseModel):
     branch: Optional[str]
     tag: Optional[str]
     release: Optional[GitHubSourceRelease]
+    description: Optional[str]
 
     @root_validator
     def validate(cls, values):

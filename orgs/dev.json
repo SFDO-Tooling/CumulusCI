@@ -1,21 +1,19 @@
 {
-  "orgName": "CumulusCI - Dev Workspace",
-  "edition": "Developer",
-  "features": [
-    "Communities"
-  ],
-  "settings": {
-    "lightningExperienceSettings": {
-      "enableS1DesktopEnabled": true
-    },
-    "chatterSettings": {
-      "enableChatter": true
-    },
-    "languageSettings": {
-      "enableTranslationWorkbench": true
-    },
-    "communitiesSettings": {
-      "enableNetworksEnabled": true
+    "orgName": "CumulusCI - Dev Workspace",
+    "edition": "Developer",
+    "features": ["Communities"],
+    "settings": {
+        "lightningExperienceSettings": {
+            "enableS1DesktopEnabled": true
+        },
+        "chatterSettings": {
+            "enableChatter": true
+        },
+        "languageSettings": {
+            "enableTranslationWorkbench": true
+        },
+        "communitiesSettings": {
+            "enableNetworksEnabled": true
+        }
     }
-  }
 }
