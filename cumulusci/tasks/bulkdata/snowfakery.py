@@ -10,12 +10,17 @@ from tempfile import TemporaryDirectory, mkdtemp
 
 import psutil
 import yaml
-from snowfakery.api import COUNT_REPS
+from snowfakery.api import COUNT_REPS, infer_load_file_path
+from snowfakery.cci_mapping_files.declaration_parser import (
+    ShardDeclaration,
+    SObjectRuleDeclarationFile,
+)
 from sqlalchemy import MetaData, Table, create_engine, func, select
 
 import cumulusci.core.exceptions as exc
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.debug import get_debug_mode
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import (
     format_duration,
     process_bool_arg,
@@ -166,6 +171,8 @@ class Snowfakery(BaseSalesforceApiTask):
         self.recipe_options = process_list_of_pairs_dict_arg(
             self.options.get("recipe_options") or {}
         )
+
+        self.shard_decls = read_sharding_declarations(recipe, self.loading_rules)
 
     @property
     def num_loader_workers(self):
@@ -761,3 +768,44 @@ class RunningTotals:
 
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.__dict__}>"
+
+
+class RulesFileAndRules(T.NamedTuple):
+    file: Path
+    rules: T.List[ShardDeclaration]
+
+
+def _read_sharding_declarations_from_file(
+    loading_rules_file: Path,
+) -> RulesFileAndRules:
+    with loading_rules_file.open() as f:
+        decls = SObjectRuleDeclarationFile.parse_from_yaml(f)
+        shard_decls = decls.shard_declarations or []
+        assert isinstance(shard_decls, list)
+        return RulesFileAndRules(loading_rules_file, shard_decls)
+
+
+def read_sharding_declarations(
+    recipe: Path, loading_rules_files: T.List[Path]
+) -> T.List[ShardDeclaration]:
+    implicit_rules_file = infer_load_file_path(recipe)
+    if implicit_rules_file and implicit_rules_file.exists():
+        loading_rules_files = loading_rules_files + [implicit_rules_file]
+    # uniqify without losing order
+    loading_rules_files = list(dict.fromkeys(loading_rules_files))
+
+    rules_lists = [
+        _read_sharding_declarations_from_file(file) for file in loading_rules_files
+    ]
+    rules_lists = [rules_list for rules_list in rules_lists if rules_list.rules]
+
+    if len(rules_lists) > 1:
+        files = ", ".join(
+            [f"{rules_list.file}: {rules_list.rules}" for rules_list in rules_lists]
+        )
+        msg = f"Multiple shard declarations: {files}"
+        raise TaskOptionsError(msg)
+    elif len(rules_lists) == 1:
+        return rules_lists[0].rules
+    else:
+        return []
