@@ -182,7 +182,6 @@ tasks:
         class_path: cumulusci.tasks.salesforce.profile.ProfileSoap
         options:
             license: Salesforce
-            name: New Blank Profile
         group: Salesforce Metadata
     delete_data:
         description: Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
