@@ -168,15 +168,6 @@ class BaseMetadataApiCall(object):
                 return response
         return response
 
-    def _handle_invalid_session(self, headers, envelope, refresh):
-        if self.task.org_config and self.task.org_config.refresh_token:
-            # Attempt to refresh token and recall request
-            if refresh:
-                self.task.org_config.refresh_oauth_token(
-                    self.task.project_config.keychain
-                )
-                return self._call_mdapi(headers, envelope, refresh=False)
-
     def _handle_soap_error(self, headers, envelope, refresh, response):
         resp_xml = parseString(response.content)
         faultcode = resp_xml.getElementsByTagName("faultcode")
@@ -187,8 +178,17 @@ class BaseMetadataApiCall(object):
             faultstring = faultstring[0].firstChild.nodeValue
         else:
             faultstring = response.text
-        if faultcode == "sf:INVALID_SESSION_ID":
-            return self._handle_invalid_session(headers, envelope, refresh)
+        if (
+            faultcode == "sf:INVALID_SESSION_ID"
+            and self.task.org_config
+            and self.task.org_config.refresh_token
+        ):
+            # Attempt to refresh token and recall request
+            if refresh:
+                self.task.org_config.refresh_oauth_token(
+                    self.task.project_config.keychain
+                )
+                return self._call_mdapi(headers, envelope, refresh=False)
         # Log the error
         message = f"{faultcode}: {faultstring}"
         self._set_status("Failed", message)
@@ -640,6 +640,7 @@ class ApiNewProfile(BaseMetadataApiCall):
     def _build_endpoint_url(self):
         org_id = self.task.org_config.org_id
         instance_url = self.task.org_config.instance_url
+        # Overwrite to call the Partner WSDL endpoint
         endpoint = f"{instance_url}/services/Soap/u/{self.API_VERSION}/{org_id}"
         return endpoint
 
@@ -650,13 +651,13 @@ class ApiNewProfile(BaseMetadataApiCall):
             license_id=self.license_id,
         )
 
-    # def _process_response(self, response):
-    #     breakpoint()
-    #     res_xml = parseString(response.content).getElementsByTagName("id")
-    #     if res_xml:
-    #         return res_xml[0].firstChild.nodeValue
-    #     else:
-    #         return response.text
+    def _process_response(self, response):
+        res_xml = parseString(response.content).getElementsByTagName("id")
+        if res_xml:
+            # Return id of newly created profile.
+            return res_xml[0].firstChild.nodeValue
+        else:
+            return response.text
 
     def _handle_soap_error(self, headers, envelope, refresh, response):
         resp_xml = parseString(response.content)
@@ -680,8 +681,17 @@ class ApiNewProfile(BaseMetadataApiCall):
         else:
             faultcode = ""
             faultstring = response.text
-        if faultcode == "sf:INVALID_SESSION_ID":
-            return self._handle_invalid_session(headers, envelope, refresh)
+        if (
+            faultcode == "sf:INVALID_SESSION_ID"
+            and self.task.org_config
+            and self.task.org_config.refresh_token
+        ):
+            # Attempt to refresh token and recall request
+            if refresh:
+                self.task.org_config.refresh_oauth_token(
+                    self.task.project_config.keychain
+                )
+                return self._call_mdapi(headers, envelope, refresh=False)
         # Log the error
         message = f"{faultcode}: {faultstring}"
         self._set_status("Failed", message)

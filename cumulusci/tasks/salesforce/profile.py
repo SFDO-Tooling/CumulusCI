@@ -42,8 +42,6 @@ class ProfileSoap(BaseSalesforceMetadataApiTask):
         res = self.sf.query_all(
             f"SELECT Id, Name FROM UserLicense WHERE Name = '{license_name}'"
         )
-        # import pdb
-
         return res["records"][0]["Id"]
 
     def _get_api(self):
