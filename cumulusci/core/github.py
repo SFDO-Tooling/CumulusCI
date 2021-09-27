@@ -112,7 +112,7 @@ def validate_service(options: dict) -> dict:
         # We're checking for a partial-response SSO header and /user/orgs
         # doesn't include one, so we need /user/repos instead.
         repo_generator = gh.repositories()
-        _ = repo_generator.next()
+        _ = next(repo_generator, None)
         repo_response = repo_generator.last_response
         options["scopes"] = get_oauth_scopes(repo_response)
 

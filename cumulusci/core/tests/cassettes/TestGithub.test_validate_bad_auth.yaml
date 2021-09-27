@@ -1,0 +1,19 @@
+interactions:
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://api.github.com/user
+      response:
+          body:
+              string: '{"message":"Bad credentials","documentation_url":"https://docs.github.com/rest"}'
+          headers:
+              Content-Type:
+                  - application/json; charset=utf-8
+              Others: Elided
+          status:
+              code: 401
+              message: Unauthorized
+version: 1

@@ -16,6 +16,7 @@ from github3.session import AppInstallationTokenAuth
 from requests.exceptions import RequestException, RetryError
 from requests.models import Response
 
+import cumulusci
 from cumulusci.core import github
 from cumulusci.core.exceptions import (
     DependencyLookupError,
@@ -475,3 +476,32 @@ class TestGithub(GithubApiTestMixin):
 
         with pytest.raises(TransportError):
             test_func()
+
+    @pytest.mark.vcr()
+    def test_validate_no_repo_exc(self):
+        service_dict = {
+            "username": "e2ac67",
+            "token": "ghp_cf83e1357eefb8bdf1542850d66d8007d620e4",
+            "email": "testerson@test.com",
+        }
+        updated_dict = validate_service(service_dict)
+        expected_dict = {
+            "username": "e2ac67",
+            "token": "ghp_cf83e1357eefb8bdf1542850d66d8007d620e4",
+            "email": "testerson@test.com",
+            "Organizations": "",
+            "scopes": {"repo", "gist"},
+        }
+        print(updated_dict)
+        assert expected_dict == updated_dict
+
+    @pytest.mark.vcr()
+    def test_validate_bad_auth(self):
+        service_dict = {
+            "username": "e2ac67",
+            "token": "bad_cf83e1357eefb8bdf1542850d66d8007d620e4",
+            "email": "testerson@test.com",
+        }
+        with pytest.raises(cumulusci.core.exceptions.GithubException) as e:
+            validate_service(service_dict)
+        assert "401" in str(e.value)
