@@ -490,9 +490,8 @@ class TestGithub(GithubApiTestMixin):
             "token": "ghp_cf83e1357eefb8bdf1542850d66d8007d620e4",
             "email": "testerson@test.com",
             "Organizations": "",
-            "scopes": {"repo", "gist"},
+            "scopes": set(),
         }
-        print(updated_dict)
         assert expected_dict == updated_dict
 
     @pytest.mark.vcr()
