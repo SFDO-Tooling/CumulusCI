@@ -382,13 +382,12 @@ class TestOrgCommands:
             )
             cli_tbl.assert_called_with(
                 [
-                    ["Key", "Value"],
+                    ["Org: test", ""],
                     ["\x1b[1mapi_version\x1b[0m", "42.0"],
                     ["\x1b[1mdays\x1b[0m", "1"],
                     ["\x1b[1mdefault\x1b[0m", "True"],
                     ["\x1b[1mpassword\x1b[0m", "None"],
                 ],
-                wrap_cols=["Value"],
             )
 
         org_config.save.assert_called_once_with()
@@ -528,26 +527,23 @@ class TestOrgCommands:
 
         scratch_table_call = mock.call(
             [
-                ["Name", "Default", "Days", "Expired", "Config", "Domain"],
-                ["test0", True, "7", True, "dev", ""],
-                ["test1", False, "1/7", False, "dev", "sneaky-master-2330-dev-ed.cs22"],
+                ["Default", "Name", "Days", "Expired", "Config", "Domain"],
+                [True, "test0", "7", True, "dev", ""],
+                [False, "test1", "1/7", False, "dev", "sneaky-master-2330-dev-ed.cs22"],
             ],
-            bool_cols=["Default"],
             title="Scratch Orgs",
             dim_rows=[0, 1],
         )
         connected_table_call = mock.call(
             [
-                ["Name", "Default", "Username", "Expires"],
-                ["test2", False, "test2@example.com", "Persistent"],
-                ["test3", False, "test3@example.com", "2019-11-19"],
-                ["test4", False, "test4@example.com", "Unknown"],
-                ["test5", False, "test5@example.com", "2019-11-19"],
-                ["test6", False, "test6@example.com", "Unknown"],
+                ["Default", "Name", "Username", "Expires"],
+                [False, "test2", "test2@example.com", "Persistent"],
+                [False, "test3", "test3@example.com", "2019-11-19"],
+                [False, "test4", "test4@example.com", "Unknown"],
+                [False, "test5", "test5@example.com", "2019-11-19"],
+                [False, "test6", "test6@example.com", "Unknown"],
             ],
-            bool_cols=["Default"],
             title="Connected Orgs",
-            wrap_cols=["Username"],
         )
 
         assert scratch_table_call in cli_tbl.call_args_list
@@ -619,6 +615,7 @@ class TestOrgCommands:
         expected = {
             "test0": {
                 "is_default": True,
+                "name": "test0",
                 "days": "7",
                 "expired": True,
                 "config": "dev",
@@ -627,14 +624,30 @@ class TestOrgCommands:
             },
             "test1": {
                 "is_default": False,
+                "name": "test1",
                 "days": "1/7",
                 "expired": False,
                 "config": "dev",
                 "domain": "sneaky-master-2330-dev-ed.cs22",
                 "is_scratch": True,
             },
-            "test2": {"is_default": False, "is_scratch": False},
+            "test2": {
+                "is_default": False,
+                "name": "test2",
+                "username": "test2@example.com",
+                "expires": "Persistent",
+                "is_scratch": False,
+            },
         }
+
+        from rich.pretty import pprint
+
+        pprint(
+            json.loads(
+                '{"test0": {"is_default": true, "name": "test0", "days": "7", "expired": true, "config": "dev", "domain": "", "is_scratch": true}, "test1": {"is_default": false, "name": "test1", "days": "1/7", "expired": false, "config": "dev", "domain": "sneaky-master-2330-dev-ed.cs22", "is_scratch": true}, "test2": {"is_default": false, "name": "test2", "username": "test2@example.com", "expires": "Persistent", "is_scratch": false}}'
+            )
+        )
+
         echo.assert_called_once_with(json.dumps(expected))
 
     @mock.patch("click.echo")
