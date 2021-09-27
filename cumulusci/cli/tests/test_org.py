@@ -640,14 +640,6 @@ class TestOrgCommands:
             },
         }
 
-        from rich.pretty import pprint
-
-        pprint(
-            json.loads(
-                '{"test0": {"is_default": true, "name": "test0", "days": "7", "expired": true, "config": "dev", "domain": "", "is_scratch": true}, "test1": {"is_default": false, "name": "test1", "days": "1/7", "expired": false, "config": "dev", "domain": "sneaky-master-2330-dev-ed.cs22", "is_scratch": true}, "test2": {"is_default": false, "name": "test2", "username": "test2@example.com", "expires": "Persistent", "is_scratch": false}}'
-            )
-        )
-
         echo.assert_called_once_with(json.dumps(expected))
 
     @mock.patch("click.echo")
