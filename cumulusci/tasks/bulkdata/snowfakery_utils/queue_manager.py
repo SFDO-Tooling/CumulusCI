@@ -1,8 +1,14 @@
+# TODO: make it so jobs are striped across shards
+# TODO: pass recipe options to recipe
+# TODO: implement full serial mode
+
 import shutil
 import typing as T
+from collections import defaultdict
 from pathlib import Path
 
 import cumulusci.core.exceptions as exc
+from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateDataFromYaml
 from cumulusci.tasks.bulkdata.load import LoadData
 from cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue import (
@@ -22,10 +28,84 @@ LOAD_QUEUE_SIZE = 15
 WORKER_TO_LOADER_RATIO = 4
 
 
-# TODO: This class is too closely tied with the task parent
-#       It was refactored out and future refactorings will
-#       need to loosen the coupling further
 class SnowfakeryQueueManager:
+    def __init__(
+        self,
+        *,
+        project_config,
+        logger,
+    ):
+        self.results_reporter = WorkerQueue.context.Queue()
+        self.shards = []
+        self.project_config = project_config
+        self.logger = logger
+
+    def add_shard(
+        self,
+        org_config: OrgConfig,
+        num_generator_workers: int,
+        working_directory: Path,
+        subtask_configurator: SubtaskConfigurator,
+    ):
+        self.shards.append(
+            Shard(
+                project_config=self.project_config,
+                org_config=org_config,
+                num_generator_workers=num_generator_workers,
+                working_directory=working_directory,
+                subtask_configurator=subtask_configurator,
+                logger=self.logger,
+                results_reporter=self.results_reporter,
+            )
+        )
+
+    @property
+    def num_loader_workers(self):
+        return sum(shard.num_loader_workers for shard in self.shards)
+
+    def tick(
+        self,
+        upload_status,
+        template_path: Path,
+        tempdir: Path,
+        portions: PortionGenerator,
+        get_upload_status: T.Callable,
+    ):
+        """Called every few seconds, to make new data generators if needed."""
+        for shard in self.shards:
+            shard.tick(
+                upload_status, template_path, tempdir, portions, get_upload_status
+            )
+
+    def get_upload_status(self):
+        summed_statuses = defaultdict(int)
+        for shard in self.shards:
+            for key, value in shard.get_upload_status_for_shard().items():
+                summed_statuses[key] += value
+        return summed_statuses
+
+    def failure_descriptions(self) -> T.List[str]:
+        """Log failures from sub-processes to main process"""
+        ret = []
+        for shard in self.shards:
+            ret.extend(shard.failure_descriptions())
+        return ret
+
+    def check_finished(self) -> bool:
+        return all(shard.check_finished() for shard in self.shards)
+
+    def get_results_report(self, block=False):
+        return self.results_reporter.get(block=block)
+
+    # @property
+    # def outbox_dir(self):
+    #     outbox_dirs = [shard.outbox_dir for shard in self.shards]
+    #     # should be just one
+    #     assert len(set(outbox_dirs)) == 1, set(outbox_dirs)
+    #     return outbox_dirs[0]
+
+
+class Shard:
     def __init__(
         self,
         *,
@@ -35,6 +115,7 @@ class SnowfakeryQueueManager:
         working_directory: Path,
         subtask_configurator: SubtaskConfigurator,
         logger,
+        results_reporter=None,
     ):
         self.project_config = project_config
         self.org_config = org_config
@@ -44,7 +125,7 @@ class SnowfakeryQueueManager:
         self.subtask_configurator = subtask_configurator
         self.run_until = subtask_configurator.run_until
         self.logger = logger
-        self.cached_counts = {}
+        self.results_reporter = results_reporter
         self._configure_queues()
 
     def _configure_queues(self):
@@ -86,10 +167,13 @@ class SnowfakeryQueueManager:
             num_workers=self.num_loader_workers,
             rename_directory=self.data_loader_new_directory_name,
         )
-        self.load_data_q = WorkerQueue(load_data_q_config)
+        self.load_data_q = WorkerQueue(load_data_q_config, self.results_reporter)
 
         self.data_gen_q.feeds_data_to(self.load_data_q)
         return self.data_gen_q, self.load_data_q
+
+    def data_loader_new_directory_name(self, working_directory):
+        return data_loader_new_directory_name(working_directory, self.run_until)
 
     @property
     def num_loader_workers(self):
@@ -106,6 +190,7 @@ class SnowfakeryQueueManager:
         """Called every few seconds, to make new data generators if needed."""
         self.data_gen_q.tick()
 
+        # This check needs to move up to the manager context
         if portions.done(
             upload_status.total_sets_working_on_or_uploaded
         ):  # pragma: no cover
@@ -133,29 +218,6 @@ class SnowfakeryQueueManager:
                 )
                 self.data_gen_q.push(job_dir)
 
-    # TODO: This method is actually based on the number generated,
-    #       because it is called before the load.
-    #       If there are row errors, it will drift out of correctness
-    #       Code needs to be updated to rename again after load.
-    #       Or move away from using directory names for math altogether.
-    def data_loader_new_directory_name(self, working_dir: Path):
-        """Change the directory name to reflect the true number of sets created."""
-
-        cached_counts = self.cached_counts
-        wd = SnowfakeryWorkingDirectory(working_dir)
-        key = wd.index
-        if key not in cached_counts:
-            cached_counts[key] = wd.get_record_counts()
-
-        if not self.run_until.sobject_name:
-            return working_dir
-
-        count = cached_counts[key][self.run_until.sobject_name]
-
-        path, _ = str(working_dir).rsplit("_", 1)
-        new_working_dir = Path(path + "_" + str(count))
-        return new_working_dir
-
     def generator_data_dir(self, idx, template_path, batch_size, parent_dir):
         """Create a new generator directory with a name based on index and batch_size"""
         assert batch_size > 0
@@ -163,7 +225,7 @@ class SnowfakeryQueueManager:
         shutil.copytree(template_path, data_dir)
         return data_dir
 
-    def get_upload_status(self):
+    def get_upload_status_for_shard(self):
         def set_count_from_names(names):
             return sum(int(name.split("_")[1]) for name in names)
 
@@ -208,9 +270,25 @@ class SnowfakeryQueueManager:
         still_running = len(self.data_gen_q.workers + self.load_data_q.workers) > 0
         return not still_running
 
-    def get_results_reporter(self, block=False):
-        return self.load_data_q.results_reporter.get(block=block)
-
     @property
     def outbox_dir(self):
         return self.load_data_q.outbox_dir
+
+
+# TODO: This function is actually based on the number generated,
+#       because it is called before the load.
+#       If there are row errors, it will drift out of correctness
+#       Code needs to be updated to rename again after load.
+#       Or move away from using directory names for math altogether.
+def data_loader_new_directory_name(working_dir: Path, run_until):
+    """Change the directory name to reflect the true number of sets created."""
+
+    if not run_until.sobject_name:
+        return working_dir
+
+    wd = SnowfakeryWorkingDirectory(working_dir)
+    count = wd.get_record_counts()[run_until.sobject_name]
+
+    path, _ = str(working_dir).rsplit("_", 1)
+    new_working_dir = Path(path + "_" + str(count))
+    return new_working_dir

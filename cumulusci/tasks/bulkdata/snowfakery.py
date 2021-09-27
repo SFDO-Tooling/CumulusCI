@@ -16,9 +16,10 @@ from snowfakery.cci_mapping_files.declaration_parser import (
 )
 
 import cumulusci.core.exceptions as exc
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import OrgConfig, TaskConfig
 from cumulusci.core.debug import get_debug_mode
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.utils import (
     format_duration,
     process_bool_arg,
@@ -30,7 +31,10 @@ from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
 )
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
-from .snowfakery_utils.queue_manager import SnowfakeryQueueManager
+from .snowfakery_utils.queue_manager import (
+    SnowfakeryQueueManager,
+    data_loader_new_directory_name,
+)
 from .snowfakery_utils.snowfakery_run_until import PortionGenerator, determine_run_until
 from .snowfakery_utils.snowfakery_working_directory import SnowfakeryWorkingDirectory
 from .snowfakery_utils.subtask_configurator import SubtaskConfigurator
@@ -161,16 +165,16 @@ class Snowfakery(BaseSalesforceApiTask):
 
         shard_decls = read_sharding_declarations(recipe, self.loading_rules)
 
-        # FIXME: Use shard decls
-        shard_decls = shard_decls
-
-        # FIXME: Fix this
-        # if shard_decls:
-        #     self.shard_configs = shard_configs_from_decls(shard_decls)
-        # elif self.serial_mode:
-        #     self.shard_configs = [serial_shard_config()]
-        # else:
-        #     self.shard_configs = [standard_shard_config()]
+        if shard_decls:
+            self.shard_configs = shard_configs_from_decls(
+                shard_decls, self.project_config.keychain
+            )
+        elif self.serial_mode:
+            # FIXME: Fix this
+            # self.shard_configs = [serial_shard_config()]
+            raise NotImplementedError()
+        else:
+            self.shard_configs = [standard_shard_config(self.org_config)]
 
     def setup(self):
         self.debug_mode = get_debug_mode()
@@ -199,20 +203,7 @@ class Snowfakery(BaseSalesforceApiTask):
 
         working_directory = self.options.get("working_directory")
         with self.workingdir_or_tempdir(working_directory) as working_directory:
-            subtask_configurator = SubtaskConfigurator(
-                self.recipe,
-                self.run_until,
-                self.recipe_options,
-                self.ignore_row_errors,
-            )
-            self.queue_manager = SnowfakeryQueueManager(
-                project_config=self.project_config,
-                org_config=self.org_config,
-                num_generator_workers=self.num_generator_workers,
-                working_directory=working_directory,
-                subtask_configurator=subtask_configurator,
-                logger=self.logger,
-            )
+            self.configure_queues(working_directory)
             self.logger.info(f"Working directory is {working_directory}")
 
             if self.run_until.nothing_to_do:
@@ -222,7 +213,7 @@ class Snowfakery(BaseSalesforceApiTask):
                 return
 
             template_path, relevant_sobjects = self._generate_and_load_initial_batch(
-                self.queue_manager.outbox_dir
+                working_directory
             )
 
             # disable OrgReordCounts for now until it's reliability can be better
@@ -238,6 +229,26 @@ class Snowfakery(BaseSalesforceApiTask):
                 portions,
             )
             self.finish()
+
+    def configure_queues(self, working_directory):
+        subtask_configurator = SubtaskConfigurator(
+            self.recipe,
+            self.run_until,
+            self.recipe_options,
+            self.ignore_row_errors,
+        )
+        self.queue_manager = SnowfakeryQueueManager(
+            project_config=self.project_config, logger=self.logger
+        )
+        for idx, shard in enumerate(self.shard_configs):
+            shard_wd = working_directory / f"shard_{idx}"
+            shard_wd.mkdir()
+            self.queue_manager.add_shard(
+                org_config=self.org_config,
+                num_generator_workers=self.num_generator_workers,
+                working_directory=shard_wd,
+                subtask_configurator=subtask_configurator,
+            )
 
     def _loop(
         self,
@@ -312,7 +323,7 @@ class Snowfakery(BaseSalesforceApiTask):
     def update_running_totals(self) -> None:
         while True:
             try:
-                results = self.queue_manager.get_results_reporter()
+                results = self.queue_manager.get_results_report()
             except Empty:
                 break
             if "results" in results:
@@ -456,7 +467,7 @@ class Snowfakery(BaseSalesforceApiTask):
             with TemporaryDirectory() as tempdir:
                 yield Path(tempdir)
 
-    def _generate_and_load_initial_batch(self, working_directory: T.Optional[Path]):
+    def _generate_and_load_initial_batch(self, working_directory: Path):
         """Generate a single batch to set up all just_once (singleton) objects"""
 
         template_dir = Path(working_directory) / "template_1"
@@ -483,9 +494,7 @@ class Snowfakery(BaseSalesforceApiTask):
 
         # rename directory to reflect real number of sets created.
         wd = SnowfakeryWorkingDirectory(template_dir)
-        new_template_dir = self.queue_manager.data_loader_new_directory_name(
-            template_dir
-        )
+        new_template_dir = data_loader_new_directory_name(template_dir, self.run_until)
         shutil.move(template_dir, new_template_dir)
         template_dir = new_template_dir
 
@@ -647,3 +656,22 @@ def read_sharding_declarations(
         return rules_lists[0].rules
     else:
         return []
+
+
+class ShardConfig(T.NamedTuple):
+    org: OrgConfig
+    declaration: ShardDeclaration = None
+
+
+def standard_shard_config(org_config: OrgConfig):
+    return ShardConfig(org_config, None)
+
+
+def shard_configs_from_decls(
+    shard_decls: T.List[ShardDeclaration],
+    keychain: BaseProjectKeychain,
+):
+    def config_from_decl(decl):
+        return ShardConfig(keychain.get_org(decl.user), decl)
+
+    return [config_from_decl(decl) for decl in shard_decls]

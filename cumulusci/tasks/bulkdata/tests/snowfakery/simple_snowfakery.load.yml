@@ -2,15 +2,17 @@
   api: bulk
 
 - shards:
-      - User: User1
-        Campaign_IDs: csvs/campaigns/1.csv
-      - User: User1
-        Campaign_IDs: csvs/campaigns/2.csv
-      - User: User2
-        Campaign_IDs: csvs/campaigns/3.csv
-      - User: User2
-        Campaign_IDs: csvs/campaigns/4.csv
-      - User: User3
-        Campaign_IDs: csvs/campaigns/5.csv
-      - User: User3
-        Campaign_IDs: csvs/campaigns/6.csv
+    - user: scaletest
+    - user: scaletest
+#       - User: User1
+#         Campaign_IDs: csvs/campaigns/1.csv
+#       - User: User1
+#         Campaign_IDs: csvs/campaigns/2.csv
+#       - User: User2
+#         Campaign_IDs: csvs/campaigns/3.csv
+#       - User: User2
+#         Campaign_IDs: csvs/campaigns/4.csv
+#       - User: User3
+#         Campaign_IDs: csvs/campaigns/5.csv
+#       - User: User3
+#         Campaign_IDs: csvs/campaigns/6.csv
