@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 from pprint import pformat
 from unittest import mock
 
@@ -50,8 +51,12 @@ def test_table_stringify_booleans(sample_data):
     CliTable.PICTOGRAM_FALSE = CROSSMARK
     instance = CliTable(data)
     table = str(instance)
-    assert Emoji.replace(":heavy_check_mark:") in table
-    assert Emoji.replace(":cross_mark:") in table
+    if os.name == "posix":
+        assert Emoji.replace(":heavy_check_mark:") in table
+        assert Emoji.replace(":cross_mark:") in table
+    else:
+        assert "+" in table
+        assert "-" in table
 
 
 def test_table_stringify_int(sample_data):
