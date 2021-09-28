@@ -24,7 +24,6 @@ def test_flow_list(cli_tbl):
     cli_tbl.assert_called_with(
         [["Flow", "Description"], ["test_flow", "Test Flow"]],
         "Testing",
-        wrap_cols=["Description"],
     )
 
 

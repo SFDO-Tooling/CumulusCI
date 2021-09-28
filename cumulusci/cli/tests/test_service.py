@@ -31,16 +31,14 @@ def test_service_list__no_active_defaults(cli_tbl):
 
     cli_tbl.assert_called_with(
         [
-            ["Type", "Name", "Default", "Description"],
-            ["bad", "bad_alias", False, "Unconfigured Service"],
-            ["something_else", "", False, "something else"],
-            ["test", "test_alias", True, "Test Service"],
-            ["test", "test2_alias", False, "Test Service"],
+            ["Default", "Type", "Name", "Description"],
+            [False, "bad", "bad_alias", "Unconfigured Service"],
+            [False, "something_else", "", "something else"],
+            [True, "test", "test_alias", "Test Service"],
+            [False, "test", "test2_alias", "Test Service"],
         ],
-        bool_cols=["Default"],
-        dim_rows=[2],
         title="Services",
-        wrap_cols=["Description"],
+        dim_rows=[2],
     )
 
 
@@ -65,16 +63,14 @@ def test_service_list(cli_tbl):
 
     cli_tbl.assert_called_with(
         [
-            ["Type", "Name", "Default", "Description"],
-            ["bad", "bad_alias", True, "Unconfigured Service"],
-            ["something_else", "", False, "something else"],
-            ["test", "test_alias", True, "Test Service"],
-            ["test", "test2_alias", False, "Test Service"],
+            ["Default", "Type", "Name", "Description"],
+            [True, "bad", "bad_alias", "Unconfigured Service"],
+            [False, "something_else", "", "something else"],
+            [True, "test", "test_alias", "Test Service"],
+            [False, "test", "test2_alias", "Test Service"],
         ],
-        bool_cols=["Default"],
-        dim_rows=[2],
         title="Services",
-        wrap_cols=["Description"],
+        dim_rows=[2],
     )
 
 
@@ -392,7 +388,6 @@ def test_service_info(cli_tbl):
     cli_tbl.assert_called_with(
         [["Key", "Value"], ["\x1b[1mdescription\x1b[0m", "Test Service"]],
         title="test:test-alias",
-        wrap_cols=["Value"],
     )
 
 

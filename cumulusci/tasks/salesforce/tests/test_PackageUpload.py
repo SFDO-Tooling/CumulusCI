@@ -178,7 +178,8 @@ class TestPackageUpload:
         task._log_failures(results)
 
         assert table.called_once_with(
-            table_data, "Failed Apex Tests", wrap_cols=["Stacktrace"]
+            table_data,
+            "Failed Apex Tests",
         )
         assert table.echo.called_once()
 

@@ -113,7 +113,7 @@ def test_format_help(runtime):
         multi_cmd = task.RunTaskCommand()
         with click.Context(multi_cmd, obj=runtime) as ctx:
             multi_cmd.format_help(ctx, Mock())
-        assert 4 == echo.call_count
+        assert 3 == echo.call_count
 
         assert 0 == len(runtime.universal_config.method_calls)
 
@@ -168,9 +168,7 @@ def test_task_list(cli_tbl):
     run_click_command(task.task_list, runtime=runtime, plain=False, print_json=False)
 
     cli_tbl.assert_called_with(
-        [["Task", "Description"], ["test_task", "Test Task"]],
-        "Test Group",
-        wrap_cols=["Description"],
+        [["Task", "Description"], ["test_task", "Test Task"]], "Test Group"
     )
 
 
