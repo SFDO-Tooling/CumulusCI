@@ -41,7 +41,7 @@ class TestErrorCommands:
     def test_error_info__no_log_file(self, log_path, echo):
         log_path.is_file.return_value = False
         run_click_command(error.error_info)
-        assert "No logfile found at:" in echo.call_args_list[0].args[0]
+        assert "No logfile found at:" in echo.call_args_list[0][0][0]
 
     @mock.patch("cumulusci.cli.error.CCI_LOGFILE_PATH")
     @mock.patch("webbrowser.open")
