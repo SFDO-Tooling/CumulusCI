@@ -33,29 +33,15 @@ class TestErrorCommands:
             with mock.patch("cumulusci.cli.error.CCI_LOGFILE_PATH", logfile):
                 run_click_command(error.error_info)
         echo.assert_called_once_with(
-            "\nTraceback (most recent call last):\n1\n2\n3\n\u2603"
+            "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n☃"
         )
 
     @mock.patch("click.echo")
     @mock.patch("cumulusci.cli.error.CCI_LOGFILE_PATH")
-    def test_error_info__output_less(self, log_path, echo):
-        log_path.is_file.return_value = True
-        log_path.read_text.return_value = (
-            "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n4"
-        )
-
-        run_click_command(error.error_info, max_lines=3)
-        echo.assert_called_once_with("\n2\n3\n4")
-
-    def test_lines_from_traceback_no_traceback(self):
-        output = error.lines_from_traceback("test_content", 10)
-        assert "\nNo stacktrace found in:" in output
-
-    def test_lines_from_traceback(self):
-        traceback = "\nTraceback (most recent call last):\n1\n2\n3\n4"
-        content = "This\nis\na" + traceback
-        output = error.lines_from_traceback(content, 10)
-        assert output == traceback
+    def test_error_info__no_log_file(self, log_path, echo):
+        log_path.is_file.return_value = False
+        run_click_command(error.error_info)
+        assert "No logfile found at:" in echo.call_args_list[0].args[0]
 
     @mock.patch("cumulusci.cli.error.CCI_LOGFILE_PATH")
     @mock.patch("webbrowser.open")
