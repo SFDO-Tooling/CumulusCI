@@ -6,6 +6,7 @@ import github3
 import pytest
 
 import cumulusci
+from cumulusci.cli.error import get_traceback
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.utils import temporary_dir
 
@@ -36,25 +37,14 @@ class TestErrorCommands:
             "\nTraceback (most recent call last):\n1\n2\n3\n\u2603"
         )
 
-    @mock.patch("click.echo")
-    @mock.patch("cumulusci.cli.error.CCI_LOGFILE_PATH")
-    def test_error_info__output_less(self, log_path, echo):
-        log_path.is_file.return_value = True
-        log_path.read_text.return_value = (
-            "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n4"
-        )
-
-        run_click_command(error.error_info, max_lines=3)
-        echo.assert_called_once_with("\n2\n3\n4")
-
-    def test_lines_from_traceback_no_traceback(self):
-        output = error.lines_from_traceback("test_content", 10)
+    def test_get_traceback__no_traceback(self):
+        output = get_traceback("test_content")
         assert "\nNo stacktrace found in:" in output
 
-    def test_lines_from_traceback(self):
+    def test_get_traceback(self):
         traceback = "\nTraceback (most recent call last):\n1\n2\n3\n4"
         content = "This\nis\na" + traceback
-        output = error.lines_from_traceback(content, 10)
+        output = get_traceback(content)
         assert output == traceback
 
     @mock.patch("cumulusci.cli.error.CCI_LOGFILE_PATH")
