@@ -24,6 +24,8 @@ PAYLOAD_NAMESPACE_VALUES = {
     "timestamp": True,
 }
 
+DEPLOY_FINISHED_STATUS = "DONE"
+
 
 class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
@@ -84,7 +86,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         )
         result = safe_json_from_response(response)
         self.logger.info(f"Waiting [{result['status']}]...")
-        if result["status"] == "DONE":
+        if result["status"] in [DEPLOY_FINISHED_STATUS, "FATAL_ERROR"]:
             self.poll_complete = True
             self._validate_response(result)
 
@@ -135,6 +137,14 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
     def _validate_response(self, deploy_info: dict):
         """Checks for any errors present in the response to the deploy request.
         Displays errors if present, else informs use that the deployment was successful."""
+        if deploy_info["status"] != DEPLOY_FINISHED_STATUS:
+            self.logger.error(
+                f"Received status of: {deploy_info['status']}\n{deploy_info}"
+            )
+            raise DeploymentException(
+                "Marketing Cloud reported errors with the deployment."
+            )
+
         has_error = False
         for entity, info in deploy_info["entities"].items():
             if not info:
