@@ -24,6 +24,9 @@ PAYLOAD_NAMESPACE_VALUES = {
     "timestamp": True,
 }
 
+DEPLOY_FINISHED_STATUS = "DONE"
+DEPLOY_ERROR_STATUS = "FATAL_ERROR"
+
 
 class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
@@ -84,9 +87,12 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         )
         result = safe_json_from_response(response)
         self.logger.info(f"Waiting [{result['status']}]...")
-        if result["status"] == "DONE":
+        if result["status"] == DEPLOY_FINISHED_STATUS:
             self.poll_complete = True
             self._validate_response(result)
+        elif result["status"] == DEPLOY_ERROR_STATUS:
+            self.poll_complete = True
+            self._report_fatal_error(result)
 
     def _construct_payload(self, dir_path, custom_inputs=None):
         dir_path = Path(dir_path)
@@ -151,3 +157,11 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             raise DeploymentException("Marketing Cloud reported deployment failures.")
 
         self.logger.info("Deployment completed successfully.")
+
+    def _report_fatal_error(self, result: dict):
+        self.logger.error(
+            f"> {DEPLOY_ERROR_STATUS} received. Dumping response from Marketing Cloud:\n{result}"
+        )
+        raise DeploymentException(
+            f"Marketing Cloud deploy finished with status of: {DEPLOY_ERROR_STATUS}"
+        )
