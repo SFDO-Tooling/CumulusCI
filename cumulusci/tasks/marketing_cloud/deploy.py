@@ -25,6 +25,7 @@ PAYLOAD_NAMESPACE_VALUES = {
 }
 
 DEPLOY_FINISHED_STATUS = "DONE"
+DEPLOY_ERROR_STATUS = "FATAL_ERROR"
 
 
 class MarketingCloudDeployTask(BaseMarketingCloudTask):
@@ -86,9 +87,12 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         )
         result = safe_json_from_response(response)
         self.logger.info(f"Waiting [{result['status']}]...")
-        if result["status"] in [DEPLOY_FINISHED_STATUS, "FATAL_ERROR"]:
+        if result["status"] == DEPLOY_FINISHED_STATUS:
             self.poll_complete = True
             self._validate_response(result)
+        elif result["status"] == DEPLOY_ERROR_STATUS:
+            self.poll_complete = True
+            self._report_fatal_error(result)
 
     def _construct_payload(self, dir_path, custom_inputs=None):
         dir_path = Path(dir_path)
@@ -137,14 +141,6 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
     def _validate_response(self, deploy_info: dict):
         """Checks for any errors present in the response to the deploy request.
         Displays errors if present, else informs use that the deployment was successful."""
-        if deploy_info["status"] != DEPLOY_FINISHED_STATUS:
-            self.logger.error(
-                f"Received status of: {deploy_info['status']}\n{deploy_info}"
-            )
-            raise DeploymentException(
-                "Marketing Cloud reported errors with the deployment."
-            )
-
         has_error = False
         for entity, info in deploy_info["entities"].items():
             if not info:
@@ -161,3 +157,11 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             raise DeploymentException("Marketing Cloud reported deployment failures.")
 
         self.logger.info("Deployment completed successfully.")
+
+    def _report_fatal_error(self, result: dict):
+        self.logger.error(
+            f"> {DEPLOY_ERROR_STATUS} received. Dumping response from Marketing Cloud:\n{result}"
+        )
+        raise DeploymentException(
+            f"Marketing Cloud deploy finished with status of: {DEPLOY_ERROR_STATUS}"
+        )
