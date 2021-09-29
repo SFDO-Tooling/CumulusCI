@@ -1,18 +1,21 @@
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.metadata import ApiNewProfile
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
     BaseSalesforceMetadataApiTask,
 )
 
-# TODO: Minimum api versionm for this task?
+# TODO: Minimum api version for this task?
 
 
-class ProfileSoap(BaseSalesforceMetadataApiTask):
+class CreateBlankProfile(BaseSalesforceMetadataApiTask):
     api_class = ApiNewProfile
     task_options = {
         "license": {
             "description": "The name of the salesforce license to use in the profile, defaults to 'Salesforce'",
-            "required": True,
+        },
+        "license_id": {
+            "description": "The ID of the salesforce license to use in the profile.",
         },
         "name": {
             "description": "The name of the the new profile",
@@ -25,11 +28,29 @@ class ProfileSoap(BaseSalesforceMetadataApiTask):
     }
 
     def _init_options(self, kwargs):
-        super(ProfileSoap, self)._init_options(kwargs)
-
+        super(CreateBlankProfile, self)._init_options(kwargs)
+        if set(["license", "license_id"]).isdisjoint(self.options.keys()):
+            raise TaskOptionsError(
+                "Either the name or the ID of the user license must be set."
+            )
         self.license = self.options.get("license", "Salesforce")
-        self.name = self.options.get("name", None)
-        self.description = self.options.get("description", "")
+
+    def _run_task(self):
+
+        self.name = self.options.get("name")
+        self.description = self.options.get("description")
+        self.license_id = self.options.get("license_id")
+
+        if not self.license_id:
+            self.license_id = self._get_user_license_id(self.license)
+
+        api = self._get_api()
+        result = None
+        if api:
+            result = api()
+            self.return_values = result
+            self.logger.info(f"Profile '{self.name}' created with id: {result}")
+        return result
 
     def _get_user_license_id(self, license_name):
         """Returns the Id of a UserLicense from a given Name"""
@@ -39,25 +60,15 @@ class ProfileSoap(BaseSalesforceMetadataApiTask):
             api_version=None,
             base_url=None,
         )
-        res = self.sf.query_all(
-            f"SELECT Id, Name FROM UserLicense WHERE Name = '{license_name}'"
+        res = self.sf.query(
+            f"SELECT Id, Name FROM UserLicense WHERE Name = '{license_name}' LIMIT 1"
         )
         return res["records"][0]["Id"]
 
     def _get_api(self):
         return self.api_class(
             self,
-            license_id=self._get_user_license_id(self.license),
+            license_id=self.license_id,
             name=self.name,
             description=self.description,
         )
-
-    def _run_task(self):
-        api = self._get_api()
-        result = None
-        if api:
-            result = api()
-            self.org_config.reset_installed_packages()
-            self.return_values = result
-            self.logger.info(f"Profile '{self.name}' created with id: {result}")
-        return result
