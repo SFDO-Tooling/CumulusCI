@@ -5,22 +5,19 @@ History
 v3.45.0 (2021-09-30)
 --------------------
 
-Critical Changes
-
--  Updated the ``deploy_marketing_cloud_package`` task for compatibility with the October 2021 release of Marketing Cloud. (#2899)
-
 Changes
 
--  Fixed a bug in freezing the ``load_dataset`` task options for MetaDeploy. (#2900)
--  The marketing cloud ``deploy`` task now properly exits when a result status of ``FATAL_ERROR`` is returned. (#2897)
+-  Updated the ``deploy_marketing_cloud_package`` task for compatibility with the October 2021 release of Marketing Cloud. (#2899)
 -  The ``--max-lines`` option on the ``cci error info`` command has been removed. (#2895)
--  We changed how the output from some commands and tasks are displayed in the CLI. (#2887)
 
 Issues fixed
 
--  We fixed a regression in the ``push_list`` task that affected 2GP push upgrades (#2898)
--  Flow descriptions no longer generate a warning. (#2885)
 -  Removed the unused ``--skip`` option for the ``cci flow run`` command. (#2884)
+-  Flow descriptions no longer generate a warning. (#2885)
+-  We changed how the output from some commands and tasks are displayed in the CLI. (#2887)
+-  Fixed a bug in freezing the ``load_dataset`` task options for MetaDeploy. (#2900)
+-  The marketing cloud ``deploy`` task now properly exits when a result status of ``FATAL_ERROR`` is returned. (#2897)
+-  We fixed a regression in the ``push_list`` task that affected 2GP push upgrades (#2898)
 
 3.44.1 (2021-09-17)
 -------------------
