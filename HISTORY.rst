@@ -14,7 +14,7 @@ Changes
 -  Fixed a bug in freezing the ``load_dataset`` task options for MetaDeploy. (#2900)
 -  The marketing cloud ``deploy`` task now properly exits when a result status of ``FATAL_ERROR`` is returned. (#2897)
 -  The ``--max-lines`` option on the ``cci error info`` command has been removed. (#2895)
--  We changed how some the output from some commands and tasks are displayed in the CLI. (#2887)
+-  We changed how the output from some commands and tasks are displayed in the CLI. (#2887)
 
 Issues fixed
 
