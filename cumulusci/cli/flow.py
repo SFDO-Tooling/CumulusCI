@@ -80,7 +80,10 @@ def flow_list(runtime, plain, print_json):
     for group, flows in flow_groups.items():
         data = [["Flow", "Description"]]
         data.extend(sorted(flows))
-        table = CliTable(data, group, wrap_cols=["Description"])
+        table = CliTable(
+            data,
+            group,
+        )
         table.echo(plain)
 
     click.echo(

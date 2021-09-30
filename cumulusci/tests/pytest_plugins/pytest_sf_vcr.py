@@ -120,10 +120,8 @@ def sf_before_record_request(vcr_state, http_request):
 
 def sf_before_record_response(response):
     response["headers"] = {
-        "Response-Headers": {
-            "Content-Type": response["headers"].get("Content-Type", "None"),
-            "Others": "Elided",
-        }
+        "Content-Type": response["headers"].get("Content-Type", "None"),
+        "Others": "Elided",
     }
     if response.get("body"):
         response["body"]["string"] = simplify_body(response["body"]["string"])
