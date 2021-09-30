@@ -575,10 +575,6 @@ Options\n------------------------------------------\n\n
         assert "one_two" == utils.convert_to_snake_case("ONETwo")
         assert "one_two" == utils.convert_to_snake_case("One_Two")
 
-    def test_os_friendly_path(self):
-        with mock.patch("os.sep", "\\"):
-            assert "\\" == utils.os_friendly_path("/")
-
     @mock.patch("sarge.Command")
     def test_get_git_config(self, Command):
         Command.return_value = p = mock.Mock(
