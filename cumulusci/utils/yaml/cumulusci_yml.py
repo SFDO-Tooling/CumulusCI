@@ -66,6 +66,7 @@ class Package(CCIDictModel):
     install_class: str = None
     uninstall_class: str = None
     api_version: str = None
+    metadata_package_id: str = None
 
 
 class Test(CCIDictModel):
