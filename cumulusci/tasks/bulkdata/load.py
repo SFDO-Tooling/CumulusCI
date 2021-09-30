@@ -36,7 +36,6 @@ from cumulusci.tasks.bulkdata.step import (
 )
 from cumulusci.tasks.bulkdata.utils import RowErrorChecker, SqlAlchemyMixin
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.utils import os_friendly_path
 
 
 class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -91,7 +90,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             # prefer database_url if it's set
             self.options["sql_path"] = None
         elif self.options.get("sql_path"):
-            self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
             self.options["database_url"] = None
         else:
             raise TaskOptionsError(
