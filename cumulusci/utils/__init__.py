@@ -639,12 +639,6 @@ def convert_to_snake_case(content):
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
-def os_friendly_path(path):
-    if os.sep != "/":
-        path = path.replace("/", os.sep)
-    return path
-
-
 def get_git_config(config_key):
     p = sarge.Command(
         sarge.shell_format('git config --get "{0!s}"', config_key),

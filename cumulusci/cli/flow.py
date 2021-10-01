@@ -80,7 +80,10 @@ def flow_list(runtime, plain, print_json):
     for group, flows in flow_groups.items():
         data = [["Flow", "Description"]]
         data.extend(sorted(flows))
-        table = CliTable(data, group, wrap_cols=["Description"])
+        table = CliTable(
+            data,
+            group,
+        )
         table.echo(plain)
 
     click.echo(
@@ -123,17 +126,12 @@ def flow_info(runtime, flow_name):
     help="Pass task specific options for the task as '-o taskname__option value'.  You can specify more than one option by using -o more than once.",
 )
 @click.option(
-    "--skip",
-    multiple=True,
-    help="Specify task names that should be skipped in the flow.  Specify multiple by repeating the --skip option",
-)
-@click.option(
     "--no-prompt",
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
 )
 @pass_runtime(require_keychain=True)
-def flow_run(runtime, flow_name, org, delete_org, debug, o, skip, no_prompt):
+def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
 
     # Get necessary configs
     org, org_config = runtime.get_org(org)

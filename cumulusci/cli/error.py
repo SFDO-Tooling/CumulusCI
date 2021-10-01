@@ -47,23 +47,17 @@ CCI_LOGFILE_PATH = Path.home() / ".cumulusci" / "logs" / "cci.log"
     name="info",
     help="Outputs the most recent traceback (if one exists in the most recent log)",
 )
-@click.option("--max-lines", "-m", type=int)
-def error_info(max_lines: int = 0):
+def error_info():
     if not CCI_LOGFILE_PATH.is_file():
         click.echo(f"No logfile found at: {CCI_LOGFILE_PATH}")
-    else:
-        output = lines_from_traceback(
-            CCI_LOGFILE_PATH.read_text(encoding="utf-8"), max_lines
-        )
-        click.echo(output)
+        return
+
+    traceback = get_traceback(CCI_LOGFILE_PATH.read_text(encoding="utf-8"))
+    click.echo(traceback)
 
 
-def lines_from_traceback(log_content: str, max_lines: int = 0) -> str:
-    """Returns the the last max_lines of the logfile,
-    or the whole traceback, whichever is shorter. If
-    no stacktrace is found in the logfile, the user is
-    notified.
-    """
+def get_traceback(log_content: str) -> str:
+    """Returns the the traceback in a logfile if it exists."""
     stacktrace_start = "Traceback (most recent call last):"
     if stacktrace_start not in log_content:
         return f"\nNo stacktrace found in: {CCI_LOGFILE_PATH}\n"
@@ -72,8 +66,6 @@ def lines_from_traceback(log_content: str, max_lines: int = 0) -> str:
     for i, line in enumerate(reversed(log_content.split("\n")), 1):
         stacktrace = "\n" + line + stacktrace
         if stacktrace_start in line:
-            break
-        if i == max_lines:
             break
 
     return stacktrace

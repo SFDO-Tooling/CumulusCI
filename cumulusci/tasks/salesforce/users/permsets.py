@@ -146,9 +146,7 @@ Assigns Permission Sets whose Names are in ``api_names`` to either the default o
 
         table = CliTable(
             results_table_data,
-            bool_cols=["Success"],
             title="Results",
-            wrap_cols=["Message"],
         )
         self.logger.info("\n" + str(table))
 

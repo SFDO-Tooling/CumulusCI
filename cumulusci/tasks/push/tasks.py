@@ -260,6 +260,10 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         # already set
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
+        if "metadata_package_id" not in self.options:
+            self.options[
+                "metadata_package_id"
+            ] = self.project_config.project__package__metadata_package_id
         if "batch_size" not in self.options:
             self.options["batch_size"] = 200
         if "csv" not in self.options and "csv_field_name" in self.options:
@@ -282,10 +286,6 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         package_id = self.options.get("metadata_package_id")
         version_id = self.options.get("version_id")
         namespace_opt = self.options.get("namespace")
-        if package_id is not None and namespace_opt is not None:
-            raise TaskOptionsError(
-                "'metadata_package_id' and 'namespace' options cannot both be set."
-            )
 
         package = self._get_package(
             metadata_package_id=package_id,

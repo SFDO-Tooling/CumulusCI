@@ -2,137 +2,78 @@
 """Format and display CLI output.
 
 Classes:
-    CliTable: Pretty prints tabular data to stdout, via click.echo.
+    CliTable: Pretty prints tabular data to stdout, via Rich's Console API
 """
 import os
-import textwrap
+from typing import List
 
-import click
-from terminaltables import AsciiTable, SingleTable
+from rich import box, print
+from rich.console import Console
+from rich.style import Style
+from rich.table import Table
 
-CHECKMARK = click.style("✔" if os.name == "posix" else "+", fg="green")
-CROSSMARK = click.style("✘" if os.name == "posix" else "-", fg="red")
+CHECKMARK = "[green]:heavy_check_mark:" if os.name == "posix" else "+"
+CROSSMARK = "[red]:cross_mark:" if os.name == "posix" else "-"
 
 
 class CliTable:
     """Format and print data to the command line in tabular form.
     Attributes:
 
-    * INNER_BORDER: Boolean passed to terminaltables.inner_row_border. Defaults to True.
     * PICTOGRAM_TRUE: True boolean values are replaced with this string.
     * PICTOGRAM_FALSE = False boolean values are replaced with this string.
 
     Methods:
-    * echo: Print the table data to stdout using click.echo()
-    * pretty_table: Table drawn using Unicode drawing characters.
-    * ascii_table: Table drawn using Ascii characters.
+    * echo: Print the table data to stdout using rich.Console.print
     """
 
-    INNER_BORDER = True
     PICTOGRAM_TRUE = CHECKMARK
     PICTOGRAM_FALSE = " "
 
-    def __init__(self, data, title=None, wrap_cols=None, bool_cols=None, dim_rows=None):
+    def __init__(self, data, title=None, dim_rows: List[int] = None, **kwargs):
         """Constructor.
         Args:
             data: Required. List[List] of data to format, with the heading as 0-th member.
             title: String to use as the table's title.
-            wrap_cols: List[str] of column names to wrap to max width.
-            bool_cols: List[str] of columns containing booleans to stringify.
             dim_rows: List[int] of row indices to dim.
         """
-        self._data = data
-        self._header = data[0]
-        self._title = title
-        self._table = SingleTable(self._data, self._title)
 
-        if wrap_cols:
-            self._table_wrapper(self._table, wrap_cols)
-        if bool_cols:
-            for name in bool_cols:
-                self.stringify_boolean_col(col_name=name)
-        if dim_rows:
-            self._dim_row_list(dim_rows)
+        data = [self._stringify_row(r) for r in data]
+        self._table: Table = Table(*data[0], title=title, box=box.SIMPLE, *kwargs)
+        for idx, row in enumerate(data[1:]):
+            dim_row = idx + 1 in dim_rows if dim_rows else False
+            self._table.add_row(*row, style=Style(dim=dim_row))
 
-    def _table_wrapper(self, table, wrap_cols):
-        """Query for column width and wrap text"""
-        for col_name in wrap_cols:
-            index = self._get_index_for_col_name(col_name)
-            width = abs(table.column_max_width(index))
-            for row in table.table_data:
-                row[index] = (
-                    textwrap.fill(row[index], width) if row[index] is not None else ""
-                )
+    def _stringify_row(self, row: list) -> List[str]:
+        stringified_row = []
+        for cell in row:
+            if isinstance(cell, bool):
+                cell = self.PICTOGRAM_TRUE if cell else self.PICTOGRAM_FALSE
+            else:
+                cell = str(cell)
+            stringified_row.append(cell)
+        return stringified_row
 
-    def stringify_boolean_col(self, col_name=None, true_str=None, false_str=None):
-        """Replace booleans in the given column name with a string.
-        Args:
-
-        * col_name: str indicating which columns should be stringifed.
-        * true_str: True values will be replaced with this string on posix systems.
-        * false_str: False values will be replaced with this string on posix systems.
-        """
-        col_index = self._get_index_for_col_name(col_name)
-
-        true_str = (
-            click.style(true_str, fg="green") if true_str else self.PICTOGRAM_TRUE
-        )
-        false_str = (
-            click.style(false_str, fg="red") if false_str else self.PICTOGRAM_FALSE
-        )
-        for row in self._table.table_data[1:]:
-            row[col_index] = true_str if row[col_index] else false_str
-
-    def echo(self, plain=False):
-        """Print this table's data using click.echo().
-
-        Automatically falls back to AsciiTable if there's an encoding error.
-        """
-        if plain or os.environ.get("TERM") == "dumb":
-            table = self.ascii_table()
+    def echo(self, plain=False, box_style: box.Box = None):
+        """Print this table's data using click.echo()."""
+        orig_box = self._table.box
+        if plain:
+            self._table.box = box.ASCII2
         else:
-            table = str(self)
-        click.echo(table)
+            self._table.box = box_style or orig_box
+        console = Console()
+        console.print(self._table)
+        self._table.box = orig_box
+
+    @property
+    def table(self):
+        return self._table
 
     def __str__(self):
-        try:
-            return self.pretty_table()
-        except UnicodeEncodeError:
-            return self.ascii_table()
-
-    def pretty_table(self):
-        """Pretty prints a table."""
-        self._table.inner_row_border = self.INNER_BORDER
-        return self._table.table + "\n"
-
-    def ascii_table(self):
-        """Fallback for dumb terminals."""
-        self.plain = AsciiTable(self._table.table_data, self._title)
-        self.plain.inner_column_border = False
-        self.plain.inner_row_border = False
-        return self.plain.table
-
-    def _get_index_for_col_name(self, col_name):
-        return self._header.index(col_name)
-
-    def _dim_row_list(self, dim_rows=None):
-        """Given a list of integers, iterate over the table data and dim rows.
-
-        Converts each value into a string.
-        """
-        for row_index in dim_rows:
-            if row_index != 0:
-                self._table.table_data[row_index] = [
-                    self._dim_value(cell) for cell in self._table.table_data[row_index]
-                ]
-
-    def _dim_value(self, val):
-        """Given an object, convert to a string and wrap using click.style."""
-        val = str(val)
-
-        # If a string has been wrapped, wrap each line to avoid dimming table borders
-        dimmed_strs = [click.style(line, dim=True) for line in val.split("\n")]
-        return "\n".join(dimmed_strs)
+        console = Console()
+        with console.capture() as capture:
+            console.print(self._table)
+        return capture.get()
 
 
 def _soql_table(results, truncated):
@@ -147,14 +88,11 @@ def _soql_table(results, truncated):
             results[-1] = fake_row
 
         headings = list(results[0].keys())
-        return str(
-            CliTable(
-                [headings] + [list(map(str, r.values())) for r in results],
-                wrap_cols=headings,
-            )
-        )
+        return CliTable(
+            [headings] + [list(map(str, r.values())) for r in results],
+        ).echo()
     else:
-        return str(CliTable([["No results"]]))
+        return CliTable([["No results"]]).echo()
 
 
 def _summarize(field):
@@ -214,7 +152,7 @@ class SimpleSalesforceUIHelpers:
         elif format == "obj":
             rc = results
         elif format == "pprint":
-            from pprint import pprint
+            from rich.pretty import pprint
 
             pprint(results)
             rc = None
