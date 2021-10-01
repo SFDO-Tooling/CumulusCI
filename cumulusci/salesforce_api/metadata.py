@@ -674,9 +674,18 @@ class ApiNewProfile(BaseMetadataApiCall):
             # Handle errors from Soap API Partner WSDL
             # For now this is expecting there to be only one error, therefore we only grab the first
             # Assuming fields and messages are always presesnt with errors
-            faultcode = errors[0].getElementsByTagName("fields")[0].firstChild.nodeValue
+            faultcode = (
+                errors[0].getElementsByTagName("statusCode")[0].firstChild.nodeValue
+            )
+
+            field_nodes = errors[0].getElementsByTagName("fields")
+            field_value = (
+                f"Field: {field_nodes[0].firstChild.nodeValue} " if field_nodes else ""
+            )
+
             faultstring = (
-                errors[0].getElementsByTagName("message")[0].firstChild.nodeValue
+                field_value
+                + errors[0].getElementsByTagName("message")[0].firstChild.nodeValue
             )
         else:
             faultcode = ""
