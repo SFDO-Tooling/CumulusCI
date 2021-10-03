@@ -209,6 +209,18 @@ class CumulusCIRoot(CCIDictModel):
     sources: Dict[str, Union[LocalFolderSourceModel, GitHubSourceModel]] = {}
     cli: CumulusCLIConfig = None
 
+    @classmethod
+    def schema(cls, *args, **kwargs):
+        json = super().schema(*args, **kwargs)
+        # Workaround VSCode-YAML vs pydantic.schema quirks
+        task_model = json["definitions"]["Task"]["properties"]
+        task_model["options"]["additionalProperties"] = True
+        task_model["ui_options"]["additionalProperties"] = True
+        step_model = json["definitions"]["Step"]["properties"]
+        step_model["options"]["additionalProperties"] = True
+        step_model["ui_options"]["additionalProperties"] = True
+        return json
+
 
 class CumulusCIFile(CCIDictModel):
     __root__: Union[CumulusCIRoot, None]
@@ -231,7 +243,7 @@ def validate_data(
 
     https://pydantic-docs.helpmanual.io/usage/models/#error-handling
     """
-    return CumulusCIFile.validate_data(data, context=context, on_error=on_error)
+    return CumulusCIRoot.validate_data(data, context=context, on_error=on_error)
 
 
 class ErrorDict(TypedDict):

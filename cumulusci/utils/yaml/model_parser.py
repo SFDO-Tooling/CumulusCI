@@ -8,7 +8,7 @@ from cumulusci.utils.yaml.safer_loader import load_from_source, load_yaml_data
 
 
 class CCIModel(BaseModel):
-    """Base class for CumulusCI's Pydantic models"""
+    # Base class for CumulusCI's Pydantic models
 
     _magic_fields = ["fields"]
 
@@ -96,8 +96,8 @@ class CCIModel(BaseModel):
 
 
 class CCIDictModel(CCIModel):
-    """A base class that acts as both a model and a dict. For transitioning from
-    one to the other."""
+    # A base class that acts as both a model and a dict. For transitioning from
+    # one to the other.
 
     def __getitem__(self, name):
         """Pretend to a do my_dict[name]"""
@@ -147,8 +147,8 @@ def _add_filenames(e: ValidationError, filename):
 
 
 class HashableBaseModel(CCIModel):
-    """Base Pydantic model class that has a functional `hash()` method.
-    Requires that model can be converted to JSON."""
+    # Base Pydantic model class that has a functional `hash()` method.
+    # Requires that model can be converted to JSON.
 
     # See https://github.com/samuelcolvin/pydantic/issues/1303
     def __hash__(self):
