@@ -96,7 +96,7 @@ python-dateutil==2.8.2
     #   faker
     #   github3.py
     #   snowfakery
-pytz==2021.1
+pytz==2021.3
     # via
     #   -r requirements/prod.in
     #   fs
