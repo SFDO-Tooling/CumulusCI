@@ -18,6 +18,7 @@ pytz
 pyyaml
 requests
 requests-futures
+rich
 robotframework
 robotframework-lint
 robotframework-pabot
@@ -30,5 +31,4 @@ selenium
 simple-salesforce
 snowfakery
 SQLAlchemy
-terminaltables
 xmltodict

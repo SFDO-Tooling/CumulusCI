@@ -19,7 +19,7 @@ from cumulusci.tasks.bulkdata.step import (
 )
 from cumulusci.tasks.bulkdata.utils import SqlAlchemyMixin, consume, create_table
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.utils import log_progress, os_friendly_path
+from cumulusci.utils import log_progress
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -52,9 +52,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if self.options.get("database_url"):
             # prefer database_url if it's set
             self.options["sql_path"] = None
-        elif self.options.get("sql_path"):
-            self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
-        else:
+        elif not self.options.get("sql_path"):
             raise TaskOptionsError(
                 "You must set either the database_url or sql_path option."
             )

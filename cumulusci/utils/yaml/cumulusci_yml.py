@@ -33,6 +33,7 @@ class Step(CCIDictModel):
     when: str = None  # is this allowed?
     ui_options: Dict[str, Any] = {}
     checks: List[PreflightCheck] = []
+    description: str = None
 
     @root_validator()
     def _check(cls, values):
@@ -66,6 +67,7 @@ class Package(CCIDictModel):
     install_class: str = None
     uninstall_class: str = None
     api_version: str = None
+    metadata_package_id: str = None
 
 
 class Test(CCIDictModel):
