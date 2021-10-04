@@ -188,5 +188,5 @@ zipp==3.5.0
     #   snowfakery
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==58.1.0
+setuptools==58.2.0
     # via fs
