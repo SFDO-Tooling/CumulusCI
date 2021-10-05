@@ -172,6 +172,10 @@
                     "items": {
                         "$ref": "#/definitions/PreflightCheck"
                     }
+                },
+                "description": {
+                    "title": "Description",
+                    "type": "string"
                 }
             },
             "additionalProperties": false
@@ -224,6 +228,10 @@
                 },
                 "api_version": {
                     "title": "Api Version",
+                    "type": "string"
+                },
+                "metadata_package_id": {
+                    "title": "Metadata Package Id",
                     "type": "string"
                 }
             },

@@ -1,13 +1,19 @@
 import json
+import sys
 
+import pytest
 import yaml
-from jsonschema import validate
 
 from cumulusci.utils.yaml import cumulusci_yml
 
 
 class TestSchema:
+    @pytest.mark.skipif(
+        sys.version_info < (3, 7), reason="requires python3.7 or higher"
+    )
     def test_schema_validates(self, cumulusci_test_repo_root):
+        from jsonschema import validate
+
         schemapath = (
             cumulusci_test_repo_root / "cumulusci/schema/cumulusci.jsonschema.json"
         )

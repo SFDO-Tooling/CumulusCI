@@ -6,7 +6,7 @@ factory-boy
 flake8
 furo
 isort
-jsonschema
+jsonschema; python_version > '3.6'
 pre-commit
 pytest
 pytest-random-order
