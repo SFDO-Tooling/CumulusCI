@@ -7,7 +7,7 @@ on:
             - main
 
 env:
-    CUMULUSCI_ORG_scratch: '{"config_file": "orgs/dev.json", "scratch": true}'
+    CUMULUSCI_ORG_scratch: '{"config_file": "orgs/prerelease.json", "scratch": true}'
     CUMULUSCI_ORG_packaging: ${{ secrets.CUMULUSCI_ORG_packaging }}
     CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
     GITHUB_APP_ID: 129383
