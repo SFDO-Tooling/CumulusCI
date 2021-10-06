@@ -2,6 +2,7 @@ import functools
 import io
 import os
 import re
+import time
 import webbrowser
 from typing import Callable, Union
 from urllib.parse import urlparse
@@ -17,6 +18,7 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
 from requests.models import Response
 from requests.packages.urllib3.util.retry import Retry
+from rich.console import Console
 
 from cumulusci.core.exceptions import (
     DependencyLookupError,
@@ -474,9 +476,25 @@ def get_oauth_device_flow_token():
     """Interactive github authorization"""
     config = OAuth2ClientConfig(**OAUTH_DEVICE_APP)
     device_code = OAuth2DeviceConfig(**get_device_code(config))
-    print("Login in the browser, man.")
-    webbrowser.open(device_code.verification_uri)
-    device_token: dict = get_device_oauth_token(
-        client_config=config, device_config=device_code
+
+    console = Console()
+    console.print(
+        f"[bold] Enter this one-time code: [red]{device_code.user_code}[/red][/bold]"
     )
-    return device_token.get("access_token")
+
+    console.print(f"Opening {device_code.verification_uri} in your default browser...")
+    webbrowser.open(device_code.verification_uri)
+    time.sleep(2)  # Give the user a second or two before we start polling
+
+    with console.status("Polling server for authorization..."):
+        device_token: dict = get_device_oauth_token(
+            client_config=config, device_config=device_code
+        )
+
+    access_token = device_token.get("access_token")
+    if access_token:
+        console.print(
+            f"[bold green]Successfully authorized OAuth token ({access_token[:7]}...)[/bold green]"
+        )
+
+    return access_token
