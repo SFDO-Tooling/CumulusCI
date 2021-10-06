@@ -340,7 +340,6 @@ def get_device_code(config: OAuth2ClientConfig) -> dict:
     response = requests.post(
         config.auth_uri, data=data, headers={"Accept": "application/json"}
     )
-    print(response.json())
     response.raise_for_status()
     return response.json()
 

@@ -253,8 +253,8 @@ def device_client_config():
 @pytest.fixture
 def device_user_code_resp():
     return {
-        "device_code": "b16373d7bac49a3e93971615f929fea54106040e",
-        "user_code": "679B-1C70",
+        "device_code": "36482450e39b7f27d9a145a96898d29365a4e73f",
+        "user_code": "3E15-9D06",
         "verification_uri": "https://github.com/login/device",
         "expires_in": 899,
         "interval": 5,
@@ -275,6 +275,15 @@ def test_get_device_code(device_client_config, device_user_code_resp):
 
 @pytest.mark.vcr()
 def test_get_device_oauth_token(device_client_config, device_user_code_resp):
+    """
+    Note that the get_device_oauth_token includes a sleep while wating for the
+    user to authorize the app. Mock `time.sleep` to regenerate the VCR cassette.
+    """
     device_config = OAuth2DeviceConfig(**device_user_code_resp)
     response_dict = get_device_oauth_token(device_client_config, device_config)
-    assert response_dict
+    expected_response_dict = {
+        "access_token": "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",
+        "token_type": "bearer",
+        "scope": "gist,repo",
+    }
+    assert expected_response_dict == response_dict
