@@ -199,7 +199,7 @@ class TestRobot(unittest.TestCase):
             {
                 "suites": "test",  # required, or the task will raise an exception
                 "verbose": "False",
-                "debug": "False",
+                "robot_debug": "False",
             },
         )
         assert len(task.options["options"]["listener"]) == 0
@@ -210,7 +210,7 @@ class TestRobot(unittest.TestCase):
             Robot,
             {
                 "suites": "test",  # required, or the task will raise an exception
-                "debug": "True",
+                "robot_debug": "True",
             },
         )
         listener_classes = [
@@ -242,7 +242,7 @@ class TestRobot(unittest.TestCase):
             Robot,
             {
                 "suites": "test",  # required, or the task will raise an exception
-                "debug": "True",
+                "robot_debug": "True",
                 "verbose": "True",
                 "options": {"listener": ["FakeListener.py"]},
             },
