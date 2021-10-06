@@ -19,6 +19,13 @@ PythonClassPath = str
 URL = str
 
 
+# additionalProperties here works around an
+# incompatibility with VSCode's Red Hat YAML validator
+# Can probably remove it at some future date if the
+# bug/incompatibilty is fixed elsewhere in the stack
+VSCodeFriendlyDict = Field({}, additionalProperties=True)
+
+
 class PreflightCheck(CCIDictModel):
     when: str = None
     action: str = None
@@ -28,10 +35,10 @@ class PreflightCheck(CCIDictModel):
 class Step(CCIDictModel):
     task: str = None
     flow: str = None
-    options: Dict[str, Any] = {}
     ignore_failure: bool = False
     when: str = None  # is this allowed?
-    ui_options: Dict[str, Any] = {}
+    options: Dict[str, Any] = VSCodeFriendlyDict
+    ui_options: Dict[str, Any] = VSCodeFriendlyDict
     checks: List[PreflightCheck] = []
     description: str = None
 
@@ -48,9 +55,11 @@ class Step(CCIDictModel):
 class Task(CCIDictModel):
     class_path: str = None
     description: str = None
-    options: Dict[str, Any] = None
     group: str = None
-    ui_options: Dict[str, Any] = None
+    # additionalProperties here works around an
+    # incompatibility with VSCode's Red Hat YAML validator
+    options: Dict[str, Any] = VSCodeFriendlyDict
+    ui_options: Dict[str, Any] = VSCodeFriendlyDict
     name: str = None  # get rid of this???
 
 
@@ -210,18 +219,6 @@ class CumulusCIRoot(CCIDictModel):
     minimum_cumulusci_version: str = None
     sources: Dict[str, Union[LocalFolderSourceModel, GitHubSourceModel]] = {}
     cli: CumulusCLIConfig = None
-
-    @classmethod
-    def schema(cls, *args, **kwargs):
-        json = super().schema(*args, **kwargs)
-        # Workaround VSCode-YAML vs pydantic.schema quirks
-        task_model = json["definitions"]["Task"]["properties"]
-        task_model["options"]["additionalProperties"] = True
-        task_model["ui_options"]["additionalProperties"] = True
-        step_model = json["definitions"]["Step"]["properties"]
-        step_model["options"]["additionalProperties"] = True
-        step_model["ui_options"]["additionalProperties"] = True
-        return json
 
 
 class CumulusCIFile(CCIDictModel):

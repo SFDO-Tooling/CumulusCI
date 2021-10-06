@@ -92,19 +92,21 @@
                     "title": "Description",
                     "type": "string"
                 },
-                "options": {
-                    "title": "Options",
-                    "type": "object",
-                    "additionalProperties": true
-                },
                 "group": {
                     "title": "Group",
                     "type": "string"
                 },
+                "options": {
+                    "title": "Options",
+                    "default": {},
+                    "additionalProperties": true,
+                    "type": "object"
+                },
                 "ui_options": {
                     "title": "Ui Options",
-                    "type": "object",
-                    "additionalProperties": true
+                    "default": {},
+                    "additionalProperties": true,
+                    "type": "object"
                 },
                 "name": {
                     "title": "Name",
@@ -144,12 +146,6 @@
                     "title": "Flow",
                     "type": "string"
                 },
-                "options": {
-                    "title": "Options",
-                    "default": {},
-                    "type": "object",
-                    "additionalProperties": true
-                },
                 "ignore_failure": {
                     "title": "Ignore Failure",
                     "default": false,
@@ -159,11 +155,17 @@
                     "title": "When",
                     "type": "string"
                 },
+                "options": {
+                    "title": "Options",
+                    "default": {},
+                    "additionalProperties": true,
+                    "type": "object"
+                },
                 "ui_options": {
                     "title": "Ui Options",
                     "default": {},
-                    "type": "object",
-                    "additionalProperties": true
+                    "additionalProperties": true,
+                    "type": "object"
                 },
                 "checks": {
                     "title": "Checks",
