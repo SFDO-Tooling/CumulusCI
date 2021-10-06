@@ -32,7 +32,7 @@ from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 from .snowfakery_utils.queue_manager import (
-    SnowfakeryQueueManager,
+    SnowfakeryShardManager,
     data_loader_new_directory_name,
 )
 from .snowfakery_utils.snowfakery_run_until import PortionGenerator, determine_run_until
@@ -237,14 +237,30 @@ class Snowfakery(BaseSalesforceApiTask):
             self.recipe_options,
             self.ignore_row_errors,
         )
-        self.queue_manager = SnowfakeryQueueManager(
+        self.queue_manager = SnowfakeryShardManager(
             project_config=self.project_config, logger=self.logger
         )
+        if len(self.shard_configs) == 1:
+            self.queue_manager.add_shard(
+                org_config=self.shard_configs[0].org_config,
+                num_generator_workers=self.num_generator_workers,
+                working_directory=working_directory,
+                subtask_configurator=subtask_configurator,
+            )
+        else:
+            self.configure_shards(working_directory, subtask_configurator)
+
+    def configure_shards(self, working_directory, subtask_configurator):
+        # TODO: Implement serial mode for shards
+        # TODO: Implement per-shard task options
+        # TODO: Implement per-shard worker ratio
         for idx, shard in enumerate(self.shard_configs):
+            if self.debug_mode:
+                self.logger.info("Initializing %s", shard)
             shard_wd = working_directory / f"shard_{idx}"
             shard_wd.mkdir()
             self.queue_manager.add_shard(
-                org_config=self.org_config,
+                org_config=shard.org_config,
                 num_generator_workers=self.num_generator_workers,
                 working_directory=shard_wd,
                 subtask_configurator=subtask_configurator,
@@ -436,6 +452,9 @@ class Snowfakery(BaseSalesforceApiTask):
         Useful for debugging but also for making decisions about what to do next."""
 
         queue_manager_status = self.queue_manager.get_upload_status()
+        queue_manager_status[
+            "sets_finished"
+        ] += self.sets_finished_while_generating_template
 
         rc = UploadStatus(
             target_count=self.run_until.gap,
@@ -445,6 +464,7 @@ class Snowfakery(BaseSalesforceApiTask):
             elapsed_seconds=int(time.time() - self.start_time),
             # todo: use row-level result from org load for better accuracy
             batch_size=batch_size,
+            shards=len(self.queue_manager.shards),
             **queue_manager_status,
         )
         return rc
@@ -494,6 +514,13 @@ class Snowfakery(BaseSalesforceApiTask):
 
         # rename directory to reflect real number of sets created.
         wd = SnowfakeryWorkingDirectory(template_dir)
+        if self.run_until.sobject_name:
+            self.sets_finished_while_generating_template = wd.get_record_counts()[
+                self.run_until.sobject_name
+            ]
+        else:
+            self.sets_finished_while_generating_template = 1
+
         new_template_dir = data_loader_new_directory_name(template_dir, self.run_until)
         shutil.move(template_dir, new_template_dir)
         template_dir = new_template_dir
@@ -555,6 +582,7 @@ class UploadStatus(T.NamedTuple):
     inprogress_generator_jobs: int
     inprogress_loader_jobs: int
     data_gen_free_workers: int
+    shards: int
 
     @property
     def total_in_flight(self):
@@ -578,6 +606,8 @@ class UploadStatus(T.NamedTuple):
             "sets_finished",
             "sets_failed",
         ]
+        if self.shards > 1:
+            most_important_stats.append("shards")
 
         queue_stats = [
             "inprogress_generator_jobs",
@@ -659,7 +689,7 @@ def read_sharding_declarations(
 
 
 class ShardConfig(T.NamedTuple):
-    org: OrgConfig
+    org_config: OrgConfig
     declaration: ShardDeclaration = None
 
 

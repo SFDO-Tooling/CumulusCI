@@ -2,6 +2,7 @@
 # TODO: pass recipe options to recipe
 # TODO: implement full serial mode
 
+import random
 import shutil
 import typing as T
 from collections import defaultdict
@@ -28,7 +29,7 @@ LOAD_QUEUE_SIZE = 15
 WORKER_TO_LOADER_RATIO = 4
 
 
-class SnowfakeryQueueManager:
+class SnowfakeryShardManager:
     def __init__(
         self,
         *,
@@ -72,10 +73,46 @@ class SnowfakeryQueueManager:
         get_upload_status: T.Callable,
     ):
         """Called every few seconds, to make new data generators if needed."""
+        # advance each shard's queues
         for shard in self.shards:
-            shard.tick(
-                upload_status, template_path, tempdir, portions, get_upload_status
-            )
+            shard.tick()
+
+        # populate shards that have space
+        self.populate_shards(
+            upload_status,
+            template_path,
+            tempdir,
+            portions,
+            get_upload_status,
+        )
+
+    def populate_shards(
+        self,
+        upload_status,
+        template_path: Path,
+        tempdir: Path,
+        portions: PortionGenerator,
+        get_upload_status: T.Callable,
+    ):
+        def ready_shards():
+            return [shard for shard in self.shards if not shard.full]
+
+        new_workers = [True]
+        shards = ready_shards()
+        while (
+            shards
+            and any(new_workers)
+            and not portions.done(upload_status.total_sets_working_on_or_uploaded)
+        ):
+            # randomize shards so the first one doesn't always grab all slots
+            random.shuffle(shards)
+            new_workers = [
+                shard.make_new_worker(
+                    upload_status, template_path, tempdir, portions, get_upload_status
+                )
+                for shard in shards
+            ]
+            shards = ready_shards()
 
     def get_upload_status(self):
         summed_statuses = defaultdict(int)
@@ -92,7 +129,9 @@ class SnowfakeryQueueManager:
         return ret
 
     def check_finished(self) -> bool:
-        return all(shard.check_finished() for shard in self.shards)
+        for shard in self.shards:
+            shard.tick()
+        return all([shard.check_finished() for shard in self.shards])
 
     def get_results_report(self, block=False):
         return self.results_reporter.get(block=block)
@@ -181,42 +220,42 @@ class Shard:
 
     def tick(
         self,
+    ):
+        """Called every few seconds, to make new data generators if needed."""
+        self.data_gen_q.tick()
+
+    @property
+    def full(self):
+        return self.data_gen_q.full
+
+    def make_new_worker(
+        self,
         upload_status,
         template_path: Path,
         tempdir: Path,
         portions: PortionGenerator,
         get_upload_status: T.Callable,
     ):
-        """Called every few seconds, to make new data generators if needed."""
-        self.data_gen_q.tick()
-
-        # This check needs to move up to the manager context
-        if portions.done(
-            upload_status.total_sets_working_on_or_uploaded
-        ):  # pragma: no cover
-            self.logger.info("Finished Generating")
-        # queue is full
-        elif self.data_gen_q.num_free_workers and self.data_gen_q.full:
+        if self.data_gen_q.num_free_workers and self.data_gen_q.full:
             self.logger.info("Waiting before datagen (load queue is full)")
         else:
-            for i in range(self.data_gen_q.num_free_workers):
-                upload_status = get_upload_status(
-                    portions.next_batch_size,
-                    template_path,
-                )
-                self.job_counter += 1
-                batch_size = portions.next_batch(
-                    upload_status.total_sets_working_on_or_uploaded
-                )
-                if not batch_size:
-                    self.logger.info(
-                        "All scheduled portions generated and being uploaded"
-                    )
-                    break
-                job_dir = self.generator_data_dir(
-                    self.job_counter, template_path, batch_size, tempdir
-                )
-                self.data_gen_q.push(job_dir)
+            upload_status = get_upload_status(
+                portions.next_batch_size,
+                template_path,
+            )
+            self.job_counter += 1
+            batch_size = portions.next_batch(
+                upload_status.total_sets_working_on_or_uploaded
+            )
+            if not batch_size:
+                self.logger.info("All scheduled portions generated and being uploaded")
+                return
+
+            job_dir = self.generator_data_dir(
+                self.job_counter, template_path, batch_size, tempdir
+            )
+            self.data_gen_q.push(job_dir)
+            return job_dir
 
     def generator_data_dir(self, idx, template_path, batch_size, parent_dir):
         """Create a new generator directory with a name based on index and batch_size"""

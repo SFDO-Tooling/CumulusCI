@@ -188,7 +188,7 @@ class SnowfakeryTaskResults(T.NamedTuple):
     """Results from a Snowfakery data generation process"""
 
     task: Snowfakery  # The task, so we can inspect its return_values
-    outbox: Path  # The working directory, to look at mapping files, DB files, etc.
+    working_dir: Path  # The working directory, to look at mapping files, DB files, etc.
 
 
 @pytest.fixture()
@@ -210,12 +210,14 @@ def run_snowfakery_and_inspect_mapping(
 
 def get_mapping_from_snowfakery_task_results(results: SnowfakeryTaskResults):
     """Find the shared mapping file and return it."""
-    template_dir = SnowfakeryWorkingDirectory(results.outbox / "template_1/")
+    template_dir = SnowfakeryWorkingDirectory(results.working_dir / "template_1/")
     temp_mapping = template_dir.mapping_file
     with open(temp_mapping) as f:
         mapping = yaml.safe_load(f)
 
-    other_mapping = Path(str(temp_mapping).replace("template_1", "1_1"))
+    other_mapping = Path(
+        str(temp_mapping).replace("template_1", "data_load_outbox/1_1")
+    )
     # check that it's truly shared
     assert temp_mapping.read_text() == other_mapping.read_text()
     return mapping
@@ -223,14 +225,20 @@ def get_mapping_from_snowfakery_task_results(results: SnowfakeryTaskResults):
 
 def get_record_counts_from_snowfakery_results(
     results: SnowfakeryTaskResults,
-):
-    """Collate the record counts from Snowfakery outbox directories"""
+) -> Counter:
+    """Collate the record counts from Snowfakery outbox directories.
+    Note that records created by the initial, just_once seeding flow are not
+    counted because they are deleted. If you need every single result, you s
+    hould probably use return_values instead. (but you may need to implement it)"""
 
     rollups = Counter()
-    for subdir in results.outbox.glob("*"):
-        if "template" not in subdir.name:
-            record_counts = SnowfakeryWorkingDirectory(subdir).get_record_counts()
-            rollups.update(record_counts)
+    sharded_outboxes = results.working_dir.glob("*/data_load_outbox/*")
+    regular_outboxes = results.working_dir.glob("data_load_outbox/*")
+    outboxes = tuple(sharded_outboxes) + tuple(regular_outboxes)
+    for subdir in outboxes:
+        record_counts = SnowfakeryWorkingDirectory(subdir).get_record_counts()
+        rollups.update(record_counts)
+
     return rollups
 
 
@@ -248,8 +256,7 @@ def run_snowfakery_and_yield_results(
                 **options,
             )
             task()
-            outbox = Path(workingdir) / "data_load_outbox/"
-            yield SnowfakeryTaskResults(task, outbox)
+            yield SnowfakeryTaskResults(task, workingdir)
 
     return _run_snowfakery_and_inspect_mapping_and_example_records
 
@@ -476,7 +483,7 @@ class TestSnowfakery:
             assert (working_directory / "data_load_outbox").exists()
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 1)
-    def test_failures_in_subprocesses__last_batch(
+    def xxx__test_failures_in_subprocesses__last_batch(
         self, snowfakery, mock_load_data, fake_processes_and_threads
     ):
         class FakeProcess(DelaySpawner):
@@ -575,10 +582,10 @@ class TestSnowfakery:
             "gen_npsp_standard_objects.recipe.yml", "options.recipe.yml"
         )
         with run_snowfakery_and_yield_results(
-            recipe=options_yaml, recipe_options="xyzzy:7"
+            recipe=options_yaml, recipe_options="row_count:7,account_name:aaaaa"
         ) as results:
             record_counts = get_record_counts_from_snowfakery_results(results)
-        assert record_counts["Account"] == 7
+        assert record_counts["Account"] == 7, record_counts["Account"]
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_multi_part_uniqueness(self, mock_load_data, create_task_fixture):
