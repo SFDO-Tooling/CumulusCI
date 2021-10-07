@@ -123,6 +123,12 @@ def validate_service(options: dict) -> dict:
         if unauthorized_orgs:
             options["SSO Disabled"] = ", ".join([k for k in unauthorized_orgs.values()])
 
+        expiration_date = repo_response.headers.get(
+            "GitHub-Authentication-Token-Expiration"
+        )
+        if expiration_date:
+            options["expires"] = expiration_date
+
     return options
 
 
