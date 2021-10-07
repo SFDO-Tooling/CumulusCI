@@ -62,7 +62,7 @@ class Robot(BaseSalesforceTask):
         "name": {"description": "Sets the name of the top level test suite"},
         "pdb": {"description": "If true, run the Python debugger when tests fail."},
         "verbose": {"description": "If true, log each keyword as it runs."},
-        "debug": {
+        "robot_debug": {
             "description": "If true, enable the `breakpoint` keyword to enable the robot debugger"
         },
         "ordering": {
@@ -150,7 +150,7 @@ class Robot(BaseSalesforceTask):
         if process_bool_arg(self.options.get("verbose") or False):
             listeners.append(KeywordLogger())
 
-        if process_bool_arg(self.options.get("debug") or False):
+        if process_bool_arg(self.options.get("robot_debug") or False):
             listeners.append(DebugListener())
 
         if process_bool_arg(self.options.get("pdb") or False):

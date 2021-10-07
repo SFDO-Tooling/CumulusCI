@@ -3,9 +3,10 @@ Robot Debugger
 ==============
 
 CumulusCI includes a rudimentary Robot debugger which can be enabled by
-setting the ``debug`` option of the ``robot`` task to ``True``. When
-the debugger is enabled you can use the ``Breakpoint`` keyword from
-the ``Salesforce`` keyword library to pause execution.
+setting the ``robot_debug`` option of the ``robot`` task to ``true``. When
+the debugger is enabled you can use the `Breakpoint <Keywords.html#Salesforce.Breakpoint>`_
+keyword from the `Salesforce Library <Keywords.html#file-cumulusci.robotframework.Salesforce>`_
+keyword library to pause execution.
 
 Once the ``Breakpoint`` keyword is encountered you will be given a
 prompt from which you can interactively issue commands.
@@ -30,9 +31,10 @@ For the following examples we'll be using this simple test:
 Enabling the debugger
 ---------------------
 
-To enable the debugger you must set the ``debug`` option to ``True``
-for the ``robot`` task. **You should never do this in your ``cumulusci.yml``
-file.** Doing so could cause tests to block when run on a CI server like MetaCI.
+To enable the debugger you must set the ``robot_debug`` option to ``true``
+for the ``robot`` task. **You should never do this in the project's cumulusci.yml
+file.** Doing so could cause tests to block when run on a CI server
+such as MetaCI.
 
 Instead, you should set it from the command line when running tests
 locally.
@@ -43,7 +45,7 @@ task like this:
 
 .. code-block:: console
 
-    $ cci task run robot -o debug True -o suites example.robot
+    $ cci task run robot --robot_debug true --suites example.robot
 
 
 Setting breakpoints
@@ -56,8 +58,7 @@ with a prompt where you can interactively enter commands.
 
 .. code-block:: console
 
-    $ cci task run robot -o debug True -o suites example.robot
-    cci task run robot -o debug True -o suites example.robot
+    $ cci task run robot --robot_debug true --suites example.robot
     2019-10-01 15:29:01: Getting scratch org info from Salesforce DX
     2019-10-01 15:29:05: Beginning task: Robot
     2019-10-01 15:29:05:        As user: test-dp7to8ww6fec@example.com
@@ -78,10 +79,10 @@ with a prompt where you can interactively enter commands.
     -> <Keyword: cumulusci.robotframework.Salesforce.Breakpoint>
     rdb>
 
-Note: the ``Breakpoint`` keyword has no effect on a test if the ``debug`` option
-is not set to ``True``. While we don't encourage you to leave this
+Note: the ``Breakpoint`` keyword has no effect on a test if the ``robot_debug`` option
+is not set to ``true``. While we don't encourage you to leave this
 keyword in your test cases, it's safe to do so as long as you only
-ever set the ``debug`` option when running tests locally.
+ever set the ``robot_debug`` option when running tests locally.
 
 Getting Help
 ------------
