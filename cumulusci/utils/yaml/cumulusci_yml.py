@@ -19,6 +19,13 @@ PythonClassPath = str
 URL = str
 
 
+# additionalProperties here works around an
+# incompatibility with VSCode's Red Hat YAML validator
+# Can probably remove it at some future date if the
+# bug/incompatibilty is fixed elsewhere in the stack
+VSCodeFriendlyDict = Field({}, additionalProperties=True)
+
+
 class PreflightCheck(CCIDictModel):
     when: str = None
     action: str = None
@@ -28,10 +35,10 @@ class PreflightCheck(CCIDictModel):
 class Step(CCIDictModel):
     task: str = None
     flow: str = None
-    options: Dict[str, Any] = {}
     ignore_failure: bool = False
     when: str = None  # is this allowed?
-    ui_options: Dict[str, Any] = {}
+    options: Dict[str, Any] = VSCodeFriendlyDict
+    ui_options: Dict[str, Any] = VSCodeFriendlyDict
     checks: List[PreflightCheck] = []
     description: str = None
 
@@ -48,9 +55,11 @@ class Step(CCIDictModel):
 class Task(CCIDictModel):
     class_path: str = None
     description: str = None
-    options: Dict[str, Any] = None
     group: str = None
-    ui_options: Dict[str, Any] = None
+    # additionalProperties here works around an
+    # incompatibility with VSCode's Red Hat YAML validator
+    options: Dict[str, Any] = VSCodeFriendlyDict
+    ui_options: Dict[str, Any] = VSCodeFriendlyDict
     name: str = None  # get rid of this???
 
 
@@ -233,7 +242,7 @@ def validate_data(
 
     https://pydantic-docs.helpmanual.io/usage/models/#error-handling
     """
-    return CumulusCIFile.validate_data(data, context=context, on_error=on_error)
+    return CumulusCIRoot.validate_data(data, context=context, on_error=on_error)
 
 
 class ErrorDict(TypedDict):

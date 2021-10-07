@@ -1205,8 +1205,8 @@ class Salesforce(object):
     def breakpoint(self):
         """Serves as a breakpoint for the robot debugger
 
-        Note: this keyword is a no-op unless the debug option for
-        the task has been set to True. Unless the option has been
+        Note: this keyword is a no-op unless the ``robot_debug`` option for
+        the task has been set to ``true``. Unless the option has been
         set, this keyword will have no effect on a running test.
         """
         return None

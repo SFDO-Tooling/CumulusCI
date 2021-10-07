@@ -591,7 +591,10 @@ class TestUnmanagedGitHubRefDependency:
             UnmanagedGitHubRefDependency(github="http://github.com")
 
         u = UnmanagedGitHubRefDependency(
-            github="https://github.com/Test/TestRepo", ref="aaaaaaaa"
+            github="https://github.com/Test/TestRepo",
+            ref="aaaaaaaa",
+            namespace_token="obsolete but accepted",
+            filename_token="obsolete but accepted",
         )
 
         u = UnmanagedGitHubRefDependency(

@@ -16,6 +16,7 @@ from github3.session import AppInstallationTokenAuth
 from requests.exceptions import RequestException, RetryError
 from requests.models import Response
 
+import cumulusci
 from cumulusci.core import github
 from cumulusci.core.exceptions import (
     DependencyLookupError,
@@ -475,3 +476,95 @@ class TestGithub(GithubApiTestMixin):
 
         with pytest.raises(TransportError):
             test_func()
+
+    @responses.activate
+    def test_validate_no_repo_exc(self):
+        service_dict = {
+            "username": "e2ac67",
+            "token": "ghp_cf83e1357eefb8bdf1542850d66d8007d620e4",
+            "email": "testerson@test.com",
+        }
+        responses.add(
+            responses.GET,
+            "https://api.github.com/user",
+            json={
+                "login": "e2ac67",
+                "id": 91303375,
+                "node_id": "MDQ6VXNlcjkxMzAzMzc1",
+                "avatar_url": "https://avatars.githubusercontent.com/u/91303375?v=4",
+                "gravatar_id": "",
+                "url": "https://api.github.com/users/e2ac67",
+                "html_url": "https://github.com/e2ac67",
+                "followers_url": "https://api.github.com/users/e2ac67/followers",
+                "following_url": "https://api.github.com/users/e2ac67/following{/other_user}",
+                "gists_url": "https://api.github.com/users/e2ac67/gists{/gist_id}",
+                "starred_url": "https://api.github.com/users/e2ac67/starred{/owner}{/repo}",
+                "subscriptions_url": "https://api.github.com/users/e2ac67/subscriptions",
+                "organizations_url": "https://api.github.com/users/e2ac67/orgs",
+                "repos_url": "https://api.github.com/users/e2ac67/repos",
+                "events_url": "https://api.github.com/users/e2ac67/events{/privacy}",
+                "received_events_url": "https://api.github.com/users/e2ac67/received_events",
+                "type": "User",
+                "site_admin": False,
+                "name": None,
+                "company": None,
+                "blog": "",
+                "location": None,
+                "email": None,
+                "hireable": None,
+                "bio": None,
+                "twitter_username": None,
+                "public_repos": 0,
+                "public_gists": 0,
+                "followers": 0,
+                "following": 0,
+                "created_at": "2021-09-24T03:53:02Z",
+                "updated_at": "2021-09-24T03:59:40Z",
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/user/orgs",
+            json=[],
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/user/repos",
+            json=[],
+            headers={
+                "GitHub-Authentication-Token-Expiration": "2021-10-07 19:07:53 UTC",
+                "X-OAuth-Scopes": "gist, repo",
+            },
+        )
+        updated_dict = validate_service(service_dict)
+        expected_dict = {
+            "username": "e2ac67",
+            "token": "ghp_cf83e1357eefb8bdf1542850d66d8007d620e4",
+            "email": "testerson@test.com",
+            "Organizations": "",
+            "scopes": {"gist", "repo"},
+            "expires": "2021-10-07 19:07:53 UTC",
+        }
+        assert expected_dict == updated_dict
+
+    @responses.activate
+    def test_validate_bad_auth(self):
+        service_dict = {
+            "username": "e2ac67",
+            "token": "bad_cf83e1357eefb8bdf1542850d66d8007d620e4",
+            "email": "testerson@test.com",
+        }
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/user",
+            json={
+                "message": "Bad credentials",
+                "documentation_url": "https://docs.github.com/rest",
+            },
+            status=401,
+        )
+
+        with pytest.raises(cumulusci.core.exceptions.GithubException) as e:
+            validate_service(service_dict)
+        assert "401" in str(e.value)
