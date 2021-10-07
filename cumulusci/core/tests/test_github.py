@@ -531,7 +531,10 @@ class TestGithub(GithubApiTestMixin):
             responses.GET,
             "https://api.github.com/user/repos",
             json=[],
-            headers={"X-OAuth-Scopes": "gist, repo"},
+            headers={
+                "GitHub-Authentication-Token-Expiration": "2021-10-07 19:07:53 UTC",
+                "X-OAuth-Scopes": "gist, repo",
+            },
         )
         updated_dict = validate_service(service_dict)
         expected_dict = {
@@ -540,6 +543,7 @@ class TestGithub(GithubApiTestMixin):
             "email": "testerson@test.com",
             "Organizations": "",
             "scopes": {"gist", "repo"},
+            "expires": "2021-10-07 19:07:53 UTC",
         }
         assert expected_dict == updated_dict
 
