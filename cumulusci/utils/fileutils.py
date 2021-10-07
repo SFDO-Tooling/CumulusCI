@@ -68,7 +68,7 @@ def load_from_source(source: DataInput) -> ContextManager[Tuple[IO[Text], Text]]
     ...     print(file.readline().strip())
     ...
     cumulusci.yml
-    project:
+    # yaml-language-server: $schema=cumulusci/schema/cumulusci.jsonschema.json
     """
     if (
         hasattr(source, "read") and hasattr(source, "readable") and source.readable()
@@ -261,7 +261,7 @@ class FSResource:
         >>> with open_fs_resource("cumulusci.yml") as cumulusci_yml:
         ...      with cumulusci_yml.open() as c:
         ...          print(c.read(5))
-        proje
+        # yam
 
         """
         resource = FSResource.new(resource_url_or_path, filesystem)
