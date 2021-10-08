@@ -441,6 +441,10 @@
                 "required": {
                     "title": "Required",
                     "type": "boolean"
+                },
+                "default_factory": {
+                    "title": "Default Factory",
+                    "type": "string"
                 }
             },
             "additionalProperties": false
