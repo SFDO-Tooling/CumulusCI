@@ -607,7 +607,7 @@ To run this test from the command line:
 
 .. code-block:: console
 
-   $ cci task run robot --suites robot/<ProjectName>/tests/new_contact_record.robot
+   $ cci task run robot --suites robot/<ProjectName>/tests/new_contact_record.robot --org dev
 
 
 
@@ -640,13 +640,13 @@ While a single ``.robot`` file is considered to be a test suite, Robot also cons
 
 .. code-block:: console
 
-   $ cci task run robot --suites robot/<ProjectName>/tests
+   $ cci task run robot --suites robot/<ProjectName>/tests --org dev
 
 In the output, you can see that all of the test case files in the ``tests`` folder have been run, including the ``create_contact.robot`` test case file that comes with CumulusCI. 
 
 .. code-block:: console
 
-   $ cci task run robot --suites robot/<ProjectName>/tests
+   $ cci task run robot --suites robot/<ProjectName>/tests --org dev
    2021-08-24 16:45:36: Getting org info from Salesforce CLI for test-4g5sxdzt9sj3@example.com
    2021-08-24 16:45:39: Beginning task: Robot
    2021-08-24 16:45:39: As user: test-4g5sxdzt9sj3@example.com
@@ -702,7 +702,7 @@ To run an entire suite of tests with the ``robot`` task:
 
 .. code-block:: console
 
-   $ cci task run robot
+   $ cci task run robot --org dev
 
 
 
