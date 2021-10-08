@@ -225,9 +225,9 @@ class CumulusCIFile(CCIDictModel):
     __root__: Union[CumulusCIRoot, None]
 
 
-def parse_from_yaml(source):
+def parse_from_yaml(source) -> dict:
     "Parse from a path, url, path-like or file-like"
-    return CumulusCIFile.parse_from_yaml(source)
+    return CumulusCIFile.parse_from_yaml(source) or {}
 
 
 def validate_data(
@@ -242,7 +242,7 @@ def validate_data(
 
     https://pydantic-docs.helpmanual.io/usage/models/#error-handling
     """
-    return CumulusCIRoot.validate_data(data, context=context, on_error=on_error)
+    return CumulusCIFile.validate_data(data, context=context, on_error=on_error)
 
 
 class ErrorDict(TypedDict):
@@ -276,7 +276,7 @@ def _log_yaml_errors(logger, errors: List[ErrorDict]):
 
 def cci_safe_load(
     source: DataInput, context: str = None, on_error: callable = None, logger=None
-):
+) -> dict:
     """Load a CumulusCI.yml file and issue warnings for unknown structures."""
     errors = []
     assert not (
@@ -306,7 +306,7 @@ def cci_safe_load(
                     }
                 )
             pass
-        return data
+        return data or {}
 
 
 def _validate_files(globs):
