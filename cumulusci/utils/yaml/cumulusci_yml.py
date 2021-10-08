@@ -140,7 +140,7 @@ class Orgs(CCIDictModel):
 class ServiceAttribute(CCIDictModel):
     description: str = None
     required: bool = None
-    wizard: PythonClassPath = None
+    default_factory: PythonClassPath = None
 
 
 class Service(CCIDictModel):

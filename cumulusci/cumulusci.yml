@@ -1277,7 +1277,7 @@ services:
             token:
                 description: Personal Access Token for GitHub. Leave blank to login via browser.
                 required: True
-                wizard: cumulusci.core.github.get_oauth_device_flow_token
+                default_factory: cumulusci.core.github.get_oauth_device_flow_token
             email:
                 description: The email address to used by Github tasks when an operation requires an email address.
                 required: True
