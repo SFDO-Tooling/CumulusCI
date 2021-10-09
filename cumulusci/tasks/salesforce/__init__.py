@@ -27,7 +27,6 @@ ORIGINS = {
     "LoadCustomSettings": "cumulusci.tasks.salesforce.custom_settings",
     "PackageUpload": "cumulusci.tasks.salesforce.package_upload",
     "ProfileGrantAllAccess": "cumulusci.tasks.salesforce.update_profile",
-    "CreateBlankProfile": "cumulusci.tasks.salesforce.profiles",
     "PublishCommunity": "cumulusci.tasks.salesforce.PublishCommunity",
     "RetrievePackaged": "cumulusci.tasks.salesforce.RetrievePackaged",
     "RetrieveReportsAndDashboards": "cumulusci.tasks.salesforce.RetrieveReportsAndDashboards",

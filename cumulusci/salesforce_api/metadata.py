@@ -637,6 +637,12 @@ class ApiNewProfile(BaseMetadataApiCall):
         self.description = description
         self.license_id = license_id
 
+        if int(float(self.api_version)) < 53:
+            raise MetadataApiError(
+                "Creating a blank profile via this API requires a Winter '22 org or later.",
+                None,
+            )
+
     def _build_endpoint_url(self):
         org_id = self.task.org_config.org_id
         instance_url = self.task.org_config.instance_url

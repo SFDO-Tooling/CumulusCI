@@ -77,7 +77,7 @@ RESPONSE_SUCCESS = """<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.or
 
 @responses.activate
 def test_run_task_success():
-    query_url = "https://test.salesforce.com/services/data/v52.0/query/"
+    query_url = "https://test.salesforce.com/services/data/v53.0/query/"
 
     task = create_task(
         CreateBlankProfile,

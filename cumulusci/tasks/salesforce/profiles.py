@@ -5,8 +5,6 @@ from cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask import (
     BaseSalesforceMetadataApiTask,
 )
 
-# TODO: Minimum api version for this task?
-
 
 class CreateBlankProfile(BaseSalesforceMetadataApiTask):
     api_class = ApiNewProfile
@@ -29,7 +27,7 @@ class CreateBlankProfile(BaseSalesforceMetadataApiTask):
 
     def _init_options(self, kwargs):
         super(CreateBlankProfile, self)._init_options(kwargs)
-        if set(["license", "license_id"]).isdisjoint(self.options.keys()):
+        if {"license", "license_id"}.isdisjoint(self.options.keys()):
             raise TaskOptionsError(
                 "Either the name or the ID of the user license must be set."
             )
@@ -45,11 +43,9 @@ class CreateBlankProfile(BaseSalesforceMetadataApiTask):
             self.license_id = self._get_user_license_id(self.license)
 
         api = self._get_api()
-        result = None
-        if api:
-            result = api()
-            self.return_values = result
-            self.logger.info(f"Profile '{self.name}' created with id: {result}")
+        result = api()
+        self.return_values = {"profile_id": result}
+        self.logger.info(f"Profile '{self.name}' created with id: {result}")
         return result
 
     def _get_user_license_id(self, license_name):
@@ -63,11 +59,15 @@ class CreateBlankProfile(BaseSalesforceMetadataApiTask):
         res = self.sf.query(
             f"SELECT Id, Name FROM UserLicense WHERE Name = '{license_name}' LIMIT 1"
         )
-        return res["records"][0]["Id"]
+        if res["records"]:
+            return res["records"][0]["Id"]
+        else:
+            raise TaskOptionsError(f"License name '{license_name}' was not found.")
 
     def _get_api(self):
         return self.api_class(
             self,
+            api_version=self.org_config.latest_api_version,
             license_id=self.license_id,
             name=self.name,
             description=self.description,

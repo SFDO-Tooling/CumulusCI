@@ -179,7 +179,7 @@ tasks:
         group: Salesforce Metadata
     create_blank_profile:
         description: Creates a blank profile, or a profile with no permissions
-        class_path: cumulusci.tasks.salesforce.CreateBlankProfile
+        class_path: cumulusci.tasks.salesforce.profiles.CreateBlankProfile
         options:
             license: Salesforce
         group: Salesforce Metadata
