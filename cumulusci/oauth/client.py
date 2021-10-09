@@ -349,7 +349,7 @@ def get_device_oauth_token(
 ) -> dict:
     """Polls the authorization server for user authorization.
 
-    @param token_uri The URL to poll
+    @param client_config client settings, including token_uri, the URI to poll
     @param device_config server settings, including the device_code returned
     from the auth server.
     @returns a dict including the access token.
