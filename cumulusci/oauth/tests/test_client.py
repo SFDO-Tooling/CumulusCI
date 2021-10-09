@@ -266,6 +266,13 @@ def device_device_config(device_user_code_resp):
     return OAuth2DeviceConfig(device_user_code_resp)
 
 
+@pytest.fixture(autouse=True)
+def configure_recording_mode():
+    """Ignore --replace-vcr or integration tests fail."""
+    pass
+
+
+# Use run_code_without_recording for these or `make vcr` fails.
 @pytest.mark.vcr()
 def test_get_device_code(device_client_config, device_user_code_resp):
     response_dict: dict = get_device_code(device_client_config)
