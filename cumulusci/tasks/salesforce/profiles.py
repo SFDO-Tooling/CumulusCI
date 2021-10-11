@@ -35,8 +35,8 @@ class CreateBlankProfile(BaseSalesforceMetadataApiTask):
 
     def _run_task(self):
 
-        self.name = self.options.get("name")
-        self.description = self.options.get("description")
+        self.name = self.options["name"]
+        self.description = self.options.get("description") or ""
         self.license_id = self.options.get("license_id")
 
         if not self.license_id:

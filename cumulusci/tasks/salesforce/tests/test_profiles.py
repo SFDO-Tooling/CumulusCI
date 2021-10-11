@@ -188,7 +188,7 @@ def test_run_task_error():
 
     with pytest.raises(MetadataApiError) as e:
         task._run_task()
-    assert "INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY" in str(e)
+    assert "insufficient access rights on cross-reference id" in str(e)
 
 
 def test_task_options_error():

@@ -113,10 +113,6 @@ class BaseMetadataApiCall(object):
             data=auth_envelope.encode("utf-8"),
         )
         faultcode = parseString(response.content).getElementsByTagName("faultcode")
-        # Handle errors from Soap API Partner WSDL
-        if faultcode.length == 0:
-            faultcode = parseString(response.content).getElementsByTagName("errors")
-            refresh = False
         # refresh = False can be passed to prevent a loop if refresh fails
         if refresh is None:
             refresh = True
@@ -658,56 +654,20 @@ class ApiNewProfile(BaseMetadataApiCall):
         )
 
     def _process_response(self, response):
-        res_xml = parseString(response.content).getElementsByTagName("id")
-        if res_xml:
-            # Return id of newly created profile.
-            return res_xml[0].firstChild.nodeValue
-        else:
-            return response.text
-
-    def _handle_soap_error(self, headers, envelope, refresh, response):
         resp_xml = parseString(response.content)
-        # faults coming from the Partner WSDL endpoint may still contain faultcodes
-        faults = resp_xml.getElementsByTagName("faultcode")
+        # Return id of newly created profile.
+        profile_id_text = resp_xml.getElementsByTagName("id")[0].firstChild
+        if profile_id_text:
+            return profile_id_text.nodeValue
+        # Handle errors
         errors = resp_xml.getElementsByTagName("errors")
-
-        if faults:  # Checking length so the else fallback works
-            faultcode = faults[0].firstChild.nodeValue
-            faultstring = resp_xml.getElementsByTagName("faultstring")
-            if faultstring:
-                faultstring = faultstring[0].firstChild.nodeValue
-        elif errors:
-            # Handle errors from Soap API Partner WSDL
-            # For now this is expecting there to be only one error, therefore we only grab the first
-            # Assuming fields and messages are always presesnt with errors
-            faultcode = (
-                errors[0].getElementsByTagName("statusCode")[0].firstChild.nodeValue
+        if errors:
+            raise MetadataApiError(
+                "\n".join(
+                    node.getElementsByTagName("message")[0].firstChild.nodeValue
+                    for node in errors
+                ),
+                response,
             )
-
-            field_nodes = errors[0].getElementsByTagName("fields")
-            field_value = (
-                f"Field: {field_nodes[0].firstChild.nodeValue} " if field_nodes else ""
-            )
-
-            faultstring = (
-                field_value
-                + errors[0].getElementsByTagName("message")[0].firstChild.nodeValue
-            )
-        else:
-            faultcode = ""
-            faultstring = response.text
-        if (
-            faultcode == "sf:INVALID_SESSION_ID"
-            and self.task.org_config
-            and self.task.org_config.refresh_token
-        ):
-            # Attempt to refresh token and recall request
-            if refresh:
-                self.task.org_config.refresh_oauth_token(
-                    self.task.project_config.keychain
-                )
-                return self._call_mdapi(headers, envelope, refresh=False)
-        # Log the error
-        message = f"{faultcode}: {faultstring}"
-        self._set_status("Failed", message)
-        raise MetadataApiError(message, response)
+        # Unknown response
+        raise MetadataApiError(f"Unexpected response: {response.text}", response)
