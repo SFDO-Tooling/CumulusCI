@@ -627,9 +627,9 @@ class ApiNewProfile(BaseMetadataApiCall):
         self,
         task,
         api_version=None,
-        name=None,
-        description=None,
-        license_id=None,
+        name: str = "",
+        description: str = "",
+        license_id: str = "",
     ):
         super(ApiNewProfile, self).__init__(task, api_version)
 
@@ -652,9 +652,9 @@ class ApiNewProfile(BaseMetadataApiCall):
 
     def _build_envelope_start(self):
         return self.soap_envelope_start.format(
-            name=self.name,
-            description=self.description,
-            license_id=self.license_id,
+            name=escape(self.name),
+            description=escape(self.description),
+            license_id=escape(self.license_id),
         )
 
     def _process_response(self, response):
