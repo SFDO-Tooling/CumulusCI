@@ -177,6 +177,12 @@ tasks:
             path: src
             revert_path: src.orig
         group: Salesforce Metadata
+    create_blank_profile:
+        description: Creates a blank profile, or a profile with no permissions
+        class_path: cumulusci.tasks.salesforce.profiles.CreateBlankProfile
+        options:
+            license: Salesforce
+        group: Salesforce Metadata
     delete_data:
         description: Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
         class_path: cumulusci.tasks.bulkdata.DeleteData

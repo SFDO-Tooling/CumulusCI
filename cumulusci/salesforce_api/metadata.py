@@ -611,3 +611,63 @@ class ApiListMetadata(BaseMetadataApiCall):
             metadata.append(result_data)
         self.metadata[self.metadata_type].extend(metadata)
         return self.metadata
+
+
+class ApiNewProfile(BaseMetadataApiCall):
+    check_interval = 1
+    soap_envelope_start = soap_envelopes.CREATE_PROFILE
+    soap_action_start = "create"
+    API_VERSION = "53.0"
+
+    def __init__(
+        self,
+        task,
+        api_version=None,
+        name: str = "",
+        description: str = "",
+        license_id: str = "",
+    ):
+        super(ApiNewProfile, self).__init__(task, api_version)
+
+        self.name = name
+        self.description = description
+        self.license_id = license_id
+
+        if int(float(self.api_version)) < 53:
+            raise MetadataApiError(
+                "Creating a blank profile via this API requires a Winter '22 org or later.",
+                None,
+            )
+
+    def _build_endpoint_url(self):
+        org_id = self.task.org_config.org_id
+        instance_url = self.task.org_config.instance_url
+        # Overwrite to call the Partner WSDL endpoint
+        endpoint = f"{instance_url}/services/Soap/u/{self.API_VERSION}/{org_id}"
+        return endpoint
+
+    def _build_envelope_start(self):
+        return self.soap_envelope_start.format(
+            name=escape(self.name),
+            description=escape(self.description),
+            license_id=escape(self.license_id),
+        )
+
+    def _process_response(self, response):
+        resp_xml = parseString(response.content)
+        # Return id of newly created profile.
+        profile_id_text = resp_xml.getElementsByTagName("id")[0].firstChild
+        if profile_id_text:
+            return profile_id_text.nodeValue
+        # Handle errors
+        errors = resp_xml.getElementsByTagName("errors")
+        if errors:
+            raise MetadataApiError(
+                "\n".join(
+                    node.getElementsByTagName("message")[0].firstChild.nodeValue
+                    for node in errors
+                ),
+                response,
+            )
+        # Unknown response
+        raise MetadataApiError(f"Unexpected response: {response.text}", response)
