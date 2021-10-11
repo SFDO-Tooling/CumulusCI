@@ -87,6 +87,7 @@ def test_run_task_success():
             "description": "Have fun stormin da castle",
         },
     )
+    task.org_config._latest_api_version = "53.0"
 
     responses.add(
         responses.GET,
@@ -132,6 +133,7 @@ def test_run_task_fault():
             "description": "This is the description",
         },
     )
+    task.org_config._latest_api_version = "53.0"
 
     responses.add(
         responses.POST,
@@ -154,6 +156,7 @@ def test_run_task_field_error():
             "description": "This is the description",
         },
     )
+    task.org_config._latest_api_version = "53.0"
     responses.add(
         responses.POST,
         "https://test.salesforce.com/services/Soap/u/53.0/ORG_ID",
@@ -175,6 +178,7 @@ def test_run_task_error():
             "description": "This is the description",
         },
     )
+    task.org_config._latest_api_version = "53.0"
 
     responses.add(
         responses.POST,

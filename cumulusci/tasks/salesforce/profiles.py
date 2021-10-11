@@ -53,7 +53,7 @@ class CreateBlankProfile(BaseSalesforceMetadataApiTask):
         self.sf = get_simple_salesforce_connection(
             self.project_config,
             self.org_config,
-            api_version=None,
+            api_version=self.org_config.latest_api_version,
             base_url=None,
         )
         res = self.sf.query(
