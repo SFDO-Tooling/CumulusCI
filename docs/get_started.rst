@@ -171,21 +171,25 @@ Learn more about Salesforce DX at https://developer.salesforce.com/platform/dx.
 Connect to GitHub
 -----------------
 
-In order to allow CumulusCI to work with your repositories in GitHub, connect GitHub as a service in ``cci``.
-
-First, `create a new personal access token <https://github.com/settings/tokens/new>`_ with both **repo** and **gist** scopes specified. (Scopes appear as checkboxes when creating the personal access token in GitHub.) Copy the access token to use as the password when configuring the GitHub service.
-
-Next, run the following command and provide your GitHub username and access token as the password:
+In order to allow CumulusCI to work with your repositories in GitHub, connect GitHub as a service in ``cci``. Simply run:
 
 .. code-block:: console
 
     $ cci service connect github mygithub
 
-Verify the GitHub service is connected by running ``cci service list``:
+to open a browser and authenticate with your GitHub account using the one-time code shown by the CLI. Verify the GitHub service is connected by running ``cci service list``:
 
 .. image:: images/service-list.png
 
 After you've configured the ``github`` service, it's available to *all* CumulusCI projects.
+
+Alternatively, you may `create a new personal access token <https://github.com/settings/tokens/new>`_ with both **repo** and **gist** scopes specified. (Scopes appear as checkboxes when creating the personal access token in GitHub.) Copy the access token to use when configuring the GitHub service.
+
+Next, run the following command and provide your GitHub username and access token:
+
+.. code-block:: console
+
+    $ cci service connect github mygithub --username $GITHUB_USERNAME --token $GITHUB_TOKEN
 
 Services are stored in the global CumulusCI keychain by default.
 

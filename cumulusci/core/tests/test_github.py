@@ -34,6 +34,7 @@ from cumulusci.core.github import (
     format_github3_exception,
     get_github_api,
     get_github_api_for_repo,
+    get_oauth_device_flow_token,
     get_oauth_scopes,
     get_pull_requests_by_commit,
     get_pull_requests_by_head,
@@ -568,3 +569,33 @@ class TestGithub(GithubApiTestMixin):
         with pytest.raises(cumulusci.core.exceptions.GithubException) as e:
             validate_service(service_dict)
         assert "401" in str(e.value)
+
+    @mock.patch("webbrowser.open")
+    @mock.patch("cumulusci.core.github.get_device_code")
+    @mock.patch("cumulusci.core.github.get_device_oauth_token", autospec=True)
+    def test_get_oauth_device_flow_token(
+        self,
+        get_token,
+        get_code,
+        browser_open,
+    ):
+        device_config = {
+            "device_code": "36482450e39b7f27d9a145a96898d29365a4e73f",
+            "user_code": "3E15-9D06",
+            "verification_uri": "https://github.com/login/device",
+            "expires_in": 899,
+            "interval": 5,
+        }
+        get_code.return_value = device_config
+        get_token.return_value = {
+            "access_token": "expected_access_token",
+            "token_type": "bearer",
+            "scope": "gist,repo",
+        }
+
+        returned_token = get_oauth_device_flow_token()
+
+        assert "expected_access_token" == returned_token
+        get_token.assert_called_once()
+        get_code.assert_called_once()
+        browser_open.assert_called_with("https://github.com/login/device")
