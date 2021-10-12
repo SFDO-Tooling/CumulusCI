@@ -24,6 +24,10 @@ certifi==2021.5.30
     # via
     #   -c requirements/prod.txt
     #   requests
+cffi==1.14.6
+    # via
+    #   -c requirements/prod.txt
+    #   cryptography
 cfgv==3.3.1
     # via pre-commit
 charset-normalizer==2.0.6
@@ -44,6 +48,10 @@ coverage[toml]==5.5
     #   coveralls
 coveralls==3.2.0
     # via -r requirements/dev.in
+cryptography==3.4.8
+    # via
+    #   -c requirements/prod.txt
+    #   secretstorage
 distlib==0.3.3
     # via virtualenv
 docopt==0.6.2
@@ -79,25 +87,21 @@ imagesize==1.2.0
 importlib-metadata==4.8.1
     # via
     #   -c requirements/prod.txt
-    #   backports.entry-points-selectable
-    #   flake8
-    #   jsonschema
     #   keyring
-    #   pluggy
-    #   pre-commit
-    #   pytest
-    #   tox
     #   twine
-    #   virtualenv
 iniconfig==1.1.1
     # via pytest
 isort==5.9.3
     # via -r requirements/dev.in
+jeepney==0.7.1
+    # via
+    #   keyring
+    #   secretstorage
 jinja2==2.11.3
     # via
     #   -c requirements/prod.txt
     #   sphinx
-jsonschema==4.0.1 ; python_version > "3.6"
+jsonschema==4.1.0 ; python_version > "3.6"
     # via -r requirements/dev.in
 keyring==23.0.1
     # via
@@ -141,6 +145,10 @@ py==1.10.0
     #   tox
 pycodestyle==2.7.0
     # via flake8
+pycparser==2.20
+    # via
+    #   -c requirements/prod.txt
+    #   cffi
 pyflakes==2.3.1
     # via flake8
 pygments==2.10.0
@@ -192,6 +200,8 @@ responses==0.14.0
     # via -r requirements/dev.in
 rfc3986==1.5.0
     # via twine
+secretstorage==3.3.1
+    # via keyring
 six==1.16.0
     # via
     #   -c requirements/prod.txt
@@ -241,16 +251,12 @@ tqdm==4.62.3
     # via twine
 twine==3.4.2
     # via -r requirements/dev.in
-typed-ast==1.4.3
-    # via black
 typeguard==2.10.0
     # via -r requirements/dev.in
 typing-extensions==3.10.0.2
     # via
     #   -c requirements/prod.txt
     #   black
-    #   importlib-metadata
-    #   yarl
 urllib3==1.26.7
     # via
     #   -c requirements/prod.txt
