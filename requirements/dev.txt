@@ -63,7 +63,7 @@ filelock==3.3.0
     # via
     #   tox
     #   virtualenv
-flake8==4.0.1
+flake8==3.9.2
     # via -r requirements/dev.in
 furo==2021.10.9
     # via -r requirements/dev.in
@@ -131,9 +131,9 @@ py==1.10.0
     # via
     #   pytest
     #   tox
-pycodestyle==2.8.0
+pycodestyle==2.7.0
     # via flake8
-pyflakes==2.4.0
+pyflakes==2.3.1
     # via flake8
 pygments==2.10.0
     # via
