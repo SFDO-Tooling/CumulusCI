@@ -95,10 +95,11 @@ class PackageVersionNumber(BaseModel):
             or match.group("BetaNumberTag")
             or 0
         )
-        if first_gen_beta or not build_number:
-            package_type = PackageType.FIRST_GEN
-        else:
-            package_type = PackageType.SECOND_GEN
+        if not package_type:
+            if first_gen_beta or not build_number:
+                package_type = PackageType.FIRST_GEN
+            else:
+                package_type = PackageType.SECOND_GEN
 
         if is_released is None:
             is_released = not first_gen_beta
@@ -114,6 +115,9 @@ class PackageVersionNumber(BaseModel):
 
     def increment(self, version_type: VersionTypeEnum = VersionTypeEnum.build):
         """Construct a new PackageVersionNumber by incrementing the specified component."""
+        if self.package_type is not PackageType.SECOND_GEN:
+            raise ValueError("Cannot increment the version number of a 1GP package")
+
         parts = {
             "MajorVersion": self.MajorVersion,
             "MinorVersion": self.MinorVersion,
