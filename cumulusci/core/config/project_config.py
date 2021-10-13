@@ -462,14 +462,11 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return f"{prefix}{version}"
 
     def get_version_for_tag(self, tag, prefix_beta=None, prefix_release=None):
-        if prefix_beta is None:
-            prefix_beta = self.project__git__prefix_beta
-        if prefix_release is None:
-            prefix_release = self.project__git__prefix_release
-
         try:
             return PackageVersionNumber.parse_tag(
-                tag, prefix_beta, prefix_release
+                tag,
+                prefix_beta or self.project__git__prefix_beta,
+                prefix_release or self.project__git__prefix_release,
             ).format()
         except ValueError:
             pass
