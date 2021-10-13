@@ -31,7 +31,6 @@ from cumulusci.tasks.create_package_version import (
     CreatePackageVersion,
     PackageConfig,
     PackageTypeEnum,
-    PackageVersionNumber,
     VersionTypeEnum,
 )
 from cumulusci.utils import temporary_dir, touch
@@ -145,29 +144,6 @@ def mock_get_static_dependencies():
             PackageNamespaceVersionDependency(namespace="hed", version="1.99"),
         ]
         yield get_static_dependencies
-
-
-class TestPackageVersionNumber:
-    def test_parse_format(self):
-        assert PackageVersionNumber.parse("1.2.3.4").format() == "1.2.3.4"
-
-    def test_parse__invalid(self):
-        with pytest.raises(ValueError):
-            PackageVersionNumber.parse("asdf")
-
-    def test_increment(self):
-        assert (
-            PackageVersionNumber.parse("1.0").increment(VersionTypeEnum.major).format()
-            == "2.0.0.NEXT"
-        )
-        assert (
-            PackageVersionNumber.parse("1.0").increment(VersionTypeEnum.minor).format()
-            == "1.1.0.NEXT"
-        )
-        assert (
-            PackageVersionNumber.parse("1.0").increment(VersionTypeEnum.patch).format()
-            == "1.0.1.NEXT"
-        )
 
 
 class TestPackageConfig:
@@ -654,12 +630,12 @@ class TestCreatePackageVersion:
 
     @responses.activate
     def test_get_base_version_number__from_github(self, task):
-        task.project_config.get_latest_version = mock.Mock(return_value="1.0")
+        task.project_config.get_latest_version = mock.Mock(return_value="1.0.0.1")
 
         version = task._get_base_version_number(
             "latest_github_release", "0Ho6g000000fy4ZCAQ"
         )
-        assert version.format() == "1.0.0.0"
+        assert version.format() == "1.0.0.1"
 
     @responses.activate
     def test_get_base_version_number__from_github__no_release(self, task):
@@ -672,8 +648,8 @@ class TestCreatePackageVersion:
 
     @responses.activate
     def test_get_base_version_number__explicit(self, task):
-        version = task._get_base_version_number("1.0", "0Ho6g000000fy4ZCAQ")
-        assert version.format() == "1.0.0.0"
+        version = task._get_base_version_number("1.0.0.1", "0Ho6g000000fy4ZCAQ")
+        assert version.format() == "1.0.0.1"
 
     @responses.activate
     def test_increment_major_version__no_version_base_specified(self, task):

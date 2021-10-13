@@ -1,4 +1,3 @@
-import enum
 import functools
 import io
 import re
@@ -11,15 +10,11 @@ from github3.repos.repo import Repository
 from cumulusci.core.config import BaseConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.exceptions import DependencyResolutionError
+from cumulusci.core.versions import PackageType
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 PACKAGE_TYPE_RE = re.compile(r"^package_type: (.*)$", re.MULTILINE)
 VERSION_ID_RE = re.compile(r"^version_id: (04t[a-zA-Z0-9]{12,15})$", re.MULTILINE)
-
-
-class PackageType(str, enum.Enum):
-    FIRST_GEN = "1GP"
-    SECOND_GEN = "2GP"
 
 
 def get_repo(github: str, context: BaseProjectConfig) -> Repository:
