@@ -70,8 +70,14 @@ class PackageVersionNumber(BaseModel):
         prefix_prod: str,
         package_type: Optional[PackageType] = None,
     ) -> "PackageVersionNumber":
+        if s.startswith(prefix_beta):
+            version = s[len(prefix_beta) :]
+        elif s.startswith(prefix_prod):
+            version = s[len(prefix_prod) :]
+        else:
+            version = s
         return cls.parse(
-            s.removeprefix(prefix_beta).removeprefix(prefix_prod),
+            version,
             is_released=s.startswith(prefix_prod),
             package_type=package_type,
         )
