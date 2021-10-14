@@ -20,7 +20,7 @@ Changes
 
 Issues Fixed
 
-- Fixes cci service connect github fails with no error (#2903)
+- Fixed a bug where connecting a GitHub service with `cci service connect` was failing silently. (#2903)
 - Fixed an issue where MetaDeploy steps using the old `filename_token` and `namespace_token` options could not be used.
 
 v3.45.0 (2021-09-30)
