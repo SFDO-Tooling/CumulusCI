@@ -118,6 +118,6 @@ dev-install:
 	pip install -e .
 
 schema:
-		python -c 'from cumulusci.utils.yaml import cumulusci_yml; open("cumulusci/schema/cumulusci.jsonschema.json", "w").write(cumulusci_yml.CumulusCIRoot.schema_json(indent=4))'
+		python -c 'from cumulusci.utils.yaml import cumulusci_yml; open("cumulusci/schema/cumulusci.jsonschema.json", "w").write(cumulusci_yml.pre_merge_models.CumulusCIRoot.schema_json(indent=4))'
 		@pre-commit run prettier --files cumulusci/schema/cumulusci.jsonschema.json > /dev/null || true
 		@echo cumulusci/schema/cumulusci.jsonschema.json

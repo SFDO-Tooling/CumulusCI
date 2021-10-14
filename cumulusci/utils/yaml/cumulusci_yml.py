@@ -34,9 +34,12 @@ def make_models(mode="file"):
 
     assert mode in ("file", "post_merge")
 
-    post_merge_validator = (
-        root_validator(allow_reuse=True) if mode == "post_merge" else do_nothing
-    )
+    if mode == "post_merge":
+        post_merge_validator = root_validator(allow_reuse=True)
+        pre_merge_optional_none = Field(...)
+    else:
+        post_merge_validator = do_nothing
+        pre_merge_optional_none = None
 
     class PreflightCheck(CCIDictModel):
         when: str = None
@@ -63,7 +66,7 @@ def make_models(mode="file"):
             return values
 
     class Task(CCIDictModel):
-        class_path: str = None
+        class_path: PythonClassPath = pre_merge_optional_none
         description: str = None
         group: str = None
         # additionalProperties here works around an
@@ -72,10 +75,12 @@ def make_models(mode="file"):
         ui_options: Dict[str, Any] = VSCodeFriendlyDict
         name: str = None  # get rid of this???
 
-        @post_merge_validator
-        def check_classpath(cls, values):
-            assert values.get("class_path"), "Tasks must have class_path"
-            return values
+        # example of how to write a post_merge_validator
+        # this one is redundant with the required class_path
+        # @post_merge_validator
+        # def check_classpath(cls, values):
+        #     assert values.get("class_path"), "Tasks must have class_path"
+        #     return values
 
     class Flow(CCIDictModel):
         description: str = None
@@ -156,7 +161,7 @@ def make_models(mode="file"):
 
     class Service(CCIDictModel):
         description: str = None
-        class_path: Optional[str]
+        class_path: PythonClassPath = pre_merge_optional_none
         attributes: Dict[str, ServiceAttribute] = None
         validator: PythonClassPath = None
 
