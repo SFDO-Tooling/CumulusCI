@@ -2,6 +2,27 @@
 History
 =======
 
+v3.46.0 (2021-10-14)
+--------------------
+Critical Changes
+
+- Backwards incompatibility: the robot task option `debug` has been renamed to `robot_debug`.
+
+
+Changes
+
+- CumulusCi now has a schema published `here <https://github.com/SFDO-Tooling/CumulusCI/tree/main/cumulusci/schema/cumulusci.jsonschema.json>`_. This is primarily intended to be use for enabling linting in VS Code, but could be used for any schema-aware editor or any validation purpose.
+- We added a new task `create_blank_profile` that can be used to create a new profile from scratch without any permissions enabled. (This new task requires a Winter 22 Org or API 53.0).
+- Manually creating a Personal Access Token and pasting it into the CLI is no longer required to connect a GitHub service. Instead, CumulusCI now supports GitHub's device authentication flow, allowing you to authenticate via browser using a temporary device code.
+- The GitHub service now displays expiration dates for personal access tokens, if set.
+- Improved error messaging for multiple scenarios where tasks are improperly configured in `cumulusci.yml`.
+
+
+Issues Fixed
+
+- Fixes cci service connect github fails with no error (#2903)
+- Fixed an issue where MetaDeploy steps using the old `filename_token` and `namespace_token` options could not be used.
+
 v3.45.0 (2021-09-30)
 --------------------
 
