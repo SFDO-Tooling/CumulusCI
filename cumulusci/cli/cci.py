@@ -18,6 +18,7 @@ from .error import error
 from .flow import flow
 from .logger import get_tempfile_logger, init_logger
 from .org import org
+from .plan import plan
 from .project import project
 from .runtime import CliRuntime, pass_runtime
 from .service import service
@@ -184,3 +185,4 @@ cli.add_command(org)
 cli.add_command(service)
 cli.add_command(task)
 cli.add_command(flow)
+cli.add_command(plan)
