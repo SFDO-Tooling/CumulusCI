@@ -21,7 +21,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
-from cumulusci.core.exceptions import ApexTestException
+from cumulusci.core.exceptions import ApexTestException, CumulusCIException
 from cumulusci.salesforce_api import soap_envelopes
 from cumulusci.salesforce_api.exceptions import (
     MetadataApiError,
@@ -350,6 +350,13 @@ class ApiRetrievePackaged(BaseMetadataApiCall):
         )
 
     def _process_response(self, response):
+        if "INVALID_CROSS_REFERENCE_KEY: No package named" in response.content.decode(
+            "utf-8"
+        ):
+            raise CumulusCIException(
+                f"No package found in org with name: {self.package_name}"
+            )
+
         # Parse the metadata zip file from the response
         zipstr = parseString(response.content).getElementsByTagName("zipFile")
         if zipstr:

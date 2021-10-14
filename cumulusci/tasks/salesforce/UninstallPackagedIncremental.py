@@ -1,7 +1,8 @@
-import os
+from pathlib import Path
 
 import xmltodict
 
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.salesforce import UninstallPackaged
 from cumulusci.utils import package_xml_from_dict, temporary_dir
 
@@ -43,19 +44,22 @@ class UninstallPackagedIncremental(UninstallPackaged):
             "ignore_types", DEFAULT_IGNORE_TYPES
         )
 
+        baseline_path = Path(f"{self.options['path']}/package.xml").absolute()
+        if not baseline_path.is_file():
+            raise CumulusCIException(
+                "Either you are missing your package.xml file or this is not a metadata api format project. You will need to create a package.xml file or convert your source first before you can run uninstall_packaged_incremental."
+            )
+
     def _get_destructive_changes(self, path=None):
         self.logger.info(
-            "Retrieving metadata in package {} from target org".format(
-                self.options["package"]
-            )
+            f"Retrieving metadata in package {self.options['package']} from target org"
         )
         packaged = self._retrieve_packaged()
-
-        path = os.path.abspath(self.options["path"])
+        path = path or self.options["path"]
         with temporary_dir() as tempdir:
             packaged.extractall(tempdir)
             destructive_changes = self._package_xml_diff(
-                os.path.join(path, "package.xml"), os.path.join(tempdir, "package.xml")
+                Path(f"{path}/package.xml").absolute(), Path(f"{tempdir}/package.xml")
             )
 
         self.logger.info(
