@@ -453,7 +453,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
                 ] = "{} AND MetadataPackageVersionId = '{}'".format(
                     default_where["PackageSubscriber"], included_version
                 )
-                for subscriber in push_api.get_subscribers(where=f"NOT IN ({})",obj="PackageSubscriber"):
+                for subscriber in push_api.get_subscribers():
                     orgs.append(subscriber["OrgKey"])
 
         else:
