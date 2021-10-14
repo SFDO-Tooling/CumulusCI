@@ -11,11 +11,11 @@ from cumulusci.core.github import (
 )
 from cumulusci.utils import download_extract_github
 from cumulusci.utils.git import split_repo_url
-from cumulusci.utils.yaml.cumulusci_yml import GitHubSourceModel, GitHubSourceRelease
+from cumulusci.utils.yaml.cumulusci_yml import cci_yml_models
 
 
 class GitHubSource:
-    def __init__(self, project_config, spec: GitHubSourceModel):
+    def __init__(self, project_config, spec: cci_yml_models.GitHubSourceModel):
         self.project_config = project_config
         self.spec = spec
         self.url = spec.github
@@ -86,11 +86,11 @@ class GitHubSource:
             ref = "heads/" + self.spec.branch
         elif self.spec.release:
             release = None
-            if self.spec.release is GitHubSourceRelease.LATEST:
+            if self.spec.release is cci_yml_models.GitHubSourceRelease.LATEST:
                 release = find_latest_release(self.repo, include_beta=False)
-            elif self.spec.release is GitHubSourceRelease.LATEST_BETA:
+            elif self.spec.release is cci_yml_models.GitHubSourceRelease.LATEST_BETA:
                 release = find_latest_release(self.repo, include_beta=True)
-            elif self.spec.release is GitHubSourceRelease.PREVIOUS:
+            elif self.spec.release is cci_yml_models.GitHubSourceRelease.PREVIOUS:
                 release = find_previous_release(self.repo)
             if release is None:
                 raise DependencyResolutionError(

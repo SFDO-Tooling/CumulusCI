@@ -39,7 +39,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.tests.util import DummyKeychain
 from cumulusci.utils import temporary_dir, touch
-from cumulusci.utils.yaml.cumulusci_yml import GitHubSourceModel, LocalFolderSourceModel
+from cumulusci.utils.yaml.cumulusci_yml import cci_yml_models
 
 
 class TestBaseConfig(unittest.TestCase):
@@ -633,8 +633,12 @@ class TestBaseProjectConfig(unittest.TestCase):
         project_config = BaseProjectConfig(universal_config)
         with temporary_dir() as d:
             touch("cumulusci.yml")
-            other1 = project_config.include_source(LocalFolderSourceModel(path=d))
-            other2 = project_config.include_source(LocalFolderSourceModel(path=d))
+            other1 = project_config.include_source(
+                cci_yml_models.LocalFolderSourceModel(path=d)
+            )
+            other2 = project_config.include_source(
+                cci_yml_models.LocalFolderSourceModel(path=d)
+            )
         assert other1 is other2
 
     @mock.patch("cumulusci.core.config.project_config.GitHubSource")
@@ -643,7 +647,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         universal_config = UniversalConfig()
         project_config = BaseProjectConfig(universal_config)
         other_config = project_config.include_source(
-            GitHubSourceModel(github="foo/bar")
+            cci_yml_models.GitHubSourceModel(github="foo/bar")
         )
         assert other_config.source is expected_result
 

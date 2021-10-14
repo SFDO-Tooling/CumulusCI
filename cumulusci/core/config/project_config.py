@@ -34,9 +34,9 @@ from cumulusci.core.utils import merge_config
 from cumulusci.utils.fileutils import open_fs_resource
 from cumulusci.utils.git import current_branch, git_path, split_repo_url
 from cumulusci.utils.yaml.cumulusci_yml import (
-    GitHubSourceModel,
-    LocalFolderSourceModel,
     cci_safe_load,
+    cci_yml_models,
+    validate_post_merge_model,
 )
 
 
@@ -138,6 +138,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def _validate_config(self):
         """Performs validation checks on the configuration"""
         self._validate_package_api_format()
+
+        if not validate_post_merge_model(self.config):
+            # this should be an exception instead of an error some day.
+            self.logger.warning(
+                "After combining all cumulusci.yml layers, some errors were detected.",
+            )
 
     def _validate_package_api_format(self):
         api_version = str(self.project__package__api_version)
@@ -534,7 +540,12 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         return self.include_source(spec)
 
     def include_source(
-        self, spec: Union[GitHubSourceModel, LocalFolderSourceModel, dict]
+        self,
+        spec: Union[
+            cci_yml_models.GitHubSourceModel,
+            cci_yml_models.LocalFolderSourceModel,
+            dict,
+        ],
     ):
         """Make sure a project has been fetched from its source.
 
@@ -544,7 +555,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         if isinstance(spec, dict):
             parsed_spec = None
-            for model_class in [GitHubSourceModel, LocalFolderSourceModel]:
+            for model_class in [
+                cci_yml_models.GitHubSourceModel,
+                cci_yml_models.LocalFolderSourceModel,
+            ]:
                 try:
                     parsed_spec = model_class(**spec)
                 except ValidationError:
@@ -560,9 +574,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         if spec in self.included_sources:
             project_config = self.included_sources[spec]
         else:
-            if isinstance(spec, GitHubSourceModel):
+            if isinstance(spec, cci_yml_models.GitHubSourceModel):
                 source = GitHubSource(self, spec)
-            elif isinstance(spec, LocalFolderSourceModel):
+            elif isinstance(spec, cci_yml_models.LocalFolderSourceModel):
                 source = LocalFolderSource(self, spec)
 
             self.logger.info(f"Fetching from {source}")

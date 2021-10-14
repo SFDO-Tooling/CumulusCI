@@ -25,7 +25,7 @@ class TestSchema:
         assert validate(data, schema=schema) is None
 
     def test_schema_is_current(self, cumulusci_test_repo_root):
-        current_schema = cumulusci_yml.CumulusCIRoot.schema()
+        current_schema = cumulusci_yml.cci_yml_models.CumulusCIRoot.schema()
         schemapath = (
             cumulusci_test_repo_root / "cumulusci/schema/cumulusci.jsonschema.json"
         )

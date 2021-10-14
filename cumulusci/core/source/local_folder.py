@@ -1,10 +1,10 @@
 import os
 
-from cumulusci.utils.yaml.cumulusci_yml import LocalFolderSourceModel
+from cumulusci.utils.yaml.cumulusci_yml import cci_yml_models
 
 
 class LocalFolderSource:
-    def __init__(self, project_config, spec: LocalFolderSourceModel):
+    def __init__(self, project_config, spec: cci_yml_models.LocalFolderSourceModel):
         self.project_config = project_config
         self.spec = spec
         self.path = spec.path

@@ -8,10 +8,10 @@ from pydantic import ValidationError
 
 from cumulusci.utils import temporary_dir
 from cumulusci.utils.yaml.cumulusci_yml import (
-    GitHubSourceModel,
     _validate_files,
     _validate_url,
     cci_safe_load,
+    cci_yml_models,
     parse_from_yaml,
 )
 
@@ -192,13 +192,17 @@ def test_mutually_exclusive_options():
 
 def test_github_source():
     with pytest.raises(ValidationError):
-        GitHubSourceModel(
+        cci_yml_models.GitHubSourceModel(
             github="https://github.com/Test/TestRepo", commit="abcdef", release="foo"
         )
 
-    GitHubSourceModel(github="https://github.com/Test/TestRepo", release="latest")
+    cci_yml_models.GitHubSourceModel(
+        github="https://github.com/Test/TestRepo", release="latest"
+    )
 
     assert (
-        GitHubSourceModel(github="https://github.com/Test/TestRepo").resolution_strategy
+        cci_yml_models.GitHubSourceModel(
+            github="https://github.com/Test/TestRepo"
+        ).resolution_strategy
         == "production"
     )

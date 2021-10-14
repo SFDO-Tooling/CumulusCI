@@ -16,11 +16,12 @@ from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.utils import temporary_dir, touch
-from cumulusci.utils.yaml.cumulusci_yml import (
-    GitHubSourceModel,
-    GitHubSourceRelease,
-    LocalFolderSourceModel,
-)
+from cumulusci.utils.yaml.cumulusci_yml import cci_yml_models
+
+GitHubSourceModel = cci_yml_models.GitHubSourceModel
+GitHubSourceRelease = cci_yml_models.GitHubSourceRelease
+LocalFolderSourceModel = cci_yml_models.LocalFolderSourceModel
+
 
 from ..source import GitHubSource, LocalFolderSource
 

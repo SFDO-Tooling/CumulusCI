@@ -26,209 +26,229 @@ URL = str
 VSCodeFriendlyDict = Field({}, additionalProperties=True)
 
 
-class PreflightCheck(CCIDictModel):
-    when: str = None
-    action: str = None
-    message: str = None
+def do_nothing(x):
+    return x
 
 
-class Step(CCIDictModel):
-    task: str = None
-    flow: str = None
-    ignore_failure: bool = False
-    when: str = None  # is this allowed?
-    options: Dict[str, Any] = VSCodeFriendlyDict
-    ui_options: Dict[str, Any] = VSCodeFriendlyDict
-    checks: List[PreflightCheck] = []
-    description: str = None
+def make_models(mode="file"):
 
-    @root_validator()
-    def _check(cls, values):
-        has_task = values.get("task") and values["task"] != "None"
-        has_flow = values.get("flow") and values["flow"] != "None"
-        assert not (
-            has_task and has_flow
-        ), "Steps must have either task or flow but not both"
-        return values
+    assert mode in ("file", "post_merge")
+
+    post_merge_validator = (
+        root_validator(allow_reuse=True) if mode == "post_merge" else do_nothing
+    )
+
+    class PreflightCheck(CCIDictModel):
+        when: str = None
+        action: str = None
+        message: str = None
+
+    class Step(CCIDictModel):
+        task: str = None
+        flow: str = None
+        ignore_failure: bool = False
+        when: str = None  # is this allowed?
+        options: Dict[str, Any] = VSCodeFriendlyDict
+        ui_options: Dict[str, Any] = VSCodeFriendlyDict
+        checks: List[PreflightCheck] = []
+        description: str = None
+
+        @root_validator(allow_reuse=True)
+        def _check(cls, values):
+            has_task = values.get("task") and values["task"] != "None"
+            has_flow = values.get("flow") and values["flow"] != "None"
+            assert not (
+                has_task and has_flow
+            ), "Steps must have either task or flow but not both"
+            return values
+
+    class Task(CCIDictModel):
+        class_path: str = None
+        description: str = None
+        group: str = None
+        # additionalProperties here works around an
+        # incompatibility with VSCode's Red Hat YAML validator
+        options: Dict[str, Any] = VSCodeFriendlyDict
+        ui_options: Dict[str, Any] = VSCodeFriendlyDict
+        name: str = None  # get rid of this???
+
+        @post_merge_validator
+        def check_classpath(cls, values):
+            assert values.get("class_path"), "Tasks must have class_path"
+            return values
+
+    class Flow(CCIDictModel):
+        description: str = None
+        steps: Dict[str, Step] = None
+        group: str = None
+
+    class Package(CCIDictModel):
+        name: Optional[str] = None
+        name_managed: Optional[str] = None
+        namespace: Optional[str] = None
+        install_class: str = None
+        uninstall_class: str = None
+        api_version: str = None
+        metadata_package_id: str = None
+
+    class Test(CCIDictModel):
+        name_match: str
+
+    class ReleaseNotesParser(CCIDictModel):
+        class_path: PythonClassPath
+        title: str
+
+    class ReleaseNotes(CCIDictModel):
+        parsers: Dict[int, ReleaseNotesParser]
+
+    class Git(CCIDictModel):
+        repo_url: str = None
+        default_branch: str = None
+        prefix_feature: str = None
+        prefix_beta: str = None
+        prefix_release: str = None
+        push_prefix_sandbox: str = None
+        push_prefix_production: str = None
+        release_notes: ReleaseNotes = None
+        two_gp_context: str = Field(None, alias="2gp_context")
+
+    class Plan(CCIDictModel):  # MetaDeploy plans
+        title: str = None
+        description: str = None
+        tier: Literal["primary", "secondary", "additional"] = None
+        slug: str = None
+        is_listed: bool = True
+        steps: Dict[str, Step] = None
+        checks: List[PreflightCheck] = []
+        group: str = None
+        error_message: str = None
+        post_install_message: str = None
+        preflight_message: str = None
+
+    class DependencyResolutions(CCIDictModel):
+        production: str = None
+        preproduction: str = None
+        resolution_strategies: Dict[str, List[str]] = None
+
+    class Project(CCIDictModel):
+        name: str = None
+        package: Package = None
+        test: Test = None
+        git: Git = None
+        dependencies: List[Dict[str, str]] = None  # TODO
+        dependency_resolutions: DependencyResolutions = None
+        source_format: Literal["sfdx", "mdapi"] = "mdapi"
+
+    class ScratchOrg(CCIDictModel):
+        config_file: Path = None
+        days: int = None
+        namespaced: str = None
+        setup_flow: str = None
+        noancestors: bool = None
+
+    class Orgs(CCIDictModel):
+        scratch: Dict[str, ScratchOrg] = None
+
+    class ServiceAttribute(CCIDictModel):
+        description: str = None
+        required: bool = None
+        default_factory: PythonClassPath = None
+
+    class Service(CCIDictModel):
+        description: str = None
+        class_path: Optional[str]
+        attributes: Dict[str, ServiceAttribute] = None
+        validator: PythonClassPath = None
+
+    class CumulusCIConfig(CCIDictModel):
+        keychain: PythonClassPath
+
+    class GitHubSourceRelease(str, enum.Enum):
+        LATEST = "latest"
+        PREVIOUS = "previous"
+        LATEST_BETA = "latest_beta"
+
+    class GitHubSourceModel(HashableBaseModel):
+        github: str
+        resolution_strategy: Optional[str]
+        commit: Optional[str]
+        ref: Optional[str]
+        branch: Optional[str]
+        tag: Optional[str]
+        release: Optional[GitHubSourceRelease]
+        description: Optional[str]
+
+        @root_validator(allow_reuse=True)
+        def validate(cls, values):
+            exclusive_keys = [
+                "resolution_strategy",
+                "commit",
+                "ref",
+                "branch",
+                "tag",
+                "release",
+            ]
+            key_count = len([x for x in exclusive_keys if x in values and values[x]])
+            if key_count > 1:
+                raise ValueError(
+                    'Sources must use only one of "resolution_strategy", "commit", "ref", "branch", "tag", or "release".'
+                )
+            elif key_count == 0:
+                values["resolution_strategy"] = "production"
+
+            return values
+
+    class LocalFolderSourceModel(HashableBaseModel):
+        path: DirectoryPath
+
+    class CumulusCLIConfig(CCIDictModel):
+        show_stacktraces: bool = False
+        plain_output: bool = None
+
+    class CumulusCIRoot(CCIDictModel):
+        tasks: Dict[str, Task] = {}
+        flows: Dict[str, Flow] = {}
+        project: Project = {}
+        orgs: Orgs = {}
+        services: Dict[str, Service] = {}
+        cumulusci: CumulusCIConfig = None
+        plans: Dict[str, Plan] = {}
+        minimum_cumulusci_version: str = None
+        sources: Dict[str, Union[LocalFolderSourceModel, GitHubSourceModel]] = {}
+        cli: CumulusCLIConfig = None
+
+    class CumulusCIFile(CCIDictModel):
+        __root__: Union[CumulusCIRoot, None]
+
+    models = locals()
+
+    class Models:
+        def __init__(self):
+            self.__dict__ = models
+
+    return Models()
 
 
-class Task(CCIDictModel):
-    class_path: str = None
-    description: str = None
-    group: str = None
-    # additionalProperties here works around an
-    # incompatibility with VSCode's Red Hat YAML validator
-    options: Dict[str, Any] = VSCodeFriendlyDict
-    ui_options: Dict[str, Any] = VSCodeFriendlyDict
-    name: str = None  # get rid of this???
+pre_merge_models = make_models("file")
+cci_yml_models = make_models("post_merge")
 
 
-class Flow(CCIDictModel):
-    description: str = None
-    steps: Dict[str, Step] = None
-    group: str = None
+def validate_post_merge_model(d: dict, on_error=None, logger=None) -> bool:
+    errors = []
+    logger = logger or default_logger
 
-
-class Package(CCIDictModel):
-    name: Optional[str] = None
-    name_managed: Optional[str] = None
-    namespace: Optional[str] = None
-    install_class: str = None
-    uninstall_class: str = None
-    api_version: str = None
-    metadata_package_id: str = None
-
-
-class Test(CCIDictModel):
-    name_match: str
-
-
-class ReleaseNotesParser(CCIDictModel):
-    class_path: PythonClassPath
-    title: str
-
-
-class ReleaseNotes(CCIDictModel):
-    parsers: Dict[int, ReleaseNotesParser]
-
-
-class Git(CCIDictModel):
-    repo_url: str = None
-    default_branch: str = None
-    prefix_feature: str = None
-    prefix_beta: str = None
-    prefix_release: str = None
-    push_prefix_sandbox: str = None
-    push_prefix_production: str = None
-    release_notes: ReleaseNotes = None
-    two_gp_context: str = Field(None, alias="2gp_context")
-
-
-class Plan(CCIDictModel):  # MetaDeploy plans
-    title: str = None
-    description: str = None
-    tier: Literal["primary", "secondary", "additional"] = None
-    slug: str = None
-    is_listed: bool = True
-    steps: Dict[str, Step] = None
-    checks: List[PreflightCheck] = []
-    group: str = None
-    error_message: str = None
-    post_install_message: str = None
-    preflight_message: str = None
-
-
-class DependencyResolutions(CCIDictModel):
-    production: str = None
-    preproduction: str = None
-    resolution_strategies: Dict[str, List[str]] = None
-
-
-class Project(CCIDictModel):
-    name: str = None
-    package: Package = None
-    test: Test = None
-    git: Git = None
-    dependencies: List[Dict[str, str]] = None  # TODO
-    dependency_resolutions: DependencyResolutions = None
-    source_format: Literal["sfdx", "mdapi"] = "mdapi"
-
-
-class ScratchOrg(CCIDictModel):
-    config_file: Path = None
-    days: int = None
-    namespaced: str = None
-    setup_flow: str = None
-    noancestors: bool = None
-
-
-class Orgs(CCIDictModel):
-    scratch: Dict[str, ScratchOrg] = None
-
-
-class ServiceAttribute(CCIDictModel):
-    description: str = None
-    required: bool = None
-    default_factory: PythonClassPath = None
-
-
-class Service(CCIDictModel):
-    description: str = None
-    class_path: Optional[str]
-    attributes: Dict[str, ServiceAttribute] = None
-    validator: PythonClassPath = None
-
-
-class CumulusCIConfig(CCIDictModel):
-    keychain: PythonClassPath
-
-
-class GitHubSourceRelease(str, enum.Enum):
-    LATEST = "latest"
-    PREVIOUS = "previous"
-    LATEST_BETA = "latest_beta"
-
-
-class GitHubSourceModel(HashableBaseModel):
-    github: str
-    resolution_strategy: Optional[str]
-    commit: Optional[str]
-    ref: Optional[str]
-    branch: Optional[str]
-    tag: Optional[str]
-    release: Optional[GitHubSourceRelease]
-    description: Optional[str]
-
-    @root_validator
-    def validate(cls, values):
-        exclusive_keys = [
-            "resolution_strategy",
-            "commit",
-            "ref",
-            "branch",
-            "tag",
-            "release",
-        ]
-        key_count = len([x for x in exclusive_keys if x in values and values[x]])
-        if key_count > 1:
-            raise ValueError(
-                'Sources must use only one of "resolution_strategy", "commit", "ref", "branch", "tag", or "release".'
-            )
-        elif key_count == 0:
-            values["resolution_strategy"] = "production"
-
-        return values
-
-
-class LocalFolderSourceModel(HashableBaseModel):
-    path: DirectoryPath
-
-
-class CumulusCLIConfig(CCIDictModel):
-    show_stacktraces: bool = False
-    plain_output: bool = None
-
-
-class CumulusCIRoot(CCIDictModel):
-    tasks: Dict[str, Task] = {}
-    flows: Dict[str, Flow] = {}
-    project: Project = {}
-    orgs: Orgs = {}
-    services: Dict[str, Service] = {}
-    cumulusci: CumulusCIConfig = None
-    plans: Dict[str, Plan] = {}
-    minimum_cumulusci_version: str = None
-    sources: Dict[str, Union[LocalFolderSourceModel, GitHubSourceModel]] = {}
-    cli: CumulusCLIConfig = None
-
-
-class CumulusCIFile(CCIDictModel):
-    __root__: Union[CumulusCIRoot, None]
+    on_error = on_error or errors.append
+    validated = cci_yml_models.CumulusCIRoot.validate_data(
+        d, context="Merged cumulusci.yml", on_error=on_error
+    )
+    if errors:
+        _log_yaml_errors(logger, errors)
+    return validated
 
 
 def parse_from_yaml(source) -> dict:
     "Parse from a path, url, path-like or file-like"
-    return CumulusCIFile.parse_from_yaml(source) or {}
+    return pre_merge_models.CumulusCIFile.parse_from_yaml(source) or {}
 
 
 def validate_data(
@@ -243,7 +263,9 @@ def validate_data(
 
     https://pydantic-docs.helpmanual.io/usage/models/#error-handling
     """
-    return CumulusCIFile.validate_data(data, context=context, on_error=on_error)
+    return pre_merge_models.CumulusCIFile.validate_data(
+        data, context=context, on_error=on_error
+    )
 
 
 class ErrorDict(TypedDict):
