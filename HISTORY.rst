@@ -14,7 +14,7 @@ Changes
 - CumulusCI now has a schema published `here <https://github.com/SFDO-Tooling/CumulusCI/tree/main/cumulusci/schema/cumulusci.jsonschema.json>`_. This is primarily intended to be use for enabling linting in VS Code, but could be used for any schema-aware editor or any validation purpose.
 - We added a new task `create_blank_profile` that can be used to create a new profile from scratch without any permissions enabled.
 - Manually creating a Personal Access Token and pasting it into the CLI is no longer required to connect a GitHub service. Instead, CumulusCI now supports GitHub's device authentication flow, allowing you to authenticate via browser using a temporary device code.
-- The GitHub service now displays expiration dates for personal access tokens, if set.
+- `cci service info` for a github service now displays expiration dates for GitHub personal access tokens, if set.
 - Improved error messaging for multiple scenarios where tasks are improperly configured in `cumulusci.yml`.
 
 
