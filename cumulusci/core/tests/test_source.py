@@ -12,7 +12,7 @@ import responses
 import yaml
 
 from cumulusci.core.config import BaseProjectConfig, ServiceConfig, UniversalConfig
-from cumulusci.core.exceptions import DependencyResolutionError
+from cumulusci.core.exceptions import DependencyResolutionError, GithubApiError
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.utils import temporary_dir, touch
@@ -464,6 +464,23 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         with pytest.raises(
             DependencyResolutionError, match="unable to find the repository"
         ):
+            GitHubSource(
+                self.project_config,
+                GitHubSourceModel(
+                    github="https://github.com/TestOwner/TestRepo.git", release="latest"
+                ),
+            )
+
+    @responses.activate
+    def test_githubsource_init__403(self):
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo",
+            status=403,
+            headers={"X-Github-Sso": "partial-results; organizations=0810298,20348880"},
+        )
+
+        with pytest.raises(GithubApiError):
             GitHubSource(
                 self.project_config,
                 GitHubSourceModel(
