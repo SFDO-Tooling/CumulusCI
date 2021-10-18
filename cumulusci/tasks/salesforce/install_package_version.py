@@ -5,7 +5,7 @@ from cumulusci.core.dependencies.dependencies import (
     PackageVersionIdDependency,
 )
 from cumulusci.core.dependencies.resolvers import get_resolver_stack
-from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.github import find_previous_release
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
@@ -47,6 +47,8 @@ class InstallPackageVersion(BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
+
+        self._check_for_tooling()
 
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
@@ -185,3 +187,11 @@ class InstallPackageVersion(BaseSalesforceApiTask):
             }
         )
         return [ui_step]
+
+    def _check_for_tooling(self):
+        security_type = self.options.get("security_type")
+        version = str(self.options.get("version"))
+        if version.startswith("04t") and security_type == "PUSH":
+            raise TaskOptionsError(
+                "Cannot use security type 'PUSH' when installing using a 04T package version ID due to Tooling API limitations."
+            )
