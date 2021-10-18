@@ -193,5 +193,5 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         version = str(self.options.get("version"))
         if version.startswith("04t") and security_type == "PUSH":
             raise TaskOptionsError(
-                "Cannot use security type 'PUSH' when installing using a 04T package version ID due to Tooling API limitations."
+                "Cannot use security type 'PUSH' when installing using a 04t package version ID due to Tooling API limitations."
             )
