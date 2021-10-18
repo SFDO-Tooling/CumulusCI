@@ -2,6 +2,9 @@ import json
 from pathlib import Path
 
 import click
+from rich import print
+from rich.console import Group
+from rich.panel import Panel
 from rst2ansi import rst2ansi
 
 from cumulusci.core.config import TaskConfig
@@ -25,8 +28,17 @@ def task():
 @task.command(name="list", help="List available tasks for the current context")
 @click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
 @click.option("--json", "print_json", is_flag=True, help="Print a json string")
+@click.option(
+    "-r", "--rainbow", is_flag=True, help="Display tasks with rainbow colored panels"
+)
+@click.option(
+    "-f",
+    "--filter",
+    "filter_str",
+    help="Shows only tasks and groups that match the given filter string",
+)
 @pass_runtime(require_project=False)
-def task_list(runtime, plain, print_json):
+def task_list(runtime, plain, print_json, rainbow, filter_str):
     tasks = runtime.get_available_tasks()
     plain = plain or runtime.universal_config.cli__plain_output
 
@@ -34,21 +46,56 @@ def task_list(runtime, plain, print_json):
         click.echo(json.dumps(tasks))
         return None
 
+    task_tables = []
     task_groups = group_items(tasks)
     for group, tasks in task_groups.items():
-        data = [["Task", "Description"]]
-        data.extend(sorted(tasks))
-        table = CliTable(
-            data,
-            group,
-        )
-        table.echo(plain)
+        if filter_str:
+            tasks = filter_tasks(filter_str, group, tasks)
 
-    click.echo(
-        "Use "
-        + click.style("cci task info <task_name>", bold=True)
-        + " to get more information about a task."
-    )
+        if tasks:
+            data = [["Task", "Description"]]
+            data.extend(sorted(tasks))
+            table = CliTable(
+                data,
+                group,
+            )
+            task_tables.append(table)
+
+    if rainbow and task_tables:
+        panels = []
+        bg_colors = ["red", "yellow", "green", "blue", "violet"]
+        for idx, table in enumerate(task_tables):
+            panels.append(Panel(table, style=f"on {bg_colors[idx % len(bg_colors)]}"))
+
+        panel_group = Group(*panels)
+        print(Panel(panel_group))
+        return None
+
+    [table.echo(plain) for table in task_tables]
+
+    if task_tables:
+        click.echo(
+            "Use "
+            + click.style("cci task info <task_name>", bold=True)
+            + " to get more information about a task."
+        )
+    elif filter_str:
+        click.echo(f"No tasks or task groups found with filter string: {filter_str}")
+
+
+def filter_tasks(filter_str, task_group_name, tasks):
+    """Given a filter string, include all tasks if filter is in the task group name.
+    Otherwise, only include tasks that contain the failter string in either their name
+    or their description."""
+    filtered_tasks = []
+    if filter_str in task_group_name:
+        filtered_tasks.extend(tasks)
+    else:
+        for task_info in tasks:
+            for item in task_info:
+                if filter_str in item:
+                    filtered_tasks.append(task_info)
+    return filtered_tasks
 
 
 @task.command(name="doc", help="Exports RST format documentation for all tasks")
