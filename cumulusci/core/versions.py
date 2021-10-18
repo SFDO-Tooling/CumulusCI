@@ -9,7 +9,7 @@ VERSION_RE = re.compile(
     r".(?P<MinorVersion>\d+)"
     r"(\.(?P<PatchVersion>\d+))?"
     r"(\.(?P<BuildNumber>\d+))?"
-    r"(( \(Beta (?P<BetaNumber>\d+)\))?$|(-Beta_(?P<BetaNumberTag>\d+))?$)"
+    r"(( \([bB]eta (?P<BetaNumber>\d+)\))?$|(-Beta_(?P<BetaNumberTag>\d+))?$)"
 )
 
 
@@ -104,7 +104,7 @@ class PackageVersionNumber(BaseModel):
             or match.group("BetaNumberTag")
             or 0
         )
-        if not package_type:
+        if package_type is None:
             # .0 is rare, but legal, for a 2GP
             if first_gen_beta or not match.group("BuildNumber"):
                 package_type = PackageType.FIRST_GEN

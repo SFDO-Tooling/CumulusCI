@@ -7,7 +7,11 @@ class TestPackageVersionNumber:
     def test_parse_format(self):
         assert PackageVersionNumber.parse("1.2.3.4").format() == "1.2.3.4"
         assert (
-            PackageVersionNumber.parse("1.2.3.4", package_type=PackageType.FIRST_GEN)
+            str(
+                PackageVersionNumber.parse(
+                    "1.2.3.4", package_type=PackageType.FIRST_GEN
+                )
+            )
             == "1.2.3 (Beta 4)"
         )
         assert PackageVersionNumber.parse("1.2.3 (Beta 4)").format() == "1.2.3 (Beta 4)"
