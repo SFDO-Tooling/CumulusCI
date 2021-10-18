@@ -1,12 +1,15 @@
 import pytest
 
-from cumulusci.core.versions import PackageVersionNumber, VersionTypeEnum
+from cumulusci.core.versions import PackageType, PackageVersionNumber, VersionTypeEnum
 
 
 class TestPackageVersionNumber:
     def test_parse_format(self):
         assert PackageVersionNumber.parse("1.2.3.4").format() == "1.2.3.4"
-        assert PackageVersionNumber.parse("1.2.3.4", package_type = PackageType.FIRST_GEN) == "1.2.3 (Beta 4)"
+        assert (
+            PackageVersionNumber.parse("1.2.3.4", package_type=PackageType.FIRST_GEN)
+            == "1.2.3 (Beta 4)"
+        )
         assert PackageVersionNumber.parse("1.2.3 (Beta 4)").format() == "1.2.3 (Beta 4)"
         assert PackageVersionNumber.parse("1.2.3 (beta 4)").format() == "1.2.3 (Beta 4)"
         assert PackageVersionNumber.parse("1.2.3").format() == "1.2.3"
