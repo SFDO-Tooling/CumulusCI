@@ -45,6 +45,9 @@ class PackageVersionNumber(BaseModel):
             .replace(" ", "_")
         )
 
+    def __str__(self):
+        return self.format()
+
     def format(self):
         if self.package_type is PackageType.FIRST_GEN:
             return self.format_1gp()
@@ -102,7 +105,8 @@ class PackageVersionNumber(BaseModel):
             or 0
         )
         if not package_type:
-            if first_gen_beta or not build_number:
+            # .0 is rare, but legal, for a 2GP
+            if first_gen_beta or not match.group("BuildNumber"):
                 package_type = PackageType.FIRST_GEN
             else:
                 package_type = PackageType.SECOND_GEN
@@ -124,13 +128,10 @@ class PackageVersionNumber(BaseModel):
         if self.package_type is not PackageType.SECOND_GEN:
             raise ValueError("Cannot increment the version number of a 1GP package")
 
-        parts = {
-            "MajorVersion": self.MajorVersion,
-            "MinorVersion": self.MinorVersion,
-            "PatchVersion": self.PatchVersion,
-            "BuildNumber": "NEXT",
-            "IsReleased": False,
-        }
+        parts = self.dict()
+        parts["BuildNumber"] = "NEXT"
+        parts["IsReleased"] = False
+
         if version_type == VersionTypeEnum.major:
             parts["MajorVersion"] += 1
             parts["MinorVersion"] = 0
