@@ -28,7 +28,7 @@ contextvars==2.4
     # via
     #   -r requirements/prod.in
     #   snowfakery
-cryptography==35.0.0
+cryptography==3.4.8
     # via
     #   -r requirements/prod.in
     #   authlib

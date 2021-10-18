@@ -742,7 +742,8 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
         self.task_flow_config = BaseTaskFlowConfig(
             {
                 "tasks": {
-                    "deploy": {"description": "Deploy Task"},
+                    "deploy": {"description": "Deploy Task", "class_path": "my.path"},
+                    "no_path": {"description": "Only a Description"},
                     "manage": {},
                     "control": {},
                 },
@@ -755,7 +756,7 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
 
     def test_list_tasks(self):
         tasks = self.task_flow_config.list_tasks()
-        self.assertEqual(len(tasks), 3)
+        self.assertEqual(len(tasks), 4)
         deploy = [task for task in tasks if task["name"] == "deploy"][0]
         self.assertEqual(deploy["description"], "Deploy Task")
 
@@ -764,9 +765,29 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
         self.assertIsInstance(task, BaseConfig)
         self.assertIn(("description", "Deploy Task"), task.config.items())
 
-    def test_no_task(self):
-        with self.assertRaises(TaskNotFoundError):
+    def test_get_task__no_class_path(self):
+        with pytest.raises(
+            CumulusCIException, match="Task has no class_path defined: no_path"
+        ):
+            self.task_flow_config.get_task("no_path")
+
+    def test_get_task__no_config_found(self):
+        with pytest.raises(
+            CumulusCIException, match="No configuration found for task: manage"
+        ):
+            self.task_flow_config.get_task("manage")
+
+    def test_no_task__no_suggestion(self):
+        with pytest.raises(
+            TaskNotFoundError, match="Task not found: robotic_superstar"
+        ):
             self.task_flow_config.get_task("robotic_superstar")
+
+    def test_no_task__with_suggestion(self):
+        with pytest.raises(
+            TaskNotFoundError, match='Task not found: mange. Did you mean "manage"?'
+        ):
+            self.task_flow_config.get_task("mange")
 
     def test_get_flow(self):
         flow = self.task_flow_config.get_flow("coffee")
