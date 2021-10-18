@@ -44,10 +44,10 @@ class UninstallPackagedIncremental(UninstallPackaged):
             "ignore_types", DEFAULT_IGNORE_TYPES
         )
 
-        baseline_path = Path(f"{self.options['path']}/package.xml").absolute()
+        baseline_path = Path(self.options["path"]).absolute() / "package.xml"
         if not baseline_path.is_file():
             raise CumulusCIException(
-                "Either you are missing your package.xml file or this is not a metadata api format project. You will need to create a package.xml file or convert your source first before you can run uninstall_packaged_incremental."
+                "Either you are missing your package.xml file or this is not a Metadata API format project. You will need to create a package.xml file or convert your source first before you can run uninstall_packaged_incremental."
             )
 
     def _get_destructive_changes(self, path=None):
@@ -59,7 +59,7 @@ class UninstallPackagedIncremental(UninstallPackaged):
         with temporary_dir() as tempdir:
             packaged.extractall(tempdir)
             destructive_changes = self._package_xml_diff(
-                Path(f"{path}/package.xml").absolute(), Path(f"{tempdir}/package.xml")
+                Path(path).absolute() / "package.xml", Path(tempdir) / "package.xml"
             )
 
         self.logger.info(
