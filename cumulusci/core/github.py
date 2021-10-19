@@ -4,7 +4,7 @@ import os
 import re
 import time
 import webbrowser
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 from urllib.parse import urlparse
 
 import github3
@@ -12,6 +12,7 @@ from github3 import GitHub, login
 from github3.exceptions import AuthenticationFailed, ResponseError, TransportError
 from github3.git import Reference, Tag
 from github3.pulls import ShortPullRequest
+from github3.repos.commit import RepoCommit
 from github3.repos.repo import Repository
 from github3.session import GitHubSession
 from requests.adapters import HTTPAdapter
@@ -252,17 +253,23 @@ VERSION_ID_RE = re.compile(r"version_id: (\S+)")
 
 
 def get_version_id_from_commit(repo, commit_sha, context):
-    try:
-        commit = repo.commit(commit_sha)
-    except (github3.exceptions.NotFoundError, github3.exceptions.UnprocessableEntity):
-        # GitHub returns 422 for nonexistent commits in at least some circumstances.
-        raise DependencyLookupError(f"Could not find commit {commit_sha} on GitHub")
+    commit = get_commit(repo, commit_sha)
 
     for status in commit.status().statuses:
         if status.state == "success" and status.context == context:
             match = VERSION_ID_RE.search(status.description)
             if match:
                 return match.group(1)
+
+
+def get_commit(repo: Repository, commit_sha: str) -> Optional[RepoCommit]:
+    """Given a SHA1 hash, retrieve a Commit object from the REST API."""
+    try:
+        commit = repo.commit(commit_sha)
+    except (github3.exceptions.NotFoundError, github3.exceptions.UnprocessableEntity):
+        # GitHub returns 422 for nonexistent commits in at least some circumstances.
+        raise DependencyLookupError(f"Could not find commit {commit_sha} on GitHub")
+    return commit
 
 
 def find_repo_feature_prefix(repo: Repository) -> str:
