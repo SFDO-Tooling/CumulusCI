@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime
 from unittest import mock
@@ -47,6 +48,7 @@ from cumulusci.core.github import (
     is_pull_request_merged,
     markdown_link_to_pr,
     validate_service,
+    warn_oauth_restricted,
 )
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
@@ -441,6 +443,17 @@ class TestGithub(GithubApiTestMixin):
         expected_err_msg = f"{SSO_WARNING} ['0810298', '20348880']"
         actual_error_msg = check_github_sso_auth(exc).strip()
         assert expected_err_msg == actual_error_msg
+
+    def test_github_oauth_org_restricted(self):
+        resp = Response()
+        resp.status_code = 403
+        body = {"message": "organization has enabled OAuth App access restrictions"}
+        resp._content = json.dumps(body)
+        exc = ForbiddenError(resp)
+
+        expected_warning = "You may also use a Personal Access Token as a workaround."
+        actual_error_msg = warn_oauth_restricted(exc)
+        assert expected_warning in actual_error_msg
 
     def test_format_gh3_exc_retry(self):
         resp = Response()

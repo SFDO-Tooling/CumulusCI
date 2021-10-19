@@ -360,6 +360,22 @@ def format_github3_exception(exc: Union[ResponseError, TransportError]) -> str:
     return user_warning
 
 
+def warn_oauth_restricted(exc: ResponseError) -> str:
+    user_warning = ""
+
+    is_403 = exc.response.status_code == 403
+    org_restricted_oauth_warning = (
+        "organization has enabled OAuth App access restrictions"
+    )
+
+    if is_403 and org_restricted_oauth_warning in str(exc):
+        print("foo")
+        user_warning = str(exc)
+        user_warning += "\nYou may also use a Personal Access Token as a workaround."
+
+    return user_warning
+
+
 def check_github_scopes(exc: ResponseError) -> str:
     """
     Parse github3 ResponseError headers for the correct scopes and return a
