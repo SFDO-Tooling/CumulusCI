@@ -49,7 +49,10 @@ class UninstallPackagedIncremental(UninstallPackaged):
         package_path = Path(path).absolute() / "package.xml"
         if not package_path.is_file():
             raise CumulusCIException(
-                "Either you are missing your package.xml file or this is not a Metadata API format project. You will need to create a package.xml file or convert your source first before you can run uninstall_packaged_incremental."
+                "Either you are missing your package.xml file or this "
+                "is not a Metadata API format project. You will need to "
+                "create a package.xml file or convert your source first "
+                "before you can run uninstall_packaged_incremental."
             )
 
         self.logger.info(

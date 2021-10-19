@@ -39,6 +39,8 @@ except ImportError:
 else:
     pyopenssl.extract_from_urllib3()
 
+INVALID_CROSS_REF_ERROR = "INVALID_CROSS_REFERENCE_KEY: No package named"
+
 retry_policy = Retry(backoff_factor=0.3)
 
 
@@ -350,9 +352,7 @@ class ApiRetrievePackaged(BaseMetadataApiCall):
         )
 
     def _process_response(self, response):
-        if "INVALID_CROSS_REFERENCE_KEY: No package named" in response.content.decode(
-            "utf-8"
-        ):
+        if INVALID_CROSS_REF_ERROR in response.content.decode("utf-8"):
             raise CumulusCIException(
                 f"No package found in org with name: {self.package_name}"
             )
