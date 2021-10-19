@@ -33,6 +33,7 @@ from cumulusci.core.github import (
     create_gist,
     create_pull_request,
     format_github3_exception,
+    get_commit,
     get_github_api,
     get_github_api_for_repo,
     get_oauth_device_flow_token,
@@ -391,6 +392,30 @@ class TestGithub(GithubApiTestMixin):
         )
         with pytest.raises(DependencyLookupError):
             get_version_id_from_tag(repo, "test-tag-name")
+
+    @responses.activate
+    def test_get_commit(self, repo):
+        self.init_github()
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + "/commits/DUMMY_SHA",
+            json=self._get_expected_commit("DUMMY_SHA"),
+            status=200,
+        )
+        commit = get_commit(repo, "DUMMY_SHA")
+        assert commit.sha == "DUMMY_SHA"
+
+    @responses.activate
+    def test_get_commit__dependency_error(self, repo):
+        self.init_github()
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + "/commits/DUMMY_SHA",
+            json={"message": "Could not verify object"},
+            status=422,
+        )
+        with pytest.raises(DependencyLookupError):
+            get_commit(repo, "DUMMY_SHA")
 
     def test_get_oauth_scopes(self):
         resp = Response()
