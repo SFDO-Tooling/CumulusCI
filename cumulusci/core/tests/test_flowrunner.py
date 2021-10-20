@@ -693,7 +693,7 @@ def test_log_options__options_not_list(task_runner, task_options):
     task.options = {"color": "burgundy"}
     task_runner._log_options(task)
 
-    assert task.logger.info.call_args_list[1].args[0] == "  color: burgundy"
+    task.logger.info.assert_called_with("  color: burgundy")
 
 
 def test_log_options__options_not_list__sensitive(task_runner, task_options_sensitive):
@@ -702,7 +702,7 @@ def test_log_options__options_not_list__sensitive(task_runner, task_options_sens
     task.options = {"color": "burgundy"}
     task_runner._log_options(task)
 
-    assert task.logger.info.call_args_list[1].args[0] == "  color: ********"
+    task.logger.info.assert_called_with("  color: ********")
 
 
 def test_log_options__options_is_list(task_runner, task_options):
@@ -711,10 +711,10 @@ def test_log_options__options_is_list(task_runner, task_options):
     task.options = {"color": ["burgundy", "chartreuse", "turquoise"]}
     task_runner._log_options(task)
 
-    assert task.logger.info.call_args_list[1].args[0] == "  color:"
-    assert task.logger.info.call_args_list[2].args[0] == "    - burgundy"
-    assert task.logger.info.call_args_list[3].args[0] == "    - chartreuse"
-    assert task.logger.info.call_args_list[4].args[0] == "    - turquoise"
+    task.logger.info.assert_any_call("  color:")
+    task.logger.info.assert_any_call("    - burgundy")
+    task.logger.info.assert_any_call("    - chartreuse")
+    task.logger.info.assert_any_call("    - turquoise")
 
 
 def test_log_options__options_is_list__sensitive(task_runner, task_options_sensitive):
@@ -723,7 +723,5 @@ def test_log_options__options_is_list__sensitive(task_runner, task_options_sensi
     task.options = {"color": ["burgundy", "chartreuse", "turquoise"]}
     task_runner._log_options(task)
 
-    assert task.logger.info.call_args_list[1].args[0] == "  color:"
-    assert task.logger.info.call_args_list[2].args[0] == "    - ********"
-    assert task.logger.info.call_args_list[3].args[0] == "    - ********"
-    assert task.logger.info.call_args_list[4].args[0] == "    - ********"
+    task.logger.info.assert_any_call("  color:")
+    task.logger.info.assert_any_call("    - ********")
