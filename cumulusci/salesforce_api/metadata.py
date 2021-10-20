@@ -21,6 +21,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.exceptions import ApexTestException, CumulusCIException
 from cumulusci.salesforce_api import soap_envelopes
 from cumulusci.salesforce_api.exceptions import (
@@ -58,11 +59,7 @@ class BaseMetadataApiCall(object):
         self.task = task
         self.status = None
         self.check_num = 1
-        self.api_version = (
-            api_version
-            if api_version
-            else task.project_config.project__package__api_version
-        )
+        self.api_version = api_version if api_version else API_VERSION
 
     def __call__(self):
         self.task.logger.info("Pending")

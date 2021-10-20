@@ -1343,7 +1343,7 @@ project:
         namespace:
         install_class:
         uninstall_class:
-        api_version: "52.0"
+        api_version:
     git:
         default_branch: master
         prefix_feature: feature/

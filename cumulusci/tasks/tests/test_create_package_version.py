@@ -12,6 +12,7 @@ import responses
 import yaml
 from pydantic import ValidationError
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
@@ -189,8 +190,8 @@ class TestPackageConfig:
 
 
 class TestCreatePackageVersion:
-    devhub_base_url = "https://devhub.my.salesforce.com/services/data/v52.0"
-    scratch_base_url = "https://scratch.my.salesforce.com/services/data/v52.0"
+    devhub_base_url = f"https://devhub.my.salesforce.com/services/data/v{API_VERSION}"
+    scratch_base_url = f"https://scratch.my.salesforce.com/services/data/v{API_VERSION}"
 
     @responses.activate
     def test_run_task(
@@ -248,7 +249,7 @@ class TestCreatePackageVersion:
         responses.add(  # get dependency org API version
             "GET",
             "https://scratch.my.salesforce.com/services/data",
-            json=[{"version": "52.0"}],
+            json=[{"version": API_VERSION}],
         )
         responses.add(  # query for dependency org installed packages
             "GET",

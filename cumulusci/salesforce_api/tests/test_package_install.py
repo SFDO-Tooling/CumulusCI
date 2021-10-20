@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 import responses
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.exceptions import PackageInstallError
@@ -23,17 +24,17 @@ def test_install_package_by_version_id(caplog):
     caplog.set_level(logging.INFO)
     responses.add(
         "POST",
-        "https://salesforce/services/data/v52.0/tooling/sobjects/PackageInstallRequest/",
+        f"https://salesforce/services/data/v{API_VERSION}/tooling/sobjects/PackageInstallRequest/",
         json={"id": "0Hf"},
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v52.0/tooling/query/",
+        f"https://salesforce/services/data/v{API_VERSION}/tooling/query/",
         json={"records": [{"Status": "IN_PROGRESS"}]},
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v52.0/tooling/query/",
+        f"https://salesforce/services/data/v{API_VERSION}/tooling/query/",
         json={"records": [{"Status": "SUCCESS"}]},
     )
 
@@ -51,12 +52,12 @@ def test_install_package_by_version_id(caplog):
 def test_install_package_by_version_id__error():
     responses.add(
         "POST",
-        "https://salesforce/services/data/v52.0/tooling/sobjects/PackageInstallRequest/",
+        f"https://salesforce/services/data/v{API_VERSION}/tooling/sobjects/PackageInstallRequest/",
         json={"id": "0Hf"},
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v52.0/tooling/query/",
+        f"https://salesforce/services/data/v{API_VERSION}/tooling/query/",
         json={
             "records": [
                 {
@@ -82,18 +83,18 @@ def test_install_package_by_version_id__not_propagated(caplog):
     caplog.set_level(logging.INFO)
     responses.add(
         "POST",
-        "https://salesforce/services/data/v52.0/tooling/sobjects/PackageInstallRequest/",
+        f"https://salesforce/services/data/v{API_VERSION}/tooling/sobjects/PackageInstallRequest/",
         json={"id": "0Hf"},
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v52.0/tooling/query/",
+        f"https://salesforce/services/data/v{API_VERSION}/tooling/query/",
         status=400,
         body="invalid cross reference id",
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v52.0/tooling/query/",
+        f"https://salesforce/services/data/v{API_VERSION}/tooling/query/",
         json={"records": [{"Status": "SUCCESS"}]},
     )
 

@@ -3,6 +3,7 @@ from datetime import datetime
 import pytest
 import responses
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.config import OrgConfig, ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import DependencyLookupError
 from cumulusci.tasks.github.commit_status import GetPackageDataFromCommitStatus
@@ -48,7 +49,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
         )
         responses.add(
             "GET",
-            "https://salesforce/services/data/v52.0/tooling/query/",
+            f"https://salesforce/services/data/v{API_VERSION}/tooling/query/",
             json={
                 "records": [
                     {"Dependencies": {"ids": [{"subscriberPackageVersionId": "04t_2"}]}}
@@ -168,7 +169,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
     def test_get_dependencies__version_not_found(self):
         responses.add(
             "GET",
-            "https://salesforce/services/data/v52.0/tooling/query/",
+            f"https://salesforce/services/data/v{API_VERSION}/tooling/query/",
             json={"records": []},
         )
 

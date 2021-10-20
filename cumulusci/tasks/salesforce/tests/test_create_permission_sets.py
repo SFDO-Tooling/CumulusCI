@@ -1,5 +1,6 @@
 import responses
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.tasks.salesforce.create_permission_sets import CreatePermissionSet
 
 from .util import create_task
@@ -22,13 +23,13 @@ class TestCreatePermissionSet:
 
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v52.0/sobjects/PermissionSet/",
+            url=f"{task.org_config.instance_url}/services/data/v{API_VERSION}/sobjects/PermissionSet/",
             status=200,
             json={"id": "0PS3F000000fCNPWA2", "success": True, "errors": []},
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v52.0/sobjects/PermissionSetAssignment/",
+            url=f"{task.org_config.instance_url}/services/data/v{API_VERSION}/sobjects/PermissionSetAssignment/",
             status=200,
             json={"id": "0Pa000000000001", "success": True, "errors": []},
         )

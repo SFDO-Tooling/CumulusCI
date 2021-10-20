@@ -3,6 +3,7 @@ import os
 import pathlib
 from unittest import mock
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.salesforce.sourcetracking import (
     ListChanges,
@@ -231,7 +232,9 @@ class TestSnapshotChanges:
 def test_write_manifest__folder():
     with temporary_dir() as path:
         _write_manifest(
-            [{"MemberType": "ReportFolder", "MemberName": "TestFolder"}], path, "52.0"
+            [{"MemberType": "ReportFolder", "MemberName": "TestFolder"}],
+            path,
+            API_VERSION,
         )
         package_xml = pathlib.Path(path, "package.xml").read_text()
         assert "<name>Report</name>" in package_xml

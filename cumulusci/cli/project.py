@@ -9,6 +9,7 @@ import click
 from jinja2 import Environment, PackageLoader
 
 import cumulusci
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.utils.git import current_branch
 
@@ -88,7 +89,7 @@ def project_init(runtime):
     click.echo()
     context["api_version"] = click.prompt(
         click.style("Salesforce API Version", bold=True),
-        default=runtime.universal_config.project__package__api_version,
+        default=API_VERSION,
     )
 
     click.echo()

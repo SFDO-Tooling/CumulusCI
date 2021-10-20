@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 import responses
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.tasks.salesforce.composite import API_ROLLBACK_MESSAGE, CompositeApi
 
@@ -108,7 +109,7 @@ class TestCompositeApi:
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
+            url=f"{task.org_config.instance_url}/services/data/v{API_VERSION}/composite",
             status=200,
             json=COMPOSITE_RESPONSE,
         )
@@ -134,7 +135,7 @@ class TestCompositeApi:
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
+            url=f"{task.org_config.instance_url}/services/data/v{API_VERSION}/composite",
             status=200,
             json=COMPOSITE_RESPONSE,
         )
@@ -190,7 +191,7 @@ class TestCompositeApi:
         }
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
+            url=f"{task.org_config.instance_url}/services/data/v{API_VERSION}/composite",
             status=200,
             json=error_response,
         )

@@ -1,3 +1,4 @@
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.exceptions import DependencyLookupError
 from cumulusci.core.github import get_version_id_from_commit
 from cumulusci.tasks.github.base import BaseGithubTask
@@ -6,7 +7,7 @@ from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTa
 
 class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
 
-    api_version = "52.0"
+    api_version = API_VERSION
 
     task_options = {
         "context": {

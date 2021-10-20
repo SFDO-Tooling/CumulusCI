@@ -10,6 +10,7 @@ from typing import List, Optional, Union
 from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.config.util import get_devhub_config
 from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
@@ -146,7 +147,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     If a package named ``package_name`` does not yet exist in the Dev Hub, it will be created.
     """
 
-    api_version = "52.0"
+    api_version = API_VERSION
 
     task_options = {
         "package_name": {"description": "Name of package"},

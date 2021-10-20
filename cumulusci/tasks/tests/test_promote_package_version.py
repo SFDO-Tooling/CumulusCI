@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 import responses
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.dependencies.dependencies import PackageVersionIdDependency
 from cumulusci.core.exceptions import (
@@ -58,7 +59,7 @@ def task(project_config, devhub_config, org_config):
 
 
 class TestPromotePackageVersion(GithubApiTestMixin):
-    devhub_base_url = "https://devhub.my.salesforce.com/services/data/v52.0"
+    devhub_base_url = f"https://devhub.my.salesforce.com/services/data/v{API_VERSION}"
 
     def _mock_target_package_api_calls(self):
         responses.add(  # query for main package's Package2Version info
