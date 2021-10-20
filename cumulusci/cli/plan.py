@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 
 import click
 from rich.console import Console
@@ -7,6 +8,8 @@ from cumulusci.cli.ui import CliTable
 
 from .runtime import pass_runtime
 
+DEFAULT_GROUP = "Uncategorized Plans"
+
 
 @click.group("plan", help="Commands for getting information about MetaDeploy plans")
 def plan():
@@ -14,45 +17,59 @@ def plan():
 
 
 @plan.command(name="list")
-@click.option("--verbose", "verbose", is_flag=True, help="Verbose mode")
-@click.option("--json", "print_json", is_flag=True, help="Print a json string")
+@click.option(
+    "--json", "print_json", is_flag=True, help="Return the list of plans in JSON format"
+)
 @pass_runtime(require_project=True, require_keychain=True)
-def plan_list(runtime, print_json, verbose):
-    """List available plans for the current context."""
+def plan_list(runtime, print_json):
+    """List available plans for the current context.
 
-    # when there are no plans, `project_config.plans` is an empty
-    # list rather than empty dictionary. I don't know why that is,
-    # but I need it to be an empty dictionary.
+    If --json is specified, the data will be a list of plans where
+    each plan is a dictionary with the following keys:
+    name, group, title, slug, tier
+
+    """
+
     plans = runtime.project_config.plans or {}
-    columns = {"title": "Title", "slug": "Plan Slug", "tier": "Tier"}
-    if verbose:
-        columns.update(
-            {
-                "error_message": "Error Message",
-                "post_install_message": "Post-install Message",
-                "preflight_message": "PreFlight Message",
-            }
-        )
 
-    data = {
-        plan_name: {key: plan_config.get(key, "") for key in columns.keys()}
-        for plan_name, plan_config in plans.items()
-        for plan in plans
-    }
+    def _sort_func(plan):
+        """Used to sort first by tier (primary, secondary, additional)
+        and then by name"""
+        name, config = plan
+        tier = config.get("tier", "primary")
+        tiers = ("primary", "secondary", "additional")
+        tier_index = tiers.index(tier) if tier in tiers else 99
+        return f"{tier_index} {name}"
 
-    data = {}
-    for plan_name, plan_config in plans.items():
-        data[plan_name] = {key: plan_config.get(key, "") for key in columns.keys()}
+    columns = ["name", "group", "title", "slug", "tier"]
+    raw_data = [
+        dict(name=plan_name, **{key: plan_config.get(key, "") for key in columns[1:]})
+        for plan_name, plan_config in sorted(plans.items(), key=_sort_func)
+    ]
 
     if print_json:
-        click.echo(json.dumps(data))
+        click.echo(json.dumps(raw_data))
 
     else:
-        rows = [["Name"] + list(columns.values())]
-        for plan_name, plan_config in plans.items():
-            row = [plan_name]
-            row.extend([plan_config.get(key, "") for key in columns.keys()])
-            rows.append(row)
-        table = CliTable(title="MetaDeploy Plans", data=rows)
+        # start each group by adding a row of column headers,
+        # then pull the values from the dictionaries for each row
+        columns.remove("group")
+        groups = defaultdict(
+            lambda: [[column.title() for column in columns]],
+        )
+
+        for row in raw_data:
+            group_name = (row.pop("group") or DEFAULT_GROUP).title()
+            groups[group_name].append(list(row.values()))
+
+        if not groups:
+            # as per a discussion, we'll force a single empty table if
+            # there are no plans so that the output is consistent with
+            # when we have plans. Referencing the group will trigger
+            # the creationg of the default value with column headers
+            groups[DEFAULT_GROUP]
+
         console = Console()
-        console.print(table, markup=False)
+        for group_name, group_data in sorted(groups.items()):
+            table = CliTable(title=group_name, data=group_data)
+            console.print(table)
