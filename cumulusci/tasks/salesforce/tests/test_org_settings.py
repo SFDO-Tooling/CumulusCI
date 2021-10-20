@@ -312,5 +312,5 @@ class TestBuildSettingsPackage:
             
         </values>
     </businessProcesses>
-</Object>""" # noqa
+</Object>"""
             )
