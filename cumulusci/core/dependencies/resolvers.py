@@ -16,7 +16,6 @@ from cumulusci.core.dependencies.dependencies import (
     parse_dependencies,
 )
 from cumulusci.core.dependencies.github import (
-    PackageType,
     get_package_data,
     get_package_details_from_tag,
     get_remote_project_config,
@@ -29,6 +28,7 @@ from cumulusci.core.github import (
     find_repo_feature_prefix,
     get_version_id_from_commit,
 )
+from cumulusci.core.versions import PackageType
 from cumulusci.utils.git import (
     construct_release_branch_name,
     get_feature_branch_name,
