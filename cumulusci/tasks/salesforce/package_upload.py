@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from cumulusci.cli.ui import CliTable
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.exceptions import ApexTestException, SalesforceException
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -8,7 +9,7 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 class PackageUpload(BaseSalesforceApiTask):
     name = "PackageUpload"
-    api_version = "48.0"
+    api_version = API_VERSION
     task_options = {
         "name": {"description": "The name of the package version.", "required": True},
         "production": {

@@ -209,6 +209,10 @@ class TestCreatePermissionSet:
             },
         )
 
+        new = f"{task.org_config.instance_url}/services/data/v{API_VERSION}/query/?q=SELECT+Id%2C%28SELECT+PermissionSetId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+IN+%28%27test0%27%2C%27test1%27%2C%27test2%27%2C%27test3%27%2C%27test4%27%2C%27test5%27%2C%27test6%27%2C%27test7%27%2C%27test8%27%2C%27test9%27%2C%27test10%27%2C%27test11%27%2C%27test12%27%2C%27test13%27%2C%27test14%27%2C%27test15%27%2C%27test16%27%2C%27test17%27%2C%27test18%27%2C%27test19%27%29"
+        old = f"{task.org_config.instance_url}/services/data/v52.0/query/?q=SELECT+Id%2C%28SELECT+PermissionSetId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+IN+%28%27test0%27%2C%27test1%27%2C%27test2%27%2C%27test3%27%2C%27test4%27%2C%27test5%27%2C%27test6%27%2C%27test7%27%2C%27test8%27%2C%27test9%27%2C%27test10%27%2C%27test11%27%2C%27test12%27%2C%27test13%27%2C%27test14%27%2C%27test15%27%2C%27test16%27%2C%27test17%27%2C%27test18%27%2C%27test19%27%29"
+        assert new == old
+
         responses.add(
             method="GET",
             url=f"{task.org_config.instance_url}/services/data/v{API_VERSION}/query/?q=SELECT+Id%2C%28SELECT+PermissionSetId+FROM+PermissionSetAssignments%29+FROM+User+WHERE+Alias+IN+%28%27test0%27%2C%27test1%27%2C%27test2%27%2C%27test3%27%2C%27test4%27%2C%27test5%27%2C%27test6%27%2C%27test7%27%2C%27test8%27%2C%27test9%27%2C%27test10%27%2C%27test11%27%2C%27test12%27%2C%27test13%27%2C%27test14%27%2C%27test15%27%2C%27test16%27%2C%27test17%27%2C%27test18%27%2C%27test19%27%29",

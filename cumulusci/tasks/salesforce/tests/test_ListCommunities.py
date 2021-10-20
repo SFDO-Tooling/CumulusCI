@@ -3,6 +3,7 @@ import unittest
 
 import responses
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.tasks.salesforce import ListCommunities
 
 from .util import create_task
@@ -14,10 +15,7 @@ class test_ListCommunities(unittest.TestCase):
     @responses.activate
     def test_lists_community(self):
         cc_task = create_task(ListCommunities, task_options)
-        communities_url = "{}/services/data/v46.0/connect/communities".format(
-            cc_task.org_config.instance_url
-        )
-
+        communities_url = f"{cc_task.org_config.instance_url}/services/data/v{API_VERSION}/connect/communities"
         community_id = "000000000000000000"
         community_name = "Test Community"
         community_url_prefix = "test"
@@ -48,7 +46,7 @@ class test_ListCommunities(unittest.TestCase):
                         "siteUrl": f"https://mydomain.force.com/{community_url_prefix}",
                         "status": "Live",
                         "templateName": "VF Template",
-                        "url": f"/services/data/v46.0/connect/communities/{community_id}",
+                        "url": f"/services/data/v{API_VERSION}/connect/communities/{community_id}",
                         "urlPathPrefix": community_url_prefix,
                     },
                     {
@@ -69,7 +67,7 @@ class test_ListCommunities(unittest.TestCase):
                         "siteUrl": "https://mydomain.force.com/",
                         "status": "Live",
                         "templateName": "VF Template",
-                        "url": f"/services/data/v46.0/connect/communities/{community2_id}",
+                        "url": f"/services/data/v{API_VERSION}/connect/communities/{community2_id}",
                         "urlPathPrefix": None,
                     },
                 ],

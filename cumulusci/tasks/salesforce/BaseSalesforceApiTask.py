@@ -1,5 +1,6 @@
 from salesforce_bulk import SalesforceBulk
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.exceptions import ConfigError
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
@@ -7,7 +8,7 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 
 class BaseSalesforceApiTask(BaseSalesforceTask):
     name = "BaseSalesforceApiTask"
-    api_version = None
+    api_version = API_VERSION
 
     def _init_task(self):
         super()._init_task()

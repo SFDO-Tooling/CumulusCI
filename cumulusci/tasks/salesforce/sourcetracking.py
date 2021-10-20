@@ -6,6 +6,7 @@ import re
 import time
 from collections import defaultdict
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.sfdx import sfdx
 from cumulusci.core.utils import process_bool_arg, process_list_arg
@@ -21,7 +22,7 @@ from cumulusci.utils import (
 
 
 class ListChanges(BaseSalesforceApiTask):
-    api_version = "48.0"
+    api_version = API_VERSION
 
     task_options = {
         "include": {

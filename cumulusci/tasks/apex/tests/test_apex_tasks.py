@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, Mock, patch
 import responses
 from simple_salesforce import SalesforceGeneralError
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.config import (
     BaseProjectConfig,
     OrgConfig,
@@ -39,7 +40,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
     def setUp(self):
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages
-        self.api_version = 38.0
+        self.api_version = API_VERSION
         self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
@@ -90,12 +91,12 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         record_base = {
             "attributes": {
                 "type": "ApexTestResult",
-                "url": "/services/data/v40.0/tooling/sobjects/ApexTestResult/07M41000009gbT3EAI",
+                "url": f"/services/data/v{API_VERSION}/tooling/sobjects/ApexTestResult/07M41000009gbT3EAI",
             },
             "ApexClass": {
                 "attributes": {
                     "type": "ApexClass",
-                    "url": "/services/data/v40.0/tooling/sobjects/ApexClass/01p4100000Fu4Z0AAJ",
+                    "url": f"/services/data/v{API_VERSION}/tooling/sobjects/ApexClass/01p4100000Fu4Z0AAJ",
                 },
                 "Name": "EP_TaskDependency_TEST",
             },
@@ -109,7 +110,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             "QueueItem": {
                 "attributes": {
                     "type": "ApexTestQueueItem",
-                    "url": "/services/data/v40.0/tooling/sobjects/ApexTestQueueItem/70941000000q7VsAAI",
+                    "url": f"/services/data/v{API_VERSION}/tooling/sobjects/ApexTestQueueItem/70941000000q7VsAAI",
                 },
                 "Status": "Completed",
                 "ExtendedStatus": "(4/4)",
@@ -128,7 +129,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
                     {
                         "attributes": {
                             "type": "ApexTestResultLimits",
-                            "url": "/services/data/v40.0/tooling/sobjects/ApexTestResultLimits/05n41000002Y7OQAA0",
+                            "url": f"/services/data/v{API_VERSION}/tooling/sobjects/ApexTestResultLimits/05n41000002Y7OQAA0",
                         },
                         "Id": "05n41000002Y7OQAA0",
                         "Callouts": 0,
@@ -766,7 +767,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
 )
 class TestAnonymousApexTask(unittest.TestCase):
     def setUp(self):
-        self.api_version = 42.0
+        self.api_version = API_VERSION
         self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
@@ -943,7 +944,7 @@ class TestAnonymousApexTask(unittest.TestCase):
 )
 class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
     def setUp(self):
-        self.api_version = 42.0
+        self.api_version = API_VERSION
         self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
@@ -984,13 +985,13 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
                 {
                     "attributes": {
                         "type": "AsyncApexJob",
-                        "url": "/services/data/v43.0/tooling/sobjects/AsyncApexJob/707L0000014nnPHIAY",
+                        "url": f"/services/data/v{API_VERSION}/tooling/sobjects/AsyncApexJob/707L0000014nnPHIAY",
                     },
                     "Id": "707L0000014nnPHIAY",
                     "ApexClass": {
                         "attributes": {
                             "type": "ApexClass",
-                            "url": "/services/data/v43.0/tooling/sobjects/ApexClass/01pL000000109ndIAA",
+                            "url": f"/services/data/v{API_VERSION}/tooling/sobjects/ApexClass/01pL000000109ndIAA",
                         },
                         "Name": "ADDR_Seasonal_BATCH",
                     },

@@ -1,9 +1,10 @@
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.exceptions import SalesforceException, TaskOptionsError
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class PublishCommunity(BaseSalesforceApiTask):
-    api_version = "46.0"
+    api_version = API_VERSION
     task_docs = """
     Publish a Salesforce Community via the Connect API. Warning: This does not work with the Community Template 'VF Template' due to an existing bug in the API.
     """

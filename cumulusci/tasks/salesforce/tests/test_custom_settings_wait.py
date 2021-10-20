@@ -2,6 +2,7 @@ import unittest
 
 import responses
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.keychain import BaseProjectKeychain
@@ -12,7 +13,7 @@ from cumulusci.tests.util import DummyOrgConfig
 
 class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
     def setUp(self):
-        self.api_version = 42.0
+        self.api_version = API_VERSION
         self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
@@ -49,7 +50,7 @@ class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
                 {
                     "attributes": {
                         "type": "Customizable_Rollup_Setings__c",
-                        "url": "/services/data/v47.0/sobjects/Customizable_Rollup_Setings__c/707L0000014nnPHIAY",
+                        "url": f"/services/data/v{API_VERSION}/sobjects/Customizable_Rollup_Setings__c/707L0000014nnPHIAY",
                     },
                     "Id": "707L0000014nnPHIAY",
                     "SetupOwnerId": "00Dxxxxxxxxxxxx",

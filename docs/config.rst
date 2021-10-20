@@ -145,7 +145,7 @@ Here is the ``project`` section of NPSP's ``cumulusci.yml`` file specifying ``np
             name: Cumulus
             name_managed: Nonprofit Success Pack
             namespace: npsp
-            api_version: 48.0
+            api_version: 52.0
             install_class: STG_InstallScript
             uninstall_class: STG_UninstallScript
 

@@ -1,5 +1,6 @@
 import pytest
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl.help_text import SetFieldHelpText
 from cumulusci.tasks.salesforce.tests.util import create_task
@@ -345,7 +346,7 @@ class TestAddPicklistValues:
             task = create_task(
                 SetFieldHelpText,
                 {
-                    "api_version": "48.0",
+                    "api_version": API_VERSION,
                     "fields": [{"api_name": "Test.c.Test__c", "help_text": "help"}],
                 },
             )
@@ -358,7 +359,7 @@ class TestAddPicklistValues:
             task = create_task(
                 SetFieldHelpText,
                 {
-                    "api_version": "48.0",
+                    "api_version": API_VERSION,
                     "fields": [
                         {"api_name": "MyObject.sherlock__c", "help_text": "help"}
                     ],

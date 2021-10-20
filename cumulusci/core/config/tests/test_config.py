@@ -14,6 +14,7 @@ import yaml
 from github3.exceptions import NotFoundError
 from simple_salesforce.exceptions import SalesforceError
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.config import (
     BaseConfig,
     BaseProjectConfig,
@@ -952,11 +953,13 @@ class TestOrgConfig(unittest.TestCase):
     @responses.activate
     def test_get_salesforce_version(self):
         responses.add(
-            "GET", "https://na01.salesforce.com/services/data", json=[{"version": 42.0}]
+            "GET",
+            "https://na01.salesforce.com/services/data",
+            json=[{"version": API_VERSION}],
         )
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         config.access_token = "TOKEN"
-        assert config.latest_api_version == "42.0"
+        assert config.latest_api_version == API_VERSION
 
     @responses.activate
     def test_get_salesforce_version_bad_json(self):
@@ -964,7 +967,7 @@ class TestOrgConfig(unittest.TestCase):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         config.access_token = "TOKEN"
         with pytest.raises(CumulusCIException) as e:
-            assert config.latest_api_version == "42.0"
+            assert config.latest_api_version == API_VERSION
         assert "NOTJSON" in str(e.value)
 
     @responses.activate
@@ -975,7 +978,7 @@ class TestOrgConfig(unittest.TestCase):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
         config.access_token = "TOKEN"
         with pytest.raises(CumulusCIException) as e:
-            assert config.latest_api_version == "42.0"
+            assert config.latest_api_version == API_VERSION
         assert "NOTADICT" in str(e.value)
 
     def test_start_url(self):
@@ -1007,12 +1010,12 @@ class TestOrgConfig(unittest.TestCase):
             "test",
         )
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET", "https://example.com/services/data", json=[{"version": API_VERSION}]
         )
 
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            f"https://example.com/services/data/v{API_VERSION}/sobjects/Organization/OODxxxxxxxxxxxx",
             json={
                 "OrganizationType": "Enterprise Edition",
                 "IsSandbox": False,
@@ -1043,11 +1046,13 @@ class TestOrgConfig(unittest.TestCase):
         The cache should be refreshed automatically if the requested community
         is not in the cache.
         """
-        responses.add("GET", "https://test/services/data", json=[{"version": 48.0}])
+        responses.add(
+            "GET", "https://test/services/data", json=[{"version": API_VERSION}]
+        )
 
         responses.add(
             "GET",
-            "https://test/services/data/v48.0/connect/communities",
+            f"https://test/services/data/v{API_VERSION}/connect/communities",
             json={"communities": [{"name": "Kōkua"}]},
         )
 
@@ -1302,12 +1307,12 @@ class TestOrgConfig(unittest.TestCase):
         )
 
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET", "https://example.com/services/data", json=[{"version": API_VERSION}]
         )
 
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/Account/describe",
+            f"https://example.com/services/data/v{API_VERSION}/sobjects/Account/describe",
             json={"fields": [{"name": "Id"}]},
         )
 
@@ -1340,12 +1345,12 @@ class TestOrgConfig(unittest.TestCase):
         )
 
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET", "https://example.com/services/data", json=[{"version": API_VERSION}]
         )
 
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/Account/describe",
+            f"https://example.com/services/data/v{API_VERSION}/sobjects/Account/describe",
             json={"fields": [{"name": "Id"}, {"name": "IsPersonAccount"}]},
         )
 
@@ -1378,7 +1383,7 @@ class TestOrgConfig(unittest.TestCase):
 
         # Login call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET", "https://example.com/services/data", json=[{"version": API_VERSION}]
         )
 
         # CurrencyType describe() call.
@@ -1386,7 +1391,7 @@ class TestOrgConfig(unittest.TestCase):
         # Therefore, the describe call will result in a 404.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            f"https://example.com/services/data/v{API_VERSION}/sobjects/CurrencyType/describe",
             status=404,
             json={
                 "errorCode": "NOT_FOUND",
@@ -1397,7 +1402,7 @@ class TestOrgConfig(unittest.TestCase):
         # Add a second 404 to demonstrate we always check the describe until we detect Multiple Currencies is enabled.  From then on, we cache the fact that Multiple Currencies is enabled knowing Multiple Currencies cannot be disabled.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            f"https://example.com/services/data/v{API_VERSION}/sobjects/CurrencyType/describe",
             status=404,
             json={
                 "errorCode": "NOT_FOUND",
@@ -1443,14 +1448,14 @@ class TestOrgConfig(unittest.TestCase):
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET", "https://example.com/services/data", json=[{"version": API_VERSION}]
         )
 
         # CurrencyType describe() call.
         # Since Multiple Currencies is enabled, so the describe call returns a 200.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/CurrencyType/describe",
+            f"https://example.com/services/data/v{API_VERSION}/sobjects/CurrencyType/describe",
             json={
                 # The actual payload doesn't matter; only matters is we get a 200.
             },
@@ -1492,7 +1497,7 @@ class TestOrgConfig(unittest.TestCase):
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET", "https://example.com/services/data", json=[{"version": API_VERSION}]
         )
 
         # DatedConversionRate describe() call.
@@ -1500,7 +1505,7 @@ class TestOrgConfig(unittest.TestCase):
         # Therefore, the describe call will result in a 404.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            f"https://example.com/services/data/v{API_VERSION}/sobjects/DatedConversionRate/describe",
             status=404,
             json={
                 "errorCode": "NOT_FOUND",
@@ -1533,7 +1538,7 @@ class TestOrgConfig(unittest.TestCase):
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET", "https://example.com/services/data", json=[{"version": API_VERSION}]
         )
 
         # DatedConversionRate describe() call.
@@ -1541,7 +1546,7 @@ class TestOrgConfig(unittest.TestCase):
         # However, ACM is not enabled so DatedConversionRate is not createable.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            f"https://example.com/services/data/v{API_VERSION}/sobjects/DatedConversionRate/describe",
             json={"createable": False},
         )
 
@@ -1571,7 +1576,7 @@ class TestOrgConfig(unittest.TestCase):
 
         # Token call.
         responses.add(
-            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+            "GET", "https://example.com/services/data", json=[{"version": API_VERSION}]
         )
 
         # DatedConversionRate describe() call.
@@ -1579,7 +1584,7 @@ class TestOrgConfig(unittest.TestCase):
         # However, ACM is not enabled so DatedConversionRate is not createable.
         responses.add(
             "GET",
-            "https://example.com/services/data/v48.0/sobjects/DatedConversionRate/describe",
+            f"https://example.com/services/data/v{API_VERSION}/sobjects/DatedConversionRate/describe",
             json={"createable": True},
         )
 

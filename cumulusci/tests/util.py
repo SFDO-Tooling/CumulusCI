@@ -12,6 +12,7 @@ from unittest import mock
 import responses
 from requests import ReadTimeout
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.config import BaseProjectConfig, OrgConfig, UniversalConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.bulkdata.tests import utils as bulkdata_utils
@@ -177,7 +178,7 @@ def mock_describe_calls(domain="example.com"):
     def mock_sobject_describe(name: str):
         responses.add(
             method="GET",
-            url=f"https://{domain}/services/data/v48.0/sobjects/{name}/describe",
+            url=f"https://{domain}/services/data/v{API_VERSION}/sobjects/{name}/describe",
             body=read_mock(name),
             status=200,
         )
@@ -185,19 +186,19 @@ def mock_describe_calls(domain="example.com"):
     responses.add(
         method="GET",
         url=f"https://{domain}/services/data",
-        body=json.dumps([{"version": "40.0"}, {"version": "48.0"}]),
+        body=json.dumps([{"version": "40.0"}, {"version": API_VERSION}]),
         status=200,
     )
     responses.add(
         method="GET",
         url=f"https://{domain}/services/data",
-        body=json.dumps([{"version": "40.0"}, {"version": "48.0"}]),
+        body=json.dumps([{"version": "40.0"}, {"version": API_VERSION}]),
         status=200,
     )
 
     responses.add(
         method="GET",
-        url=f"https://{domain}/services/data/v48.0/sobjects",
+        url=f"https://{domain}/services/data/v{API_VERSION}/sobjects",
         body=read_mock("global_describe"),
         status=200,
     )

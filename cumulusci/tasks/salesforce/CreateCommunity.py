@@ -3,6 +3,7 @@ from datetime import datetime
 
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.exceptions import CumulusCIException, SalesforceException
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -10,7 +11,7 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 class CreateCommunity(BaseSalesforceApiTask):
     COMMUNITY_EXISTS_ERROR_MSG = "Enter a different name. That one already exists."
-    api_version = "48.0"
+    api_version = API_VERSION
     task_docs = """
     Create a Salesforce Community via the Connect API.
 

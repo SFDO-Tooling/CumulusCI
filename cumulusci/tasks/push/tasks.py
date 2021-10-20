@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from dateutil import tz
 from dateutil.parser import isoparse
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.exceptions import (
     CumulusCIException,
     PushApiObjectNotFound,
@@ -17,7 +18,7 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 class BaseSalesforcePushTask(BaseSalesforceApiTask):
     completed_statuses = ["Succeeded", "Failed", "Canceled"]
-    api_version = "38.0"
+    api_version = API_VERSION
 
     def _init_task(self):
         super(BaseSalesforcePushTask, self)._init_task()

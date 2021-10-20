@@ -2,6 +2,7 @@ import unittest
 
 import responses
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.tasks.salesforce import ListCommunityTemplates
 
 from .util import create_task
@@ -13,9 +14,7 @@ class test_ListCommunityTemplates(unittest.TestCase):
     @responses.activate
     def test_lists_community_templates(self):
         cc_task = create_task(ListCommunityTemplates, task_options)
-        community_url = "{}/services/data/v46.0/connect/communities/templates".format(
-            cc_task.org_config.instance_url
-        )
+        community_url = f"{cc_task.org_config.instance_url}/services/data/v{API_VERSION}/connect/communities/templates"
 
         responses.add(
             method=responses.GET,

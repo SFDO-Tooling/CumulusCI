@@ -47,7 +47,7 @@ def mock_oauth():
                 {
                     "label": "Summer '21",
                     "url": f"/services/data/v{API_VERSION}",
-                    "version": {API_VERSION},
+                    "version": API_VERSION,
                 }
             ],
             status=200,

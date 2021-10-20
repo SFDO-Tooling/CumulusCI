@@ -1,8 +1,9 @@
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 class ListCommunityTemplates(BaseSalesforceApiTask):
-    api_version = "46.0"
+    api_version = API_VERSION
     task_docs = """
     Lists Salesforce Community templates available for the current org via the Connect API.
     """

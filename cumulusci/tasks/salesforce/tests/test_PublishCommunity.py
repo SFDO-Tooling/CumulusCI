@@ -3,6 +3,7 @@ import unittest
 import responses
 from simple_salesforce.exceptions import SalesforceResourceNotFound
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.exceptions import SalesforceException, TaskOptionsError
 from cumulusci.tasks.salesforce import PublishCommunity
 
@@ -16,14 +17,8 @@ class test_PublishCommunity(unittest.TestCase):
     @responses.activate
     def test_publishes_community(self):
         cc_task = create_task(PublishCommunity, task_options)
-        communities_url = "{}/services/data/v46.0/connect/communities".format(
-            cc_task.org_config.instance_url
-        )
-        community_publish_url = (
-            "{}/services/data/v46.0/connect/communities/{}/publish".format(
-                cc_task.org_config.instance_url, task_options_with_id["community_id"]
-            )
-        )
+        communities_url = f"{cc_task.org_config.instance_url}/services/data/v{API_VERSION}/connect/communities"
+        community_publish_url = f"{cc_task.org_config.instance_url}/services/data/v{API_VERSION}/connect/communities/{task_options_with_id['community_id']}/publish"
 
         responses.add(
             method=responses.GET,
@@ -35,12 +30,12 @@ class test_PublishCommunity(unittest.TestCase):
                         "allowChatterAccessWithoutLogin": "false",
                         "allowMembersToFlag": "false",
                         "description": "This is a test community",
-                        "id": "{}".format(task_options_with_id["community_id"]),
+                        "id": task_options_with_id["community_id"],
                         "invitationsEnabled": "false",
                         "knowledgeableEnabled": "false",
                         "loginUrl": "https://mydomain.force.com/test/s/login",
                         "memberVisibilityEnabled": "true",
-                        "name": "{}".format(task_options["name"]),
+                        "name": task_options["name"],
                         "nicknameDisplayEnabled": "false",
                         "privateMessagesEnabled": "false",
                         "reputationEnabled": "false",
@@ -49,9 +44,7 @@ class test_PublishCommunity(unittest.TestCase):
                         "siteUrl": "https://mydomain.force.com/test",
                         "status": "Live",
                         "templateName": "VF Template",
-                        "url": "/services/data/v46.0/connect/communities/{}".format(
-                            task_options_with_id["community_id"]
-                        ),
+                        "url": f"/services/data/v{API_VERSION}/connect/communities/{task_options_with_id['community_id']}",
                         "urlPathPrefix": "test",
                     }
                 ],
@@ -80,11 +73,7 @@ class test_PublishCommunity(unittest.TestCase):
     @responses.activate
     def test_publishes_community_with_id(self):
         cc_task = create_task(PublishCommunity, task_options_with_id)
-        community_publish_url = (
-            "{}/services/data/v46.0/connect/communities/{}/publish".format(
-                cc_task.org_config.instance_url, task_options_with_id["community_id"]
-            )
-        )
+        community_publish_url = f"{cc_task.org_config.instance_url}/services/data/v{API_VERSION}/connect/communities/{task_options_with_id['community_id']}/publish"
 
         responses.add(
             method=responses.POST,
@@ -106,9 +95,7 @@ class test_PublishCommunity(unittest.TestCase):
     @responses.activate
     def test_throws_exception_for_bad_name(self):
         cc_task = create_task(PublishCommunity, task_options)
-        communities_url = "{}/services/data/v46.0/connect/communities".format(
-            cc_task.org_config.instance_url
-        )
+        communities_url = f"{cc_task.org_config.instance_url}/services/data/v{API_VERSION}/connect/communities"
 
         responses.add(
             method=responses.GET,
@@ -134,9 +121,7 @@ class test_PublishCommunity(unittest.TestCase):
                         "siteUrl": "https://mydomain.force.com/test",
                         "status": "Live",
                         "templateName": "VF Template",
-                        "url": "/services/data/v46.0/connect/communities/{}".format(
-                            task_options_with_id["community_id"]
-                        ),
+                        "url": f"/services/data/v{API_VERSION}/connect/communities/{task_options_with_id['community_id']}",
                         "urlPathPrefix": "test",
                     }
                 ],
@@ -151,11 +136,7 @@ class test_PublishCommunity(unittest.TestCase):
     @responses.activate
     def test_throws_exception_for_bad_id(self):
         cc_task = create_task(PublishCommunity, task_options_with_id)
-        community_publish_url = (
-            "{}/services/data/v46.0/connect/communities/{}/publish".format(
-                cc_task.org_config.instance_url, task_options_with_id["community_id"]
-            )
-        )
+        community_publish_url = f"{cc_task.org_config.instance_url}/services/data/v{API_VERSION}/connect/communities/{task_options_with_id['community_id']}/publish"
 
         responses.add(
             method=responses.POST,

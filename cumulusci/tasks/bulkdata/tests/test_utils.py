@@ -7,6 +7,7 @@ import responses
 from sqlalchemy import Column, Integer, MetaData, Table, Unicode, create_engine
 from sqlalchemy.orm import create_session, mapper
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.tasks import bulkdata
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
@@ -41,7 +42,7 @@ def mock_describe_calls():
     def mock_sobject_describe(name: str):
         responses.add(
             method="GET",
-            url=f"https://example.com/services/data/v48.0/sobjects/{name}/describe",
+            url=f"https://example.com/services/data/v{API_VERSION}/sobjects/{name}/describe",
             body=read_mock(name),
             status=200,
         )
@@ -49,12 +50,12 @@ def mock_describe_calls():
     responses.add(
         method="GET",
         url="https://example.com/services/data",
-        body=json.dumps([{"version": "40.0"}, {"version": "48.0"}]),
+        body=json.dumps([{"version": "40.0"}, {"version": API_VERSION}]),
         status=200,
     )
     responses.add(
         method="GET",
-        url="https://example.com/services/data/v48.0/sobjects",
+        url=f"https://example.com/services/data/v{API_VERSION}/sobjects",
         body=read_mock("global_describe"),
         status=200,
     )

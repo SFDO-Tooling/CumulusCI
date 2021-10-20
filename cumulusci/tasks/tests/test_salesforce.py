@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.config import (
     BaseProjectConfig,
     OrgConfig,
@@ -18,7 +19,7 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 )
 class TestSalesforceToolingTask(unittest.TestCase):
     def setUp(self):
-        self.api_version = 36.0
+        self.api_version = API_VERSION
         self.universal_config = UniversalConfig(
             {"project": {"package": {"api_version": self.api_version}}}
         )

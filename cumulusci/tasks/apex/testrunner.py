@@ -5,6 +5,7 @@ import io
 import json
 import re
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.exceptions import (
     ApexTestException,
     CumulusCIException,
@@ -110,7 +111,7 @@ class RunApexTests(BaseSalesforceApiTask):
     it's faster to execute the entire run in serial mode than to use retries.
     Serial and parallel mode are configured in the scratch org definition file."""
 
-    api_version = "38.0"
+    api_version = API_VERSION
     name = "RunApexTests"
     task_options = {
         "test_name_match": {

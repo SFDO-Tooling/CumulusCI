@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 import responses
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.load import LoadData
 from cumulusci.tasks.bulkdata.step import (
@@ -746,12 +747,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{API_VERSION}/composite/sobjects",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -760,7 +761,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{API_VERSION}/composite/sobjects",
             json=[{"id": "003000000000003", "success": True}],
             status=200,
         )
@@ -800,12 +801,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{API_VERSION}/composite/sobjects",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -814,7 +815,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{API_VERSION}/composite/sobjects",
             json=[{"id": "003000000000003", "success": True}],
             status=200,
         )
@@ -918,12 +919,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{API_VERSION}/composite/sobjects",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -932,7 +933,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{API_VERSION}/composite/sobjects",
             json=[{"id": "003000000000003", "success": True}],
             status=200,
         )
@@ -966,12 +967,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{API_VERSION}/composite/sobjects",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -980,7 +981,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{API_VERSION}/composite/sobjects",
             json=[
                 {
                     "id": "003000000000003",
@@ -1034,12 +1035,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = API_VERSION
         task._init_task()
 
         responses.add(
             responses.DELETE,
-            url="https://example.com/services/data/v48.0/composite/sobjects?ids=003000000000001,003000000000002",
+            url=f"https://example.com/services/data/v{API_VERSION}/composite/sobjects?ids=003000000000001,003000000000002",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -1048,7 +1049,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.DELETE,
-            url="https://example.com/services/data/v48.0/composite/sobjects?ids=003000000000003",
+            url=f"https://example.com/services/data/v{API_VERSION}/composite/sobjects?ids=003000000000003",
             json=[{"id": "003000000000003", "success": True}],
             status=200,
         )
@@ -1088,12 +1089,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{API_VERSION}/composite/sobjects",
             json=[{"id": "003000000000001", "success": True}],
             status=200,
         )
@@ -1126,7 +1127,7 @@ class TestGetOperationFunctions:
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
     def test_get_query_operation(self, rest_query, bulk_query):
         context = mock.Mock()
-        context.sf.sf_version = "42.0"
+        context.sf.sf_version = API_VERSION
         op = get_query_operation(
             sobject="Test",
             fields=["Id"],
@@ -1165,7 +1166,7 @@ class TestGetOperationFunctions:
     def test_get_query_operation__smart_to_rest(self, rest_query, bulk_query):
         context = mock.Mock()
         context.sf.restful.return_value = {"sObjects": [{"name": "Test", "count": 1}]}
-        context.sf.sf_version = "42.0"
+        context.sf.sf_version = API_VERSION
         op = get_query_operation(
             sobject="Test",
             fields=["Id"],
@@ -1186,7 +1187,7 @@ class TestGetOperationFunctions:
         context.sf.restful.return_value = {
             "sObjects": [{"name": "Test", "count": 10000}]
         }
-        context.sf.sf_version = "42.0"
+        context.sf.sf_version = API_VERSION
         op = get_query_operation(
             sobject="Test",
             fields=["Id"],
@@ -1221,7 +1222,7 @@ class TestGetOperationFunctions:
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
     def test_get_query_operation__bad_api(self, rest_query, bulk_query):
         context = mock.Mock()
-        context.sf.sf_version = "42.0"
+        context.sf.sf_version = API_VERSION
         with pytest.raises(AssertionError, match="Unknown API"):
             get_query_operation(
                 sobject="Test",
@@ -1236,7 +1237,7 @@ class TestGetOperationFunctions:
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiQueryOperation")
     def test_get_query_operation__inferred_api(self, rest_query, bulk_query):
         context = mock.Mock()
-        context.sf.sf_version = "42.0"
+        context.sf.sf_version = API_VERSION
         context.sf.restful.return_value = {
             "sObjects": [{"name": "Test", "count": 10000}]
         }
@@ -1255,7 +1256,7 @@ class TestGetOperationFunctions:
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
     def test_get_dml_operation(self, rest_dml, bulk_dml):
         context = mock.Mock()
-        context.sf.sf_version = "42.0"
+        context.sf.sf_version = API_VERSION
         op = get_dml_operation(
             sobject="Test",
             operation=DataOperationType.INSERT,
@@ -1298,7 +1299,7 @@ class TestGetOperationFunctions:
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
     def test_get_dml_operation__smart(self, rest_dml, bulk_dml):
         context = mock.Mock()
-        context.sf.sf_version = "42.0"
+        context.sf.sf_version = API_VERSION
         assert (
             get_dml_operation(
                 sobject="Test",
@@ -1342,7 +1343,7 @@ class TestGetOperationFunctions:
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
     def test_get_dml_operation__inferred_api(self, rest_dml, bulk_dml):
         context = mock.Mock()
-        context.sf.sf_version = "42.0"
+        context.sf.sf_version = API_VERSION
         assert (
             get_dml_operation(
                 sobject="Test",
@@ -1377,7 +1378,7 @@ class TestGetOperationFunctions:
     @mock.patch("cumulusci.tasks.bulkdata.step.RestApiDmlOperation")
     def test_get_dml_operation__bad_api(self, rest_dml, bulk_dml):
         context = mock.Mock()
-        context.sf.sf_version = "42.0"
+        context.sf.sf_version = API_VERSION
         with pytest.raises(AssertionError, match="Unknown API"):
             get_dml_operation(
                 sobject="Test",

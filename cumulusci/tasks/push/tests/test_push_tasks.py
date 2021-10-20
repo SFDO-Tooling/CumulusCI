@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 from dateutil import tz
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.exceptions import (
     CumulusCIException,
     PushApiObjectNotFound,
@@ -41,7 +42,7 @@ PACKAGE_OBJ_SUBSCRIBER = {
         {
             "attributes": {
                 "type": "PackageSubscribers",
-                "url": "/services/data/v48.0/sobjects/PackageSubscribers/0DV1R000000k9dEWAQ",
+                "url": f"/services/data/v{API_VERSION}/sobjects/PackageSubscribers/0DV1R000000k9dEWAQ",
             },
             "Id": "0DV1R000000k9dEWAQ",
             "NamespacePrefix": "2020-07-02T08:03:49.000+0000",
@@ -79,7 +80,7 @@ PACKAGE_OBJS = {
         {
             "attributes": {
                 "type": "PackagePushRequest",
-                "url": "/services/data/v48.0/sobjects/PackagePushRequest/0DV1R000000k9dEWAQ",
+                "url": f"/services/data/v{API_VERSION}/sobjects/PackagePushRequest/0DV1R000000k9dEWAQ",
             },
             "Id": "0DV1R000000k9dEWAQ",
             "NamespacePrefix": "2020-07-02T08:03:49.000+0000",

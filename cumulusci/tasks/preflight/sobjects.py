@@ -1,5 +1,6 @@
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -17,7 +18,7 @@ class CheckSObjectsAvailable(BaseSalesforceApiTask):
                   action: error
                   message: "Enhanced Notes are not turned on."
     """
-    api_version = "48.0"
+    api_version = API_VERSION
 
     def _run_task(self):
         self.return_values = {entry["name"] for entry in self.sf.describe()["sobjects"]}

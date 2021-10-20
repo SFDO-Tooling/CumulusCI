@@ -1,18 +1,20 @@
-from unittest.mock import Mock
 import base64
 import io
 import json
 import os
 import pathlib
 import zipfile
+from unittest.mock import Mock
 
 import pytest
 
+from cumulusci.core.api_version import API_VERSION
 from cumulusci.tasks.salesforce.org_settings import (
     DeployOrgSettings,
     build_settings_package,
 )
 from cumulusci.utils import temporary_dir
+
 from .util import create_task
 
 
@@ -35,7 +37,7 @@ class TestDeployOrgSettings:
                     f,
                 )
             path = os.path.join(d, "dev.json")
-            task_options = {"definition_file": path, "api_version": "48.0"}
+            task_options = {"definition_file": path, "api_version": API_VERSION}
             task = create_task(DeployOrgSettings, task_options)
             task.api_class = Mock()
             task()
@@ -44,14 +46,14 @@ class TestDeployOrgSettings:
         zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(package_zip)), "r")
         assert (
             readtext(zf, "package.xml")
-            == """<?xml version="1.0" encoding="UTF-8"?>
+            == f"""<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
         <members>OrgPreference</members>
         <members>Other</members>
         <name>Settings</name>
     </types>
-    <version>48.0</version>
+    <version>{API_VERSION}</version>
 </Package>"""
         )
         assert (
@@ -85,7 +87,7 @@ class TestDeployOrgSettings:
                 },
             },
         }
-        task_options = {"settings": settings, "api_version": "48.0"}
+        task_options = {"settings": settings, "api_version": API_VERSION}
         task = create_task(DeployOrgSettings, task_options)
         task.api_class = Mock()
         task()
@@ -94,14 +96,14 @@ class TestDeployOrgSettings:
         zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(package_zip)), "r")
         assert (
             readtext(zf, "package.xml")
-            == """<?xml version="1.0" encoding="UTF-8"?>
+            == f"""<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
         <members>OrgPreference</members>
         <members>Other</members>
         <name>Settings</name>
     </types>
-    <version>48.0</version>
+    <version>{API_VERSION}</version>
 </Package>"""
         )
         assert (
@@ -148,7 +150,7 @@ class TestDeployOrgSettings:
             task_options = {
                 "definition_file": path,
                 "settings": settings,
-                "api_version": "48.0",
+                "api_version": API_VERSION,
             }
             task = create_task(DeployOrgSettings, task_options)
             task.api_class = Mock()
@@ -158,14 +160,14 @@ class TestDeployOrgSettings:
         zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(package_zip)), "r")
         assert (
             readtext(zf, "package.xml")
-            == """<?xml version="1.0" encoding="UTF-8"?>
+            == f"""<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
         <members>OrgPreference</members>
         <members>Other</members>
         <name>Settings</name>
     </types>
-    <version>48.0</version>
+    <version>{API_VERSION}</version>
 </Package>"""
         )
         assert (
@@ -214,7 +216,7 @@ class TestDeployOrgSettings:
                     f,
                 )
             path = os.path.join(d, "dev.json")
-            task_options = {"definition_file": path, "api_version": "48.0"}
+            task_options = {"definition_file": path, "api_version": API_VERSION}
             task = create_task(DeployOrgSettings, task_options)
             task.api_class = Mock()
             with pytest.raises(TypeError):
@@ -243,10 +245,10 @@ class TestBuildSettingsPackage:
             },
             "solution": {"defaultRecordType": "Default"},
         }
-        with build_settings_package(settings, object_settings, "48.0") as path:
+        with build_settings_package(settings, object_settings, API_VERSION) as path:
             assert (
                 (pathlib.Path(path) / "package.xml").read_text()
-                == """<?xml version="1.0" encoding="UTF-8"?>
+                == f"""<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
         <members>Solution.DefaultSolution</members>
@@ -261,7 +263,7 @@ class TestBuildSettingsPackage:
         <members>Other</members>
         <name>Settings</name>
     </types>
-    <version>48.0</version>
+    <version>{API_VERSION}</version>
 </Package>"""
             )
             assert (
@@ -310,5 +312,5 @@ class TestBuildSettingsPackage:
             
         </values>
     </businessProcesses>
-</Object>"""
+</Object>""" # noqa
             )
