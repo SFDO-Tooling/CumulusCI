@@ -13,6 +13,8 @@ We recommend that projects which extend EDA or NPSP with a second-generation pac
 these Record Type dependencies. You can do this by creating a new org definition file in ``orgs``, based on your existing org definitions,
 and adding to it an ``objectSettings`` section. We'll call this file ``orgs/build.json``.
 
+For NPSP, use:
+
 .. code-block:: json
 
     "settings": {
@@ -23,7 +25,21 @@ and adding to it an ``objectSettings`` section. We'll call this file ``orgs/buil
             "defaultRecordType": "default"
         }
     }
- 
+
+and for EDA, use:
+
+.. code-block:: json
+
+    "settings": {
+        /* Your project's settings are here */
+    },
+    "objectSettings": {
+        "account": {
+            "defaultRecordType": "Administrative"
+        }
+    }
+
+This satisfies EDA's requirement for a specific Record Type name.
 
 You'll also add to your `cumulusci.yml`:
 

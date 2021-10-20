@@ -4,6 +4,7 @@ import urllib.parse
 import github3.exceptions
 
 from cumulusci.core.exceptions import GithubApiNotFoundError
+from cumulusci.core.versions import PackageVersionNumber
 from cumulusci.oauth.salesforce import PROD_LOGIN_URL, SANDBOX_LOGIN_URL
 
 from .exceptions import GithubIssuesError
@@ -270,16 +271,11 @@ class GithubIssuesParser(IssuesParser):
             return
         if is_beta:
             comment_prefix = self.ISSUE_COMMENT["beta"]
-            version_parts = re.findall(
-                r"{}(\d+\.\d+)-Beta_(\d+)".format(prefix_beta),
-                self.release_notes_generator.current_tag,
-            )
-            version_str = "{} (Beta {})".format(*version_parts[0])
         else:
             comment_prefix = self.ISSUE_COMMENT["prod"]
-            version_str = self.release_notes_generator.current_tag.replace(
-                prefix_prod, ""
-            )
+        version_str = PackageVersionNumber.parse_tag(
+            self.release_notes_generator.current_tag, prefix_beta, prefix_prod
+        ).format()
         has_comment = False
         for comment in issue.comments():
             if comment.body.startswith(comment_prefix):
