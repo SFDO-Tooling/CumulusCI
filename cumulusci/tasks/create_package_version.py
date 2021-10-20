@@ -3,9 +3,8 @@ import enum
 import io
 import json
 import pathlib
-import re
 import zipfile
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from pydantic import BaseModel, validator
 from simple_salesforce.exceptions import SalesforceMalformedRequest
@@ -28,6 +27,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.github import get_version_id_from_tag
 from cumulusci.core.sfdx import convert_sfdx_source
 from cumulusci.core.utils import process_bool_arg
+from cumulusci.core.versions import PackageVersionNumber, VersionTypeEnum
 from cumulusci.salesforce_api.package_zip import (
     BasePackageZipBuilder,
     MetadataPackageZipBuilder,
@@ -37,76 +37,10 @@ from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTa
 from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils.git import split_repo_url
 
-VERSION_RE = re.compile(
-    r"^(?P<MajorVersion>\d+)"
-    r".(?P<MinorVersion>\d+)"
-    r"(\.(?P<PatchVersion>\d+))?"
-    r"(\.(?P<BuildNumber>\d+))?"
-    r"( \(Beta (?P<BetaNumber>\d+)\))?$"
-)
-
 
 class PackageTypeEnum(str, enum.Enum):
     managed = "Managed"
     unlocked = "Unlocked"
-
-
-class VersionTypeEnum(str, enum.Enum):
-    major = "major"
-    minor = "minor"
-    patch = "patch"
-    build = "build"
-
-
-class PackageVersionNumber(BaseModel):
-    """A Salesforce package version parsed into components."""
-
-    MajorVersion: int = 0
-    MinorVersion: int = 0
-    PatchVersion: int = 0
-    BuildNumber: Union[int, str] = 0
-    IsReleased: bool = False
-
-    def format(self):
-        """Format version number as a string"""
-        return f"{self.MajorVersion}.{self.MinorVersion}.{self.PatchVersion}.{self.BuildNumber}"
-
-    @classmethod
-    def parse(cls, s: str):
-        """Parse a version number from a string"""
-        match = VERSION_RE.match(s)
-        if not match:
-            raise ValueError(f"Could not parse version number: {s}")
-        return PackageVersionNumber(
-            MajorVersion=int(match.group("MajorVersion")),
-            MinorVersion=int(match.group("MinorVersion")),
-            PatchVersion=int(match.group("PatchVersion") or 0),
-            BuildNumber=int(
-                match.group("BuildNumber") or match.group("BetaNumber") or 0
-            ),
-            IsReleased=not bool(match.group("BetaNumber")),
-        )
-
-    def increment(self, version_type: VersionTypeEnum = VersionTypeEnum.build):
-        """Construct a new PackageVersionNumber by incrementing the specified component."""
-        parts = {
-            "MajorVersion": self.MajorVersion,
-            "MinorVersion": self.MinorVersion,
-            "PatchVersion": self.PatchVersion,
-            "BuildNumber": "NEXT",
-            "IsReleased": False,
-        }
-        if version_type == VersionTypeEnum.major:
-            parts["MajorVersion"] += 1
-            parts["MinorVersion"] = 0
-            parts["PatchVersion"] = 0
-        if version_type == VersionTypeEnum.minor:
-            parts["MinorVersion"] += 1
-            parts["PatchVersion"] = 0
-        elif version_type == VersionTypeEnum.patch:
-            parts["PatchVersion"] += 1
-
-        return PackageVersionNumber(**parts)
 
 
 class PackageConfig(BaseModel):
