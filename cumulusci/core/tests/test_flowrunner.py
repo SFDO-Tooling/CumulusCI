@@ -2,6 +2,8 @@ import logging
 import unittest
 from unittest import mock
 
+import pytest
+
 import cumulusci
 from cumulusci.core.config import FlowConfig, OrgConfig
 from cumulusci.core.exceptions import (
@@ -13,6 +15,7 @@ from cumulusci.core.flowrunner import (
     FlowCoordinator,
     PreflightFlowCoordinator,
     StepSpec,
+    TaskRunner,
 )
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.tests.utils import MockLoggingHandler
@@ -657,3 +660,70 @@ class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest, unittest.TestCas
         # Make sure task result got cached
         key = ("log", (("level", "info"), ("line", "plan")))
         assert key in flow._task_cache.results
+
+
+@pytest.fixture
+def task_runner():
+    return TaskRunner(None, None)
+
+
+@pytest.fixture
+def task_options():
+    return {"color": {"description": "It's a color!", "required": True}}
+
+
+@pytest.fixture
+def task_options_sensitive():
+    return {
+        "color": {"description": "It's a color!", "required": True, "sensitive": True}
+    }
+
+
+def test_log_options__no_task_options(task_runner):
+    task = mock.Mock()
+    task.task_options = None
+    task_runner._log_options(task)
+
+    task.logger.info.assert_called_once_with("No task options present")
+
+
+def test_log_options__options_not_list(task_runner, task_options):
+    task = mock.Mock()
+    task.task_options = task_options
+    task.options = {"color": "burgundy"}
+    task_runner._log_options(task)
+
+    assert task.logger.info.call_args_list[1].args[0] == "  color: burgundy"
+
+
+def test_log_options__options_not_list__sensitive(task_runner, task_options_sensitive):
+    task = mock.Mock()
+    task.task_options = task_options_sensitive
+    task.options = {"color": "burgundy"}
+    task_runner._log_options(task)
+
+    assert task.logger.info.call_args_list[1].args[0] == "  color: ********"
+
+
+def test_log_options__options_is_list(task_runner, task_options):
+    task = mock.Mock()
+    task.task_options = task_options
+    task.options = {"color": ["burgundy", "chartreuse", "turquoise"]}
+    task_runner._log_options(task)
+
+    assert task.logger.info.call_args_list[1].args[0] == "  color:"
+    assert task.logger.info.call_args_list[2].args[0] == "    - burgundy"
+    assert task.logger.info.call_args_list[3].args[0] == "    - chartreuse"
+    assert task.logger.info.call_args_list[4].args[0] == "    - turquoise"
+
+
+def test_log_options__options_is_list__sensitive(task_runner, task_options_sensitive):
+    task = mock.Mock()
+    task.task_options = task_options_sensitive
+    task.options = {"color": ["burgundy", "chartreuse", "turquoise"]}
+    task_runner._log_options(task)
+
+    assert task.logger.info.call_args_list[1].args[0] == "  color:"
+    assert task.logger.info.call_args_list[2].args[0] == "    - ********"
+    assert task.logger.info.call_args_list[3].args[0] == "    - ********"
+    assert task.logger.info.call_args_list[4].args[0] == "    - ********"
