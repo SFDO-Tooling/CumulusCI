@@ -1,7 +1,11 @@
 from difflib import get_close_matches
 
 from cumulusci.core.config import BaseConfig, FlowConfig, TaskConfig
-from cumulusci.core.exceptions import FlowNotFoundError, TaskNotFoundError
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    FlowNotFoundError,
+    TaskNotFoundError,
+)
 
 
 def list_infos(infos):
@@ -30,10 +34,20 @@ class BaseTaskFlowConfig(BaseConfig):
     def get_task(self, name):
         """Returns a TaskConfig"""
         config = getattr(self, f"tasks__{name}")
-        if not config:
+        if not config and name not in self.tasks:
+            # task does not exist
             error_msg = f"Task not found: {name}"
             suggestion = self.get_suggested_name(name, self.tasks)
             raise TaskNotFoundError(error_msg + suggestion)
+        elif not config:
+            # task exists but there is no config at all
+            error_msg = f"No configuration found for task: {name}"
+            raise CumulusCIException(error_msg)
+        elif "class_path" not in config:
+            # task exists and there is a config but it has no class_path defined and it is not a base task override
+            error_msg = f"Task has no class_path defined: {name}"
+            raise CumulusCIException(error_msg)
+
         return TaskConfig(config)
 
     def list_flows(self):

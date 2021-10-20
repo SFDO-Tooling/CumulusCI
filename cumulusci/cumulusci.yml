@@ -177,6 +177,12 @@ tasks:
             path: src
             revert_path: src.orig
         group: Salesforce Metadata
+    create_blank_profile:
+        description: Creates a blank profile, or a profile with no permissions
+        class_path: cumulusci.tasks.salesforce.profiles.CreateBlankProfile
+        options:
+            license: Salesforce
+        group: Salesforce Metadata
     delete_data:
         description: Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
         class_path: cumulusci.tasks.bulkdata.DeleteData
@@ -1275,8 +1281,9 @@ services:
                 description: The Github username to use for tasks.
                 required: True
             token:
-                description: Personal Access Token for GitHub. See https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token for more info.
+                description: Personal Access Token for GitHub. Leave blank to log in via browser.
                 required: True
+                default_factory: cumulusci.core.github.get_oauth_device_flow_token
             email:
                 description: The email address to used by Github tasks when an operation requires an email address.
                 required: True

@@ -68,7 +68,6 @@ def test_init_options():
             "password": "foo",
             "activateRSS": True,
             "name": "bar",
-            "security_type": "PUSH",
         },
         project_config=project_config,
     )
@@ -80,7 +79,7 @@ def test_init_options():
         "retry_interval_add": 100,
     }
     assert task.install_options == PackageInstallOptions(
-        activate_remote_site_settings=True, password="foo", security_type="PUSH"
+        activate_remote_site_settings=True, password="foo"
     )
     assert task.options["activate_remote_site_settings"] is True
     assert "activateRSS" not in task.options
@@ -345,3 +344,16 @@ def test_freeze__2gp():
             },
         },
     ]
+
+
+def test_tooling_with_push():
+    project_config = create_project_config()
+    project_config.config["project"]["package"]["namespace"] = "ns"
+    project_config.config["project"]["package"]["name"] = "Test"
+
+    with pytest.raises(TaskOptionsError):
+        create_task(
+            InstallPackageVersion,
+            {"version": "04t000000000000", "security_type": "PUSH"},
+            project_config=project_config,
+        )

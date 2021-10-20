@@ -12,7 +12,7 @@ import pytz
 from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
 
 
-def import_global(path):
+def import_global(path: str):
     """Import a class from a string module class path"""
     components = path.split(".")
     module = components[:-1]

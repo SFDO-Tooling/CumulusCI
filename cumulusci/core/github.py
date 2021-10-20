@@ -2,6 +2,7 @@ import functools
 import io
 import os
 import re
+import time
 import webbrowser
 from typing import Callable, Union
 from urllib.parse import urlparse
@@ -17,15 +18,28 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
 from requests.models import Response
 from requests.packages.urllib3.util.retry import Retry
+from rich.console import Console
 
 from cumulusci.core.exceptions import (
     DependencyLookupError,
     GithubApiError,
     GithubException,
 )
+from cumulusci.oauth.client import (
+    OAuth2ClientConfig,
+    OAuth2DeviceConfig,
+    get_device_code,
+    get_device_oauth_token,
+)
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
+OAUTH_DEVICE_APP = {
+    "client_id": "2a4bc3e5ce4f2c49a957",
+    "auth_uri": "https://github.com/login/device/code",
+    "token_uri": "https://github.com/login/oauth/access_token",
+    "scope": "repo gist",
+}
 SSO_WARNING = """Results may be incomplete. You have not granted your Personal Access token access to the following organizations:"""
 UNAUTHORIZED_WARNING = """
 Bad credentials. Verify that your personal access token is correct and that you are authorized to access this resource.
@@ -462,3 +476,31 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
                 raise
 
     return inner
+
+
+def get_oauth_device_flow_token():
+    """Interactive github authorization"""
+    config = OAuth2ClientConfig(**OAUTH_DEVICE_APP)
+    device_code = OAuth2DeviceConfig(**get_device_code(config))
+
+    console = Console()
+    console.print(
+        f"[bold] Enter this one-time code: [red]{device_code.user_code}[/red][/bold]"
+    )
+
+    console.print(f"Opening {device_code.verification_uri} in your default browser...")
+    webbrowser.open(device_code.verification_uri)
+    time.sleep(2)  # Give the user a second or two before we start polling
+
+    with console.status("Polling server for authorization..."):
+        device_token: dict = get_device_oauth_token(
+            client_config=config, device_config=device_code
+        )
+
+    access_token = device_token.get("access_token")
+    if access_token:
+        console.print(
+            f"[bold green]Successfully authorized OAuth token ({access_token[:7]}...)[/bold green]"
+        )
+
+    return access_token

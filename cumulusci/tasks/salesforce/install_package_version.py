@@ -5,11 +5,12 @@ from cumulusci.core.dependencies.dependencies import (
     PackageVersionIdDependency,
 )
 from cumulusci.core.dependencies.resolvers import get_resolver_stack
-from cumulusci.core.exceptions import CumulusCIException
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.github import find_previous_release
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
     PACKAGE_INSTALL_TASK_OPTIONS,
+    SecurityType,
 )
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 
@@ -133,6 +134,7 @@ class InstallPackageVersion(BaseSalesforceApiTask):
             del self.options["activateRSS"]
 
         self.install_options = PackageInstallOptions.from_task_options(self.options)
+        self._check_for_tooling()
 
     def _run_task(self):
         version = self.options["version"]
@@ -185,3 +187,13 @@ class InstallPackageVersion(BaseSalesforceApiTask):
             }
         )
         return [ui_step]
+
+    def _check_for_tooling(self):
+        version = str(self.options.get("version"))
+        if (
+            version.startswith("04t")
+            and self.install_options.security_type is SecurityType.PUSH
+        ):
+            raise TaskOptionsError(
+                "Cannot use security type 'PUSH' when installing using a 04t package version ID due to Tooling API limitations."
+            )
