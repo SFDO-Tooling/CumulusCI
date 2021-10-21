@@ -49,7 +49,7 @@ def plan_list(runtime, print_json):
         return
 
     data = [[name.title() for name in columns]]
-    data.extend([list(row.values()) for row in raw_data]
+    data.extend([list(row.values()) for row in raw_data])
     console = Console()
     table = CliTable(data=data)
     console.print(table)
