@@ -414,7 +414,9 @@ class TestGithub(GithubApiTestMixin):
             json={"message": "Could not verify object"},
             status=422,
         )
-        with pytest.raises(DependencyLookupError):
+        with pytest.raises(
+            DependencyLookupError, match="Could not find commit DUMMY_SHA on GitHub"
+        ):
             get_commit(repo, "DUMMY_SHA")
 
     def test_get_oauth_scopes(self):
