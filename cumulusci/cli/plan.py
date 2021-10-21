@@ -46,10 +46,10 @@ def plan_list(runtime, print_json):
 
     if print_json:
         click.echo(json.dumps(raw_data))
+        return
 
-    else:
-        data = [[name.title() for name in columns]]
-        data.extend([list(row.values()) for row in raw_data])
-        console = Console()
-        table = CliTable(data=data)
-        console.print(table)
+    data = [[name.title() for name in columns]]
+    data.extend([list(row.values()) for row in raw_data]
+    console = Console()
+    table = CliTable(data=data)
+    console.print(table)
