@@ -10,6 +10,8 @@ from itertools import chain
 from pathlib import Path
 from typing import Union
 
+from cumulusci.core.versions import PackageVersionNumber
+
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
 import github3
@@ -454,26 +456,20 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     def get_tag_for_version(self, prefix, version):
         """Given a prefix and version, returns the appropriate tag name to use."""
-        if "(Beta" in version:
-            version = version.replace(" (", "-").replace(")", "").replace(" ", "_")
-
-        return f"{prefix}{version}"
+        try:
+            return PackageVersionNumber.parse(version).format_tag(prefix)
+        except ValueError:
+            return f"{prefix}{version}"
 
     def get_version_for_tag(self, tag, prefix_beta=None, prefix_release=None):
-        if prefix_beta is None:
-            prefix_beta = self.project__git__prefix_beta
-        if prefix_release is None:
-            prefix_release = self.project__git__prefix_release
-        if tag.startswith(prefix_beta):
-            version = tag.replace(prefix_beta, "")
-            if "-Beta_" in version:
-                # Beta tags are expected to be like "beta/1.0-Beta_1"
-                # which is returned as "1.0 (Beta 1)"
-                return version.replace("-", " (").replace("_", " ") + ")"
-            else:
-                return
-        elif tag.startswith(prefix_release):
-            return tag.replace(prefix_release, "")
+        try:
+            return PackageVersionNumber.parse_tag(
+                tag,
+                prefix_beta or self.project__git__prefix_beta,
+                prefix_release or self.project__git__prefix_release,
+            ).format()
+        except ValueError:
+            pass
 
     def set_keychain(self, keychain):
         self.keychain = keychain
