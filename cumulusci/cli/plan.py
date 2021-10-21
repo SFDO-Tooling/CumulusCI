@@ -1,5 +1,4 @@
 import json
-from collections import defaultdict
 
 import click
 from rich.console import Console
@@ -7,8 +6,6 @@ from rich.console import Console
 from cumulusci.cli.ui import CliTable
 
 from .runtime import pass_runtime
-
-DEFAULT_GROUP = "Uncategorized Plans"
 
 
 @click.group("plan", help="Commands for getting information about MetaDeploy plans")
@@ -41,7 +38,7 @@ def plan_list(runtime, print_json):
         tier_index = tiers.index(tier) if tier in tiers else 99
         return f"{tier_index} {name}"
 
-    columns = ["name", "group", "title", "slug", "tier"]
+    columns = ["name", "title", "slug", "tier"]
     raw_data = [
         dict(name=plan_name, **{key: plan_config.get(key, "") for key in columns[1:]})
         for plan_name, plan_config in sorted(plans.items(), key=_sort_func)
@@ -51,25 +48,8 @@ def plan_list(runtime, print_json):
         click.echo(json.dumps(raw_data))
 
     else:
-        # start each group by adding a row of column headers,
-        # then pull the values from the dictionaries for each row
-        columns.remove("group")
-        groups = defaultdict(
-            lambda: [[column.title() for column in columns]],
-        )
-
-        for row in raw_data:
-            group_name = (row.pop("group") or DEFAULT_GROUP).title()
-            groups[group_name].append(list(row.values()))
-
-        if not groups:
-            # as per a discussion, we'll force a single empty table if
-            # there are no plans so that the output is consistent with
-            # when we have plans. Referencing the group will trigger
-            # the creationg of the default value with column headers
-            groups[DEFAULT_GROUP]
-
+        data = [[name.title() for name in columns]]
+        data.extend([list(row.values()) for row in raw_data])
         console = Console()
-        for group_name, group_data in sorted(groups.items()):
-            table = CliTable(title=group_name, data=group_data)
-            console.print(table)
+        table = CliTable(data=data)
+        console.print(table)

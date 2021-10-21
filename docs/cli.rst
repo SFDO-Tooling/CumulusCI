@@ -76,8 +76,8 @@ The following commands list all available tasks, flows, and plans for a project:
 The tasks, flows, and plans listed are specific to the project directory that you're in when you run the command.
 For example, if you have a custom flow defined in your ``cumulusci.yml`` file for Project A, it will only be listed if you run ``cci flow list`` in Project A's root directory.
 
-The data is listed by their ``group`` attribute as specified in the ``cumulusci.yml`` file.
-It's easy to edit these groups as you see fit! Any modifications will be reflected in the ``list`` commands.
+The tasks and flows are listed by their ``group`` attribute as specified in the ``cumulusci.yml`` file.
+It's easy to edit these groups as you see fit. Any modifications will be reflected in the ``list`` commands.
 
 
 
