@@ -10,7 +10,7 @@ import responses
 from requests import Response
 
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.exceptions import ApexTestException
+from cumulusci.core.exceptions import ApexTestException, CumulusCIException
 from cumulusci.core.tasks import BaseTask
 from cumulusci.salesforce_api.exceptions import (
     MetadataApiError,
@@ -973,3 +973,13 @@ class TestApiRetrievePackaged(TestApiRetrieveUnpackaged):
 
     def _create_instance(self, task, api_version=None):
         return self.api_class(task, self.package_name, api_version)
+
+    def test_process_response__no_package_match_found(self):
+        task = self._create_task()
+        api = self._create_instance(task)
+        response = Response()
+        response.raw = io.BytesIO(
+            b"INVALID_CROSS_REFERENCE_KEY: No package named Test Package"
+        )
+        with self.assertRaises(CumulusCIException):
+            api._process_response(response)
