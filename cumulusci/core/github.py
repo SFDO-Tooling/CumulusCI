@@ -376,7 +376,6 @@ def warn_oauth_restricted(exc: ResponseError) -> str:
     )
 
     if is_403 and org_restricted_oauth_warning in str(exc):
-        print("foo")
         user_warning = str(exc)
         user_warning += "\nYou may also use a Personal Access Token as a workaround."
 
