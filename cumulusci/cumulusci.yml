@@ -1280,13 +1280,13 @@ services:
             username:
                 description: The Github username to use for tasks.
                 required: True
+            email:
+                description: The email address to used by Github tasks when an operation requires an email address.
+                required: True
             token:
                 description: Personal Access Token for GitHub. Leave blank to log in via browser.
                 required: True
                 default_factory: cumulusci.core.github.get_oauth_device_flow_token
-            email:
-                description: The email address to used by Github tasks when an operation requires an email address.
-                required: True
         validator: cumulusci.core.github.validate_service
     marketing_cloud:
         description: Configure a connection to a Marketing Cloud instance
