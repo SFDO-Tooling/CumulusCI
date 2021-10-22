@@ -7,6 +7,7 @@ import traceback
 
 import click
 import requests
+from rich.console import Console
 
 import cumulusci
 from cumulusci.core.debug import set_debug_mode
@@ -70,36 +71,47 @@ def main(args=None):
             runtime.check_cumulusci_version()
             should_show_stacktraces = runtime.universal_config.cli__show_stacktraces
 
+            console = Console()
             init_logger(debug=debug)
             # Hand CLI processing over to click, but handle exceptions
             try:
                 cli(args[1:], standalone_mode=False, obj=runtime)
             except click.Abort:  # Keyboard interrupt
-                show_debug_info() if debug else click.echo("\nAborted!", err=True)
+                show_debug_info() if debug else console.print("\n[red bold]Aborted!")
                 sys.exit(1)
             except Exception as e:
                 if debug:
                     show_debug_info()
                 else:
                     handle_exception(
-                        e, is_error_command, tempfile_path, should_show_stacktraces
+                        e,
+                        console,
+                        is_error_command,
+                        tempfile_path,
+                        should_show_stacktraces,
                     )
                 sys.exit(1)
 
 
-def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=False):
+def handle_exception(
+    error: Exception,
+    console: Console,
+    is_error_cmd: bool,
+    logfile_path: str,
+    should_show_stacktraces=False,
+):
     """Displays error of appropriate message back to user, prompts user to investigate further
     with `cci error` commands, and writes the traceback to the latest logfile.
     """
     if isinstance(error, requests.exceptions.ConnectionError):
-        connection_error_message()
+        connection_error_message(console)
     elif isinstance(error, click.ClickException):
-        click.echo(click.style(f"Error: {error.format_message()}", fg="red"), err=True)
+        console.print(f"[red bold]Error: {error.format_message()}")
     else:
-        click.echo(click.style(f"{error}", fg="red"), err=True)
+        console.print(f"[red bold]{error}")
     # Only suggest gist command if it wasn't run
     if not is_error_cmd:
-        click.echo(click.style(SUGGEST_ERROR_COMMAND, fg="yellow"), err=True)
+        console.print(f"[yellow]{SUGGEST_ERROR_COMMAND}")
 
     # This is None if we're handling an exception for a `cci error` command.
     if logfile_path:
@@ -110,12 +122,12 @@ def handle_exception(error, is_error_cmd, logfile_path, should_show_stacktraces=
         raise error
 
 
-def connection_error_message():
+def connection_error_message(console: Console):
     message = (
         "We encountered an error with your internet connection. "
         "Please check your connection and try the last cci command again."
     )
-    click.echo(click.style(message, fg="red"), err=True)
+    console.print(f"[red bold]{message}")
 
 
 def show_debug_info():
