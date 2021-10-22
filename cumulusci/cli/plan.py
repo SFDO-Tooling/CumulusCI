@@ -4,6 +4,7 @@ import click
 from rich.console import Console
 
 from cumulusci.cli.ui import CliTable
+from cumulusci.utils.yaml.cumulusci_yml import Plan
 
 from .runtime import pass_runtime
 
@@ -34,7 +35,7 @@ def plan_list(runtime, print_json):
         and then by name"""
         name, config = plan
         tier = config.get("tier", "primary")
-        tiers = ("primary", "secondary", "additional")
+        tiers = Plan.schema()["properties"]["tier"]["enum"]
         tier_index = tiers.index(tier) if tier in tiers else 99
         return f"{tier_index} {name}"
 
