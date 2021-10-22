@@ -438,7 +438,7 @@ class FlowCoordinator(object):
         self._rule(new_line=True)
 
         try:
-            for step in track(self.steps, description="Running Flow..."):
+            for step in track(self.steps, description=f"Running Flow: {self.name}..."):
                 self._run_step(step)
             flow_name = f"'{self.name}' " if self.name else ""
             self.logger.info(
