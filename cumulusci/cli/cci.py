@@ -70,7 +70,7 @@ def main(args=None):
             runtime.check_cumulusci_version()
             should_show_stacktraces = runtime.universal_config.cli__show_stacktraces
 
-            init_logger(log_requests=debug)
+            init_logger(debug=debug)
             # Hand CLI processing over to click, but handle exceptions
             try:
                 cli(args[1:], standalone_mode=False, obj=runtime)

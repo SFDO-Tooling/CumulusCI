@@ -4,7 +4,7 @@ import os
 import sys
 import tempfile
 
-import coloredlogs
+import coloredlogs  # noqa: F401
 import requests
 from rich.logging import RichHandler
 
@@ -26,7 +26,12 @@ def init_logger(debug=False):
         colorama.init()
 
     logger.addHandler(
-        RichHandler(rich_tracebacks=True, tracebacks_show_locals=True, show_path=debug)
+        RichHandler(
+            show_level=debug,
+            show_path=debug,
+            rich_tracebacks=True,
+            tracebacks_show_locals=True,
+        )
     )
     logger.setLevel(logging.DEBUG)
     logger.propagate = False
