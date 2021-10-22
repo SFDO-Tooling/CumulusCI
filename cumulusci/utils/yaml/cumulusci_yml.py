@@ -112,7 +112,6 @@ class Plan(CCIDictModel):  # MetaDeploy plans
     is_listed: bool = True
     steps: Dict[str, Step] = None
     checks: List[PreflightCheck] = []
-    group: str = None
     error_message: str = None
     post_install_message: str = None
     preflight_message: str = None
