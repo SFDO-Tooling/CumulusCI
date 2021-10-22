@@ -88,7 +88,7 @@ class TestCCI(unittest.TestCase):
         cci.main(["cci", "--debug"])
 
         check_latest_version.assert_called_once()
-        init_logger.assert_called_once_with(log_requests=True)
+        init_logger.assert_called_once_with(debug=True)
         CliRuntime.assert_called_once()
         cli.assert_called_once()
         post_mortem.assert_called_once()
@@ -123,7 +123,7 @@ class TestCCI(unittest.TestCase):
             cci.main(["cci"])
 
         check_latest_version.assert_called_once()
-        init_logger.assert_called_once_with(log_requests=False)
+        init_logger.assert_called_once_with(debug=False)
         CliRuntime.assert_called_once()
         cli.assert_called_once()
         post_mortem.assert_not_called()
@@ -171,7 +171,7 @@ class TestCCI(unittest.TestCase):
         cci.main(["cci", "org", "info"])
 
         check_latest_version.assert_called_once()
-        init_logger.assert_called_once_with(log_requests=False)
+        init_logger.assert_called_once_with(debug=False)
         CliRuntime.assert_called_once()
         cli.assert_called_once()
         post_mortem.call_count == 0
