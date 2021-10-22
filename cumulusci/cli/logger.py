@@ -6,6 +6,7 @@ import tempfile
 
 import coloredlogs
 import requests
+from rich.logging import RichHandler
 
 try:
     import colorama
@@ -24,11 +25,7 @@ def init_logger(log_requests=False):
     if os.name == "nt" and "colorama" in sys.modules:  # pragma: no cover
         colorama.init()
 
-    formatter = coloredlogs.ColoredFormatter(fmt="%(asctime)s: %(message)s")
-    handler = logging.StreamHandler(stream=sys.stdout)
-    handler.setLevel(logging.DEBUG)
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    logger.addHandler(RichHandler())
     logger.setLevel(logging.DEBUG)
     logger.propagate = False
 
