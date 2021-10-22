@@ -15,7 +15,7 @@ except ImportError:
     pass
 
 
-def init_logger(log_requests=False):
+def init_logger(debug=False):
     """Initialize the logger"""
 
     logger = logging.getLogger(__name__.split(".")[0])
@@ -25,11 +25,13 @@ def init_logger(log_requests=False):
     if os.name == "nt" and "colorama" in sys.modules:  # pragma: no cover
         colorama.init()
 
-    logger.addHandler(RichHandler())
+    logger.addHandler(
+        RichHandler(rich_tracebacks=True, tracebacks_show_locals=True, show_path=debug)
+    )
     logger.setLevel(logging.DEBUG)
     logger.propagate = False
 
-    if log_requests:
+    if debug:
         requests.packages.urllib3.add_stderr_logger()
 
 
