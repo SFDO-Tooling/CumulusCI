@@ -11,6 +11,7 @@ import click
 import pkg_resources
 import pytest
 from requests.exceptions import ConnectionError
+from rich.console import Console
 
 import cumulusci
 from cumulusci.cli import cci
@@ -20,6 +21,7 @@ from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.utils import temporary_dir
 
 MagicMock = mock.MagicMock()
+CONSOLE = Console()
 
 
 class TestCCI(unittest.TestCase):
@@ -341,7 +343,7 @@ class TestCCI(unittest.TestCase):
         error = "Something bad happened."
         cci_open.__enter__.return_value = mock.Mock()
 
-        cci.handle_exception(error, False, logfile_path)
+        cci.handle_exception(error, CONSOLE, False, logfile_path)
 
         style.call_args_list[0][0] == f"Error: {error}"
         style.call_args_list[1][0] == cci.SUGGEST_ERROR_COMMAND
@@ -356,7 +358,7 @@ class TestCCI(unittest.TestCase):
         """Ensure we don't write to logfiles when running `cci error ...` commands."""
         error = "Something bad happened."
         logfile_path = None
-        cci.handle_exception(error, False, logfile_path)
+        cci.handle_exception(error, CONSOLE, False, logfile_path)
 
         style.call_args_list[0][0] == f"Error: {error}"
         style.call_args_list[1][0] == cci.SUGGEST_ERROR_COMMAND
@@ -370,7 +372,7 @@ class TestCCI(unittest.TestCase):
         Path(logfile_path).touch()
         cci_open.__enter__.return_value = mock.Mock()
 
-        cci.handle_exception(click.ClickException("oops"), False, logfile_path)
+        cci.handle_exception(click.ClickException("oops"), CONSOLE, False, logfile_path)
         style.call_args_list[0][0] == "Error: oops"
 
         os.remove(logfile_path)
@@ -381,7 +383,7 @@ class TestCCI(unittest.TestCase):
         logfile_path = "file.log"
         Path(logfile_path).touch()
 
-        cci.handle_exception(ConnectionError(), False, logfile_path)
+        cci.handle_exception(ConnectionError(), CONSOLE, False, logfile_path)
         connection_msg.assert_called_once()
         os.remove(logfile_path)
 

@@ -62,16 +62,16 @@ def main(args=None):
             args.remove("--debug")
 
         with set_debug_mode(debug):
+            console = Console()
             try:
                 runtime = CliRuntime(load_keychain=False)
             except Exception as e:
-                handle_exception(e, is_error_command, tempfile_path, debug)
+                handle_exception(e, console, is_error_command, tempfile_path, debug)
                 sys.exit(1)
 
             runtime.check_cumulusci_version()
             should_show_stacktraces = runtime.universal_config.cli__show_stacktraces
 
-            console = Console()
             init_logger(debug=debug)
             # Hand CLI processing over to click, but handle exceptions
             try:
@@ -94,10 +94,10 @@ def main(args=None):
 
 
 def handle_exception(
-    error: Exception,
-    console: Console,
-    is_error_cmd: bool,
-    logfile_path: str,
+    error,
+    console,
+    is_error_cmd,
+    logfile_path,
     should_show_stacktraces=False,
 ):
     """Displays error of appropriate message back to user, prompts user to investigate further
@@ -122,7 +122,7 @@ def handle_exception(
         raise error
 
 
-def connection_error_message(console: Console):
+def connection_error_message(console):
     message = (
         "We encountered an error with your internet connection. "
         "Please check your connection and try the last cci command again."
