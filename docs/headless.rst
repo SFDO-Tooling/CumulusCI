@@ -114,6 +114,8 @@ Below is an example of what this would look like:
 The above assumes that you have ``client_id`` and ``server_key`` setup in your GitHub
 `encrypted secrets <https://docs.github.com/en/free-pro-team@latest/actions/reference/encrypted-secrets>`_
 
+Note that the value of the ``server_key`` environment variable is the content of the file ``server.key``, which was created as part of your Connected App setup. The key is in PEM format.
+
 
 ``CUMULUSCI_ORG_orgName``
 ^^^^^^^^^^^^^^^^^^^^^^^^^

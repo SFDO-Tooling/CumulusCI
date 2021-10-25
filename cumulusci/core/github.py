@@ -2,8 +2,9 @@ import functools
 import io
 import os
 import re
+import time
 import webbrowser
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 from urllib.parse import urlparse
 
 import github3
@@ -11,21 +12,35 @@ from github3 import GitHub, login
 from github3.exceptions import AuthenticationFailed, ResponseError, TransportError
 from github3.git import Reference, Tag
 from github3.pulls import ShortPullRequest
+from github3.repos.commit import RepoCommit
 from github3.repos.repo import Repository
 from github3.session import GitHubSession
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
 from requests.models import Response
 from requests.packages.urllib3.util.retry import Retry
+from rich.console import Console
 
 from cumulusci.core.exceptions import (
     DependencyLookupError,
     GithubApiError,
     GithubException,
 )
+from cumulusci.oauth.client import (
+    OAuth2ClientConfig,
+    OAuth2DeviceConfig,
+    get_device_code,
+    get_device_oauth_token,
+)
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
+OAUTH_DEVICE_APP = {
+    "client_id": "2a4bc3e5ce4f2c49a957",
+    "auth_uri": "https://github.com/login/device/code",
+    "token_uri": "https://github.com/login/oauth/access_token",
+    "scope": "repo gist",
+}
 SSO_WARNING = """Results may be incomplete. You have not granted your Personal Access token access to the following organizations:"""
 UNAUTHORIZED_WARNING = """
 Bad credentials. Verify that your personal access token is correct and that you are authorized to access this resource.
@@ -112,7 +127,7 @@ def validate_service(options: dict) -> dict:
         # We're checking for a partial-response SSO header and /user/orgs
         # doesn't include one, so we need /user/repos instead.
         repo_generator = gh.repositories()
-        _ = repo_generator.next()
+        _ = next(repo_generator, None)
         repo_response = repo_generator.last_response
         options["scopes"] = get_oauth_scopes(repo_response)
 
@@ -122,6 +137,12 @@ def validate_service(options: dict) -> dict:
         }
         if unauthorized_orgs:
             options["SSO Disabled"] = ", ".join([k for k in unauthorized_orgs.values()])
+
+        expiration_date = repo_response.headers.get(
+            "GitHub-Authentication-Token-Expiration"
+        )
+        if expiration_date:
+            options["expires"] = expiration_date
 
     return options
 
@@ -232,17 +253,23 @@ VERSION_ID_RE = re.compile(r"version_id: (\S+)")
 
 
 def get_version_id_from_commit(repo, commit_sha, context):
-    try:
-        commit = repo.commit(commit_sha)
-    except (github3.exceptions.NotFoundError, github3.exceptions.UnprocessableEntity):
-        # GitHub returns 422 for nonexistent commits in at least some circumstances.
-        raise DependencyLookupError(f"Could not find commit {commit_sha} on GitHub")
+    commit = get_commit(repo, commit_sha)
 
     for status in commit.status().statuses:
         if status.state == "success" and status.context == context:
             match = VERSION_ID_RE.search(status.description)
             if match:
                 return match.group(1)
+
+
+def get_commit(repo: Repository, commit_sha: str) -> Optional[RepoCommit]:
+    """Given a SHA1 hash, retrieve a Commit object from the REST API."""
+    try:
+        commit = repo.commit(commit_sha)
+    except (github3.exceptions.NotFoundError, github3.exceptions.UnprocessableEntity):
+        # GitHub returns 422 for nonexistent commits in at least some circumstances.
+        raise DependencyLookupError(f"Could not find commit {commit_sha} on GitHub")
+    return commit
 
 
 def find_repo_feature_prefix(repo: Repository) -> str:
@@ -336,6 +363,21 @@ def format_github3_exception(exc: Union[ResponseError, TransportError]) -> str:
         scope_error_msg = check_github_scopes(exc)
         sso_error_msg = check_github_sso_auth(exc)
         user_warning = scope_error_msg + sso_error_msg
+
+    return user_warning
+
+
+def warn_oauth_restricted(exc: ResponseError) -> str:
+    user_warning = ""
+
+    is_403 = exc.response.status_code == 403
+    org_restricted_oauth_warning = (
+        "organization has enabled OAuth App access restrictions"
+    )
+
+    if is_403 and org_restricted_oauth_warning in str(exc):
+        user_warning = str(exc)
+        user_warning += "\nYou may also use a Personal Access Token as a workaround."
 
     return user_warning
 
@@ -456,3 +498,31 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
                 raise
 
     return inner
+
+
+def get_oauth_device_flow_token():
+    """Interactive github authorization"""
+    config = OAuth2ClientConfig(**OAUTH_DEVICE_APP)
+    device_code = OAuth2DeviceConfig(**get_device_code(config))
+
+    console = Console()
+    console.print(
+        f"[bold] Enter this one-time code: [red]{device_code.user_code}[/red][/bold]"
+    )
+
+    console.print(f"Opening {device_code.verification_uri} in your default browser...")
+    webbrowser.open(device_code.verification_uri)
+    time.sleep(2)  # Give the user a second or two before we start polling
+
+    with console.status("Polling server for authorization..."):
+        device_token: dict = get_device_oauth_token(
+            client_config=config, device_config=device_code
+        )
+
+    access_token = device_token.get("access_token")
+    if access_token:
+        console.print(
+            f"[bold green]Successfully authorized OAuth token ({access_token[:7]}...)[/bold green]"
+        )
+
+    return access_token

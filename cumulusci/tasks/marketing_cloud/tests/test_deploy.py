@@ -132,6 +132,25 @@ class TestMarketingCloudDeployTask:
             == "Failed to deploy assets/1. Status: SKIPPED. Issues: ['A problem occurred']"
         )
 
+    @responses.activate
+    def test_run_task__FATAL_ERROR_result(self, task):
+        responses.add(
+            "POST",
+            f"{MCPM_ENDPOINT}/deployments",
+            json={"id": "JOBID", "status": "FATAL_ERROR"},
+        )
+        responses.add(
+            "GET",
+            f"{MCPM_ENDPOINT}/deployments/JOBID",
+            json={
+                "status": "FATAL_ERROR",
+                "entities": {},
+            },
+        )
+        task.logger = mock.Mock()
+        with pytest.raises(DeploymentException):
+            task._run_task()
+
     def test_zipfile_not_valid(self, task):
         task.options["package_zip_file"] = "not-a-valid-file.zip"
         task.logger = mock.Mock()

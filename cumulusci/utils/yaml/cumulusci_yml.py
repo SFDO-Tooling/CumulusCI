@@ -19,6 +19,13 @@ PythonClassPath = str
 URL = str
 
 
+# additionalProperties here works around an
+# incompatibility with VSCode's Red Hat YAML validator
+# Can probably remove it at some future date if the
+# bug/incompatibilty is fixed elsewhere in the stack
+VSCodeFriendlyDict = Field({}, additionalProperties=True)
+
+
 class PreflightCheck(CCIDictModel):
     when: str = None
     action: str = None
@@ -28,11 +35,12 @@ class PreflightCheck(CCIDictModel):
 class Step(CCIDictModel):
     task: str = None
     flow: str = None
-    options: Dict[str, Any] = {}
     ignore_failure: bool = False
     when: str = None  # is this allowed?
-    ui_options: Dict[str, Any] = {}
+    options: Dict[str, Any] = VSCodeFriendlyDict
+    ui_options: Dict[str, Any] = VSCodeFriendlyDict
     checks: List[PreflightCheck] = []
+    description: str = None
 
     @root_validator()
     def _check(cls, values):
@@ -47,9 +55,11 @@ class Step(CCIDictModel):
 class Task(CCIDictModel):
     class_path: str = None
     description: str = None
-    options: Dict[str, Any] = None
     group: str = None
-    ui_options: Dict[str, Any] = None
+    # additionalProperties here works around an
+    # incompatibility with VSCode's Red Hat YAML validator
+    options: Dict[str, Any] = VSCodeFriendlyDict
+    ui_options: Dict[str, Any] = VSCodeFriendlyDict
     name: str = None  # get rid of this???
 
 
@@ -66,6 +76,7 @@ class Package(CCIDictModel):
     install_class: str = None
     uninstall_class: str = None
     api_version: str = None
+    metadata_package_id: str = None
 
 
 class Test(CCIDictModel):
@@ -101,7 +112,6 @@ class Plan(CCIDictModel):  # MetaDeploy plans
     is_listed: bool = True
     steps: Dict[str, Step] = None
     checks: List[PreflightCheck] = []
-    group: str = None
     error_message: str = None
     post_install_message: str = None
     preflight_message: str = None
@@ -138,6 +148,7 @@ class Orgs(CCIDictModel):
 class ServiceAttribute(CCIDictModel):
     description: str = None
     required: bool = None
+    default_factory: PythonClassPath = None
 
 
 class Service(CCIDictModel):
@@ -214,9 +225,9 @@ class CumulusCIFile(CCIDictModel):
     __root__: Union[CumulusCIRoot, None]
 
 
-def parse_from_yaml(source):
+def parse_from_yaml(source) -> dict:
     "Parse from a path, url, path-like or file-like"
-    return CumulusCIFile.parse_from_yaml(source)
+    return CumulusCIFile.parse_from_yaml(source) or {}
 
 
 def validate_data(
@@ -265,7 +276,7 @@ def _log_yaml_errors(logger, errors: List[ErrorDict]):
 
 def cci_safe_load(
     source: DataInput, context: str = None, on_error: callable = None, logger=None
-):
+) -> dict:
     """Load a CumulusCI.yml file and issue warnings for unknown structures."""
     errors = []
     assert not (
@@ -295,7 +306,7 @@ def cci_safe_load(
                     }
                 )
             pass
-        return data
+        return data or {}
 
 
 def _validate_files(globs):

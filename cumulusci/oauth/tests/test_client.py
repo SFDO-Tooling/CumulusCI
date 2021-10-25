@@ -15,7 +15,14 @@ from requests.models import Response
 
 from cumulusci.core.exceptions import SalesforceCredentialsException
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_PORT
-from cumulusci.oauth.client import PORT_IN_USE_ERR, OAuth2Client
+from cumulusci.oauth.client import (
+    PORT_IN_USE_ERR,
+    OAuth2Client,
+    OAuth2ClientConfig,
+    OAuth2DeviceConfig,
+    get_device_code,
+    get_device_oauth_token,
+)
 from cumulusci.oauth.exceptions import OAuth2Error
 from cumulusci.oauth.salesforce import jwt_session
 
@@ -229,3 +236,61 @@ class TestOAuth2Client:
         response.status_code = 400
         with pytest.raises(OAuth2Error):
             client.validate_response(response)
+
+
+@pytest.fixture
+def device_client_config():
+    """Modified client_config for device auth flow"""
+    client_config = {
+        "auth_uri": "https://github.com/login/device/code",
+        "client_id": "2a4bc3e5ce4f2c49a957",
+        "token_uri": "https://github.com/login/oauth/access_token",
+        "scope": "repo gist",
+    }
+    return OAuth2ClientConfig(**client_config)
+
+
+@pytest.fixture
+def device_user_code_resp():
+    return {
+        "device_code": "36482450e39b7f27d9a145a96898d29365a4e73f",
+        "user_code": "3E15-9D06",
+        "verification_uri": "https://github.com/login/device",
+        "expires_in": 899,
+        "interval": 5,
+    }
+
+
+@pytest.fixture
+def device_device_config(device_user_code_resp):
+    return OAuth2DeviceConfig(device_user_code_resp)
+
+
+@pytest.fixture(autouse=True)
+def configure_recording_mode():
+    """Ignore --replace-vcr or integration tests fail."""
+    pass
+
+
+# Use run_code_without_recording for these or `make vcr` fails.
+@pytest.mark.vcr()
+def test_get_device_code(device_client_config, device_user_code_resp):
+    response_dict: dict = get_device_code(device_client_config)
+    expected = device_user_code_resp
+    assert expected == response_dict
+
+
+@pytest.mark.vcr()
+def test_get_device_oauth_token(device_client_config, device_user_code_resp):
+    """
+    Note that the get_device_oauth_token includes a sleep while wating for the
+    user to authorize the app. Mock `time.sleep` to regenerate the VCR cassette.
+    """
+    device_config = OAuth2DeviceConfig(**device_user_code_resp)
+    response_dict = get_device_oauth_token(device_client_config, device_config)
+    expected_response_dict = {
+        "access_token": "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",
+        "token_type": "bearer",
+        "scope": "gist,repo",
+    }
+    assert expected_response_dict == response_dict

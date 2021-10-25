@@ -6,8 +6,9 @@ from datetime import datetime
 from urllib.parse import urlencode, urlparse
 
 import click
+from rich.console import Console
 
-from cumulusci.cli.ui import CROSSMARK, CliTable, SimpleSalesforceUIHelpers
+from cumulusci.cli.ui import CliTable, SimpleSalesforceUIHelpers
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
@@ -269,7 +270,7 @@ def org_info(runtime, org_name, print_json):
             )
         )
     else:
-        UI_KEYS = [
+        ui_key_set = {
             "config_file",
             "config_name",
             "created",
@@ -289,16 +290,18 @@ def org_info(runtime, org_name, print_json):
             "set_password",
             "sfdx_alias",
             "username",
-        ]
-        keys = [key for key in org_config.config.keys() if key in UI_KEYS]
+        }
+        keys = ui_key_set.intersection(org_config.config.keys())
         pairs = [[key, str(org_config.config[key])] for key in keys]
         pairs.append(["api_version", org_config.latest_api_version])
         pairs.sort()
-        table_data = [["Key", "Value"]]
+        table_data = [[f"Org: {org_name}", ""]]
         table_data.extend(
             [[click.style(key, bold=True), value] for key, value in pairs]
         )
-        table = CliTable(table_data, wrap_cols=["Value"])
+        table = CliTable(
+            table_data,
+        )
         table.echo()
 
         if org_config.scratch and org_config.expires:
@@ -316,68 +319,75 @@ def org_info(runtime, org_name, print_json):
 @pass_runtime(require_project=False, require_keychain=True)
 def org_list(runtime, json_flag, plain):
     plain = plain or runtime.universal_config.cli__plain_output
-    header = ["Name", "Default", "Username", "Expires"]
-    persistent_data = [header]
-    scratch_data = [header[:2] + ["Days", "Expired", "Config", "Domain"]]
     org_configs = {
         org: runtime.keychain.get_org(org) for org in runtime.keychain.list_orgs()
     }
     json_data = {}
-    rows_to_dim = []
     default_org_name, _ = runtime.keychain.get_default_org()
     for org, org_config in org_configs.items():
         is_org_default = org == default_org_name
-        row = [org, is_org_default]
-        if isinstance(org_config, ScratchOrgConfig):
-            org_days = org_config.format_org_days()
-            if org_config.expired:
-                domain = ""
-            else:
-                instance_url = org_config.config.get("instance_url", "")
-                domain = urlparse(instance_url).hostname or ""
-                if domain:
-                    domain = domain.replace(".my.salesforce.com", "")
-            row.extend(
-                [org_days, not org_config.active, org_config.config_name, domain]
-            )
-            scratch_data.append(row)
-            json_data[org] = {
-                "is_default": is_org_default,
-                "days": org_days,
-                "expired": not org_config.active,
-                "config": org_config.config_name,
-                "domain": domain,
-                "is_scratch": True,
-            }
-        else:
-            username = org_config.config.get(
-                "username", org_config.userinfo__preferred_username
-            )
-            row.append(username)
-            row.append(org_config.expires or "Unknown")
-            persistent_data.append(row)
-            json_data[org] = {"is_default": is_org_default, "is_scratch": False}
+        row_data = {"is_default": is_org_default, "name": org}
+        row_data.update(_get_org_dict(org_config))
+        json_data[row_data["name"]] = row_data
 
     if json_flag:
         click.echo(json.dumps(json_data))
         return
 
-    rows_to_dim = [row_index for row_index, row in enumerate(scratch_data) if row[3]]
-    scratch_table = CliTable(
-        scratch_data, title="Scratch Orgs", bool_cols=["Default"], dim_rows=rows_to_dim
-    )
-    scratch_table.stringify_boolean_col(col_name="Expired", true_str=CROSSMARK)
-    scratch_table.echo(plain)
+    console = Console()
+    scratch_table, persistent_table = _make_tables(json_data)
+    console.print(scratch_table, justify="left")
+    console.print(persistent_table, justify="left")
 
-    wrap_cols = ["Username"] if not plain else None
-    persistent_table = CliTable(
-        persistent_data,
-        title="Connected Orgs",
-        wrap_cols=wrap_cols,
-        bool_cols=["Default"],
-    )
-    persistent_table.echo(plain)
     runtime.keychain.cleanup_org_cache_dirs()
+
+
+def _make_tables(json_data: dict):
+    scratch_keys = [
+        key for key, row_dict in json_data.items() if row_dict.pop("is_scratch")
+    ]
+    scratch_data = [["Default", "Name", "Days", "Expired", "Config", "Domain"]]
+    scratch_data.extend([list(json_data.pop(k).values()) for k in scratch_keys])
+
+    rows_to_dim = [row_index for row_index, row in enumerate(scratch_data) if row[3]]
+    scratch = CliTable(scratch_data, title="Scratch Orgs", dim_rows=rows_to_dim)
+
+    persistent_data = [["Default", "Name", "Username", "Expires"]]
+    persistent_data.extend([list(row_dict.values()) for row_dict in json_data.values()])
+    persistent = CliTable(persistent_data, title="Connected Orgs")
+
+    return scratch.table, persistent.table
+
+
+def _get_org_dict(org_config):
+    if isinstance(org_config, ScratchOrgConfig):
+        return _format_scratch_org_data(org_config)
+    else:
+        return {
+            "username": org_config.config.get(
+                "username", org_config.userinfo__preferred_username
+            ),
+            "expires": org_config.expires or "Unknown",
+            "is_scratch": False,
+        }
+
+
+def _format_scratch_org_data(org_config):
+    org_days = org_config.format_org_days()
+    if org_config.expired:
+        domain = ""
+    else:
+        instance_url = org_config.config.get("instance_url", "")
+        domain = (urlparse(instance_url).hostname or "").replace(
+            ".my.salesforce.com", ""
+        )
+    return {
+        "days": org_days,
+        "expired": org_config.expired,
+        "config": org_config.config_name,
+        "domain": domain,
+        "is_scratch": True,
+    }
 
 
 @org.command(

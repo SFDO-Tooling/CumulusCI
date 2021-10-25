@@ -5,6 +5,7 @@ from github3.exceptions import NotFoundError
 
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.github import (
+    catch_common_github_auth_errors,
     find_latest_release,
     find_previous_release,
     get_github_api_for_repo,
@@ -28,7 +29,7 @@ class GitHubSource:
             self.gh = get_github_api_for_repo(
                 project_config.keychain, self.repo_owner, self.repo_name
             )
-            self.repo = self.gh.repository(self.repo_owner, self.repo_name)
+            self.repo = self._get_repository(self.repo_owner, self.repo_name)
         except NotFoundError:
             raise DependencyResolutionError(
                 f"We are unable to find the repository at {self.url}. Please make sure the URL is correct, that your GitHub user has read access to the repository, and that your GitHub personal access token includes the “repo” scope."
@@ -48,6 +49,11 @@ class GitHubSource:
 
     def __hash__(self):
         return hash((self.url, self.commit))
+
+    @catch_common_github_auth_errors
+    def _get_repository(self, repo_owner: str, repo_name: str):
+        repo = self.gh.repository(repo_owner, repo_name)
+        return repo
 
     def resolve(self):
         """Resolve a GitHub source into a specific commit.

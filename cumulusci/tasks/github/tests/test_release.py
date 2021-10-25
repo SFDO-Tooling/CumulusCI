@@ -10,6 +10,8 @@ from cumulusci.tasks.github import CreateRelease
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tests.util import create_project_config
 
+DUMMY_SHA = "21e04cfe480f5293e2f7103eee8a5cbdb94f7982"
+
 
 @mock.patch("cumulusci.tasks.github.release.time.sleep", mock.Mock())
 class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
@@ -52,6 +54,12 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             method=responses.GET,
             url=self.repo_api_url + "/git/refs/tags/release/1.0",
             status=404,
+        )
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + f"/commits/{DUMMY_SHA}",
+            json=self._get_expected_commit(DUMMY_SHA),
+            status=200,
         )
         responses.add(
             method=responses.POST,
@@ -98,7 +106,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             task.return_values,
         )
         # confirm the package_type was recorded in the tag message
-        tag_request = json.loads(responses.calls._calls[3].request.body)
+        tag_request = json.loads(responses.calls._calls[4].request.body)
         assert "package_type: 1GP" in tag_request["message"]
         # confirm we didn't create a prerelease
         release_request = json.loads(responses.calls._calls[-1].request.body)
@@ -190,6 +198,12 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             status=404,
         )
         responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + f"/commits/{DUMMY_SHA}",
+            json=self._get_expected_commit(DUMMY_SHA),
+            status=200,
+        )
+        responses.add(
             method=responses.POST,
             url=self.repo_api_url + "/git/tags",
             json=self._get_expected_tag(
@@ -233,7 +247,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             },
             task.return_values,
         )
-        assert "package_type: 2GP" in responses.calls._calls[3].request.body
+        assert "package_type: 2GP" in responses.calls._calls[4].request.body
 
     @responses.activate
     def test_run_task__beta_1gp(self):
@@ -251,6 +265,12 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             method=responses.GET,
             url=self.repo_api_url + "/git/refs/tags/beta/1.0-Beta_1",
             status=404,
+        )
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + f"/commits/{DUMMY_SHA}",
+            json=self._get_expected_commit(DUMMY_SHA),
+            status=200,
         )
         responses.add(
             method=responses.POST,
@@ -317,6 +337,12 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             status=404,
         )
         responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + f"/commits/{DUMMY_SHA}",
+            json=self._get_expected_commit(DUMMY_SHA),
+            status=200,
+        )
+        responses.add(
             method=responses.POST,
             url=self.repo_api_url + "/git/tags",
             json=self._get_expected_tag(
@@ -370,4 +396,4 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             },
             task.return_values,
         )
-        assert "package_type: 2GP" in responses.calls._calls[3].request.body
+        assert "package_type: 2GP" in responses.calls._calls[4].request.body

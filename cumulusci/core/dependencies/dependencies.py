@@ -594,6 +594,10 @@ class UnmanagedGitHubRefDependency(UnmanagedDependency):
     # and
     ref: str
 
+    # for backwards compatibility only; currently unused
+    filename_token: Optional[str] = None
+    namespace_token: Optional[str] = None
+
     @pydantic.root_validator
     def validate(cls, values):
         return _validate_github_parameters(values)

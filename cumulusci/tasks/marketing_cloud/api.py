@@ -76,6 +76,7 @@ class CreateUser(BaseMarketingCloudTask):
         "user_password": {
             "description": "Set the User's password.",
             "required": True,
+            "sensitive": True,
         },
         "user_username": {
             "description": "Set the User's username. Not the same as their name.",
@@ -164,6 +165,7 @@ class UpdateUserRole(BaseMarketingCloudTask):
         "user_password": {
             "description": "Specify the User's password.",
             "required": True,
+            "sensitive": True,
         },
         "role_id": {
             "description": "Assign a Role to the User, specified as an ID. IDs for system defined roles located here: https://developer.salesforce.com/docs/atlas.en-us.noversion.mc-apis.meta/mc-apis/setting_user_permissions_via_the_web_services_api.htm",

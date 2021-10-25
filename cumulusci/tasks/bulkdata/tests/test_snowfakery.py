@@ -199,7 +199,7 @@ def get_mapping_from_snowfakery_task_results(results: SnowfakeryTaskResults):
 
 def get_record_counts_from_snowfakery_results(
     results: SnowfakeryTaskResults,
-) -> Counter:
+):
     """Collate the record counts from Snowfakery outbox directories"""
 
     rollups = Counter()

@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime
 from unittest import mock
@@ -16,6 +17,7 @@ from github3.session import AppInstallationTokenAuth
 from requests.exceptions import RequestException, RetryError
 from requests.models import Response
 
+import cumulusci
 from cumulusci.core import github
 from cumulusci.core.exceptions import (
     DependencyLookupError,
@@ -31,8 +33,10 @@ from cumulusci.core.github import (
     create_gist,
     create_pull_request,
     format_github3_exception,
+    get_commit,
     get_github_api,
     get_github_api_for_repo,
+    get_oauth_device_flow_token,
     get_oauth_scopes,
     get_pull_requests_by_commit,
     get_pull_requests_by_head,
@@ -45,6 +49,7 @@ from cumulusci.core.github import (
     is_pull_request_merged,
     markdown_link_to_pr,
     validate_service,
+    warn_oauth_restricted,
 )
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
@@ -388,6 +393,32 @@ class TestGithub(GithubApiTestMixin):
         with pytest.raises(DependencyLookupError):
             get_version_id_from_tag(repo, "test-tag-name")
 
+    @responses.activate
+    def test_get_commit(self, repo):
+        self.init_github()
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + "/commits/DUMMY_SHA",
+            json=self._get_expected_commit("DUMMY_SHA"),
+            status=200,
+        )
+        commit = get_commit(repo, "DUMMY_SHA")
+        assert commit.sha == "DUMMY_SHA"
+
+    @responses.activate
+    def test_get_commit__dependency_error(self, repo):
+        self.init_github()
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + "/commits/DUMMY_SHA",
+            json={"message": "Could not verify object"},
+            status=422,
+        )
+        with pytest.raises(
+            DependencyLookupError, match="Could not find commit DUMMY_SHA on GitHub"
+        ):
+            get_commit(repo, "DUMMY_SHA")
+
     def test_get_oauth_scopes(self):
         resp = Response()
         resp.headers["X-OAuth-Scopes"] = "repo, user"
@@ -440,6 +471,17 @@ class TestGithub(GithubApiTestMixin):
         actual_error_msg = check_github_sso_auth(exc).strip()
         assert expected_err_msg == actual_error_msg
 
+    def test_github_oauth_org_restricted(self):
+        resp = Response()
+        resp.status_code = 403
+        body = {"message": "organization has enabled OAuth App access restrictions"}
+        resp._content = json.dumps(body)
+        exc = ForbiddenError(resp)
+
+        expected_warning = "You may also use a Personal Access Token as a workaround."
+        actual_error_msg = warn_oauth_restricted(exc)
+        assert expected_warning in actual_error_msg
+
     def test_format_gh3_exc_retry(self):
         resp = Response()
         resp.status_code = 401
@@ -475,3 +517,125 @@ class TestGithub(GithubApiTestMixin):
 
         with pytest.raises(TransportError):
             test_func()
+
+    @responses.activate
+    def test_validate_no_repo_exc(self):
+        service_dict = {
+            "username": "e2ac67",
+            "token": "ghp_cf83e1357eefb8bdf1542850d66d8007d620e4",
+            "email": "testerson@test.com",
+        }
+        responses.add(
+            responses.GET,
+            "https://api.github.com/user",
+            json={
+                "login": "e2ac67",
+                "id": 91303375,
+                "node_id": "MDQ6VXNlcjkxMzAzMzc1",
+                "avatar_url": "https://avatars.githubusercontent.com/u/91303375?v=4",
+                "gravatar_id": "",
+                "url": "https://api.github.com/users/e2ac67",
+                "html_url": "https://github.com/e2ac67",
+                "followers_url": "https://api.github.com/users/e2ac67/followers",
+                "following_url": "https://api.github.com/users/e2ac67/following{/other_user}",
+                "gists_url": "https://api.github.com/users/e2ac67/gists{/gist_id}",
+                "starred_url": "https://api.github.com/users/e2ac67/starred{/owner}{/repo}",
+                "subscriptions_url": "https://api.github.com/users/e2ac67/subscriptions",
+                "organizations_url": "https://api.github.com/users/e2ac67/orgs",
+                "repos_url": "https://api.github.com/users/e2ac67/repos",
+                "events_url": "https://api.github.com/users/e2ac67/events{/privacy}",
+                "received_events_url": "https://api.github.com/users/e2ac67/received_events",
+                "type": "User",
+                "site_admin": False,
+                "name": None,
+                "company": None,
+                "blog": "",
+                "location": None,
+                "email": None,
+                "hireable": None,
+                "bio": None,
+                "twitter_username": None,
+                "public_repos": 0,
+                "public_gists": 0,
+                "followers": 0,
+                "following": 0,
+                "created_at": "2021-09-24T03:53:02Z",
+                "updated_at": "2021-09-24T03:59:40Z",
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/user/orgs",
+            json=[],
+        )
+        responses.add(
+            responses.GET,
+            "https://api.github.com/user/repos",
+            json=[],
+            headers={
+                "GitHub-Authentication-Token-Expiration": "2021-10-07 19:07:53 UTC",
+                "X-OAuth-Scopes": "gist, repo",
+            },
+        )
+        updated_dict = validate_service(service_dict)
+        expected_dict = {
+            "username": "e2ac67",
+            "token": "ghp_cf83e1357eefb8bdf1542850d66d8007d620e4",
+            "email": "testerson@test.com",
+            "Organizations": "",
+            "scopes": {"gist", "repo"},
+            "expires": "2021-10-07 19:07:53 UTC",
+        }
+        assert expected_dict == updated_dict
+
+    @responses.activate
+    def test_validate_bad_auth(self):
+        service_dict = {
+            "username": "e2ac67",
+            "token": "bad_cf83e1357eefb8bdf1542850d66d8007d620e4",
+            "email": "testerson@test.com",
+        }
+
+        responses.add(
+            responses.GET,
+            "https://api.github.com/user",
+            json={
+                "message": "Bad credentials",
+                "documentation_url": "https://docs.github.com/rest",
+            },
+            status=401,
+        )
+
+        with pytest.raises(cumulusci.core.exceptions.GithubException) as e:
+            validate_service(service_dict)
+        assert "401" in str(e.value)
+
+    @mock.patch("webbrowser.open")
+    @mock.patch("cumulusci.core.github.get_device_code")
+    @mock.patch("cumulusci.core.github.get_device_oauth_token", autospec=True)
+    def test_get_oauth_device_flow_token(
+        self,
+        get_token,
+        get_code,
+        browser_open,
+    ):
+        device_config = {
+            "device_code": "36482450e39b7f27d9a145a96898d29365a4e73f",
+            "user_code": "3E15-9D06",
+            "verification_uri": "https://github.com/login/device",
+            "expires_in": 899,
+            "interval": 5,
+        }
+        get_code.return_value = device_config
+        get_token.return_value = {
+            "access_token": "expected_access_token",
+            "token_type": "bearer",
+            "scope": "gist,repo",
+        }
+
+        returned_token = get_oauth_device_flow_token()
+
+        assert "expected_access_token" == returned_token
+        get_token.assert_called_once()
+        get_code.assert_called_once()
+        browser_open.assert_called_with("https://github.com/login/device")

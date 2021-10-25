@@ -259,18 +259,26 @@ class TaskRunner(object):
         )
 
     def _log_options(self, task):
-        task.logger.info("Options:")
         if not task.task_options:
+            task.logger.info("No task options present")
             return
+        task.logger.info("Options:")
         for key, info in task.task_options.items():
             value = task.options.get(key)
             if value is not None:
                 if type(value) is not list:
+                    value = self._obfuscate_if_sensitive(value, info)
                     task.logger.info(f"  {key}: {value}")
                 else:
                     task.logger.info(f"  {key}:")
                     for v in value:
+                        v = self._obfuscate_if_sensitive(v, info)
                         task.logger.info(f"    - {v}")
+
+    def _obfuscate_if_sensitive(self, value, info):
+        if info.get("sensitive"):
+            value = 8 * "*"
+        return value
 
 
 class FlowCoordinator(object):

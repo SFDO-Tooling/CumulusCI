@@ -145,7 +145,6 @@ class TestCumulusciYml:
 """
         assert not caplog.text
         cci_safe_load(StringIO(yaml))
-        print(caplog.text)
         assert "steps" in caplog.text
         assert "my_flow" in caplog.text
 
@@ -168,6 +167,11 @@ class TestCumulusciYml:
         assert "sf_object" in str(errs)
         assert "extra fields not permitted" in str(errs)
         assert "snowfakery.load.yml" in str(errs)
+
+    def test_validate_empty(self, caplog):
+        out = cci_safe_load(StringIO(""))
+        assert not caplog.text, caplog.text
+        assert out == {}
 
 
 @pytest.fixture

@@ -4,6 +4,7 @@ import unittest
 import zipfile
 from unittest import mock
 
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.salesforce import UninstallPackagedIncremental
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
@@ -92,6 +93,20 @@ class TestUninstallPackagedIncremental(unittest.TestCase):
 </Package>""",
                 result,
             )
+
+    def test_get_destructive_changes__no_package_xml(self):
+        project_config = create_project_config()
+        project_config.config["project"]["package"]["name"] = "TestPackage"
+        project_config.config["project"]["package"]["api_version"] = "43.0"
+        task = create_task(
+            UninstallPackagedIncremental,
+            {
+                "ignore": {"ApexClass": ["Ignored"]},
+            },
+            project_config,
+        )
+        with self.assertRaises(CumulusCIException):
+            task._get_destructive_changes()
 
     def test_dry_run(self):
         project_config = create_project_config()

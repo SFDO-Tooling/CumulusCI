@@ -38,7 +38,10 @@ def task_list(runtime, plain, print_json):
     for group, tasks in task_groups.items():
         data = [["Task", "Description"]]
         data.extend(sorted(tasks))
-        table = CliTable(data, group, wrap_cols=["Description"])
+        table = CliTable(
+            data,
+            group,
+        )
         table.echo(plain)
 
     click.echo(
@@ -198,7 +201,10 @@ class RunTaskCommand(click.MultiCommand):
         for group, tasks in task_groups.items():
             data = [["Task", "Description"]]
             data.extend(sorted(tasks))
-            table = CliTable(data, group, wrap_cols=["Description"])
+            table = CliTable(
+                data,
+                group,
+            )
             table.echo(plain)
 
         click.echo("Usage: cci task run <task_name> [TASK_OPTIONS...]\n")

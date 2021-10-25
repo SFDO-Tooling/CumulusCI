@@ -146,9 +146,7 @@ class TestCompositeApi:
         ]
 
         task()
-        table.assert_called_once_with(
-            (expected_table_data), bool_cols=["Success"], title="Subrequest Results"
-        )
+        table.assert_called_once_with((expected_table_data), title="Subrequest Results")
 
     @responses.activate
     @patch("cumulusci.tasks.salesforce.composite.CliTable")
@@ -207,7 +205,9 @@ class TestCompositeApi:
         with pytest.raises(SalesforceException):
             task()
 
-        table.assert_called_once_with((expected_table_data), wrap_cols=["Message"])
+        table.assert_called_once_with(
+            (expected_table_data),
+        )
 
     def test_json_processing(self):
         request = COMPOSITE_REQUEST["compositeRequest"].copy()

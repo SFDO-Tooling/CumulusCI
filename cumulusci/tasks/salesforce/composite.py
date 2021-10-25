@@ -129,7 +129,9 @@ Example Task Definition
             for body in sub["body"]
             if body.get("message") != API_ROLLBACK_MESSAGE
         )
-        table = CliTable(table_data, wrap_cols=["Message"])
+        table = CliTable(
+            table_data,
+        )
         self.logger.error("The request failed with the following message(s):\n\n")
         self.logger.error("\n" + str(table))
 
@@ -139,5 +141,5 @@ Example Task Definition
             [sub["referenceId"], self._http_ok(sub["httpStatusCode"])]
             for sub in subrequests
         )
-        table = CliTable(table_data, bool_cols=["Success"], title="Subrequest Results")
+        table = CliTable(table_data, title="Subrequest Results")
         self.logger.info("\n" + str(table))

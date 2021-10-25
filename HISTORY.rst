@@ -2,6 +2,44 @@
 History
 =======
 
+v3.46.0 (2021-10-14)
+--------------------
+Critical Changes
+
+- Backwards incompatibility: the robot task option `debug` has been renamed to `robot_debug`. (#2909)
+
+
+Changes
+
+- CumulusCI now has a schema published `here <https://github.com/SFDO-Tooling/CumulusCI/tree/main/cumulusci/schema/cumulusci.jsonschema.json>`_. This is primarily intended to be use for enabling linting in VS Code, but could be used for any schema-aware editor or any validation purpose. (#2902)
+- We added a new task `create_blank_profile` that can be used to create a new profile from scratch without any permissions enabled. (#2908)
+- Manually creating a Personal Access Token and pasting it into the CLI is no longer required to connect a GitHub service. Instead, CumulusCI now supports GitHub's device authentication flow, allowing you to authenticate via browser using a temporary device code. (#2911)
+- `cci service info` for a github service now displays expiration dates for GitHub personal access tokens, if set. (#2912)
+- Improved error messaging for multiple scenarios where tasks are improperly configured in `cumulusci.yml`. (#2923)
+
+
+Issues Fixed
+
+- Fixed a bug where connecting a GitHub service with `cci service connect` was failing silently. (#2888)
+- Fixed an issue where MetaDeploy steps using the old `filename_token` and `namespace_token` options could not be used. (#2914)
+
+v3.45.0 (2021-09-30)
+--------------------
+
+Changes
+
+-  Updated the ``deploy_marketing_cloud_package`` task for compatibility with the October 2021 release of Marketing Cloud. (#2899)
+-  The ``--max-lines`` option on the ``cci error info`` command has been removed. (#2895)
+
+Issues fixed
+
+-  Removed the unused ``--skip`` option for the ``cci flow run`` command. (#2884)
+-  Flow descriptions no longer generate a warning. (#2885)
+-  We changed how the output from some commands and tasks are displayed in the CLI. (#2887)
+-  Fixed a bug in freezing the ``load_dataset`` task options for MetaDeploy. (#2900)
+-  The marketing cloud ``deploy`` task now properly exits when a result status of ``FATAL_ERROR`` is returned. (#2897)
+-  We fixed a regression in the ``push_list`` task that affected 2GP push upgrades (#2898)
+
 3.44.1 (2021-09-17)
 -------------------
 
