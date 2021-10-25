@@ -13,7 +13,7 @@ Click refresh components
     If we are on the bad references page
     ...  click recompile all
 
-    Page should be NPSP package detail page
+    Page should be package detail page
 
     Wait until element is enabled  Refresh Components
     Click button  Refresh Components
@@ -35,13 +35,13 @@ Go to org URL
     ${org_info}=   Get org info
     Go to  ${org_info['instance_url']}${path}
 
-Page should be NPSP package detail page
+Page should be package detail page
     ${status}=  Run keyword and return status
     ...  Page should contain  Notify on Apex Error
     return from keyword if  $status
 
     Capture page screenshot
-    Fail  It doesn't appear that we are on the NPSP package detail page
+    Fail  It doesn't appear that we are on the package detail page
 
 If we are on the bad references page
     [Arguments]  ${keyword}
