@@ -54,6 +54,9 @@ class CliTable:
             stringified_row.append(cell)
         return stringified_row
 
+    def __rich__(self) -> str:
+        return self._table
+
     def echo(self, plain=False, box_style: box.Box = None):
         """Print this table's data using click.echo()."""
         orig_box = self._table.box

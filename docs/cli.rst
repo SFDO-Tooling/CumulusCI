@@ -29,6 +29,7 @@ To see all available commands, type ``cci`` in your terminal.
     error    Get or share information about an error
     flow     Commands for finding and running flows for a project
     org      Commands for connecting and interacting with Salesforce orgs
+    plan     Commands for getting information about MetaDeploy plans
     project  Commands for interacting with project repository configurations
     service  Commands for connecting services to the keychain
     shell    Drop into a Python shell
@@ -59,21 +60,24 @@ We can see that the ``cci task`` command has many useful subcommands, such as ``
 
 
 
-List Tasks and Flows
---------------------
+List Tasks, Flows, and Plans
+----------------------------
 
-CumulusCI ships with many standard tasks and flows. The following commands list all available tasks and flows for a project:
+CumulusCI ships with many standard tasks and flows. In addition, your
+project might have one or more MetaDeploy plans.
+The following commands list all available tasks, flows, and plans for a project:
 
 .. code-block:: console
 
     $ cci task list
     $ cci flow list
+    $ cci plan list
 
-The tasks and flows listed are specific to the project directory that you're in when you run the command.
+The tasks, flows, and plans listed are specific to the project directory that you're in when you run the command.
 For example, if you have a custom flow defined in your ``cumulusci.yml`` file for Project A, it will only be listed if you run ``cci flow list`` in Project A's root directory.
 
-Tasks and flows are listed by their ``group`` attribute as specified in the ``cumulusci.yml`` file.
-It's easy to edit these groups as you see fit! Any modifications will be reflected in the ``list`` commands.
+The tasks and flows are listed by their ``group`` attribute as specified in the ``cumulusci.yml`` file.
+It's easy to edit these groups as you see fit. Any modifications will be reflected in the ``list`` commands.
 
 
 
@@ -100,7 +104,7 @@ Each option available for a given task also lists:
 * The syntax for the option (``--<name> value``).
 * Whether the option is required or optional.
 * A description of the option.
-   
+
 Let's examine the ``util_sleep`` task:
 
 .. code-block:: console
@@ -179,7 +183,7 @@ Execute a specific task or flow with the ``run`` command.
     $ cci task run <name> --org <org> [options]
     $ cci flow run <name> --org <org> [options]
 
-This command runs the task or flow ``<name>`` against the org ``<org>``. 
+This command runs the task or flow ``<name>`` against the org ``<org>``.
 
 .. tip::
 
@@ -193,7 +197,7 @@ Assuming there exists an org named ``dev``, you can run this task against it wit
 Get Help Running Tasks
 **********************
 
-If you're not certain about what a specific command does, use the ``--help`` flag to get more information. 
+If you're not certain about what a specific command does, use the ``--help`` flag to get more information.
 
 .. code-block::
 
@@ -219,7 +223,7 @@ When the ``--help`` flag is specified for a command, the output includes:
     list  List available tasks for the current context
     run   Runs a task
 
-If you're just getting started with CumulusCI and aren't sure which of the many tasks and flows to use, don't worry. We show you specific tasks and flows in later sections of the documentation. 
+If you're just getting started with CumulusCI and aren't sure which of the many tasks and flows to use, don't worry. We show you specific tasks and flows in later sections of the documentation.
 
 
 
@@ -243,7 +247,7 @@ option on the ``update_dependencies`` to ``True``, we would use the following:
 
     $ cci flow run dev_org --org dev -o update_dependencies__allow_newer True
 
-.. note:: 
+.. note::
 
     If the specified task executes more than once in the flow,
     it uses the given option value *each time it executes*.
@@ -263,7 +267,7 @@ and :doc:`Connect Persistent Orgs <connected_orgs>`.
 
 
 
-Manage Services 
+Manage Services
 ---------------
 Services represent external resources used by CumulusCI automation, such as access to a GitHub account or a MetaDeploy instance.
 
@@ -288,7 +292,7 @@ If you wanted to connect to your personal GitHub account as a service you could 
 
 .. code-block:: console
 
-    $ cci service connect github personal 
+    $ cci service connect github personal
 
 CumulusCI will prompt you for the required information for the given service type.
 
@@ -296,7 +300,7 @@ If you want a service to onlye be available to a given project you can pass the 
 
 .. code-block:: console
 
-    $ cci service connect <service_type> <service_name> --project 
+    $ cci service connect <service_type> <service_name> --project
 
 
 Set a Default Service
@@ -306,7 +310,7 @@ If you have multiple services connected for a given type and would like to set a
 
 .. code-block:: console
 
-    $ cci service default <service_type> <service_name> 
+    $ cci service default <service_type> <service_name>
 
 Rename a Service
 ****************
@@ -352,7 +356,7 @@ The URL for the gist is displayed in the terminal as output, and a web browser a
 View Stack Traces
 *****************
 
-If you encounter an error and want more information on what caused it, the ``cci error info`` command displays the  stack trace (if present) from the last command executed in CumulusCI. 
+If you encounter an error and want more information on what caused it, the ``cci error info`` command displays the  stack trace (if present) from the last command executed in CumulusCI.
 
 .. note:: The stack trace displayed is a *Python* stacktrace. This is helpful for locating where CumulusCI encountered an error in the source code.
 
@@ -399,5 +403,3 @@ If you want debug information regarding HTTP calls made during execution, you mu
 
     $ cci task run <name> --org <org> --debug
     $ cci flow run <name> --org <org> --debug
-
-

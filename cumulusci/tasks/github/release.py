@@ -3,10 +3,12 @@ import time
 from datetime import datetime
 
 import github3.exceptions
+from github3.repos.repo import Repository
 
 from cumulusci.core.dependencies.dependencies import parse_dependencies
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.exceptions import GithubException, TaskOptionsError
+from cumulusci.core.github import get_commit
 from cumulusci.tasks.github.base import BaseGithubTask
 
 
@@ -61,15 +63,8 @@ class CreateRelease(BaseGithubTask):
         tag_prefix = self.options.get("tag_prefix")
         tag_name = self.project_config.get_tag_for_version(tag_prefix, version)
 
-        # Make sure release doesn't already exist
-        try:
-            release = repo.release_from_tag(tag_name)
-        except github3.exceptions.NotFoundError:
-            pass
-        else:
-            message = f"Release {release.name} already exists at {release.html_url}"
-            self.logger.error(message)
-            raise GithubException(message)
+        self._verify_release(repo, tag_name)
+        self._verify_commit(repo)
 
         # Build tag message
         message = self.options.get("message", "Release of version {}".format(version))
@@ -121,3 +116,18 @@ class CreateRelease(BaseGithubTask):
             "dependencies": dependencies,
         }
         self.logger.info(f"Created release {release.name} at {release.html_url}")
+
+    def _verify_release(self, repo: Repository, tag_name: str) -> None:
+        """Make sure release doesn't already exist"""
+        try:
+            release = repo.release_from_tag(tag_name)
+        except github3.exceptions.NotFoundError:
+            pass
+        else:
+            message = f"Release {release.name} already exists at {release.html_url}"
+            self.logger.error(message)
+            raise GithubException(message)
+
+    def _verify_commit(self, repo: Repository) -> None:
+        """Verify that the commit exists on the remote."""
+        get_commit(repo, self.commit)

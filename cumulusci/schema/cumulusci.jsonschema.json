@@ -528,10 +528,6 @@
                         "$ref": "#/definitions/PreflightCheck"
                     }
                 },
-                "group": {
-                    "title": "Group",
-                    "type": "string"
-                },
                 "error_message": {
                     "title": "Error Message",
                     "type": "string"

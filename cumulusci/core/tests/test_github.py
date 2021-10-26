@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime
 from unittest import mock
@@ -32,6 +33,7 @@ from cumulusci.core.github import (
     create_gist,
     create_pull_request,
     format_github3_exception,
+    get_commit,
     get_github_api,
     get_github_api_for_repo,
     get_oauth_device_flow_token,
@@ -47,6 +49,7 @@ from cumulusci.core.github import (
     is_pull_request_merged,
     markdown_link_to_pr,
     validate_service,
+    warn_oauth_restricted,
 )
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
@@ -390,6 +393,32 @@ class TestGithub(GithubApiTestMixin):
         with pytest.raises(DependencyLookupError):
             get_version_id_from_tag(repo, "test-tag-name")
 
+    @responses.activate
+    def test_get_commit(self, repo):
+        self.init_github()
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + "/commits/DUMMY_SHA",
+            json=self._get_expected_commit("DUMMY_SHA"),
+            status=200,
+        )
+        commit = get_commit(repo, "DUMMY_SHA")
+        assert commit.sha == "DUMMY_SHA"
+
+    @responses.activate
+    def test_get_commit__dependency_error(self, repo):
+        self.init_github()
+        responses.add(
+            method=responses.GET,
+            url=self.repo_api_url + "/commits/DUMMY_SHA",
+            json={"message": "Could not verify object"},
+            status=422,
+        )
+        with pytest.raises(
+            DependencyLookupError, match="Could not find commit DUMMY_SHA on GitHub"
+        ):
+            get_commit(repo, "DUMMY_SHA")
+
     def test_get_oauth_scopes(self):
         resp = Response()
         resp.headers["X-OAuth-Scopes"] = "repo, user"
@@ -441,6 +470,17 @@ class TestGithub(GithubApiTestMixin):
         expected_err_msg = f"{SSO_WARNING} ['0810298', '20348880']"
         actual_error_msg = check_github_sso_auth(exc).strip()
         assert expected_err_msg == actual_error_msg
+
+    def test_github_oauth_org_restricted(self):
+        resp = Response()
+        resp.status_code = 403
+        body = {"message": "organization has enabled OAuth App access restrictions"}
+        resp._content = json.dumps(body)
+        exc = ForbiddenError(resp)
+
+        expected_warning = "You may also use a Personal Access Token as a workaround."
+        actual_error_msg = warn_oauth_restricted(exc)
+        assert expected_warning in actual_error_msg
 
     def test_format_gh3_exc_retry(self):
         resp = Response()
