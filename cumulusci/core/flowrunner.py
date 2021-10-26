@@ -65,7 +65,6 @@ from distutils.version import LooseVersion
 from operator import attrgetter
 
 from jinja2.sandbox import ImmutableSandboxedEnvironment
-from rich.progress import track
 
 from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
@@ -438,7 +437,7 @@ class FlowCoordinator(object):
         self._rule(new_line=True)
 
         try:
-            for step in track(self.steps, description=f"Running Flow: {self.name}..."):
+            for step in self.steps:
                 self._run_step(step)
             flow_name = f"'{self.name}' " if self.name else ""
             self.logger.info(
