@@ -8,24 +8,31 @@ Library  Dialogs
 
 Click refresh components
 
-    Go to org URL   /udd/AllPackage/viewAllPackage.apexp
+    ${allPackageId}=  Get APID
+    Go to org URL   /${allPackageId}?tab=PackageComponents
 
     If we are on the bad references page
     ...  click recompile all
 
     Page should be package detail page
 
-    Wait until element is enabled  Refresh Components
-    Click button  Refresh Components
-
-    Wait Until Keyword Succeeds
-    ...  10x  1 second
-    ...  Refresh Components button is disabled
+    If the refresh components button is available
+    ...  click refresh components
 
     log  Success!
 
 
 *** Keywords ***
+
+Get APID
+    ${result}=  SOQL Query
+    ...  SELECT NamespacePrefix FROM Organization
+    ${organization}=  Get from list  ${result['records']}  0
+    ${namespace}=  Get from dictionary  ${organization}  NamespacePrefix
+    ${packages}=  SOQL Query
+    ...  SELECT Id FROM MetadataPackage WHERE NamespacePrefix = '${namespace}'
+    ${package}=  Get from list  ${packages['records']}  0
+    [return]  ${package['Id']}
 
 Go to org URL
     [Arguments]  ${path}
@@ -52,8 +59,27 @@ If we are on the bad references page
     # We are on the badExternalRefs page, so try to run the given keyword
     Run keyword  ${keyword}
 
+If the refresh components button is available
+    [Arguments]  ${keyword}
+    ${status}=   Run Keyword And Return Status
+    ...  Page should contain element  ViewAllPackage:theForm:mainDetailBlock:refreshComponentListButton
+    Return from keyword if  not $status
+
+    # There exists a Refresh Components button, so click it.
+    Run keyword  ${keyword}
+
+
 Click recompile all
     Click button  Recompile All
 
+Click refresh components
+    Wait until element is enabled  ViewAllPackage:theForm:mainDetailBlock:refreshComponentListButton
+    Click button  ViewAllPackage:theForm:mainDetailBlock:refreshComponentListButton
+
+    Wait Until Keyword Succeeds
+    ...  20x  1 second
+    ...  Refresh Components button is disabled
+
+
 Refresh Components button is disabled
-    Element should be disabled  Refresh Components
+    Element should be disabled  ViewAllPackage:theForm:mainDetailBlock:refreshComponentListButton

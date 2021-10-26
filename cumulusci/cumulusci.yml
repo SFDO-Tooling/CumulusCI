@@ -392,6 +392,11 @@ tasks:
         description: Apply org settings from a scratch org definition file or dict
         class_path: cumulusci.tasks.salesforce.org_settings.DeployOrgSettings
         group: Salesforce DX
+    prepare_1gp_upload:
+        class_path: cumulusci.tasks.robotframework.Robot
+        options:
+            suites: cumulusci/tasks/click_refresh_components.robot
+            #vars: browser:headlesschrome
     promote_package_version:
         description: Promote a 2gp package so that it can be installed in a production org
         class_path: cumulusci.tasks.salesforce.promote_package_version.PromotePackageVersion

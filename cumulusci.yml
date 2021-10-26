@@ -5,11 +5,6 @@ project:
         name: CumulusCI
 
 tasks:
-    click_refresh_button:
-        class_path: cumulusci.tasks.robotframework.Robot
-        options:
-            suites: cumulusci/tasks/click_refresh_components.robot
-            vars: browser:headlesschrome
     robot:
         options:
             suites: cumulusci/robotframework/tests
