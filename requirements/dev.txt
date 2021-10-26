@@ -8,6 +8,7 @@ alabaster==0.7.12
     # via sphinx
 attrs==21.2.0
     # via
+    #   -c requirements/prod.txt
     #   jsonschema
     #   pytest
 babel==2.9.1
@@ -24,6 +25,11 @@ certifi==2021.10.8
     # via
     #   -c requirements/prod.txt
     #   requests
+    #   urllib3
+cffi==1.15.0
+    # via
+    #   -c requirements/prod.txt
+    #   cryptography
 cfgv==3.3.1
     # via pre-commit
 charset-normalizer==2.0.7
@@ -44,6 +50,11 @@ coverage[toml]==5.5
     #   coveralls
 coveralls==3.2.0
     # via -r requirements/dev.in
+cryptography==3.4.8
+    # via
+    #   -c requirements/prod.txt
+    #   pyopenssl
+    #   urllib3
 distlib==0.3.3
     # via virtualenv
 docopt==0.6.2
@@ -53,13 +64,13 @@ docutils==0.16
     #   -c requirements/prod.txt
     #   readme-renderer
     #   sphinx
-factory-boy==3.2.0
+factory-boy==3.2.1
     # via -r requirements/dev.in
 faker==8.14.0
     # via
     #   -c requirements/prod.txt
     #   factory-boy
-filelock==3.3.0
+filelock==3.3.1
     # via
     #   tox
     #   virtualenv
@@ -67,12 +78,13 @@ flake8==3.9.2
     # via -r requirements/dev.in
 furo==2021.10.9
     # via -r requirements/dev.in
-identify==2.3.0
+identify==2.3.1
     # via pre-commit
-idna==3.2
+idna==3.3
     # via
     #   -c requirements/prod.txt
     #   requests
+    #   urllib3
     #   yarl
 imagesize==1.2.0
     # via sphinx
@@ -89,7 +101,7 @@ jinja2==2.11.3
     # via
     #   -c requirements/prod.txt
     #   sphinx
-jsonschema==4.1.0 ; python_version > "3.6"
+jsonschema==4.1.2 ; python_version > "3.6"
     # via -r requirements/dev.in
 keyring==23.0.1
     # via
@@ -133,6 +145,10 @@ py==1.10.0
     #   tox
 pycodestyle==2.7.0
     # via flake8
+pycparser==2.20
+    # via
+    #   -c requirements/prod.txt
+    #   cffi
 pyflakes==2.3.1
     # via flake8
 pygments==2.10.0
@@ -140,7 +156,11 @@ pygments==2.10.0
     #   -c requirements/prod.txt
     #   readme-renderer
     #   sphinx
-pyparsing==2.4.7
+pyopenssl==21.0.0
+    # via
+    #   -c requirements/prod.txt
+    #   urllib3
+pyparsing==3.0.1
     # via packaging
 pyrsistent==0.18.0
     # via jsonschema
@@ -168,7 +188,7 @@ pyyaml==5.4.1
     #   vcrpy
 readme-renderer==30.0
     # via twine
-regex==2021.10.8
+regex==2021.10.23
     # via black
 requests==2.26.0
     # via
@@ -188,6 +208,7 @@ six==1.16.0
     # via
     #   -c requirements/prod.txt
     #   bleach
+    #   pyopenssl
     #   python-dateutil
     #   responses
     #   tox
@@ -225,7 +246,7 @@ toml==0.10.2
     #   pre-commit
     #   pytest
     #   tox
-tomli==1.2.1
+tomli==1.2.2
     # via black
 tox==3.24.4
     # via -r requirements/dev.in
@@ -239,7 +260,7 @@ typing-extensions==3.10.0.2
     # via
     #   -c requirements/prod.txt
     #   black
-urllib3==1.26.7
+urllib3[secure]==1.26.7
     # via
     #   -c requirements/prod.txt
     #   requests
@@ -248,7 +269,7 @@ vcrpy==4.1.1
     # via
     #   -r requirements/dev.in
     #   pytest-vcr
-virtualenv==20.8.1
+virtualenv==20.9.0
     # via
     #   pre-commit
     #   tox
@@ -256,7 +277,7 @@ webencodings==0.5.1
     # via bleach
 wheel==0.37.0
     # via -r requirements/dev.in
-wrapt==1.13.1
+wrapt==1.13.2
     # via
     #   -c requirements/prod.txt
     #   vcrpy
@@ -268,7 +289,7 @@ zipp==3.5.0
     #   importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==58.2.0
+setuptools==58.3.0
     # via
     #   -c requirements/prod.txt
     #   sphinx
