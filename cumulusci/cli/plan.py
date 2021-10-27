@@ -164,15 +164,20 @@ def plan_info(runtime, plan_name, messages_only):
         for step_n, step in enumerate(steps)
     ]
     raw_data["steps_preflight_checks"] = [
-        [check.get("action", ""), check.get("message", ""), check.get("when", "")]
-        for step in steps
+        [
+            step_n,
+            check.get("action", ""),
+            check.get("message", ""),
+            check.get("when", ""),
+        ]
+        for step_n, step in enumerate(steps)
         for check in step["task_config"]["checks"]
     ]
 
     step_preflight_checks_table = CliTable(
         title="Step Preflights",
         data=[
-            ["Action", "Message", "When"],
+            ["Step", "Action", "Message", "When"],
             *raw_data["steps_preflight_checks"],
         ],
     )
