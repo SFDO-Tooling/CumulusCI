@@ -99,7 +99,7 @@ def plan_info(runtime, plan_name, messages_only):
         "error_message": plan_config.get("error_message", ""),
         "checks": [
             [check.get("action", ""), check.get("message", ""), check.get("when", "")]
-            for check in plan_config["checks"]
+            for check in plan_config.get("checks", [])
         ],
         "steps": {},  # expensive to compute so we'll do later
     }
