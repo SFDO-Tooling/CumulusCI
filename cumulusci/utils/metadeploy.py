@@ -7,10 +7,6 @@ from cumulusci.utils import cd
 
 def get_frozen_steps(project_config, plan_config):
     """Return a list of frozen steps for a MetaDeploy plan config"""
-    # Should this be a method of the Plan class?
-    # Should I cache this information since it is expensive
-    # to compute?
-    steps = plan_config["steps"]
     flow_config = FlowConfig(plan_config)
     flow_config.project_config = project_config
     flow = FlowCoordinator(project_config, flow_config)
