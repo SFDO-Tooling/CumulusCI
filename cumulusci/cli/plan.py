@@ -74,22 +74,7 @@ def plan_list(runtime, print_json):
 @pass_runtime(require_project=True, require_keychain=True)
 def plan_info(runtime, plan_name, messages_only):
     """
-    plan_info FIXME:
-    - the original RFC lists a "recommended" column for steps; I don't know
-      where that data comes from
-    - I don't know if the step preflights are computed correctly
-    - the original RFC shows simple step numbers (1, 2, 3, etc)
-      but this version of the code shows nested steps (1/1/1.1, 1/1/1.2, etc)
-    - this code doesn't support json yet, though all of the data is collected
-      in a dict so it should be easy to support it if we want.
-    - the original RFC calls for a --plan option, but I set it to an argument
-      to be consistent with 'cci task info' and 'cci flow info'
-    - this code emits logging info when getting dependency info from github
-      should it?
-    - freezing the steps is relatively expensive; should we cache it or make
-      it optional (eg: --nosteps)?
-    - I think I need to configure the tables to emit True/False rather than
-      checkmarks (?)
+    Displays information for a MetaDeploy plan.
     """
 
     plans = runtime.project_config.plans or {}
