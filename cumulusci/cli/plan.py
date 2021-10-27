@@ -156,12 +156,12 @@ def plan_info(runtime, plan_name, messages_only):
     steps = get_frozen_steps(runtime.project_config, plan_config)
     raw_data["steps"] = [
         [
-            step["step_num"],
+            step_n + 1,
             step["name"],
             step["is_required"],
             step.get("is_recommended", True),
         ]
-        for step in steps
+        for step_n, step in enumerate(steps)
     ]
     raw_data["steps_preflight_checks"] = [
         [check.get("action", ""), check.get("message", ""), check.get("when", "")]
