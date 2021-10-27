@@ -27,16 +27,29 @@ def init_logger(debug=False):
 
     logger.addHandler(
         RichHandler(
+            rich_tracebacks=True,
             show_level=debug,
             show_path=debug,
-            rich_tracebacks=True,
-            tracebacks_show_locals=True,
+            tracebacks_show_locals=debug,
         )
     )
     logger.setLevel(logging.DEBUG)
     logger.propagate = False
 
     if debug:
+        # Referenced from:
+        # https://github.com/urllib3/urllib3/blob/cd55f2fe98df4d499ab5c826433ee4995d3f6a60/src/urllib3/__init__.py#L48
+        def stderr_logger(level: int = logging.DEBUG) -> logging.StreamHandler:
+            module = "urllib3"
+            logger = logging.getLogger(module)
+            handler = RichHandler()
+            logger.addHandler(handler)
+            logger.setLevel(level)
+            logger.debug(f"Added a stderr logging handler to logger: {module}")
+            return handler
+
+        # monkey patch urllib3 logger
+        requests.packages.urllib3.add_stderr_logger = stderr_logger
         requests.packages.urllib3.add_stderr_logger()
 
 
