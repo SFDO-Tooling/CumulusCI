@@ -155,7 +155,13 @@ def plan_info(runtime, plan_name, messages_only):
 
     steps = get_frozen_steps(runtime.project_config, plan_config)
     raw_data["steps"] = [
-        [step["step_num"], step["name"], step["is_required"]] for step in steps
+        [
+            step["step_num"],
+            step["name"],
+            step["is_required"],
+            step.get("is_recommended", True),
+        ]
+        for step in steps
     ]
     raw_data["steps_preflight_checks"] = [
         [check.get("action", ""), check.get("message", ""), check.get("when", "")]
@@ -176,7 +182,7 @@ def plan_info(runtime, plan_name, messages_only):
         data=[
             # the original RFC wanted a "Recommended" title, but I don't
             # see that data in a step definition
-            ["Step", "Name", "Required"],
+            ["Step", "Name", "Required", "Recommended"],
             *raw_data["steps"],
         ],
     )
