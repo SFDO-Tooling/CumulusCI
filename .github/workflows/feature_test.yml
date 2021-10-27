@@ -58,10 +58,11 @@ jobs:
                   pre-commit run --files $(git diff --diff-filter=d --name-only $GITHUB_BASE_REF..$GITHUB_HEAD_REF)
 
     unit_tests:
-        name: "Unit tests: Python ${{ matrix.python-version }}"
-        runs-on: ubuntu-latest
+        name: "Unit tests: ${{ matrix.os }}-${{ matrix.python-version }}"
+        runs-on: ${{ matrix.os }}
         strategy:
             matrix:
+                os: [macos-latest, ubuntu-latest, windows-latest]
                 python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
         steps:
             - uses: actions/checkout@v2
@@ -83,30 +84,6 @@ jobs:
             - run: |
                   coverage run $(which pytest)
                   coveralls
-
-    windows:
-        name: "Unit Tests: Windows"
-        runs-on: windows-latest
-        steps:
-            - uses: actions/checkout@v2
-            - name: Set up Python 3.8
-              uses: actions/setup-python@v2
-              with:
-                  python-version: 3.8
-            - name: pip cache
-              uses: actions/cache@v1
-              with:
-                  path: ~\AppData\Local\pip\Cache
-                  key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
-                  restore-keys: |
-                      ${{ runner.os }}-pip-
-            - name: Install
-              run: |
-                  python -m pip install -r requirements/prod.txt
-                  python -m pip install -r requirements/dev.txt
-                  python -m pip install -e .
-            - name: pytest
-              run: pytest
 
     robot_api:
         name: "Robot: No browser"
