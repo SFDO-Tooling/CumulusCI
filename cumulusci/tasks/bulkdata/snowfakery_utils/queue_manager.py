@@ -94,11 +94,11 @@ class SnowfakeryShardManager:
         portions: PortionGenerator,
         get_upload_status: T.Callable,
     ):
-        def ready_shards():
+        def shard_with_free_space():
             return [shard for shard in self.shards if not shard.full]
 
-        new_workers = [True]
-        shards = ready_shards()
+        new_workers = [True]  # initial value to get into the while loop
+        shards = shard_with_free_space()
         while (
             shards
             and any(new_workers)
@@ -112,7 +112,7 @@ class SnowfakeryShardManager:
                 )
                 for shard in shards
             ]
-            shards = ready_shards()
+            shards = shard_with_free_space()
 
     def get_upload_status(self):
         summed_statuses = defaultdict(int)
@@ -159,12 +159,12 @@ class Shard:
         self.project_config = project_config
         self.org_config = org_config
         self.num_generator_workers = num_generator_workers
-        self.job_counter = 0
         self.working_directory = working_directory
         self.subtask_configurator = subtask_configurator
         self.run_until = subtask_configurator.run_until
         self.logger = logger
         self.results_reporter = results_reporter
+        self.job_counter = 0
         self._configure_queues()
 
     def _configure_queues(self):
@@ -237,6 +237,7 @@ class Shard:
         get_upload_status: T.Callable,
     ):
         if self.data_gen_q.num_free_workers and self.data_gen_q.full:
+            # check whether this case can ever actually execute
             self.logger.info("Waiting before datagen (load queue is full)")
         else:
             upload_status = get_upload_status(
@@ -284,6 +285,7 @@ class Shard:
             # todo: use row-level result from org load for better accuracy
             "sets_finished": set_count_from_names(self.load_data_q.outbox_jobs),
             "sets_failed": len(self.load_data_q.failed_jobs),
+            # TODO: are these two redundant?
             "inprogress_generator_jobs": len(self.data_gen_q.inprogress_jobs),
             "inprogress_loader_jobs": len(self.load_data_q.inprogress_jobs),
             "data_gen_free_workers": self.data_gen_q.num_free_workers,

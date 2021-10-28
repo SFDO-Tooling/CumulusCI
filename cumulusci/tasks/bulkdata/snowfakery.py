@@ -11,7 +11,7 @@ from tempfile import TemporaryDirectory, mkdtemp
 import psutil
 from snowfakery.api import COUNT_REPS, infer_load_file_path
 from snowfakery.cci_mapping_files.declaration_parser import (
-    ShardDeclaration,
+    ChannelDeclaration,
     SObjectRuleDeclarationFile,
 )
 
@@ -32,7 +32,9 @@ from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 from .snowfakery_utils.queue_manager import (
-    SnowfakeryShardManager,
+    SnowfakeryShardManager,  # rename this channel manager
+)
+from .snowfakery_utils.queue_manager import (  # rename this channel manager
     data_loader_new_directory_name,
 )
 from .snowfakery_utils.snowfakery_run_until import PortionGenerator, determine_run_until
@@ -649,7 +651,7 @@ class RunningTotals:
 
 class RulesFileAndRules(T.NamedTuple):
     file: Path
-    rules: T.List[ShardDeclaration]
+    rules: T.List[ChannelDeclaration]
 
 
 def _read_sharding_declarations_from_file(
@@ -657,14 +659,14 @@ def _read_sharding_declarations_from_file(
 ) -> RulesFileAndRules:
     with loading_rules_file.open() as f:
         decls = SObjectRuleDeclarationFile.parse_from_yaml(f)
-        shard_decls = decls.shard_declarations or []
+        shard_decls = decls.channel_declarations or []
         assert isinstance(shard_decls, list)
         return RulesFileAndRules(loading_rules_file, shard_decls)
 
 
 def read_sharding_declarations(
     recipe: Path, loading_rules_files: T.List[Path]
-) -> T.List[ShardDeclaration]:
+) -> T.List[ChannelDeclaration]:
     implicit_rules_file = infer_load_file_path(recipe)
     if implicit_rules_file and implicit_rules_file.exists():
         loading_rules_files = loading_rules_files + [implicit_rules_file]
@@ -690,7 +692,7 @@ def read_sharding_declarations(
 
 class ShardConfig(T.NamedTuple):
     org_config: OrgConfig
-    declaration: ShardDeclaration = None
+    declaration: ChannelDeclaration = None
 
 
 def standard_shard_config(org_config: OrgConfig):
@@ -698,7 +700,7 @@ def standard_shard_config(org_config: OrgConfig):
 
 
 def shard_configs_from_decls(
-    shard_decls: T.List[ShardDeclaration],
+    shard_decls: T.List[ChannelDeclaration],
     keychain: BaseProjectKeychain,
 ):
     def config_from_decl(decl):
