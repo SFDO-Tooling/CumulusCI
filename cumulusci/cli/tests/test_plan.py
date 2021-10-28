@@ -234,7 +234,6 @@ class TestPlanInfo:
                 ["Error", "This is an error message"],
             ],
         )
-        print("feh")
 
     def test_plan_info__bogus_plan(self, runtime):
         """Verify a missing play causes a useful message"""
