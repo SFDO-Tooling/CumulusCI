@@ -19,6 +19,30 @@ def runtime():
             "tier": "primary",
             "preflight_message": "This is a preflight message",
             "error_message": "This is an error message",
+            "steps": {
+                1: {
+                    "task": "run_tests",
+                    "ui_options": {
+                        "name": "Run Tests",
+                        "is_recommended": False,
+                        "is_required": False,
+                    },
+                    "checks": [
+                        {
+                            "when": "soon",
+                            "action": "error",
+                            "message": "Danger Will Robinson!",
+                        }
+                    ],
+                }
+            },
+            "checks": [
+                {
+                    "when": "'test package' not in tasks.get_installed_packages()",
+                    "action": "error",
+                    "message": "Test Package must be installed in your org.",
+                }
+            ],
         },
         "plan 2": {
             "title": "Test Plan #2",
@@ -36,7 +60,7 @@ def runtime():
     yield runtime
 
 
-class TestPlanCommands:
+class TestPlanList:
     @mock.patch("cumulusci.cli.plan.CliTable")
     def test_plan_list(self, cli_table, runtime):
         """Happy-path smoke test"""
@@ -110,5 +134,87 @@ class TestPlanCommands:
                 ["Plan 2", "", "", "secondary"],
                 ["Plan 3", "", "", "additional"],
                 ["Plan 4", "", "", "additional"],
+            ],
+        )
+
+
+class TestPlanInfo:
+    @mock.patch("cumulusci.cli.plan.CliTable")
+    def test_plan_info__config(self, cli_table, runtime):
+        """Verify we are creating a CliTable for the config"""
+        run_click_command(
+            plan.plan_info, "plan 1", runtime=runtime, messages_only=False
+        )
+        cli_table.assert_any_call(
+            title="Config",
+            data=[
+                ["Key", "Value"],
+                ["YAML Key", "plan 1"],
+                ["Slug", "plan1_slug"],
+                ["Tier", "primary"],
+                ["Hidden?", False],
+            ],
+        ),
+
+    @mock.patch("cumulusci.cli.plan.CliTable")
+    def test_plan_info__messages(self, cli_table, runtime):
+        """Verify we are creating a CliTable for messages"""
+        run_click_command(
+            plan.plan_info, "plan 1", runtime=runtime, messages_only=False
+        )
+        cli_table.assert_any_call(
+            title="Messages",
+            data=[
+                ["Type", "Message"],
+                ["Title", "Test Plan #1"],
+                ["Preflight", "This is a preflight message"],
+                ["Post-install", ""],
+                ["Error", "This is an error message"],
+            ],
+        )
+
+    @mock.patch("cumulusci.cli.plan.CliTable")
+    def test_plan_info__preflight_checks(self, cli_table, runtime):
+        """Verify we are creating a CliTable for the preflight checks"""
+        run_click_command(
+            plan.plan_info, "plan 1", runtime=runtime, messages_only=False
+        )
+        cli_table.assert_any_call(
+            title="Plan Preflights",
+            data=[
+                ["Action", "Message", "When"],
+                [
+                    "error",
+                    "Test Package must be installed in your org.",
+                    "'test package' not in tasks.get_installed_packages()",
+                ],
+            ],
+        ),
+
+    @mock.patch("cumulusci.cli.plan.CliTable")
+    def test_plan_info__step_preflight_checks(self, cli_table, runtime):
+        """Verify we are creating a CliTable for the step preflight checks"""
+        run_click_command(
+            plan.plan_info, "plan 1", runtime=runtime, messages_only=False
+        )
+        cli_table.assert_any_call(
+            title="Step Preflights",
+            data=[
+                ["Step", "Action", "Message", "When"],
+                [1, "error", "Danger Will Robinson!", "soon"],
+            ],
+        ),
+
+    @mock.patch("cumulusci.cli.plan.CliTable")
+    def test_plan_info__steps(self, cli_table, runtime):
+        """Verify we are creating a CliTable for the preflight checks"""
+        run_click_command(
+            plan.plan_info, "plan 1", runtime=runtime, messages_only=False
+        )
+        cli_table.assert_any_call(
+            title="Steps",
+            data=[
+                ["Step", "Name", "Required", "Recommended"],
+                [1, "Run Tests", False, False],
             ],
         )
