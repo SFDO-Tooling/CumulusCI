@@ -63,11 +63,10 @@ def main(args=None):
             args.remove("--debug")
 
         with set_debug_mode(debug):
-            console = Console()
             try:
                 runtime = CliRuntime(load_keychain=False)
             except Exception as e:
-                handle_exception(e, console, is_error_command, tempfile_path, debug)
+                handle_exception(e, is_error_command, tempfile_path, debug)
                 sys.exit(1)
 
             runtime.check_cumulusci_version()
@@ -78,6 +77,7 @@ def main(args=None):
             try:
                 cli(args[1:], standalone_mode=False, obj=runtime)
             except click.Abort:  # Keyboard interrupt
+                console = Console()
                 show_debug_info() if debug else console.print("\n[red bold]Aborted!")
                 sys.exit(1)
             except Exception as e:
@@ -86,7 +86,6 @@ def main(args=None):
                 else:
                     handle_exception(
                         e,
-                        console,
                         is_error_command,
                         tempfile_path,
                         should_show_stacktraces,
@@ -96,7 +95,6 @@ def main(args=None):
 
 def handle_exception(
     error,
-    console,
     is_error_cmd,
     logfile_path,
     should_show_stacktraces=False,
@@ -104,15 +102,16 @@ def handle_exception(
     """Displays error of appropriate message back to user, prompts user to investigate further
     with `cci error` commands, and writes the traceback to the latest logfile.
     """
+    error_console = Console(stderr=True)
     if isinstance(error, requests.exceptions.ConnectionError):
-        connection_error_message(console)
+        connection_error_message(error_console)
     elif isinstance(error, click.ClickException):
-        console.print(f"[red bold]Error: {error.format_message()}")
+        error_console.print(f"[red bold]Error: {error.format_message()}")
     else:
-        console.print(f"[red bold]{error}")
+        error_console.print(f"[red bold]Error: {error}")
     # Only suggest gist command if it wasn't run
     if not is_error_cmd:
-        console.print(f"[yellow]{SUGGEST_ERROR_COMMAND}")
+        error_console.print(f"[yellow]{SUGGEST_ERROR_COMMAND}")
 
     # This is None if we're handling an exception for a `cci error` command.
     if logfile_path:
@@ -123,7 +122,7 @@ def handle_exception(
         raise error
 
 
-def connection_error_message(console):
+def connection_error_message(console: Console):
     message = (
         "We encountered an error with your internet connection. "
         "Please check your connection and try the last cci command again."

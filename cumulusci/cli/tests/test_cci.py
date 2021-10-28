@@ -21,7 +21,7 @@ from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.utils import temporary_dir
 
 MagicMock = mock.MagicMock()
-CONSOLE = Console()
+CONSOLE = mock.Mock()
 
 
 class TestCCI(unittest.TestCase):
@@ -215,15 +215,19 @@ class TestCCI(unittest.TestCase):
 
         with contextlib.redirect_stdout(io.StringIO()) as stdout:
             cci.main(["cci", "org", "default", "xyzzy"])
-        assert "xyzzy is now the default org" in stdout.getvalue(), stdout.getvalue()
+        assert (
+            "xyzzy is now the default org" in stdout.getvalue()
+        ), f"Unexpected value: {stdout.getvalue()}"
 
         with contextlib.redirect_stdout(io.StringIO()) as stdout:
             cci.main(["cci", "org", "default", "--org", "xyzzy2"])
-        assert "xyzzy2 is now the default org" in stdout.getvalue(), stdout.getvalue()
+        assert (
+            "xyzzy2 is now the default org" in stdout.getvalue()
+        ), f"Unexpected value: {stdout.getvalue()}"
 
         with contextlib.redirect_stderr(io.StringIO()) as stderr:
             cci.main(["cci", "org", "default", "xyzzy1", "--org", "xyzzy2"])
-        assert "not both" in stderr.getvalue(), stderr.getvalue()
+        assert "not both" in stderr.getvalue(), f"Unexpected value: {stderr.getvalue()}"
 
         CliRuntime().keychain.get_default_org.return_value = ("xyzzy3", None)
 
@@ -232,7 +236,7 @@ class TestCCI(unittest.TestCase):
             cci.main(["cci", "org", "remove"])
         assert (
             "Please specify ORGNAME or --org ORGNAME" in stderr.getvalue()
-        ), stderr.getvalue()
+        ), f"Unexpected value: {stderr.getvalue()}"
 
     @mock.patch("cumulusci.cli.cci.init_logger")  # side effects break other tests
     @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
@@ -335,68 +339,55 @@ class TestCCI(unittest.TestCase):
 
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
-    @mock.patch("cumulusci.cli.cci.click.style")
-    def test_handle_exception(self, style, traceback, cci_open):
-        logfile_path = "file.log"
-        Path(logfile_path).touch()
-
-        error = "Something bad happened."
+    def test_handle_exception(self, traceback, cci_open):
+        console = mock.Mock()
+        Console.return_value = console
+        error_message = "foo"
         cci_open.__enter__.return_value = mock.Mock()
 
-        cci.handle_exception(error, CONSOLE, False, logfile_path)
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            cci.handle_exception(error_message, False, "logfile.path")
 
-        style.call_args_list[0][0] == f"Error: {error}"
-        style.call_args_list[1][0] == cci.SUGGEST_ERROR_COMMAND
+        stderr = stderr.getvalue()
+        assert f"Error: {error_message}" in stderr
+        assert cci.SUGGEST_ERROR_COMMAND in stderr
         traceback.print_exc.assert_called_once()
 
-        os.remove(logfile_path)
-
     @mock.patch("cumulusci.cli.cci.open")
-    @mock.patch("cumulusci.cli.cci.traceback")
-    @mock.patch("cumulusci.cli.cci.click.style")
-    def test_handle_exception__error_cmd(self, style, traceback, cci_open):
+    def test_handle_exception__error_cmd(self, cci_open):
         """Ensure we don't write to logfiles when running `cci error ...` commands."""
-        error = "Something bad happened."
+        error_message = "foo"
         logfile_path = None
-        cci.handle_exception(error, CONSOLE, False, logfile_path)
 
-        style.call_args_list[0][0] == f"Error: {error}"
-        style.call_args_list[1][0] == cci.SUGGEST_ERROR_COMMAND
-        assert not cci_open.called
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            cci.handle_exception(error_message, False, logfile_path)
+
+        stderr = stderr.getvalue()
+        assert f"Error: {error_message}" in stderr
+        assert cci.SUGGEST_ERROR_COMMAND in stderr
+        cci_open.assert_not_called()
 
     @mock.patch("cumulusci.cli.cci.open")
     @mock.patch("cumulusci.cli.cci.traceback")
-    @mock.patch("cumulusci.cli.cci.click.style")
-    def test_handle_click_exception(self, style, traceback, cci_open):
-        logfile_path = "file.log"
-        Path(logfile_path).touch()
+    def test_handle_click_exception(self, traceback, cci_open):
         cci_open.__enter__.return_value = mock.Mock()
 
-        cci.handle_exception(click.ClickException("oops"), CONSOLE, False, logfile_path)
-        style.call_args_list[0][0] == "Error: oops"
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            cci.handle_exception(click.ClickException("oops"), False, "file.path")
 
-        os.remove(logfile_path)
+        stderr = stderr.getvalue()
+        assert "Error: oops" in stderr
+        traceback.assert_not_called()
 
     @mock.patch("cumulusci.cli.cci.open")
-    @mock.patch("cumulusci.cli.cci.connection_error_message")
-    def test_handle_connection_exception(self, connection_msg, cci_open):
-        logfile_path = "file.log"
-        Path(logfile_path).touch()
+    def test_handle_connection_exception(self, cci_open):
+        cci_open.__enter__.return_value = mock.Mock()
 
-        cci.handle_exception(ConnectionError(), CONSOLE, False, logfile_path)
-        connection_msg.assert_called_once()
-        os.remove(logfile_path)
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            cci.handle_exception(ConnectionError(), False, "file.log")
 
-    @mock.patch("cumulusci.cli.cci.click.style")
-    def test_connection_exception_message(self, style):
-        cci.connection_error_message()
-        style.assert_called_once_with(
-            (
-                "We encountered an error with your internet connection. "
-                "Please check your connection and try the last cci command again."
-            ),
-            fg="red",
-        )
+        stderr = stderr.getvalue()
+        assert "We encountered an error with your internet connection." in stderr
 
     def test_cli(self):
         run_click_command(cci.cli)
