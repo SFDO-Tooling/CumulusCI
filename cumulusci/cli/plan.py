@@ -150,7 +150,7 @@ def plan_info(runtime, plan_name, messages_only):
     ]
     raw_data["steps_preflight_checks"] = [
         [
-            step_n,
+            step_n + 1,
             check.get("action", ""),
             check.get("message", ""),
             check.get("when", ""),
