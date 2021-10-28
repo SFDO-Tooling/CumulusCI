@@ -13,7 +13,6 @@ Changes
 - Improved error messaging for multiple scenarios where tasks are improperly configured in cumulusci.yml. (#2923)
 - We added a new task `create_blank_profile` that can be used to create a new profile from scratch without any permissions enabled. (This new task requires a Winter 22 Org or API 53.0) (#2908)
 - We've added a user friendly error message when installing a package using security_type "PUSH" with a 04t Package Version ID. (#2935)
-- Snowfakery 2.2 including the `unique_id` feature 
 
 v3.46.0 (2021-10-14)
 --------------------
