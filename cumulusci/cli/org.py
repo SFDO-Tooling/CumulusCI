@@ -6,6 +6,7 @@ from datetime import datetime
 from urllib.parse import urlencode, urlparse
 
 import click
+import rich
 from rich.console import Console
 
 from cumulusci.cli.ui import CliTable, SimpleSalesforceUIHelpers
@@ -260,7 +261,7 @@ def org_info(runtime, org_name, print_json):
     org_config.refresh_oauth_token(runtime.keychain)
     console = Console()
     if print_json:
-        console.print(
+        rich.print_json(
             json.dumps(
                 org_config.config,
                 sort_keys=True,

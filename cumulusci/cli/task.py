@@ -210,9 +210,7 @@ class RunTaskCommand(click.MultiCommand):
         console.print("Usage: cci task run <task_name> [TASK_OPTIONS...]\n")
         console.print("See above for a complete list of available tasks.")
         console.print(
-            "Use "
-            + click.style("cci task info <task_name>", bold=True)
-            + " to get more information about a task and its options."
+            "Use [bold]cci task info <task_name>[/] to get more information about a task and its options."
         )
 
     def _collect_task_options(self, new_options, old_options, task_name, task_options):
