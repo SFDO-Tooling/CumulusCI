@@ -1,6 +1,7 @@
 import json
 from unittest import mock
 
+import click
 import pytest
 
 from cumulusci.cli.runtime import CliRuntime
@@ -218,3 +219,26 @@ class TestPlanInfo:
                 [1, "Run Tests", False, False],
             ],
         )
+
+    @mock.patch("cumulusci.cli.plan.CliTable")
+    def test_plan_info__messages_only(self, cli_table, runtime):
+        """Verify that --messages results in only messages being output"""
+        run_click_command(plan.plan_info, "plan 1", runtime=runtime, messages_only=True)
+        cli_table.assert_called_once_with(
+            title="Messages",
+            data=[
+                ["Type", "Message"],
+                ["Title", "Test Plan #1"],
+                ["Preflight", "This is a preflight message"],
+                ["Post-install", ""],
+                ["Error", "This is an error message"],
+            ],
+        )
+        print("feh")
+
+    def test_plan_info__bogus_plan(self, runtime):
+        """Verify a missing play causes a useful message"""
+        with pytest.raises(click.UsageError, match=r"Unknown plan 'invalid_plan'."):
+            run_click_command(
+                plan.plan_info, "invalid_plan", runtime=runtime, messages_only=False
+            )
