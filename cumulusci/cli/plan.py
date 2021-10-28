@@ -15,7 +15,7 @@ CliTable.PICTOGRAM_FALSE = "No"
 
 @click.group("plan", help="Commands for getting information about MetaDeploy plans")
 def plan():
-    pass
+    pass  # pragma: no cover
 
 
 @plan.command(name="list")
