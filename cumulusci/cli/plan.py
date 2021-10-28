@@ -170,8 +170,6 @@ def plan_info(runtime, plan_name, messages_only):
     steps_table = CliTable(
         title="Steps",
         data=[
-            # the original RFC wanted a "Recommended" title, but I don't
-            # see that data in a step definition
             ["Step", "Name", "Required", "Recommended"],
             *raw_data["steps"],
         ],
