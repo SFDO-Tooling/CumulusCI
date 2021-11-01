@@ -42,7 +42,8 @@ def init_logger(debug=False):
         def add_rich_logger(
             module: str, level: int = logging.DEBUG
         ) -> logging.StreamHandler:
-            """Adds a RichHandler to a"""
+            """Retrieve the logger for the given module.
+            Remove all handlers from it, and add a single RichHandler."""
             logger = logging.getLogger(module)
             for handler in logger.handlers:
                 logger.removeHandler(handler)
