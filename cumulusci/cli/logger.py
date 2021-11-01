@@ -4,7 +4,6 @@ import os
 import sys
 import tempfile
 
-import coloredlogs  # noqa: F401
 import requests
 from rich.logging import RichHandler
 
