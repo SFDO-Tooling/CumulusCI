@@ -1,3 +1,5 @@
+import contextlib
+import io
 from unittest.mock import Mock, patch
 
 import click
@@ -108,14 +110,17 @@ def test_task_run__list_commands(runtime):
 
 
 def test_format_help(runtime):
-    with patch("click.echo") as echo:
-        runtime.universal_config = Mock()
-        multi_cmd = task.RunTaskCommand()
+    runtime.universal_config = Mock()
+    multi_cmd = task.RunTaskCommand()
+    with contextlib.redirect_stdout(io.StringIO()) as stdout:
         with click.Context(multi_cmd, obj=runtime) as ctx:
             multi_cmd.format_help(ctx, Mock())
-        assert 3 == echo.call_count
 
-        assert 0 == len(runtime.universal_config.method_calls)
+    stdout = stdout.getvalue()
+    assert "Usage: cci task run <task_name> [TASK_OPTIONS...]" in stdout
+    assert "See above for a complete list of available tasks." in stdout
+    assert "Use cci task info <task_name>" in stdout
+    assert len(runtime.universal_config.method_calls) == 0
 
 
 def test_get_default_command_options():

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 import click
+from rich.console import Console
 
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import CumulusCIException, ServiceNotConfigured
@@ -32,12 +33,12 @@ def service_list(runtime, plain, print_json):
     supported_service_types = list(services.keys())
     supported_service_types.sort()
 
+    console = Console()
     if print_json:
-        click.echo(json.dumps(services))
+        console.print(json.dumps(services))
         return None
 
     configured_services = runtime.keychain.list_services()
-    plain = plain or runtime.universal_config.cli__plain_output
 
     data = [["Default", "Type", "Name", "Description"]]
 
@@ -65,7 +66,7 @@ def service_list(runtime, plain, print_json):
         title="Services",
         dim_rows=rows_to_dim,
     )
-    table.echo(plain)
+    console.print(table)
 
 
 class ConnectServiceCommand(click.MultiCommand):
@@ -265,7 +266,8 @@ def service_info(runtime, service_type, service_name, plain):
         default_service = runtime.keychain.get_default_service_name(service_type)
         service_name = default_service if not service_name else service_name
         service_table = CliTable(service_data, title=f"{service_type}:{service_name}")
-        service_table.echo(plain)
+        console = Console()
+        console.print(service_table)
     except ServiceNotConfigured:
         click.echo(
             f"{service_type} is not configured for this project.  Use service connect {service_type} to configure."

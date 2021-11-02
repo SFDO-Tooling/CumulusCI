@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import click
+from rich.console import Console
 from rst2ansi import rst2ansi
 
 from cumulusci.core.config import TaskConfig
@@ -30,8 +31,9 @@ def task_list(runtime, plain, print_json):
     tasks = runtime.get_available_tasks()
     plain = plain or runtime.universal_config.cli__plain_output
 
+    console = Console()
     if print_json:
-        click.echo(json.dumps(tasks))
+        console.print(json.dumps(tasks))
         return None
 
     task_groups = group_items(tasks)
@@ -42,12 +44,10 @@ def task_list(runtime, plain, print_json):
             data,
             group,
         )
-        table.echo(plain)
+        console.print(table)
 
-    click.echo(
-        "Use "
-        + click.style("cci task info <task_name>", bold=True)
-        + " to get more information about a task."
+    console.print(
+        "Use [bold]cci task info <task_name>[/] to get more information about a task."
     )
 
 
@@ -196,8 +196,8 @@ class RunTaskCommand(click.MultiCommand):
         """Custom help for `cci task run`"""
         runtime = ctx.obj
         tasks = runtime.get_available_tasks()
-        plain = runtime.universal_config.cli__plain_output or False
         task_groups = group_items(tasks)
+        console = Console()
         for group, tasks in task_groups.items():
             data = [["Task", "Description"]]
             data.extend(sorted(tasks))
@@ -205,14 +205,12 @@ class RunTaskCommand(click.MultiCommand):
                 data,
                 group,
             )
-            table.echo(plain)
+            console.print(table)
 
-        click.echo("Usage: cci task run <task_name> [TASK_OPTIONS...]\n")
-        click.echo("See above for a complete list of available tasks.")
-        click.echo(
-            "Use "
-            + click.style("cci task info <task_name>", bold=True)
-            + " to get more information about a task and its options."
+        console.print("Usage: cci task run <task_name> [TASK_OPTIONS...]\n")
+        console.print("See above for a complete list of available tasks.")
+        console.print(
+            "Use [bold]cci task info <task_name>[/] to get more information about a task and its options."
         )
 
     def _collect_task_options(self, new_options, old_options, task_name, task_options):

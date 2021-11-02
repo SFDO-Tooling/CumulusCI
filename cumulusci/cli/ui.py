@@ -7,6 +7,7 @@ Classes:
 import os
 from typing import List
 
+import rich
 from rich import box, print
 from rich.console import Console
 from rich.style import Style
@@ -64,7 +65,7 @@ class CliTable:
             self._table.box = box.ASCII2
         else:
             self._table.box = box_style or orig_box
-        console = Console()
+        console = rich.get_console()
         console.print(self._table)
         self._table.box = orig_box
 
@@ -73,10 +74,12 @@ class CliTable:
         return self._table
 
     def __str__(self):
-        console = Console()
-        with console.capture() as capture:
-            console.print(self._table)
-        return capture.get()
+        from io import StringIO
+
+        console = Console(file=StringIO())
+        tab_width = console.size.width - 21
+        console.print(self._table, width=tab_width)
+        return console.file.getvalue()
 
 
 def _soql_table(results, truncated):

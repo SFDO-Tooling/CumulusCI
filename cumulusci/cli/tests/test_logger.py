@@ -1,6 +1,6 @@
 import logging
 import os
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from ..logger import get_tempfile_logger, init_logger
 
@@ -9,8 +9,11 @@ class TestLogger:
     @patch("cumulusci.cli.logger.requests")
     @patch("cumulusci.cli.logger.logging")
     def test_init_logger(self, logging, requests):
-        init_logger(log_requests=True)
-        requests.packages.urllib3.add_stderr_logger.assert_called_once()
+        logger = Mock(handlers=["leftover"])
+        logging.getLogger.return_value = logger
+        init_logger()
+        logger.removeHandler.assert_called_once_with("leftover")
+        logger.addHandler.assert_called_once()
 
     def test_get_tempfile_logger(self):
         logger, tempfile = get_tempfile_logger()
