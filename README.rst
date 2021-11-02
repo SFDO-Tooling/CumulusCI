@@ -2,8 +2,11 @@
 CumulusCI
 =========
 
-|pypi| |python| |license| |docs|
+|coverage| |pypi| |python| |license| |docs|
 
+.. |coverage| image:: https://coveralls.io/repos/github/SFDO-Tooling/CumulusCI/badge.svg?branch=main
+              :target: https://coveralls.io/github/SFDO-Tooling/CumulusCI?branch=main
+              :alt: Code Coverage
 .. |pypi| image:: https://img.shields.io/pypi/v/cumulusci
            :target: https://pypi.org/project/cumulusci/
            :alt: PyPI
