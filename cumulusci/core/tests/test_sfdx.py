@@ -148,6 +148,7 @@ def test_convert_sfdx__skipped_if_directory_empty():
         (["-c", "cat", "dog"], ["-c cat dog"]),
         (["-c", "cat", "-d", "dog"], ["-c cat", "-d dog"]),
         (["-f", "foo", "bar", "baz", "--cat", "cat"], ["-f foo bar baz", "--cat cat"]),
+        (["--force-app", "my-app"], ["--force-app my-app"]),
     ],
 )
 def test_plog_command_options(

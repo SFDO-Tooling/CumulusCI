@@ -76,13 +76,13 @@ def plog_command_options(options: T.List[str]) -> None:
     logger.info("Options:")
     option_str = ""
     for idx, value in enumerate(options):
-        if "-" in value:
+        if value.startswith("-"):
             option_str += f"    {value}"
         else:
             option_str += f" {value}"
 
         try:
-            if "-" in options[idx + 1]:
+            if options[idx + 1].startswith("-"):
                 logger.info(option_str)
                 option_str = ""
         except IndexError:
