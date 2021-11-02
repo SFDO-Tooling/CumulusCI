@@ -54,8 +54,8 @@ def init_logger(debug=False):
             return handler
 
         # monkey patch urllib3 logger
-        requests.packages.urllib3.add_stderr_logger = add_rich_logger("urllib3")
-        requests.packages.urllib3.add_stderr_logger()
+        requests.packages.urllib3.add_stderr_logger = add_rich_logger
+        requests.packages.urllib3.add_stderr_logger("urlib3")
 
 
 def get_tempfile_logger():
