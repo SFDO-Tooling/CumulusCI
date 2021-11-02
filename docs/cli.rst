@@ -173,6 +173,92 @@ The tasks and flows making up the three subflows are also listed.
 
 
 
+Plan Info and Options
+---------------------
+
+Your project may have one or more defined MetaDeploy plans, though
+none come preconfigured with CumulusCI.
+If you have plans, for additional information on plan ``<name>``, run the following command:
+
+.. code-block:: console
+
+    $ cci plan info <name>
+
+Information about specific plans includes:
+
+* Configuration settings (slug, tier, etc)
+* Messages
+* Plan preflight checks
+* Step preflight checks
+* An ordered list of steps
+
+By default all of the above information is displayed. You can display
+only the list of messages by using the command line option ``--messages``
+
+The following example shows the output of a typical plan, in this case
+a plan named 'config'.
+
+.. code-block:: console
+
+    $ cci plan info config
+             Config
+
+      Key        Value
+     ──────────────────────
+      YAML Key   config
+      Slug       config
+      Tier       secondary
+      Hidden?    No
+
+                                        Messages
+
+      Type           Message
+     ──────────────────────────────────────────────────────────────────────────────
+      Title          Express Setup Configuration Plan
+      Preflight      This will install metadata configurations into your org.
+      Post-install   Thanks for installing Advisor Link. Visit the [Advisor Link
+                     topic](https://powerofus.force.com/s/topic/0TO80000000VXyzGA…
+                     on the Power of Us Hub for any questions about Advisor Link.
+      Error          If you experience an issue with the installation, please post
+                     in the [Power of Us
+                     Hub](https://powerofus.force.com/s/topic/0TO80000000VXyzGAG/…
+
+                                    Plan Preflights
+
+      Action   Message                            When
+     ──────────────────────────────────────────────────────────────────────────────
+      error    My Domain must be enabled in       '.my.' not in
+               your org before installation.      org_config.instance_url
+      error    Chatter must be enabled in your    not
+               org before installation.           tasks.check_chatter_enabled()
+      error    Enhanced Notes must be enabled     not
+               in your org before installation.   tasks.check_enhanced_notes_enab…
+
+                                    Step Preflights
+
+      Step   Action   Message   When
+     ──────────────────────────────────────────────────────────────────────────────
+      4      skip               'PID_Customer_Community_Plus' not in
+                                tasks.get_available_licenses()
+      5      skip               'PID_Customer_Community_Plus_Login' not in
+                                tasks.get_available_licenses()
+
+                                         Steps
+
+      Step   Name                                           Required   Recommended
+     ──────────────────────────────────────────────────────────────────────────────
+      1      Express Setup - Additional Unpackaged          No         Yes
+             Metadata
+      2      Express Setup - Sample Reports and             No         Yes
+             Dashboards
+      3      Express Setup - Lightning App and Advisor      No         Yes
+             Profile
+      4      Express Setup - Advisee Profile                No         Yes
+      5      Express Setup - Advisee Portal Profile         No         Yes
+      6      Express Setup - Permission Sets                No         Yes
+      7      Express Setup - Advisor Sharing Metadata       No         Yes
+
+
 Run Tasks and Flows
 -------------------
 
