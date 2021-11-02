@@ -411,7 +411,7 @@ class TestOrgCommands:
         captured = capsys.readouterr()
         assert (
             captured.out
-            == '{\n  "test": "test",\n  "unserializable": "<unserializable>"\n}\n'
+            == '{\n    "test": "test",\n    "unserializable": "<unserializable>"\n}\n'
         )
         org_config.save.assert_called_once_with()
 
