@@ -1,6 +1,4 @@
 import io
-import logging
-import typing as T
 from unittest import mock
 from zipfile import ZipFile
 
@@ -13,7 +11,6 @@ from cumulusci.core.sfdx import (
     get_default_devhub_username,
     get_source_format_for_path,
     get_source_format_for_zipfile,
-    plog_command_options,
     sfdx,
     shell_quote,
 )
@@ -138,34 +135,3 @@ def test_convert_sfdx__skipped_if_directory_empty():
                 pass
 
     sfdx.assert_not_called()
-
-
-@pytest.mark.parametrize(
-    "options,expected_outputs",
-    [
-        (["--foo", "foo_value"], ["--foo foo_value"]),
-        (["-c", "cat"], ["-c cat"]),
-        (["-c", "cat", "dog"], ["-c cat dog"]),
-        (["-c", "cat", "-d", "dog"], ["-c cat", "-d dog"]),
-        (["-f", "foo", "bar", "baz", "--cat", "cat"], ["-f foo bar baz", "--cat cat"]),
-    ],
-)
-def test_plog_command_options(
-    options: T.List[str], expected_outputs: T.List[str], caplog
-):
-    caplog.set_level(logging.INFO, logger="cumulusci")
-    plog_command_options(options)
-    for expected in expected_outputs:
-        assert string_in_records(expected, caplog.records)
-
-
-def string_in_records(expected: str, records: T.List):
-    """Looks through all record calls and returns true if
-    the expected string is in one of them. False otherwise"""
-    return True if any([expected in r.msg for r in records]) else False
-
-
-def test_pprint_command_options__no_options(caplog):
-    caplog.set_level(logging.INFO, logger="cumulusci")
-    plog_command_options([])
-    assert "(No command options)" in caplog.text
