@@ -162,10 +162,7 @@ def test_plog_command_options(
 def string_in_records(expected: str, records: T.List):
     """Looks through all record calls and returns true if
     the expected string is in one of them. False otherwise"""
-    for r in records:
-        if expected in r.msg:
-            return True
-    return False
+    return True if any([expected in r.msg for r in records]) else False
 
 
 def test_pprint_command_options__no_options(caplog):
