@@ -133,7 +133,7 @@ class PackageUpload(BaseSalesforceApiTask):
             table_data,
             table_title,
         )
-        self.logger.error(str(table))
+        table.echo()
 
     def _get_table_data(self, results):
         """Returns table data compatible with CliTable class"""

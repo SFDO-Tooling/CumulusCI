@@ -392,7 +392,7 @@ class TestOrgCommands:
 
         org_config.save.assert_called_once_with()
 
-    def test_org_info_json(self):
+    def test_org_info_json(self, capsys):
         class Unserializable(object):
             def __str__(self):
                 return "<unserializable>"
@@ -403,16 +403,15 @@ class TestOrgCommands:
         runtime = mock.Mock()
         runtime.get_org.return_value = ("test", org_config)
 
-        out = []
-        with mock.patch("click.echo", out.append):
-            run_click_command(
-                org.org_info, runtime=runtime, org_name="test", print_json=True
-            )
+        run_click_command(
+            org.org_info, runtime=runtime, org_name="test", print_json=True
+        )
 
         org_config.refresh_oauth_token.assert_called_once()
+        captured = capsys.readouterr()
         assert (
-            '{\n    "test": "test",\n    "unserializable": "<unserializable>"\n}'
-            == "".join(out)
+            captured.out
+            == '{\n    "test": "test",\n    "unserializable": "<unserializable>"\n}\n'
         )
         org_config.save.assert_called_once_with()
 

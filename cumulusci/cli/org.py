@@ -258,7 +258,7 @@ def calculate_org_days(info):
 def org_info(runtime, org_name, print_json):
     org_name, org_config = runtime.get_org(org_name)
     org_config.refresh_oauth_token(runtime.keychain)
-
+    console = Console()
     if print_json:
         click.echo(
             json.dumps(
@@ -302,10 +302,10 @@ def org_info(runtime, org_name, print_json):
         table = CliTable(
             table_data,
         )
-        table.echo()
+        console.print(table)
 
         if org_config.scratch and org_config.expires:
-            click.echo("Org expires on {:%c}".format(org_config.expires))
+            console.print("Org expires on {:%c}".format(org_config.expires))
 
     # Save the org config in case it was modified
     org_config.save()
