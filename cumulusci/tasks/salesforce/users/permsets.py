@@ -148,7 +148,7 @@ Assigns Permission Sets whose Names are in ``api_names`` to either the default o
             results_table_data,
             title="Results",
         )
-        self.logger.info("\n" + str(table))
+        table.echo()
 
         if not all([result["success"] for result in api_results]):
             raise CumulusCIException(

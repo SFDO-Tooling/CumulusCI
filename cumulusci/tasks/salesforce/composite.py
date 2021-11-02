@@ -133,7 +133,7 @@ Example Task Definition
             table_data,
         )
         self.logger.error("The request failed with the following message(s):\n\n")
-        self.logger.error("\n" + str(table))
+        table.echo()
 
     def _log_success_message(self, subrequests):
         table_data = [["ReferenceId", "Success"]]
@@ -142,4 +142,4 @@ Example Task Definition
             for sub in subrequests
         )
         table = CliTable(table_data, title="Subrequest Results")
-        self.logger.info("\n" + str(table))
+        table.echo()

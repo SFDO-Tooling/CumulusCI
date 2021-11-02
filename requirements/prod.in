@@ -1,5 +1,4 @@
 click<8
-coloredlogs
 contextvars
 cryptography<35
 python-dateutil
