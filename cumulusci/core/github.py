@@ -302,13 +302,14 @@ def find_repo_2gp_context(repo: Repository) -> str:
 
 def get_tag_by_name(repo: Repository, tag_name: str) -> Tag:
     """Fetches a tag by name from the given repository"""
-    ref = get_ref_for_tag(repo, tag_name)
+    ref: Reference = get_ref_for_tag(repo, tag_name)
     try:
         return repo.tag(ref.object.sha)
     except github3.exceptions.NotFoundError:
-        raise DependencyLookupError(
-            f"Could not find tag with SHA {ref.object.sha} on GitHub"
-        )
+        msg = f"Could not find tag with SHA {ref.object.sha} on GitHub"
+        if ref.object.type != "tag":
+            msg += f"\n{tag_name} is not an annotated tag."
+        raise DependencyLookupError(msg)
 
 
 def get_ref_for_tag(repo: Repository, tag_name: str) -> Reference:

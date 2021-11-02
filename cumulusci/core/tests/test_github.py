@@ -330,6 +330,28 @@ class TestGithub(GithubApiTestMixin):
             get_tag_by_name(repo, "tag_SHA")
 
     @responses.activate
+    def test_current_tag_is_lightweight(self, repo):
+        self.init_github()
+        light_tag = self._get_expected_tag_ref("tag_SHA", "tag_SHA")
+        light_tag["object"]["type"] = "commit"
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            json=light_tag,
+            status=200,
+        )
+        responses.add(
+            "GET",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/tags/tag_SHA",
+            json=self._get_expected_tag("beta/1.0", "tag_SHA"),
+            status=404,
+        )
+        with pytest.raises(DependencyLookupError) as exc:
+            get_tag_by_name(repo, "tag_SHA")
+
+        assert "not an annotated tag" in str(exc)
+
+    @responses.activate
     def test_get_ref_by_name(self, repo):
         self.init_github()
         responses.add(
