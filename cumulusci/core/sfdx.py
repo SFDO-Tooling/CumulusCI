@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def sfdx(
-    command,
+    command: str,
     username=None,
     log_note=None,
     access_token=None,
@@ -35,19 +35,20 @@ def sfdx(
 
     Returns a `sarge` Command instance with returncode, stdout, stderr
     """
-    command = f"sfdx {command}"
+    sfdx_cmd = f"sfdx {command}"
     if args is not None:
         for arg in args:
-            command += " " + shell_quote(arg)
+            sfdx_cmd += " " + shell_quote(arg)
     if username:
-        command += f" -u {shell_quote(username)}"
+        sfdx_cmd += f" -u {shell_quote(username)}"
     if log_note:
-        logger.info(f"{log_note} with command: {command}")
+        logger.info(f"{log_note} with command: sfdx {command}")
+        plog_command_options(args)
     # Avoid logging access token
     if access_token:
-        command += f" -u {shell_quote(access_token)}"
+        sfdx_cmd += f" -u {shell_quote(access_token)}"
     p = sarge.Command(
-        command,
+        sfdx_cmd,
         stdout=sarge.Capture(buffer_size=-1) if capture_output else None,
         stderr=sarge.Capture(buffer_size=-1) if capture_output else None,
         shell=True,
@@ -63,6 +64,30 @@ def sfdx(
             message += f":\n{p.stderr_text.read()}"
         raise Exception(message)
     return p
+
+
+def plog_command_options(options: T.List[str]) -> None:
+    """Pretty log option key/value pairs given to sfdx commands.
+    Outputs one option per line."""
+    if not options:
+        logger.info("(No command options)")
+        return
+
+    logger.info("Options:")
+    option_str = ""
+    for idx, value in enumerate(options):
+        if "-" in value:
+            option_str += f"    {value}"
+        else:
+            option_str += f" {value}"
+
+        try:
+            if "-" in options[idx + 1]:
+                logger.info(option_str)
+                option_str = ""
+        except IndexError:
+            # we may be at the last element of the list
+            logger.info(option_str)
 
 
 def shell_quote(s: str):
