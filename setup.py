@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import re
 import os.path
-from setuptools import setup
+import re
 from pkgutil import walk_packages
+
+from setuptools import setup
 
 
 def find_packages(path=["."], prefix=""):
@@ -65,6 +66,8 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
     test_suite="cumulusci.core.tests",
     python_requires=">=3.6",
