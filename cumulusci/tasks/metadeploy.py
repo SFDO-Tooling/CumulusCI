@@ -8,6 +8,7 @@ import requests
 from cumulusci.core.config import BaseProjectConfig, FlowConfig, TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.flowrunner import FlowCoordinator
+from cumulusci.core.github import get_tag_by_name
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.utils import cd, download_extract_github, temporary_dir
@@ -108,12 +109,10 @@ class Publish(BaseMetaDeployTask):
         gh = self.project_config.get_github_api()
         repo = gh.repository(repo_owner, repo_name)
         if self.tag:
-            tag = self.options["tag"]
-            self.commit = repo.tag(repo.ref("tags/" + tag).object.sha).object.sha
+            tag = get_tag_by_name(repo, self.tag)
+            self.commit = tag.object.sha
         self.logger.info(
-            "Downloading commit {} of {} from GitHub".format(
-                self.commit, repo.full_name
-            )
+            f"Downloading commit {self.commit} of {repo.full_name} from GitHub"
         )
         zf = download_extract_github(gh, repo_owner, repo_name, ref=self.commit)
         with temporary_dir() as project_dir:
