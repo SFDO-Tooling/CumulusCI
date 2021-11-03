@@ -4,7 +4,7 @@ import click
 from rich.console import Console
 
 from cumulusci.cli.ui import CliTable
-from cumulusci.utils.metadeploy import get_frozen_steps
+from cumulusci.core.metadeploy import get_frozen_steps
 from cumulusci.utils.yaml.cumulusci_yml import Plan
 
 from .runtime import pass_runtime
