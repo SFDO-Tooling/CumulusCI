@@ -3,7 +3,7 @@ import unittest
 import responses
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
-from cumulusci.core.exceptions import GithubException
+from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.tasks.github import CloneTag
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tests.util import create_project_config
@@ -87,5 +87,5 @@ class TestCloneTag(unittest.TestCase, GithubApiTestMixin):
             {"options": {"src_tag": "beta/1.0-Beta_1", "tag": "release/1.0"}}
         )
         task = CloneTag(self.project_config, task_config)
-        with self.assertRaises(GithubException):
+        with self.assertRaises(GithubApiNotFoundError):
             task()
