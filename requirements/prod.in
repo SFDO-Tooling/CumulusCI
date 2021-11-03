@@ -1,5 +1,4 @@
 click<8
-contextvars
 cryptography<35
 python-dateutil
 docutils<0.17
