@@ -69,7 +69,7 @@ jwcrypto==1.0
     # via github3.py
 keyring==23.0.1
     # via -r requirements/prod.in
-lxml==4.6.3
+lxml==4.6.4
     # via -r requirements/prod.in
 markupsafe==2.0.1
     # via
