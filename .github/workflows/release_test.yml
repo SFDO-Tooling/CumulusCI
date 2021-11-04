@@ -51,17 +51,6 @@ jobs:
             - name: Check out CumulusCI-Test
               run: |
                   git clone https://github.com/SFDO-Tooling/CumulusCI-Test
-            - name: Run ci_master flow
-              run: |
-                  cd CumulusCI-Test
-                  git checkout failing-tests
-                  coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_master --org scratch --delete-org
-            - name: Run release_beta flow
-              run: |
-                  export SFDX_HUB_KEY="$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)"
-                  cd CumulusCI-Test
-                  git checkout failing-tests
-                  coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run release_beta --org packaging
             - name: Run ci_feature flow
               run: |
                   cd CumulusCI-Test
@@ -70,3 +59,12 @@ jobs:
               run: |
                   cd CumulusCI-Test
                   coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_beta --org scratch --delete-org
+            - name: Run ci_master flow
+              run: |
+                  cd CumulusCI-Test
+                  coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run ci_master --org scratch --delete-org
+            - name: Run release_beta flow
+              run: |
+                  export SFDX_HUB_KEY="$(echo $SFDX_HUB_KEY_BASE64 | base64 --decode)"
+                  cd CumulusCI-Test
+                  coverage run --append --rcfile=../pyproject.toml --source=../cumulusci $(which cci) flow run release_beta --org packaging
