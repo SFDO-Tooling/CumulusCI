@@ -224,9 +224,9 @@ def init_from_context(context: Dict[str, object], echo: bool = False):
     )
 
     # Render templates
-    for name in (".gitignore", "README.md", "cumulusci.yml"):
+    for name in ("dot-gitignore", "README.md", "cumulusci.yml"):
         template = env.get_template(name)
-        file_path = Path(name)
+        file_path = Path(name.replace("dot-", "."))
         if not file_path.is_file():
             file_path.write_text(template.render(**context))
         elif echo:
