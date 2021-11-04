@@ -1,7 +1,5 @@
 from datetime import datetime
 
-from rich.table import Column
-
 from cumulusci.cli.ui import CliTable
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.exceptions import ApexTestException, SalesforceException
@@ -140,7 +138,7 @@ class PackageUpload(BaseSalesforceApiTask):
     def _get_table_data(self, results):
         """Returns table data compatible with CliTable class"""
         table_header_row = ["Class", "Method", "Message", "Stacktrace"]
-        table_data = [Column(header, overflow="fold") for header in table_header_row]
+        table_data = [table_header_row]
         for test in results["records"]:
             table_data.append(
                 [
