@@ -1,9 +1,10 @@
 import json
+from pathlib import Path
 
 import click
 from rich.console import Console
 
-from cumulusci.cli.ui import CliTable
+from cumulusci.cli.ui import CliTable, print_help_file
 from cumulusci.core.metadeploy import get_frozen_steps
 from cumulusci.utils.yaml.cumulusci_yml import Plan
 
@@ -12,7 +13,13 @@ from .runtime import pass_runtime
 
 @click.group("plan", help="Commands for getting information about MetaDeploy plans")
 def plan():
+    """Commands for interacting with MetaDeploy plans"""
     pass  # pragma: no cover
+
+
+@plan.command(name="help")
+def help():
+    print_help_file("plan.md")
 
 
 @plan.command(name="list")
