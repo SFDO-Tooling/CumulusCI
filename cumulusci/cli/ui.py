@@ -5,14 +5,12 @@ Classes:
     CliTable: Pretty prints tabular data to stdout, via Rich's Console API
 """
 import os
-from io import StringIO
 from pathlib import Path
 from typing import Any, List, Union
 
 import rich
 from rich import box, get_console, print
 from rich.console import Console
-from rich.live import Live
 from rich.markdown import Markdown
 from rich.style import Style
 from rich.table import Column, Table
@@ -108,6 +106,8 @@ class CliTable:
         return self._table
 
     def __str__(self):
+        from io import StringIO
+
         console = Console(file=StringIO())
         tab_width = console.size.width - 21
         console.print(self._table, width=tab_width)
@@ -238,17 +238,9 @@ class SimpleSalesforceUIHelpers:
 
 def print_help_file(
     filename: Union[os.PathLike, str],
-    open_browser: bool = False,
     console: Console = get_console(),
 ) -> None:
-    help_path: Path = Path(__file__).resolve().parent / "help"
-    help_file: Path = help_path / filename
-    help_text: str = help_file.read_text()
-    if open_browser:
-        commonmark.Parser().parse(help_file.read_text())
-        tab_width = console.size.width - 21
-        console.print(self._table, width=tab_width)
-        return console.file.getvalue()
+    help_file: Path = Path(__file__).resolve().parent / "help" / filename
 
     with console.pager():
-        console.print(Markdown(help_text))
+        console.print(Markdown(help_file.read_text()))
