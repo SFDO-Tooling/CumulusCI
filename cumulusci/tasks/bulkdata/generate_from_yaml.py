@@ -27,6 +27,9 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         "vars": {
             "description": "Pass values to override options in the format VAR1:foo,VAR2:bar"
         },
+        "plugin_options": {
+            "description": "Pass values to override plugin options in the format VAR1:foo,VAR2:bar"
+        },
         "generate_mapping_file": {
             "description": "A path to put a mapping file inferred from the generator_yaml",
             "required": False,
@@ -161,6 +164,7 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                 plugin_options={
                     "org_config": self.org_config,
                     "project_config": self.project_config,
+                    **self.options.get("plugin_options", {}),
                 },
             )
 
