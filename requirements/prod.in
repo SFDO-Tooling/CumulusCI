@@ -1,6 +1,6 @@
 click<8
 contextvars
-cryptography<35
+cryptography
 python-dateutil
 docutils<0.17
 Faker
