@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
+import re
 from pprint import pformat
 from unittest import mock
 
 import pytest
 from rich.emoji import Emoji
+from rich.table import Column
 
 from cumulusci.cli.ui import (
     CHECKMARK,
@@ -24,10 +26,17 @@ def sample_data():
             ["sentry", "Configure connection to sentry.io for error tracking", False],
         ],
         "org_list": [
-            ["Org", "Default", "Scratch", "Days", "Expired", "Config", "Username"],
-            ["beta", None, True, 1, None, "beta", ""],
-            ["dev", True, True, "1/7", False, "dev", "test-h8znvutwnctb@example.com"],
-            ["feature", None, True, 1, None, "feature", ""],
+            [
+                "Org",
+                "Default",
+                "Days",
+                "Expired",
+                "Config",
+                Column("Domain", overflow="crop"),
+            ],
+            ["beta", None, 1, None, "beta", ""],
+            ["dev", True, "1/7", False, "dev", "test-h8znvutwnctb@example.com"],
+            ["feature", None, 1, None, "feature", ""],
         ],
         "task_list_util": [
             ["Task", "Description"],
@@ -59,11 +68,29 @@ def test_table_stringify_booleans(sample_data):
         assert "-" in table
 
 
-def test_table_stringify_int(sample_data):
+def test_table_stringify_misc(sample_data):
     data = sample_data["org_list"]
     instance = CliTable(data)
     table = str(instance)
     assert "7" in table
+    assert "None" not in table
+
+
+def test_columnify_headers():
+    data = [["y", Column("n", overflow="crop"), 43], [1, 2, 3]]
+    table = CliTable(data)
+    str(table)
+    formatted_table = str(table)
+    assert "  y   n   43  " in formatted_table
+
+
+def test_rich_truncation(sample_data):
+    count = 6
+    data = [["column"], ["x" * 16 * count]]
+    table = CliTable(data, title="testerino", width=20)
+    formatted_table = str(table)
+    rxp = re.compile("x{16}")
+    assert len(rxp.findall(formatted_table)) == count
 
 
 PRETEND_DESCRIBE_DATA = {
