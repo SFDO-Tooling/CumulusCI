@@ -1,6 +1,6 @@
 click<8
 contextvars
-cryptography<35
+cryptography
 python-dateutil
 docutils<0.17
 Faker
@@ -26,8 +26,8 @@ robotframework-seleniumlibrary
 rst2ansi
 salesforce-bulk
 sarge
-selenium
+selenium<4
 simple-salesforce
-snowfakery
+snowfakery==2.1
 SQLAlchemy
 xmltodict
