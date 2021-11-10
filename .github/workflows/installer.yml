@@ -8,7 +8,7 @@ on:
             - feature/windows-standalone-build
 
 jobs:
-    build:
+    windowsbuild:
         runs-on: "windows-2019"
         steps:
             - uses: actions/checkout@v2
@@ -53,25 +53,25 @@ jobs:
             - name: Add static files
               shell: cmd
               run: |
-                  echo "Run 'install.bat' to create a CumulusCI install environment" > cci_installer/README.txt
-                  echo %%~dp0\python %%~dp0\Scripts\venv_from_pip.py > cci_installer/install.bat
+                  echo "Run 'install.bat' to create a CumulusCI install environment" > cci_installer\README.txt
+                  echo %%~dp0\python %%~dp0\Scripts\venv_from_pip.py > cci_installer\install.bat
 
             - name: Upload executable
               uses: actions/upload-artifact@v2
               with:
-                  name: cci_installer.zip
+                  name: cci_installer_win.zip
                   if-no-files-found: error
                   path: cci_installer
 
-    test:
+    windowstest:
         runs-on: "windows-2019"
-        needs: build
+        needs: windowsbuild
         strategy:
             fail-fast: True
         steps:
             - uses: actions/download-artifact@v2
               with:
-                  name: cci_installer.zip
+                  name: cci_installer_win.zip
                   path: cci_installer
 
             - name: See what's going on
@@ -99,3 +99,86 @@ jobs:
               shell: cmd
               run: |
                   %userprofile%\.cumulusci\pythonbin\Scripts\cci
+
+    macbuild:
+        runs-on: macos-10.15
+        steps:
+            - uses: actions/checkout@v2
+              with:
+                  fetch-depth: 0
+
+            - name: Download and unpack pythonbuild repository
+              shell: sh # todo: make hard-coded inputs into inputs
+              run: |
+                  wget https://github.com/indygreg/python-build-standalone/releases/download/20211017/cpython-3.9.7-x86_64-apple-darwin-install_only-20211017T1616.tar.gz
+                  tar -zxvf cpython-3.9.7-x86_64-apple-darwin-install_only-20211017T1616.tar.gz
+
+            - name: Rename Directory
+              shell: pwsh
+              run: mv python cci_installer
+
+            - name: Cleanup pythonbuild repository
+              shell: sh
+              run: |
+                  rm -rf cci_installer/tcl
+                  rm -rf cci_installer/Lib/turtledemo
+                  rm -rf cci_installer/Lib/tkinter
+                  rm -rf cci_installer/Lib/test
+                  rm -rf cci_installer/Lib/idlelib
+                  rm -rf cci_installer/Lib/distutils/tests
+                  find cci_installer -name \*.h -exec rm -rf {} \;
+
+            - name: Copy installer scripts
+              shell: sh
+              run: |
+                  cp utility/venv_from_pip.py cci_installer/bin/
+                  cp utility/install.sh cci_installer/
+
+            - name: Add static files
+              shell: sh
+              run: |
+                  echo "Run 'install.sh' to create a CumulusCI install environment" > cci_installer/README.txt
+
+            - name: Upload executable
+              uses: actions/upload-artifact@v2
+              with:
+                  name: cci_installer_mac.zip
+                  if-no-files-found: error
+                  path: cci_installer
+
+    mactest:
+        runs-on: macos-10.15
+        needs: macbuild
+        strategy:
+            fail-fast: True
+        steps:
+            - uses: actions/download-artifact@v2
+              with:
+                  name: cci_installer_mac.zip
+                  path: cci_installer
+
+            - name: See what's going on
+              shell: sh
+              run: ls
+
+            - name: See what's going on (2)
+              shell: sh
+              run: ls cci_installer
+
+            - name: See what's going on (3)
+              shell: sh
+              run: ls cci_installer/install.sh
+
+            - name: See what's going on (4)
+              shell: sh
+              run: cat cci_installer/install.sh
+
+            - name: Install
+              shell: sh
+              run: |
+                  cci_installer/install.sh
+
+            - name: Test installation
+              shell: sh
+              run: |
+                  ~/.cumulusci/pythonbin/Scripts/cci
