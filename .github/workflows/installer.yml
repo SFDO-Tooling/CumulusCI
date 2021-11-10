@@ -54,7 +54,7 @@ jobs:
               shell: cmd
               run: |
                   echo "Run 'install.bat' to create a CumulusCI install environment" > cci_installer/README.txt
-                  echo %~dp0\python %~dp0\Scripts\venv_from_pip.py > cci_installer/install.bat
+                  echo %%~dp0\python %%~dp0\Scripts\venv_from_pip.py > cci_installer/install.bat
 
             - name: Upload executable
               uses: actions/upload-artifact@v2
