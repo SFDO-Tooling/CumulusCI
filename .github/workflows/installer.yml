@@ -75,8 +75,8 @@ jobs:
                   path: cci_installer
 
             - name: Try install
-              shell: pwsh
+              shell: cmd
               run: |
                   dir
                   cci_installer\install.bat
-                  ~\.cumulusci\pythonbin\Scripts\cci
+                  %userprofile%\.cumulusci\pythonbin\Scripts\cci
