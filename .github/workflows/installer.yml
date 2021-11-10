@@ -48,13 +48,13 @@ jobs:
               shell: cmd
               run: cp utility/venv_from_pip.py python/Scripts
 
-            - name: Make zipfile
-              shell: cmd
-              run: zip -rm cci_installer.zip python
-
             - name: Add README
               shell: cmd
               run: echo "Run 'Scripts/python Scripts/venv_from_pip.py' to create a CumulusCI install environment" > "python/README.txt"
+
+            - name: Make zipfile
+              shell: cmd
+              run: zip -rm cci_installer.zip python
 
             - name: Upload executable
               uses: actions/upload-artifact@v2
