@@ -64,6 +64,7 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
 
     def __init__(self, *args, **kwargs):
         self.vars = {}
+        self.plugin_options = {}
         super().__init__(*args, **kwargs)
 
     def _init_options(self, kwargs):
@@ -73,6 +74,10 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
             raise TaskOptionsError(f"Cannot find {self.yaml_file}")
         if "vars" in self.options:
             self.vars = process_list_of_pairs_dict_arg(self.options["vars"])
+        if "plugin_options" in self.options:
+            self.plugin_options = process_list_of_pairs_dict_arg(
+                self.options["plugin_options"]
+            )
         self.generate_mapping_file = self.options.get("generate_mapping_file")
         if self.generate_mapping_file:
             self.generate_mapping_file = os.path.abspath(self.generate_mapping_file)
@@ -164,7 +169,7 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                 plugin_options={
                     "org_config": self.org_config,
                     "project_config": self.project_config,
-                    **self.options.get("plugin_options", {}),
+                    **self.plugin_options,
                 },
             )
 
