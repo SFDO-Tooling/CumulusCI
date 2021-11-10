@@ -11,35 +11,35 @@ jobs:
     build:
         strategy:
             fail-fast: false
-        runs-on: windows-2019
+        runs-on: "windows-2019"
         steps:
             - uses: actions/checkout@v2
               with:
                   fetch-depth: 0
 
-            - name: Set up Cygwin
-              uses: egor-tensin/setup-cygwin@f86ccb21e7a2ba792c837fb9a2b267a9d6335531
-              with:
-                  platform: x64
-                  packages: autoconf automake libtool wget zip zstd
+            # - name: Set up Cygwin
+            #   uses: egor-tensin/setup-cygwin@f86ccb21e7a2ba792c837fb9a2b267a9d6335531
+            #   with:
+            #       platform: x64
+            #       packages: autoconf automake libtool wget zip zstd
 
-            - name: Download, unpack and cleanup pythonbuild Executable
-              shell: cmd
-              run: |
-                  wget https://github.com/indygreg/python-build-standalone/releases/download/20211017/cpython-3.9.7-x86_64-pc-windows-msvc-shared-install_only-20211017T1616.tar.gz
-                  tar -zxvf cpython-3.9.7-x86_64-pc-windows-msvc-shared-install_only-20211017T1616.tar.gz
-                  rmdir /s /q python\tcl
-                  rmdir /s /q python\Lib\turtledemo
-                  rmdir /s /q python\Lib\tkinter
-                  rmdir /s /q python\Lib\test
-                  rmdir /s /q python\Lib\idlelib	
-                  rmdir /s /q python\Lib\distutils\tests
-                  del /s *h
-                  yes | cacls python /t /g Everyone:f   # fix the dll permissions
-                  zip -rm cci_installer.zip python
+            # - name: Download, unpack and cleanup pythonbuild Executable
+            #   shell: cmd
+            #   run: |
+            #       wget https://github.com/indygreg/python-build-standalone/releases/download/20211017/cpython-3.9.7-x86_64-pc-windows-msvc-shared-install_only-20211017T1616.tar.gz
+            #       tar -zxvf cpython-3.9.7-x86_64-pc-windows-msvc-shared-install_only-20211017T1616.tar.gz
+            #       rmdir /s /q python\tcl
+            #       rmdir /s /q python\Lib\turtledemo
+            #       rmdir /s /q python\Lib\tkinter
+            #       rmdir /s /q python\Lib\test
+            #       rmdir /s /q python\Lib\idlelib
+            #       rmdir /s /q python\Lib\distutils\tests
+            #       del /s *h
+            #       yes | cacls python /t /g Everyone:f   # fix the dll permissions
+            #       zip -rm cci_installer.zip python
 
-            - name: Upload executable
-              uses: actions/upload-artifact@v2
-              with:
-                  name: cci_installer
-                  path: target/release/cci_installer
+            # - name: Upload executable
+            #   uses: actions/upload-artifact@v2
+            #   with:
+            #       name: cci_installer
+            #       path: target/release/cci_installer
