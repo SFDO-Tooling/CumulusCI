@@ -44,9 +44,13 @@ jobs:
               shell: cmd
               run: yes | cacls python /t /g Everyone:f # fix the dll permissions
 
+            - name: Copy installer script
+              shell: cmd
+              run: cp utility/venv_from_pip.py python/Scripts
+
             - name: Make zipfile
               shell: cmd
-                  zip -rm cci_installer.zip python
+              run: zip -rm cci_installer.zip python
 
             - name: Upload executable
               uses: actions/upload-artifact@v2
