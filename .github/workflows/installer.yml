@@ -65,6 +65,7 @@ jobs:
 
     test:
         runs-on: "windows-2019"
+        needs: build
         strategy:
             fail-fast: True
         steps:
