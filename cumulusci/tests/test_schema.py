@@ -13,7 +13,6 @@ class TestSchema:
     )
     def test_schema_validates(self, cumulusci_test_repo_root):
         from jsonschema import validate
-        from yaml import Loader
 
         schemapath = (
             cumulusci_test_repo_root / "cumulusci/schema/cumulusci.jsonschema.json"
@@ -21,7 +20,7 @@ class TestSchema:
         with open(schemapath) as f:
             schema = json.load(f)
         with open(cumulusci_test_repo_root / "cumulusci.yml") as f:
-            data = yaml.load(f, Loader=Loader)
+            data = yaml.safe_load(f)
 
         assert validate(data, schema=schema) is None
 
