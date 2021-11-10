@@ -23,11 +23,15 @@ jobs:
                   platform: x64
                   packages: autoconf automake libtool wget zip zstd
 
-            - name: Download, unpack and cleanup pythonbuild repository
+            - name: Download and unpack pythonbuild repository
               shell: cmd
               run: |
                   wget https://github.com/indygreg/python-build-standalone/releases/download/20211017/cpython-3.9.7-x86_64-pc-windows-msvc-shared-install_only-20211017T1616.tar.gz
                   tar -zxvf cpython-3.9.7-x86_64-pc-windows-msvc-shared-install_only-20211017T1616.tar.gz
+
+            - name: Cleanup pythonbuild repository
+              shell: cmd
+              run: |
                   rmdir /s /q python\tcl
                   rmdir /s /q python\Lib\turtledemo
                   rmdir /s /q python\Lib\tkinter
@@ -35,11 +39,17 @@ jobs:
                   rmdir /s /q python\Lib\idlelib
                   rmdir /s /q python\Lib\distutils\tests
                   del /s *h
-                  yes | cacls python /t /g Everyone:f   # fix the dll permissions
+
+            - name: Ensure clean permissions
+              shell: cmd
+              run: yes | cacls python /t /g Everyone:f # fix the dll permissions
+
+            - name: Make zipfile
+              shell: cmd
                   zip -rm cci_installer.zip python
 
-            # - name: Upload executable
-            #   uses: actions/upload-artifact@v2
-            #   with:
-            #       name: cci_installer
-            #       path: target/release/cci_installer
+            - name: Upload executable
+              uses: actions/upload-artifact@v2
+              with:
+                  name: cci_installer
+                  path: target/release/cci_installer
