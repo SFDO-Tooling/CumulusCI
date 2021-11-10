@@ -74,9 +74,16 @@ jobs:
                   name: cci_installer.zip
                   path: cci_installer
 
-            - name: Try install
+            - name: See what's going on
+              shell: cmd
+              run: dir
+
+            - name: Install
               shell: cmd
               run: |
-                  dir
                   cci_installer\install.bat
+
+            - name: Test installation
+              shell: cmd
+              run: |
                   %userprofile%\.cumulusci\pythonbin\Scripts\cci
