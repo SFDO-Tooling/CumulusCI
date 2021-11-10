@@ -78,6 +78,14 @@ jobs:
               shell: cmd
               run: dir
 
+            - name: See what's going on (2)
+              shell: cmd
+              run: dir cci_installer
+
+            - name: See what's going on (3)
+              shell: cmd
+              run: dir cci_installer\install.bat
+
             - name: Install
               shell: cmd
               run: |
