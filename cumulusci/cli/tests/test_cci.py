@@ -396,23 +396,24 @@ def test_cli():
     "cumulusci.cli.cci.get_latest_final_version",
     mock.Mock(return_value=pkg_resources.parse_version("100")),
 )
-@mock.patch("click.echo")
-def test_version(echo):
+def test_version(capsys):
     run_click_command(cci.version)
-    assert cumulusci.__version__ in echo.call_args_list[1][0][0]
+    console_output = capsys.readouterr().out
+    assert cumulusci.__version__ in console_output
 
 
 @mock.patch(
     "cumulusci.cli.cci.get_latest_final_version",
     mock.Mock(return_value=pkg_resources.parse_version("100")),
 )
-@mock.patch("click.echo")
-def test_version__latest(echo):
+def test_version__latest(capsys):
     with mock.patch(
         "cumulusci.cli.cci.get_latest_final_version", cci.get_installed_version
     ):
         run_click_command(cci.version)
-    assert "You have the latest version of CumulusCI." in echo.call_args_list[-2][0][0]
+
+    console_output = capsys.readouterr().out
+    assert "You have the latest version of CumulusCI." in console_output
 
 
 @mock.patch("code.interact")

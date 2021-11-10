@@ -7,6 +7,7 @@ import traceback
 
 import click
 import requests
+import rich
 from rich.console import Console
 
 import cumulusci
@@ -136,34 +137,41 @@ def show_debug_info():
     pdb.post_mortem()
 
 
+def show_version_info():
+    console = rich.get_console()
+    console.print(
+        f"[blue bold]CumulusCI version: [blink] {cumulusci.__version__}[/] ({sys.argv[0]})"
+    )
+    console.print(
+        f"[purple bold]Python version: {sys.version.split()[0]} ({sys.executable})"
+    )
+    console.print()
+
+    current_version = get_installed_version()
+    latest_version = get_latest_final_version()
+    if latest_version > current_version:
+        console.print(
+            f"[yellow flashing]There is a newer version of CumulusCI available ({str(latest_version)})."
+        )
+        console.print(f"To upgrade, run `{get_cci_upgrade_command()}`")
+        console.print(
+            f"Release notes: https://github.com/SFDO-Tooling/CumulusCI/releases/tag/v{str(latest_version)}"
+        )
+    else:
+        console.print("You have the latest version of CumulusCI.")
+
+    console.print()
+
+
 @click.group("main", help="")
+@click.version_option(show_version_info(), message="")
 def cli():
     """Top-level `click` command group."""
 
 
 @cli.command(name="version", help="Print the current version of CumulusCI")
 def version():
-    click.echo("CumulusCI version: ", nl=False)
-    click.echo(click.style(cumulusci.__version__, bold=True), nl=False)
-    click.echo(f" ({sys.argv[0]})")
-    click.echo(f"Python version: {sys.version.split()[0]}", nl=False)
-    click.echo(f" ({sys.executable})")
-
-    click.echo()
-    current_version = get_installed_version()
-    latest_version = get_latest_final_version()
-    if latest_version > current_version:
-        click.echo(
-            f"There is a newer version of CumulusCI available ({str(latest_version)})."
-        )
-        click.echo(f"To upgrade, run `{get_cci_upgrade_command()}`")
-        click.echo(
-            f"Release notes: https://github.com/SFDO-Tooling/CumulusCI/releases/tag/v{str(latest_version)}"
-        )
-    else:
-        click.echo("You have the latest version of CumulusCI.")
-
-    click.echo()
+    show_version_info()
 
 
 @cli.command(name="shell", help="Drop into a Python shell")
