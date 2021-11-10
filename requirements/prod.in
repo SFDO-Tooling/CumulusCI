@@ -26,7 +26,7 @@ robotframework-seleniumlibrary
 rst2ansi
 salesforce-bulk
 sarge
-selenium
+selenium<4
 simple-salesforce
 snowfakery
 SQLAlchemy
