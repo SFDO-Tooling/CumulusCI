@@ -86,6 +86,10 @@ jobs:
               shell: cmd
               run: dir cci_installer\install.bat
 
+            - name: See what's going on (4)
+              shell: cmd
+              run: type cci_installer\install.bat
+
             - name: Install
               shell: cmd
               run: |
