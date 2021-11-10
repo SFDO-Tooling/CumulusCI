@@ -32,7 +32,7 @@ def install():
 
     python = None
     for dirname in ["bin", "Scripts"]:
-        bindir = pythondir / "bin"
+        bindir = pythondir / dirname
         if bindir.exists():
             python = bindir / "python"
 
