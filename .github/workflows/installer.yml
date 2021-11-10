@@ -133,6 +133,7 @@ jobs:
               run: |
                   cp utility/venv_from_pip.py cci_installer/bin/
                   cp utility/install.sh cci_installer/
+                  chmod u+x cci_installer/install.sh
 
             - name: Add static files
               shell: sh
