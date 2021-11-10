@@ -9,8 +9,6 @@ on:
 
 jobs:
     build:
-        strategy:
-            fail-fast: false
         runs-on: "windows-2019"
         steps:
             - uses: actions/checkout@v2
@@ -50,15 +48,32 @@ jobs:
 
             - name: Add README
               shell: cmd
-              run: echo "Run 'Scripts/python Scripts/venv_from_pip.py' to create a CumulusCI install environment" > "python/README.txt"
+              run: echo "Run 'python Scripts\venv_from_pip.py' to create a CumulusCI install environment" > "python/README.txt"
 
-            - name: Make zipfile
-              shell: cmd
-              run: zip -rm cci_installer.zip python
+            - name: Rename Directory
+              shell: pwsh
+              run: move python cci_installer
 
             - name: Upload executable
               uses: actions/upload-artifact@v2
               with:
-                  name: cci_installer
+                  name: cci_installer.zip
                   if-no-files-found: error
-                  path: cci_installer.zip
+                  path: cci_installer
+
+    test:
+        runs-on: "windows-2019"
+        strategy:
+            fail-fast: True
+        steps:
+            - uses: actions/download-artifact@v2
+              with:
+                  name: cci_installer.zip
+                  path: cci_installer
+
+            - name: Try install
+              shell: pwsh
+              run: |
+                  dir
+                  python python\Scripts\venv_from_pip.py
+                  ~\.cumulusci\pythonbin\Scripts\cci
