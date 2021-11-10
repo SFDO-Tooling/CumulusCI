@@ -174,7 +174,7 @@ def connect_org_to_keychain(
 def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
     runtime.check_org_overwrite(org_name)
 
-    if login_url and "lightning.force.com" in login_url:
+    if login_url and ".lightning." in login_url:
         raise click.UsageError(
             "Connecting an org with a lightning.force.com URL does not work. "
             "Use the my.salesforce.com version instead"
