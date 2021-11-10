@@ -56,4 +56,5 @@ jobs:
               uses: actions/upload-artifact@v2
               with:
                   name: cci_installer
-                  path: target/release/cci_installer
+                  if-no-files-found: error
+                  path: cci_installer.zip
