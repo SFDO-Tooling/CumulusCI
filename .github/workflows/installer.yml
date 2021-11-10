@@ -27,32 +27,34 @@ jobs:
                   wget https://github.com/indygreg/python-build-standalone/releases/download/20211017/cpython-3.9.7-x86_64-pc-windows-msvc-shared-install_only-20211017T1616.tar.gz
                   tar -zxvf cpython-3.9.7-x86_64-pc-windows-msvc-shared-install_only-20211017T1616.tar.gz
 
-            - name: Cleanup pythonbuild repository
-              shell: cmd
-              run: |
-                  rmdir /s /q python\tcl
-                  rmdir /s /q python\Lib\turtledemo
-                  rmdir /s /q python\Lib\tkinter
-                  rmdir /s /q python\Lib\test
-                  rmdir /s /q python\Lib\idlelib
-                  rmdir /s /q python\Lib\distutils\tests
-                  del /s *h
-
-            - name: Ensure clean permissions
-              shell: cmd
-              run: yes | cacls python /t /g Everyone:f # fix the dll permissions
-
-            - name: Copy installer script
-              shell: cmd
-              run: cp utility/venv_from_pip.py python/Scripts
-
-            - name: Add README
-              shell: cmd
-              run: echo "Run 'python Scripts\venv_from_pip.py' to create a CumulusCI install environment" > "python/README.txt"
-
             - name: Rename Directory
               shell: pwsh
               run: move python cci_installer
+
+            - name: Cleanup pythonbuild repository
+              shell: cmd
+              run: |
+                  rmdir /s /q cci_installer\tcl
+                  rmdir /s /q cci_installer\Lib\turtledemo
+                  rmdir /s /q cci_installer\Lib\tkinter
+                  rmdir /s /q cci_installer\Lib\test
+                  rmdir /s /q cci_installer\Lib\idlelib
+                  rmdir /s /q cci_installer\Lib\distutils\tests
+                  del /s *.h
+
+            - name: Ensure clean permissions
+              shell: cmd
+              run: yes | cacls cci_installer /t /g Everyone:f # fix the dll permissions
+
+            - name: Copy installer script
+              shell: cmd
+              run: cp utility/venv_from_pip.py cci_installer/Scripts
+
+            - name: Add static files
+              shell: cmd
+              run: |
+                  echo "Run 'install.bat' to create a CumulusCI install environment" > cci_installer/README.txt
+                  echo "%~dp0\python %~dp0\Scripts\venv_from_pip.py" > cci_installer/install.bat
 
             - name: Upload executable
               uses: actions/upload-artifact@v2
@@ -75,5 +77,5 @@ jobs:
               shell: pwsh
               run: |
                   dir
-                  python python\Scripts\venv_from_pip.py
+                  cci_installer\install.bat
                   ~\.cumulusci\pythonbin\Scripts\cci
