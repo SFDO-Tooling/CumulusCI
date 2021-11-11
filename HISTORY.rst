@@ -5,7 +5,8 @@ History
 v3.48.0 (2021-11-11)
 --------------------
 Critical Changes
-- CumulusCI will be dropping support for Python 3.6 and 3.7 within the next few releases. Please ensure your environment has Python 3.8 or greater.
+
+- CumulusCI will be dropping support for Python 3.6 and 3.7 within the next few releases. Please ensure you're running Python 3.8 or above.
 
 Changes
 
