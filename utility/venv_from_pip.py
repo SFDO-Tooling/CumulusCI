@@ -19,14 +19,14 @@ def cumulusci_dir():
 
 def install():
     print("Creating CumulusCI Python installation")
-    pythondir = cumulusci_dir() / "pythonbin"
+    pythondir = cumulusci_dir() / "cci_python_env"
     venv.create(
         str(pythondir),
         system_site_packages=False,
         clear=True,
-        symlinks=False,
+        symlinks=True,  # https://bugs.python.org/issue38705
         with_pip=True,
-        prompt=".cumulusci/pythonbin",
+        prompt=".cumulusci/cci_python_env",
         # upgrade_deps=False,
     )
 

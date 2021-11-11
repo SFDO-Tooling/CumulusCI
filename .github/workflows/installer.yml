@@ -106,7 +106,7 @@ jobs:
             - name: Test installation
               shell: cmd
               run: |
-                  %userprofile%\.cumulusci\pythonbin\Scripts\cci
+                  %userprofile%\.cumulusci\cci_python_env\Scripts\cci
 
     macbuild:
         runs-on: macos-10.15
@@ -200,7 +200,16 @@ jobs:
               run: |
                   cci_installer/install.sh
 
-            - name: Test installation
+            - name: See what's going on (4)
+              shell: sh
+              run: ls ~/.local/bin
+
+            - name: Test installation (1)
               shell: sh
               run: |
-                  ~/.cumulusci/pythonbin/Scripts/cci
+                  ~/.cumulusci/cci_python_env/bin/cci
+
+            - name: Test installation (2)
+              shell: sh
+              run: |
+                  cci
