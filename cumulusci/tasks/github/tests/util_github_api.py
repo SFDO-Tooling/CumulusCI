@@ -327,9 +327,12 @@ class GithubApiTestMixin(object):
         else:
             default_branch = "main"
         pr = {
+            "active_lock_reason": "too heated",
             "additions": [],
             "assignee": None,
             "assignees": [],
+            "auto_merge": False,
+            "author_association": None,
             "base": {
                 "ref": default_branch,
                 "sha": commit_sha,
@@ -347,6 +350,7 @@ class GithubApiTestMixin(object):
             "created_at": merged_date,
             "deletions": [],
             "diff_url": "",
+            "draft": False,
             "head": {"ref": "some-other-branch", "sha": commit_sha, "label": ""},
             "html_url": "https://github.com/TestOwner/TestRepo/pulls/{}".format(
                 issue_number
@@ -354,6 +358,7 @@ class GithubApiTestMixin(object):
             "id": pull_id,
             "issue_url": "{}/issues/{}".format(self.repo_api_url, issue_number),
             "_links": {},
+            "locked": True,
             "merge_commit_sha": merge_sha,
             "mergeable": not merged_date,
             "mergeable_state": "clean",
@@ -362,6 +367,8 @@ class GithubApiTestMixin(object):
             "merged_by": None,
             "number": issue_number,
             "patch_url": "",
+            "requested_teams": "",
+            "requested_reviewers": "",
             "review_comment_url": "",
             "review_comments": [],
             "review_comments_url": "",
