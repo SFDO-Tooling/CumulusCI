@@ -145,17 +145,28 @@ def show_version_info():
 
     current_version = get_installed_version()
     latest_version = get_latest_final_version()
-    if latest_version > current_version:
-        console.print(
-            f"[yellow]There is a newer version of CumulusCI available: {str(latest_version)}"
-        )
-        console.print(f"To upgrade, run `{get_cci_upgrade_command()}`")
-        release_notes_link = f"https://github.com/SFDO-Tooling/CumulusCI/releases/tag/v{str(latest_version)}"
-        console.print(
-            f"See the latest CumulusCI Release Notes: [link={release_notes_link}]{release_notes_link}[/link]"
-        )
-    else:
-        console.print("You have the latest version of CumulusCI.")
+
+    if not latest_version > current_version:
+        console.print("You have the latest version of CumulusCI :sun_behind_cloud:\n")
+        display_release_notes_link(str(latest_version))
+        return
+
+    console.print(
+        f"[yellow]There is a newer version of CumulusCI available: {str(latest_version)}"
+    )
+    console.print(f"To upgrade, run `{get_cci_upgrade_command()}`")
+    display_release_notes_link(str(latest_version))
+
+
+def display_release_notes_link(latest_version: str) -> None:
+    """Provide a link to the latest CumulusCI Release Notes"""
+    release_notes_link = (
+        f"https://github.com/SFDO-Tooling/CumulusCI/releases/tag/v{latest_version}"
+    )
+    console = rich.get_console()
+    console.print(
+        f"See the latest CumulusCI Release Notes: [link={release_notes_link}]{release_notes_link}[/link]"
+    )
 
 
 @click.group("main", help="")
