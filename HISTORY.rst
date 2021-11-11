@@ -2,8 +2,22 @@
 History
 =======
 
+v3.48.0 (2021-11-11)
+--------------------
+Changes
+
+- We added a new command, ``cci plan info``. Similar to ``cci task info``, this command displays detailed information about a MetaDeploy ``plan``, and includes a ``--messages`` option to display user-facing text.
+- Improved logging to show reduced timestamps, and provide some syntax highlighting of output. (#2941)
+- `Snowfakery 2.2 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v2.2>` is now included with CumulusCI. New features include unique IDs and Numeric Counters. (#2962)
+
+Issues Closed
+
+- We added an improved error message when ``metadeploy_publish`` is passed a lightweight tag. (#2955)
+- Adjusted a check for .lightning. domains in the ``cci org connect`` command. (#2970)
+- We fixed an issue where stacktraces for some Apex test failures were truncated. (#2961)
+
 v3.47.0 (2021-10-28)
----------------------
+--------------------
 
 Changes
 
