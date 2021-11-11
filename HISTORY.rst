@@ -4,9 +4,12 @@ History
 
 v3.48.0 (2021-11-11)
 --------------------
+Critical Changes
+- CumulusCI will be dropping support for Python 3.6 and 3.7 within the next few releases. Please ensure your environment may run Python 3.8 or greater.
+
 Changes
 
-- We added a new command, ``cci plan info``. Similar to ``cci task info``, this command displays detailed information about a MetaDeploy ``plan``, and includes a ``--messages`` option to display user-facing text.
+- We added a new command, ``cci plan info``. Similar to ``cci task info``, this command displays detailed information about a MetaDeploy ``plan``, and includes a ``--messages`` option to display user-facing text. (#2946)
 - Improved logging to show reduced timestamps, and provide some syntax highlighting of output. (#2941)
 - `Snowfakery 2.2 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v2.2>`_ is now included with CumulusCI. New features include unique IDs and Numeric Counters. (#2962)
 
