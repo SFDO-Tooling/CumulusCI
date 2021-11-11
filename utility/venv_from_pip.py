@@ -17,7 +17,24 @@ def cumulusci_dir():
     return config_dir
 
 
+def runsubprocess(args):
+    process = subprocess.run(
+        args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+    )
+    FIXME = True  # remove this
+    if process.returncode != 0 or FIXME:
+        print(process.stdout)
+        print(process.stderr)
+
+    if process.returncode != 0:
+        raise AssertionError(f"{args} : {process.returncode}")
+
+
 def install():
+
     print("Creating CumulusCI Python installation")
     pythondir = cumulusci_dir() / "cci_python_env"
     venv.create(
@@ -41,28 +58,25 @@ def install():
         return 1
 
     print("Updating pip")
-    process = subprocess.run(
+    runsubprocess(
         [str(python), "-m", "pip", "install", "--upgrade", "pip"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
     )
-    if process.returncode != 0:
-        print(process.stderr)
-        return process.returncode
 
-    print("Installing CumulusCI from pip")
-    process = subprocess.run(
-        [str(python), "-m", "pip", "install", "cumulusci"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
+    print("Installing pipx")
+    runsubprocess(
+        [str(python), "-m", "pip", "install", "pipx"],
     )
-    if process.returncode != 0:
-        print(process.stderr)
-        return process.returncode
 
-    print("CumulusCI installed correctly")
+    runsubprocess(
+        [str(python), "-m", "pipx", "ensurepath"],
+    )
+
+    print("Installing CumulusCI from pipx")
+    runsubprocess(
+        [str(python), "-m", "pipx", "install", "cumulusci"],
+    )
+
+    print("CumulusCI venv created!")
     return 0
 
 
