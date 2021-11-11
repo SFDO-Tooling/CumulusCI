@@ -56,12 +56,16 @@ jobs:
                   echo "Run 'install.bat' to create a CumulusCI install environment" > cci_installer\README.txt
                   echo %%~dp0\python %%~dp0\Scripts\venv_from_pip.py > cci_installer\install.bat
 
+            - name: Zip it # double-zipping is a weird effect of how upload-artifact works
+              shell: cmd
+              run: zip -rm cci_installer_win.zip cci_installer
+
             - name: Upload executable
               uses: actions/upload-artifact@v2
               with:
-                  name: cci_installer_win.zip
+                  name: cci_installer_win_build
                   if-no-files-found: error
-                  path: cci_installer
+                  path: cci_installer_win.zip
 
     windowstest:
         runs-on: "windows-2019"
@@ -71,12 +75,16 @@ jobs:
         steps:
             - uses: actions/download-artifact@v2
               with:
-                  name: cci_installer_win.zip
-                  path: cci_installer
+                  name: cci_installer_win_build
+                  path: cci_installer_win_build
 
             - name: See what's going on
               shell: cmd
               run: dir
+
+            - name: Unzip
+              shell: cmd
+              run: unzip cci_installer_win_build/cci_installer_win.zip
 
             - name: See what's going on (2)
               shell: cmd
@@ -120,12 +128,15 @@ jobs:
             - name: Cleanup pythonbuild repository
               shell: sh
               run: |
-                  rm -rf cci_installer/tcl
-                  rm -rf cci_installer/Lib/turtledemo
-                  rm -rf cci_installer/Lib/tkinter
-                  rm -rf cci_installer/Lib/test
-                  rm -rf cci_installer/Lib/idlelib
-                  rm -rf cci_installer/Lib/distutils/tests
+                  rm -rf cci_installer/lib/tcl8*
+                  rm -rf cci_installer/Lib/Tix*
+                  rm -rf cci_installer/Lib/tk*
+                  rm -rf cci_installer/include*
+                  rm -rf cci_installer/lib/python3.*/idlelib
+                  rm -rf cci_installer/lib/test
+                  rm -rf cci_installer/lib/tkinter
+                  rm -rf cci_installer/lib/turtledemo
+                  rm -rf cci_installer/lib/distutils/tests
                   find cci_installer -name \*.h -exec rm -rf {} \;
 
             - name: Copy installer scripts
@@ -140,12 +151,16 @@ jobs:
               run: |
                   echo "Run 'install.sh' to create a CumulusCI install environment" > cci_installer/README.txt
 
+            - name: Zip it # double-zipping is a weird effect of how upload-artifact works
+              shell: sh
+              run: zip -rm cci_installer_mac.zip cci_installer
+
             - name: Upload executable
               uses: actions/upload-artifact@v2
               with:
-                  name: cci_installer_mac.zip
+                  name: cci_installer_mac_build
                   if-no-files-found: error
-                  path: cci_installer
+                  path: cci_installer_mac.zip
 
     mactest:
         runs-on: macos-10.15
@@ -155,12 +170,18 @@ jobs:
         steps:
             - uses: actions/download-artifact@v2
               with:
-                  name: cci_installer_mac.zip
-                  path: cci_installer
+                  name: cci_installer_mac_build
+                  path: cci_installer_mac_build
 
             - name: See what's going on
               shell: sh
-              run: ls
+              run: |
+                  ls
+                  ls cci_installer_mac_build
+
+            - name: Unzip
+              shell: sh
+              run: unzip cci_installer_mac_build/cci_installer_mac.zip
 
             - name: See what's going on (2)
               shell: sh
@@ -168,7 +189,7 @@ jobs:
 
             - name: See what's going on (3)
               shell: sh
-              run: ls cci_installer/install.sh
+              run: ls cci_installer/bin
 
             - name: See what's going on (4)
               shell: sh
