@@ -29,34 +29,34 @@ jobs:
 
             - name: Rename Directory
               shell: pwsh
-              run: move python cci_installer
+              run: |
+                  mkdir cci_installer
+                  move python cci_installer\python
 
             - name: Cleanup pythonbuild repository
               shell: cmd
               run: |
-                  rmdir /s /q cci_installer\tcl
-                  rmdir /s /q cci_installer\Lib\turtledemo
-                  rmdir /s /q cci_installer\Lib\tkinter
-                  rmdir /s /q cci_installer\Lib\test
-                  rmdir /s /q cci_installer\Lib\idlelib
-                  rmdir /s /q cci_installer\Lib\distutils\tests
+                  rmdir /s /q cci_installer\python\tcl
+                  rmdir /s /q cci_installer\python\Lib\turtledemo
+                  rmdir /s /q cci_installer\python\Lib\tkinter
+                  rmdir /s /q cci_installer\python\Lib\test
+                  rmdir /s /q cci_installer\python\Lib\idlelib
+                  rmdir /s /q cci_installer\python\Lib\distutils\tests
                   del /s *.h
 
             - name: Ensure clean permissions
               shell: cmd
-              run: yes | cacls cci_installer /t /g Everyone:f # fix the dll permissions
+              run: yes | cacls cci_installer\python /t /g Everyone:f # fix the dll permissions
 
             - name: Copy installer script
               shell: cmd
-              run: cp utility/venv_from_pip.py cci_installer/Scripts
-
-            - name: Add static files
-              shell: cmd
               run: |
+                  cp utility\install.bat cci_installer\install.bat
+                  cp utility\venv_from_pip.py cci_installer\python
+                  chmod u+x cci_installer\install.bat
                   echo "Run 'install.bat' to create a CumulusCI install environment" > cci_installer\README.txt
-                  echo %%~dp0\python %%~dp0\Scripts\venv_from_pip.py > cci_installer\install.bat
 
-            - name: Zip it # double-zipping preserves perms and accelerates actions
+            - name: Zip it # zipping preserves perms and accelerates actions
               shell: cmd
               run: zip -rm cci_installer_win.zip cci_installer
 
@@ -122,27 +122,29 @@ jobs:
                   tar -zxvf cpython-3.9.7-x86_64-apple-darwin-install_only-20211017T1616.tar.gz
 
             - name: Rename Directory
-              shell: pwsh
-              run: mv python cci_installer
+              shell: sh
+              run: |
+                  mkdir cci_installer
+                  mv python cci_installer/python
 
             - name: Cleanup pythonbuild repository
               shell: sh
               run: |
-                  rm -rf cci_installer/lib/tcl8*
-                  rm -rf cci_installer/Lib/Tix*
-                  rm -rf cci_installer/Lib/tk*
-                  rm -rf cci_installer/include*
-                  rm -rf cci_installer/lib/python3.*/idlelib
-                  rm -rf cci_installer/lib/test
-                  rm -rf cci_installer/lib/tkinter
-                  rm -rf cci_installer/lib/turtledemo
-                  rm -rf cci_installer/lib/distutils/tests
-                  find cci_installer -name \*.h -exec rm -rf {} \;
+                  rm -rf cci_installer/python/lib/tcl8*
+                  rm -rf cci_installer/python/Lib/Tix*
+                  rm -rf cci_installer/python/Lib/tk*
+                  rm -rf cci_installer/python/include*
+                  rm -rf cci_installer/python/lib/python3.*/idlelib
+                  rm -rf cci_installer/python/lib/test
+                  rm -rf cci_installer/python/lib/tkinter
+                  rm -rf cci_installer/python/lib/turtledemo
+                  rm -rf cci_installer/python/lib/distutils/tests
+                  find cci_installer/python -name \*.h -exec rm -rf {} \;
 
             - name: Copy installer scripts
               shell: sh
               run: |
-                  cp utility/venv_from_pip.py cci_installer/bin/
+                  cp utility/venv_from_pip.py cci_installer/python/bin/
                   cp utility/install.sh cci_installer/
                   chmod u+x cci_installer/install.sh
 
@@ -189,7 +191,7 @@ jobs:
 
             - name: See what's going on (3)
               shell: sh
-              run: ls cci_installer/bin
+              run: ls cci_installer/python/bin
 
             - name: See what's going on (4)
               shell: sh
