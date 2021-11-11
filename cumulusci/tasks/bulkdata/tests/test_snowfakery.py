@@ -1,7 +1,7 @@
 import typing as T
 from collections import Counter
 from contextlib import contextmanager
-from itertools import cycle
+from itertools import chain, cycle
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
@@ -9,7 +9,7 @@ from unittest import mock
 
 import pytest
 import yaml
-from sqlalchemy import create_engine
+from sqlalchemy import MetaData, create_engine
 
 from cumulusci.core import exceptions as exc
 from cumulusci.core.config import OrgConfig
@@ -68,6 +68,12 @@ FAKE_LOAD_RESULTS = (
 )
 
 
+def table_values(connection, table):
+    query = f"select * from {table.name}"
+    values = [val for val in connection.execute(query)]
+    return values
+
+
 def call_closure():
     """Simulate a cycle of load results without doing a real load."""
     return_values = cycle(iter(FAKE_LOAD_RESULTS))
@@ -79,11 +85,29 @@ def call_closure():
         # Manipulating "self" from a mock side-effect is a challenge.
         # So we need a "real function"
         self.return_values = {"step_results": next(return_values)}
-        return __call__.mock(*args, **kwargs)
+        rc = __call__.mock(*args, **kwargs)
+        # remember the values that would have been loaded for later inspection in tests
+        values_loaded = db_values_from_db_url(self.options["database_url"])
+        __call__.mock.mock_calls[-1].values_loaded = values_loaded
+        return rc
 
     __call__.mock = mock.Mock()
 
     return __call__
+
+
+def db_values_from_db_url(database_url):
+    engine = create_engine(database_url)
+    metadata = MetaData(engine)
+    metadata.reflect()
+
+    with engine.connect() as connection:
+        values = {
+            table_name: table_values(connection, table)
+            for table_name, table in metadata.tables.items()
+            if table_name[-6:] != "sf_ids"
+        }
+    return values
 
 
 @pytest.fixture
@@ -231,14 +255,6 @@ def run_snowfakery_and_yield_results(
 
 
 class TestSnowfakery:
-    def assertRowsCreated(self, database_url):
-        engine = create_engine(database_url)
-        connection = engine.connect()
-        accounts = connection.execute("select * from Account")
-        accounts = list(accounts)
-        assert accounts and accounts[0] and accounts[0][1]
-        return accounts
-
     def test_no_options(self):
         with pytest.raises(exc.TaskOptionsError, match="recipe"):
             _make_task(Snowfakery, {})
@@ -563,6 +579,25 @@ class TestSnowfakery:
         ) as results:
             record_counts = get_record_counts_from_snowfakery_results(results)
         assert record_counts["Account"] == 7
+
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
+    def test_multi_part_uniqueness(self, mock_load_data, create_task_fixture):
+        task = create_task_fixture(
+            Snowfakery,
+            {
+                "recipe": Path(__file__).parent / "snowfakery/unique_values.recipe.yml",
+                "run_until_recipe_repeated": 15,
+            },
+        )
+        task()
+
+        all_rows = chain(
+            *(call.values_loaded["blah"] for call in mock_load_data.mock_calls)
+        )
+        unique_values = [row.value for row in all_rows]
+        assert len(unique_values) == len(set(unique_values))
+
+        # See also W-10142031
 
     # def test_generate_mapping_file(self):
     #     with temporary_file_path("mapping.yml") as temp_mapping:
