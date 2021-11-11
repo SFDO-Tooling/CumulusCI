@@ -494,6 +494,10 @@ class Snowfakery(BaseSalesforceApiTask):
         name = Path(working_dir).name
         parts = name.rsplit("_", 1)
         batch_size = int(parts[-1])
+        plugin_options = {
+            "pid": str(wd.index),
+            "big_ids": "True",
+        }
 
         return {
             "generator_yaml": str(self.recipe),
@@ -503,6 +507,7 @@ class Snowfakery(BaseSalesforceApiTask):
             "continuation_file": wd.continuation_file,
             "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
             "vars": self.recipe_options,
+            "plugin_options": plugin_options,
         }
 
     def generate_upload_status(
@@ -564,6 +569,11 @@ class Snowfakery(BaseSalesforceApiTask):
 
         template_dir = Path(working_directory) / "template_1"
         template_dir.mkdir()
+
+        plugin_options = {
+            "pid": "0",
+            "big_ids": "True",
+        }
         results = self._generate_and_load_batch(
             template_dir,
             {
@@ -572,6 +582,7 @@ class Snowfakery(BaseSalesforceApiTask):
                 "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
                 "loading_rules": self.loading_rules,
                 "vars": self.recipe_options,
+                "plugin_options": plugin_options,
             },
         )
         self.update_running_totals_from_load_step_results(results)

@@ -109,8 +109,8 @@ tag: clean
 	git push --follow-tags
 
 update-deps:
-	pip-compile --upgrade --allow-unsafe requirements/prod.in
-	pip-compile --upgrade --allow-unsafe requirements/dev.in
+	pip-compile --upgrade requirements/prod.in
+	pip-compile --upgrade requirements/dev.in
 
 dev-install:
 	pip install --upgrade pip-tools
