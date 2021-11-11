@@ -8,7 +8,7 @@ Changes
 
 - We added a new command, ``cci plan info``. Similar to ``cci task info``, this command displays detailed information about a MetaDeploy ``plan``, and includes a ``--messages`` option to display user-facing text.
 - Improved logging to show reduced timestamps, and provide some syntax highlighting of output. (#2941)
-- `Snowfakery 2.2 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v2.2>` is now included with CumulusCI. New features include unique IDs and Numeric Counters. (#2962)
+- `Snowfakery 2.2 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v2.2>`_ is now included with CumulusCI. New features include unique IDs and Numeric Counters. (#2962)
 
 Issues Closed
 
