@@ -8,7 +8,7 @@ from unittest import mock
 
 import responses
 
-from cumulusci.core.exceptions import GithubApiError, GithubApiNotFoundError
+from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.core.github import get_github_api
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
@@ -300,25 +300,6 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         generator = self._create_generator(self.invalid_tag)
         provider = GithubChangeNotesProvider(generator, self.invalid_tag)
         with self.assertRaises(GithubApiNotFoundError):
-            provider.current_tag_info
-
-    @responses.activate
-    def test_current_tag_is_lightweight(self):
-        self.mock_util.mock_get_repo()
-        tag = "release/lightweight"
-        generator = self._create_generator(tag)
-        provider = GithubChangeNotesProvider(generator, tag)
-        api_url = "{}/git/refs/tags/{}".format(self.repo_api_url, tag)
-        responses.add(
-            method=responses.GET,
-            url=api_url,
-            json={
-                "object": {"type": "commit", "url": "", "sha": ""},
-                "url": "",
-                "ref": "tags/{}".format(tag),
-            },
-        )
-        with self.assertRaises(GithubApiError):
             provider.current_tag_info
 
     @responses.activate
