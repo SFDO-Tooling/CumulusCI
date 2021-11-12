@@ -67,7 +67,7 @@ def install():
 
     print("Installing CumulusCI from pip")
     runsubprocess(
-        [str(python), "-m", "pip", "install", "cumulusci==3.47.0"],
+        [str(python), "-m", "pip", "install", "cumulusci==3.48.0"],
     )
 
     # print("Installing pipx")
