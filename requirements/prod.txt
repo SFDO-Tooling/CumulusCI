@@ -8,8 +8,6 @@ appdirs==1.4.4
     # via fs
 authlib==0.15.5
     # via simple-salesforce
-backports-datetime-fromisoformat==1.0.0
-    # via snowfakery
 certifi==2021.10.8
     # via
     #   requests
