@@ -1,0 +1,3 @@
+VERSION=3.46 ; rm -rf /tmp/cci_$VERSION; python3.9 -m venv /tmp/cci_$VERSION && /tmp/cci_$VERSION/bin/python -m pip install cumulusci==$VERSION > /tmp/cci_$VERSION/log.txt
+VERSION=3.47 ; rm -rf /tmp/cci_$VERSION; python3.9 -m venv /tmp/cci_$VERSION && /tmp/cci_$VERSION/bin/python -m pip install cumulusci==$VERSION > /tmp/cci_$VERSION/log.txt
+VERSION=3.48 ; rm -rf /tmp/cci_$VERSION; python3.9 -m venv /tmp/cci_$VERSION && /tmp/cci_$VERSION/bin/python -m pip install cumulusci==$VERSION > /tmp/cci_$VERSION/log.txt
