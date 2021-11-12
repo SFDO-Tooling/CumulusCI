@@ -37,11 +37,14 @@ def install():
 
     print("Creating CumulusCI Python installation")
     pythondir = cumulusci_dir() / "cci_python_env"
+    symlinks = (
+        True if sys.platform == "darwin" else False
+    )  # https://bugs.python.org/issue38705
     venv.create(
         str(pythondir),
         system_site_packages=False,
         clear=True,
-        symlinks=True,  # https://bugs.python.org/issue38705
+        symlinks=symlinks,
         with_pip=True,
         prompt=".cumulusci/cci_python_env",
         # upgrade_deps=False,
@@ -62,19 +65,24 @@ def install():
         [str(python), "-m", "pip", "install", "--upgrade", "pip"],
     )
 
-    print("Installing pipx")
+    print("Installing CumulusCI from pip")
     runsubprocess(
-        [str(python), "-m", "pip", "install", "pipx"],
+        [str(python), "-m", "pip", "install", "cumulusci"],
     )
 
-    runsubprocess(
-        [str(python), "-m", "pipx", "ensurepath"],
-    )
+    # print("Installing pipx")
+    # runsubprocess(
+    #     [str(python), "-m", "pip", "install", "pipx"],
+    # )
 
-    print("Installing CumulusCI from pipx")
-    runsubprocess(
-        [str(python), "-m", "pipx", "install", "cumulusci"],
-    )
+    # runsubprocess(
+    #     [str(python), "-m", "pipx", "ensurepath"],
+    # )
+
+    # print("Installing CumulusCI from pipx")
+    # runsubprocess(
+    #     [str(python), "-m", "pipx", "install", "cumulusci"],
+    # )
 
     print("CumulusCI venv created!")
     return 0
