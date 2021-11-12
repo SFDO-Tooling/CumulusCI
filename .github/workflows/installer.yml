@@ -68,7 +68,7 @@ jobs:
                   path: cci_installer_win.zip
 
     windowstest:
-        runs-on: "windows-2019"
+        runs-on: "windows-2019" # at some point turn this into a matrix.
         needs: windowsbuild
         strategy:
             fail-fast: True
@@ -106,10 +106,10 @@ jobs:
             - name: Test installation
               shell: cmd
               run: |
-                  %userprofile%\.cumulusci\cci_python_env\bin\cci
+                  %userprofile%\.cumulusci\cci_python_env\Scripts\cci version
 
     macbuild:
-        runs-on: macos-10.15
+        runs-on: macos-10.15 # at some point turn this into a matrix.
         steps:
             - uses: actions/checkout@v2
               with:
@@ -144,7 +144,7 @@ jobs:
             - name: Copy installer scripts
               shell: sh
               run: |
-                  cp utility/venv_from_pip.py cci_installer/python/bin/
+                  cp utility/venv_from_pip.py cci_installer/python//Users/pprescod/.config/bin/rbranch/
                   cp utility/install.sh cci_installer/
                   chmod u+x cci_installer/install.sh
 
@@ -209,4 +209,4 @@ jobs:
             - name: Test installation
               shell: sh
               run: |
-                  ~/.cumulusci/cci_python_env/bin/cci
+                  ~/.cumulusci/cci_python_env/bin/cci version
