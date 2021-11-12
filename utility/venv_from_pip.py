@@ -37,14 +37,18 @@ def install():
 
     print("Creating CumulusCI Python installation")
     pythondir = cumulusci_dir() / "cci_python_env"
-    symlinks = (
-        True if sys.platform == "darwin" else False
-    )  # https://bugs.python.org/issue38705
+
+    # actually this workaround doesn't make sense so I need to get
+    # to the bottom of this.
+    # symlinks = (
+    #     True if sys.platform == "darwin" else False
+    # )  # https://bugs.python.org/issue38705
+
     venv.create(
         str(pythondir),
         system_site_packages=False,
         clear=True,
-        symlinks=symlinks,
+        symlinks=False,
         with_pip=True,
         prompt=".cumulusci/cci_python_env",
         # upgrade_deps=False,
