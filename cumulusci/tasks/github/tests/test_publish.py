@@ -8,7 +8,11 @@ import pytest
 import responses
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
-from cumulusci.core.exceptions import GithubException, TaskOptionsError
+from cumulusci.core.exceptions import (
+    GithubApiNotFoundError,
+    GithubException,
+    TaskOptionsError,
+)
 from cumulusci.tasks.github.publish import PublishSubtree
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tests.util import create_project_config
@@ -351,9 +355,11 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             "force-app",
         ]
         task = PublishSubtree(self.project_config, task_config)
-        with pytest.raises(GithubException) as exc:
+        with pytest.raises(GithubApiNotFoundError) as exc:
             task()
-        assert "Ref not found for tag release/1.0" == str(exc.value)
+        assert "Could not find reference for 'tags/release/1.0' on GitHub" == str(
+            exc.value
+        )
 
     @responses.activate
     @mock.patch("cumulusci.tasks.github.publish.download_extract_github_from_repo")
@@ -380,7 +386,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             method=responses.GET,
             url=self.repo_api_url + "/git/refs/tags/release/1.0",
             status=201,
-            json=self._get_expected_tag_ref("release/1.0", "SHA"),
+            json=self._get_expected_tag_ref("release/1.0", "REF_SHA"),
         )
         responses.add(
             responses.GET,
@@ -388,7 +394,9 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             json=self._get_expected_release("release/1.0"),
         )
         responses.add(
-            method=responses.GET, url=self.repo_api_url + "/git/tags/SHA", status=404
+            method=responses.GET,
+            url=self.repo_api_url + "/git/tags/REF_SHA",
+            status=404,
         )
         task_config = TaskConfig(
             {
@@ -407,9 +415,9 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             "force-app",
         ]
         task = PublishSubtree(self.project_config, task_config)
-        with pytest.raises(GithubException) as exc:
+        with pytest.raises(GithubApiNotFoundError) as exc:
             task()
-        assert "Tag release/1.0 not found" == str(exc.value)
+        assert "Could not find tag 'release/1.0' with SHA REF_SHA" in str(exc.value)
 
     @responses.activate
     @mock.patch("cumulusci.tasks.github.publish.download_extract_github_from_repo")
