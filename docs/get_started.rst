@@ -68,13 +68,17 @@ Install Python 3
 ****************
 
 #. Go to the `Python downloads page <https://www.python.org/downloads/windows/>`_.
-#. Download the latest Python 3 release. Most users select the "Download Windows x86-64 executable installer" link for the most recent stable release, but it depends on your particular computer setup.
+#. Download the latest Python 3.9 release. Most users select the "Windows Installer (64-bit)" link, but it depends on your particular computer setup.
 #. Install using the installation wizard.
 
    * Select **Add Python <version> to PATH**.
    * Click "Install Now".
 
-.. image:: images/windows_python.png
+   .. image:: images/windows_python.png
+
+#. On the screen entitled "Setup was successful," you may see a button with the text "Disable path length limit." If you do, click it.
+
+.. image:: images/windows_python_success.png
 
 
 Install via ``pipx``
