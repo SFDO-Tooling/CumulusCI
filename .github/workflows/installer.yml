@@ -144,7 +144,7 @@ jobs:
             - name: Copy installer scripts
               shell: sh
               run: |
-                  cp utility/venv_from_pip.py cci_installer/python//Users/pprescod/.config/bin/rbranch/
+                  cp utility/venv_from_pip.py cci_installer/python/bin/venv_from_pip.py
                   cp utility/install.sh cci_installer/
                   chmod u+x cci_installer/install.sh
 
