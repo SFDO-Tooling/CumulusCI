@@ -1,6 +1,6 @@
+import shutil
 import subprocess
 import sys
-import venv
 from pathlib import Path
 
 
@@ -33,36 +33,54 @@ def runsubprocess(args):
         raise AssertionError(f"{args} : {process.returncode}")
 
 
+def find_python(ccipythondir):
+    for dirname in ["bin", "Scripts"]:
+        bindir = ccipythondir / dirname
+        if bindir.exists():
+            for filename in ["python", "python3", "python.exe"]:
+                python = bindir / filename
+                if python.exists():
+                    return python
+            if not python.exists():
+                raise AssertionError(
+                    f"Cannot find Python in {bindir}: {list(bindir.iterdir())}"
+                )
+    return python
+
+
 def install():
 
     print("Creating CumulusCI Python installation")
-    pythondir = cumulusci_dir() / "cci_python_env"
+    ccipythondir = cumulusci_dir() / "cci_python_env"
 
-    # actually this workaround doesn't make sense so I need to get
-    # to the bottom of this.
-    # symlinks = (
-    #     True if sys.platform == "darwin" else False
-    # )  # https://bugs.python.org/issue38705
+    # Normal venv doesn't work with dynamically linked binaries.
+    # https://bugs.python.org/issue38705
 
-    venv.create(
-        str(pythondir),
-        system_site_packages=False,
-        clear=True,
-        symlinks=False,
-        with_pip=True,
-        prompt=".cumulusci/cci_python_env",
-        # upgrade_deps=False,
-    )
+    # venv.create(
+    #     str(ccipythondir),
+    #     system_site_packages=False,
+    #     clear=True,
+    #     symlinks=False,
+    #     with_pip=True,
+    #     prompt=".cumulusci/cci_python_env",
+    #     # upgrade_deps=False,
+    # )
 
-    python = None
-    for dirname in ["bin", "Scripts"]:
-        bindir = pythondir / dirname
-        if bindir.exists():
-            python = bindir / "python"
+    # using a python build with static binaries is another solution,
+    # but this works.
 
+    bindir = Path(sys.executable).parent
+    installpythonroot = bindir.parent
+
+    if ccipythondir.exists():
+        shutil.rmtree(ccipythondir)
+    shutil.copytree(installpythonroot, ccipythondir, symlinks=True)
+
+    python = find_python(ccipythondir)
     if not python:
-        print("Could not find venv!")
-        return 1
+        raise AssertionError(
+            f"Cannot find Python dir in {ccipythondir}: {list(ccipythondir.iterdir())}"
+        )
 
     print("Updating pip")
     runsubprocess(
@@ -73,6 +91,12 @@ def install():
     runsubprocess(
         [str(python), "-m", "pip", "install", "cumulusci"],
     )
+
+    plugin_requirements = ccipythondir / "plugin_requirements.txt"
+    if plugin_requirements.exists():
+        runsubprocess(
+            [str(python), "-m", "pip", "install", "-r", plugin_requirements],
+        )
 
     # print("Installing pipx")
     # runsubprocess(

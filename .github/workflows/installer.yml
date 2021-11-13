@@ -33,6 +33,14 @@ jobs:
                   mkdir cci_installer
                   move python cci_installer\python
 
+            - name: Reformat more like a Mac structure
+              shell: pwsh
+              run: |
+                  mkdir cci_installer\python\bin    
+                  move cci_installer\python\*.exe cci_installer\python\bin\
+                  move cci_installer\python\*.dll cci_installer\python\bin\
+                  move cci_installer\python\*.pdb cci_installer\python\bin\
+
             - name: Cleanup pythonbuild repository
               shell: cmd
               run: |
