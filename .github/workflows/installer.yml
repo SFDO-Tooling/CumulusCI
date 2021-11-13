@@ -51,6 +51,8 @@ jobs:
                   rmdir /s /q cci_installer\python\Lib\idlelib
                   rmdir /s /q cci_installer\python\Lib\distutils\tests
                   del /s *.h
+                  del /s *.pdb
+                  del /s *.lib
 
             - name: Ensure clean permissions
               shell: cmd
