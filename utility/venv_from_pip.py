@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 import sys
@@ -84,7 +85,7 @@ def install():
 
     print("Updating pip")
     runsubprocess(
-        [str(python), "-m", "pip", "install", "--upgrade", "pip"],
+        [str(python), "-m", "pip", "install", "--upgrade", "pip", "userpath"],
     )
 
     print("Installing CumulusCI from pip")
@@ -97,6 +98,24 @@ def install():
         runsubprocess(
             [str(python), "-m", "pip", "install", "-r", plugin_requirements],
         )
+
+    rundir = ccipythondir / "run"
+    rundir.mkdir(exist_ok=True)
+    if os.name == "posix":
+        path = "bin"
+        programs = ["cci", "snowfakery", "snowbench"]
+    else:
+        path = "Scripts"
+        programs = [
+            "cci.exe",
+            "snowfakery.exe",
+            "snowbench.exe",
+        ]
+    for executable in programs:
+        source = ccipythondir / path / executable
+        target = rundir / executable
+        assert source.exists(), str(source)
+        source.rename(target)
 
     # print("Installing pipx")
     # runsubprocess(

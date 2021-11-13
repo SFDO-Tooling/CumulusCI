@@ -61,6 +61,7 @@ jobs:
               run: |
                   cp utility\install.bat cci_installer\install.bat
                   cp utility\venv_from_pip.py cci_installer\python
+                  cp utility\ensure_dir_in_path.py cci_installer\python\bin\ensure_dir_in_path.py
                   chmod u+x cci_installer\install.bat
                   echo "Run 'install.bat' to create a CumulusCI install environment" > cci_installer\README.txt
 
@@ -78,8 +79,6 @@ jobs:
     windowstest:
         runs-on: "windows-2019" # at some point turn this into a matrix.
         needs: windowsbuild
-        strategy:
-            fail-fast: True
         steps:
             - uses: actions/download-artifact@v2
               with:
@@ -108,13 +107,22 @@ jobs:
 
             - name: Install
               shell: cmd
-              run: |
-                  cci_installer\install.bat
+              run: cci_installer\install.bat
+
+            - name: See what's going on (5)
+              shell: cmd
+              run: dir %userprofile%\.cumulusci\cci_python_env\run\
 
             - name: Test installation
               shell: cmd
               run: |
-                  %userprofile%\.cumulusci\cci_python_env\Scripts\cci version
+                  %userprofile%\.cumulusci\cci_python_env\run\cci version
+
+            - name: Test path setup
+              shell: cmd
+              run: |
+                  %userprofile%\.cumulusci\cci_python_env\bin\python -m userpath verify %userprofile%\.cumulusci\cci_python_env\run\ || true
+                  if %ERRORLEVEL% EQU 1 exit 3
 
     macbuild:
         runs-on: macos-10.15 # at some point turn this into a matrix.
@@ -145,18 +153,19 @@ jobs:
                   rm -rf cci_installer/python/lib/tkinter
                   rm -rf cci_installer/python/lib/turtledemo
                   rm -rf cci_installer/python/lib/python3.*/pydoc
-                  find cci_installer/python -name tcl\* -exec rm -rf {} \;
-                  find cci_installer/python -name test -exec rm -rf {} \;
-                  find cci_installer/python -name test_ -exec rm -rf {} \;
-                  find cci_installer/python -name tests -exec rm -rf {} \;
-                  find cci_installer/python -name \*.a -exec rm -rf {} \;
-                  find cci_installer/python -name \*.h -exec rm -rf {} \;
-                  find cci_installer/python -name \*.exe -exec rm -rf {} \;
+                  find cci_installer/python -name test -delete
+                  find cci_installer/python -name test_ -delete
+                  find cci_installer/python -name tests -delete
+                  find cci_installer/python -name \*.a -delete
+                  find cci_installer/python -name \*.h -delete
+                  find cci_installer/python -name \*.exe -delete
+                  find cci_installer/python -name tcl\* -delete
 
             - name: Copy installer scripts
               shell: sh
               run: |
                   cp utility/venv_from_pip.py cci_installer/python/bin/venv_from_pip.py
+                  cp utility/ensure_dir_in_path.py cci_installer/python/bin/ensure_dir_in_path.py
                   cp utility/install.sh cci_installer/
                   chmod u+x cci_installer/install.sh
 
@@ -179,8 +188,6 @@ jobs:
     mactest:
         runs-on: macos-10.15
         needs: macbuild
-        strategy:
-            fail-fast: True
         steps:
             - uses: actions/download-artifact@v2
               with:
@@ -211,14 +218,23 @@ jobs:
 
             - name: Install
               shell: sh
-              run: |
-                  cci_installer/install.sh
+              run: cci_installer/install.sh
 
             - name: See what's going on (4)
               shell: sh
-              run: ls ~/.cumulusci/cci_python_env/bin/ || true
+              run: ls ~/.cumulusci/cci_python_env/run/ || true
 
             - name: Test installation
               shell: sh
+              run: ~/.cumulusci/cci_python_env/run/cci version
+
+            - name: Test path setup
+              shell: bash {0} # opt out of fail-fast
               run: |
-                  ~/.cumulusci/cci_python_env/bin/cci version
+                  ~/.cumulusci/cci_python_env/bin/python -m userpath verify ~/.cumulusci/cci_python_env/run/
+                  rc=$?
+                  if [ $rc -ne 2 ] && [ $rc -ne 0 ]
+                  then
+                    echo "userpath verify failed"
+                    exit 42
+                  fi
