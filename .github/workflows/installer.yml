@@ -138,16 +138,20 @@ jobs:
             - name: Cleanup pythonbuild repository
               shell: sh
               run: |
-                  rm -rf cci_installer/python/lib/tcl8*
                   rm -rf cci_installer/python/Lib/Tix*
                   rm -rf cci_installer/python/Lib/tk*
                   rm -rf cci_installer/python/include*
                   rm -rf cci_installer/python/lib/python3.*/idlelib
-                  rm -rf cci_installer/python/lib/test
                   rm -rf cci_installer/python/lib/tkinter
                   rm -rf cci_installer/python/lib/turtledemo
-                  rm -rf cci_installer/python/lib/distutils/tests
+                  rm -rf cci_installer/python/lib/python3.*/pydoc
+                  find cci_installer/python -name tcl\* -exec rm -rf {} \;
+                  find cci_installer/python -name test -exec rm -rf {} \;
+                  find cci_installer/python -name test_ -exec rm -rf {} \;
+                  find cci_installer/python -name tests -exec rm -rf {} \;
+                  find cci_installer/python -name \*.a -exec rm -rf {} \;
                   find cci_installer/python -name \*.h -exec rm -rf {} \;
+                  find cci_installer/python -name \*.exe -exec rm -rf {} \;
 
             - name: Copy installer scripts
               shell: sh
