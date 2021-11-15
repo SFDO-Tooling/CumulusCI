@@ -82,7 +82,8 @@ jobs:
               run: |
                   python -m pip install -U pip
                   python -m pip install -U coverage[toml] coveralls tox tox-gh-actions
-            - run: Run tox
+            - name: Run tests using tox
+              run: |
                   python -m tox
                   coveralls
 
