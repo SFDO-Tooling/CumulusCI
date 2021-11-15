@@ -2,6 +2,13 @@
 History
 =======
 
+3.48.2 (2021-11-15)
+-------------------
+
+Issues Closed
+
+- Fixed a regression which broke `cci project init` in CumulusCI 3.48.0 and 3.48.1. (#2980)
+
 3.48.1 (2021-11-12)
 -------------------
 
