@@ -9,6 +9,7 @@ isort
 jsonschema; python_version > '3.6'
 pre-commit
 pytest
+pytest-cov
 pytest-random-order
 pytest-vcr
 responses==0.14.0

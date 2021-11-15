@@ -42,6 +42,7 @@ coverage[toml]==6.1.1
     # via
     #   -r requirements/dev.in
     #   coveralls
+    #   pytest-cov
 coveralls==3.3.0
     # via -r requirements/dev.in
 distlib==0.3.3
@@ -149,8 +150,11 @@ pyrsistent==0.18.0
 pytest==6.2.5
     # via
     #   -r requirements/dev.in
+    #   pytest-cov
     #   pytest-random-order
     #   pytest-vcr
+pytest-cov==3.0.0
+    # via -r requirements/dev.in
 pytest-random-order==1.0.4
     # via -r requirements/dev.in
 pytest-vcr==1.0.2

@@ -84,8 +84,7 @@ jobs:
                   python -m pip install -U coverage[toml] coveralls tox tox-gh-actions
             - name: Run tests using tox
               run: |
-                  python -m tox
-                  coveralls
+                  python -m tox && coveralls
 
     robot_api:
         name: "Robot: No browser"
