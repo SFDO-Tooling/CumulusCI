@@ -2400,13 +2400,13 @@ class TestLoadDataIntegrationTests:
     # bulk API not supported by VCR yet
     @pytest.mark.needs_org()
     def test_error_result_counting__multi_batches(
-        self, create_task, cumulusci_test_repo_root
+        self, create_task, cumulusci_package_path
     ):
         task = create_task(
             LoadData,
             {
-                "sql_path": cumulusci_test_repo_root / "datasets/bad_sample.sql",
-                "mapping": cumulusci_test_repo_root / "datasets/mapping.yml",
+                "sql_path": cumulusci_package_path / "../datasets/bad_sample.sql",
+                "mapping": cumulusci_package_path / "../datasets/mapping.yml",
                 "ignore_row_errors": True,
             },
         )

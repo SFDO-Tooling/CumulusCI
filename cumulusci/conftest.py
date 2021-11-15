@@ -123,14 +123,14 @@ def delete_data_from_org(create_task):
 
 
 @pytest.fixture(scope="session")
-def cumulusci_test_repo_root():
-    return Path(__file__).parent.parent
+def cumulusci_package_path():
+    return Path(__file__).parent
 
 
 @pytest.fixture(scope="session")
-def global_describe(cumulusci_test_repo_root):
+def global_describe(cumulusci_package_path):
     global_describe_file = (
-        cumulusci_test_repo_root / "cumulusci/tasks/bulkdata/tests/global_describe.json"
+        cumulusci_package_path / "tasks/bulkdata/tests/global_describe.json"
     )
     with global_describe_file.open() as f:
         data = yaml.safe_load(f)

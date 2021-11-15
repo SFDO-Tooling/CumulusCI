@@ -78,12 +78,12 @@ jobs:
                   key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
                   restore-keys: |
                       ${{ runner.os }}-pip-
-            - name: Install
+            - name: Install dependencies
               run: |
                   python -m pip install -U pip
-                  make dev-install
-            - run: |
-                  coverage run $(which pytest)
+                  python -m pip install -U coverage[toml] coveralls tox tox-gh-actions
+            - run: Run tox
+                  python -m tox
                   coveralls
 
     robot_api:

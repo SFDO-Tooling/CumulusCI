@@ -1,6 +1,5 @@
 
 include AUTHORS.rst
-
 include CONTRIBUTING.rst
 include HISTORY.rst
 include LICENSE
@@ -8,9 +7,7 @@ include README.rst
 include requirements/prod.txt
 include requirements/dev.txt
 
-recursive-include tests *
-recursive-exclude * __pycache__
-recursive-exclude * *.py[co]
+recursive-include cumulusci *.* dot-gitignore
 
-recursive-include docs *.rst conf.py Makefile make.bat *.jpg *.png *.gif
-recursive-include cumulusci *.xml *.jar *.xsl *.txt *.properties *.sh *.py *.yml *.report *.md *.robot *.json *.css *.html .gitignore
+prune **/__pycache__
+global-exclude *.py[cod]

@@ -2,7 +2,7 @@
 exclude = '^/(\.|dist|pybuild|venv)'
 
 [tool.coverage.run]
-omit = ["*/tests/*", "cumulusci/files/*", ]
+omit = ["*/tests/*", "*/cumulusci/files/*", ]
 source = ["cumulusci", ]
 
 [tool.coverage.report]
