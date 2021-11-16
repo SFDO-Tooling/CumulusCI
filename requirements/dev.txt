@@ -24,6 +24,10 @@ certifi==2021.10.8
     # via
     #   -c requirements/prod.txt
     #   requests
+cffi==1.15.0
+    # via
+    #   -c requirements/prod.txt
+    #   cryptography
 cfgv==3.3.1
     # via pre-commit
 charset-normalizer==2.0.7
@@ -44,6 +48,10 @@ coverage[toml]==6.1.1
     #   coveralls
 coveralls==3.3.0
     # via -r requirements/dev.in
+cryptography==35.0.0
+    # via
+    #   -c requirements/prod.txt
+    #   secretstorage
 distlib==0.3.3
     # via virtualenv
 docopt==0.6.2
@@ -81,19 +89,22 @@ importlib-metadata==4.2.0
     #   -c requirements/prod.txt
     #   keyring
     #   twine
-importlib-resources==5.4.0
-    # via jsonschema
 iniconfig==1.1.1
     # via pytest
 isort==5.10.1
     # via -r requirements/dev.in
+jeepney==0.7.1
+    # via
+    #   -c requirements/prod.txt
+    #   keyring
+    #   secretstorage
 jinja2==2.11.3
     # via
     #   -c requirements/prod.txt
     #   sphinx
 jsonschema==4.2.1 ; python_version > "3.6"
     # via -r requirements/dev.in
-keyring==23.0.1
+keyring==23.2.1
     # via
     #   -c requirements/prod.txt
     #   twine
@@ -135,6 +146,10 @@ py==1.11.0
     #   tox
 pycodestyle==2.7.0
     # via flake8
+pycparser==2.21
+    # via
+    #   -c requirements/prod.txt
+    #   cffi
 pyflakes==2.3.1
     # via flake8
 pygments==2.10.0
@@ -186,6 +201,10 @@ responses==0.14.0
     # via -r requirements/dev.in
 rfc3986==1.5.0
     # via twine
+secretstorage==3.3.1
+    # via
+    #   -c requirements/prod.txt
+    #   keyring
 six==1.16.0
     # via
     #   -c requirements/prod.txt
@@ -269,7 +288,6 @@ zipp==3.6.0
     # via
     #   -c requirements/prod.txt
     #   importlib-metadata
-    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
