@@ -11,7 +11,7 @@ pre-commit
 pytest
 pytest-random-order
 pytest-vcr
-responses==0.14.0
+responses==0.16.0
 Sphinx
 testfixtures
 tox
