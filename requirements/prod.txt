@@ -35,6 +35,7 @@ cryptography==35.0.0
     #   -r requirements/prod.in
     #   authlib
     #   jwcrypto
+    #   secretstorage
 deprecated==1.2.13
     # via jwcrypto
 docutils==0.16
@@ -65,6 +66,10 @@ importlib-metadata==4.2.0
     # via
     #   keyring
     #   snowfakery
+jeepney==0.7.1
+    # via
+    #   keyring
+    #   secretstorage
 jinja2==2.11.3
     # via
     #   -r requirements/prod.in
@@ -119,7 +124,7 @@ requests==2.26.0
     #   snowfakery
 requests-futures==1.0.0
     # via -r requirements/prod.in
-rich==10.13.0
+rich==10.14.0
     # via -r requirements/prod.in
 robotframework==4.1.2
     # via
@@ -147,6 +152,8 @@ salesforce-bulk==2.2.0
     # via -r requirements/prod.in
 sarge==0.1.6
     # via -r requirements/prod.in
+secretstorage==3.3.1
+    # via keyring
 selenium==3.141.0
     # via
     #   -r requirements/prod.in
