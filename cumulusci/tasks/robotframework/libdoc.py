@@ -1,3 +1,4 @@
+import csv
 import os
 import os.path
 import re
@@ -32,7 +33,11 @@ class RobotLibDoc(BaseTask):
             "required": True,
         },
         "output": {
-            "description": "The output file where the documentation will be written",
+            "description": (
+                "The output file where the documentation will be written. "
+                "Normally an HTML file will be generated. If the filename "
+                "ends with '.csv' then a csv file will be generated instead."
+            ),
             "required": True,
         },
         "title": {
@@ -115,18 +120,35 @@ class RobotLibDoc(BaseTask):
                 )
 
         try:
-            with open(self.options["output"], "w") as f:
-                html = self._render_html(kwfiles)
-                f.write(html)
-                self.logger.info("created {}".format(f.name))
+            if self.options["output"].endswith(".csv"):
+                data = self._render_csv(kwfiles)
+                with open(self.options["output"], "w") as f:
+                    csv_writer = csv.writer(f)
+                    csv_writer.writerows(data)
+
+            else:
+                with open(self.options["output"], "w") as f:
+                    html = self._render_html(kwfiles)
+                    f.write(html)
+            self.logger.info("created {}".format(self.options["output"]))
+
         except Exception as e:
             raise TaskOptionsError(
                 "Unable to create output file '{}' ({})".format(
-                    self.options["output"], e.strerror
+                    self.options["output"], str(e)
                 )
             )
 
-        return {"files": processed_files, "html": html}
+        return {"files": processed_files}
+
+    def _render_csv(self, kwfiles):
+        """Convert the list of keyword files into a list of keywords"""
+        rows = []
+        for kwfile in kwfiles:
+            rows.extend(kwfile.to_csv())
+        rows = sorted(set(map(tuple, rows)))
+        rows.insert(0, KeywordFile.get_header())
+        return rows
 
     def _render_html(self, libraries):
         """Generate the html. `libraries` is a list of LibraryDocumentation objects"""
@@ -174,5 +196,35 @@ class KeywordFile:
         self.path = path
         self.keywords = {}
 
+    @classmethod
+    def get_header(cls):
+        return ["Name", "Source", "Line#", "po type", "po_object", "Documentation"]
+
     def add_keywords(self, libdoc, page_object=tuple()):
         self.keywords[page_object] = libdoc
+
+    def to_csv(self):
+        rows = []
+        for po, libdoc in self.keywords.items():
+            (po_type, po_object) = po if po else ("", "")
+            for keyword in libdoc.keywords:
+                # we don't want to see the same base pageobject
+                # keywords a kajillion times. This should probably
+                # be configurable, but I don't need it to be right now.
+                if "baseobjects.py" in keyword.source:
+                    continue
+
+                # make sure that if you change the list of columns here
+                # that you modify the `get_header` property too!
+                row = (
+                    keyword.name,
+                    keyword.source,
+                    keyword.lineno,
+                    po_type,
+                    po_object,
+                    keyword.doc,
+                )
+                rows.append(row)
+
+        rows = set(rows)
+        return rows
