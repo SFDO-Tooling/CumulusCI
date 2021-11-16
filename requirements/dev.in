@@ -3,7 +3,7 @@ black
 coverage[toml]
 coveralls
 factory-boy
-flake8<4
+flake8<5
 furo
 isort
 jsonschema; python_version > '3.6'
