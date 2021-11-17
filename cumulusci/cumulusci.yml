@@ -239,9 +239,9 @@ tasks:
         group: Salesforce DX
     dx_convert_from:
         description: Converts force-app directory in sfdx format into metadata format under src
-        class_path: cumulusci.tasks.command.Command
+        class_path: cumulusci.tasks.dx_convert_from.DxConvertFrom
         options:
-            command: "rm -rf src; sfdx force:source:convert -d src"
+            command: "force:source:convert"
         group: Salesforce DX
     dx_pull:
         description: Uses sfdx to pull from a scratch org into the force-app directory
