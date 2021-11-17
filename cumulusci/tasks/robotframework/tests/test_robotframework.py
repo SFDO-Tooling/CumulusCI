@@ -467,10 +467,10 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
                 os.path.join(self.datadir, "TestPageObjects.py"),
             )
         )
-        output = os.path.join(self.tmpdir, "keywords.csv")
-        if os.path.exists(output):
+        output = Path(self.tmpdir) / "keywords.csv"
+        if output.exists():
             os.remove(output)
-        task = create_task(RobotLibDoc, {"path": path, "output": output})
+        task = create_task(RobotLibDoc, {"path": path, "output": output.as_posix()})
         task()
         assert os.path.exists(output)
         with open(output, "r") as csvfile:
