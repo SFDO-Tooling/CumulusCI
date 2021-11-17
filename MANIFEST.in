@@ -13,4 +13,4 @@ recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 
 recursive-include docs *.rst conf.py Makefile make.bat *.jpg *.png *.gif
-recursive-include cumulusci *.xml *.jar *.xsl *.txt *.properties *.sh *.py *.yml *.report *.md *.robot *.json *.css *.html .gitignore
+recursive-include cumulusci *.xml *.jar *.xsl *.txt *.properties *.sh *.py *.yml *.report *.md *.robot *.json *.css *.html dot-gitignore
