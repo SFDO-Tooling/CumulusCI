@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 from cumulusci.tasks.sfdx import SFDXBaseTask
@@ -28,14 +29,5 @@ class DxConvertFrom(SFDXBaseTask):
     def _run_task(self):
         src_dir = Path(self.options["src_dir"])
         if src_dir.exists():
-            self._clear_directory(src_dir)
+            shutil.rmtree(src_dir)
         super()._run_task()
-
-    def _clear_directory(self, root_dir: Path):
-        """Recursively remove all contents in given directory"""
-        for item in root_dir.iterdir():
-            if item.is_dir():
-                self._clear_directory(item)
-                item.rmdir()
-            else:
-                item.unlink()
