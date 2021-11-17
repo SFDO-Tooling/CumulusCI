@@ -42,8 +42,11 @@ def dx_convert_task(project_config, task_config):
 @mock.patch("cumulusci.tasks.command.sarge")
 def test_dx_convert_from__src_exists(sarge, sarge_process, dx_convert_task):
     with temporary_dir():
-        dir_structure = Path("src/inner_dir")
-        dir_structure.mkdir(exist_ok=True, parents=True)
+        src_dir = Path("src")
+        src_dir.mkdir(exist_ok=True)
+
+        inner_dir = Path("src/inner_dir")
+        inner_dir.mkdir(exist_ok=True, parents=True)
 
         src_file1_path = Path("src/foo.txt")
         src_file1_path.touch()
@@ -54,10 +57,7 @@ def test_dx_convert_from__src_exists(sarge, sarge_process, dx_convert_task):
         sarge.Command.return_value = sarge_process
         dx_convert_task()
 
-        assert Path("src").is_dir()
-        assert not dir_structure.exists()
-        assert not src_file1_path.exists()
-        assert not src_file2_path.exists()
+        assert not src_dir.exists()
         sarge.Command.assert_called_once_with(
             "sfdx force:source:convert -d src",
             cwd=".",
