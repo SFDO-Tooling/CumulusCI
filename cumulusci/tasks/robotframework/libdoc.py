@@ -146,7 +146,7 @@ class RobotLibDoc(BaseTask):
         rows = []
         for kwfile in kwfiles:
             rows.extend(kwfile.to_csv())
-        rows = sorted(set(map(tuple, rows)))
+        rows = sorted(set(rows))
         rows.insert(0, KeywordFile.get_header())
         return rows
 
