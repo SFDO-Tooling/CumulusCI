@@ -298,7 +298,7 @@ class TestRobot(unittest.TestCase):
         )
         self.assertNotIn("dummy1", sys.path)
         self.assertNotIn("dummy2", sys.path)
-        self.assertEquals(
+        self.assertEqual(
             Path(".").resolve(), Path(task.return_values["robot_outputdir"]).resolve()
         )
 
