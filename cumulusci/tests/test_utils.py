@@ -16,6 +16,7 @@ from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tests.util import create_project_config
+from cumulusci.utils.xml import elementtree_parse_file, lxml_parse_file
 
 
 class FunTestTask(BaseTask):
@@ -129,25 +130,25 @@ class TestUtils:
             assert os.listdir(d) == ["bar"]
 
     def test_elementtree_parse_file(self, cumulusci_test_repo_root):
-        tree = utils.elementtree_parse_file(
+        tree = elementtree_parse_file(
             cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml"
         )
         assert tree.getroot().tag.startswith("{")
 
     def test_elementtree_parse_file_pathstr(self, cumulusci_test_repo_root):
-        tree = utils.elementtree_parse_file(
+        tree = elementtree_parse_file(
             str(cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml")
         )
         assert tree.getroot().tag.startswith("{")
 
     def test_lxml_parse_file(self, cumulusci_test_repo_root):
-        tree = utils.lxml_parse_file(
+        tree = lxml_parse_file(
             cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml"
         )
         assert tree.getroot().tag.startswith("{")
 
     def test_lxml_parse_file_pathstr(self, cumulusci_test_repo_root):
-        tree = utils.lxml_parse_file(
+        tree = lxml_parse_file(
             str(cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml")
         )
         assert tree.getroot().tag.startswith("{")

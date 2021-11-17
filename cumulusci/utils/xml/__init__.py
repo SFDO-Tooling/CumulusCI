@@ -24,6 +24,8 @@ def lxml_parse_file(path: T.Union[str, Path]) -> lxml_etree._ElementTree:
         resolve_entities=False, load_dtd=False, no_network=True
     )
     try:
+        if isinstance(path, Path):
+            path = str(path)
         tree = lxml_etree.parse(path, parser=parser)
     except etree.ParseError as err:
         err.filename = path
