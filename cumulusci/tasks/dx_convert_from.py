@@ -6,10 +6,6 @@ from cumulusci.tasks.sfdx import SFDXBaseTask
 
 class DxConvertFrom(SFDXBaseTask):
     task_options = {
-        "command": {
-            "description": "The full command to run with the sfdx cli.",
-            "required": True,
-        },
         "extra": {"description": "Append additional options to the command"},
         "src_dir": {
             "description": "The path to the src directory where converted contents will be stored. Defaults to src/"
@@ -21,10 +17,8 @@ class DxConvertFrom(SFDXBaseTask):
         if "src_dir" not in self.options:
             self.options["src_dir"] = "src"
 
-        # append the -d option to sfdx force:source:convert
-        self.options[
-            "command"
-        ] = f"{self.options['command']} -d {self.options['src_dir']}"
+        # append command  -d option to sfdx} force:source:convert
+        self.options["command"] = f"force:source:convert -d {self.options['src_dir']}"
 
     def _run_task(self):
         src_dir = Path(self.options["src_dir"])

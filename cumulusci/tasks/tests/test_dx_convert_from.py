@@ -40,19 +40,11 @@ def dx_convert_task(project_config, task_config):
 
 
 @mock.patch("cumulusci.tasks.command.sarge")
-def test_dx_convert_from__src_exists(sarge, sarge_process, dx_convert_task):
+def test_dx_convert_from(sarge, sarge_process, dx_convert_task):
+    """Ensure that we clear out the `src/`"""
     with temporary_dir():
         src_dir = Path("src")
         src_dir.mkdir(exist_ok=True)
-
-        inner_dir = Path("src/inner_dir")
-        inner_dir.mkdir(exist_ok=True, parents=True)
-
-        src_file1_path = Path("src/foo.txt")
-        src_file1_path.touch()
-
-        src_file2_path = Path("src/inner_dir/foo.txt")
-        src_file2_path.touch()
 
         sarge.Command.return_value = sarge_process
         dx_convert_task()
