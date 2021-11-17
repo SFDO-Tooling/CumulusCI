@@ -121,14 +121,14 @@ class RobotLibDoc(BaseTask):
 
         try:
             if self.options["output"].endswith(".csv"):
-                data = self._render_csv(kwfiles)
+                data = self._convert_to_tuples(kwfiles)
                 with open(self.options["output"], "w") as f:
                     csv_writer = csv.writer(f)
                     csv_writer.writerows(data)
 
             else:
+                html = self._convert_to_html(kwfiles)
                 with open(self.options["output"], "w") as f:
-                    html = self._render_html(kwfiles)
                     f.write(html)
             self.logger.info("created {}".format(self.options["output"]))
 
@@ -141,17 +141,20 @@ class RobotLibDoc(BaseTask):
 
         return {"files": processed_files}
 
-    def _render_csv(self, kwfiles):
-        """Convert the list of keyword files into a list of keywords"""
+    def _convert_to_tuples(self, kwfiles):
+        """Convert the list of keyword files into a list of tuples
+
+        The first element in the list will be a list of column headings.
+        """
         rows = []
         for kwfile in kwfiles:
-            rows.extend(kwfile.to_csv())
+            rows.extend(kwfile.to_tuples())
         rows = sorted(set(rows))
         rows.insert(0, KeywordFile.get_header())
         return rows
 
-    def _render_html(self, libraries):
-        """Generate the html. `libraries` is a list of LibraryDocumentation objects"""
+    def _convert_to_html(self, kwfiles):
+        """Convert the list of keyword files into html"""
 
         title = self.options.get("title", "Keyword Documentation")
         date = time.strftime("%A %B %d, %I:%M %p")
@@ -167,7 +170,7 @@ class RobotLibDoc(BaseTask):
         jinjaenv.filters["robot_html"] = robot.utils.html_format
         template = jinjaenv.get_template("template.html")
         return template.render(
-            libraries=libraries,
+            libraries=kwfiles,
             title=title,
             cci_version=cci_version,
             stylesheet=stylesheet,
@@ -203,7 +206,8 @@ class KeywordFile:
     def add_keywords(self, libdoc, page_object=tuple()):
         self.keywords[page_object] = libdoc
 
-    def to_csv(self):
+    def to_tuples(self):
+        """Convert the dictionary of keyword data to tuple of tuples"""
         rows = []
         for po, libdoc in self.keywords.items():
             (po_type, po_object) = po if po else ("", "")
