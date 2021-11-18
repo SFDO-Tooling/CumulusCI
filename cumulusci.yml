@@ -10,7 +10,7 @@ tasks:
             suites: cumulusci/robotframework/tests
             options:
                 outputdir: robot/CumulusCI/results
-                noncritical: noncritical # allows testing failure conditions
+                skiponfailure: noncritical # allows testing failure conditions
 
     robot_testdoc:
         options:
