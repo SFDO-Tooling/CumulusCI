@@ -170,7 +170,7 @@ def display_release_notes_link(latest_version: str) -> None:
 
 
 @click.group("main", help="")
-@click.version_option(show_version_info(), message="")
+@click.version_option(show_version_info, message="")
 def cli():
     """Top-level `click` command group."""
 
