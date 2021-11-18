@@ -22,7 +22,9 @@ def project_config():
 
 @pytest.fixture
 def task_config():
-    return TaskConfig({"options": {"command": "force:source:convert"}})
+    return TaskConfig(
+        {"options": {"command": "force:source:convert", "src_dir": "src"}}
+    )
 
 
 @pytest.fixture
