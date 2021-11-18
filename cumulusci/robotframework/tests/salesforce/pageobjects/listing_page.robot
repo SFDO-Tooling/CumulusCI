@@ -17,7 +17,6 @@ Create Test Data
     # First, delete all existing contacts
     ${records}=  Salesforce Query  Contact
     FOR  ${record}  IN  @{records}
-        log to console  deleting contact ${record['Id']}...
         Salesforce Delete  Contact  ${record['Id']}
     END
 
@@ -92,7 +91,6 @@ ListingPage - Deselect Rows
 
     # deselect via name column
     Deselect rows  Doe
-    capture page screenshot
     Status info should contain  1 item selected
 
     # deselect one more via phone column
