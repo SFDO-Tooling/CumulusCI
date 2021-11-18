@@ -7,19 +7,18 @@ from lxml import etree as lxml_etree
 UTF8 = "UTF-8"
 
 
-def elementtree_parse_file(path: T.Union[str, Path]) -> etree.ElementTree:
-    """Parse a file from filename or Path using Python stdlib"""
+def elementtree_parse_file(path: T.Union[str, Path, T.IO]) -> etree.ElementTree:
+    """Parse a file from filename, Path or Stream using Python stdlib"""
     try:
         tree = etree.parse(path)
     except etree.ParseError as err:
         err.filename = path
         raise err
-    assert isinstance(tree, etree.ElementTree), type(tree)
     return tree
 
 
-def lxml_parse_file(path: T.Union[str, Path]) -> lxml_etree._ElementTree:
-    """Parse a file from filename or Path using lxml for richer API"""
+def lxml_parse_file(path: T.Union[str, Path, T.IO]) -> lxml_etree._ElementTree:
+    """Parse a file from filename, Path or stream using lxml for richer API"""
     parser = lxml_etree.XMLParser(
         resolve_entities=False, load_dtd=False, no_network=True
     )

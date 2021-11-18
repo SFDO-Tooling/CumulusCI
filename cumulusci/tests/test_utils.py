@@ -147,11 +147,21 @@ class TestUtils:
         )
         assert tree.getroot().tag.startswith("{")
 
+    def test_lxml_parse_stream(self, cumulusci_test_repo_root):
+        data = io.StringIO("<Foo/>")
+        tree = lxml_parse_file(data)
+        assert tree.getroot().tag == "Foo"
+
     def test_lxml_parse_file_pathstr(self, cumulusci_test_repo_root):
         tree = lxml_parse_file(
             str(cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml")
         )
         assert tree.getroot().tag.startswith("{")
+
+    def test_elementtree_parse_stream(self, cumulusci_test_repo_root):
+        data = io.StringIO("<Foo/>")
+        tree = elementtree_parse_file(data)
+        assert tree.getroot().tag == "Foo"
 
     @mock.patch("xml.etree.ElementTree.parse")
     def test_elementtree_parse_file_error(self, mock_parse):
