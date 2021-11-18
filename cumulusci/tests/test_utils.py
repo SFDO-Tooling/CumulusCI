@@ -16,6 +16,7 @@ from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tests.util import create_project_config
+from cumulusci.utils.xml import elementtree_parse_file, lxml_parse_file
 
 
 class FunTestTask(BaseTask):
@@ -128,11 +129,39 @@ class TestUtils:
             logger.info.assert_called_once()
             assert os.listdir(d) == ["bar"]
 
-    @mock.patch("xml.etree.ElementTree.parse")
-    def test_elementtree_parse_file(self, mock_parse):
-        _marker = object()
-        mock_parse.return_value = _marker
-        assert utils.elementtree_parse_file("test_file") == _marker
+    def test_elementtree_parse_file(self, cumulusci_test_repo_root):
+        tree = elementtree_parse_file(
+            cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml"
+        )
+        assert tree.getroot().tag.startswith("{")
+
+    def test_elementtree_parse_file_pathstr(self, cumulusci_test_repo_root):
+        tree = elementtree_parse_file(
+            str(cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml")
+        )
+        assert tree.getroot().tag.startswith("{")
+
+    def test_lxml_parse_file(self, cumulusci_test_repo_root):
+        tree = lxml_parse_file(
+            cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml"
+        )
+        assert tree.getroot().tag.startswith("{")
+
+    def test_lxml_parse_stream(self, cumulusci_test_repo_root):
+        data = io.StringIO("<Foo/>")
+        tree = lxml_parse_file(data)
+        assert tree.getroot().tag == "Foo"
+
+    def test_lxml_parse_file_pathstr(self, cumulusci_test_repo_root):
+        tree = lxml_parse_file(
+            str(cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml")
+        )
+        assert tree.getroot().tag.startswith("{")
+
+    def test_elementtree_parse_stream(self, cumulusci_test_repo_root):
+        data = io.StringIO("<Foo/>")
+        tree = elementtree_parse_file(data)
+        assert tree.getroot().tag == "Foo"
 
     @mock.patch("xml.etree.ElementTree.parse")
     def test_elementtree_parse_file_error(self, mock_parse):

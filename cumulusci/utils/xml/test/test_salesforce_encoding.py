@@ -1,5 +1,4 @@
 from glob import glob
-from io import StringIO
 from pathlib import Path
 from shutil import rmtree
 from tempfile import TemporaryDirectory, mkdtemp
@@ -7,12 +6,13 @@ from tempfile import TemporaryDirectory, mkdtemp
 import pytest
 from lxml import etree
 
+from cumulusci.utils.xml import lxml_parse_file, lxml_parse_string
 from cumulusci.utils.xml.salesforce_encoding import serialize_xml_for_salesforce
 
 
 class TestSalesforceEncoding:
     def test_xml_declaration(self):
-        xml = etree.parse(StringIO("<foo/>"))
+        xml = lxml_parse_string("<foo/>")
         out = serialize_xml_for_salesforce(xml, xml_declaration=True)
         assert out.startswith("<?xml")
 
@@ -46,7 +46,8 @@ class TestSalesforceEncoding:
         for file in files:
             with open(file) as f:
                 orig = f.read().strip()
-            tree = etree.parse(file)
+
+            tree = lxml_parse_file(file)
             out = serialize_xml_for_salesforce(tree).strip()
             try:
                 orig = etree.canonicalize(orig)
@@ -89,14 +90,12 @@ class TestSalesforceEncoding:
             with open(filename, "w") as f:
                 f.write("<<<<")
             with pytest.raises(SyntaxError) as e:
-                etree.parse(filename)
+                lxml_parse_file(filename)
             assert "foobar.notxml" in str(e.value)
 
     def test_comment(self):
-        tree = etree.parse(
-            StringIO(
-                "<Foo><!-- Salesforce files should not have comments, but just in case! --> </Foo>"
-            )
+        tree = lxml_parse_string(
+            "<Foo><!-- Salesforce files should not have comments, but just in case! --> </Foo>"
         )
         assert "just in case! -->" in serialize_xml_for_salesforce(tree)
 
@@ -111,14 +110,14 @@ class TestSalesforceEncoding:
     </layoutSections>
 </Layout>""".strip()
 
-        tree = etree.parse(StringIO(xml_in))
+        tree = lxml_parse_string(xml_in)
 
         xml_out = serialize_xml_for_salesforce(tree, xml_declaration=False)
         assert xml_in == xml_out.strip()
 
     def test_namespaces(self):
         xml_in = '<Foo xmlns:foo="https://html5zombo.com/" xmlns:dad="http://niceonedad.com/"/>\n'
-        tree = etree.parse(StringIO(xml_in))
+        tree = lxml_parse_string(xml_in)
 
         xml_out = serialize_xml_for_salesforce(tree, xml_declaration=False)
         assert xml_in == xml_out
@@ -131,7 +130,7 @@ class TestSalesforceEncoding:
     </layoutSections>
 </Layout>""".strip()
 
-        tree = etree.parse(StringIO(xml_in))
+        tree = lxml_parse_string(xml_in)
 
         xml_out = serialize_xml_for_salesforce(tree, xml_declaration=False)
         assert xml_in == xml_out.strip()
@@ -147,7 +146,7 @@ class TestSalesforceEncoding:
     </values>
 </CustomMetadata>""".strip()
 
-        tree = etree.parse(StringIO(xml_in))
+        tree = lxml_parse_string(xml_in)
 
         xml_out = serialize_xml_for_salesforce(tree, xml_declaration=False)
         assert xml_in == xml_out.strip()
@@ -163,7 +162,7 @@ class TestSalesforceEncoding:
     </values>
 </CustomMetadata>""".strip()
 
-        tree = etree.parse(StringIO(xml_in))
+        tree = lxml_parse_string(xml_in)
 
         xml_out = serialize_xml_for_salesforce(tree.getroot(), xml_declaration=False)
         assert xml_in == xml_out.strip()
