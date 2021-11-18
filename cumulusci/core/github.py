@@ -24,6 +24,7 @@ from rich.console import Console
 from cumulusci.core.exceptions import (
     DependencyLookupError,
     GithubApiError,
+    GithubApiNotFoundError,
     GithubException,
 )
 from cumulusci.oauth.client import (
@@ -306,10 +307,10 @@ def get_tag_by_name(repo: Repository, tag_name: str) -> Tag:
     try:
         return repo.tag(ref.object.sha)
     except github3.exceptions.NotFoundError:
-        msg = f"Could not find tag with SHA {ref.object.sha} on GitHub"
+        msg = f"Could not find tag '{tag_name}' with SHA {ref.object.sha} on GitHub"
         if ref.object.type != "tag":
             msg += f"\n{tag_name} is not an annotated tag."
-        raise DependencyLookupError(msg)
+        raise GithubApiNotFoundError(msg)
 
 
 def get_ref_for_tag(repo: Repository, tag_name: str) -> Reference:
@@ -317,7 +318,7 @@ def get_ref_for_tag(repo: Repository, tag_name: str) -> Reference:
     try:
         return repo.ref(f"tags/{tag_name}")
     except github3.exceptions.NotFoundError:
-        raise DependencyLookupError(
+        raise GithubApiNotFoundError(
             f"Could not find reference for 'tags/{tag_name}' on GitHub"
         )
 

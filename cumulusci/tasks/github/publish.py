@@ -9,6 +9,7 @@ from cumulusci.core.exceptions import (
     GithubException,
     TaskOptionsError,
 )
+from cumulusci.core.github import get_tag_by_name
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.tasks.github.util import CommitDir
@@ -211,20 +212,9 @@ class PublishSubtree(BaseGithubTask):
         )
 
     def _create_release(self, path, commit):
-        # Get current release info
         repo = self.get_repo()
-        # Get the ref
-        try:
-            ref = repo.ref(f"tags/{self.tag_name}")
-        except github3.exceptions.NotFoundError:
-            message = f"Ref not found for tag {self.tag_name}"
-            raise GithubException(message)
-        # Get the tag
-        try:
-            tag = repo.tag(ref.object.sha)
-        except github3.exceptions.NotFoundError:
-            message = f"Tag {self.tag_name} not found"
-            raise GithubException(message)
+        tag = get_tag_by_name(repo, self.tag_name)
+
         # Get the release
         try:
             release = repo.release_from_tag(self.tag_name)
