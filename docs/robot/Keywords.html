@@ -2922,6 +2922,35 @@ Go to page  Listing  Contact  filterName=Recent
                                 <th>Documentation</th>
                             </tr>
 
+                            <tr class="kwrow" id="BasePageObjects.py.Deselect Rows">
+                                <td class="kwname">Deselect Rows</td>
+                                <td class="kwargs">
+                                    <i>*items</i>
+                                </td>
+                                <td class="kwdoc">
+                                    <p>Uncheck the checkbutton for one or more rows</p>
+                                    <p>
+                                        Arguments are one or more strings. Each row that
+                                        contains one of the strings in any column will be
+                                        delselected. Rows that are unchecked will remain
+                                        unchecked.
+                                    </p>
+                                    <p>
+                                        If no elements are found to match, this keyword
+                                        will raise an error.
+                                    </p>
+                                    <p>Example</p>
+                                    <p>
+                                        The following example deselects all rows that
+                                        contain either John Doe or Jane Doe in any column.
+                                    </p>
+                                    <pre>
+Select Rows   John Doe  Jane Doe
+</pre
+                                    >
+                                </td>
+                            </tr>
+
                             <tr
                                 class="kwrow"
                                 id="BasePageObjects.py.Log Current Page Object"
@@ -2934,6 +2963,35 @@ Go to page  Listing  Contact  filterName=Recent
                                         The current page object is also returned as an
                                         object
                                     </p>
+                                </td>
+                            </tr>
+
+                            <tr class="kwrow" id="BasePageObjects.py.Select Rows">
+                                <td class="kwname">Select Rows</td>
+                                <td class="kwargs">
+                                    <i>*items</i>
+                                </td>
+                                <td class="kwdoc">
+                                    <p>Check the checkbutton for one or more rows</p>
+                                    <p>
+                                        Arguments are one or more strings. Each row that
+                                        contains one of the strings in any column will be
+                                        clicked. Rows that have already been checked will
+                                        remain checked.
+                                    </p>
+                                    <p>
+                                        If no elements are found to match, this keyword
+                                        will raise an error.
+                                    </p>
+                                    <p>Example</p>
+                                    <p>
+                                        The following example selects all rows that
+                                        contain either John Doe or Jane Doe in any column.
+                                    </p>
+                                    <pre>
+Select Rows   John Doe  Jane Doe
+</pre
+                                    >
                                 </td>
                             </tr>
                         </tbody>
@@ -3155,7 +3213,7 @@ Populate form
             </div>
         </div>
         <div class="footer">
-            Generated on Wednesday October 06, 11:27 AM - cumulusci v3.45.0
+            Generated on Wednesday November 17, 10:09 PM - cumulusci v3.48.1
         </div>
     </body>
 </html>
