@@ -15,7 +15,7 @@ from cumulusci.core.exceptions import BulkDataException
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.bulkdata.utils import iterate_in_chunks
 from cumulusci.utils.classutils import namedtuple_as_simple_dict
-from cumulusci.utils.xml import elementtree_parse_string
+from cumulusci.utils.xml import lxml_parse_string
 
 DEFAULT_BULK_BATCH_SIZE = 10_000
 DEFAULT_REST_BATCH_SIZE = 200
@@ -98,7 +98,7 @@ class BulkJobMixin:
 
     def _parse_job_state(self, xml: str):
         """Parse the Bulk API return value and generate a summary status record for the job."""
-        tree = elementtree_parse_string(xml)
+        tree = lxml_parse_string(xml)
         statuses = [el.text for el in tree.iterfind(".//{%s}state" % self.bulk.jobNS)]
         state_messages = [
             el.text for el in tree.iterfind(".//{%s}stateMessage" % self.bulk.jobNS)
