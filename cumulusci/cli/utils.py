@@ -1,6 +1,7 @@
 import contextlib
 import os
 import re
+import sys
 import time
 from collections import defaultdict
 
@@ -12,6 +13,8 @@ from cumulusci import __version__
 from cumulusci.core.config import UniversalConfig
 from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.http.requests_utils import safe_json_from_response
+
+LOWEST_SUPPORTED_VERSION = (3, 8, 0)
 
 
 def group_items(items):
@@ -90,6 +93,12 @@ def check_latest_version():
         if result:
             click.echo(
                 f"""An update to CumulusCI is available. To install the update, run this command: {get_cci_upgrade_command()}""",
+                err=True,
+            )
+
+        if sys.version_info < LOWEST_SUPPORTED_VERSION:
+            click.echo(
+                "Sorry! Your Python version is not supported. Please upgrade to Python 3.9.",
                 err=True,
             )
 
