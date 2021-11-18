@@ -476,6 +476,9 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         with open(output, "r") as csvfile:
             reader = csv.reader(csvfile)
             actual_output = [row for row in reader]
+
+        # not only does this verify that the expected keywords are in
+        # the output, but that the base class keywords are *not*
         expected_output = [
             ["Name", "Source", "Line#", "po type", "po_object", "Documentation"],
             [
@@ -552,7 +555,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
         ]
 
-        self.assertEqual(actual_output, expected_output)
+        self.assertListEqual(actual_output, expected_output)
 
 
 class TestRobotLibDocKeywordFile(unittest.TestCase):
