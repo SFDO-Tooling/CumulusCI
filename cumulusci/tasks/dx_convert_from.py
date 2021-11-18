@@ -8,14 +8,13 @@ class DxConvertFrom(SFDXBaseTask):
     task_options = {
         "extra": {"description": "Append additional options to the command"},
         "src_dir": {
-            "description": "The path to the src directory where converted contents will be stored. Defaults to src/"
+            "description": "The path to the src directory where converted contents will be stored. Defaults to src/",
+            "required": True,
         },
     }
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        if "src_dir" not in self.options:
-            self.options["src_dir"] = "src"
 
         # append command  -d option to sfdx} force:source:convert
         self.options["command"] = f"force:source:convert -d {self.options['src_dir']}"

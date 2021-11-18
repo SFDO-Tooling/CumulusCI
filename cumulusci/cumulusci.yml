@@ -242,6 +242,7 @@ tasks:
         class_path: cumulusci.tasks.dx_convert_from.DxConvertFrom
         options:
             command: "force:source:convert"
+            src_dir: src
         group: Salesforce DX
     dx_pull:
         description: Uses sfdx to pull from a scratch org into the force-app directory
