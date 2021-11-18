@@ -1,4 +1,5 @@
 import json
+import sys
 import time
 from unittest import mock
 
@@ -48,8 +49,10 @@ def test_check_latest_version(click, get_latest_final_version, get_installed_ver
     get_installed_version.return_value = pkg_resources.parse_version("1")
 
     utils.check_latest_version()
-
-    click.echo.assert_called_once()
+    if sys.version_info > utils.LOWEST_SUPPORTED_VERSION:
+        click.echo.assert_called_once()
+    else:
+        click.echo.assert_called()
 
 
 @mock.patch("cumulusci.cli.utils.get_latest_final_version")
