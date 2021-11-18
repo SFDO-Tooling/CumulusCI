@@ -339,6 +339,8 @@ If you define a robot resource file named ``MyProject.resource`` and place it in
               path: robot/MyProject/resources/MyProject.resource
               output: robot/MyProject/doc/MyProject_Library.html
 
+Normally this task will generate HTML output. If the output file ends
+with ".csv", a csv file will be generated instead.
 
 To generate documentation for more than one keyword file or
 library, give a comma-separated list of files for the ``path``
