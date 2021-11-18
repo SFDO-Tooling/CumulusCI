@@ -1,3 +1,4 @@
+import csv
 import os
 import os.path
 import re
@@ -32,7 +33,11 @@ class RobotLibDoc(BaseTask):
             "required": True,
         },
         "output": {
-            "description": "The output file where the documentation will be written",
+            "description": (
+                "The output file where the documentation will be written. "
+                "Normally an HTML file will be generated. If the filename "
+                "ends with '.csv' then a csv file will be generated instead."
+            ),
             "required": True,
         },
         "title": {
@@ -115,21 +120,41 @@ class RobotLibDoc(BaseTask):
                 )
 
         try:
-            with open(self.options["output"], "w") as f:
-                html = self._render_html(kwfiles)
-                f.write(html)
-                self.logger.info("created {}".format(f.name))
+            if self.options["output"].endswith(".csv"):
+                data = self._convert_to_tuples(kwfiles)
+                with open(self.options["output"], "w") as f:
+                    csv_writer = csv.writer(f)
+                    csv_writer.writerows(data)
+
+            else:
+                html = self._convert_to_html(kwfiles)
+                with open(self.options["output"], "w") as f:
+                    f.write(html)
+            self.logger.info("created {}".format(self.options["output"]))
+
         except Exception as e:
             raise TaskOptionsError(
                 "Unable to create output file '{}' ({})".format(
-                    self.options["output"], e.strerror
+                    self.options["output"], str(e)
                 )
             )
 
-        return {"files": processed_files, "html": html}
+        return {"files": processed_files}
 
-    def _render_html(self, libraries):
-        """Generate the html. `libraries` is a list of LibraryDocumentation objects"""
+    def _convert_to_tuples(self, kwfiles):
+        """Convert the list of keyword files into a list of tuples
+
+        The first element in the list will be a list of column headings.
+        """
+        rows = []
+        for kwfile in kwfiles:
+            rows.extend(kwfile.to_tuples())
+        rows = sorted(set(rows))
+        rows.insert(0, KeywordFile.get_header())
+        return rows
+
+    def _convert_to_html(self, kwfiles):
+        """Convert the list of keyword files into html"""
 
         title = self.options.get("title", "Keyword Documentation")
         date = time.strftime("%A %B %d, %I:%M %p")
@@ -145,7 +170,7 @@ class RobotLibDoc(BaseTask):
         jinjaenv.filters["robot_html"] = robot.utils.html_format
         template = jinjaenv.get_template("template.html")
         return template.render(
-            libraries=libraries,
+            libraries=kwfiles,
             title=title,
             cci_version=cci_version,
             stylesheet=stylesheet,
@@ -174,5 +199,36 @@ class KeywordFile:
         self.path = path
         self.keywords = {}
 
+    @classmethod
+    def get_header(cls):
+        return ["Name", "Source", "Line#", "po type", "po_object", "Documentation"]
+
     def add_keywords(self, libdoc, page_object=tuple()):
         self.keywords[page_object] = libdoc
+
+    def to_tuples(self):
+        """Convert the dictionary of keyword data to tuple of tuples"""
+        rows = []
+        for po, libdoc in self.keywords.items():
+            (po_type, po_object) = po if po else ("", "")
+            for keyword in libdoc.keywords:
+                # we don't want to see the same base pageobject
+                # keywords a kajillion times. This should probably
+                # be configurable, but I don't need it to be right now.
+                if "baseobjects.py" in keyword.source:
+                    continue
+
+                # make sure that if you change the list of columns here
+                # that you modify the `get_header` property too!
+                row = (
+                    keyword.name,
+                    keyword.source,
+                    keyword.lineno,
+                    po_type,
+                    po_object,
+                    keyword.doc,
+                )
+                rows.append(row)
+
+        rows = set(rows)
+        return rows
