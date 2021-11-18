@@ -44,7 +44,7 @@ def lxml_parse_string(string: str) -> lxml_etree._ElementTree:
     """Parse a string using lxml for richer API
 
     Use this if you need advanced xpath and parent-pointer features.
-    Otherwise prefer elementree_parse_file for performance and simplicity reasons."""
+    Otherwise prefer elementree_parse_string for performance and simplicity reasons."""
 
     return lxml_etree.ElementTree(lxml_etree.fromstring(string))
 
