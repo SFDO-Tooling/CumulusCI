@@ -8,7 +8,9 @@ UTF8 = "UTF-8"
 
 
 def elementtree_parse_file(path: T.Union[str, Path, T.IO]) -> etree.ElementTree:
-    """Parse a file from filename, Path or Stream using Python stdlib"""
+    """Parse a file from filename, Path or Stream using Python stdlib.
+
+    All else equal, prefer elementtree over LXML for performance and simplicity reasons."""
     try:
         tree = etree.parse(path)
     except etree.ParseError as err:
@@ -18,7 +20,10 @@ def elementtree_parse_file(path: T.Union[str, Path, T.IO]) -> etree.ElementTree:
 
 
 def lxml_parse_file(path: T.Union[str, Path, T.IO]) -> lxml_etree._ElementTree:
-    """Parse a file from filename, Path or stream using lxml for richer API"""
+    """Parse a file from filename, Path or stream using lxml for richer API
+
+    Use this if you need advanced xpath and parent-pointer features.
+    Otherwise prefer elementree_parse_file for performance and simplicity reasons."""
     parser = lxml_etree.XMLParser(
         resolve_entities=False, load_dtd=False, no_network=True
     )
@@ -36,7 +41,11 @@ elementtree_parse_string = etree.fromstring
 
 
 def lxml_parse_string(string: str) -> lxml_etree._ElementTree:
-    """Parse a string using lxml for richer API"""
+    """Parse a string using lxml for richer API
+
+    Use this if you need advanced xpath and parent-pointer features.
+    Otherwise prefer elementree_parse_string for performance and simplicity reasons."""
+
     return lxml_etree.ElementTree(lxml_etree.fromstring(string))
 
 
