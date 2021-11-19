@@ -6,6 +6,7 @@ on:
         branches:
             - main
             - feature/windows-standalone-build
+            - feature/windows-standalone-build-3.10
 
 jobs:
     windowsbuild:
@@ -24,8 +25,8 @@ jobs:
             - name: Download and unpack pythonbuild repository
               shell: cmd
               run: |
-                  wget https://github.com/indygreg/python-build-standalone/releases/download/20211017/cpython-3.9.7-x86_64-pc-windows-msvc-shared-install_only-20211017T1616.tar.gz
-                  tar -zxvf cpython-3.9.7-x86_64-pc-windows-msvc-shared-install_only-20211017T1616.tar.gz
+                  wget https://github.com/indygreg/python-build-standalone/releases/download/20211017/cpython-3.10.0-x86_64-pc-windows-msvc-shared-install_only-20211017T1616.tar.gz
+                  tar -zxvf cpython-3.10.0-x86_64-pc-windows-msvc-shared-install_only-20211017T1616.tar.gz
 
             - name: Rename Directory
               shell: pwsh
@@ -136,8 +137,8 @@ jobs:
             - name: Download and unpack pythonbuild repository
               shell: sh # todo: make hard-coded inputs into inputs
               run: |
-                  wget https://github.com/indygreg/python-build-standalone/releases/download/20211017/cpython-3.9.7-x86_64-apple-darwin-install_only-20211017T1616.tar.gz
-                  tar -zxvf cpython-3.9.7-x86_64-apple-darwin-install_only-20211017T1616.tar.gz
+                  wget https://github.com/indygreg/python-build-standalone/releases/download/20211017/cpython-3.10.0-x86_64-pc-windows-msvc-shared-install_only-20211017T1616.tar.gz
+                  tar -zxvf cpython-3.10.0-x86_64-pc-windows-msvc-shared-install_only-20211017T1616.tar.gz
 
             - name: Rename Directory
               shell: sh
