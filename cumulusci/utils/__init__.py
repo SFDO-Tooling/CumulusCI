@@ -8,13 +8,18 @@ import shutil
 import sys
 import tempfile
 import textwrap
-import xml.etree.ElementTree as ET
 import zipfile
 from datetime import datetime
 
 import requests
 import sarge
 
+from .xml import (  # noqa
+    elementtree_parse_file,
+    remove_xml_element,
+    remove_xml_element_file,
+    remove_xml_element_string,
+)
 from .ziputils import process_text_in_zipfile  # noqa
 from .ziputils import zip_subfolder
 
@@ -24,7 +29,6 @@ CUMULUSCI_PATH = os.path.realpath(
 META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/")
 API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 DATETIME_LEN = len("2018-08-07T16:00:56.000")
-UTF8 = "UTF-8"
 
 BREW_UPDATE_CMD = "brew upgrade cumulusci"
 PIP_UPDATE_CMD = "pip install --upgrade cumulusci"
@@ -99,15 +103,6 @@ def find_rename(find, replace, directory, logger=None):
             os.rename(filepath, os.path.join(path, filename.replace(find, replace)))
 
 
-def elementtree_parse_file(path):
-    try:
-        tree = ET.parse(path)
-    except ET.ParseError as err:
-        err.filename = path
-        raise err
-    return tree
-
-
 def remove_xml_element_directory(name, directory, file_pattern, logger=None):
     """Recursively walk a directory and remove XML elements"""
     for path, dirs, files in os.walk(os.path.abspath(directory)):
@@ -121,41 +116,6 @@ findReplace = find_replace
 findReplaceRegex = find_replace_regex
 findRename = find_rename
 removeXmlElement = remove_xml_element_directory
-
-
-def remove_xml_element_file(name, path):
-    """Remove XML elements from a single file"""
-    ET.register_namespace("", "http://soap.sforce.com/2006/04/metadata")
-    tree = elementtree_parse_file(path)
-    tree = remove_xml_element(name, tree)
-    return tree.write(path, encoding=UTF8, xml_declaration=True)
-
-
-def remove_xml_element_string(name, content):
-    """Remove XML elements from a string"""
-    ET.register_namespace("", "http://soap.sforce.com/2006/04/metadata")
-    tree = ET.fromstring(content)
-    tree = remove_xml_element(name, tree)
-    clean_content = ET.tostring(tree, encoding=UTF8)
-    return clean_content
-
-
-def remove_xml_element(name, tree):
-    """Removes XML elements from an ElementTree content tree"""
-    # root = tree.getroot()
-    remove = tree.findall(
-        ".//{{http://soap.sforce.com/2006/04/metadata}}{}".format(name)
-    )
-    if not remove:
-        return tree
-
-    parent_map = {c: p for p in tree.iter() for c in p}
-
-    for elem in remove:
-        parent = parent_map[elem]
-        parent.remove(elem)
-
-    return tree
 
 
 def download_extract_zip(url, target=None, subfolder=None, headers=None):

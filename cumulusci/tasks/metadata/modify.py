@@ -1,10 +1,9 @@
 import glob
 
-import lxml.etree as ET
-
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import cd
+from cumulusci.utils.xml import lxml_parse_file
 from cumulusci.utils.xml.salesforce_encoding import serialize_xml_for_salesforce
 
 SF_NS = "http://soap.sforce.com/2006/04/metadata"
@@ -80,7 +79,7 @@ class RemoveElementsXPath(BaseTask):
             self.logger.info(f"Checking {f}")
             with open(f, "rb") as fp:
                 orig = fp.read()
-            root = ET.parse(f)
+            root = lxml_parse_file(f)
             res = root.xpath(
                 step["xpath"],
                 namespaces={
