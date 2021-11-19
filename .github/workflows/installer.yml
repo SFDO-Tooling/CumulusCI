@@ -6,7 +6,7 @@ on:
         branches:
             - main
             - feature/windows-standalone-build
-            - feature/windows-standalone-build-3.10
+            - feature/standalone-build-3.10
 
 jobs:
     windowsbuild:
