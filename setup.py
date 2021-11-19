@@ -70,5 +70,5 @@ setup(
         "Programming Language :: Python :: 3.10",
     ],
     test_suite="cumulusci.core.tests",
-    python_requires=">=3.6",
+    python_requires=">=3.6, <=3.9",
 )
