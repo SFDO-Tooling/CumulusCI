@@ -29,13 +29,6 @@ HomePage
     go to page  Home  Task
     Current page should be  Home  Task
 
-ListingPage
-    [Documentation]
-    ...  Verify we can go to the generic Listing page
-    ...  (assuming we don't have an explicit TaskListingPage)
-    Go to page              Listing  Task
-    Current page should be  Listing  Task
-
 DetailPage
     [Documentation]
     ...  Verify we can go to the generic Detail page

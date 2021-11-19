@@ -215,7 +215,7 @@ class KeywordFile:
                 # we don't want to see the same base pageobject
                 # keywords a kajillion times. This should probably
                 # be configurable, but I don't need it to be right now.
-                if "baseobjects.py" in keyword.source:
+                if "cumulusci/robotframework/pageobjects" in keyword.source:
                     continue
 
                 # make sure that if you change the list of columns here
