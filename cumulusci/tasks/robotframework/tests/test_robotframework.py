@@ -1,3 +1,4 @@
+import csv
 import os.path
 import re
 import shutil
@@ -297,7 +298,7 @@ class TestRobot(unittest.TestCase):
         )
         self.assertNotIn("dummy1", sys.path)
         self.assertNotIn("dummy2", sys.path)
-        self.assertEquals(
+        self.assertEqual(
             Path(".").resolve(), Path(task.return_values["robot_outputdir"]).resolve()
         )
 
@@ -457,6 +458,104 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         task()
         assert "created {}".format(output) in self.task_log["info"]
         assert os.path.exists(output)
+
+    def test_csv(self):
+        path = ",".join(
+            (
+                os.path.join(self.datadir, "TestLibrary.py"),
+                os.path.join(self.datadir, "TestResource.robot"),
+                os.path.join(self.datadir, "TestPageObjects.py"),
+            )
+        )
+        output = Path(self.tmpdir) / "keywords.csv"
+        if output.exists():
+            os.remove(output)
+        task = create_task(RobotLibDoc, {"path": path, "output": output.as_posix()})
+        task()
+        assert os.path.exists(output)
+        with open(output, "r") as csvfile:
+            reader = csv.reader(csvfile)
+            actual_output = [row for row in reader]
+
+        # not only does this verify that the expected keywords are in
+        # the output, but that the base class keywords are *not*
+        expected_output = [
+            ["Name", "Source", "Line#", "po type", "po_object", "Documentation"],
+            [
+                "Keyword One",
+                f"{self.datadir}/TestPageObjects.py",
+                "13",
+                "Listing",
+                "Something__c",
+                "",
+            ],
+            [
+                "Keyword One",
+                f"{self.datadir}/TestPageObjects.py",
+                "24",
+                "Detail",
+                "Something__c",
+                "",
+            ],
+            [
+                "Keyword Three",
+                f"{self.datadir}/TestPageObjects.py",
+                "30",
+                "Detail",
+                "Something__c",
+                "",
+            ],
+            [
+                "Keyword Two",
+                f"{self.datadir}/TestPageObjects.py",
+                "16",
+                "Listing",
+                "Something__c",
+                "",
+            ],
+            [
+                "Keyword Two",
+                f"{self.datadir}/TestPageObjects.py",
+                "27",
+                "Detail",
+                "Something__c",
+                "",
+            ],
+            [
+                "Library Keyword One",
+                f"{self.datadir}/TestLibrary.py",
+                "13",
+                "",
+                "",
+                "Keyword documentation with *bold* and _italics_",
+            ],
+            [
+                "Library Keyword Two",
+                f"{self.datadir}/TestLibrary.py",
+                "17",
+                "",
+                "",
+                "",
+            ],
+            [
+                "Resource keyword one",
+                f"{self.datadir}/TestResource.robot",
+                "2",
+                "",
+                "",
+                "",
+            ],
+            [
+                "Resource keyword two",
+                f"{self.datadir}/TestResource.robot",
+                "6",
+                "",
+                "",
+                "",
+            ],
+        ]
+
+        self.assertListEqual(actual_output, expected_output)
 
 
 class TestRobotLibDocKeywordFile(unittest.TestCase):

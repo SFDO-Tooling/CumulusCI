@@ -1,7 +1,7 @@
 import requests
-from lxml import etree
 
 from cumulusci.salesforce_api import mc_soap_envelopes as envelopes
+from cumulusci.utils.xml import lxml_parse_string
 
 from .base import BaseMarketingCloudTask
 
@@ -32,7 +32,7 @@ class CreateSubscriberAttribute(BaseMarketingCloudTask):
         )
         response.raise_for_status()
         # check resulting status code
-        root = etree.fromstring(response.content)
+        root = lxml_parse_string(response.content)
         status_code = root.find(
             ".//{http://exacttarget.com/wsdl/partnerAPI}StatusCode"
         ).text
@@ -126,7 +126,7 @@ class CreateUser(BaseMarketingCloudTask):
         )
         response.raise_for_status()
         # check resulting status code
-        root = etree.fromstring(response.content)
+        root = lxml_parse_string(response.content)
         status_code = root.find(
             ".//{http://exacttarget.com/wsdl/partnerAPI}StatusCode"
         ).text
@@ -205,7 +205,7 @@ class UpdateUserRole(BaseMarketingCloudTask):
         )
         response.raise_for_status()
         # check resulting status code
-        root = etree.fromstring(response.content)
+        root = lxml_parse_string(response.content)
         status_code = root.find(
             ".//{http://exacttarget.com/wsdl/partnerAPI}StatusCode"
         ).text
