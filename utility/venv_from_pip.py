@@ -83,20 +83,23 @@ def install():
             f"Cannot find Python dir in {ccipythondir}: {list(ccipythondir.iterdir())}"
         )
 
+    def runpip(args):
+        return runsubprocess([str(python), "-I", "-m", "pip", *args])
+
     print("Updating pip")
-    runsubprocess(
-        [str(python), "-m", "pip", "install", "--upgrade", "pip", "userpath"],
+    runpip(
+        ["install", "--upgrade", "pip", "userpath"],
     )
 
     print("Installing CumulusCI from pip")
-    runsubprocess(
-        [str(python), "-m", "pip", "install", "cumulusci"],
+    runpip(
+        ["install", "cumulusci"],
     )
 
     plugin_requirements = ccipythondir / "plugin_requirements.txt"
     if plugin_requirements.exists():
-        runsubprocess(
-            [str(python), "-m", "pip", "install", "-r", plugin_requirements],
+        runpip(
+            ["install", "-r", plugin_requirements],
         )
 
     rundir = ccipythondir / "run"
