@@ -5,13 +5,13 @@ Classes:
     CliTable: Pretty prints tabular data to stdout, via Rich's Console API
 """
 import os
-from typing import List
+from typing import Any, List, Union
 
 import rich
 from rich import box, print
 from rich.console import Console
 from rich.style import Style
-from rich.table import Table
+from rich.table import Column, Table
 
 CHECKMARK = "[green]:heavy_check_mark:" if os.name == "posix" else "+"
 CROSSMARK = "[red]:cross_mark:" if os.name == "posix" else "-"
@@ -26,12 +26,20 @@ class CliTable:
 
     Methods:
     * echo: Print the table data to stdout using rich.Console.print
+    Class Methods:
+    * columnify_headers: Convert a list of strs to Columns
     """
 
     PICTOGRAM_TRUE = CHECKMARK
     PICTOGRAM_FALSE = " "
 
-    def __init__(self, data, title=None, dim_rows: List[int] = None, **kwargs):
+    def __init__(
+        self,
+        data: List[List[Any]],
+        title: str = None,
+        dim_rows: List[int] = None,
+        **kwargs,
+    ):
         """Constructor.
         Args:
             data: Required. List[List] of data to format, with the heading as 0-th member.
@@ -39,27 +47,49 @@ class CliTable:
             dim_rows: List[int] of row indices to dim.
         """
 
-        data = [self._stringify_row(r) for r in data]
-        self._table: Table = Table(*data[0], title=title, box=box.SIMPLE, *kwargs)
-        for idx, row in enumerate(data[1:]):
+        headers: List[Column] = self.columnify_headers(data[0])
+        rows = [self._stringify_row(r) for r in data[1:]]
+        self._table: Table = Table(*headers, title=title, box=box.SIMPLE, **kwargs)
+
+        for idx, row in enumerate(rows):
             dim_row = idx + 1 in dim_rows if dim_rows else False
             self._table.add_row(*row, style=Style(dim=dim_row))
 
     def _stringify_row(self, row: list) -> List[str]:
-        stringified_row = []
-        for cell in row:
-            if isinstance(cell, bool):
-                cell = self.PICTOGRAM_TRUE if cell else self.PICTOGRAM_FALSE
-            else:
-                cell = str(cell)
-            stringified_row.append(cell)
-        return stringified_row
+        return [self._stringify_cell(cell) for cell in row]
+
+    def _stringify_cell(self, cell: Any) -> str:
+        if isinstance(cell, bool):
+            cell = self.PICTOGRAM_TRUE if cell else self.PICTOGRAM_FALSE
+        elif cell is None:
+            cell = ""
+        else:
+            cell = str(cell)
+        return cell
 
     def __rich__(self) -> str:
         return self._table
 
+    def columnify_headers(self, headers: List[Union[str, Column]]) -> List[Column]:
+        """
+        Given a List[str, Column], return a list of Columns.
+
+        Strings are instantiated with default styles, Columns are unchanged.
+        """
+        cols: List[Column] = []
+
+        for header in headers:
+            if isinstance(header, Column):
+                cols.append(header)
+            else:
+                header: str = self._stringify_cell(header)
+                cols.append(Column(header=header, overflow="fold"))
+        return cols
+
     def echo(self, plain=False, box_style: box.Box = None):
-        """Print this table's data using click.echo()."""
+        """
+        Print this table to the global Console using console.print().
+        """
         orig_box = self._table.box
         if plain:
             self._table.box = box.ASCII2

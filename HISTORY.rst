@@ -2,8 +2,38 @@
 History
 =======
 
-v3.47.0 (2021-10-28)
----------------------
+3.48.2 (2021-11-16)
+-------------------
+
+- Fixed a regression which broke `cci project init` in CumulusCI 3.48.0 and 3.48.1. (#2986)
+
+3.48.1 (2021-11-12)
+-------------------
+
+Issues Closed
+
+- Fixed a packaging issue which caused an error when installing on systems without a C compiler.
+
+3.48.0 (2021-11-11)
+-------------------
+Critical Changes
+
+- CumulusCI will be dropping support for Python 3.6 and 3.7 within the next few releases. Please ensure you're running Python 3.8 or above.
+
+Changes
+
+- We added a new command, ``cci plan info``. Similar to ``cci task info``, this command displays detailed information about a MetaDeploy ``plan``, and includes a ``--messages`` option to display user-facing text. (#2946)
+- Improved logging to show reduced timestamps, and provide some syntax highlighting of output. (#2941)
+- `Snowfakery 2.2 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v2.2>`_ is now included with CumulusCI. New features include unique IDs and Numeric Counters. (#2962)
+
+Issues Closed
+
+- We added an improved error message when ``metadeploy_publish`` is passed a lightweight tag. (#2955)
+- Adjusted a check for .lightning. domains in the ``cci org connect`` command. (#2970)
+- We fixed an issue where stacktraces for some Apex test failures were truncated. (#2961)
+
+3.47.0 (2021-10-28)
+-------------------
 
 Changes
 
@@ -14,8 +44,8 @@ Changes
 - We added a new task `create_blank_profile` that can be used to create a new profile from scratch without any permissions enabled. (This new task requires a Winter 22 Org or API 53.0) (#2908)
 - We've added a user-friendly error message when installing a package using `security_type` "PUSH" with a 04t Package Version ID. (#2935)
 
-v3.46.0 (2021-10-14)
---------------------
+3.46.0 (2021-10-14)
+-------------------
 Critical Changes
 
 - Backwards incompatibility: the robot task option `debug` has been renamed to `robot_debug`. (#2909)
@@ -35,8 +65,8 @@ Issues Fixed
 - Fixed a bug where connecting a GitHub service with `cci service connect` was failing silently. (#2888)
 - Fixed an issue where MetaDeploy steps using the old `filename_token` and `namespace_token` options could not be used. (#2914)
 
-v3.45.0 (2021-09-30)
---------------------
+3.45.0 (2021-09-30)
+-------------------
 
 Changes
 

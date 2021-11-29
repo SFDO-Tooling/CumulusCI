@@ -20,7 +20,7 @@ class TestSchema:
         with open(schemapath) as f:
             schema = json.load(f)
         with open(cumulusci_test_repo_root / "cumulusci.yml") as f:
-            data = yaml.load(f)
+            data = yaml.safe_load(f)
 
         assert validate(data, schema=schema) is None
 

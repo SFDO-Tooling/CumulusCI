@@ -22,6 +22,7 @@ from cumulusci.core import github
 from cumulusci.core.exceptions import (
     DependencyLookupError,
     GithubApiError,
+    GithubApiNotFoundError,
     GithubException,
 )
 from cumulusci.core.github import (
@@ -326,7 +327,7 @@ class TestGithub(GithubApiTestMixin):
             json=self._get_expected_tag("beta/1.0", "tag_SHA"),
             status=404,
         )
-        with pytest.raises(DependencyLookupError):
+        with pytest.raises(GithubApiNotFoundError):
             get_tag_by_name(repo, "tag_SHA")
 
     @responses.activate
@@ -346,7 +347,7 @@ class TestGithub(GithubApiTestMixin):
             json=self._get_expected_tag("beta/1.0", "tag_SHA"),
             status=404,
         )
-        with pytest.raises(DependencyLookupError) as exc:
+        with pytest.raises(GithubApiNotFoundError) as exc:
             get_tag_by_name(repo, "tag_SHA")
 
         assert "not an annotated tag" in str(exc)
@@ -372,7 +373,7 @@ class TestGithub(GithubApiTestMixin):
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=404,
         )
-        with pytest.raises(DependencyLookupError):
+        with pytest.raises(GithubApiNotFoundError):
             get_ref_for_tag(repo, "tag_SHA")
 
     @responses.activate

@@ -3,10 +3,9 @@ import time
 from datetime import datetime
 from distutils.version import LooseVersion
 
-import github3.exceptions
 import pytz
 
-from cumulusci.core.exceptions import GithubApiError, GithubApiNotFoundError
+from cumulusci.core.github import get_tag_by_name
 
 
 class BaseChangeNotesProvider(object):
@@ -76,7 +75,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
     @property
     def current_tag_info(self):
         if not hasattr(self, "_current_tag_info"):
-            tag = self._get_tag_info(self.current_tag)
+            tag = get_tag_by_name(self.repo, self.current_tag)
             self._current_tag_info = {"tag": tag, "commit": self._get_commit_info(tag)}
         return self._current_tag_info
 
@@ -84,7 +83,7 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
     def last_tag_info(self):
         if not hasattr(self, "_last_tag_info"):
             if self.last_tag:
-                tag = self._get_tag_info(self.last_tag)
+                tag = get_tag_by_name(self.repo, self.last_tag)
                 self._last_tag_info = {"tag": tag, "commit": self._get_commit_info(tag)}
             else:
                 self._last_tag_info = None
@@ -105,17 +104,6 @@ class GithubChangeNotesProvider(BaseChangeNotesProvider):
     def _get_commit_date(self, commit):
         t = time.strptime(commit.author["date"], "%Y-%m-%dT%H:%M:%SZ")
         return datetime(t[0], t[1], t[2], t[3], t[4], t[5], t[6], pytz.UTC)
-
-    def _get_tag_info(self, tag_name):
-        try:
-            tag = self.repo.ref("tags/{}".format(tag_name))
-        except github3.exceptions.NotFoundError:
-            raise GithubApiNotFoundError("Tag not found: {}".format(tag_name))
-        if tag.object.type != "tag":
-            raise GithubApiError(
-                "Tag {} is lightweight, must be annotated.".format(tag_name)
-            )
-        return self.repo.tag(tag.object.sha)
 
     def _get_version_from_tag(self, tag):
         if tag.startswith(self.github_info["prefix_prod"]):
