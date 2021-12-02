@@ -31,6 +31,10 @@ jobs:
                   curl -s -X POST https://api.github.com/repos/$GITHUB_REPOSITORY/git/refs -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d @- << EOF
                   {"ref": "refs/tags/v$(python setup.py --version)", "sha": "$GITHUB_SHA"}
                   EOF
-
+            - name: upload schema artifact
+              uses: actions/upload-artifact@v2
+              with:
+                  name: cumulusci.jsonschema.json
+                  path: cumulusci/schema/cumulusci.jsonschema.json
 # to do:
 # - add release notes in github
