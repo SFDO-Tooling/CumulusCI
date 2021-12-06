@@ -50,6 +50,67 @@ class ListingPage(BasePage):
             "/lightning/o/{}/list".format(self.object_name)
         )
 
+    @capture_screenshot_on_error
+    def select_rows(self, *items):
+        """Check the checkbutton for one or more rows
+
+        Arguments are one or more strings. Each row that contains one
+        of the strings in any column will be clicked. Rows that have
+        already been checked will remain checked.
+
+        If no elements are found to match, this keyword will raise an error.
+
+        Example
+
+        The following example selects all rows that contain either
+        John Doe or Jane Doe in any column.
+
+        | Select Rows   John Doe  Jane Doe
+        """
+        for item in items:
+            xpath = self.salesforce.get_locator("object_list.checkbutton", item)
+            elements = self.selenium.get_webelements(xpath)
+            if elements:
+                for element in elements:
+                    cb = element.find_element_by_tag_name("input")
+                    if not cb.is_selected():
+                        element.click()
+            else:
+                raise Exception(f"No rows matched '{item}'")
+
+    @capture_screenshot_on_error
+    def deselect_rows(self, *items):
+        """Uncheck the checkbutton for one or more rows
+
+         Arguments are one or more strings. Each row that contains one
+         of the strings in any column will be delselected. Rows that are
+         unchecked will remain unchecked.
+
+         If no elements are found to match, this keyword will raise an error.
+
+        Example
+
+         The following example deselects all rows that contain either
+         John Doe or Jane Doe in any column.
+
+         | Select Rows   John Doe  Jane Doe
+
+        """
+        for item in items:
+            xpath = self.salesforce.get_locator("object_list.checkbutton", item)
+            elements = self.selenium.get_webelements(xpath)
+
+            if elements:
+                for element in elements:
+                    cb = element.find_element_by_tag_name("input")
+                    if cb.is_selected():
+                        self.builtin.log(f"clicking on element for {item}")
+                        element.click()
+                    else:
+                        self.builtin.log(f"NOT clicking on element for {item}")
+            else:
+                raise Exception(f"No rows matched '{item}'")
+
 
 class ModalMixin:
     def _wait_to_appear(self, expected_heading=None):
