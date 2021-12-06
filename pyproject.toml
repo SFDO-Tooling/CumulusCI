@@ -2,14 +2,17 @@
 exclude = '^/(\.|dist|pybuild|venv)'
 
 [tool.coverage.run]
-omit = ["*/tests/*", "cumulusci/files/*", ]
-source = ["cumulusci", ]
+omit = ["*/tests/*", "*/cumulusci/files/*", ]
+source = ["src", ]
+
+[tool.coverage.paths]
+source = ["src", ".tox/*/site-packages"]
 
 [tool.coverage.report]
 exclude_lines = ["pragma: no cover", "@abstract", "@abc.abstract" ]
 
 [tool.pytest.ini_options]
-testpaths = "cumulusci"
+testpaths = "src/cumulusci"
 addopts =  "-p cumulusci.tests.pytest_plugins.pytest_typeguard -p cumulusci.tests.pytest_plugins.pytest_sf_vcr -p cumulusci.tests.pytest_plugins.pytest_sf_orgconnect"
 
 [tool.isort]

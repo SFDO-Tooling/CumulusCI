@@ -3,20 +3,11 @@
 
 import os.path
 import re
-from pkgutil import walk_packages
 
-from setuptools import setup
-
-
-def find_packages(path=["."], prefix=""):
-    yield prefix
-    prefix = prefix + "."
-    for _, name, ispkg in walk_packages(path, prefix):
-        if ispkg:
-            yield name
+from setuptools import setup, find_packages
 
 
-with open(os.path.join("cumulusci", "version.txt"), "r") as version_file:
+with open(os.path.join("src", "cumulusci", "version.txt"), "r") as version_file:
     version = version_file.read().strip()
 
 with open("README.rst", "rb") as readme_file:
@@ -44,8 +35,8 @@ setup(
     author="Salesforce.org",
     author_email="jlantz@salesforce.com",
     url="https://github.com/SFDO-Tooling/CumulusCI",
-    packages=list(find_packages(["cumulusci"], "cumulusci")),
-    package_dir={"cumulusci": "cumulusci"},
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
     entry_points={
         "console_scripts": [
             "cci=cumulusci.cli.cci:main",

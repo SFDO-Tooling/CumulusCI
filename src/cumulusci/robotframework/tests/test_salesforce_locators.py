@@ -40,7 +40,7 @@ class TestLocators(unittest.TestCase):
 
         sf = Salesforce()
 
-        locator_folder = Path("./cumulusci/robotframework")
+        locator_folder = Path(__file__).parent.parent
         locator_modules = sorted(locator_folder.glob("locators_[0-9][0-9].py"))
         expected = f"cumulusci.robotframework.{locator_modules[-1].stem}"
 
