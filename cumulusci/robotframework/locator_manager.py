@@ -97,16 +97,16 @@ def locate_element(prefix, parent, locator, tag, constraints):
     logger.info(f"locator: '{prefix}:{locator}' => '{loc}'")
 
     try:
-        element = selenium.get_webelement(loc)
+        elements = selenium.get_webelements(loc)
     except Exception as e:
-        # the SeleniumLibrary documentation doesn't say, but I'm
-        # pretty sure we should return None rather than throwing an error
-        # in this case. If we throw an error, that prevents the custom
-        # locators from being used negatively (eg: Page should not
-        # contain element  custom:whatever).
+        # The SeleniumLibrary documentation doesn't say, but I'm
+        # pretty sure we should return an empty list rather than
+        # throwing an error in this case. If we throw an error, that
+        # prevents the custom locators from being used negatively (eg:
+        # Page should not contain element custom:whatever).
         logger.debug(f"caught exception in locate_element: {e}")
-        return None
-    return element
+        elements = []
+    return elements
 
 
 def translate_locator(prefix, locator):

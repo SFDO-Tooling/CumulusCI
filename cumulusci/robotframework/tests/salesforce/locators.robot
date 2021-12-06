@@ -89,3 +89,49 @@ Page should not contain custom locator
     # give an error
 
     Page should not contain element  B:appname:Sorry Charlie
+
+
+Get Webelement (singlular)
+    [Documentation]
+    ...  A smoke test to verify that we can get an element with a custom locator
+    [Setup]  Go to setup home
+
+    ${element}=        Get webelement  A:breadcrumb:Home
+    Should be true  $element.__class__.__name__=="WebElement"
+
+
+Get Webelements (plural) - no matching elements
+
+    [tags]   W-10187485
+
+    # this is a locator which shouldn't match anything on the page
+    ${locator}=   Get Locator  modal.button  Bogus
+    ${elements}=  Get webelements  ${locator}
+
+    # same locator, but using the custom locator strategy
+    ${elements_via_locator_manager}=  Get webelements  sf:modal.button:Bogus
+
+    # the two lists of elements should be identical. The bug reported
+    # in W-10187485 caused the locator strategy to return [None]
+    # instead of []. This verifies that we fixed that bug.
+    Should be equal  ${elements}  ${elements via locator manager}
+
+    # In addition to getting an empty list when trying to fetch
+    # non-existing elements, this verifies that we can use the
+    # locator in a negative test.
+    Page should not contain  sf:modal.button:Bogus
+
+Get Webelements (plural) with custom locator
+    [Setup]  Run keywords
+    ...  Go to object home  Contact
+    ...  AND  Click object button  New
+
+    # Get the web element with the xpath directly, then verify
+    # that Get Webelements returns a list with just that element
+    # when using the custom locator
+    ${element}=  Get webelement  //div[contains(@class,'uiModal')]//button[.='Save & New']
+    @{expected elements}=  Create list  ${element}
+
+    ${actual elements}=  Get webelements  sf:modal.button:Save & New
+
+    Should be equal  ${actual elements}  ${expected elements}
