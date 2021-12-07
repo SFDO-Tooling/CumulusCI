@@ -1,7 +1,7 @@
 import collections
 import logging
 import tempfile
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 from simple_salesforce import Salesforce
@@ -9,7 +9,6 @@ from sqlalchemy import Column, Integer, MetaData, Table, Unicode
 from sqlalchemy.orm import Session, mapper
 
 from cumulusci.core.exceptions import BulkDataException
-from cumulusci.utils.backports.py36 import nullcontext
 from cumulusci.utils.iterators import iterate_in_chunks
 
 
