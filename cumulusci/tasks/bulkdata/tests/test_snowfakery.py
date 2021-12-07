@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from itertools import chain, cycle
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from threading import Thread
+from threading import Lock, Thread
 from unittest import mock
 
 import pytest
@@ -82,16 +82,18 @@ def call_closure():
         """Like the __call__ of _run_task, but also capture calls
         in a normal mock_values structure."""
 
-        # Manipulating "self" from a mock side-effect is a challenge.
-        # So we need a "real function"
-        self.return_values = {"step_results": next(return_values)}
-        rc = __call__.mock(*args, **kwargs)
-        # remember the values that would have been loaded for later inspection in tests
-        values_loaded = db_values_from_db_url(self.options["database_url"])
-        __call__.mock.mock_calls[-1].values_loaded = values_loaded
-        return rc
+        with __call__.lock:
+            # Manipulating "self" from a mock side-effect is a challenge.
+            # So we need a "real function"
+            self.return_values = {"step_results": next(return_values)}
+            rc = __call__.mock(*args, **kwargs)
+            # remember the values that would have been loaded for later inspection in tests
+            values_loaded = db_values_from_db_url(self.options["database_url"])
+            __call__.mock.mock_calls[-1].values_loaded = values_loaded
+            return rc
 
     __call__.mock = mock.Mock()
+    __call__.lock = Lock()
 
     return __call__
 
@@ -588,7 +590,9 @@ class TestSnowfakery:
         assert record_counts["Account"] == 7, record_counts["Account"]
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
-    def test_multi_part_uniqueness(self, mock_load_data, create_task_fixture):
+    def test_multi_part_uniqueness(
+        self, mock_load_data, threads_instead_of_processes, create_task_fixture
+    ):
         task = create_task_fixture(
             Snowfakery,
             {
