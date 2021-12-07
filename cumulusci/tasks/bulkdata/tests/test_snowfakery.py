@@ -78,19 +78,17 @@ def call_closure():
     """Simulate a cycle of load results without doing a real load."""
     return_values = cycle(iter(FAKE_LOAD_RESULTS))
 
+    # Manipulating "self" from a mock side-effect is a challenge.
+    # So we need a "real function"
     def __call__(self, *args, **kwargs):
         """Like the __call__ of _run_task, but also capture calls
         in a normal mock_values structure."""
 
-        with __call__.lock:
-            # Manipulating "self" from a mock side-effect is a challenge.
-            # So we need a "real function"
-            self.return_values = {"step_results": next(return_values)}
-            rc = __call__.mock(*args, **kwargs)
-            # remember the values that would have been loaded for later inspection in tests
-            values_loaded = db_values_from_db_url(self.options["database_url"])
-            __call__.mock.mock_calls[-1].values_loaded = values_loaded
-            return rc
+        self.return_values = {"step_results": next(return_values)}
+        values_loaded = db_values_from_db_url(self.options["database_url"])
+        kwargs = {**kwargs, "values_loaded": values_loaded}
+        rc = __call__.mock(*args, **kwargs)
+        return rc
 
     __call__.mock = mock.Mock()
     __call__.lock = Lock()
@@ -601,9 +599,8 @@ class TestSnowfakery:
             },
         )
         task()
-
         all_rows = chain(
-            *(call.values_loaded["blah"] for call in mock_load_data.mock_calls)
+            *(call[2]["values_loaded"]["blah"] for call in mock_load_data.mock_calls)
         )
         unique_values = [row.value for row in all_rows]
         assert len(unique_values) == len(set(unique_values))
