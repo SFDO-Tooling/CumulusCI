@@ -59,7 +59,6 @@ idna==3.3
     #   snowfakery
 immutables==0.16
     # via
-    #   contextvars
     #   snowfakery
 importlib-metadata==4.2.0
     # via
