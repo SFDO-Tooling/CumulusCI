@@ -4,6 +4,9 @@ from datetime import datetime
 from pathlib import Path
 
 import click
+from pydantic.main import BaseModel
+from cumulusci.core.config.project_config import BaseProjectConfig
+from cumulusci.core.config.tests.test_config_util import project_config
 
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import format_duration
@@ -13,6 +16,14 @@ from cumulusci.utils.yaml.safer_loader import load_yaml_data
 from .runtime import pass_runtime
 from .ui import CliTable
 from .utils import group_items
+from pydantic import BaseModel
+
+
+class OrgPoolPayload(BaseModel):
+    task_config: dict
+    task_class: str = None
+    repo_url: str
+    days: int = None  # not implemented
 
 
 @click.group("flow", help="Commands for finding and running flows for a project")
@@ -133,11 +144,6 @@ def flow_info(runtime, flow_name):
 @pass_runtime(require_keychain=True)
 def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
 
-    # Get necessary configs
-    org, org_config = runtime.get_org(org)
-    if delete_org and not org_config.scratch:
-        raise click.UsageError("--delete-org can only be used with a scratch org")
-
     # Parse command line options
     options = defaultdict(dict)
     if o:
@@ -154,6 +160,30 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
     try:
         coordinator = runtime.get_flow(flow_name, options=options)
         start_time = datetime.now()
+        org_config = None
+        task_class = coordinator.steps[0].task_class
+        task_class_name = task_class.__module__ + "." + task_class.__name__
+        # check for cached orgs
+        if (
+            task_class_name
+            == "cumulusci.tasks.salesforce.update_dependencies.UpdateDependencies"
+        ):
+            repo = runtime.project_config.repo_url
+            step_payload = OrgPoolPayload(
+                task_config=coordinator.steps[0].task_config,
+                task_class=task_class_name,
+                repo_url=repo,
+            )
+            print("here")
+        # create call to metaci to check org pool payload availability
+
+        # Get necessary configs
+        # else get new org
+        if org_config is None:
+            org, org_config = runtime.get_org(org)
+        # days = org_config.days
+        if delete_org and not org_config.scratch:
+            raise click.UsageError("--delete-org can only be used with a scratch org")
         coordinator.run(org_config)
         duration = datetime.now() - start_time
         click.echo(f"Ran {flow_name} in {format_duration(duration)}")
