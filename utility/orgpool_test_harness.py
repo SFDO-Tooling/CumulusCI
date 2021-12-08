@@ -14,7 +14,7 @@ class FakeMetaCI(BaseHTTPRequestHandler):
         if body:
             jsn = json.loads(body.decode("utf-8"))
             print(jsn.keys())
-            if jsn["org_name"] == "dev":
+            if jsn["org_name"] == "feature":
                 print("RETURNING EMPTY LIST")
                 return {}
         self.end_headers()
@@ -38,7 +38,7 @@ def get_org_json(orgname):
 
 def run(server_class=HTTPServer, handler_class=FakeMetaCI):
     global JSON_STR
-    JSON_STR = get_org_json("qa")
+    JSON_STR = get_org_json("feature")
     server_address = ("", 8001)
     httpd = server_class(server_address, handler_class)
     print("Ready")
