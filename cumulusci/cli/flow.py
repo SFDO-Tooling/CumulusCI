@@ -7,7 +7,7 @@ import click
 from pydantic.main import BaseModel
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config.tests.test_config_util import project_config
-
+from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import format_duration
 from cumulusci.utils import document_flow, flow_ref_title_and_intro
@@ -16,14 +16,8 @@ from cumulusci.utils.yaml.safer_loader import load_yaml_data
 from .runtime import pass_runtime
 from .ui import CliTable
 from .utils import group_items
-from pydantic import BaseModel
 
-
-class OrgPoolPayload(BaseModel):
-    task_config: dict
-    task_class: str = None
-    repo_url: str
-    days: int = None  # not implemented
+from cumulusci.services.metaci import OrgPoolPayload, MetaCIService
 
 
 @click.group("flow", help="Commands for finding and running flows for a project")
@@ -169,13 +163,21 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
             == "cumulusci.tasks.salesforce.update_dependencies.UpdateDependencies"
         ):
             repo = runtime.project_config.repo_url
-            step_payload = OrgPoolPayload(
+            org_pool_payload = OrgPoolPayload(
                 task_config=coordinator.steps[0].task_config,
                 task_class=task_class_name,
                 repo_url=repo,
             )
-            print("here")
-        # create call to metaci to check org pool payload availability
+            # create call to metaci to check org pool payload availability
+            metaci = MetaCIService(runtime)
+            org_config = metaci.fetch_from_org_pool(payload=org_pool_payload)
+            if org_config:
+                org_config = runtime.keychain._set_org(
+                    ScratchOrgConfig(
+                        org_config, org, runtime.keychain, global_org=False
+                    ),
+                    False,
+                )
 
         # Get necessary configs
         # else get new org
