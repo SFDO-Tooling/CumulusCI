@@ -5,7 +5,7 @@ from pathlib import Path
 
 import click
 
-from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.config import ScratchOrgConfig, TaskConfig
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import format_duration
 from cumulusci.services.metaci import MetaCIService, OrgPoolPayload
@@ -160,8 +160,14 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
             == "cumulusci.tasks.salesforce.update_dependencies.UpdateDependencies"
         ):
             repo = runtime.project_config.repo_url
+            step = coordinator.steps[0]
+            task = step.task_class(
+                step.project_config,
+                TaskConfig(step.task_config),
+                name=step.task_name,
+            )
             org_pool_payload = OrgPoolPayload(
-                task_config=coordinator.steps[0].task_config,
+                frozen_steps=task.freeze(step),
                 task_class=task_class_name,
                 repo_url=repo,
                 org_name=org,

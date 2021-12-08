@@ -7,7 +7,7 @@ from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 class OrgPoolPayload(BaseModel):
-    task_config: dict
+    frozen_steps: list
     task_class: str = None
     repo_url: str
     org_name: str
