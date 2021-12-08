@@ -3,6 +3,7 @@ from datetime import datetime
 import requests
 from pydantic import BaseModel
 
+from cumulusci.core.config import ScratchOrgConfig, TaskConfig
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
@@ -40,3 +41,31 @@ class MetaCIService:
         result["date_created"] = datetime.fromisoformat(result["date_created"])
         assert "error" not in result, result
         return result or None
+
+
+def fetch_pooled_org(runtime, coordinator, org_name):
+    task_class_name = (
+        "cumulusci.tasks.salesforce.update_dependencies.UpdateDependencies"
+    )
+    repo = runtime.project_config.repo_url
+    step = coordinator.steps[0]
+    task = step.task_class(
+        step.project_config,
+        TaskConfig(step.task_config),
+        name=step.task_name,
+    )
+    org_pool_payload = OrgPoolPayload(
+        frozen_steps=task.freeze(step),
+        task_class=task_class_name,
+        repo_url=repo,
+        org_name=org_name,
+    )
+    # create call to metaci to check org pool payload availability
+    metaci = MetaCIService(runtime)
+    org_config = metaci.fetch_from_org_pool(payload=org_pool_payload)
+    if org_config:
+        org_config = runtime.keychain._set_org(
+            ScratchOrgConfig(org_config, org_name, runtime.keychain, global_org=False),
+            False,
+        )
+    return org_config

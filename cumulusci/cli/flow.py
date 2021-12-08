@@ -5,10 +5,9 @@ from pathlib import Path
 
 import click
 
-from cumulusci.core.config import ScratchOrgConfig, TaskConfig
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import format_duration
-from cumulusci.services.metaci import MetaCIService, OrgPoolPayload
+from cumulusci.services.metaci import fetch_pooled_org
 from cumulusci.utils import document_flow, flow_ref_title_and_intro
 from cumulusci.utils.yaml.safer_loader import load_yaml_data
 
@@ -159,29 +158,7 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
             task_class_name
             == "cumulusci.tasks.salesforce.update_dependencies.UpdateDependencies"
         ):
-            repo = runtime.project_config.repo_url
-            step = coordinator.steps[0]
-            task = step.task_class(
-                step.project_config,
-                TaskConfig(step.task_config),
-                name=step.task_name,
-            )
-            org_pool_payload = OrgPoolPayload(
-                frozen_steps=task.freeze(step),
-                task_class=task_class_name,
-                repo_url=repo,
-                org_name=org,
-            )
-            # create call to metaci to check org pool payload availability
-            metaci = MetaCIService(runtime)
-            org_config = metaci.fetch_from_org_pool(payload=org_pool_payload)
-            if org_config:
-                org_config = runtime.keychain._set_org(
-                    ScratchOrgConfig(
-                        org_config, org, runtime.keychain, global_org=False
-                    ),
-                    False,
-                )
+            org_config = fetch_pooled_org(runtime, coordinator, org)
 
         # Get necessary configs
         # else get new org
