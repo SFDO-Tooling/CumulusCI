@@ -62,10 +62,17 @@ def fetch_pooled_org(runtime, coordinator, org_name):
     )
     # create call to metaci to check org pool payload availability
     metaci = MetaCIService(runtime)
-    org_config = metaci.fetch_from_org_pool(payload=org_pool_payload)
-    if org_config:
-        org_config = runtime.keychain._set_org(
-            ScratchOrgConfig(org_config, org_name, runtime.keychain, global_org=False),
+    org_config_dict = metaci.fetch_from_org_pool(payload=org_pool_payload)
+    print("Fetched", org_config_dict)
+
+    if org_config_dict:
+        org_config = ScratchOrgConfig(
+            org_config_dict, org_name, runtime.keychain, global_org=False
+        )
+        runtime.keychain._set_org(
+            org_config,
             False,
         )
-    return org_config
+        return org_config
+    else:
+        return None

@@ -9,13 +9,17 @@ class FakeMetaCI(BaseHTTPRequestHandler):
     def do_POST(self):
         self.send_response(200)
         length = int(self.headers.get("content-length", 0))
+        self.send_header("Content-type", "application/json")
         body = self.rfile.read(length)
         if body:
             jsn = json.loads(body.decode("utf-8"))
             print(jsn.keys())
-        self.send_header("Content-type", "application/json")
+            if jsn["org_name"] == "dev":
+                print("RETURNING EMPTY LIST")
+                return {}
         self.end_headers()
         self.wfile.write(JSON_STR.encode(encoding="utf_8"))
+        print("RETURNING ORG CONFIG")
 
     def do_GET(self):
         return self.do_POST()

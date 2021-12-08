@@ -134,6 +134,8 @@ def flow_info(runtime, flow_name):
 @pass_runtime(require_keychain=True)
 def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
 
+    org, org_config = runtime.get_org(org)
+
     # Parse command line options
     options = defaultdict(dict)
     if o:
@@ -150,20 +152,21 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
     try:
         coordinator = runtime.get_flow(flow_name, options=options)
         start_time = datetime.now()
-        org_config = None
         task_class = coordinator.steps[0].task_class
         task_class_name = task_class.__module__ + "." + task_class.__name__
-        # check for cached orgs
+
         if (
-            task_class_name
+            org_config.scratch
+            and not org_config.created
+            and task_class_name
             == "cumulusci.tasks.salesforce.update_dependencies.UpdateDependencies"
         ):
-            org_config = fetch_pooled_org(runtime, coordinator, org)
+            print("CHECKING ORG POOL")
+            # Try to get a pooled scratch org
+            fetched_org_config = fetch_pooled_org(runtime, coordinator, org)
+            print("FOUND", fetched_org_config)
+            org_config = fetched_org_config or org_config
 
-        # Get necessary configs
-        # else get new org
-        if org_config is None:
-            org, org_config = runtime.get_org(org)
         # days = org_config.days
         if delete_org and not org_config.scratch:
             raise click.UsageError("--delete-org can only be used with a scratch org")
