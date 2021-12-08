@@ -4,20 +4,17 @@ from datetime import datetime
 from pathlib import Path
 
 import click
-from pydantic.main import BaseModel
-from cumulusci.core.config.project_config import BaseProjectConfig
-from cumulusci.core.config.tests.test_config_util import project_config
+
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.exceptions import FlowNotFoundError
 from cumulusci.core.utils import format_duration
+from cumulusci.services.metaci import MetaCIService, OrgPoolPayload
 from cumulusci.utils import document_flow, flow_ref_title_and_intro
 from cumulusci.utils.yaml.safer_loader import load_yaml_data
 
 from .runtime import pass_runtime
 from .ui import CliTable
 from .utils import group_items
-
-from cumulusci.services.metaci import OrgPoolPayload, MetaCIService
 
 
 @click.group("flow", help="Commands for finding and running flows for a project")
@@ -167,6 +164,7 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
                 task_config=coordinator.steps[0].task_config,
                 task_class=task_class_name,
                 repo_url=repo,
+                org_name=org,
             )
             # create call to metaci to check org pool payload availability
             metaci = MetaCIService(runtime)

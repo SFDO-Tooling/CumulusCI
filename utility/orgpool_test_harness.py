@@ -12,7 +12,6 @@ class FakeMetaCI(BaseHTTPRequestHandler):
         body = self.rfile.read(length)
         if body:
             jsn = json.loads(body.decode("utf-8"))
-            print(jsn)
             print(jsn.keys())
         self.send_header("Content-type", "application/json")
         self.end_headers()

@@ -10,6 +10,7 @@ class OrgPoolPayload(BaseModel):
     task_config: dict
     task_class: str = None
     repo_url: str
+    org_name: str
     days: int = None  # not implemented
 
 
