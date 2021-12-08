@@ -32,11 +32,9 @@ from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 from .snowfakery_utils.queue_manager import (
-    SnowfakeryShardManager,  # rename this channel manager
+    SnowfakeryShardManager,  # TODO: rename this channel manager
 )
-from .snowfakery_utils.queue_manager import (  # rename this channel manager
-    data_loader_new_directory_name,
-)
+from .snowfakery_utils.queue_manager import data_loader_new_directory_name
 from .snowfakery_utils.snowfakery_run_until import PortionGenerator, determine_run_until
 from .snowfakery_utils.snowfakery_working_directory import SnowfakeryWorkingDirectory
 from .snowfakery_utils.subtask_configurator import SubtaskConfigurator
@@ -240,19 +238,20 @@ class Snowfakery(BaseSalesforceApiTask):
             self.ignore_row_errors,
         )
         self.queue_manager = SnowfakeryShardManager(
-            project_config=self.project_config, logger=self.logger
+            project_config=self.project_config,
+            logger=self.logger,
+            subtask_configurator=subtask_configurator,
         )
         if len(self.shard_configs) == 1:
             self.queue_manager.add_shard(
                 org_config=self.shard_configs[0].org_config,
                 num_generator_workers=self.num_generator_workers,
                 working_directory=working_directory,
-                subtask_configurator=subtask_configurator,
             )
         else:
-            self.configure_shards(working_directory, subtask_configurator)
+            self.configure_shards(working_directory)
 
-    def configure_shards(self, working_directory, subtask_configurator):
+    def configure_shards(self, working_directory):
         # TODO: Implement serial mode for shards
         # TODO: Implement per-shard task options
         # TODO: Implement per-shard worker ratio
@@ -265,7 +264,6 @@ class Snowfakery(BaseSalesforceApiTask):
                 org_config=shard.org_config,
                 num_generator_workers=self.num_generator_workers,
                 working_directory=shard_wd,
-                subtask_configurator=subtask_configurator,
             )
 
     def _loop(
@@ -278,7 +276,6 @@ class Snowfakery(BaseSalesforceApiTask):
         """The inner loop that controls when data is generated and when we are done."""
         upload_status = self.get_upload_status(
             portions.next_batch_size,
-            template_path,
         )
 
         while not portions.done(upload_status.total_sets_working_on_or_uploaded):
@@ -318,7 +315,6 @@ class Snowfakery(BaseSalesforceApiTask):
 
         upload_status = self.get_upload_status(
             batch_size or 0,
-            template_path,
         )
 
         self.logger.info(upload_status._display(detailed=self.debug_mode))
@@ -369,9 +365,9 @@ class Snowfakery(BaseSalesforceApiTask):
         old_message = None
         cooldown = 5
         while not self.queue_manager.check_finished():
-            status = self.queue_manager.get_upload_status()
-            datagen_workers = f"{status['sets_being_generated']} data generators, "
-            msg = f"Waiting for {datagen_workers}{status['sets_being_loaded']} uploads to finish"
+            status = self.get_upload_status(0)
+            datagen_workers = f"{status.sets_being_generated} data generators, "
+            msg = f"Waiting for {datagen_workers}{status.sets_being_loaded} uploads to finish"
             if old_message != msg or cooldown < 1:
                 old_message = msg
                 self.logger.info(msg)
@@ -447,29 +443,14 @@ class Snowfakery(BaseSalesforceApiTask):
     def get_upload_status(
         self,
         batch_size,
-        template_dir,
     ):
         """Combine information from the different data sources into a single "report".
 
         Useful for debugging but also for making decisions about what to do next."""
 
-        queue_manager_status = self.queue_manager.get_upload_status()
-        queue_manager_status[
-            "sets_finished"
-        ] += self.sets_finished_while_generating_template
-
-        rc = UploadStatus(
-            target_count=self.run_until.gap,
-            min_portion_size=MIN_PORTION_SIZE,
-            max_portion_size=MAX_PORTION_SIZE,
-            user_max_num_generator_workers=self.num_generator_workers,
-            elapsed_seconds=int(time.time() - self.start_time),
-            # todo: use row-level result from org load for better accuracy
-            batch_size=batch_size,
-            shards=len(self.queue_manager.shards),
-            **queue_manager_status,
+        return self.queue_manager.get_upload_status(
+            batch_size, self.sets_finished_while_generating_template
         )
-        return rc
 
     @contextmanager
     def workingdir_or_tempdir(self, working_directory: T.Optional[T.Union[Path, str]]):
@@ -563,82 +544,6 @@ class Snowfakery(BaseSalesforceApiTask):
         ]
         if tables_to_drop:
             metadata.drop_all(tables=tables_to_drop)
-
-
-class UploadStatus(T.NamedTuple):
-    """Single "report" of the current status of our processes."""
-
-    batch_size: int
-    sets_being_generated: int
-    sets_queued_to_be_generated: int
-    sets_being_loaded: int
-    sets_queued_for_loading: int
-    sets_finished: int
-    target_count: int
-    min_portion_size: int
-    max_portion_size: int
-    user_max_num_loader_workers: int
-    user_max_num_generator_workers: int
-    elapsed_seconds: int
-    sets_failed: int
-    inprogress_generator_jobs: int
-    inprogress_loader_jobs: int
-    data_gen_free_workers: int
-    shards: int
-
-    @property
-    def total_in_flight(self):
-        return (
-            self.sets_queued_to_be_generated
-            + self.sets_being_generated
-            + self.sets_queued_for_loading
-            + self.sets_being_loaded
-        )
-
-    @property
-    def total_sets_working_on_or_uploaded(
-        self,
-    ):
-        return self.total_in_flight + self.sets_finished
-
-    def _display(self, detailed=False):
-        most_important_stats = [
-            "target_count",
-            "total_sets_working_on_or_uploaded",
-            "sets_finished",
-            "sets_failed",
-        ]
-        if self.shards > 1:
-            most_important_stats.append("shards")
-
-        queue_stats = [
-            "inprogress_generator_jobs",
-            "inprogress_loader_jobs",
-        ]
-
-        def display_stats(keys):
-            def format(a):
-                return f"{a.replace('_', ' ').title()}: {getattr(self, a):,}"
-
-            return (
-                "\n"
-                + "\n".join(
-                    format(a)
-                    for a in keys
-                    if not a[0] == "_" and not callable(getattr(self, a))
-                )
-                + "\n"
-            )
-
-        rc = display_stats(most_important_stats)
-        rc += "\n   ** Workers **\n"
-        rc += display_stats(queue_stats)
-        if detailed:
-            rc += "\n   ** Internals **\n"
-            rc += display_stats(
-                set(dir(self)) - (set(most_important_stats) & set(queue_stats))
-            )
-        return rc
 
 
 class RunningTotals:

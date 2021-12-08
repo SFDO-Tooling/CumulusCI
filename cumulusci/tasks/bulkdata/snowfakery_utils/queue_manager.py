@@ -4,6 +4,7 @@
 
 import random
 import shutil
+import time
 import typing as T
 from collections import defaultdict
 from pathlib import Path
@@ -32,6 +33,7 @@ WORKER_TO_LOADER_RATIO = 4
 class SnowfakeryShardManager:
     def __init__(
         self,
+        subtask_configurator,
         *,
         project_config,
         logger,
@@ -40,13 +42,14 @@ class SnowfakeryShardManager:
         self.shards = []
         self.project_config = project_config
         self.logger = logger
+        self.subtask_configurator = subtask_configurator
+        self.start_time = time.time()
 
     def add_shard(
         self,
         org_config: OrgConfig,
         num_generator_workers: int,
         working_directory: Path,
-        subtask_configurator: SubtaskConfigurator,
     ):
         self.shards.append(
             Shard(
@@ -54,7 +57,7 @@ class SnowfakeryShardManager:
                 org_config=org_config,
                 num_generator_workers=num_generator_workers,
                 working_directory=working_directory,
-                subtask_configurator=subtask_configurator,
+                subtask_configurator=self.subtask_configurator,
                 logger=self.logger,
                 results_reporter=self.results_reporter,
             )
@@ -108,18 +111,32 @@ class SnowfakeryShardManager:
             random.shuffle(shards)
             new_workers = [
                 shard.make_new_worker(
-                    upload_status, template_path, tempdir, portions, get_upload_status
+                    template_path, tempdir, portions, get_upload_status
                 )
                 for shard in shards
             ]
             shards = shard_with_free_space()
 
-    def get_upload_status(self):
+    def get_upload_status(self, batch_size, sets_finished_while_generating_template):
+        """Combine information from the different data sources into a single "report".
+
+        Useful for debugging but also for making decisions about what to do next."""
         summed_statuses = defaultdict(int)
         for shard in self.shards:
             for key, value in shard.get_upload_status_for_shard().items():
                 summed_statuses[key] += value
-        return summed_statuses
+
+        summed_statuses["sets_finished"] += sets_finished_while_generating_template
+        return UploadStatus(
+            target_count=self.subtask_configurator.run_until.gap,
+            elapsed_seconds=int(self.elapsed_seconds()),
+            batch_size=batch_size,
+            shards=len(self.shards),
+            **summed_statuses,
+        )
+
+    def elapsed_seconds(self):
+        return time.time() - self.start_time
 
     def failure_descriptions(self) -> T.List[str]:
         """Log failures from sub-processes to main process"""
@@ -230,7 +247,6 @@ class Shard:
 
     def make_new_worker(
         self,
-        upload_status,
         template_path: Path,
         tempdir: Path,
         portions: PortionGenerator,
@@ -242,7 +258,6 @@ class Shard:
         else:
             upload_status = get_upload_status(
                 portions.next_batch_size,
-                template_path,
             )
             self.job_counter += 1
             batch_size = portions.next_batch(
@@ -281,7 +296,8 @@ class Shard:
             ),
             # note that these may count as already imported in the org
             "sets_being_loaded": set_count_from_names(self.load_data_q.inprogress_jobs),
-            "user_max_num_loader_workers": self.num_loader_workers,
+            "max_num_loader_workers": self.num_loader_workers,
+            "max_num_generator_workers": self.num_generator_workers,
             # todo: use row-level result from org load for better accuracy
             "sets_finished": set_count_from_names(self.load_data_q.outbox_jobs),
             "sets_failed": len(self.load_data_q.failed_jobs),
@@ -333,3 +349,77 @@ def data_loader_new_directory_name(working_dir: Path, run_until):
     path, _ = str(working_dir).rsplit("_", 1)
     new_working_dir = Path(path + "_" + str(count))
     return new_working_dir
+
+
+class UploadStatus(T.NamedTuple):
+    """Single "report" of the current status of our processes."""
+
+    batch_size: int
+    sets_being_generated: int
+    sets_queued_to_be_generated: int
+    sets_being_loaded: int
+    sets_queued_for_loading: int
+    sets_finished: int
+    target_count: int
+    max_num_loader_workers: int
+    max_num_generator_workers: int
+    elapsed_seconds: int
+    sets_failed: int
+    inprogress_generator_jobs: int
+    inprogress_loader_jobs: int
+    data_gen_free_workers: int
+    shards: int
+
+    @property
+    def total_in_flight(self):
+        return (
+            self.sets_queued_to_be_generated
+            + self.sets_being_generated
+            + self.sets_queued_for_loading
+            + self.sets_being_loaded
+        )
+
+    @property
+    def total_sets_working_on_or_uploaded(
+        self,
+    ):
+        return self.total_in_flight + self.sets_finished
+
+    def _display(self, detailed=False):
+        most_important_stats = [
+            "target_count",
+            "total_sets_working_on_or_uploaded",
+            "sets_finished",
+            "sets_failed",
+        ]
+        if self.shards > 1:
+            most_important_stats.append("shards")
+
+        queue_stats = [
+            "inprogress_generator_jobs",
+            "inprogress_loader_jobs",
+        ]
+
+        def display_stats(keys):
+            def format(a):
+                return f"{a.replace('_', ' ').title()}: {getattr(self, a):,}"
+
+            return (
+                "\n"
+                + "\n".join(
+                    format(a)
+                    for a in keys
+                    if not a[0] == "_" and not callable(getattr(self, a))
+                )
+                + "\n"
+            )
+
+        rc = display_stats(most_important_stats)
+        rc += "\n   ** Workers **\n"
+        rc += display_stats(queue_stats)
+        if detailed:
+            rc += "\n   ** Internals **\n"
+            rc += display_stats(
+                set(dir(self)) - (set(most_important_stats) & set(queue_stats))
+            )
+        return rc
