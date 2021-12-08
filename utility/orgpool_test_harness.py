@@ -8,6 +8,12 @@ JSON_STR = None
 class FakeMetaCI(BaseHTTPRequestHandler):
     def do_POST(self):
         self.send_response(200)
+        length = int(self.headers.get("content-length", 0))
+        body = self.rfile.read(length)
+        if body:
+            jsn = json.loads(body.decode("utf-8"))
+            print(jsn)
+            print(jsn.keys())
         self.send_header("Content-type", "application/json")
         self.end_headers()
         self.wfile.write(JSON_STR.encode(encoding="utf_8"))
@@ -32,6 +38,7 @@ def run(server_class=HTTPServer, handler_class=FakeMetaCI):
     JSON_STR = get_org_json("qa")
     server_address = ("", 8001)
     httpd = server_class(server_address, handler_class)
+    print("Ready")
     httpd.serve_forever()
 
 
