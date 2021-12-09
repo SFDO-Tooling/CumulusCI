@@ -155,17 +155,17 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
         task_class = coordinator.steps[0].task_class
         task_class_name = task_class.__module__ + "." + task_class.__name__
 
-        if (
-            org_config.scratch
-            and not org_config.created
-            and task_class_name
-            == "cumulusci.tasks.salesforce.update_dependencies.UpdateDependencies"
-        ):
-            print("CHECKING ORG POOL")
-            # Try to get a pooled scratch org
-            fetched_org_config = fetch_pooled_org(runtime, coordinator, org)
-            print("FOUND", fetched_org_config)
-            org_config = fetched_org_config or org_config
+        # if (
+        #     org_config.scratch
+        #     and not org_config.created
+        #     and task_class_name
+        #     == "cumulusci.tasks.salesforce.update_dependencies.UpdateDependencies"
+        # ):
+        print("CHECKING ORG POOL")
+        # Try to get a pooled scratch org
+        fetched_org_config = fetch_pooled_org(runtime, coordinator, org)
+        print("FOUND", fetched_org_config)
+        org_config = fetched_org_config or org_config
 
         # days = org_config.days
         if delete_org and not org_config.scratch:

@@ -63,6 +63,7 @@ def fetch_pooled_org(runtime, coordinator, org_name):
         repo_url=repo,
         org_name=org_name,
     )
+    print(f"I have the payload {org_pool_payload.json()}")
     # create call to metaci to check org pool payload availability
     metaci = MetaCIService(runtime)
     org_config_dict = metaci.fetch_from_org_pool(payload=org_pool_payload)
@@ -78,16 +79,16 @@ def fetch_pooled_org(runtime, coordinator, org_name):
             org_config,
             False,
         )
-        sfdx_auth_url = org_config_dict["sfdx_auth_url"]
-        with TemporaryDirectory() as t:
-            filename = Path(t) / str(randint(0, 100000000))
-            filename.write_text(sfdx_auth_url)
+        # sfdx_auth_url = org_config_dict["sfdx_auth_url"]
+        # with TemporaryDirectory() as t:
+        #     filename = Path(t) / str(randint(0, 100000000))
+        #     filename.write_text(sfdx_auth_url)
 
-            sfdx(
-                f"auth:sfdxurl:store -f {filename}",
-                log_note="Saving scratch org",
-                check_return=True,
-            )
+        #     sfdx(
+        #         f"auth:sfdxurl:store -f {filename}",
+        #         log_note="Saving scratch org",
+        #         check_return=True,
+        #     )
 
         return org_config
     else:
