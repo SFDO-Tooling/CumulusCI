@@ -12,7 +12,7 @@ History
  
 # Changes
 
-- Version information for CumulusCI can now be obtained through a ``--version`` option via ``cci --version``. This output is the same as the ``cci version`` command. (#2974)
+- You can now get the CumulusCI version with ``cci --version``. The output is the same as the ``cci version`` command. (#2974)
 - A new feature has been added to the ``robot_libdoc`` task. If you specify the output file as a .csv file, the ``robot_libdoc`` task will generate a csv file with all of the keywords. (#2985)
 - New keywords ``Select Rows`` and ``Unselect Rows`` have been added to the robot Listing page object (#2995)
 - Queries passed to the ``SOQL Query`` keyword can now span multiple lines. (#3006)
