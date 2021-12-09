@@ -12,10 +12,10 @@ from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 class OrgPoolPayload(BaseModel):
-    frozen_steps: list
+    org_name: str
+    frozen_steps: list[dict]
     task_class: str = None
     repo_url: str
-    org_name: str
     days: int = None  # not implemented
 
 
@@ -39,16 +39,18 @@ class MetaCIService:
         result = self.call_api(
             method="POST", path="/orgs/request_pooled_org", data=payload.json()
         )
+        if not result:
+            return None
         result["date_created"] = datetime.fromisoformat(result["date_created"])
         assert "error" not in result, result
-        return result or None
+        return result
 
 
 def fetch_pooled_org(runtime, coordinator, org_name):
     task_class_name = (
         "cumulusci.tasks.salesforce.update_dependencies.UpdateDependencies"
     )
-    repo = runtime.project_config.repo_url
+    repo = runtime.project_config.repo_url.removesuffix(".git")
     step = coordinator.steps[0]
     task = step.task_class(
         step.project_config,
@@ -64,9 +66,11 @@ def fetch_pooled_org(runtime, coordinator, org_name):
     # create call to metaci to check org pool payload availability
     metaci = MetaCIService(runtime)
     org_config_dict = metaci.fetch_from_org_pool(payload=org_pool_payload)
-    print("FETCHED", org_config_dict.keys(), org_config_dict["username"].split("@"[0]))
 
     if org_config_dict:
+        print(
+            "FETCHED", org_config_dict.keys(), org_config_dict["username"].split("@"[0])
+        )
         org_config = ScratchOrgConfig(
             org_config_dict, org_name, runtime.keychain, global_org=False
         )
