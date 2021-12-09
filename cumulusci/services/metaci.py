@@ -1,9 +1,13 @@
 from datetime import datetime
+from pathlib import Path
+from random import randint
+from tempfile import TemporaryDirectory
 
 import requests
 from pydantic import BaseModel
 
 from cumulusci.core.config import ScratchOrgConfig, TaskConfig
+from cumulusci.core.sfdx import sfdx
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
@@ -13,11 +17,6 @@ class OrgPoolPayload(BaseModel):
     repo_url: str
     org_name: str
     days: int = None  # not implemented
-
-
-class OrgPoolResult(BaseModel):
-    org: dict = None
-    error: dict = None
 
 
 class MetaCIService:
@@ -73,6 +72,17 @@ def fetch_pooled_org(runtime, coordinator, org_name):
             org_config,
             False,
         )
+        sfdx_auth_url = org_config_dict["sfdx_auth_url"]
+        with TemporaryDirectory() as t:
+            filename = Path(t) / str(randint(0, 100000000))
+            filename.write_text(sfdx_auth_url)
+
+            sfdx(
+                f"auth:sfdxurl:store -f {filename}",
+                log_note="Saving scratch org",
+                check_return=True,
+            )
+
         return org_config
     else:
         return None

@@ -26,14 +26,27 @@ class FakeMetaCI(BaseHTTPRequestHandler):
 
 
 def get_org_json(orgname):
+    subprocess.run(f"cci org scratch_delete {orgname}", shell=True)
+    subprocess.run(f"cci org remove {orgname}", shell=True)
     out = subprocess.run(
         f"cci org info {orgname} --json", shell=True, stdout=subprocess.PIPE, text=True
     )
     json_ish = out.stdout
     bracket = json_ish.find("{")
     json_str = json_ish[bracket:]
-    assert json.loads(json_str)
-    return json_str
+    js = json.loads(json_str)
+    out = subprocess.run(
+        "sfdx force:org:display --json --verbose -u CumulusCI__feature",
+        shell=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    json_ish = out.stdout
+    bracket = json_ish.find("{")
+    json_str = json_ish[bracket:]
+    jsn = json.loads(json_str)
+    js["sfdxAuthUrl"] = jsn["result"]["sfdxAuthUrl"]
+    return json.dumps(js)
 
 
 def run(server_class=HTTPServer, handler_class=FakeMetaCI):
