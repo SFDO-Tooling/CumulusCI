@@ -36,7 +36,9 @@ class MetaCIService:
         return safe_json_from_response(response)
 
     def fetch_from_org_pool(self, payload):
-        result = self.call_api(method="POST", path="/org-pool", data=payload.json())
+        result = self.call_api(
+            method="POST", path="/orgs/request_pooled_org", data=payload.json()
+        )
         result["date_created"] = datetime.fromisoformat(result["date_created"])
         assert "error" not in result, result
         return result or None
