@@ -2089,35 +2089,46 @@ Set Test Metric    Max_CPU_Percent    30
                             <tr class="kwrow" id="Salesforce.Soql Query">
                                 <td class="kwname">Soql Query</td>
                                 <td class="kwargs">
-                                    <i>query</i>
+                                    <i>query</i>,
+
+                                    <i>*args</i>
                                 </td>
                                 <td class="kwdoc">
                                     <p>
-                                        Runs a simple SOQL query and returns the dict
-                                        results
+                                        Runs a SOQL query and returns the result as a
+                                        dictionary.
                                     </p>
                                     <p>
                                         The <i>query</i> parameter must be a properly
-                                        quoted SOQL query statement. The return value is a
-                                        dictionary. The dictionary contains the keys as
-                                        documented for the raw API call. The most useful
-                                        key is <code>records</code>, which contains a list
-                                        of records which were matched by the query.
+                                        quoted SOQL query statement or statement fragment.
+                                        Additional arguments will be joined to the query
+                                        with spaces, allowing for a query to span multiple
+                                        lines.
                                     </p>
-                                    <p>Example</p>
+                                    <p>
+                                        This keyword will return a dictionary. The
+                                        dictionary contains the keys as documented for the
+                                        raw API call. The most useful keys are
+                                        <code>records</code> and <code>totalSize</code>,
+                                        which contains a list of records that were matched
+                                        by the query and the number of records that were
+                                        returned.
+                                    </p>
+                                    <p>Example:</p>
                                     <p>
                                         The following example searches for all Contacts
                                         with a first name of "Eleanor" and a last name of
-                                        "Rigby", and then prints the name of the first
-                                        record found.
+                                        "Rigby", and then logs the Id of the first record
+                                        found.
                                     </p>
                                     <pre>
 ${result}=  SOQL Query
-...  SELECT Name, Id FROM Contact WHERE FirstName='Eleanor' AND LastName='Rigby'
-Run keyword if  len($result['records']) == 0  Fail  No records found
+...  SELECT Name, Id
+...  FROM   Contact
+...  WHERE  FirstName='Eleanor' AND LastName='Rigby'
 
 ${contact}=  Get from list  ${result['records']}  0
-Should be equal  ${contact['Name']}  Eleanor Rigby
+log  Contact Id: ${contact['Id']}
 </pre
                                     >
                                 </td>
@@ -3213,7 +3224,7 @@ Populate form
             </div>
         </div>
         <div class="footer">
-            Generated on Wednesday November 17, 10:09 PM - cumulusci v3.48.1
+            Generated on Tuesday December 07, 02:47 PM - cumulusci v3.48.2
         </div>
     </body>
 </html>

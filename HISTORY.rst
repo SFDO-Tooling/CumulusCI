@@ -2,10 +2,29 @@
 History
 =======
 
+3.49.0 (2021-12-09)
+-------------------
+
+# Critical Changes
+
+- **Python versions 3.6 and 3.7 are no longer supported.** Please ensure you have Python version 3.8, 3.9, or 3.10. (#2959)
+- The ``dx_convert_from`` task now uses a custom Python task class instead of ``cumulusci.tasks.sfdx.SFDXBaseTask``. In most cases this will have no visible impact, but if you have customized this task config to change the command option, make sure you have also explicitly set its ``class_path`` to ``cumulusci.tasks.sfdx.SFDXBaseTask``. (#2981)
+ 
+# Changes
+
+- You can now get the CumulusCI version with ``cci --version``. The output is the same as the ``cci version`` command. (#2974)
+- A new feature has been added to the ``robot_libdoc`` task. You can now use ``--f csv`` to generate a CSV file with all of the keywords. (#2985)
+- New keywords ``Select Rows`` and ``Unselect Rows`` have been added to the robot Listing page object (#2995)
+- Queries passed to the ``SOQL Query`` keyword can now span multiple lines. (#3006)
+
+# Issues Closed
+
+- Fixed an issue where deleted components could still deploy into persistent orgs. (#2981)
+
 3.48.2 (2021-11-16)
 -------------------
 
-- Fixed a regression which broke `cci project init` in CumulusCI 3.48.0 and 3.48.1. (#2986)
+- Fixed a regression which broke ``cci project init`` in CumulusCI 3.48.0 and 3.48.1. (#2986)
 
 3.48.1 (2021-11-12)
 -------------------
