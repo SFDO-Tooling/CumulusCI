@@ -1068,28 +1068,36 @@ class Salesforce(object):
         obj_class = getattr(self.cumulusci.sf, obj_name)
         return obj_class.update(obj_id, kwargs)
 
-    def soql_query(self, query):
-        """Runs a simple SOQL query and returns the dict results
+    def soql_query(self, query, *args):
+        """Runs a SOQL query and returns the result as a dictionary.
 
-        The _query_ parameter must be a properly quoted SOQL query statement. The
-        return value is a dictionary. The dictionary contains the keys
-        as documented for the raw API call. The most useful key is ``records``,
-        which contains a list of records which were matched by the query.
+        The _query_ parameter must be a properly quoted SOQL query
+        statement or statement fragment. Additional arguments will be
+        joined to the query with spaces, allowing for a query to span
+        multiple lines.
 
-        Example
+        This keyword will return a dictionary. The dictionary contains
+        the keys as documented for the raw API call. The most useful
+        keys are ``records`` and ``totalSize``, which contains a list
+        of records that were matched by the query and the number of
+        records that were returned.
+
+        Example:
 
         The following example searches for all Contacts with a first
-        name of "Eleanor" and a last name of "Rigby", and then prints
-        the name of the first record found.
+        name of "Eleanor" and a last name of "Rigby", and then logs
+        the Id of the first record found.
 
         | ${result}=  SOQL Query
-        | ...  SELECT Name, Id FROM Contact WHERE FirstName='Eleanor' AND LastName='Rigby'
-        | Run keyword if  len($result['records']) == 0  Fail  No records found
+        | ...  SELECT Name, Id
+        | ...  FROM   Contact
+        | ...  WHERE  FirstName='Eleanor' AND LastName='Rigby'
         |
         | ${contact}=  Get from list  ${result['records']}  0
-        | Should be equal  ${contact['Name']}  Eleanor Rigby
+        | log  Contact Id: ${contact['Id']}
 
         """
+        query = " ".join((query,) + args)
         self.builtin.log("Running SOQL Query: {}".format(query))
         return self.cumulusci.sf.query_all(query)
 
