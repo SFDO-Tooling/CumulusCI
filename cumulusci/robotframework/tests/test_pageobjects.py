@@ -92,7 +92,7 @@ class TestPageObjects(unittest.TestCase):
                 "wait_for_page_object",
             ]
             actual_keywords = po.get_keyword_names()
-            self.assertEquals(actual_keywords, expected_keywords)
+            self.assertEqual(actual_keywords, expected_keywords)
 
             # fmt: off
             # This is much easier to read than if black were to reformat it.
