@@ -1,4 +1,5 @@
 import functools
+import re
 
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
@@ -78,20 +79,30 @@ def add_location_strategies():
 
 
 def locate_element(prefix, parent, locator, tag, constraints):
-    """This is the function called by SeleniumLibrary when a custom locator
-    strategy is used (eg: cci:foo.bar). We pass an additional argument,
-    prefix, so we know which set of locators to use.
+    """Translate a custom locator specification into an actual locator
 
-    This tokenizes the locator and then does a lookup in the dictionary associated
-    with the given prefix. If any arguments are present, they are applied with
-    .format() before being used to find an element.
+    Our custom locators are of the form "p:x.y.z:a,b" where:
+
+    - p is a short prefix (eg: sf, eda, sal),
+    - x,y,z are keys to a locator dictionary (eg: locators['x']['y']['z'])
+    - a,b are positional parameters passed to the string.format method
+      when converting the custom locator into an actual locator
+
+    A locator string (eg: locators['x']['y']['z']) can have substitution
+    fields in it (eg: "a[@title='{}']"). These fields will be replaced
+    with the positional parameters. It is possible for these fields to be
+    named (eg: "a[@title='{title}'"), though we don't support named
+    parameters.
+
+    If the substitution fields are named, each unique name will be
+    associated with a positional argument, in order. For example, if
+    the arguments are "a,b" and if the locator string is something
+    like "//{foo}|//{foo}/{bar}", then the first argument (a) will be
+    assigned to the first namef field (foo) and the second argument (b)
+    will be assigned to the second named field (bar).
+
     """
 
-    # Ideally we should call get_webelements (plural) and filter
-    # the results based on the tag and constraints arguments, but
-    # the documentation on those arguments is virtually nil and
-    # SeleniumLibrary's filter mechanism is a private function. In
-    # practice it probably won't matter <shrug>.
     selenium = BuiltIn().get_library_instance("SeleniumLibrary")
     loc = translate_locator(prefix, locator)
     logger.info(f"locator: '{prefix}:{locator}' => '{loc}'")
@@ -115,6 +126,9 @@ def translate_locator(prefix, locator):
     This uses the passed-in prefix and locator to find the
     proper element in the LOCATORS dictionary, and then formats it
     with any arguments that were part of the locator.
+
+    See the docstring for `locate_element` for a description of how
+    positional arguments are applied to named format fields.
 
     """
 
@@ -151,7 +165,32 @@ def translate_locator(prefix, locator):
         # that will be a problem. If we find a case where it's a problem we can
         # do more sophisticated parsing.
         args = [arg.strip() for arg in argstring.split(",")] if argstring else []
-        loc = loc.format(*args)
+        loc = apply_formatting(loc, args)
     except IndexError:
         raise Exception("Not enough arguments were supplied")
     return loc
+
+
+def apply_formatting(locator, args):
+    """Apply formatting to the locator
+
+    If there are no named fields in the locator this is just a simple
+    call to .format. However, some locators have named fields, and we
+    don't support named arguments to keep the syntax simple, so we
+    need to map positional arguments to named arguments before calling
+    .format.
+
+    Example:
+
+    Given the locator "//*[a[@title='{title}'] or
+    button[@name='{title}']]//{tag}" and args of ['foo', 'bar'], we'll
+    pop 'foo' and 'bar' off of the argument list and assign them to
+    the kwargs keys 'title' and 'tag'.
+
+    """
+    kwargs = {}
+    for match in re.finditer(r"\{([^}]+)\}", locator):
+        name = match.group(1)
+        if name and name not in kwargs:
+            kwargs[name] = args.pop(0)
+    return locator.format(*args, **kwargs)
