@@ -97,7 +97,11 @@ Get Webelement (singlular)
     [Setup]  Go to setup home
 
     ${element}=        Get webelement  A:breadcrumb:Home
-    Should be true  $element.__class__.__name__=="WebElement"
+    # Different browsers return different classes of objects so we
+    # can't easily do a check for the returned object type that works
+    # for all browsers. We'll just have to assume that if the element
+    # isn't None then it's a web element
+    Should be true     $element is not None
 
 
 Get Webelements (plural) - no matching elements
