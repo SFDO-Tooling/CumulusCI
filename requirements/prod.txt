@@ -20,7 +20,7 @@ charset-normalizer==2.0.9
     #   snowfakery
 click==7.1.2
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   snowfakery
 colorama==0.4.4
     # via rich
@@ -28,25 +28,26 @@ commonmark==0.9.1
     # via rich
 contextvars==2.4
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   snowfakery
 cryptography==36.0.0
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   authlib
     #   jwcrypto
+    #   secretstorage
 deprecated==1.2.13
     # via jwcrypto
 docutils==0.16
-    # via -r requirements/prod.in
+    # via -r prod.in
 faker==10.0.0
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   snowfakery
 fs==2.4.14
-    # via -r requirements/prod.in
+    # via -r prod.in
 github3.py==3.0.0
-    # via -r requirements/prod.in
+    # via -r prod.in
 greenlet==1.1.2
     # via
     #   snowfakery
@@ -65,52 +66,56 @@ importlib-metadata==4.8.2
     # via
     #   keyring
     #   snowfakery
+jeepney==0.7.1
+    # via
+    #   keyring
+    #   secretstorage
 jinja2==2.11.3
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   snowfakery
 jwcrypto==1.0
     # via github3.py
 keyring==23.0.1
-    # via -r requirements/prod.in
-lxml==4.6.4
-    # via -r requirements/prod.in
+    # via -r prod.in
+lxml==4.6.5
+    # via -r prod.in
 markupsafe==2.0.1
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   jinja2
     #   snowfakery
 psutil==5.8.0
-    # via -r requirements/prod.in
+    # via -r prod.in
 pycparser==2.21
     # via cffi
 pydantic==1.8.2
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   snowfakery
 pygments==2.10.0
     # via rich
 pyjwt==2.3.0
-    # via -r requirements/prod.in
+    # via -r prod.in
 python-baseconv==1.2.2
     # via snowfakery
 python-dateutil==2.8.2
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   faker
     #   github3.py
     #   snowfakery
 pytz==2021.3
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   fs
 pyyaml==6.0
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   snowfakery
 requests==2.26.0
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   github3.py
     #   requests-futures
     #   robotframework-requests
@@ -118,42 +123,44 @@ requests==2.26.0
     #   simple-salesforce
     #   snowfakery
 requests-futures==1.0.0
-    # via -r requirements/prod.in
+    # via -r prod.in
 rich==10.15.2
-    # via -r requirements/prod.in
+    # via -r prod.in
 robotframework==4.1.2
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   robotframework-lint
     #   robotframework-pabot
     #   robotframework-requests
     #   robotframework-seleniumlibrary
     #   robotframework-stacktrace
 robotframework-lint==1.1
-    # via -r requirements/prod.in
+    # via -r prod.in
 robotframework-pabot==2.1.0
-    # via -r requirements/prod.in
+    # via -r prod.in
 robotframework-pythonlibcore==3.0.0
     # via robotframework-seleniumlibrary
 robotframework-requests==0.9.2
-    # via -r requirements/prod.in
+    # via -r prod.in
 robotframework-seleniumlibrary==5.1.3
-    # via -r requirements/prod.in
+    # via -r prod.in
 robotframework-stacktrace==0.4.1
     # via robotframework-pabot
 rst2ansi==0.1.5
-    # via -r requirements/prod.in
+    # via -r prod.in
 salesforce-bulk==2.2.0
-    # via -r requirements/prod.in
+    # via -r prod.in
 sarge==0.1.6
-    # via -r requirements/prod.in
+    # via -r prod.in
+secretstorage==3.3.1
+    # via keyring
 selenium==3.141.0
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   robotframework-seleniumlibrary
 simple-salesforce==1.11.4
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   salesforce-bulk
 six==1.16.0
     # via
@@ -162,10 +169,10 @@ six==1.16.0
     #   salesforce-bulk
     #   snowfakery
 snowfakery==2.3
-    # via -r requirements/prod.in
+    # via -r prod.in
 sqlalchemy==1.4.27
     # via
-    #   -r requirements/prod.in
+    #   -r prod.in
     #   snowfakery
 text-unidecode==1.3
     # via
@@ -187,7 +194,7 @@ urllib3==1.26.7
 wrapt==1.13.3
     # via deprecated
 xmltodict==0.12.0
-    # via -r requirements/prod.in
+    # via -r prod.in
 zipp==3.6.0
     # via
     #   importlib-metadata
