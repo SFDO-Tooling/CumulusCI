@@ -1,8 +1,11 @@
 import json
 import subprocess
+import threading
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-JSON_STR = None
+ORG_NAME = "sfdx_demo"
+ORGS = []
 
 
 class FakeMetaCI(BaseHTTPRequestHandler):
@@ -14,48 +17,80 @@ class FakeMetaCI(BaseHTTPRequestHandler):
         if body:
             jsn = json.loads(body.decode("utf-8"))
             print(jsn.keys())
-            if jsn["org_name"] == "feature":
+            if jsn["org_name"] == "release":
                 print("RETURNING EMPTY LIST")
                 return {}
         self.end_headers()
-        self.wfile.write(JSON_STR.encode(encoding="utf_8"))
-        print("RETURNING ORG CONFIG")
+        self.wfile.write(ORGS.pop(0).encode(encoding="utf_8"))
+        print("RETURNING ORG CONFIG. ", len(ORGS), "left")
+
+        # get_org_json(ORG_NAME)
 
     def do_GET(self):
         return self.do_POST()
 
 
 def get_org_json(orgname):
-    subprocess.run(f"cci org scratch_delete {orgname}", shell=True)
-    subprocess.run(f"cci org remove {orgname}", shell=True)
+    subprocess.run(
+        "sfdx force:org:create -f orgs/dev.json -w 120 -n --durationdays 1 -a sfdx_demo adminEmail=pprescod@salesforce.com",
+        shell=True,
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True,
+    )
+    subprocess.run(
+        "cci org import sfdx_demo sfdx_demo",
+        shell=True,
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True,
+    )
+
     out = subprocess.run(
-        f"cci org info {orgname} --json", shell=True, stdout=subprocess.PIPE, text=True
+        f"cci org info {orgname} --json",
+        shell=True,
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True,
     )
     json_ish = out.stdout
     bracket = json_ish.find("{")
     json_str = json_ish[bracket:]
     js = json.loads(json_str)
+
     out = subprocess.run(
-        "sfdx force:org:display --json --verbose -u CumulusCI__feature",
+        "sfdx force:org:display --json --verbose -u sfdx_demo",
         shell=True,
         stdout=subprocess.PIPE,
         text=True,
+        check=True,
     )
     json_ish = out.stdout
     bracket = json_ish.find("{")
     json_str = json_ish[bracket:]
     jsn = json.loads(json_str)
-    js["sfdxAuthUrl"] = jsn["result"]["sfdxAuthUrl"]
+    js["sfdx_auth_url"] = jsn["result"]["sfdxAuthUrl"]
+    print("Org Ready", len(ORGS) + 1)
     return json.dumps(js)
 
 
 def run(server_class=HTTPServer, handler_class=FakeMetaCI):
+    ORGS.append(get_org_json(ORG_NAME))
     global JSON_STR
-    JSON_STR = get_org_json("feature")
     server_address = ("", 8001)
     httpd = server_class(server_address, handler_class)
-    print("Ready")
+    print("Server Ready")
+    threading.Thread(target=org_pool_thread, daemon=True).start()
     httpd.serve_forever()
+
+
+def org_pool_thread():
+    orgs = ORGS
+    while True:
+        if len(orgs) < 5:
+            orgs.append(get_org_json(ORG_NAME))
+
+        time.sleep(1)
 
 
 run()
