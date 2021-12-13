@@ -178,23 +178,7 @@ def test_task_list(cli_tbl):
     )
 
 
-@patch("json.dumps")
-def test_task_list__json(json_):
-    task_dicts = {
-        "name": "test_task",
-        "description": "Test Task",
-        "group": "Test Group",
-    }
-    runtime = Mock()
-    runtime.universal_config.cli__plain_output = None
-    runtime.get_available_tasks.return_value = [task_dicts]
-
-    run_click_command(task.task_list, runtime=runtime, plain=False, print_json=True)
-
-    json_.assert_called_with([task_dicts])
-
-
-def test_task_list__json_output(capsys):
+def test_task_list__json(capsys):
     expected_output = {
         "name": "test_task",
         "description": "This can be a really long description that might need a newline if some library is formatting it for ANSI output.",
