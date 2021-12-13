@@ -124,7 +124,7 @@ class TestLocateElement(unittest.TestCase):
             side_effect=mock_get_library_instance,
         ):
             locate_element("test", parent, locator, tag, constraints)
-            mock_libs["SeleniumLibrary"].get_webelement.assert_called_with(
+            mock_libs["SeleniumLibrary"].get_webelements.assert_called_with(
                 "//span[text()='Hello, world']"
             )
 
