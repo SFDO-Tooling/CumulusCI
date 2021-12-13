@@ -33,7 +33,7 @@ def task_list(runtime, plain, print_json):
 
     console = Console()
     if print_json:
-        console.print(json.dumps(tasks))
+        console.print_json(json.dumps(tasks))
         return None
 
     task_groups = group_items(tasks)
