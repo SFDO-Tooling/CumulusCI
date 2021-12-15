@@ -78,6 +78,7 @@ Install Python 3
 
 #. On the screen entitled "Setup was successful," click the "Disable path length limit" button (if it's present).
 
+   .. image:: images/windows_python_success.png
 
 
 Install via ``pipx``
