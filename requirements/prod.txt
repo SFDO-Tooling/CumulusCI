@@ -30,7 +30,7 @@ contextvars==2.4
     # via
     #   -r requirements/prod.in
     #   snowfakery
-cryptography==36.0.0
+cryptography==36.0.1
     # via
     #   -r requirements/prod.in
     #   authlib
@@ -73,7 +73,7 @@ jwcrypto==1.0
     # via github3.py
 keyring==23.0.1
     # via -r requirements/prod.in
-lxml==4.6.4
+lxml==4.7.1
     # via -r requirements/prod.in
 markupsafe==2.0.1
     # via
@@ -119,7 +119,7 @@ requests==2.26.0
     #   snowfakery
 requests-futures==1.0.0
     # via -r requirements/prod.in
-rich==10.15.2
+rich==10.16.0
     # via -r requirements/prod.in
 robotframework==4.1.2
     # via
@@ -145,7 +145,7 @@ rst2ansi==0.1.5
     # via -r requirements/prod.in
 salesforce-bulk==2.2.0
     # via -r requirements/prod.in
-sarge==0.1.6
+sarge==0.1.7.post1
     # via -r requirements/prod.in
 selenium==3.141.0
     # via

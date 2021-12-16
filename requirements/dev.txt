@@ -44,7 +44,7 @@ coverage[toml]==6.2
     #   coveralls
 coveralls==3.3.1
     # via -r requirements/dev.in
-distlib==0.3.3
+distlib==0.3.4
     # via virtualenv
 docopt==0.6.2
     # via coveralls
@@ -91,7 +91,7 @@ jinja2==2.11.3
     # via
     #   -c requirements/prod.txt
     #   sphinx
-jsonschema==4.2.1 ; python_version > "3.6"
+jsonschema==4.2.1
     # via -r requirements/dev.in
 keyring==23.0.1
     # via
@@ -169,7 +169,7 @@ pyyaml==6.0
     #   -c requirements/prod.txt
     #   pre-commit
     #   vcrpy
-readme-renderer==30.0
+readme-renderer==32.0
     # via twine
 requests==2.26.0
     # via
@@ -225,7 +225,7 @@ toml==0.10.2
     #   pre-commit
     #   pytest
     #   tox
-tomli==1.2.2
+tomli==1.2.3
     # via
     #   black
     #   coverage
