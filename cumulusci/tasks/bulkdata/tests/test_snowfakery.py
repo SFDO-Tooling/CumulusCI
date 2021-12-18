@@ -1,10 +1,10 @@
 import typing as T
 from collections import Counter
 from contextlib import contextmanager
-from itertools import chain, cycle
+from itertools import cycle
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from threading import Lock, Thread
+from threading import Thread
 from unittest import mock
 
 import pytest
@@ -20,6 +20,8 @@ from cumulusci.tasks.bulkdata.snowfakery import (
     SnowfakeryWorkingDirectory,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
+from cumulusci.tests.util import DummyKeychain, DummyOrgConfig
 from cumulusci.utils.parallel.task_worker_queues.tests.test_parallel_worker import (
     DelaySpawner,
 )
@@ -74,26 +76,34 @@ def table_values(connection, table):
     return values
 
 
-def call_closure():
-    """Simulate a cycle of load results without doing a real load."""
-    return_values = cycle(iter(FAKE_LOAD_RESULTS))
+class FakeLoadData(BaseSalesforceApiTask):
+    """Simulates load results without doing a real load."""
 
-    # Manipulating "self" from a mock side-effect is a challenge.
-    # So we need a "real function"
+    mock_calls: list  # similar to how a mock.Mock() object works
+    fake_return_values: T.Iterator
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def __call__(self, *args, **kwargs):
         """Like the __call__ of _run_task, but also capture calls
         in a normal mock_values structure."""
 
-        self.return_values = {"step_results": next(return_values)}
-        values_loaded = db_values_from_db_url(self.options["database_url"])
-        kwargs = {**kwargs, "values_loaded": values_loaded}
-        rc = __call__.mock(*args, **kwargs)
-        return rc
+        # get the values that the Snowfakery task asked us to load and
+        # remember them for later inspection.
+        self.values_loaded = db_values_from_db_url(self.options["database_url"])
 
-    __call__.mock = mock.Mock()
-    __call__.lock = Lock()
+        # return a fake return value so Snowfakery loader doesn't get confused
+        self.return_values = {"step_results": next(self.fake_return_values)}
+        # tasks usually aren't called twice after being instantiated
+        # that would usually be a bug.
+        assert self not in self.mock_calls
+        self.__class__.mock_calls.append(self)
 
-    return __call__
+    @classmethod
+    def reset(cls):
+        cls.mock_calls = []
+        cls.fake_return_values = cycle(iter(FAKE_LOAD_RESULTS))
 
 
 def db_values_from_db_url(database_url):
@@ -111,11 +121,21 @@ def db_values_from_db_url(database_url):
 
 
 @pytest.fixture
-def mock_load_data(request):
+def mock_load_data(
+    request,
+    threads_instead_of_processes,  # mock patches wouldn't be inherited by child processs
+):
+
+    fake_load_data = FakeLoadData
     with mock.patch(
-        "cumulusci.tasks.bulkdata.load.LoadData.__call__", call_closure()
-    ) as __call__:
-        yield __call__.mock
+        "cumulusci.tasks.bulkdata.generate_and_load_data.LoadData", fake_load_data
+    ), mock.patch(
+        "cumulusci.tasks.bulkdata.snowfakery_utils.queue_manager.LoadData",
+        fake_load_data,
+    ):
+        fake_load_data.reset()
+
+        yield fake_load_data
 
 
 @pytest.fixture
@@ -232,9 +252,9 @@ def get_record_counts_from_snowfakery_results(
     hould probably use return_values instead. (but you may need to implement it)"""
 
     rollups = Counter()
-    sharded_outboxes = results.working_dir.glob("*/data_load_outbox/*")
+    channeled_outboxes = results.working_dir.glob("*/data_load_outbox/*")
     regular_outboxes = results.working_dir.glob("data_load_outbox/*")
-    outboxes = tuple(sharded_outboxes) + tuple(regular_outboxes)
+    outboxes = tuple(channeled_outboxes) + tuple(regular_outboxes)
     for subdir in outboxes:
         record_counts = SnowfakeryWorkingDirectory(subdir).get_record_counts()
         rollups.update(record_counts)
@@ -243,9 +263,7 @@ def get_record_counts_from_snowfakery_results(
 
 
 @pytest.fixture()
-def run_snowfakery_and_yield_results(
-    snowfakery, threads_instead_of_processes, mock_load_data
-):
+def run_snowfakery_and_yield_results(snowfakery, mock_load_data):
     @contextmanager
     def _run_snowfakery_and_inspect_mapping_and_example_records(**options):
         with TemporaryDirectory() as workingdir:
@@ -575,7 +593,6 @@ class TestSnowfakery:
     def test_options(
         self,
         mock_load_data,
-        threads_instead_of_processes,
         run_snowfakery_and_yield_results,
     ):
         options_yaml = str(sample_yaml).replace(
@@ -588,9 +605,7 @@ class TestSnowfakery:
         assert record_counts["Account"] == 7, record_counts["Account"]
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
-    def test_multi_part_uniqueness(
-        self, mock_load_data, threads_instead_of_processes, create_task_fixture
-    ):
+    def test_multi_part_uniqueness(self, mock_load_data, create_task_fixture):
         task = create_task_fixture(
             Snowfakery,
             {
@@ -599,13 +614,156 @@ class TestSnowfakery:
             },
         )
         task()
-        all_rows = chain(
-            *(call[2]["values_loaded"]["blah"] for call in mock_load_data.mock_calls)
-        )
-        unique_values = [row.value for row in all_rows]
-        assert len(unique_values) == len(set(unique_values))
+        all_data_load_inputs = mock_load_data.mock_calls
+        all_rows = [
+            task_instance.values_loaded["blah"]
+            for task_instance in all_data_load_inputs
+        ]
 
-        # See also W-10142031
+        unique_values = [row.value for batchrows in all_rows for row in batchrows]
+        assert len(unique_values) == len(set(unique_values))
+        # See also W-10142031: Investigate unreliable test assertions
+
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
+    def test_two_channels(self, mock_load_data, create_task):
+        # test_channels_get_unique_email_addresses
+
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": Path(__file__).parent
+                / "snowfakery/simple_snowfakery_channels.recipe.yml",
+                "run_until_recipe_repeated": 15,
+                "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
+            },
+        )
+        with mock.patch.object(
+            task.project_config, "keychain", DummyKeychain()
+        ) as keychain:
+            keychain.get_org = mock.Mock(
+                wraps=lambda username: DummyOrgConfig(
+                    config={"keychain": keychain, "username": username}
+                )
+            )
+            task()
+            assert keychain.get_org.mock_calls
+            assert keychain.get_org.call_args_list
+            assert keychain.get_org.call_args_list == [
+                (("channeltest",),),
+                (("channeltest-b",),),
+                (("channeltest-c",),),
+                (("Account",),),
+            ], keychain.get_org.call_args_list
+
+        all_data_load_inputs = mock_load_data.mock_calls
+        all_data_load_inputs = sorted(
+            all_data_load_inputs,
+            key=lambda task_instance: task_instance.org_config.username,
+        )
+        usernames_values = [
+            (task_instance.org_config.username, task_instance.values_loaded)
+            for task_instance in all_data_load_inputs
+        ]
+        count_loads = Counter(username for username, _ in usernames_values)
+        assert count_loads.keys() == {
+            "channeltest",
+            "channeltest-b",
+            "channeltest-c",
+            "Account",
+        }
+
+        # depends on threading. :(
+        for value in count_loads.values():
+            assert 1 <= value <= 4, value
+        assert sum(count_loads.values()) == 8
+
+        first_row_values = next(
+            value["Account"]
+            for username, value in usernames_values
+            if username == "channeltest"
+        )
+        assert len(first_row_values) == 1, len(first_row_values)
+        for username, values in usernames_values:
+            accounts = values["Account"]
+            if values["Account"] != first_row_values:
+                assert len(accounts) == 2, (values, first_row_values)
+            for account in accounts:
+                assert int(account.some_number) == 42
+                assert username in account.name, (username, account.name)
+
+        assert sum(len(v["Account"]) for _, v in usernames_values) == 15, sum(
+            len(v) for _, v in usernames_values
+        )
+
+    def test_channels_cli_options_conflict(self, create_task):
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": Path(__file__).parent
+                / "snowfakery/simple_snowfakery_channels.recipe.yml",
+                "run_until_recipe_repeated": 15,
+                "recipe_options": {"xyzzy": "Nothing happens", "some_number": 37},
+            },
+        )
+        with pytest.raises(exc.TaskOptionsError) as e, mock.patch.object(
+            task.project_config, "keychain", DummyKeychain()
+        ) as keychain:
+            keychain.get_org = mock.Mock(
+                wraps=lambda username: DummyOrgConfig(
+                    config={"keychain": keychain, "username": username}
+                )
+            )
+            task()
+        assert "conflict" in str(e.value)
+        assert "some_number" in str(e.value)
+
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
+    def test_explicit_channel_declarations(self, mock_load_data, create_task):
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": Path(__file__).parent
+                / "snowfakery/simple_snowfakery.recipe.yml",
+                "run_until_recipe_repeated": 15,
+                "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
+                "loading_rules": Path(__file__).parent
+                / "snowfakery/simple_snowfakery_channels.load.yml",
+            },
+        )
+        with mock.patch.object(
+            task.project_config, "keychain", DummyKeychain()
+        ) as keychain:
+            keychain.get_org = mock.Mock(
+                wraps=lambda username: DummyOrgConfig(
+                    config={"keychain": keychain, "username": username}
+                )
+            )
+            task()
+            assert keychain.get_org.mock_calls
+            assert keychain.get_org.call_args_list
+            assert keychain.get_org.call_args_list == [
+                (("channeltest",),),
+                (("channeltest-b",),),
+                (("channeltest-c",),),
+                (("Account",),),
+            ], keychain.get_org.call_args_list
+
+            all_data_load_inputs = mock_load_data.mock_calls
+            all_data_load_inputs = sorted(
+                all_data_load_inputs,
+                key=lambda task_instance: task_instance.org_config.username,
+            )
+            usernames_values = [
+                (task_instance.org_config.username, task_instance.values_loaded)
+                for task_instance in all_data_load_inputs
+            ]
+            count_loads = Counter(username for username, _ in usernames_values)
+            assert count_loads.keys() == {
+                "channeltest",
+                "channeltest-b",
+                "channeltest-c",
+                "Account",
+            }
 
     # def test_generate_mapping_file(self):
     #     with temporary_file_path("mapping.yml") as temp_mapping:

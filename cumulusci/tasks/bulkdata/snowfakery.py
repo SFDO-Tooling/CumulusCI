@@ -32,9 +32,9 @@ from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 from .snowfakery_utils.queue_manager import (
-    SnowfakeryShardManager,  # TODO: rename this channel manager
+    SnowfakeryChannelManager,
+    data_loader_new_directory_name,
 )
-from .snowfakery_utils.queue_manager import data_loader_new_directory_name
 from .snowfakery_utils.snowfakery_run_until import PortionGenerator, determine_run_until
 from .snowfakery_utils.snowfakery_working_directory import SnowfakeryWorkingDirectory
 from .snowfakery_utils.subtask_configurator import SubtaskConfigurator
@@ -163,18 +163,26 @@ class Snowfakery(BaseSalesforceApiTask):
         )
         self.serial_mode = process_bool_arg(self.options.get("serial_mode") or False)
 
-        shard_decls = read_sharding_declarations(recipe, self.loading_rules)
+    def _init_channel_decls(self, recipe):
+        channel_decls = read_channel_declarations(recipe, self.loading_rules)
 
-        if shard_decls:
-            self.shard_configs = shard_configs_from_decls(
-                shard_decls, self.project_config.keychain
+        if channel_decls:
+            self.channel_configs = channel_configs_from_decls(
+                channel_decls, self.project_config.keychain
             )
         elif self.serial_mode:
-            # FIXME: Fix this
-            # self.shard_configs = [serial_shard_config()]
+            # FIXME: Add a serial mode that goes all the way down for all sobjects
+            # self.channel_configs = [serial_channel_config()]
             raise NotImplementedError()
         else:
-            self.shard_configs = [standard_shard_config(self.org_config)]
+            self.channel_configs = [
+                standard_channel_config(
+                    self.org_config,
+                    self.recipe_options,
+                    self.num_generator_workers,
+                    None,
+                )
+            ]
 
     def setup(self):
         self.debug_mode = get_debug_mode()
@@ -189,6 +197,7 @@ class Snowfakery(BaseSalesforceApiTask):
         self.start_time = time.time()
         self.recipe = Path(self.options.get("recipe"))
         self.sobject_counts = defaultdict(RunningTotals)
+        self._init_channel_decls(self.recipe)
 
     ## Todo: Consider when this process runs longer than 2 Hours,
     # what will happen to my sf connection?
@@ -234,36 +243,37 @@ class Snowfakery(BaseSalesforceApiTask):
         subtask_configurator = SubtaskConfigurator(
             self.recipe,
             self.run_until,
-            self.recipe_options,
             self.ignore_row_errors,
         )
-        self.queue_manager = SnowfakeryShardManager(
+        self.queue_manager = SnowfakeryChannelManager(
             project_config=self.project_config,
             logger=self.logger,
             subtask_configurator=subtask_configurator,
         )
-        if len(self.shard_configs) == 1:
-            self.queue_manager.add_shard(
-                org_config=self.shard_configs[0].org_config,
+        if len(self.channel_configs) == 1:
+            channel = self.channel_configs[0]
+            self.queue_manager.add_channel(
+                org_config=channel.org_config,
                 num_generator_workers=self.num_generator_workers,
                 working_directory=working_directory,
+                recipe_options=channel.declaration.recipe_options,
             )
         else:
-            self.configure_shards(working_directory)
+            self.configure_channels(working_directory)
 
-    def configure_shards(self, working_directory):
-        # TODO: Implement serial mode for shards
-        # TODO: Implement per-shard task options
-        # TODO: Implement per-shard worker ratio
-        for idx, shard in enumerate(self.shard_configs):
+    def configure_channels(self, working_directory):
+        # TODO: Implement serial mode for channels
+        for idx, channel in enumerate(self.channel_configs):
             if self.debug_mode:
-                self.logger.info("Initializing %s", shard)
-            shard_wd = working_directory / f"shard_{idx}"
-            shard_wd.mkdir()
-            self.queue_manager.add_shard(
-                org_config=shard.org_config,
+                self.logger.info("Initializing %s", channel)
+            channel_wd = working_directory / f"channel_{idx}"
+            channel_wd.mkdir()
+            recipe_options = channel.merge_recipe_options(self.recipe_options)
+            self.queue_manager.add_channel(
+                org_config=channel.org_config,
                 num_generator_workers=self.num_generator_workers,
-                working_directory=shard_wd,
+                working_directory=channel_wd,
+                recipe_options=recipe_options,
             )
 
     def _loop(
@@ -478,18 +488,21 @@ class Snowfakery(BaseSalesforceApiTask):
         # changes here should often be reflected in
         # data_generator_opts and data_loader_opts
 
+        channel_decl = self.channel_configs[0]
+
         plugin_options = {
             "pid": "0",
             "big_ids": "True",
         }
         results = self._generate_and_load_batch(
             template_dir,
+            channel_decl.org_config,
             {
                 "generator_yaml": self.options.get("recipe"),
                 "num_records": 1,  # smallest possible batch to get to parallelizing fast
                 "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
                 "loading_rules": self.loading_rules,
-                "vars": self.recipe_options,
+                "vars": channel_decl.merge_recipe_options(self.recipe_options),
                 "plugin_options": plugin_options,
             },
         )
@@ -515,7 +528,7 @@ class Snowfakery(BaseSalesforceApiTask):
 
         return template_dir, wd.relevant_sobjects()
 
-    def _generate_and_load_batch(self, tempdir, options) -> dict:
+    def _generate_and_load_batch(self, tempdir, org_config, options) -> dict:
         options = {
             **options,
             "working_directory": tempdir,
@@ -526,7 +539,7 @@ class Snowfakery(BaseSalesforceApiTask):
         subtask = GenerateAndLoadDataFromYaml(
             project_config=self.project_config,
             task_config=subtask_config,
-            org_config=self.org_config,
+            org_config=org_config,
             flow=self.flow,
             name=self.name,
             stepnum=self.stepnum,
@@ -559,17 +572,17 @@ class RulesFileAndRules(T.NamedTuple):
     rules: T.List[ChannelDeclaration]
 
 
-def _read_sharding_declarations_from_file(
+def _read_channel_declarations_from_file(
     loading_rules_file: Path,
 ) -> RulesFileAndRules:
     with loading_rules_file.open() as f:
         decls = SObjectRuleDeclarationFile.parse_from_yaml(f)
-        shard_decls = decls.channel_declarations or []
-        assert isinstance(shard_decls, list)
-        return RulesFileAndRules(loading_rules_file, shard_decls)
+        channel_decls = decls.channel_declarations or []
+        assert isinstance(channel_decls, list)
+        return RulesFileAndRules(loading_rules_file, channel_decls)
 
 
-def read_sharding_declarations(
+def read_channel_declarations(
     recipe: Path, loading_rules_files: T.List[Path]
 ) -> T.List[ChannelDeclaration]:
     implicit_rules_file = infer_load_file_path(recipe)
@@ -579,7 +592,7 @@ def read_sharding_declarations(
     loading_rules_files = list(dict.fromkeys(loading_rules_files))
 
     rules_lists = [
-        _read_sharding_declarations_from_file(file) for file in loading_rules_files
+        _read_channel_declarations_from_file(file) for file in loading_rules_files
     ]
     rules_lists = [rules_list for rules_list in rules_lists if rules_list.rules]
 
@@ -587,7 +600,7 @@ def read_sharding_declarations(
         files = ", ".join(
             [f"{rules_list.file}: {rules_list.rules}" for rules_list in rules_lists]
         )
-        msg = f"Multiple shard declarations: {files}"
+        msg = f"Multiple channel declarations: {files}"
         raise TaskOptionsError(msg)
     elif len(rules_lists) == 1:
         return rules_lists[0].rules
@@ -595,20 +608,57 @@ def read_sharding_declarations(
         return []
 
 
-class ShardConfig(T.NamedTuple):
+class ChannelConfig(T.NamedTuple):
     org_config: OrgConfig
     declaration: ChannelDeclaration = None
 
+    def merge_recipe_options(self, task_recipe_options):
+        channel_options = self.declaration.recipe_options or {}
+        task_recipe_options = task_recipe_options or {}
+        self.check_confliction_options(channel_options, task_recipe_options)
+        recipe_options = {
+            **task_recipe_options,
+            **channel_options,
+        }
+        return recipe_options
 
-def standard_shard_config(org_config: OrgConfig):
-    return ShardConfig(org_config, None)
+    @staticmethod
+    def check_confliction_options(channel_options, task_recipe_options):
+        double_specified_options = set(task_recipe_options.keys()).intersection(
+            set(channel_options.keys())
+        )
+        conflicting_options = [
+            optname
+            for optname in double_specified_options
+            if task_recipe_options[optname] != channel_options[optname]
+        ]
+        if conflicting_options:
+            raise TaskOptionsError(
+                f"Recipe options cannot conflict: {conflicting_options}"
+            )
 
 
-def shard_configs_from_decls(
-    shard_decls: T.List[ChannelDeclaration],
+def standard_channel_config(
+    org_config: OrgConfig,
+    recipe_options: dict,
+    num_generators: int,
+    num_loaders: int = None,
+):
+    channel = ChannelDeclaration(
+        user="Username not used in this context",
+        recipe_options=recipe_options,
+        num_generators=num_generators,
+        num_loaders=num_loaders,
+    )
+
+    return ChannelConfig(org_config, channel)
+
+
+def channel_configs_from_decls(
+    channel_decls: T.List[ChannelDeclaration],
     keychain: BaseProjectKeychain,
 ):
     def config_from_decl(decl):
-        return ShardConfig(keychain.get_org(decl.user), decl)
+        return ChannelConfig(keychain.get_org(decl.user), decl)
 
-    return [config_from_decl(decl) for decl in shard_decls]
+    return [config_from_decl(decl) for decl in channel_decls]

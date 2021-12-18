@@ -6,6 +6,8 @@ import time
 import typing as T
 import warnings
 from datetime import datetime, timedelta
+from logging import getLogger
+from pathlib import Path
 
 import pytz
 
@@ -96,6 +98,9 @@ def process_glob_list_arg(arg):
 
 def process_list_arg(arg):
     """Parse a string into a list separated by commas with whitespace stripped"""
+    if isinstance(arg, Path):
+        arg = str(arg)
+
     if isinstance(arg, list):
         return arg
     elif isinstance(arg, str):
@@ -103,6 +108,10 @@ def process_list_arg(arg):
         for part in arg.split(","):
             args.append(part.strip())
         return args
+    else:
+        getLogger(__file__).info(
+            f"Unknown argument type `{type(arg)}` for type `{arg}`"
+        )
 
 
 def process_list_of_pairs_dict_arg(arg):

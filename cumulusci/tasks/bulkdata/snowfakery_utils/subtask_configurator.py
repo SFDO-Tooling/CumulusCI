@@ -11,17 +11,15 @@ class SubtaskConfigurator:
         self,
         recipe: Path,
         run_until: RunUntilBase,
-        recipe_options: dict,
         ignore_row_errors: bool,
     ):
         self.recipe = recipe
         self.run_until = run_until
-        self.recipe_options = recipe_options
         self.ignore_row_errors = ignore_row_errors
 
     # todo: move generate_and_load_initial_portion here
 
-    def data_generator_opts(self, working_dir, *args, **kwargs):
+    def data_generator_opts(self, working_dir, recipe_options=None, *args, **kwargs):
         """Generate task options for a data generator"""
         wd = SnowfakeryWorkingDirectory(working_dir)
         name = Path(working_dir).name
@@ -35,7 +33,7 @@ class SubtaskConfigurator:
             "reset_oids": False,
             "continuation_file": wd.continuation_file,
             "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
-            "vars": self.recipe_options,
+            "vars": recipe_options,
         }
 
     def data_loader_opts(self, working_dir: Path):

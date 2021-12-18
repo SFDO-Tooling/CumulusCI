@@ -1,4 +1,4 @@
-# TODO: make it so jobs are striped across shards
+# TODO: make it so jobs are striped across channels
 # TODO: pass recipe options to recipe
 # TODO: implement full serial mode
 
@@ -30,7 +30,7 @@ LOAD_QUEUE_SIZE = 15
 WORKER_TO_LOADER_RATIO = 4
 
 
-class SnowfakeryShardManager:
+class SnowfakeryChannelManager:
     def __init__(
         self,
         subtask_configurator,
@@ -39,20 +39,21 @@ class SnowfakeryShardManager:
         logger,
     ):
         self.results_reporter = WorkerQueue.context.Queue()
-        self.shards = []
+        self.channels = []
         self.project_config = project_config
         self.logger = logger
         self.subtask_configurator = subtask_configurator
         self.start_time = time.time()
 
-    def add_shard(
+    def add_channel(
         self,
         org_config: OrgConfig,
         num_generator_workers: int,
         working_directory: Path,
+        recipe_options: dict,
     ):
-        self.shards.append(
-            Shard(
+        self.channels.append(
+            Channel(
                 project_config=self.project_config,
                 org_config=org_config,
                 num_generator_workers=num_generator_workers,
@@ -60,12 +61,13 @@ class SnowfakeryShardManager:
                 subtask_configurator=self.subtask_configurator,
                 logger=self.logger,
                 results_reporter=self.results_reporter,
+                recipe_options=recipe_options,
             )
         )
 
     @property
     def num_loader_workers(self):
-        return sum(shard.num_loader_workers for shard in self.shards)
+        return sum(channel.num_loader_workers for channel in self.channels)
 
     def tick(
         self,
@@ -76,12 +78,12 @@ class SnowfakeryShardManager:
         get_upload_status: T.Callable,
     ):
         """Called every few seconds, to make new data generators if needed."""
-        # advance each shard's queues
-        for shard in self.shards:
-            shard.tick()
+        # advance each channel's queues
+        for channel in self.channels:
+            channel.tick()
 
-        # populate shards that have space
-        self.populate_shards(
+        # populate channels that have space
+        self.populate_channels(
             upload_status,
             template_path,
             tempdir,
@@ -89,7 +91,7 @@ class SnowfakeryShardManager:
             get_upload_status,
         )
 
-    def populate_shards(
+    def populate_channels(
         self,
         upload_status,
         template_path: Path,
@@ -97,33 +99,33 @@ class SnowfakeryShardManager:
         portions: PortionGenerator,
         get_upload_status: T.Callable,
     ):
-        def shard_with_free_space():
-            return [shard for shard in self.shards if not shard.full]
+        def channel_with_free_space():
+            return [channel for channel in self.channels if not channel.full]
 
         new_workers = [True]  # initial value to get into the while loop
-        shards = shard_with_free_space()
+        channels = channel_with_free_space()
         while (
-            shards
+            channels
             and any(new_workers)
             and not portions.done(upload_status.total_sets_working_on_or_uploaded)
         ):
-            # randomize shards so the first one doesn't always grab all slots
-            random.shuffle(shards)
+            # randomize channels so the first one doesn't always grab all slots
+            random.shuffle(channels)
             new_workers = [
-                shard.make_new_worker(
+                channel.make_new_worker(
                     template_path, tempdir, portions, get_upload_status
                 )
-                for shard in shards
+                for channel in channels
             ]
-            shards = shard_with_free_space()
+            channels = channel_with_free_space()
 
     def get_upload_status(self, batch_size, sets_finished_while_generating_template):
         """Combine information from the different data sources into a single "report".
 
         Useful for debugging but also for making decisions about what to do next."""
         summed_statuses = defaultdict(int)
-        for shard in self.shards:
-            for key, value in shard.get_upload_status_for_shard().items():
+        for channel in self.channels:
+            for key, value in channel.get_upload_status_for_channel().items():
                 summed_statuses[key] += value
 
         summed_statuses["sets_finished"] += sets_finished_while_generating_template
@@ -131,7 +133,7 @@ class SnowfakeryShardManager:
             target_count=self.subtask_configurator.run_until.gap,
             elapsed_seconds=int(self.elapsed_seconds()),
             batch_size=batch_size,
-            shards=len(self.shards),
+            channels=len(self.channels),
             **summed_statuses,
         )
 
@@ -141,27 +143,20 @@ class SnowfakeryShardManager:
     def failure_descriptions(self) -> T.List[str]:
         """Log failures from sub-processes to main process"""
         ret = []
-        for shard in self.shards:
-            ret.extend(shard.failure_descriptions())
+        for channel in self.channels:
+            ret.extend(channel.failure_descriptions())
         return ret
 
     def check_finished(self) -> bool:
-        for shard in self.shards:
-            shard.tick()
-        return all([shard.check_finished() for shard in self.shards])
+        for channel in self.channels:
+            channel.tick()
+        return all([channel.check_finished() for channel in self.channels])
 
     def get_results_report(self, block=False):
         return self.results_reporter.get(block=block)
 
-    # @property
-    # def outbox_dir(self):
-    #     outbox_dirs = [shard.outbox_dir for shard in self.shards]
-    #     # should be just one
-    #     assert len(set(outbox_dirs)) == 1, set(outbox_dirs)
-    #     return outbox_dirs[0]
 
-
-class Shard:
+class Channel:
     def __init__(
         self,
         *,
@@ -171,6 +166,7 @@ class Shard:
         working_directory: Path,
         subtask_configurator: SubtaskConfigurator,
         logger,
+        recipe_options=None,
         results_reporter=None,
     ):
         self.project_config = project_config
@@ -182,9 +178,10 @@ class Shard:
         self.logger = logger
         self.results_reporter = results_reporter
         self.job_counter = 0
-        self._configure_queues()
+        recipe_options = recipe_options or {}
+        self._configure_queues(recipe_options)
 
-    def _configure_queues(self):
+    def _configure_queues(self, recipe_options):
         """Configure two ParallelWorkerQueues for datagen and dataload"""
         try:
             # in the future, the connected_app should come from the org
@@ -192,6 +189,11 @@ class Shard:
         except exc.ServiceNotConfigured:  # pragma: no cover
             # to discuss...when can this happen? What are the consequences?
             connected_app = None
+
+        def data_generator_opts_callback(*args, **kwargs):
+            return self.subtask_configurator.data_generator_opts(
+                *args, recipe_options=recipe_options, **kwargs
+            )
 
         data_gen_q_config = WorkerQueueConfig(
             project_config=self.project_config,
@@ -203,7 +205,7 @@ class Shard:
             parent_dir=self.working_directory,
             name="data_gen",
             task_class=GenerateDataFromYaml,
-            make_task_options=self.subtask_configurator.data_generator_opts,
+            make_task_options=data_generator_opts_callback,
             queue_size=0,
             num_workers=self.num_generator_workers,
         )
@@ -280,7 +282,7 @@ class Shard:
         shutil.copytree(template_path, data_dir)
         return data_dir
 
-    def get_upload_status_for_shard(self):
+    def get_upload_status_for_channel(self):
         def set_count_from_names(names):
             return sum(int(name.split("_")[1]) for name in names)
 
@@ -368,7 +370,7 @@ class UploadStatus(T.NamedTuple):
     inprogress_generator_jobs: int
     inprogress_loader_jobs: int
     data_gen_free_workers: int
-    shards: int
+    channels: int
 
     @property
     def total_in_flight(self):
@@ -392,8 +394,8 @@ class UploadStatus(T.NamedTuple):
             "sets_finished",
             "sets_failed",
         ]
-        if self.shards > 1:
-            most_important_stats.append("shards")
+        if self.channels > 1:
+            most_important_stats.append("channels")
 
         queue_stats = [
             "inprogress_generator_jobs",
