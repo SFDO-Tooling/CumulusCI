@@ -49,14 +49,19 @@ class SnowfakeryChannelManager:
         self,
         org_config: OrgConfig,
         num_generator_workers: int,
+        num_loader_workers: T.Optional[int],
         working_directory: Path,
         recipe_options: dict,
     ):
+        if not num_loader_workers:
+            num_loader_workers = num_generator_workers * WORKER_TO_LOADER_RATIO
+
         self.channels.append(
             Channel(
                 project_config=self.project_config,
                 org_config=org_config,
                 num_generator_workers=num_generator_workers,
+                num_loader_workers=num_loader_workers,
                 working_directory=working_directory,
                 subtask_configurator=self.subtask_configurator,
                 logger=self.logger,
@@ -163,6 +168,7 @@ class Channel:
         project_config,
         org_config,
         num_generator_workers: int,
+        num_loader_workers: int,
         working_directory: Path,
         subtask_configurator: SubtaskConfigurator,
         logger,
@@ -172,6 +178,7 @@ class Channel:
         self.project_config = project_config
         self.org_config = org_config
         self.num_generator_workers = num_generator_workers
+        self.num_loader_workers = num_loader_workers
         self.working_directory = working_directory
         self.subtask_configurator = subtask_configurator
         self.run_until = subtask_configurator.run_until
@@ -232,10 +239,6 @@ class Channel:
 
     def data_loader_new_directory_name(self, working_directory):
         return data_loader_new_directory_name(working_directory, self.run_until)
-
-    @property
-    def num_loader_workers(self):
-        return self.num_generator_workers * WORKER_TO_LOADER_RATIO
 
     def tick(
         self,

@@ -4,6 +4,7 @@ import typing as T
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import timedelta
+from math import ceil
 from pathlib import Path
 from queue import Empty
 from tempfile import TemporaryDirectory, mkdtemp
@@ -126,9 +127,8 @@ class Snowfakery(BaseSalesforceApiTask):
 
              Example: --recipe_options weight:10,color:purple""",
         },
-        # FIXME: Implement this
-        "serial_mode": {
-            "description": "Serialize everything: data generation, data loading, data ingestion through bulk API. Overriden by .load.yml"
+        "bulk_mode": {
+            "description": "Set to Serial to serialize everything: data generation, data loading, data ingestion through bulk API. Parallel is the default."
         },
         "drop_missing_schema": {
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
@@ -161,7 +161,9 @@ class Snowfakery(BaseSalesforceApiTask):
         self.recipe_options = process_list_of_pairs_dict_arg(
             self.options.get("recipe_options") or {}
         )
-        self.serial_mode = process_bool_arg(self.options.get("serial_mode") or False)
+        self.bulk_mode = self.options.get("bulk_mode", "Parallel").title()
+        if self.bulk_mode and self.bulk_mode not in ["Serial", "Parallel"]:
+            raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
 
     def _init_channel_decls(self, recipe):
         channel_decls = read_channel_declarations(recipe, self.loading_rules)
@@ -170,10 +172,15 @@ class Snowfakery(BaseSalesforceApiTask):
             self.channel_configs = channel_configs_from_decls(
                 channel_decls, self.project_config.keychain
             )
-        elif self.serial_mode:
-            # FIXME: Add a serial mode that goes all the way down for all sobjects
-            # self.channel_configs = [serial_channel_config()]
-            raise NotImplementedError()
+        elif self.bulk_mode == "Serial":
+            self.channel_configs = [
+                standard_channel_config(
+                    self.org_config,
+                    self.recipe_options,
+                    1,
+                    1,
+                )
+            ]
         else:
             self.channel_configs = [
                 standard_channel_config(
@@ -241,9 +248,7 @@ class Snowfakery(BaseSalesforceApiTask):
 
     def configure_queues(self, working_directory):
         subtask_configurator = SubtaskConfigurator(
-            self.recipe,
-            self.run_until,
-            self.ignore_row_errors,
+            self.recipe, self.run_until, self.ignore_row_errors, self.bulk_mode
         )
         self.queue_manager = SnowfakeryChannelManager(
             project_config=self.project_config,
@@ -254,7 +259,8 @@ class Snowfakery(BaseSalesforceApiTask):
             channel = self.channel_configs[0]
             self.queue_manager.add_channel(
                 org_config=channel.org_config,
-                num_generator_workers=self.num_generator_workers,
+                num_generator_workers=channel.declaration.num_generators,
+                num_loader_workers=channel.declaration.num_loaders,
                 working_directory=working_directory,
                 recipe_options=channel.declaration.recipe_options,
             )
@@ -262,16 +268,37 @@ class Snowfakery(BaseSalesforceApiTask):
             self.configure_channels(working_directory)
 
     def configure_channels(self, working_directory):
-        # TODO: Implement serial mode for channels
+        allocated_generator_workers = sum(
+            (channel.declaration.num_generators or 0)
+            for channel in self.channel_configs
+        )
+        channels_without_workers = len(
+            [
+                channel.declaration.num_generators
+                for channel in self.channel_configs
+                if not channel.declaration.num_generators
+            ]
+        )
+        remaining_generator_workers = (
+            self.num_generator_workers - allocated_generator_workers
+        )
+        num_generators_per_channel = ceil(
+            remaining_generator_workers / channels_without_workers
+        )
         for idx, channel in enumerate(self.channel_configs):
             if self.debug_mode:
                 self.logger.info("Initializing %s", channel)
             channel_wd = working_directory / f"channel_{idx}"
             channel_wd.mkdir()
             recipe_options = channel.merge_recipe_options(self.recipe_options)
+            generator_workers = (
+                channel.declaration.num_generators or num_generators_per_channel
+            )
+
             self.queue_manager.add_channel(
                 org_config=channel.org_config,
-                num_generator_workers=self.num_generator_workers,
+                num_generator_workers=generator_workers,
+                num_loader_workers=channel.declaration.num_loaders,
                 working_directory=channel_wd,
                 recipe_options=recipe_options,
             )
@@ -504,6 +531,7 @@ class Snowfakery(BaseSalesforceApiTask):
                 "loading_rules": self.loading_rules,
                 "vars": channel_decl.merge_recipe_options(self.recipe_options),
                 "plugin_options": plugin_options,
+                "bulk_mode": self.bulk_mode,
             },
         )
         self.update_running_totals_from_load_step_results(results)

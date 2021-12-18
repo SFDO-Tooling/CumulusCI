@@ -1,3 +1,4 @@
+import re
 import typing as T
 from collections import Counter
 from contextlib import contextmanager
@@ -412,7 +413,6 @@ class TestSnowfakery:
             )
             task.logger = mock.Mock()
             task()
-        print(task.logger.mock_calls)
         assert len(mock_load_data.mock_calls) == 2, mock_load_data.mock_calls
         assert len(threads_instead_of_processes.mock_calls) == 1
 
@@ -764,6 +764,37 @@ class TestSnowfakery:
                 "channeltest-c",
                 "Account",
             }
+
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
+    def test_serial_mode(self, mock_load_data, create_task):
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": Path(__file__).parent
+                / "snowfakery/simple_snowfakery.recipe.yml",
+                "run_until_recipe_repeated": 15,
+                "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
+                "loading_rules": Path(__file__).parent
+                / "snowfakery/simple_snowfakery_channels.load.yml",
+                "bulk_mode": "Serial",
+            },
+        )
+        with mock.patch.object(
+            task.project_config, "keychain", DummyKeychain()
+        ) as keychain:
+            keychain.get_org = mock.Mock(
+                wraps=lambda username: DummyOrgConfig(
+                    config={"keychain": keychain, "username": username}
+                )
+            )
+            task.logger = mock.Mock()
+            task()
+            for data_load_fake in mock_load_data.mock_calls:
+                assert data_load_fake.options["bulk_mode"] == "Serial"
+            pattern = r"Inprogress Loader Jobs: (\d+)"
+            loader_counts = re.findall(pattern, str(task.logger.mock_calls))
+            assert loader_counts, loader_counts
+            assert 0 <= all(int(count) <= 1 for count in loader_counts), loader_counts
 
     # def test_generate_mapping_file(self):
     #     with temporary_file_path("mapping.yml") as temp_mapping:
