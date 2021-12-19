@@ -1,6 +1,7 @@
 import io
 import os
-from contextlib import contextmanager
+import pathlib
+from contextlib import ExitStack, contextmanager
 from http.client import HTTPMessage
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -17,12 +18,36 @@ from cumulusci.salesforce_api.org_schema_models import Base
 from cumulusci.tasks.salesforce.tests.util import create_task_fixture
 from cumulusci.tests.pytest_plugins.pytest_sf_vcr import salesforce_vcr, vcr_config
 from cumulusci.tests.util import DummyKeychain, DummyOrgConfig, mock_env
+from cumulusci.utils import cd
 
 
 @fixture(scope="session", autouse=True)
 def mock_sleep():
     """Patch time.sleep to avoid delays in unit tests"""
     with mock.patch("time.sleep"):
+        yield
+
+
+@fixture(scope="session", autouse=True)
+def projectdir():
+    """Make sure tests run with test_project as the current directory.
+
+    And if it's not yet set up as a git repository, make it so.
+    """
+    git_folder = pathlib.Path(".git")
+    if not git_folder.exists():
+        git_folder.mkdir()
+        (git_folder / "config").write_text(
+            """[remote "origin"]
+    url = git@github.com:SFDO-Tooling/CumulusCI.git
+    fetch = +refs/heads/*:refs/remotes/origin/*
+"""
+        )
+        (git_folder / "HEAD").write_text("ref: main")
+    # tox automatically changes directory to test_project, but pytest does not
+    with ExitStack() as stack:
+        if pathlib.Path("test_project").exists():
+            stack.enter_context(cd("test_project"))
         yield
 
 
@@ -123,14 +148,14 @@ def delete_data_from_org(create_task):
 
 
 @pytest.fixture(scope="session")
-def cumulusci_test_repo_root():
-    return Path(__file__).parent.parent
+def cumulusci_package_path():
+    return Path(__file__).parent
 
 
 @pytest.fixture(scope="session")
-def global_describe(cumulusci_test_repo_root):
+def global_describe(cumulusci_package_path):
     global_describe_file = (
-        cumulusci_test_repo_root / "cumulusci/tasks/bulkdata/tests/global_describe.json"
+        cumulusci_package_path / "tasks/bulkdata/tests/global_describe.json"
     )
     with global_describe_file.open() as f:
         data = yaml.safe_load(f)

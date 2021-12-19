@@ -1,0 +1,4 @@
+# yaml-language-server: $schema=../cumulusci/schema/cumulusci.jsonschema.json
+project:
+    package:
+        name: CumulusCI

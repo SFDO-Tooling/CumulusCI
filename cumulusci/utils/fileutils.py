@@ -43,7 +43,7 @@ def load_from_source(source: DataInput) -> ContextManager[Tuple[IO[Text], Text]]
     ...      print(safe_load(file).keys())
     ...
     cumulusci.yml
-    dict_keys(['project', 'tasks', 'flows', 'orgs'])
+    dict_keys(['project'])
 
     >>> with load_from_source('http://www.salesforce.com') as (file, path):
     ...     print(path)
@@ -65,10 +65,10 @@ def load_from_source(source: DataInput) -> ContextManager[Tuple[IO[Text], Text]]
     >>> p = Path(".") / "cumulusci.yml"
     >>> with load_from_source(p) as (file, path):
     ...     print(path)
-    ...     print(file.readline().strip())
+    ...     print(file.readline().strip())  #doctest: +ELLIPSIS
     ...
     cumulusci.yml
-    # yaml-language-server: $schema=cumulusci/schema/cumulusci.jsonschema.json
+    # yaml-language-server: ...
     """
     if (
         hasattr(source, "read") and hasattr(source, "readable") and source.readable()

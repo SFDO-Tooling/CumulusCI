@@ -129,36 +129,32 @@ class TestUtils:
             logger.info.assert_called_once()
             assert os.listdir(d) == ["bar"]
 
-    def test_elementtree_parse_file(self, cumulusci_test_repo_root):
+    def test_elementtree_parse_file(self, cumulusci_package_path):
         tree = elementtree_parse_file(
-            cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml"
+            cumulusci_package_path / "files/admin_profile.xml"
         )
         assert tree.getroot().tag.startswith("{")
 
-    def test_elementtree_parse_file_pathstr(self, cumulusci_test_repo_root):
+    def test_elementtree_parse_file_pathstr(self, cumulusci_package_path):
         tree = elementtree_parse_file(
-            str(cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml")
+            str(cumulusci_package_path / "files/admin_profile.xml")
         )
         assert tree.getroot().tag.startswith("{")
 
-    def test_lxml_parse_file(self, cumulusci_test_repo_root):
-        tree = lxml_parse_file(
-            cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml"
-        )
+    def test_lxml_parse_file(self, cumulusci_package_path):
+        tree = lxml_parse_file(cumulusci_package_path / "files/admin_profile.xml")
         assert tree.getroot().tag.startswith("{")
 
-    def test_lxml_parse_stream(self, cumulusci_test_repo_root):
+    def test_lxml_parse_stream(self):
         data = io.StringIO("<Foo/>")
         tree = lxml_parse_file(data)
         assert tree.getroot().tag == "Foo"
 
-    def test_lxml_parse_file_pathstr(self, cumulusci_test_repo_root):
-        tree = lxml_parse_file(
-            str(cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml")
-        )
+    def test_lxml_parse_file_pathstr(self, cumulusci_package_path):
+        tree = lxml_parse_file(str(cumulusci_package_path / "files/admin_profile.xml"))
         assert tree.getroot().tag.startswith("{")
 
-    def test_elementtree_parse_stream(self, cumulusci_test_repo_root):
+    def test_elementtree_parse_stream(self):
         data = io.StringIO("<Foo/>")
         tree = elementtree_parse_file(data)
         assert tree.getroot().tag == "Foo"

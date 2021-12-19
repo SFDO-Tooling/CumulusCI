@@ -21,14 +21,9 @@ class TestCumulusciYml:
         cciyml = parse_from_yaml("cumulusci.yml")
         assert cciyml.project.package.name == "CumulusCI"
         assert cciyml["project"]["package"]["name"] == "CumulusCI"
-        assert (
-            cciyml.tasks["robot"].options["suites"]
-            == cciyml["tasks"]["robot"]["options"]["suites"]
-            == "cumulusci/robotframework/tests"
-        )
 
-    def test_cumulusci_cumulusci_yaml(self):
-        cciyml = parse_from_yaml("cumulusci/cumulusci.yml")
+    def test_cumulusci_cumulusci_yaml(self, cumulusci_package_path):
+        cciyml = parse_from_yaml(cumulusci_package_path / "cumulusci.yml")
         assert cciyml.tasks["connected_app"].options["overwrite"] is False
 
     def test_parse_cumulusci_yaml(self):

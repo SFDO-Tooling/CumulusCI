@@ -16,6 +16,7 @@ import cumulusci
 from cumulusci.cli import cci
 from cumulusci.cli.tests.utils import run_click_command
 from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.debug import get_debug_mode
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.utils import temporary_dir
 
@@ -467,39 +468,19 @@ def test_cover_command_groups():
 @mock.patch("pdb.post_mortem", MagicMock())
 @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", MagicMock())
 @mock.patch("cumulusci.cli.cci.init_logger", MagicMock())
-@mock.patch("cumulusci.cli.cci.get_tempfile_logger")
-def test_run_task_debug(get_tempfile_logger):
-    get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
-
-    gipnew = "cumulusci.tasks.preflight.packages.GetInstalledPackages._run_task"
-    with mock.patch(gipnew, mock_validate_debug(False)):
-        cci.main(["cci", "task", "run", "get_installed_packages"])
-    with mock.patch(gipnew, mock_validate_debug(True)):
-        cci.main(["cci", "task", "run", "get_installed_packages", "--debug"])
-
-
-@mock.patch(
-    "cumulusci.cli.runtime.CliRuntime.get_org",
-    lambda *args, **kwargs: (MagicMock(), MagicMock()),
-)
-@mock.patch("cumulusci.core.runtime.BaseCumulusCI._load_keychain", MagicMock())
-@mock.patch("pdb.post_mortem", MagicMock())
-@mock.patch("cumulusci.cli.cci.tee_stdout_stderr", MagicMock())
-@mock.patch("cumulusci.cli.cci.init_logger", MagicMock())
 @mock.patch("cumulusci.tasks.robotframework.RobotLibDoc", MagicMock())
 @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
-def test_run_flow_debug(get_tempfile_logger):
+def test_debug_mode(get_tempfile_logger):
+    # Make sure the debug flag enables debug mode
     get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
-    rtd = "cumulusci.tasks.robotframework.RobotTestDoc._run_task"
 
-    with mock.patch(rtd, mock_validate_debug(False)):
-        cci.main(["cci", "flow", "run", "robot_docs"])
-    with mock.patch(rtd, mock_validate_debug(True)):
-        cci.main(["cci", "flow", "run", "robot_docs", "--debug"])
+    def check_debug_mode(expected):
+        def checker(*args, **kw):
+            assert get_debug_mode() == expected
 
+        return checker
 
-def mock_validate_debug(value):
-    def _run_task(self, *args, **kwargs):
-        assert bool(self.debug_mode) == bool(value)
-
-    return _run_task
+    with mock.patch("cumulusci.cli.cci.cli", check_debug_mode(False)):
+        cci.main(["cci", "flow", "run", "some_flow"])
+    with mock.patch("cumulusci.cli.cci.cli", check_debug_mode(True)):
+        cci.main(["cci", "flow", "run", "some_flow", "--debug"])

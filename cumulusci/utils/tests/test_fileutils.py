@@ -166,7 +166,7 @@ class TestFSResource(_TestFSResourceShared):
         url = f"file://{relpath}"
         with open_fs_resource(url) as resource:
             assert resource.exists()
-            assert relpath in resource
+            assert os.path.realpath(self.file) in resource
 
     def test_resource_test_resource_doesnt_exist_pathlib_relpath(self):
         relpath = os.path.relpath(self.file)

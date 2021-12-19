@@ -23,7 +23,7 @@ def flow():
 @flow.command(name="doc", help="Exports RST format documentation for all flows")
 @pass_runtime(require_project=False)
 def flow_doc(runtime):
-    flow_info_path = Path(__file__, "..", "..", "..", "docs", "flows.yml").resolve()
+    flow_info_path = (Path(__file__).parent / "flows.yml").resolve()
     with open(flow_info_path, "r", encoding="utf-8") as f:
         flow_info = load_yaml_data(f)
     click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
