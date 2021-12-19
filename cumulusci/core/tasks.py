@@ -8,6 +8,7 @@ import os
 import re
 import threading
 import time
+from contextlib import nullcontext
 
 from cumulusci import __version__
 from cumulusci.core.debug import get_debug_mode
@@ -24,13 +25,6 @@ CURRENT_TASK = threading.local()
 
 PROJECT_CONFIG_RE = re.compile(r"\$project_config.(\w+)")
 CAPTURE_TASK_OUTPUT = os.environ.get("CAPTURE_TASK_OUTPUT")
-
-
-# We can't use contextlib.nullcontext yet
-# because it isn't present in Python 3.6
-@contextlib.contextmanager
-def nullcontext():
-    yield
 
 
 @contextlib.contextmanager

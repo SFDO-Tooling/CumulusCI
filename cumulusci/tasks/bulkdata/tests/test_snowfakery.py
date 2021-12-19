@@ -86,6 +86,8 @@ class FakeLoadData(BaseSalesforceApiTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    # Manipulating "self" from a mock side-effect is a challenge.
+    # So we need a "real function"
     def __call__(self, *args, **kwargs):
         """Like the __call__ of _run_task, but also capture calls
         in a normal mock_values structure."""
@@ -527,7 +529,7 @@ class TestSnowfakery:
         class LoadDataSucceedsOnceThenFails:
             count = 0
 
-            def __call__(self):
+            def __call__(self, *args, **kwargs):
                 self.count += 1
                 if self.count > 1:
                     raise AssertionError("XYZZY")
