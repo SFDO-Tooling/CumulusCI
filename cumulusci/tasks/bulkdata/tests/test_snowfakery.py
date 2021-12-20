@@ -80,8 +80,10 @@ def table_values(connection, table):
 class FakeLoadData(BaseSalesforceApiTask):
     """Simulates load results without doing a real load."""
 
+    # these are all used as mutable class variables
     mock_calls: list  # similar to how a mock.Mock() object works
     fake_return_values: T.Iterator
+    fake_exception_on_request = -1
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -91,6 +93,11 @@ class FakeLoadData(BaseSalesforceApiTask):
     def __call__(self, *args, **kwargs):
         """Like the __call__ of _run_task, but also capture calls
         in a normal mock_values structure."""
+
+        print("SFX", self.fake_exception_on_request)
+
+        if len(self.__class__.mock_calls) == self.__class__.fake_exception_on_request:
+            raise AssertionError("You asked me to raise an exception")
 
         # get the values that the Snowfakery task asked us to load and
         # remember them for later inspection.
@@ -103,10 +110,19 @@ class FakeLoadData(BaseSalesforceApiTask):
         assert self not in self.mock_calls
         self.__class__.mock_calls.append(self)
 
+    # using mutable class variables is not something I would usually do
+    # because it is not thread safe, but the test intrinsically uses
+    # threads and therefore is not thread safe in general.
+    #
+    # Furthermore, attempts to use a closure instead of mutable class
+    # variables just doesn't work because of how Snowfakery instantiates
+    # tasks in sub-threads.
     @classmethod
-    def reset(cls):
+    def reset(cls, fake_exception_on_request=-1):
         cls.mock_calls = []
         cls.fake_return_values = cycle(iter(FAKE_LOAD_RESULTS))
+        print("ZZZ reset", fake_exception_on_request)
+        cls.fake_exception_on_request = fake_exception_on_request
 
 
 def db_values_from_db_url(database_url):
@@ -139,6 +155,7 @@ def mock_load_data(
         fake_load_data.reset()
 
         yield fake_load_data
+        fake_load_data.reset()
 
 
 @pytest.fixture
@@ -842,6 +859,33 @@ class TestSnowfakery:
 
             keychain.get_org = mock.Mock(wraps=get_org)
             task()
+
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
+    def test_error_handling_in_channels(self, mock_load_data, create_task):
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": Path(__file__).parent
+                / "snowfakery/simple_snowfakery.recipe.yml",
+                "run_until_recipe_repeated": 15,
+                "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
+                "loading_rules": Path(__file__).parent
+                / "snowfakery/simple_snowfakery_channels.load.yml",
+            },
+        )
+        with mock.patch.object(
+            task.project_config, "keychain", DummyKeychain()
+        ) as keychain:
+
+            def get_org(username):
+                return DummyOrgConfig(
+                    config={"keychain": keychain, "username": username}
+                )
+
+            keychain.get_org = mock.Mock(wraps=get_org)
+            with pytest.raises(exc.BulkDataException):
+                mock_load_data.reset(fake_exception_on_request=3)
+                task()
 
     # def test_generate_mapping_file(self):
     #     with temporary_file_path("mapping.yml") as temp_mapping:

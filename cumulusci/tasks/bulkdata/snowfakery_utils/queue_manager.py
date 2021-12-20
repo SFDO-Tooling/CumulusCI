@@ -249,8 +249,10 @@ class Channel:
         portions: PortionGenerator,
         get_upload_status: T.Callable,
     ):
-        if self.data_gen_q.num_free_workers and self.data_gen_q.full:
-            # check whether this case can ever actually execute
+        if (
+            self.data_gen_q.num_free_workers and self.data_gen_q.full
+        ):  # pragma: no cover
+            # TODO: investigate the consequences of taking this branch out
             self.logger.info("Waiting before datagen (load queue is full)")
         else:
             upload_status = get_upload_status(
@@ -323,10 +325,6 @@ class Channel:
         self.data_gen_q.tick()
         still_running = len(self.data_gen_q.workers + self.load_data_q.workers) > 0
         return not still_running
-
-    @property
-    def outbox_dir(self):
-        return self.load_data_q.outbox_dir
 
 
 # TODO: This function is actually based on the number generated,
