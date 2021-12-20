@@ -5,7 +5,7 @@ import os
 import random
 import sys
 import tracemalloc
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from unittest import mock
 
@@ -15,7 +15,6 @@ from requests import ReadTimeout
 from cumulusci.core.config import BaseProjectConfig, OrgConfig, UniversalConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.bulkdata.tests import utils as bulkdata_utils
-from cumulusci.utils.backports.py36 import nullcontext
 
 
 def random_sha():

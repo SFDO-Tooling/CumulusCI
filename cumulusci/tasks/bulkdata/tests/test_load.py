@@ -6,6 +6,7 @@ import shutil
 import string
 import tempfile
 import unittest
+from contextlib import nullcontext
 from datetime import date, timedelta
 from unittest import mock
 
@@ -31,7 +32,6 @@ from cumulusci.tasks.bulkdata.tests.utils import (
 )
 from cumulusci.tests.util import assert_max_memory_usage, mock_describe_calls
 from cumulusci.utils import temporary_dir
-from cumulusci.utils.backports.py36 import nullcontext
 
 
 class TestLoadData(unittest.TestCase):
