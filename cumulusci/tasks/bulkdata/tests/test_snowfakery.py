@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from itertools import cycle
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from threading import Thread
+from threading import Lock, Thread
 from unittest import mock
 
 import pytest
@@ -84,6 +84,7 @@ class FakeLoadData(BaseSalesforceApiTask):
     mock_calls: list  # similar to how a mock.Mock() object works
     fake_return_values: T.Iterator
     fake_exception_on_request = -1
+    lock = Lock()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -94,21 +95,25 @@ class FakeLoadData(BaseSalesforceApiTask):
         """Like the __call__ of _run_task, but also capture calls
         in a normal mock_values structure."""
 
-        print("SFX", self.fake_exception_on_request)
+        with self.lock:  # the code below looks thread-safe but better safe than sorry
 
-        if len(self.__class__.mock_calls) == self.__class__.fake_exception_on_request:
-            raise AssertionError("You asked me to raise an exception")
+            # tasks usually aren't called twice after being instantiated
+            # that would usually be a bug.
+            assert self not in self.mock_calls
+            self.__class__.mock_calls.append(self)
 
-        # get the values that the Snowfakery task asked us to load and
-        # remember them for later inspection.
-        self.values_loaded = db_values_from_db_url(self.options["database_url"])
+            if (
+                len(self.__class__.mock_calls)
+                == self.__class__.fake_exception_on_request
+            ):
+                raise AssertionError("You asked me to raise an exception")
 
-        # return a fake return value so Snowfakery loader doesn't get confused
-        self.return_values = {"step_results": next(self.fake_return_values)}
-        # tasks usually aren't called twice after being instantiated
-        # that would usually be a bug.
-        assert self not in self.mock_calls
-        self.__class__.mock_calls.append(self)
+            # get the values that the Snowfakery task asked us to load and
+            # remember them for later inspection.
+            self.values_loaded = db_values_from_db_url(self.options["database_url"])
+
+            # return a fake return value so Snowfakery loader doesn't get confused
+            self.return_values = {"step_results": next(self.fake_return_values)}
 
     # using mutable class variables is not something I would usually do
     # because it is not thread safe, but the test intrinsically uses
@@ -121,7 +126,6 @@ class FakeLoadData(BaseSalesforceApiTask):
     def reset(cls, fake_exception_on_request=-1):
         cls.mock_calls = []
         cls.fake_return_values = cycle(iter(FAKE_LOAD_RESULTS))
-        print("ZZZ reset", fake_exception_on_request)
         cls.fake_exception_on_request = fake_exception_on_request
 
 
@@ -470,7 +474,16 @@ class TestSnowfakery:
 
     def test_record_count(self, snowfakery, mock_load_data):
         task = snowfakery(recipe="datasets/recipe.yml", run_until_recipe_repeated="4")
-        with mock.patch.object(task, "logger") as logger:
+        with mock.patch.object(task, "logger") as logger, mock.patch.object(
+            task.project_config, "keychain", DummyKeychain()
+        ) as keychain:
+
+            def get_org(username):
+                return DummyOrgConfig(
+                    config={"keychain": keychain, "username": username}
+                )
+
+            keychain.get_org = mock.Mock(wraps=get_org)
             task()
         mock_calls_as_string = str(logger.mock_calls)
         assert "Account: 5 successes" in mock_calls_as_string, mock_calls_as_string[
