@@ -628,8 +628,6 @@ class TestSnowfakery:
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
     def test_two_channels(self, mock_load_data, create_task):
-        # test_channels_get_unique_email_addresses
-
         task = create_task(
             Snowfakery,
             {
@@ -642,11 +640,13 @@ class TestSnowfakery:
         with mock.patch.object(
             task.project_config, "keychain", DummyKeychain()
         ) as keychain:
-            keychain.get_org = mock.Mock(
-                wraps=lambda username: DummyOrgConfig(
+
+            def get_org(username):
+                return DummyOrgConfig(
                     config={"keychain": keychain, "username": username}
                 )
-            )
+
+            keychain.get_org = mock.Mock(wraps=get_org)
             task()
             assert keychain.get_org.mock_calls
             assert keychain.get_org.call_args_list
@@ -710,11 +710,13 @@ class TestSnowfakery:
         with pytest.raises(exc.TaskOptionsError) as e, mock.patch.object(
             task.project_config, "keychain", DummyKeychain()
         ) as keychain:
-            keychain.get_org = mock.Mock(
-                wraps=lambda username: DummyOrgConfig(
+
+            def get_org(username):
+                return DummyOrgConfig(
                     config={"keychain": keychain, "username": username}
                 )
-            )
+
+            keychain.get_org = mock.Mock(wraps=get_org)
             task()
         assert "conflict" in str(e.value)
         assert "some_number" in str(e.value)
@@ -730,16 +732,19 @@ class TestSnowfakery:
                 "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
                 "loading_rules": Path(__file__).parent
                 / "snowfakery/simple_snowfakery_channels.load.yml",
+                "debug_mode": True,
             },
         )
         with mock.patch.object(
             task.project_config, "keychain", DummyKeychain()
         ) as keychain:
-            keychain.get_org = mock.Mock(
-                wraps=lambda username: DummyOrgConfig(
+
+            def get_org(username):
+                return DummyOrgConfig(
                     config={"keychain": keychain, "username": username}
                 )
-            )
+
+            keychain.get_org = mock.Mock(wraps=get_org)
             task()
             assert keychain.get_org.mock_calls
             assert keychain.get_org.call_args_list
@@ -777,17 +782,18 @@ class TestSnowfakery:
                 "run_until_recipe_repeated": 15,
                 "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
                 "bulk_mode": "Serial",
-                "debug_mode": True,
             },
         )
         with mock.patch.object(
             task.project_config, "keychain", DummyKeychain()
         ) as keychain:
-            keychain.get_org = mock.Mock(
-                wraps=lambda username: DummyOrgConfig(
+
+            def get_org(username):
+                return DummyOrgConfig(
                     config={"keychain": keychain, "username": username}
                 )
-            )
+
+            keychain.get_org = mock.Mock(wraps=get_org)
             task.logger = mock.Mock()
             task()
             for data_load_fake in mock_load_data.mock_calls:
@@ -808,6 +814,31 @@ class TestSnowfakery:
                     "bulk_mode": "XYZZY",
                 },
             )
+            task()
+
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
+    def test_too_many_channel_declarations(self, mock_load_data, create_task):
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": Path(__file__).parent
+                / "snowfakery/simple_snowfakery_channels.recipe.yml",
+                "run_until_recipe_repeated": 15,
+                "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
+                "loading_rules": Path(__file__).parent
+                / "snowfakery/simple_snowfakery_channels_2.load.yml",
+            },
+        )
+        with pytest.raises(exc.TaskOptionsError), mock.patch.object(
+            task.project_config, "keychain", DummyKeychain()
+        ) as keychain:
+
+            def get_org(username):
+                return DummyOrgConfig(
+                    config={"keychain": keychain, "username": username}
+                )
+
+            keychain.get_org = mock.Mock(wraps=get_org)
             task()
 
     # def test_generate_mapping_file(self):
