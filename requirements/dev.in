@@ -16,6 +16,6 @@ Sphinx
 testfixtures
 tox
 twine
-typeguard
+typeguard==2.13.3
 vcrpy
 wheel

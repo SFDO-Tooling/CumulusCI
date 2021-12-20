@@ -235,7 +235,7 @@ tqdm==4.62.3
     # via twine
 twine==3.7.1
     # via -r requirements/dev.in
-typeguard==2.10.0
+typeguard==2.13.3
     # via -r requirements/dev.in
 typing-extensions==4.0.1
     # via

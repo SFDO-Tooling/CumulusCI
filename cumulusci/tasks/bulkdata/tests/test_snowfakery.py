@@ -721,6 +721,9 @@ class TestSnowfakery:
         assert "conflict" in str(e.value)
         assert "some_number" in str(e.value)
 
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.snowfakery.get_debug_mode", lambda: True
+    )  # for coverage
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
     def test_explicit_channel_declarations(self, mock_load_data, create_task):
         task = create_task(
@@ -732,7 +735,6 @@ class TestSnowfakery:
                 "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
                 "loading_rules": Path(__file__).parent
                 / "snowfakery/simple_snowfakery_channels.load.yml",
-                "debug_mode": True,
             },
         )
         with mock.patch.object(

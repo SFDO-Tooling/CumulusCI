@@ -1,7 +1,3 @@
-# TODO: make it so jobs are striped across channels
-# TODO: pass recipe options to recipe
-# TODO: implement full serial mode
-
 import random
 import shutil
 import time
