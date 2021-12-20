@@ -776,9 +776,8 @@ class TestSnowfakery:
                 / "snowfakery/simple_snowfakery.recipe.yml",
                 "run_until_recipe_repeated": 15,
                 "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
-                "loading_rules": Path(__file__).parent
-                / "snowfakery/simple_snowfakery_channels.load.yml",
                 "bulk_mode": "Serial",
+                "debug_mode": True,
             },
         )
         with mock.patch.object(
@@ -797,6 +796,19 @@ class TestSnowfakery:
             loader_counts = re.findall(pattern, str(task.logger.mock_calls))
             assert loader_counts, loader_counts
             assert 0 <= all(int(count) <= 1 for count in loader_counts), loader_counts
+
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
+    def test_bulk_mode_error(self, create_task, mock_load_data):
+        with pytest.raises(exc.TaskOptionsError):
+            task = create_task(
+                Snowfakery,
+                {
+                    "recipe": Path(__file__).parent
+                    / "snowfakery/simple_snowfakery.recipe.yml",
+                    "bulk_mode": "XYZZY",
+                },
+            )
+            task()
 
     # def test_generate_mapping_file(self):
     #     with temporary_file_path("mapping.yml") as temp_mapping:

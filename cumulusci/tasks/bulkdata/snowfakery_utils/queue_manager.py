@@ -70,10 +70,6 @@ class SnowfakeryChannelManager:
             )
         )
 
-    @property
-    def num_loader_workers(self):
-        return sum(channel.num_loader_workers for channel in self.channels)
-
     def tick(
         self,
         upload_status,
