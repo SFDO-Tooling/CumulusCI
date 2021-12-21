@@ -143,6 +143,7 @@ class Snowfakery(BaseSalesforceApiTask):
     }
 
     def _validate_options(self):
+        "Validate options before executing the task or before freezing it"
         super()._validate_options()
         # Do not store recipe due to MetaDeploy options freezing
         recipe = self.options.get("recipe")
@@ -165,7 +166,20 @@ class Snowfakery(BaseSalesforceApiTask):
         if self.bulk_mode and self.bulk_mode not in ["Serial", "Parallel"]:
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
 
-    def _init_channel_decls(self, recipe):
+    def _init_channel_configs(self, recipe):
+        """The channels describe the 'shape' of the communication
+
+        The normal case is a single, parallelized, bulk channel,
+        multi-threaded on client and server, using a single user
+        account.
+
+        Using .load.yml you can add more channels, utilizing
+        more user accounts which can speed up throughput in
+        a few cases.
+
+        This method reads files and options to determine
+        what channels should be created later.
+        """
         channel_decls = read_channel_declarations(recipe, self.loading_rules)
 
         if channel_decls:
@@ -192,6 +206,7 @@ class Snowfakery(BaseSalesforceApiTask):
             ]
 
     def setup(self):
+        """Setup for loading."""
         self.debug_mode = get_debug_mode()
         if not self.num_generator_workers:
             # logical CPUs do not really improve performance of CPU-bound
@@ -204,7 +219,7 @@ class Snowfakery(BaseSalesforceApiTask):
         self.start_time = time.time()
         self.recipe = Path(self.options.get("recipe"))
         self.sobject_counts = defaultdict(RunningTotals)
-        self._init_channel_decls(self.recipe)
+        self._init_channel_configs(self.recipe)
 
     ## Todo: Consider when this process runs longer than 2 Hours,
     # what will happen to my sf connection?
@@ -219,7 +234,7 @@ class Snowfakery(BaseSalesforceApiTask):
 
         working_directory = self.options.get("working_directory")
         with self.workingdir_or_tempdir(working_directory) as working_directory:
-            self.configure_queues(working_directory)
+            self._setup_channels_and_queues(working_directory)
             self.logger.info(f"Working directory is {working_directory}")
 
             if self.run_until.nothing_to_do:
@@ -246,7 +261,14 @@ class Snowfakery(BaseSalesforceApiTask):
             )
             self.finish()
 
-    def configure_queues(self, working_directory):
+    def _setup_channels_and_queues(self, working_directory):
+        """Set up all of the channels and queues.
+
+        In particular their directories and the in-memory
+        runtime datastructures.
+
+        Each channel can hold multiple queues.
+        """
         subtask_configurator = SubtaskConfigurator(
             self.recipe, self.run_until, self.ignore_row_errors, self.bulk_mode
         )
@@ -265,9 +287,12 @@ class Snowfakery(BaseSalesforceApiTask):
                 recipe_options=channel.declaration.recipe_options,
             )
         else:
-            self.configure_channels(working_directory)
+            self.configure_multiple_channels(working_directory)
 
-    def configure_channels(self, working_directory):
+    def configure_multiple_channels(self, working_directory):
+        """If there is more than one channel (=user account),
+        pre-allocate work among them.
+        """
         allocated_generator_workers = sum(
             (channel.declaration.num_generators or 0)
             for channel in self.channel_configs
@@ -372,6 +397,7 @@ class Snowfakery(BaseSalesforceApiTask):
         return upload_status
 
     def update_running_totals(self) -> None:
+        """Read and collate result reports from sub-processes/sub-threads"""
         while True:
             try:
                 results = self.queue_manager.get_results_report()
@@ -385,6 +411,7 @@ class Snowfakery(BaseSalesforceApiTask):
                 self.logger.warning(f"Unexpected message from subtask: {results}")
 
     def update_running_totals_from_load_step_results(self, results: dict) -> None:
+        """'Parse' the results from a load step, to keep track of row errors."""
         for result in results["step_results"].values():
             sobject_name = result["sobject"]
             totals = self.sobject_counts[sobject_name]
@@ -436,6 +463,11 @@ class Snowfakery(BaseSalesforceApiTask):
             self.logger.info(exception)
 
     def data_loader_opts(self, working_dir: Path):
+        """Callback for initializing a data loader task.
+
+        For all of our dataloader sub-threads, these options
+        will be applied.
+        """
         wd = SnowfakeryWorkingDirectory(working_dir)
 
         options = {
@@ -557,6 +589,9 @@ class Snowfakery(BaseSalesforceApiTask):
         return template_dir, wd.relevant_sobjects()
 
     def _generate_and_load_batch(self, tempdir, org_config, options) -> dict:
+        """Before the "full" dataload starts we do a single batch to
+        load singletons.
+        """
         options = {
             **options,
             "working_directory": tempdir,
@@ -588,6 +623,8 @@ class Snowfakery(BaseSalesforceApiTask):
 
 
 class RunningTotals:
+    """Keep track of # of row errors and successess"""
+
     errors: int = 0
     successes: int = 0
 
@@ -603,6 +640,7 @@ class RulesFileAndRules(T.NamedTuple):
 def _read_channel_declarations_from_file(
     loading_rules_file: Path,
 ) -> RulesFileAndRules:
+    """Look in a .load.yml file for the channel declarations"""
     with loading_rules_file.open() as f:
         decls = SObjectRuleDeclarationFile.parse_from_yaml(f)
         channel_decls = decls.channel_declarations or []
@@ -613,6 +651,10 @@ def _read_channel_declarations_from_file(
 def read_channel_declarations(
     recipe: Path, loading_rules_files: T.List[Path]
 ) -> T.List[ChannelDeclaration]:
+    """Find all appropriate channel declarations.
+
+    Some discovered through naming conventions, others
+    through command lines options or YML config."""
     implicit_rules_file = infer_load_file_path(recipe)
     if implicit_rules_file and implicit_rules_file.exists():
         loading_rules_files = loading_rules_files + [implicit_rules_file]
@@ -637,6 +679,12 @@ def read_channel_declarations(
 
 
 class ChannelConfig(T.NamedTuple):
+    """A channel represents a connection to Salesforce via a username.
+
+    It can also have recipe options and other documented properties.
+    https://github.com/SFDO-Tooling/Snowfakery/search?q=ChannelDeclaration
+    """
+
     org_config: OrgConfig
     declaration: ChannelDeclaration = None
 

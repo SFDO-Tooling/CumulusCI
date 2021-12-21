@@ -86,9 +86,6 @@ class FakeLoadData(BaseSalesforceApiTask):
     fake_exception_on_request = -1
     lock = Lock()
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     # Manipulating "self" from a mock side-effect is a challenge.
     # So we need a "real function"
     def __call__(self, *args, **kwargs):

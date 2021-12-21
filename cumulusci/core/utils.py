@@ -109,8 +109,9 @@ def process_list_arg(arg):
             args.append(part.strip())
         return args
     else:
-        getLogger(__file__).info(
-            f"Unknown argument type `{type(arg)}` for type `{arg}`"
+        getLogger(__file__).warn(
+            f"Unknown option type `{type(arg)}` for type `{arg}`."
+            "This will be an error in a future version of CCI."
         )
 
 
