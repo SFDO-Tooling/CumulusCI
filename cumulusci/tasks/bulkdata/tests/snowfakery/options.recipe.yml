@@ -1,5 +1,6 @@
-- option: xyzzy
+- option: row_count
+- option: account_name
 - object: Account
-  count: ${{xyzzy}}
+  count: ${{row_count}}
   fields:
-      value: ${{xyzzy}}
+      name: Account ${{account_name}}
