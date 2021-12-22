@@ -273,8 +273,13 @@ def get_record_counts_from_snowfakery_results(
     hould probably use return_values instead. (but you may need to implement it)"""
 
     rollups = Counter()
-    channeled_outboxes = results.working_dir.glob("*/data_load_outbox/*")
-    regular_outboxes = results.working_dir.glob("data_load_outbox/*")
+    # when there is more than one channel, the directory structure is deeper
+    channeled_outboxes = tuple(results.working_dir.glob("*/data_load_outbox/*"))
+    regular_outboxes = tuple(results.working_dir.glob("data_load_outbox/*"))
+
+    assert bool(regular_outboxes) ^ bool(
+        channeled_outboxes
+    ), f"One of regular_outboxes or channeled_outboxes should be available: {channeled_outboxes}, {regular_outboxes}"
     outboxes = tuple(channeled_outboxes) + tuple(regular_outboxes)
     for subdir in outboxes:
         record_counts = SnowfakeryWorkingDirectory(subdir).get_record_counts()

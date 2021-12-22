@@ -27,6 +27,16 @@ WORKER_TO_LOADER_RATIO = 4
 
 
 class SnowfakeryChannelManager:
+    """The channels describe the 'shape' of the communication
+
+    The normal case is a single, parallelized, bulk channel,
+    multi-threaded on client and server, using a single user
+    account.
+
+    Using .load.yml you can add more channels, utilizing
+    more user accounts which can speed up throughput in
+    a few cases."""
+
     def __init__(
         self,
         subtask_configurator,
@@ -80,7 +90,7 @@ class SnowfakeryChannelManager:
             channel.tick()
 
         # populate channels that have space
-        self.populate_channels(
+        self.assign_work_to_channels(
             upload_status,
             template_path,
             tempdir,
@@ -88,7 +98,7 @@ class SnowfakeryChannelManager:
             get_upload_status,
         )
 
-    def populate_channels(
+    def assign_work_to_channels(
         self,
         upload_status,
         template_path: Path,

@@ -689,9 +689,10 @@ class ChannelConfig(T.NamedTuple):
     declaration: ChannelDeclaration = None
 
     def merge_recipe_options(self, task_recipe_options):
+        """Merge the recipe options from the channel declaration with those from the task config"""
         channel_options = self.declaration.recipe_options or {}
         task_recipe_options = task_recipe_options or {}
-        self.check_confliction_options(channel_options, task_recipe_options)
+        self.check_conflicting_options(channel_options, task_recipe_options)
         recipe_options = {
             **task_recipe_options,
             **channel_options,
@@ -699,7 +700,8 @@ class ChannelConfig(T.NamedTuple):
         return recipe_options
 
     @staticmethod
-    def check_confliction_options(channel_options, task_recipe_options):
+    def check_conflicting_options(channel_options, task_recipe_options):
+        """Check that options do not conflict"""
         double_specified_options = set(task_recipe_options.keys()).intersection(
             set(channel_options.keys())
         )
@@ -720,6 +722,7 @@ def standard_channel_config(
     num_generators: int,
     num_loaders: int = None,
 ):
+    """Default configuration for a single-channel data-load"""
     channel = ChannelDeclaration(
         user="Username not used in this context",
         recipe_options=recipe_options,
@@ -734,6 +737,8 @@ def channel_configs_from_decls(
     channel_decls: T.List[ChannelDeclaration],
     keychain: BaseProjectKeychain,
 ):
+    """Reify channel configs and look up orgconfig"""
+
     def config_from_decl(decl):
         return ChannelConfig(keychain.get_org(decl.user), decl)
 
