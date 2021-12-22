@@ -6,7 +6,7 @@ factory-boy
 flake8<4
 furo
 isort
-jsonschema; python_version > '3.6'
+jsonschema
 pre-commit
 pytest
 pytest-random-order
@@ -16,6 +16,6 @@ Sphinx
 testfixtures
 tox
 twine
-typeguard==2.10.0
+typeguard
 vcrpy
 wheel

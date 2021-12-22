@@ -6,7 +6,7 @@
 import logging
 import shutil
 import typing as T
-from multiprocessing import get_context
+from multiprocessing import Queue, get_context
 from pathlib import Path
 from tempfile import gettempdir
 from threading import Thread
@@ -64,12 +64,13 @@ class WorkerQueue:
     def __init__(
         self,
         queue_config: WorkerQueueConfig,
+        results_reporter: Queue = None,
     ):
         self.config = queue_config
         # convenience access to names
         self._create_dirs()
         self.workers = []
-        self.results_reporter = self.context.Queue()
+        self.results_reporter = results_reporter or self.context.Queue()
 
     def __getattr__(self, name):
         """Convenience proxy for config values

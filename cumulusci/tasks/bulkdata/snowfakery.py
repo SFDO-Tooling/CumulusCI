@@ -4,18 +4,23 @@ import typing as T
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import timedelta
+from math import ceil
 from pathlib import Path
 from queue import Empty
 from tempfile import TemporaryDirectory, mkdtemp
 
 import psutil
-import yaml
-from snowfakery.api import COUNT_REPS
-from sqlalchemy import MetaData, Table, create_engine, func, select
+from snowfakery.api import COUNT_REPS, infer_load_file_path
+from snowfakery.cci_mapping_files.declaration_parser import (
+    ChannelDeclaration,
+    SObjectRuleDeclarationFile,
+)
 
 import cumulusci.core.exceptions as exc
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import OrgConfig, TaskConfig
 from cumulusci.core.debug import get_debug_mode
+from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.utils import (
     format_duration,
     process_bool_arg,
@@ -25,17 +30,15 @@ from cumulusci.core.utils import (
 from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
     GenerateAndLoadDataFromYaml,
 )
-from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateDataFromYaml
-from cumulusci.tasks.bulkdata.load import LoadData
-from cumulusci.tasks.bulkdata.snowfakery_utils.snowfakery_run_until import (
-    PortionGenerator,
-    determine_run_until,
-)
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue import (
-    WorkerQueue,
-    WorkerQueueConfig,
+
+from .snowfakery_utils.queue_manager import (
+    SnowfakeryChannelManager,
+    data_loader_new_directory_name,
 )
+from .snowfakery_utils.snowfakery_run_until import PortionGenerator, determine_run_until
+from .snowfakery_utils.snowfakery_working_directory import SnowfakeryWorkingDirectory
+from .snowfakery_utils.subtask_configurator import SubtaskConfigurator
 
 # A portion serves the same process in this system as a "batch" in
 # other systems. The term "batch" is not used to avoid confusion with
@@ -55,14 +58,6 @@ ERROR_THRESHOLD = (
 # time between "ticks" where the task re-evaluates its progress
 # relatively arbitrary trade-off between busy-waiting and adding latency.
 WAIT_TIME = 3
-
-# more loader workers than generators because they spend so much time
-# waiting for responses. 4:1 is an experimentally derived ratio
-WORKER_TO_LOADER_RATIO = 4
-
-# number of portions we will allow to be on-disk waiting to be loaded
-# higher numbers use more disk space.
-LOAD_QUEUE_SIZE = 15
 
 
 class Snowfakery(BaseSalesforceApiTask):
@@ -133,7 +128,7 @@ class Snowfakery(BaseSalesforceApiTask):
              Example: --recipe_options weight:10,color:purple""",
         },
         "bulk_mode": {
-            "description": "Set to Serial to force serial mode on all jobs. Parallel is the default."
+            "description": "Set to Serial to serialize everything: data generation, data loading, data ingestion through bulk API. Parallel is the default."
         },
         "drop_missing_schema": {
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
@@ -148,6 +143,7 @@ class Snowfakery(BaseSalesforceApiTask):
     }
 
     def _validate_options(self):
+        "Validate options before executing the task or before freezing it"
         super()._validate_options()
         # Do not store recipe due to MetaDeploy options freezing
         recipe = self.options.get("recipe")
@@ -166,12 +162,51 @@ class Snowfakery(BaseSalesforceApiTask):
         self.recipe_options = process_list_of_pairs_dict_arg(
             self.options.get("recipe_options") or {}
         )
+        self.bulk_mode = self.options.get("bulk_mode", "Parallel").title()
+        if self.bulk_mode and self.bulk_mode not in ["Serial", "Parallel"]:
+            raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
 
-    @property
-    def num_loader_workers(self):
-        return self.num_generator_workers * WORKER_TO_LOADER_RATIO
+    def _init_channel_configs(self, recipe):
+        """The channels describe the 'shape' of the communication
+
+        The normal case is a single, parallelized, bulk channel,
+        multi-threaded on client and server, using a single user
+        account.
+
+        Using .load.yml you can add more channels, utilizing
+        more user accounts which can speed up throughput in
+        a few cases.
+
+        This method reads files and options to determine
+        what channels should be created later.
+        """
+        channel_decls = read_channel_declarations(recipe, self.loading_rules)
+
+        if channel_decls:
+            self.channel_configs = channel_configs_from_decls(
+                channel_decls, self.project_config.keychain
+            )
+        elif self.bulk_mode == "Serial":
+            self.channel_configs = [
+                standard_channel_config(
+                    self.org_config,
+                    self.recipe_options,
+                    1,
+                    1,
+                )
+            ]
+        else:
+            self.channel_configs = [
+                standard_channel_config(
+                    self.org_config,
+                    self.recipe_options,
+                    self.num_generator_workers,
+                    None,
+                )
+            ]
 
     def setup(self):
+        """Setup for loading."""
         self.debug_mode = get_debug_mode()
         if not self.num_generator_workers:
             # logical CPUs do not really improve performance of CPU-bound
@@ -183,9 +218,8 @@ class Snowfakery(BaseSalesforceApiTask):
         self.run_until = determine_run_until(self.options, self.sf)
         self.start_time = time.time()
         self.recipe = Path(self.options.get("recipe"))
-        self.job_counter = 0
-        self.cached_counts = {}
         self.sobject_counts = defaultdict(RunningTotals)
+        self._init_channel_configs(self.recipe)
 
     ## Todo: Consider when this process runs longer than 2 Hours,
     # what will happen to my sf connection?
@@ -200,8 +234,7 @@ class Snowfakery(BaseSalesforceApiTask):
 
         working_directory = self.options.get("working_directory")
         with self.workingdir_or_tempdir(working_directory) as working_directory:
-
-            self.data_gen_q, self.load_data_q = self.configure_queues(working_directory)
+            self._setup_channels_and_queues(working_directory)
             self.logger.info(f"Working directory is {working_directory}")
 
             if self.run_until.nothing_to_do:
@@ -211,7 +244,7 @@ class Snowfakery(BaseSalesforceApiTask):
                 return
 
             template_path, relevant_sobjects = self._generate_and_load_initial_batch(
-                self.load_data_q.outbox_dir
+                working_directory
             )
 
             # disable OrgReordCounts for now until it's reliability can be better
@@ -220,57 +253,80 @@ class Snowfakery(BaseSalesforceApiTask):
             # Retrieve OrgRecordCounts code from
             # https://github.com/SFDO-Tooling/CumulusCI/commit/7d703c44b94e8b21f165e5538c2249a65da0a9eb#diff-54676811961455410c30d9c9405a8f3b9d12a6222a58db9d55580a2da3cfb870R147
 
-            upload_status = self._loop(
+            self._loop(
                 template_path,
                 working_directory,
                 None,
                 portions,
             )
-            self.finish(upload_status, self.data_gen_q, self.load_data_q)
+            self.finish()
 
-    def configure_queues(self, working_directory):
-        """Configure two ParallelWorkerQueues for datagen and dataload"""
-        try:
-            # in the future, the connected_app should come from the org
-            connected_app = self.project_config.keychain.get_service("connected_app")
-        except exc.ServiceNotConfigured:  # pragma: no cover
-            # to discuss...when can this happen? What are the consequences?
-            connected_app = None
+    def _setup_channels_and_queues(self, working_directory):
+        """Set up all of the channels and queues.
 
-        data_gen_q_config = WorkerQueueConfig(
-            project_config=self.project_config,
-            org_config=self.org_config,
-            connected_app=connected_app,
-            redirect_logging=True,
-            # processes are better for compute-heavy tasks (in Python)
-            spawn_class=WorkerQueue.Process,
-            parent_dir=working_directory,
-            name="data_gen",
-            task_class=GenerateDataFromYaml,
-            make_task_options=self.data_generator_opts,
-            queue_size=0,
-            num_workers=self.num_generator_workers,
+        In particular their directories and the in-memory
+        runtime datastructures.
+
+        Each channel can hold multiple queues.
+        """
+        subtask_configurator = SubtaskConfigurator(
+            self.recipe, self.run_until, self.ignore_row_errors, self.bulk_mode
         )
-        data_gen_q = WorkerQueue(data_gen_q_config)
-
-        load_data_q_config = WorkerQueueConfig(
+        self.queue_manager = SnowfakeryChannelManager(
             project_config=self.project_config,
-            org_config=self.org_config,
-            connected_app=connected_app,
-            redirect_logging=True,
-            spawn_class=WorkerQueue.Thread,
-            parent_dir=working_directory,
-            name="data_load",
-            task_class=LoadData,
-            make_task_options=self.data_loader_opts,
-            queue_size=LOAD_QUEUE_SIZE,
-            num_workers=self.num_loader_workers,
-            rename_directory=self.data_loader_new_directory_name,
+            logger=self.logger,
+            subtask_configurator=subtask_configurator,
         )
-        load_data_q = WorkerQueue(load_data_q_config)
+        if len(self.channel_configs) == 1:
+            channel = self.channel_configs[0]
+            self.queue_manager.add_channel(
+                org_config=channel.org_config,
+                num_generator_workers=channel.declaration.num_generators,
+                num_loader_workers=channel.declaration.num_loaders,
+                working_directory=working_directory,
+                recipe_options=channel.declaration.recipe_options,
+            )
+        else:
+            self.configure_multiple_channels(working_directory)
 
-        data_gen_q.feeds_data_to(load_data_q)
-        return data_gen_q, load_data_q
+    def configure_multiple_channels(self, working_directory):
+        """If there is more than one channel (=user account),
+        pre-allocate work among them.
+        """
+        allocated_generator_workers = sum(
+            (channel.declaration.num_generators or 0)
+            for channel in self.channel_configs
+        )
+        channels_without_workers = len(
+            [
+                channel.declaration.num_generators
+                for channel in self.channel_configs
+                if not channel.declaration.num_generators
+            ]
+        )
+        remaining_generator_workers = (
+            self.num_generator_workers - allocated_generator_workers
+        )
+        num_generators_per_channel = ceil(
+            remaining_generator_workers / channels_without_workers
+        )
+        for idx, channel in enumerate(self.channel_configs):
+            if self.debug_mode:
+                self.logger.info("Initializing %s", channel)
+            channel_wd = working_directory / f"channel_{idx}"
+            channel_wd.mkdir()
+            recipe_options = channel.merge_recipe_options(self.recipe_options)
+            generator_workers = (
+                channel.declaration.num_generators or num_generators_per_channel
+            )
+
+            self.queue_manager.add_channel(
+                org_config=channel.org_config,
+                num_generator_workers=generator_workers,
+                num_loader_workers=channel.declaration.num_loaders,
+                working_directory=channel_wd,
+                recipe_options=recipe_options,
+            )
 
     def _loop(
         self,
@@ -280,21 +336,23 @@ class Snowfakery(BaseSalesforceApiTask):
         portions: PortionGenerator,
     ):
         """The inner loop that controls when data is generated and when we are done."""
-        upload_status = self.generate_upload_status(
+        upload_status = self.get_upload_status(
             portions.next_batch_size,
-            template_path,
         )
 
         while not portions.done(upload_status.total_sets_working_on_or_uploaded):
             if self.debug_mode:
                 self.logger.info(f"Working Directory: {tempdir}")
 
-            self.tick(
+            self.queue_manager.tick(
                 upload_status,
                 template_path,
                 tempdir,
                 portions,
+                self.get_upload_status,
             )
+            self.update_running_totals()
+            self.print_running_totals()
 
             time.sleep(WAIT_TIME)
 
@@ -317,17 +375,16 @@ class Snowfakery(BaseSalesforceApiTask):
             "\n********** PROGRESS *********",
         )
 
-        upload_status = self.generate_upload_status(
+        upload_status = self.get_upload_status(
             batch_size or 0,
-            template_path,
         )
 
         self.logger.info(upload_status._display(detailed=self.debug_mode))
 
         if upload_status.sets_failed:
-            self.log_failures(
-                set(self.load_data_q.failed_job_dirs + self.data_gen_q.failed_job_dirs)
-            )
+            # TODO: this is not sufficiently tested.
+            #       commenting it out doesn't break tests
+            self.log_failures()
 
         if upload_status.sets_failed > ERROR_THRESHOLD:
             raise exc.BulkDataException(
@@ -340,9 +397,10 @@ class Snowfakery(BaseSalesforceApiTask):
         return upload_status
 
     def update_running_totals(self) -> None:
+        """Read and collate result reports from sub-processes/sub-threads"""
         while True:
             try:
-                results = self.load_data_q.results_reporter.get(block=False)
+                results = self.queue_manager.get_results_report()
             except Empty:
                 break
             if "results" in results:
@@ -353,6 +411,7 @@ class Snowfakery(BaseSalesforceApiTask):
                 self.logger.warning(f"Unexpected message from subtask: {results}")
 
     def update_running_totals_from_load_step_results(self, results: dict) -> None:
+        """'Parse' the results from a load step, to keep track of row errors."""
         for result in results["step_results"].values():
             sobject_name = result["sobject"]
             totals = self.sobject_counts[sobject_name]
@@ -365,52 +424,14 @@ class Snowfakery(BaseSalesforceApiTask):
                 f"       {name}: {result.successes:,} successes, {result.errors:,} errors"
             )
 
-    def tick(
-        self,
-        upload_status,
-        template_path,
-        tempdir,
-        portions: PortionGenerator,
-    ):
-        """Called every few seconds, to make new data generators if needed."""
-        self.data_gen_q.tick()
-
-        if portions.done(
-            upload_status.total_sets_working_on_or_uploaded
-        ):  # pragma: no cover
-            self.logger.info("Finished Generating")
-        # queue is full
-        elif self.data_gen_q.num_free_workers and self.data_gen_q.full:
-            self.logger.info("Waiting before datagen (load queue is full)")
-        else:
-            for i in range(self.data_gen_q.num_free_workers):
-                upload_status = self.generate_upload_status(
-                    portions.next_batch_size,
-                    template_path,
-                )
-                self.job_counter += 1
-                batch_size = portions.next_batch(
-                    upload_status.total_sets_working_on_or_uploaded
-                )
-                if not batch_size:
-                    self.logger.info(
-                        "All scheduled portions generated and being uploaded"
-                    )
-                    break
-                job_dir = self.generator_data_dir(
-                    self.job_counter, template_path, batch_size, tempdir
-                )
-                self.data_gen_q.push(job_dir)
-                self.update_running_totals()
-                self.print_running_totals()
-
-    def finish(self, upload_status, data_gen_q, load_data_q):
+    def finish(self):
         """Wait for jobs to finish"""
         old_message = None
         cooldown = 5
-        while data_gen_q.workers + load_data_q.workers:
-            datagen_workers = f"{len(data_gen_q.workers)} datagen, "
-            msg = f"Waiting for {datagen_workers}{len(load_data_q.workers)} upload workers to finish"
+        while not self.queue_manager.check_finished():
+            status = self.get_upload_status(0)
+            datagen_workers = f"{status.sets_being_generated} data generators, "
+            msg = f"Waiting for {datagen_workers}{status.sets_being_loaded} uploads to finish"
             if old_message != msg or cooldown < 1:
                 old_message = msg
                 self.logger.info(msg)
@@ -419,10 +440,9 @@ class Snowfakery(BaseSalesforceApiTask):
                 cooldown = 5
             else:
                 cooldown -= 1
-            data_gen_q.tick()
             time.sleep(WAIT_TIME)
 
-        self.log_failures(set(load_data_q.failed_job_dirs + data_gen_q.failed_job_dirs))
+        self.log_failures()
 
         self.logger.info("")
         self.logger.info(" == Results == ")
@@ -433,20 +453,21 @@ class Snowfakery(BaseSalesforceApiTask):
         if self.run_until.sobject_name:
             result_msg = f"{self.sobject_counts[self.run_until.sobject_name].successes} {self.run_until.sobject_name} records and associated records"
         else:
-            result_msg = f"{upload_status.target_count:,} iterations"
+            result_msg = f"{self.run_until.target:,} iterations"
 
         self.logger.info(f"☃ Snowfakery created {result_msg} in {elapsed}.")
 
-    def log_failures(self, dirs=T.Sequence[Path]):
+    def log_failures(self):
         """Log failures from sub-processes to main process"""
-        for failure_dir in dirs:
-            f = Path(failure_dir) / "exception.txt"
-            if not f.exists():  # pragma: no cover
-                continue
-            exception = f.read_text(encoding="utf-8").strip().split("\n")[-1]
+        for exception in self.queue_manager.failure_descriptions():
             self.logger.info(exception)
 
     def data_loader_opts(self, working_dir: Path):
+        """Callback for initializing a data loader task.
+
+        For all of our dataloader sub-threads, these options
+        will be applied.
+        """
         wd = SnowfakeryWorkingDirectory(working_dir)
 
         options = {
@@ -488,63 +509,17 @@ class Snowfakery(BaseSalesforceApiTask):
         shutil.copytree(template_path, data_dir)
         return data_dir
 
-    def data_generator_opts(self, working_dir, *args, **kwargs):
-        """Generate task options for a data generator"""
-        wd = SnowfakeryWorkingDirectory(working_dir)
-        name = Path(working_dir).name
-        parts = name.rsplit("_", 1)
-        batch_size = int(parts[-1])
-        plugin_options = {
-            "pid": str(wd.index),
-            "big_ids": "True",
-        }
-
-        return {
-            "generator_yaml": str(self.recipe),
-            "database_url": wd.database_url,
-            "num_records": batch_size,
-            "reset_oids": False,
-            "continuation_file": wd.continuation_file,
-            "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
-            "vars": self.recipe_options,
-            "plugin_options": plugin_options,
-        }
-
-    def generate_upload_status(
+    def get_upload_status(
         self,
         batch_size,
-        template_dir,
     ):
         """Combine information from the different data sources into a single "report".
 
         Useful for debugging but also for making decisions about what to do next."""
 
-        def set_count_from_names(names):
-            return sum(int(name.split("_")[1]) for name in names)
-
-        rc = UploadStatus(
-            target_count=self.run_until.gap,
-            sets_queued_to_be_generated=set_count_from_names(
-                self.data_gen_q.queued_jobs
-            ),
-            sets_being_generated=set_count_from_names(self.data_gen_q.inprogress_jobs),
-            sets_queued_for_loading=set_count_from_names(self.load_data_q.queued_jobs),
-            # note that these may count as already imported in the org
-            sets_being_loaded=set_count_from_names(self.load_data_q.inprogress_jobs),
-            min_portion_size=MIN_PORTION_SIZE,
-            max_portion_size=MAX_PORTION_SIZE,
-            user_max_num_generator_workers=self.num_generator_workers,
-            user_max_num_loader_workers=self.num_loader_workers,
-            elapsed_seconds=int(time.time() - self.start_time),
-            # todo: use row-level result from org load for better accuracy
-            sets_finished=set_count_from_names(self.load_data_q.outbox_jobs),
-            sets_failed=len(self.load_data_q.failed_jobs),
-            batch_size=batch_size,
-            inprogress_generator_jobs=len(self.data_gen_q.inprogress_jobs),
-            inprogress_loader_jobs=len(self.load_data_q.inprogress_jobs),
-            data_gen_free_workers=self.data_gen_q.num_free_workers,
+        return self.queue_manager.get_upload_status(
+            batch_size, self.sets_finished_while_generating_template
         )
-        return rc
 
     @contextmanager
     def workingdir_or_tempdir(self, working_directory: T.Optional[T.Union[Path, str]]):
@@ -564,11 +539,15 @@ class Snowfakery(BaseSalesforceApiTask):
             with TemporaryDirectory() as tempdir:
                 yield Path(tempdir)
 
-    def _generate_and_load_initial_batch(self, working_directory: T.Optional[Path]):
+    def _generate_and_load_initial_batch(self, working_directory: Path):
         """Generate a single batch to set up all just_once (singleton) objects"""
 
         template_dir = Path(working_directory) / "template_1"
         template_dir.mkdir()
+        # changes here should often be reflected in
+        # data_generator_opts and data_loader_opts
+
+        channel_decl = self.channel_configs[0]
 
         plugin_options = {
             "pid": "0",
@@ -576,20 +555,29 @@ class Snowfakery(BaseSalesforceApiTask):
         }
         results = self._generate_and_load_batch(
             template_dir,
+            channel_decl.org_config,
             {
                 "generator_yaml": self.options.get("recipe"),
                 "num_records": 1,  # smallest possible batch to get to parallelizing fast
                 "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
                 "loading_rules": self.loading_rules,
-                "vars": self.recipe_options,
+                "vars": channel_decl.merge_recipe_options(self.recipe_options),
                 "plugin_options": plugin_options,
+                "bulk_mode": self.bulk_mode,
             },
         )
         self.update_running_totals_from_load_step_results(results)
 
         # rename directory to reflect real number of sets created.
         wd = SnowfakeryWorkingDirectory(template_dir)
-        new_template_dir = self.data_loader_new_directory_name(template_dir)
+        if self.run_until.sobject_name:
+            self.sets_finished_while_generating_template = wd.get_record_counts()[
+                self.run_until.sobject_name
+            ]
+        else:
+            self.sets_finished_while_generating_template = 1
+
+        new_template_dir = data_loader_new_directory_name(template_dir, self.run_until)
         shutil.move(template_dir, new_template_dir)
         template_dir = new_template_dir
 
@@ -600,7 +588,10 @@ class Snowfakery(BaseSalesforceApiTask):
 
         return template_dir, wd.relevant_sobjects()
 
-    def _generate_and_load_batch(self, tempdir, options) -> dict:
+    def _generate_and_load_batch(self, tempdir, org_config, options) -> dict:
+        """Before the "full" dataload starts we do a single batch to
+        load singletons.
+        """
         options = {
             **options,
             "working_directory": tempdir,
@@ -611,7 +602,7 @@ class Snowfakery(BaseSalesforceApiTask):
         subtask = GenerateAndLoadDataFromYaml(
             project_config=self.project_config,
             task_config=subtask_config,
-            org_config=self.org_config,
+            org_config=org_config,
             flow=self.flow,
             name=self.name,
             stepnum=self.stepnum,
@@ -631,133 +622,124 @@ class Snowfakery(BaseSalesforceApiTask):
             metadata.drop_all(tables=tables_to_drop)
 
 
-class UploadStatus(T.NamedTuple):
-    """Single "report" of the current status of our processes."""
-
-    batch_size: int
-    sets_being_generated: int
-    sets_queued_to_be_generated: int
-    sets_being_loaded: int
-    sets_queued_for_loading: int
-    sets_finished: int
-    target_count: int
-    min_portion_size: int
-    max_portion_size: int
-    user_max_num_loader_workers: int
-    user_max_num_generator_workers: int
-    elapsed_seconds: int
-    sets_failed: int
-    inprogress_generator_jobs: int
-    inprogress_loader_jobs: int
-    data_gen_free_workers: int
-
-    @property
-    def total_in_flight(self):
-        return (
-            self.sets_queued_to_be_generated
-            + self.sets_being_generated
-            + self.sets_queued_for_loading
-            + self.sets_being_loaded
-        )
-
-    @property
-    def total_sets_working_on_or_uploaded(
-        self,
-    ):
-        return self.total_in_flight + self.sets_finished
-
-    def _display(self, detailed=False):
-        most_important_stats = [
-            "target_count",
-            "total_sets_working_on_or_uploaded",
-            "sets_finished",
-            "sets_failed",
-        ]
-
-        queue_stats = [
-            "inprogress_generator_jobs",
-            "inprogress_loader_jobs",
-        ]
-
-        def display_stats(keys):
-            def format(a):
-                return f"{a.replace('_', ' ').title()}: {getattr(self, a):,}"
-
-            return (
-                "\n"
-                + "\n".join(
-                    format(a)
-                    for a in keys
-                    if not a[0] == "_" and not callable(getattr(self, a))
-                )
-                + "\n"
-            )
-
-        rc = display_stats(most_important_stats)
-        rc += "\n   ** Workers **\n"
-        rc += display_stats(queue_stats)
-        if detailed:
-            rc += "\n   ** Internals **\n"
-            rc += display_stats(
-                set(dir(self)) - (set(most_important_stats) & set(queue_stats))
-            )
-        return rc
-
-
-class SnowfakeryWorkingDirectory:
-    """Helper functions based on well-known filenames in CCI/Snowfakery working directories."""
-
-    def __init__(self, working_dir):
-        self.path = working_dir
-        self.mapping_file = working_dir / "temp_mapping.yml"
-        self.database_file = working_dir / "generated_data.db"
-        assert self.mapping_file.exists(), self.mapping_file
-        assert self.database_file.exists(), self.database_file
-        self.database_url = f"sqlite:///{self.database_file}"
-        self.continuation_file = f"{working_dir}/continuation.yml"
-
-    def setup_engine(self):
-        """Set up the database engine"""
-        engine = create_engine(self.database_url)
-
-        metadata = MetaData(engine)
-        metadata.reflect()
-        return engine, metadata
-
-    @property
-    def index(self) -> str:
-        return self.path.name.rsplit("_")[0]
-
-    def get_record_counts(self):
-        """Get record counts generated for this portion."""
-        engine, metadata = self.setup_engine()
-
-        with engine.connect() as connection:
-            record_counts = {
-                table_name: self._record_count_from_db(connection, table)
-                for table_name, table in metadata.tables.items()
-                if table_name[-6:] != "sf_ids"
-            }
-        # note that the template has its contents deleted so if the cache
-        # is ever removed, it will start to return {}
-        assert record_counts
-        return record_counts
-
-    def _record_count_from_db(self, connection, table: Table):
-        """Count rows in a table"""
-        stmt = select(func.count()).select_from(table)
-        result = connection.execute(stmt)
-        return next(result)[0]
-
-    def relevant_sobjects(self):
-        with open(self.mapping_file, encoding="utf-8") as f:
-            mapping = yaml.safe_load(f)
-            return [m.get("sf_object") for m in mapping.values() if m.get("sf_object")]
-
-
 class RunningTotals:
+    """Keep track of # of row errors and successess"""
+
     errors: int = 0
     successes: int = 0
 
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.__dict__}>"
+
+
+class RulesFileAndRules(T.NamedTuple):
+    file: Path
+    rules: T.List[ChannelDeclaration]
+
+
+def _read_channel_declarations_from_file(
+    loading_rules_file: Path,
+) -> RulesFileAndRules:
+    """Look in a .load.yml file for the channel declarations"""
+    with loading_rules_file.open() as f:
+        decls = SObjectRuleDeclarationFile.parse_from_yaml(f)
+        channel_decls = decls.channel_declarations or []
+        assert isinstance(channel_decls, list)
+        return RulesFileAndRules(loading_rules_file, channel_decls)
+
+
+def read_channel_declarations(
+    recipe: Path, loading_rules_files: T.List[Path]
+) -> T.List[ChannelDeclaration]:
+    """Find all appropriate channel declarations.
+
+    Some discovered through naming conventions, others
+    through command lines options or YML config."""
+    implicit_rules_file = infer_load_file_path(recipe)
+    if implicit_rules_file and implicit_rules_file.exists():
+        loading_rules_files = loading_rules_files + [implicit_rules_file]
+    # uniqify without losing order
+    loading_rules_files = list(dict.fromkeys(loading_rules_files))
+
+    rules_lists = [
+        _read_channel_declarations_from_file(file) for file in loading_rules_files
+    ]
+    rules_lists = [rules_list for rules_list in rules_lists if rules_list.rules]
+
+    if len(rules_lists) > 1:
+        files = ", ".join(
+            [f"{rules_list.file}: {rules_list.rules}" for rules_list in rules_lists]
+        )
+        msg = f"Multiple channel declarations: {files}"
+        raise TaskOptionsError(msg)
+    elif len(rules_lists) == 1:
+        return rules_lists[0].rules
+    else:
+        return []
+
+
+class ChannelConfig(T.NamedTuple):
+    """A channel represents a connection to Salesforce via a username.
+
+    It can also have recipe options and other documented properties.
+    https://github.com/SFDO-Tooling/Snowfakery/search?q=ChannelDeclaration
+    """
+
+    org_config: OrgConfig
+    declaration: ChannelDeclaration = None
+
+    def merge_recipe_options(self, task_recipe_options):
+        """Merge the recipe options from the channel declaration with those from the task config"""
+        channel_options = self.declaration.recipe_options or {}
+        task_recipe_options = task_recipe_options or {}
+        self.check_conflicting_options(channel_options, task_recipe_options)
+        recipe_options = {
+            **task_recipe_options,
+            **channel_options,
+        }
+        return recipe_options
+
+    @staticmethod
+    def check_conflicting_options(channel_options, task_recipe_options):
+        """Check that options do not conflict"""
+        double_specified_options = set(task_recipe_options.keys()).intersection(
+            set(channel_options.keys())
+        )
+        conflicting_options = [
+            optname
+            for optname in double_specified_options
+            if task_recipe_options[optname] != channel_options[optname]
+        ]
+        if conflicting_options:
+            raise TaskOptionsError(
+                f"Recipe options cannot conflict: {conflicting_options}"
+            )
+
+
+def standard_channel_config(
+    org_config: OrgConfig,
+    recipe_options: dict,
+    num_generators: int,
+    num_loaders: int = None,
+):
+    """Default configuration for a single-channel data-load"""
+    channel = ChannelDeclaration(
+        user="Username not used in this context",
+        recipe_options=recipe_options,
+        num_generators=num_generators,
+        num_loaders=num_loaders,
+    )
+
+    return ChannelConfig(org_config, channel)
+
+
+def channel_configs_from_decls(
+    channel_decls: T.List[ChannelDeclaration],
+    keychain: BaseProjectKeychain,
+):
+    """Reify channel configs and look up orgconfig"""
+
+    def config_from_decl(decl):
+        return ChannelConfig(keychain.get_org(decl.user), decl)
+
+    return [config_from_decl(decl) for decl in channel_decls]

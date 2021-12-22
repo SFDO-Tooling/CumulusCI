@@ -32,9 +32,15 @@ class TestTranslateLocator(unittest.TestCase):
                         "baz": "//div[@class='baz']",
                         "hello": "//span[text()='Hello, {}']",
                     },
-                }
+                },
+                "action": "//span[@name='{title}' or @title='{title}']//a[.='{link}']",
             },
         )
+
+    def test_named_format_fields(self):
+        """This tests that named format fields are given positional arguments in the correct order"""
+        loc = translate_locator("test", "action:User,Clear")
+        assert loc == "//span[@name='User' or @title='User']//a[.='Clear']"
 
     def test_strip_whitespace_from_locator(self):
         """Verify whitespace is stripped from locator key and args"""
@@ -102,7 +108,10 @@ class TestLocateElement(unittest.TestCase):
     def test_locate_element(self):
         """Verify that the locate_element function translates the
         locator and calls SeleniumLibrary.get_webelement with the
-        translated locator
+        translated locator.
+
+        That is to say, this verifies that our registered locators
+        are actually usable with Selenium keywords.
         """
 
         locator = "foo.bar.hello:world"
@@ -115,7 +124,7 @@ class TestLocateElement(unittest.TestCase):
             side_effect=mock_get_library_instance,
         ):
             locate_element("test", parent, locator, tag, constraints)
-            mock_libs["SeleniumLibrary"].get_webelement.assert_called_with(
+            mock_libs["SeleniumLibrary"].get_webelements.assert_called_with(
                 "//span[text()='Hello, world']"
             )
 
