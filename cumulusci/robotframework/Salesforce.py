@@ -1458,6 +1458,7 @@ class Salesforce(object):
             # after that we can assume the fields have been rendered
             # so that we fail quickly if we can't find the element
             element = self.selenium.get_webelement(locator)
+            self.scroll_element_into_view(locator)
             handler = get_form_handler(element, locator)
             try:
                 if handler:
