@@ -113,14 +113,6 @@ tasks:
             settings_type: EnhancedNotesSettings
             settings_field: IsEnhancedNotesEnabled
             value: True
-    check_rd2_enabled:
-        description: Preflight check to validate that Enhanced Recurring Donations are enabled.
-        group: Salesforce Preflight Checks
-        class_path: cumulusci.tasks.preflight.settings.CheckCustomSettingsValue
-        options:
-            settings_type: npe03__Recurring_Donations_Settings__c
-            settings_field: npsp__IsRecurringDonations2Enabled__c
-            value: True
     custom_settings_value_wait:
         description: Waits for a specific field value on the specified custom settings object and field
         class_path: cumulusci.tasks.salesforce.custom_settings_wait.CustomSettingValueWait
