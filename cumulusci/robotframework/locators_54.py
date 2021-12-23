@@ -11,3 +11,7 @@ lex_locators["record"]["header"]["field_value"] = (
 lex_locators["record"]["header"][
     "field_value_link"
 ] = "//records-lwc-highlights-panel//records-highlights-details-item[.//*[.='{}']]//a"
+
+lex_locators["modal"][
+    "review_alert"
+] = "//a[@records-recordediterror_recordediterror and text()='{}']"
