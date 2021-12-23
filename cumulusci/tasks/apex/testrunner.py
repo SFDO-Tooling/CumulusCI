@@ -3,6 +3,7 @@
 import html
 import io
 import json
+import math
 import re
 
 from cumulusci.core.exceptions import (
@@ -164,6 +165,9 @@ class RunApexTests(BaseSalesforceApiTask):
             "description": "Require at least X percent code coverage across the org following the test run.",
             "usage": "-o required_org_code_coverage_percent PERCENTAGE",
         },
+        "include_class_coverage": {
+            "description": "If True, individual Apex class code coverage will be compared to the 'required_org_code_coverage_percent' option. Defaults to False."
+        },
         "verbose": {
             "description": "By default, only failures get detailed output. "
             "Set verbose to True to see all passed test methods."
@@ -213,6 +217,7 @@ class RunApexTests(BaseSalesforceApiTask):
         self.options["retry_always"] = process_bool_arg(
             self.options.get("retry_always") or False
         )
+
         self.verbose = process_bool_arg(self.options.get("verbose") or False)
 
         self.counts = {}
@@ -227,7 +232,19 @@ class RunApexTests(BaseSalesforceApiTask):
                     f"Invalid code coverage level {self.options['required_org_code_coverage_percent']}"
                 )
         else:
-            self.code_coverage_level = None
+            self.code_coverage_level = 0
+
+        if (
+            "required_org_code_coverage_percent" not in self.options
+            and "include_class_coverage" in self.options
+        ):
+            raise TaskOptionsError(
+                "'include_class_coverage' options requires 'required_org_code_coverage_percent' to also be set"
+            )
+
+        self.options["include_class_coverage"] = process_bool_arg(
+            self.options.get("include_class_coverage") or False
+        )
 
     # pylint: disable=W0201
     def _init_class(self):
@@ -507,6 +524,7 @@ class RunApexTests(BaseSalesforceApiTask):
             )
 
     def _run_task(self):
+
         result = self._get_test_classes()
         if result["totalSize"] == 0:
             return
@@ -564,9 +582,47 @@ class RunApexTests(BaseSalesforceApiTask):
             )
 
     def _check_code_coverage(self):
+        self.logger.info("Checking code coverage.")
+        class_level_coverage = {}
+
+        # Query for Class level code coverage using the aggregate
+        if self.options.get("include_class_coverage"):
+            test_classes = self.tooling.query(
+                "SELECT ApexClassOrTrigger.Name, ApexClassOrTriggerId, NumLinesCovered, NumLinesUncovered FROM ApexCodeCoverageAggregate ORDER BY ApexClassOrTrigger.Name ASC"
+            )["records"]
+
+            coverage_percentage = 0
+            for class_level in test_classes:
+                # prevent division by 0 errors
+                if class_level["NumLinesCovered"] + class_level["NumLinesUncovered"]:
+                    # calculate coverage percentage
+                    coverage_percentage = round(
+                        (
+                            class_level["NumLinesCovered"]
+                            / math.floor(
+                                class_level["NumLinesCovered"]
+                                + class_level["NumLinesUncovered"]
+                            )
+                        )
+                        * 100,
+                        2,
+                    )
+
+                if coverage_percentage < self.code_coverage_level:
+                    class_level_coverage[
+                        class_level["ApexClassOrTrigger"]["Name"]
+                    ] = coverage_percentage
+
+        # Query for OrgWide covevrage
         result = self.tooling.query("SELECT PercentCovered FROM ApexOrgWideCoverage")
         coverage = result["records"][0]["PercentCovered"]
-        if coverage < self.code_coverage_level:
+
+        if coverage < self.code_coverage_level or not class_level_coverage:
+            if not class_level_coverage:
+                for class_name in class_level_coverage.keys():
+                    self.logger.warning(
+                        f"{class_name} failed with {class_level_coverage[class_name]}% coverage."
+                    )
             raise ApexTestException(
                 f"Organization-wide code coverage of {coverage}% is below required level of {self.code_coverage_level}"
             )
