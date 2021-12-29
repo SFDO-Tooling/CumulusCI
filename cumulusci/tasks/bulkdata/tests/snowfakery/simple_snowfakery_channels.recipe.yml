@@ -1,0 +1,12 @@
+- option: account_name
+  default: Default name
+- option: some_number
+- option: xyzzy
+
+- object: Account
+  #  count: ${{some_number}}  # This is how we'd really use row_count
+  #                         # but for a test, it's easier to output it.
+  fields:
+      name: Account ${{account_name}}
+      some_number: ${{some_number}}
+      xyzzy: ${{xyzzy}}

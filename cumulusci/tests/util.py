@@ -12,7 +12,12 @@ from unittest import mock
 import responses
 from requests import ReadTimeout
 
-from cumulusci.core.config import BaseProjectConfig, OrgConfig, UniversalConfig
+from cumulusci.core.config import (
+    BaseConfig,
+    BaseProjectConfig,
+    OrgConfig,
+    UniversalConfig,
+)
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.bulkdata.tests import utils as bulkdata_utils
 
@@ -58,18 +63,18 @@ class DummyProjectConfig(BaseProjectConfig):
         )
 
 
+DEFAULT_CONFIG = {
+    "instance_url": "https://orgname.my.salesforce.com",
+    "access_token": "pytest_sf_orgconnect_abc123",
+    "id": "https://test.salesforce.com/id/00D0xORGID00000000/USERID",
+    "username": "sfuser@example.com",
+}
+
+
 class DummyOrgConfig(OrgConfig):
     def __init__(self, config=None, name=None, keychain=None, global_org=False):
-        if config is None:
-            config = {
-                "instance_url": "https://orgname.my.salesforce.com",
-                "access_token": "pytest_sf_orgconnect_abc123",
-                "id": "https://test.salesforce.com/id/00D0xORGID00000000/USERID",
-                "username": "sfuser@example.com",
-            }
-
-        if not name:
-            name = "test"
+        config = {**DEFAULT_CONFIG, **(config or {})}
+        name = name or "test"
         super(DummyOrgConfig, self).__init__(config, name, keychain, global_org)
 
     def refresh_oauth_token(self, keychain):
@@ -91,17 +96,23 @@ class DummyLogger(object):
         return "\n".join(self.out)
 
 
-class DummyService(object):
-    password = "password"
+class DummyService(BaseConfig):
+    password = "dummy_password"
+    client_id = "ZOOMZOOM"
 
     def __init__(self, name):
         self.name = name
+        super().__init__(name)
 
 
-class DummyKeychain(object):
-    def __init__(self, global_config_dir=None, cache_dir=None):
+class DummyKeychain(BaseProjectKeychain):
+    def __init__(self, global_config_dir=None, cache_dir=None, project_config=None):
         self._global_config_dir = global_config_dir
         self._cache_dir = cache_dir
+        if not project_config:
+            project_config = create_project_config()
+            project_config.keychain = self
+        super().__init__(project_config, "XYZZY")
 
     @property
     def global_config_dir(self):
