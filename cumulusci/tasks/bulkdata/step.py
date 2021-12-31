@@ -30,6 +30,7 @@ class DataOperationType(Enum):
     DELETE = "delete"
     HARD_DELETE = "hardDelete"
     QUERY = "query"
+    UPSERT = "upsert"
 
 
 class DataApi(Enum):
@@ -346,6 +347,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             self.operation.value,
             contentType="CSV",
             concurrency=self.api_options.get("bulk_mode", "Parallel"),
+            external_id_name=self.api_options.get("external_id_name"),
         )
 
     def end(self):
@@ -489,14 +491,20 @@ class RestApiDmlOperation(BaseDmlOperation):
             DataOperationType.INSERT: "POST",
             DataOperationType.UPDATE: "PATCH",
             DataOperationType.DELETE: "DELETE",
+            DataOperationType.UPSERT: "PATCH",
         }[self.operation]
 
+        external_field_name = self.api_options.get("external_id_name")
         for chunk in iterate_in_chunks(self.api_options.get("batch_size"), records):
             if self.operation is DataOperationType.DELETE:
                 url_string = "?ids=" + ",".join(_convert(rec)["Id"] for rec in chunk)
                 json = None
             else:
-                url_string = ""
+                if external_field_name:
+                    assert self.operation == DataOperationType.UPSERT
+                    url_string = f"/{self.sobject}/{external_field_name}"
+                else:
+                    url_string = ""
                 json = {"allOrNone": False, "records": [_convert(rec) for rec in chunk]}
 
             self.results.extend(

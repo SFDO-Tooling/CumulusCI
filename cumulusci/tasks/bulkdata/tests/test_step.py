@@ -391,7 +391,11 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         step.start()
 
         context.bulk.create_job.assert_called_once_with(
-            "Contact", "insert", contentType="CSV", concurrency="Parallel"
+            "Contact",
+            "insert",
+            contentType="CSV",
+            concurrency="Parallel",
+            external_id_name=None,
         )
         assert step.job_id == "JOB"
 
@@ -462,7 +466,11 @@ class TestBulkApiDmlOperation(unittest.TestCase):
             pass
 
         context.bulk.create_job.assert_called_once_with(
-            "Contact", "insert", contentType="CSV", concurrency="Parallel"
+            "Contact",
+            "insert",
+            contentType="CSV",
+            concurrency="Parallel",
+            external_id_name=None,
         )
         assert step.job_id == "JOB"
 

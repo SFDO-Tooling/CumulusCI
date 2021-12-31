@@ -1,0 +1,8 @@
+Insert Accounts:
+    api: bulk
+    sf_object: Account
+    action: upsert
+    external_id_field: Extid__c
+    fields:
+        - Name
+        - Extid__c

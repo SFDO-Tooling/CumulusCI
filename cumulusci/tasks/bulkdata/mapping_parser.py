@@ -98,6 +98,7 @@ class MappingStep(CCIDictModel):
     ] = None  # default should come from task options
     anchor_date: Optional[Union[str, date]] = None
     soql_filter: Optional[str] = None  # soql_filter property
+    external_id_field: str = None  # only for upserts
 
     @validator("bulk_mode", "api", "action", pre=True)
     def case_normalize(cls, val):
@@ -253,35 +254,52 @@ class MappingStep(CCIDictModel):
             lookup.name = name
         return v
 
+    @root_validator
+    @classmethod
+    def validate_external_id_and_upsert(cls, v):
+        has_external_id_field = bool(v.get("external_id_field"))
+        is_upsert = v["action"] == DataOperationType.UPSERT
+        assert (
+            has_external_id_field == is_upsert
+        ), "Action 'upsert' and option 'external_id_field' must always be used together."
+        return v
+
     @staticmethod
     def _is_injectable(element: str) -> bool:
         return element.count("__") == 1
 
-    def _get_permission_type(self, operation: DataOperationType) -> str:
+    def _get_permission_types(self, operation: DataOperationType) -> str:
         if operation is DataOperationType.QUERY:
-            return "queryable"
+            return ("queryable",)
         if (
             operation is DataOperationType.INSERT
             and self.action is DataOperationType.UPDATE
         ):
-            return "updateable"
+            return ("updateable",)
+        if (
+            operation is DataOperationType.UPSERT
+            or self.action is DataOperationType.UPSERT
+        ):
+            return ("updateable", "createable")
 
-        return "createable"
+        return ("createable",)
 
     def _check_object_permission(
         self, global_describe: Mapping, sobject: str, operation: DataOperationType
     ):
         assert sobject in global_describe
-        perm = self._get_permission_type(operation)
-        return global_describe[sobject][perm]
+        perms = self._get_permission_types(operation)
+        return all(global_describe[sobject][perm] for perm in perms)
 
     def _check_field_permission(
         self, describe: Mapping, field: str, operation: DataOperationType
     ):
-        perm = self._get_permission_type(operation)
+        perms = self._get_permission_types(operation)
         # Fields don't have "queryable" permission.
-        return field in describe and (
+        return field in describe and all(
+            # To discuss: is this different than `describe[field].get(perm, True)`
             describe[field].get(perm) if perm in describe[field] else True
+            for perm in perms
         )
 
     def _validate_field_dict(

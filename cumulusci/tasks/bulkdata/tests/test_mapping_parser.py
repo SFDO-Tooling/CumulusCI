@@ -219,17 +219,28 @@ class TestMappingParser:
         assert not MappingStep._is_injectable("npsp__Test__c")
         assert not MappingStep._is_injectable("Account")
 
-    def test_get_permission_type(self):
+    def test_get_permission_types(self):
         ms = MappingStep(
             sf_object="Account", fields=["Name"], action=DataOperationType.INSERT
         )
-        assert ms._get_permission_type(DataOperationType.INSERT) == "createable"
-        assert ms._get_permission_type(DataOperationType.QUERY) == "queryable"
+        assert ms._get_permission_types(DataOperationType.INSERT) == ("createable",)
+        assert ms._get_permission_types(DataOperationType.QUERY) == ("queryable",)
 
         ms = MappingStep(
             sf_object="Account", fields=["Name"], action=DataOperationType.UPDATE
         )
-        assert ms._get_permission_type(DataOperationType.INSERT) == "updateable"
+        assert ms._get_permission_types(DataOperationType.INSERT) == ("updateable",)
+
+        ms = MappingStep(
+            sf_object="Account",
+            fields=["Name"],
+            action=DataOperationType.UPSERT,
+            external_id_field="Extid__c",
+        )
+        assert ms._get_permission_types(DataOperationType.UPSERT) == (
+            "updateable",
+            "createable",
+        )
 
     def test_check_field_permission(self):
         ms = MappingStep(
