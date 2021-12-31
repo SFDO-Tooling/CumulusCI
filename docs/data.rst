@@ -111,6 +111,28 @@ which is subject to its own limits, including restrictions on total processing t
 Bulk API batches are automatically chunked further into transactions by the platform,
 and the transaction size cannot be controlled.
 
+Upserts and Updates
+-------------------
+You can do ID-based or `external ID <https://help.salesforce.com/s/articleView?id=sf.faq_import_general_what_is_an_external.htm&type=5>`_-based
+`upserts <https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/langCon_apex_dml_examples_upsert.htm>`_ 
+and updates by specifying additional settings in a mapping step.
+
+.. code-block:: yaml
+
+    Insert Accounts:
+        sf_object: Account
+        action: upsert
+        external_id_field: Extid__c
+        fields:
+            - Name
+            - Extid__c
+
+Whenever ``external_id_field`` is supplied, the action must be ``upsert`` and
+vice versa.
+
+If every row in the dataset matches a row in the database, the upsert feature
+behaves as an update.
+
 Database Mapping
 ----------------
 

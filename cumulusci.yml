@@ -40,6 +40,12 @@ tasks:
                 - cumulusci/robotframework/Salesforce.robot
                 - cumulusci/robotframework/pageobjects/BasePageObjects.py
 
+    test_upserts:
+        description: Test the upsert feature in an org with Extid__c fields on Account and Contact
+        class_path: cumulusci.tasks.bulkdata.LoadData
+        options:
+            sql_path: datasets/upsert_example.sql
+            mapping: cumulusci/tasks/bulkdata/tests/upsert_mapping.yml
 flows:
     qa_org:
         steps:

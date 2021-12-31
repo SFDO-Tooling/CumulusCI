@@ -1,8 +1,17 @@
 Insert Accounts:
-    api: bulk
+    api: rest
     sf_object: Account
     action: upsert
     external_id_field: Extid__c
     fields:
         - Name
+        - Extid__c
+Insert Contacts:
+    api: bulk
+    sf_object: Contact
+    action: upsert
+    external_id_field: Extid__c
+    fields:
+        - FirstName
+        - LastName
         - Extid__c
