@@ -93,10 +93,6 @@ tasks:
         description: Runs as a preflight check to validate organization settings.
         class_path: cumulusci.tasks.preflight.settings.CheckSettingsValue
         group: Salesforce Preflight Checks
-    check_org_custom_settings_value:
-        description: Runs as a preflight check to validate custom organization settings.
-        class_path: cumulusci.tasks.preflight.settings.CheckCustomSettingsValue
-        group: Salesforce Preflight Checks
     check_chatter_enabled:
         description: Runs as a preflight check to validate Chatter is enabled.
         class_path: cumulusci.tasks.preflight.settings.CheckSettingsValue

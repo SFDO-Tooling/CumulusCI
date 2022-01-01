@@ -36,7 +36,10 @@ class CheckSettingsValue(BaseSalesforceApiTask):
 
     def _init_task(self):
         super()._init_task()
-        self.api = self._init_api("tooling")
+        if self.options["settings_type"][-3:] == "__c":
+            self.api = self._init_api()
+        else:
+            self.api = self._init_api("tooling")
 
     def _run_task(self):
         field = self.options["settings_field"]
@@ -80,8 +83,3 @@ class CheckSettingsValue(BaseSalesforceApiTask):
             f"Completed Settings preflight check with result {self.return_values}"
         )
 
-
-class CheckCustomSettingsValue(CheckSettingsValue):
-    def _init_task(self):
-        super()._init_task()
-        self.api = self._init_api()
