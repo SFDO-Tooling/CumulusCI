@@ -235,7 +235,7 @@ class TestMappingParser:
             sf_object="Account",
             fields=["Name"],
             action=DataOperationType.UPSERT,
-            external_id_field="Extid__c",
+            update_key="Extid__c",
         )
         assert ms._get_permission_types(DataOperationType.UPSERT) == (
             "updateable",

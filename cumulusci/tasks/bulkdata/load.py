@@ -174,8 +174,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         query = self._query_db(mapping)
         bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
         api_options = {"batch_size": mapping.batch_size, "bulk_mode": bulk_mode}
-        if mapping.external_id_field:
-            api_options["external_id_name"] = mapping.external_id_field
+        if mapping.update_key:
+            api_options["update_key"] = mapping.update_key
         step = get_dml_operation(
             sobject=mapping.sf_object,
             operation=mapping.action,

@@ -122,12 +122,12 @@ and updates by specifying additional settings in a mapping step.
     Insert Accounts:
         sf_object: Account
         action: upsert
-        external_id_field: Extid__c
+        update_key: Extid__c
         fields:
             - Name
             - Extid__c
 
-Whenever ``external_id_field`` is supplied, the action must be ``upsert`` and
+Whenever ``update_key`` is supplied, the action must be ``upsert`` and
 vice versa.
 
 If every row in the dataset matches a row in the database, the upsert feature

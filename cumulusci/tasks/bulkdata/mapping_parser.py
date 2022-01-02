@@ -98,7 +98,7 @@ class MappingStep(CCIDictModel):
     ] = None  # default should come from task options
     anchor_date: Optional[Union[str, date]] = None
     soql_filter: Optional[str] = None  # soql_filter property
-    external_id_field: str = None  # only for upserts
+    update_key: str = None  # only for upserts
 
     @validator("bulk_mode", "api", "action", pre=True)
     def case_normalize(cls, val):
@@ -257,11 +257,11 @@ class MappingStep(CCIDictModel):
     @root_validator
     @classmethod
     def validate_external_id_and_upsert(cls, v):
-        has_external_id_field = bool(v.get("external_id_field"))
+        has_update_key = bool(v.get("update_key"))
         is_upsert = v["action"] == DataOperationType.UPSERT
         assert (
-            has_external_id_field == is_upsert
-        ), "Action 'upsert' and option 'external_id_field' must always be used together."
+            has_update_key == is_upsert
+        ), "Action 'upsert' and option 'update_key' must always be used together."
         return v
 
     @staticmethod
