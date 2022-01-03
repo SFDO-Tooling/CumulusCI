@@ -108,6 +108,9 @@ def process_list_arg(arg):
         for part in arg.split(","):
             args.append(part.strip())
         return args
+    elif arg is None:
+        # backwards compatible behaviour.
+        return None
     else:
         getLogger(__file__).warn(
             f"Unknown option type `{type(arg)}` for value `{arg}`."
