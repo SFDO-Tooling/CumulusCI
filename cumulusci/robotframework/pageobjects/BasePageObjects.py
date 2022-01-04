@@ -11,9 +11,10 @@ file.
 
 import re
 
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from SeleniumLibrary.errors import ElementNotFound
 
+from cumulusci.robotframework.form_handlers import get_form_handler
 from cumulusci.robotframework.pageobjects import BasePage, pageobject
 from cumulusci.robotframework.utils import capture_screenshot_on_error
 
@@ -221,44 +222,18 @@ class ModalMixin:
         If a modal is present, the modal will be searched for the dropdown. Otherwise
         the first matching dropdown on the entire web page will be used.
         """
-        input_element = self._get_form_element_for_label(label)
-        if input_element is None:
-            raise Exception(f"No form element found with the label '{label}'")
+        locator = f"label:{label}"
+        try:
+            element = self.selenium.get_webelement(locator)
+        except (NoSuchElementException, TimeoutException, ElementNotFound):
+            raise ElementNotFound(f"Form element with label '{label}' was not found")
 
-        # SeleniumLibrary's scroll_element_into_view doesn't seem to work
-        # for elements in a scrollable div on Firefox. Javascript seems to
-        # work though.
-        self.selenium.driver.execute_script(
-            "arguments[0].scrollIntoView()", input_element
-        )
-
-        if input_element.get_attribute("role") == "combobox":
-            # new lightning combobox. So much easier!
-            self.builtin.log(f"New style combo for {label}", "DEBUG")
-            input_element.click()
-            try:
-                item = input_element.find_element_by_xpath(
-                    f'//lightning-base-combobox-item[.="{value}"]'
-                )
-                item.click()
-            except NoSuchElementException:
-                raise Exception(f"Dropdown value '{value}' not found")
-        else:
-            self.builtin.log(f"Old style combo for {label}", "DEBUG")
-            trigger = input_element.find_element_by_class_name("uiPopupTrigger")
-            trigger.click()
-
-            try:
-                popup_locator = "//div[contains(@class, 'uiPopupTarget')][contains(@class, 'visible')]"
-                popup = self.selenium.get_webelement(popup_locator)
-            except ElementNotFound:
-                raise ElementNotFound("Timed out waiting for the dropdown menu")
-
-            try:
-                value_element = popup.find_element_by_link_text(value)
-                value_element.click()
-            except NoSuchElementException:
-                raise Exception(f"Dropdown value '{value}' not found")
+        self.salesforce.scroll_element_into_view(locator)
+        handler = get_form_handler(element, locator)
+        try:
+            handler.set(value)
+        except (NoSuchElementException, TimeoutException, ElementNotFound):
+            raise ElementNotFound(f"Dropdown value '{value}' not found")
 
     @capture_screenshot_on_error
     def wait_until_modal_is_closed(self, timeout=None):
