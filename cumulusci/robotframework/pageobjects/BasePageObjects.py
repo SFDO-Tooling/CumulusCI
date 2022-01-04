@@ -11,7 +11,7 @@ file.
 
 import re
 
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from SeleniumLibrary.errors import ElementNotFound
 
 from cumulusci.robotframework.form_handlers import get_form_handler
@@ -225,15 +225,15 @@ class ModalMixin:
         locator = f"label:{label}"
         try:
             element = self.selenium.get_webelement(locator)
-        except Exception:
-            raise Exception(f"Form element with label '{label}' was not found")
+        except (NoSuchElementException, TimeoutException, ElementNotFound):
+            raise ElementNotFound(f"Form element with label '{label}' was not found")
 
         self.salesforce.scroll_element_into_view(locator)
         handler = get_form_handler(element, locator)
         try:
             handler.set(value)
-        except Exception:
-            raise Exception(f"Dropdown value '{value}' not found")
+        except (NoSuchElementException, TimeoutException, ElementNotFound):
+            raise ElementNotFound(f"Dropdown value '{value}' not found")
 
     @capture_screenshot_on_error
     def wait_until_modal_is_closed(self, timeout=None):
