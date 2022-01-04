@@ -3,6 +3,7 @@ import re
 
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
+from SeleniumLibrary.errors import ElementNotFound
 
 from cumulusci.core.utils import dictmerge
 
@@ -154,7 +155,7 @@ def translate_locator(prefix, locator):
         # KeyError if user passes in foo.bar and either 'foo' or 'bar' isn't
         # a valid key for a nested dictionary
         breadcrumb_path = ".".join(breadcrumbs)
-        raise Exception(f"locator {prefix}:{breadcrumb_path} not found")
+        raise ElementNotFound(f"locator {prefix}:{breadcrumb_path} not found")
 
     if not isinstance(loc, str):
         raise TypeError(f"Expected locator to be of type string, but was {type(loc)}")

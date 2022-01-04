@@ -1,6 +1,7 @@
 import abc
 
 from robot.libraries.BuiltIn import BuiltIn
+from selenium.common.exceptions import TimeoutException
 
 from cumulusci.utils.classutils import get_all_subclasses
 
@@ -113,15 +114,24 @@ class LightningComboboxHandler(BaseFormHandler):
 
     tags = ["lightning-combobox"]
 
+    @property
+    def input_element(self):
+        """Returns the base form element (input or button) that the combobox is based on"""
+        elements = self.element.find_elements_by_xpath(
+            ".//*[contains(@class, 'slds-combobox__input')]"
+        )
+        return elements[0] if elements else None
+
     def set(self, value):
         value_locator = f'//lightning-base-combobox-item[.="{value}"]'
         wait = 5
         try:
+            # at this point, self.input_element is None
             self.input_element.click()
             self.selenium.wait_until_element_is_visible(value_locator, wait)
             self.selenium.click_element(value_locator)
         except Exception:
-            raise Exception(
+            raise TimeoutException(
                 f"Dropdown value '{value}' for '{self.locator}' not found after {wait} seconds"
             )
 
@@ -177,7 +187,7 @@ class LightningLookupHandler(BaseFormHandler):
         except Exception:
             # *sigh* this still fails randomly even though
             # I can see the dadgum item in the dropdown.
-            raise Exception(
+            raise TimeoutException(
                 f"Lookup value '{value}' for '{self.locator}' not found after {wait} seconds"
             )
 
