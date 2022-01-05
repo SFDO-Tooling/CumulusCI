@@ -3,7 +3,6 @@
 import html
 import io
 import json
-import math
 import re
 
 from cumulusci.core.exceptions import (
@@ -165,8 +164,8 @@ class RunApexTests(BaseSalesforceApiTask):
             "description": "Require at least X percent code coverage across the org following the test run.",
             "usage": "-o required_org_code_coverage_percent PERCENTAGE",
         },
-        "include_class_coverage": {
-            "description": "If True, individual Apex class code coverage will be compared to the 'required_org_code_coverage_percent' option. Defaults to False."
+        "required_per_class_code_coverage_percent": {
+            "description": "Require at least X percent code coverage for every class in the org.",
         },
         "verbose": {
             "description": "By default, only failures get detailed output. "
@@ -234,16 +233,8 @@ class RunApexTests(BaseSalesforceApiTask):
         else:
             self.code_coverage_level = 0
 
-        if (
-            "required_org_code_coverage_percent" not in self.options
-            and "include_class_coverage" in self.options
-        ):
-            raise TaskOptionsError(
-                "'include_class_coverage' options requires 'required_org_code_coverage_percent' to also be set"
-            )
-
-        self.options["include_class_coverage"] = process_bool_arg(
-            self.options.get("include_class_coverage") or False
+        self.required_per_class_code_coverage_percent = int(
+            self.options.get("required_per_class_code_coverage_percent", 0)
         )
 
     # pylint: disable=W0201
@@ -528,7 +519,7 @@ class RunApexTests(BaseSalesforceApiTask):
         result = self._get_test_classes()
         if result["totalSize"] == 0:
             return
-        for test_class in result["records"]:
+        for test_class in result["records"][-20:]:
             self.classes_by_id[test_class["Id"]] = test_class["Name"]
             self.classes_by_name[test_class["Name"]] = test_class["Id"]
             self.results_by_class_name[test_class["Name"]] = {}
@@ -583,53 +574,61 @@ class RunApexTests(BaseSalesforceApiTask):
 
     def _check_code_coverage(self):
         self.logger.info("Checking code coverage.")
-        class_level_coverage = {}
+        class_level_coverage_failures = {}
 
         # Query for Class level code coverage using the aggregate
-        if self.options.get("include_class_coverage"):
+        if self.required_per_class_code_coverage_percent:
             test_classes = self.tooling.query(
                 "SELECT ApexClassOrTrigger.Name, ApexClassOrTriggerId, NumLinesCovered, NumLinesUncovered FROM ApexCodeCoverageAggregate ORDER BY ApexClassOrTrigger.Name ASC"
             )["records"]
 
             coverage_percentage = 0
             for class_level in test_classes:
+                total = (
+                    class_level["NumLinesCovered"] + class_level["NumLinesUncovered"]
+                )
                 # prevent division by 0 errors
-                if class_level["NumLinesCovered"] + class_level["NumLinesUncovered"]:
+                if total:
                     # calculate coverage percentage
                     coverage_percentage = round(
-                        (
-                            class_level["NumLinesCovered"]
-                            / math.floor(
-                                class_level["NumLinesCovered"]
-                                + class_level["NumLinesUncovered"]
-                            )
-                        )
-                        * 100,
+                        (class_level["NumLinesCovered"] / total) * 100,
                         2,
                     )
 
-                if coverage_percentage < self.code_coverage_level:
-                    class_level_coverage[
+                if coverage_percentage < self.required_per_class_code_coverage_percent:
+                    class_level_coverage_failures[
                         class_level["ApexClassOrTrigger"]["Name"]
                     ] = coverage_percentage
 
-        # Query for OrgWide covevrage
+        # Query for OrgWide coverage
         result = self.tooling.query("SELECT PercentCovered FROM ApexOrgWideCoverage")
         coverage = result["records"][0]["PercentCovered"]
 
-        if coverage < self.code_coverage_level or not class_level_coverage:
-            if not class_level_coverage:
-                for class_name in class_level_coverage.keys():
-                    self.logger.warning(
-                        f"{class_name} failed with {class_level_coverage[class_name]}% coverage."
+        errors = []
+        if self.required_per_class_code_coverage_percent:
+            if class_level_coverage_failures:
+                for class_name in class_level_coverage_failures.keys():
+                    errors.append(
+                        f"{class_name}'s code coverage of {class_level_coverage_failures[class_name]}% is below required level of {self.required_per_class_code_coverage_percent}."
                     )
-            raise ApexTestException(
+            else:
+                self.logger.info(
+                    f"All classes meet code coverage expectations of {self.required_per_class_code_coverage_percent}% ."
+                )
+
+        if coverage < self.code_coverage_level:
+            errors.append(
                 f"Organization-wide code coverage of {coverage}% is below required level of {self.code_coverage_level}"
             )
+        else:
+            self.logger.info(
+                f"Organization-wide code coverage of {coverage}% meets expectations."
+            )
 
-        self.logger.info(
-            f"Organization-wide code coverage of {coverage}% meets expectations."
-        )
+        if errors:
+            error_message = "\n".join(errors)
+            self.logger.info(error_message)
+            raise ApexTestException(error_message)
 
     def _attempt_retries(self):
         total_method_retries = sum(
@@ -701,34 +700,38 @@ class RunApexTests(BaseSalesforceApiTask):
 
     def _write_output(self, test_results):
         junit_output = self.options["junit_output"]
-        with io.open(junit_output, mode="w", encoding="utf-8") as f:
-            f.write('<testsuite tests="{}">\n'.format(len(test_results)))
-            for result in test_results:
-                s = '  <testcase classname="{}" name="{}"'.format(
-                    result["ClassName"], result["Method"]
-                )
-                if (
-                    "Stats" in result
-                    and result["Stats"]
-                    and "duration" in result["Stats"]
-                ):
-                    s += ' time="{}"'.format(result["Stats"]["duration"])
-                if result["Outcome"] in ["Fail", "CompileFail"]:
-                    s += ">\n"
-                    s += '    <failure type="failed" '
-                    if result["Message"]:
-                        s += 'message="{}"'.format(html.escape(result["Message"]))
-                    s += ">"
+        if junit_output:
+            with io.open(junit_output, mode="w", encoding="utf-8") as f:
+                f.write('<testsuite tests="{}">\n'.format(len(test_results)))
+                for result in test_results:
+                    s = '  <testcase classname="{}" name="{}"'.format(
+                        result["ClassName"], result["Method"]
+                    )
+                    if (
+                        "Stats" in result
+                        and result["Stats"]
+                        and "duration" in result["Stats"]
+                    ):
+                        s += ' time="{}"'.format(result["Stats"]["duration"])
+                    if result["Outcome"] in ["Fail", "CompileFail"]:
+                        s += ">\n"
+                        s += '    <failure type="failed" '
+                        if result["Message"]:
+                            s += 'message="{}"'.format(html.escape(result["Message"]))
+                        s += ">"
 
-                    if result["StackTrace"]:
-                        s += "<![CDATA[{}]]>".format(html.escape(result["StackTrace"]))
-                    s += "</failure>\n"
-                    s += "  </testcase>\n"
-                else:
-                    s += " />\n"
-                f.write(str(s))
-            f.write("</testsuite>")
+                        if result["StackTrace"]:
+                            s += "<![CDATA[{}]]>".format(
+                                html.escape(result["StackTrace"])
+                            )
+                        s += "</failure>\n"
+                        s += "  </testcase>\n"
+                    else:
+                        s += " />\n"
+                    f.write(str(s))
+                f.write("</testsuite>")
 
         json_output = self.options["json_output"]
-        with io.open(json_output, mode="w", encoding="utf-8") as f:
-            f.write(str(json.dumps(test_results, indent=4)))
+        if json_output:
+            with io.open(json_output, mode="w", encoding="utf-8") as f:
+                f.write(str(json.dumps(test_results, indent=4)))

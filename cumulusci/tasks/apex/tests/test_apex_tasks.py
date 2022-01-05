@@ -7,9 +7,11 @@ from copy import deepcopy
 from distutils.version import StrictVersion
 from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 import responses
 from simple_salesforce import SalesforceGeneralError
 
+from cumulusci.core import exceptions as exc
 from cumulusci.core.config import (
     BaseProjectConfig,
     OrgConfig,
@@ -1280,3 +1282,33 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
             task()
 
         assert "found" in str(e.exception)
+
+
+class TestApexIntegrationTests:
+    @pytest.mark.needs_org()
+    @pytest.mark.slow()
+    @pytest.mark.org_shape("qa", "ccitest:qa_org")
+    def test_run_tests__integration_test(self, create_task):
+        with pytest.raises(exc.ApexTestException):
+            task = create_task(
+                RunApexTests,
+                {
+                    "required_org_code_coverage_percent": 70,
+                    "required_per_class_code_coverage_percent": 60,
+                    "json_output": None,
+                    "junit_output": None,
+                },
+            )
+            task()
+            assert task.return_values == {}
+        task = create_task(
+            RunApexTests,
+            {
+                "required_org_code_coverage_percent": 70,
+                "required_per_class_code_coverage_percent": 40,
+                "json_output": None,
+                "junit_output": None,
+            },
+        )
+        task()
+        assert task.return_values == {}
