@@ -8,7 +8,6 @@ History
 # Changes
 
 * Robot keywords have been updated to support the Spring 22' release. (#3021)
-* Fixed an issue where the ``--json`` flag was not outputting properly formatted ``JSON`` with the ``cci task list`` command. (#3011)
 * Using channel declarations in ``load.yml``, users can now do synthetic data loads across multiple user accounts at once. This is faster for some very large orgs. (#3016)
 
 # Issues Closed
@@ -16,6 +15,7 @@ History
 * Added a missing image to the "Windows Install Steps" portion of the docs. (#3013)
 * Fixed a bug that prevented ``Get webelements`` from returning an empty list if the locator was a custom locator created via the ``register_locators`` function of ``cumulusci.robotframework.locator_manager``. (#3004)
 * Fixed a bug that prevented the locator ``SF:object.button:Assign Reviewers`` from working properly. (#3002)
+* Fixed an issue where the ``--json`` flag was not outputting properly formatted ``JSON`` with the ``cci task list`` command. (#3011)
 
 3.49.0 (2021-12-09)
 -------------------
