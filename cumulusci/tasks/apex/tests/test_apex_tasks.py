@@ -1,4 +1,5 @@
 import http.client
+import logging
 import os
 import shutil
 import tempfile
@@ -1285,11 +1286,27 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
 
 
 class TestApexIntegrationTests:
-    @pytest.mark.needs_org()
-    @pytest.mark.slow()
     @pytest.mark.org_shape("qa", "ccitest:qa_org")
-    def test_run_tests__integration_test(self, create_task):
-        with pytest.raises(exc.ApexTestException):
+    @pytest.mark.slow()
+    def test_run_tests__integration_test__call_salesforce(self, create_task, caplog):
+        self._test_run_tests__integration_test(create_task, caplog)
+
+    # There were challenges VCR-ing this because it depends on a
+    # particular flow. To recreate the tape you'll need to run the
+    # ccitest:qa_org flow aginst your org first.
+    #
+    # Also: some redundant "polls" were removed by hand to avoid
+    # disk space usage.
+    def test_run_tests__integration_test(self, create_task, caplog, vcr):
+        with vcr.use_cassette(
+            "TestApexIntegrationTests.test_run_tests__integration_test.yaml"
+        ):
+            self._test_run_tests__integration_test(create_task, caplog)
+
+    def _test_run_tests__integration_test(self, create_task, caplog):
+
+        caplog.set_level(logging.INFO)
+        with pytest.raises(exc.ApexTestException) as e:
             task = create_task(
                 RunApexTests,
                 {
@@ -1299,8 +1316,18 @@ class TestApexIntegrationTests:
                     "junit_output": None,
                 },
             )
-            task()
-            assert task.return_values == {}
+            with patch.object(task, "_update_credentials"):
+                task()
+        relevant_records = [
+            record for record in caplog.records if "below required level" in str(record)
+        ]
+        assert len(relevant_records) == 1, caplog.records
+        assert "SampleClass2" in str(relevant_records[0])
+        assert "below required level" in str(e.value)
+        assert "SampleClass2" in str(e.value)
+
+        caplog.clear()
+
         task = create_task(
             RunApexTests,
             {
@@ -1310,5 +1337,11 @@ class TestApexIntegrationTests:
                 "junit_output": None,
             },
         )
-        task()
-        assert task.return_values == {}
+        with patch.object(task, "_update_credentials"):
+            task()
+        relevant_records = [
+            record for record in caplog.records if "expectations" in str(record)
+        ]
+        assert len(relevant_records) == 2
+        assert "All classes meet" in str(relevant_records)
+        assert "Organization-wide code" in str(relevant_records)
