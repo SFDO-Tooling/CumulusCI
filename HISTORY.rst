@@ -14,7 +14,7 @@ History
 # Issues Closed
 
 * Added a missing image to the "Windows Install Steps" portion of the docs. (#3013)
-* Fixed a bug that prevented ``Get webelements`` from returning and empty list if the locator was a custom locator created via the ``register_locators`` function of ``cumulusci.robotframework.locator_manager``. (#3004)
+* Fixed a bug that prevented ``Get webelements`` from returning an empty list if the locator was a custom locator created via the ``register_locators`` function of ``cumulusci.robotframework.locator_manager``. (#3004)
 * Fixed a bug that prevented the locator ``SF:object.button:Assign Reviewers`` from working properly. (#3002)
 
 3.49.0 (2021-12-09)
