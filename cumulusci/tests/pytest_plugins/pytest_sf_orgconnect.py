@@ -117,9 +117,7 @@ def org_config(request, current_org_shape, cli_org_config, fallback_org_config):
     with mock.patch.object(OrgConfig, "latest_api_version", "48.0"), mock.patch.object(
         OrgConfig, "refresh_oauth_token"
     ):
-        print("XXX yieldiing orgconfig", OrgConfig.refresh_oauth_token)
         yield org_config
-        print("YYY")
 
 
 @pytest.fixture
