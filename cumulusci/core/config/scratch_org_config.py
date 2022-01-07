@@ -3,7 +3,8 @@ import json
 import os
 import re
 
-from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG, SfdxOrgConfig
+from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
+from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 from cumulusci.core.exceptions import (
     CumulusCIException,
     ScratchOrgException,
