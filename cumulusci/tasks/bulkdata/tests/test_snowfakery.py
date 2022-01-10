@@ -10,12 +10,14 @@ from unittest import mock
 
 import pytest
 import yaml
+from snowfakery.cci_mapping_files.declaration_parser import ChannelDeclaration
 from sqlalchemy import MetaData, create_engine
 
 from cumulusci.core import exceptions as exc
 from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.bulkdata.delete import DeleteData
 from cumulusci.tasks.bulkdata.snowfakery import (
+    ChannelConfig,
     RunningTotals,
     Snowfakery,
     SnowfakeryWorkingDirectory,
@@ -309,6 +311,12 @@ class TestSnowfakery:
     def test_no_options(self):
         with pytest.raises(exc.TaskOptionsError, match="recipe"):
             _make_task(Snowfakery, {})
+
+    def test_bad_generator_option(self):
+        with pytest.raises(exc.TaskOptionsError, match="positive"):
+            _make_task(
+                Snowfakery, {"options": {"recipe": sample_yaml, "num_processes": 0}}
+            )
 
     @mock.patch(
         "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
@@ -626,7 +634,6 @@ class TestSnowfakery:
 
     def test_options(
         self,
-        mock_load_data,
         run_snowfakery_and_yield_results,
     ):
         options_yaml = str(sample_yaml).replace(
@@ -901,6 +908,53 @@ class TestSnowfakery:
             with pytest.raises(exc.BulkDataException):
                 mock_load_data.reset(fake_exception_on_request=3)
                 task()
+
+    def test_default_num_generators_per_channel_fully_subscribed(self, org_config):
+        # this scenario used to cause a zero-division error
+
+        declaration = ChannelDeclaration(
+            user="",
+            recipe_options={},
+            num_generators=2,
+            num_loaders=2,
+        )
+        config = ChannelConfig(org_config, declaration)
+
+        channel_configs = [config, config, config]
+        d = Snowfakery.default_num_generators_per_channel(channel_configs, 6)
+        assert d is None
+
+    def test_default_num_generators_per_channel_partiially_subscribed(self, org_config):
+        # this scenario used to cause a zero-division error
+
+        config_with_generators = ChannelConfig(
+            org_config,
+            ChannelDeclaration(
+                user="",
+                recipe_options={},
+                num_generators=2,
+                num_loaders=2,
+            ),
+        )
+
+        config_without_generators = ChannelConfig(
+            org_config,
+            ChannelDeclaration(
+                user="",
+                recipe_options={},
+                num_generators=None,
+                num_loaders=None,
+            ),
+        )
+
+        channel_configs = [
+            config_with_generators,
+            config_with_generators,
+            config_with_generators,
+            config_without_generators,
+        ]
+        d = Snowfakery.default_num_generators_per_channel(channel_configs, 8)
+        assert d == 2
 
     # def test_generate_mapping_file(self):
     #     with temporary_file_path("mapping.yml") as temp_mapping:

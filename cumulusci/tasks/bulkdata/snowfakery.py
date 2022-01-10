@@ -140,6 +140,11 @@ class Snowfakery(BaseSalesforceApiTask):
             "description": "Boolean: should we continue loading even after running into row errors? "
             "Defaults to False."
         },
+        "ignore_batch_error_num": {
+            "description": "Int: how many batches can fail due to networking error, "
+            " auth errors or so forth before the task quits."
+            "Defaults to 0."
+        },
     }
 
     def _validate_options(self):
@@ -154,6 +159,10 @@ class Snowfakery(BaseSalesforceApiTask):
         self.num_generator_workers = self.options.get("num_processes", None)
         if self.num_generator_workers is not None:
             self.num_generator_workers = int(self.num_generator_workers)
+            if not is_positive_number(self.num_generator_workers):
+                raise TaskOptionsError(
+                    f"Number of generator workers (`num_processes`) should be a positive number, not {self.num_generator_workers}",
+                )
         self.ignore_row_errors = process_bool_arg(
             self.options.get("ignore_row_errors", False)
         )
@@ -165,6 +174,8 @@ class Snowfakery(BaseSalesforceApiTask):
         self.bulk_mode = self.options.get("bulk_mode", "Parallel").title()
         if self.bulk_mode and self.bulk_mode not in ["Serial", "Parallel"]:
             raise TaskOptionsError("bulk_mode must be either Serial or Parallel")
+
+        self.ignore_batch_error_num = int(self.options.get("ignore_batch_error_num", 0))
 
     def _init_channel_configs(self, recipe):
         """The channels describe the 'shape' of the communication
@@ -289,27 +300,48 @@ class Snowfakery(BaseSalesforceApiTask):
         else:
             self.configure_multiple_channels(working_directory)
 
+    @staticmethod
+    def default_num_generators_per_channel(
+        channel_configs, num_generator_workers
+    ) -> T.Optional[int]:
+        channels_without_workers = len(
+            [
+                channel.declaration.num_generators
+                for channel in channel_configs
+                if not channel.declaration.num_generators
+            ]
+        )
+
+        if not channels_without_workers:
+            return None
+
+        allocated_generator_workers = sum(
+            (channel.declaration.num_generators or 0) for channel in channel_configs
+        )
+        remaining_generator_workers = (
+            num_generator_workers - allocated_generator_workers
+        )
+
+        if channels_without_workers:
+            num_generators_per_channel = ceil(
+                remaining_generator_workers / channels_without_workers
+            )
+        else:
+            # This value should never be used. Assertion in configure_multiple_channels
+            # If every channel has workers then
+
+            num_generators_per_channel = None
+
+        return num_generators_per_channel
+
     def configure_multiple_channels(self, working_directory):
         """If there is more than one channel (=user account),
         pre-allocate work among them.
         """
-        allocated_generator_workers = sum(
-            (channel.declaration.num_generators or 0)
-            for channel in self.channel_configs
+        default_num_generators_per_channel = self.default_num_generators_per_channel(
+            self.channel_configs, self.num_generator_workers
         )
-        channels_without_workers = len(
-            [
-                channel.declaration.num_generators
-                for channel in self.channel_configs
-                if not channel.declaration.num_generators
-            ]
-        )
-        remaining_generator_workers = (
-            self.num_generator_workers - allocated_generator_workers
-        )
-        num_generators_per_channel = ceil(
-            remaining_generator_workers / channels_without_workers
-        )
+
         for idx, channel in enumerate(self.channel_configs):
             if self.debug_mode:
                 self.logger.info("Initializing %s", channel)
@@ -317,8 +349,9 @@ class Snowfakery(BaseSalesforceApiTask):
             channel_wd.mkdir()
             recipe_options = channel.merge_recipe_options(self.recipe_options)
             generator_workers = (
-                channel.declaration.num_generators or num_generators_per_channel
+                channel.declaration.num_generators or default_num_generators_per_channel
             )
+            assert generator_workers
 
             self.queue_manager.add_channel(
                 org_config=channel.org_config,
@@ -381,14 +414,14 @@ class Snowfakery(BaseSalesforceApiTask):
 
         self.logger.info(upload_status._display(detailed=self.debug_mode))
 
-        if upload_status.sets_failed:
+        if upload_status.batches_failed:
             # TODO: this is not sufficiently tested.
             #       commenting it out doesn't break tests
             self.log_failures()
 
-        if upload_status.sets_failed > ERROR_THRESHOLD:
+        if upload_status.batches_failed > self.ignore_batch_error_num:
             raise exc.BulkDataException(
-                f"Errors exceeded threshold: {upload_status.sets_failed} vs {ERROR_THRESHOLD}"
+                f"Errors exceeded threshold: {upload_status.batches_failed} vs {self.ignore_batch_error_num}"
             )
 
         # TODO: Retrieve OrgRecordCounts code from
@@ -430,8 +463,8 @@ class Snowfakery(BaseSalesforceApiTask):
         cooldown = 5
         while not self.queue_manager.check_finished():
             status = self.get_upload_status(0)
-            datagen_workers = f"{status.sets_being_generated} data generators, "
-            msg = f"Waiting for {datagen_workers}{status.sets_being_loaded} uploads to finish"
+            datagen_workers = f"{status.sets_being_generated:,} sets to be generated, "
+            msg = f"Waiting for {datagen_workers}{status.sets_being_loaded:,} sets to be uploaded"
             if old_message != msg or cooldown < 1:
                 old_message = msg
                 self.logger.info(msg)
@@ -743,3 +776,7 @@ def channel_configs_from_decls(
         return ChannelConfig(keychain.get_org(decl.user), decl)
 
     return [config_from_decl(decl) for decl in channel_decls]
+
+
+def is_positive_number(num):
+    return isinstance(num, int) and num > 0

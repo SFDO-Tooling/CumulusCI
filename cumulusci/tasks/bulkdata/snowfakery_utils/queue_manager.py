@@ -117,6 +117,7 @@ class SnowfakeryChannelManager:
             and not portions.done(upload_status.total_sets_working_on_or_uploaded)
         ):
             # randomize channels so the first one doesn't always grab all slots
+            # TODO: instead allocate to the channel with the fewest total workers
             random.shuffle(channels)
             new_workers = [
                 channel.make_new_worker(
@@ -309,7 +310,7 @@ class Channel:
             "max_num_generator_workers": self.num_generator_workers,
             # todo: use row-level result from org load for better accuracy
             "sets_finished": set_count_from_names(self.load_data_q.outbox_jobs),
-            "sets_failed": len(self.load_data_q.failed_jobs),
+            "batches_failed": len(self.load_data_q.failed_jobs),
             # TODO: are these two redundant?
             "inprogress_generator_jobs": len(self.data_gen_q.inprogress_jobs),
             "inprogress_loader_jobs": len(self.load_data_q.inprogress_jobs),
@@ -369,7 +370,7 @@ class UploadStatus(T.NamedTuple):
     max_num_loader_workers: int
     max_num_generator_workers: int
     elapsed_seconds: int
-    sets_failed: int
+    batches_failed: int
     inprogress_generator_jobs: int
     inprogress_loader_jobs: int
     data_gen_free_workers: int
@@ -395,7 +396,7 @@ class UploadStatus(T.NamedTuple):
             "target_count",
             "total_sets_working_on_or_uploaded",
             "sets_finished",
-            "sets_failed",
+            "batches_failed",
         ]
         if self.channels > 1:
             most_important_stats.append("channels")
