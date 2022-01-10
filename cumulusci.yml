@@ -80,10 +80,6 @@ flows:
                     required_per_class_code_coverage_percent: 50
             3:
                 task: run_tests
-                options:
-                    required_per_class_code_coverage_percent: 50
-            4:
-                task: run_tests
                 ignore_failure: True
                 options:
                     required_per_class_code_coverage_percent: 90
