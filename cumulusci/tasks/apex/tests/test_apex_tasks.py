@@ -1288,6 +1288,9 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
 class TestApexIntegrationTests:
     @pytest.mark.org_shape("qa", "ccitest:qa_org")
     @pytest.mark.slow()
+    @pytest.mark.skip()  # until our CI has access to github service, or test
+    # doesn't rely on it. In the meantime, the VCR test below is still good
+    # and this test works on laptops.
     def test_run_tests__integration_test__call_salesforce(self, create_task, caplog):
         self._test_run_tests__integration_test(create_task, caplog)
 
