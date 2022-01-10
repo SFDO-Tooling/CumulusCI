@@ -7,7 +7,7 @@ project:
 sources:
     ccitest:
         github: https://github.com/SFDO-Tooling/CumulusCI-Test
-        branch: feature/add_uncovered_code
+        branch: main
 
 tasks:
     robot:
