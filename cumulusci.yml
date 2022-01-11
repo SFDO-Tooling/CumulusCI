@@ -4,6 +4,11 @@ project:
     package:
         name: CumulusCI
 
+sources:
+    ccitest:
+        github: https://github.com/SFDO-Tooling/CumulusCI-Test
+        branch: main
+
 tasks:
     robot:
         options:
@@ -62,6 +67,23 @@ flows:
                 task: robot
                 options:
                     suites: cumulusci/robotframework/perftests
+
+    test_run_tests:
+        description: Test the run_tests task in a CumulusCI-Test org
+        steps:
+            1:
+                flow: ccitest:qa_org
+
+            2:
+                task: run_tests
+                options:
+                    required_per_class_code_coverage_percent: 50
+            3:
+                task: run_tests
+                ignore_failure: True
+                options:
+                    required_per_class_code_coverage_percent: 90
+                    required_org_code_coverage_percent: 100
 
 orgs:
     scratch:

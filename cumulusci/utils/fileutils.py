@@ -43,7 +43,7 @@ def load_from_source(source: DataInput) -> ContextManager[Tuple[IO[Text], Text]]
     ...      print(safe_load(file).keys())
     ...
     cumulusci.yml
-    dict_keys(['project', 'tasks', 'flows', 'orgs'])
+    dict_keys(['project', 'sources', 'tasks', 'flows', 'orgs'])
 
     >>> with load_from_source('http://www.salesforce.com') as (file, path):
     ...     print(path)
