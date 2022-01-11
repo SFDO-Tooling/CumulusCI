@@ -1302,7 +1302,8 @@ class TestApexIntegrationTests:
     # disk space usage.
     def test_run_tests__integration_test(self, create_task, caplog, vcr):
         with vcr.use_cassette(
-            "TestApexIntegrationTests.test_run_tests__integration_test.yaml"
+            "ManualEditTestApexIntegrationTests.test_run_tests__integration_test.yaml",
+            record_mode="none",
         ):
             self._test_run_tests__integration_test(create_task, caplog)
 

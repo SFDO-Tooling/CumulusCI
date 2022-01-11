@@ -560,7 +560,7 @@ class RunApexTests(BaseSalesforceApiTask):
                 )
             )
 
-        if self.code_coverage_level:
+        if self.code_coverage_level or self.required_per_class_code_coverage_percent:
             if self.options.get("namespace") not in self.org_config.installed_packages:
                 self._check_code_coverage()
             else:

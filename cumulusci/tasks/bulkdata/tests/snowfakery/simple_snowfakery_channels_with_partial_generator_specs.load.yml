@@ -1,0 +1,5 @@
+- user_channels:
+      - user: channeltest
+        num_generators: 1
+      - user: channeltest-b
+        num_generators: 1
