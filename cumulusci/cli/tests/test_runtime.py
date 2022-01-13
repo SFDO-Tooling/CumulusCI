@@ -210,4 +210,4 @@ class TestCliRuntime(unittest.TestCase):
         standard_lib_flows = config.get_available_flows(project=False)
         all_flows_including_project_specific = config.get_available_flows()
 
-        assert len(all_flows_including_project_specific) > len(standard_lib_flows)
+        assert len(all_flows_including_project_specific) == len(standard_lib_flows) + 1
