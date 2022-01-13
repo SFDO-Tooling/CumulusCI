@@ -29,7 +29,7 @@ def flow_doc(runtime):
     click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
     flow_info_groups = list(flow_info["groups"].keys())
 
-    flows = runtime.get_available_flows()
+    flows = runtime.get_available_flows(project=False)
     flows_by_group = group_items(flows)
     flow_groups = sorted(
         flows_by_group.keys(),

@@ -1,3 +1,4 @@
+import copy
 import os
 import sys
 import unittest
@@ -195,3 +196,18 @@ class TestCliRuntime(unittest.TestCase):
         config.alert("hello")
         echo_mock.assert_called_once()
         shell_mock.assert_called_once()
+
+    def test_get_available_flows(self):
+        config = CliRuntime()
+        # Manually add one project specific flow
+        config.project_config.config["flows"] = copy.deepcopy(
+            config.universal_config.config["flows"]
+        )
+        config.project_config.config["flows"]["custom_ci_beta"] = copy.deepcopy(
+            config.universal_config.config["flows"]["ci_beta"]
+        )
+
+        standard_lib_flows = config.get_available_flows(project=False)
+        all_flows_including_project_specific = config.get_available_flows()
+
+        assert len(all_flows_including_project_specific) > len(standard_lib_flows)

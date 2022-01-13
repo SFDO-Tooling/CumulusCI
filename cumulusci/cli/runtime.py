@@ -157,10 +157,10 @@ class CliRuntime(BaseCumulusCI):
             else self.universal_config.list_tasks()
         )
 
-    def get_available_flows(self):
+    def get_available_flows(self, project=True):
         return (
             self.project_config.list_flows()
-            if self.project_config is not None
+            if project and self.project_config is not None
             else self.universal_config.list_flows()
         )
 
