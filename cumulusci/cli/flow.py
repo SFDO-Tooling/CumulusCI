@@ -21,7 +21,7 @@ def flow():
 
 
 @flow.command(name="doc", help="Exports RST format documentation for all flows")
-@pass_runtime(require_keychain=True)
+@pass_runtime(require_project=False)
 def flow_doc(runtime):
     flow_info_path = Path(__file__, "..", "..", "..", "docs", "flows.yml").resolve()
     with open(flow_info_path, "r", encoding="utf-8") as f:
