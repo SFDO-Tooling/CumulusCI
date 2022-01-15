@@ -659,7 +659,46 @@ class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest, unittest.TestCas
         )
         # Make sure task result got cached
         key = ("log", (("level", "info"), ("line", "plan")))
-        assert key in flow._task_cache.results
+        assert key in flow._task_caches[flow.project_config].results
+
+    def test_run__cross_project_preflights(self):
+        other_project_config = mock.MagicMock()
+        other_project_config.source.__str__.return_value = "other source"
+        other_project_config.tasks = {
+            "foo": {
+                "class_path": "cumulusci.tasks.util.LogLine",
+                "options": {"level": "info", "line": "test"},
+            }
+        }
+        flow = PreflightFlowCoordinator.from_steps(
+            self.project_config,
+            [
+                StepSpec(
+                    "1/1",
+                    "other:test1",
+                    {
+                        "checks": [{"when": "not tasks.foo()", "action": "error"}],
+                    },
+                    None,
+                    other_project_config,
+                    from_flow="test",
+                ),
+                StepSpec(
+                    "1/2", "test2", {}, None, self.project_config, from_flow="test"
+                ),
+            ],
+        )
+        flow.run(self.org_config)
+        key = ("foo", ())
+        assert key in flow._task_caches[other_project_config].results
+        # log doesn't return anything => None is falsy => preflight is True
+        # which results in the action taking place (error)
+        self.assertDictEqual(
+            {
+                "1/1": [{"status": "error", "message": None}],
+            },
+            flow.preflight_results,
+        )
 
 
 @pytest.fixture
