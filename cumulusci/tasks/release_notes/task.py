@@ -266,6 +266,7 @@ class ParentPullRequestNotes(BaseGithubTask):
 
     def _add_header(self, pull_request):
         """Appends the header to the pull_request.body if not already present"""
+        pull_request.body = "" if pull_request.body is None else pull_request.body
         if self.UNAGGREGATED_PR_HEADER not in pull_request.body:
             pull_request.body += self.UNAGGREGATED_PR_HEADER
 
