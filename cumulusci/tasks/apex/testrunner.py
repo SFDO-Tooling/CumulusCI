@@ -519,7 +519,7 @@ class RunApexTests(BaseSalesforceApiTask):
         result = self._get_test_classes()
         if result["totalSize"] == 0:
             return
-        for test_class in result["records"][-20:]:
+        for test_class in result["records"]:
             self.classes_by_id[test_class["Id"]] = test_class["Name"]
             self.classes_by_name[test_class["Name"]] = test_class["Id"]
             self.results_by_class_name[test_class["Name"]] = {}
