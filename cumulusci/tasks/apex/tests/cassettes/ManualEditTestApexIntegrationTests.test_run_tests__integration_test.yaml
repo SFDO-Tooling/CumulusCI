@@ -1,0 +1,703 @@
+interactions:
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+Id%2C+Name+FROM+ApexClass+WHERE+NamespacePrefix+%3D+null+AND+%28Name+LIKE+%27%25_TEST%25%27%29
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 3,\n  \"totalSize\" : 3,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexClass\",\n  \"records\" : [ {\n    \"attributes\"
+                  : {\n      \"type\" : \"ApexClass\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexClass/01p1700000PXJMTAA5\"\n
+                  \   },\n    \"Id\" : \"01p1700000PXJMTAA5\",\n    \"Name\" : \"SamplePage_CTRL_TEST\"\n
+                  \ }, {\n    \"attributes\" : {\n      \"type\" : \"ApexClass\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexClass/01p1700000PXJMRAA5\"\n
+                  \   },\n    \"Id\" : \"01p1700000PXJMRAA5\",\n    \"Name\" : \"SampleClass_TEST\"\n
+                  \ }, {\n    \"attributes\" : {\n      \"type\" : \"ApexClass\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexClass/01p1700000PXUjaAAH\"\n
+                  \   },\n    \"Id\" : \"01p1700000PXUjaAAH\",\n    \"Name\" : \"SampleClass2_TEST\"\n
+                  \ } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: '{"classids": "01p1700000PXJMTAA5,01p1700000PXJMRAA5,01p1700000PXUjaAAH"}'
+          headers:
+              Request-Headers:
+                  - Elided
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/runTestsAsynchronous
+      response:
+          body:
+              string: '"7071700002rbUCv"'
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+Id%2C+Status%2C+ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%277071700002rbUCv%27
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 3,\n  \"totalSize\" : 3,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexTestQueueItem\",\n  \"records\" : [
+                  {\n    \"attributes\" : {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkpAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkpAAE\",\n    \"Status\" : \"Processing\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMRAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkqAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkqAAE\",\n    \"Status\" : \"Processing\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMTAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkrAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkrAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXUjaAAH\"\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+Id%2C+Status%2C+ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%277071700002rbUCv%27
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 3,\n  \"totalSize\" : 3,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexTestQueueItem\",\n  \"records\" : [
+                  {\n    \"attributes\" : {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkpAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkpAAE\",\n    \"Status\" : \"Processing\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMRAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkqAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkqAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMTAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkrAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkrAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXUjaAAH\"\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+Id%2C+Status%2C+ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%277071700002rbUCv%27
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 3,\n  \"totalSize\" : 3,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexTestQueueItem\",\n  \"records\" : [
+                  {\n    \"attributes\" : {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkpAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkpAAE\",\n    \"Status\" : \"Processing\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMRAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkqAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkqAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMTAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkrAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkrAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXUjaAAH\"\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+Id%2C+Status%2C+ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%277071700002rbUCv%27
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 3,\n  \"totalSize\" : 3,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexTestQueueItem\",\n  \"records\" : [
+                  {\n    \"attributes\" : {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkpAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkpAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMRAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkqAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkqAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMTAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkrAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkrAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXUjaAAH\"\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+Id%2C+Status%2C+ExtendedStatus%2C+ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%277071700002rbUCv%27+AND+Status+%3D+%27Failed%27
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 0,\n  \"totalSize\" : 0,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : null,\n  \"records\" : [ ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=%0ASELECT+Id%2CApexClassId%2CTestTimestamp%2C%0A+++++++Message%2CMethodName%2COutcome%2C%0A+++++++RunTime%2CStackTrace%2C%0A+++++++%28SELECT%0A++++++++++Id%2CCallouts%2CAsyncCalls%2CDmlRows%2CEmail%2C%0A++++++++++LimitContext%2CLimitExceptions%2CMobilePush%2C%0A++++++++++QueryRows%2CSosl%2CCpu%2CDml%2CSoql%0A++++++++FROM+ApexTestResults%29%0AFROM+ApexTestResult%0AWHERE+AsyncApexJobId%3D%277071700002rbUCv%27%0A
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 3,\n  \"totalSize\" : 3,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexTestResult\",\n  \"records\" : [ {\n
+                  \   \"attributes\" : {\n      \"type\" : \"ApexTestResult\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexTestResult/07M1700000NOy7qEAD\"\n
+                  \   },\n    \"Id\" : \"07M1700000NOy7qEAD\",\n    \"ApexClassId\" : \"01p1700000PXUjaAAH\",\n
+                  \   \"TestTimestamp\" : \"2022-01-05T13:45:52.000+0000\",\n    \"Message\"
+                  : null,\n    \"MethodName\" : \"helloWorldTest\",\n    \"Outcome\" : \"Pass\",\n
+                  \   \"RunTime\" : 12,\n    \"StackTrace\" : null,\n    \"ApexTestResults\"
+                  : null\n  }, {\n    \"attributes\" : {\n      \"type\" : \"ApexTestResult\",\n
+                  \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestResult/07M1700000NOy7vEAD\"\n
+                  \   },\n    \"Id\" : \"07M1700000NOy7vEAD\",\n    \"ApexClassId\" : \"01p1700000PXJMTAA5\",\n
+                  \   \"TestTimestamp\" : \"2022-01-05T13:45:52.000+0000\",\n    \"Message\"
+                  : null,\n    \"MethodName\" : \"getSamplesTest\",\n    \"Outcome\" : \"Pass\",\n
+                  \   \"RunTime\" : 48,\n    \"StackTrace\" : null,\n    \"ApexTestResults\"
+                  : {\n      \"size\" : 1,\n      \"totalSize\" : 1,\n      \"done\" : true,\n
+                  \     \"queryLocator\" : null,\n      \"entityTypeName\" : \"ApexTestResultLimits\",\n
+                  \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
+                  \"ApexTestResultLimits\",\n          \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestResultLimits/05n17000009HtKUAA0\"\n
+                  \       },\n        \"Id\" : \"05n17000009HtKUAA0\",\n        \"Callouts\"
+                  : 0,\n        \"AsyncCalls\" : 0,\n        \"DmlRows\" : 0,\n        \"Email\"
+                  : 0,\n        \"LimitContext\" : \"SYNC\",\n        \"LimitExceptions\" :
+                  null,\n        \"MobilePush\" : 0,\n        \"QueryRows\" : 1,\n        \"Sosl\"
+                  : 0,\n        \"Cpu\" : 0,\n        \"Dml\" : 0,\n        \"Soql\" : 1\n      }
+                  ]\n    }\n  }, {\n    \"attributes\" : {\n      \"type\" : \"ApexTestResult\",\n
+                  \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestResult/07M1700000NOy80EAD\"\n
+                  \   },\n    \"Id\" : \"07M1700000NOy80EAD\",\n    \"ApexClassId\" : \"01p1700000PXJMRAA5\",\n
+                  \   \"TestTimestamp\" : \"2022-01-05T13:45:52.000+0000\",\n    \"Message\"
+                  : null,\n    \"MethodName\" : \"fillInFirstNameTest\",\n    \"Outcome\" :
+                  \"Pass\",\n    \"RunTime\" : 340,\n    \"StackTrace\" : null,\n    \"ApexTestResults\"
+                  : {\n      \"size\" : 1,\n      \"totalSize\" : 1,\n      \"done\" : true,\n
+                  \     \"queryLocator\" : null,\n      \"entityTypeName\" : \"ApexTestResultLimits\",\n
+                  \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
+                  \"ApexTestResultLimits\",\n          \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestResultLimits/05n17000009HtKZAA0\"\n
+                  \       },\n        \"Id\" : \"05n17000009HtKZAA0\",\n        \"Callouts\"
+                  : 0,\n        \"AsyncCalls\" : 0,\n        \"DmlRows\" : 1,\n        \"Email\"
+                  : 0,\n        \"LimitContext\" : \"SYNC\",\n        \"LimitExceptions\" :
+                  null,\n        \"MobilePush\" : 0,\n        \"QueryRows\" : 0,\n        \"Sosl\"
+                  : 0,\n        \"Cpu\" : 31,\n        \"Dml\" : 1,\n        \"Soql\" : 0\n
+                  \     } ]\n    }\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT%20SubscriberPackage.Id,%20SubscriberPackage.NamespacePrefix,%20SubscriberPackageVersionId%20FROM%20InstalledSubscriberPackage
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 1,\n  \"totalSize\" : 1,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"InstalledSubscriberPackage\",\n  \"records\"
+                  : [ {\n    \"attributes\" : {\n      \"type\" : \"InstalledSubscriberPackage\",\n
+                  \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/InstalledSubscriberPackage/0A3170000003xYJCAY\"\n
+                  \   },\n    \"SubscriberPackage\" : {\n      \"attributes\" : {\n        \"type\"
+                  : \"SubscriberPackage\",\n        \"url\" : \"/services/data/vxx.0/tooling/sobjects/SubscriberPackage/033i0000000ElVOAA0\"\n
+                  \     },\n      \"Id\" : \"033i0000000ElVOAA0\",\n      \"NamespacePrefix\"
+                  : \"pub\"\n    },\n    \"SubscriberPackageVersionId\" : \"04ti0000000GSu9AAG\"\n
+                  \ } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT%20Id,%20MajorVersion,%20MinorVersion,%20PatchVersion,%20BuildNumber,%20IsBeta%20FROM%20SubscriberPackageVersion%20WHERE%20Id='04ti0000000GSu9AAG'
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 1,\n  \"totalSize\" : 1,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"SubscriberPackageVersion\",\n  \"records\"
+                  : [ {\n    \"attributes\" : {\n      \"type\" : \"SubscriberPackageVersion\",\n
+                  \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/SubscriberPackageVersion/04ti0000000GSu9AAG\"\n
+                  \   },\n    \"Id\" : \"04ti0000000GSu9AAG\",\n    \"MajorVersion\" : 1,\n
+                  \   \"MinorVersion\" : 5,\n    \"PatchVersion\" : 0,\n    \"BuildNumber\"
+                  : 1,\n    \"IsBeta\" : false\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+ApexClassOrTrigger.Name%2C+ApexClassOrTriggerId%2C+NumLinesCovered%2C+NumLinesUncovered+FROM+ApexCodeCoverageAggregate+ORDER+BY+ApexClassOrTrigger.Name+ASC
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 4,\n  \"totalSize\" : 4,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexCodeCoverageAggregate\",\n  \"records\"
+                  : [ {\n    \"attributes\" : {\n      \"type\" : \"ApexCodeCoverageAggregate\",\n
+                  \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexCodeCoverageAggregate/71517000005yLqxAAE\"\n
+                  \   },\n    \"ApexClassOrTrigger\" : {\n      \"attributes\" : {\n        \"type\"
+                  : \"Name\",\n        \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexClass/01p1700000PXJMQAA5\"\n
+                  \     },\n      \"Name\" : \"SampleClass\"\n    },\n    \"ApexClassOrTriggerId\"
+                  : \"01p1700000PXJMQAA5\",\n    \"NumLinesCovered\" : 6,\n    \"NumLinesUncovered\"
+                  : 0\n  }, {\n    \"attributes\" : {\n      \"type\" : \"ApexCodeCoverageAggregate\",\n
+                  \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexCodeCoverageAggregate/71517000005yPWnAAM\"\n
+                  \   },\n    \"ApexClassOrTrigger\" : {\n      \"attributes\" : {\n        \"type\"
+                  : \"Name\",\n        \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexClass/01p1700000PXUM7AAP\"\n
+                  \     },\n      \"Name\" : \"SampleClass2\"\n    },\n    \"ApexClassOrTriggerId\"
+                  : \"01p1700000PXUM7AAP\",\n    \"NumLinesCovered\" : 1,\n    \"NumLinesUncovered\"
+                  : 1\n  }, {\n    \"attributes\" : {\n      \"type\" : \"ApexCodeCoverageAggregate\",\n
+                  \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexCodeCoverageAggregate/71517000005yLrDAAU\"\n
+                  \   },\n    \"ApexClassOrTrigger\" : {\n      \"attributes\" : {\n        \"type\"
+                  : \"Name\",\n        \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexClass/01p1700000PXJMSAA5\"\n
+                  \     },\n      \"Name\" : \"SamplePage_CTRL\"\n    },\n    \"ApexClassOrTriggerId\"
+                  : \"01p1700000PXJMSAA5\",\n    \"NumLinesCovered\" : 2,\n    \"NumLinesUncovered\"
+                  : 0\n  }, {\n    \"attributes\" : {\n      \"type\" : \"ApexCodeCoverageAggregate\",\n
+                  \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexCodeCoverageAggregate/71517000005yLrEAAU\"\n
+                  \   },\n    \"ApexClassOrTrigger\" : {\n      \"attributes\" : {\n        \"type\"
+                  : \"Name\",\n        \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTrigger/01q17000001cFeyAAE\"\n
+                  \     },\n      \"Name\" : \"SampleTrigger\"\n    },\n    \"ApexClassOrTriggerId\"
+                  : \"01q17000001cFeyAAE\",\n    \"NumLinesCovered\" : 2,\n    \"NumLinesUncovered\"
+                  : 0\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+PercentCovered+FROM+ApexOrgWideCoverage
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 1,\n  \"totalSize\" : 1,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexOrgWideCoverage\",\n  \"records\" :
+                  [ {\n    \"attributes\" : {\n      \"type\" : \"ApexOrgWideCoverage\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexOrgWideCoverage/7161700000065bjAAA\"\n
+                  \   },\n    \"PercentCovered\" : 91\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects/Organization/00D0xORGID00000000
+      response:
+          body:
+              string:
+                  "{\n  \"attributes\" : {\n    \"type\" : \"Organization\",\n    \"url\"
+                  : \"/services/data/vxx.0/sobjects/Organization/00D0xORGID00000000\"\n  },\n
+                  \ \"Id\" : \"00D0xORGID00000000\",\n  \"Name\" : \"CumulusCI - Dev Workspace\",\n
+                  \ \"Division\" : null,\n  \"Street\" : null,\n  \"City\" : null,\n  \"State\"
+                  : null,\n  \"PostalCode\" : null,\n  \"Country\" : \"US\",\n  \"Latitude\"
+                  : null,\n  \"Longitude\" : null,\n  \"GeocodeAccuracy\" : null,\n  \"Address\"
+                  : {\n    \"city\" : null,\n    \"country\" : \"US\",\n    \"geocodeAccuracy\"
+                  : null,\n    \"latitude\" : null,\n    \"longitude\" : null,\n    \"postalCode\"
+                  : null,\n    \"state\" : null,\n    \"street\" : null\n  },\n  \"Phone\" :
+                  null,\n  \"Fax\" : null,\n  \"PrimaryContact\" : \"User User\",\n  \"DefaultLocaleSidKey\"
+                  : \"en_US\",\n  \"TimeZoneSidKey\" : \"America/Los_Angeles\",\n  \"LanguageLocaleKey\"
+                  : \"en_US\",\n  \"ReceivesInfoEmails\" : true,\n  \"ReceivesAdminInfoEmails\"
+                  : true,\n  \"PreferencesRequireOpportunityProducts\" : false,\n  \"PreferencesTransactionSecurityPolicy\"
+                  : false,\n  \"PreferencesTerminateOldestSession\" : false,\n  \"PreferencesConsentManagementEnabled\"
+                  : true,\n  \"PreferencesAutoSelectIndividualOnMerge\" : false,\n  \"PreferencesLightningLoginEnabled\"
+                  : true,\n  \"PreferencesOnlyLLPermUserAllowed\" : false,\n  \"FiscalYearStartMonth\"
+                  : 1,\n  \"UsesStartDateAsFiscalYearName\" : false,\n  \"DefaultAccountAccess\"
+                  : \"Edit\",\n  \"DefaultContactAccess\" : \"ControlledByParent\",\n  \"DefaultOpportunityAccess\"
+                  : \"Edit\",\n  \"DefaultLeadAccess\" : \"ReadEditTransfer\",\n  \"DefaultCaseAccess\"
+                  : \"ReadEditTransfer\",\n  \"DefaultCalendarAccess\" : \"HideDetailsInsert\",\n
+                  \ \"DefaultPricebookAccess\" : \"ReadSelect\",\n  \"DefaultCampaignAccess\"
+                  : \"All\",\n  \"SystemModstamp\" : \"2021-12-30T16:20:26.000+0000\",\n  \"ComplianceBccEmail\"
+                  : null,\n  \"UiSkin\" : \"Theme3\",\n  \"SignupCountryIsoCode\" : \"US\",\n
+                  \ \"TrialExpirationDate\" : \"2022-01-07T16:20:16.000+0000\",\n  \"NumKnowledgeService\"
+                  : 2,\n  \"OrganizationType\" : \"Developer Edition\",\n  \"NamespacePrefix\"
+                  : null,\n  \"InstanceName\" : \"CS420\",\n  \"IsSandbox\" : true,\n  \"WebToCaseDefaultOrigin\"
+                  : \"Web\",\n  \"MonthlyPageViewsUsed\" : 0,\n  \"MonthlyPageViewsEntitlement\"
+                  : 0,\n  \"IsReadOnly\" : false,\n  \"CreatedDate\" : \"2021-12-30T14:37:22.000+0000\",\n
+                  \ \"CreatedById\" : \"0051700000BS99QAAT\",\n  \"LastModifiedDate\" : \"2021-12-30T16:20:22.000+0000\",\n
+                  \ \"LastModifiedById\" : \"0051700000BS99QAAT\"\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+Id%2C+Name+FROM+ApexClass+WHERE+NamespacePrefix+%3D+null+AND+%28Name+LIKE+%27%25_TEST%25%27%29
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 3,\n  \"totalSize\" : 3,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexClass\",\n  \"records\" : [ {\n    \"attributes\"
+                  : {\n      \"type\" : \"ApexClass\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexClass/01p1700000PXJMTAA5\"\n
+                  \   },\n    \"Id\" : \"01p1700000PXJMTAA5\",\n    \"Name\" : \"SamplePage_CTRL_TEST\"\n
+                  \ }, {\n    \"attributes\" : {\n      \"type\" : \"ApexClass\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexClass/01p1700000PXJMRAA5\"\n
+                  \   },\n    \"Id\" : \"01p1700000PXJMRAA5\",\n    \"Name\" : \"SampleClass_TEST\"\n
+                  \ }, {\n    \"attributes\" : {\n      \"type\" : \"ApexClass\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexClass/01p1700000PXUjaAAH\"\n
+                  \   },\n    \"Id\" : \"01p1700000PXUjaAAH\",\n    \"Name\" : \"SampleClass2_TEST\"\n
+                  \ } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: '{"classids": "01p1700000PXJMTAA5,01p1700000PXJMRAA5,01p1700000PXUjaAAH"}'
+          headers:
+              Request-Headers:
+                  - Elided
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/runTestsAsynchronous
+      response:
+          body:
+              string: '"7071700002rbU9S"'
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+Id%2C+Status%2C+ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%277071700002rbU9S%27
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 3,\n  \"totalSize\" : 3,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexTestQueueItem\",\n  \"records\" : [
+                  {\n    \"attributes\" : {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkuAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkuAAE\",\n    \"Status\" : \"Processing\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMRAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkvAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkvAAE\",\n    \"Status\" : \"Processing\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMTAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkwAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkwAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXUjaAAH\"\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+Id%2C+Status%2C+ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%277071700002rbU9S%27
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 3,\n  \"totalSize\" : 3,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexTestQueueItem\",\n  \"records\" : [
+                  {\n    \"attributes\" : {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkuAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkuAAE\",\n    \"Status\" : \"Processing\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMRAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkvAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkvAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMTAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkwAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkwAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXUjaAAH\"\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+Id%2C+Status%2C+ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%277071700002rbU9S%27
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 3,\n  \"totalSize\" : 3,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexTestQueueItem\",\n  \"records\" : [
+                  {\n    \"attributes\" : {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkuAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkuAAE\",\n    \"Status\" : \"Processing\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMRAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkvAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkvAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMTAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkwAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkwAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXUjaAAH\"\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+Id%2C+Status%2C+ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%277071700002rbU9S%27
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 3,\n  \"totalSize\" : 3,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexTestQueueItem\",\n  \"records\" : [
+                  {\n    \"attributes\" : {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkuAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkuAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMRAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkvAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkvAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXJMTAA5\"\n  }, {\n    \"attributes\" :
+                  {\n      \"type\" : \"ApexTestQueueItem\",\n      \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestQueueItem/70917000002tUkwAAE\"\n
+                  \   },\n    \"Id\" : \"70917000002tUkwAAE\",\n    \"Status\" : \"Completed\",\n
+                  \   \"ApexClassId\" : \"01p1700000PXUjaAAH\"\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+Id%2C+Status%2C+ExtendedStatus%2C+ApexClassId+FROM+ApexTestQueueItem+WHERE+ParentJobId+%3D+%277071700002rbU9S%27+AND+Status+%3D+%27Failed%27
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 0,\n  \"totalSize\" : 0,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : null,\n  \"records\" : [ ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=%0ASELECT+Id%2CApexClassId%2CTestTimestamp%2C%0A+++++++Message%2CMethodName%2COutcome%2C%0A+++++++RunTime%2CStackTrace%2C%0A+++++++%28SELECT%0A++++++++++Id%2CCallouts%2CAsyncCalls%2CDmlRows%2CEmail%2C%0A++++++++++LimitContext%2CLimitExceptions%2CMobilePush%2C%0A++++++++++QueryRows%2CSosl%2CCpu%2CDml%2CSoql%0A++++++++FROM+ApexTestResults%29%0AFROM+ApexTestResult%0AWHERE+AsyncApexJobId%3D%277071700002rbU9S%27%0A
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 3,\n  \"totalSize\" : 3,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexTestResult\",\n  \"records\" : [ {\n
+                  \   \"attributes\" : {\n      \"type\" : \"ApexTestResult\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexTestResult/07M1700000NOy7rEAD\"\n
+                  \   },\n    \"Id\" : \"07M1700000NOy7rEAD\",\n    \"ApexClassId\" : \"01p1700000PXUjaAAH\",\n
+                  \   \"TestTimestamp\" : \"2022-01-05T13:45:55.000+0000\",\n    \"Message\"
+                  : null,\n    \"MethodName\" : \"helloWorldTest\",\n    \"Outcome\" : \"Pass\",\n
+                  \   \"RunTime\" : 7,\n    \"StackTrace\" : null,\n    \"ApexTestResults\"
+                  : null\n  }, {\n    \"attributes\" : {\n      \"type\" : \"ApexTestResult\",\n
+                  \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestResult/07M1700000NOy7wEAD\"\n
+                  \   },\n    \"Id\" : \"07M1700000NOy7wEAD\",\n    \"ApexClassId\" : \"01p1700000PXJMTAA5\",\n
+                  \   \"TestTimestamp\" : \"2022-01-05T13:45:55.000+0000\",\n    \"Message\"
+                  : null,\n    \"MethodName\" : \"getSamplesTest\",\n    \"Outcome\" : \"Pass\",\n
+                  \   \"RunTime\" : 37,\n    \"StackTrace\" : null,\n    \"ApexTestResults\"
+                  : {\n      \"size\" : 1,\n      \"totalSize\" : 1,\n      \"done\" : true,\n
+                  \     \"queryLocator\" : null,\n      \"entityTypeName\" : \"ApexTestResultLimits\",\n
+                  \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
+                  \"ApexTestResultLimits\",\n          \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestResultLimits/05n17000009HtKaAAK\"\n
+                  \       },\n        \"Id\" : \"05n17000009HtKaAAK\",\n        \"Callouts\"
+                  : 0,\n        \"AsyncCalls\" : 0,\n        \"DmlRows\" : 0,\n        \"Email\"
+                  : 0,\n        \"LimitContext\" : \"SYNC\",\n        \"LimitExceptions\" :
+                  null,\n        \"MobilePush\" : 0,\n        \"QueryRows\" : 1,\n        \"Sosl\"
+                  : 0,\n        \"Cpu\" : 0,\n        \"Dml\" : 0,\n        \"Soql\" : 1\n      }
+                  ]\n    }\n  }, {\n    \"attributes\" : {\n      \"type\" : \"ApexTestResult\",\n
+                  \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestResult/07M1700000NOy85EAD\"\n
+                  \   },\n    \"Id\" : \"07M1700000NOy85EAD\",\n    \"ApexClassId\" : \"01p1700000PXJMRAA5\",\n
+                  \   \"TestTimestamp\" : \"2022-01-05T13:45:55.000+0000\",\n    \"Message\"
+                  : null,\n    \"MethodName\" : \"fillInFirstNameTest\",\n    \"Outcome\" :
+                  \"Pass\",\n    \"RunTime\" : 272,\n    \"StackTrace\" : null,\n    \"ApexTestResults\"
+                  : {\n      \"size\" : 1,\n      \"totalSize\" : 1,\n      \"done\" : true,\n
+                  \     \"queryLocator\" : null,\n      \"entityTypeName\" : \"ApexTestResultLimits\",\n
+                  \     \"records\" : [ {\n        \"attributes\" : {\n          \"type\" :
+                  \"ApexTestResultLimits\",\n          \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTestResultLimits/05n17000009HtKeAAK\"\n
+                  \       },\n        \"Id\" : \"05n17000009HtKeAAK\",\n        \"Callouts\"
+                  : 0,\n        \"AsyncCalls\" : 0,\n        \"DmlRows\" : 1,\n        \"Email\"
+                  : 0,\n        \"LimitContext\" : \"SYNC\",\n        \"LimitExceptions\" :
+                  null,\n        \"MobilePush\" : 0,\n        \"QueryRows\" : 0,\n        \"Sosl\"
+                  : 0,\n        \"Cpu\" : 30,\n        \"Dml\" : 1,\n        \"Soql\" : 0\n
+                  \     } ]\n    }\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+ApexClassOrTrigger.Name%2C+ApexClassOrTriggerId%2C+NumLinesCovered%2C+NumLinesUncovered+FROM+ApexCodeCoverageAggregate+ORDER+BY+ApexClassOrTrigger.Name+ASC
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 4,\n  \"totalSize\" : 4,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexCodeCoverageAggregate\",\n  \"records\"
+                  : [ {\n    \"attributes\" : {\n      \"type\" : \"ApexCodeCoverageAggregate\",\n
+                  \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexCodeCoverageAggregate/71517000005yLqxAAE\"\n
+                  \   },\n    \"ApexClassOrTrigger\" : {\n      \"attributes\" : {\n        \"type\"
+                  : \"Name\",\n        \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexClass/01p1700000PXJMQAA5\"\n
+                  \     },\n      \"Name\" : \"SampleClass\"\n    },\n    \"ApexClassOrTriggerId\"
+                  : \"01p1700000PXJMQAA5\",\n    \"NumLinesCovered\" : 6,\n    \"NumLinesUncovered\"
+                  : 0\n  }, {\n    \"attributes\" : {\n      \"type\" : \"ApexCodeCoverageAggregate\",\n
+                  \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexCodeCoverageAggregate/71517000005yPWnAAM\"\n
+                  \   },\n    \"ApexClassOrTrigger\" : {\n      \"attributes\" : {\n        \"type\"
+                  : \"Name\",\n        \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexClass/01p1700000PXUM7AAP\"\n
+                  \     },\n      \"Name\" : \"SampleClass2\"\n    },\n    \"ApexClassOrTriggerId\"
+                  : \"01p1700000PXUM7AAP\",\n    \"NumLinesCovered\" : 1,\n    \"NumLinesUncovered\"
+                  : 1\n  }, {\n    \"attributes\" : {\n      \"type\" : \"ApexCodeCoverageAggregate\",\n
+                  \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexCodeCoverageAggregate/71517000005yLrDAAU\"\n
+                  \   },\n    \"ApexClassOrTrigger\" : {\n      \"attributes\" : {\n        \"type\"
+                  : \"Name\",\n        \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexClass/01p1700000PXJMSAA5\"\n
+                  \     },\n      \"Name\" : \"SamplePage_CTRL\"\n    },\n    \"ApexClassOrTriggerId\"
+                  : \"01p1700000PXJMSAA5\",\n    \"NumLinesCovered\" : 2,\n    \"NumLinesUncovered\"
+                  : 0\n  }, {\n    \"attributes\" : {\n      \"type\" : \"ApexCodeCoverageAggregate\",\n
+                  \     \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexCodeCoverageAggregate/71517000005yLrEAAU\"\n
+                  \   },\n    \"ApexClassOrTrigger\" : {\n      \"attributes\" : {\n        \"type\"
+                  : \"Name\",\n        \"url\" : \"/services/data/vxx.0/tooling/sobjects/ApexTrigger/01q17000001cFeyAAE\"\n
+                  \     },\n      \"Name\" : \"SampleTrigger\"\n    },\n    \"ApexClassOrTriggerId\"
+                  : \"01q17000001cFeyAAE\",\n    \"NumLinesCovered\" : 2,\n    \"NumLinesUncovered\"
+                  : 0\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/tooling/query/?q=SELECT+PercentCovered+FROM+ApexOrgWideCoverage
+      response:
+          body:
+              string:
+                  "{\n  \"size\" : 1,\n  \"totalSize\" : 1,\n  \"done\" : true,\n  \"queryLocator\"
+                  : null,\n  \"entityTypeName\" : \"ApexOrgWideCoverage\",\n  \"records\" :
+                  [ {\n    \"attributes\" : {\n      \"type\" : \"ApexOrgWideCoverage\",\n      \"url\"
+                  : \"/services/data/vxx.0/tooling/sobjects/ApexOrgWideCoverage/7161700000065bjAAA\"\n
+                  \   },\n    \"PercentCovered\" : 91\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+version: 1

@@ -1,12 +1,13 @@
 from contextlib import contextmanager
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
 import cumulusci
 from cumulusci.cli.org import org_remove, org_scratch, org_scratch_delete
 from cumulusci.cli.runtime import CliRuntime
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import OrgConfig, TaskConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.tests.util import unmock_env
@@ -113,7 +114,10 @@ def org_config(request, current_org_shape, cli_org_config, fallback_org_config):
     # fast running test suites it might return a hardcoded
     # org and for integration test suites it might return
     # a specific default org or throw an exception.
-    return org_config
+    with mock.patch.object(OrgConfig, "latest_api_version", "48.0"), mock.patch.object(
+        OrgConfig, "refresh_oauth_token"
+    ):
+        yield org_config
 
 
 @pytest.fixture
@@ -183,10 +187,10 @@ def org_shapes():
         cleanup_org_shapes(org_shapes)
 
 
-def cleanup_org_shapes(org_shapes):
+def cleanup_org_shapes(org_shapes: dict):
     runtime = CliRuntime(load_keychain=True)
     errors = []
-    for org_name in org_shapes.keys():
+    for org_name in org_shapes:
         cleanup_org(runtime, org_name, errors)
 
     if errors:
@@ -265,7 +269,7 @@ def _create_org(org_name, config_name, flow_name):
     except OrgNotFound:
         org = None
     if org:
-        cleanup_org_shapes(org_name)
+        cleanup_org_shapes([org_name])
     org_scratch.callback.__wrapped__(
         runtime,
         config_name,

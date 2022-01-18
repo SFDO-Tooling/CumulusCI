@@ -38,7 +38,7 @@ ORIGINS = {
     "UninstallLocalNamespacedBundles": "cumulusci.tasks.salesforce.UninstallLocalNamespacedBundles",
     "UninstallPackage": "cumulusci.tasks.salesforce.UninstallPackage",
     "UninstallPackaged": "cumulusci.tasks.salesforce.UninstallPackaged",
-    "UninstallPackagedIncremental": "cumulusci.tasks.salesforce.UninstallPackagedIncremental",
+    "UninstallPackagedIncremental": "cumulusci.tasks.salesforce.uninstall_packaged_incremental",
     "UpdateDependencies": "cumulusci.tasks.salesforce.update_dependencies",
     "UpdateProfile": "cumulusci.tasks.salesforce.update_profile",
     "UpdateAdminProfile": "cumulusci.tasks.salesforce.update_profile",
