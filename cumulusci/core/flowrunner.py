@@ -809,7 +809,7 @@ class CachedTaskRunner(object):
             task_name=self.task_name,
             task_config=task_config,
             task_class=task_class,
-            project_config=self.cache.flow.project_config,
+            project_config=self.cache.project_config,
         )
         self.cache.flow.callbacks.pre_task(step)
         result = TaskRunner(step, self.cache.flow.org_config, self.cache.flow).run_step(
