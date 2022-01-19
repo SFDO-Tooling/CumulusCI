@@ -17,7 +17,7 @@ class BaseMarketingCloudTask(BaseTask):
         super()._init_task()
         self.mc_config = self.project_config.keychain.get_service("marketing_cloud")
 
-    def _check_response(self, response):
+    def _check_soap_response(self, response):
         """Make sure the response indicates success."""
         response.raise_for_status()
         root = lxml_parse_string(response.content)

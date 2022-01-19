@@ -29,7 +29,7 @@ class CreateSubscriberAttribute(BaseMarketingCloudTask):
             data=envelope.encode("utf-8"),
             headers={"Content-Type": "text/xml; charset=utf-8"},
         )
-        self._check_response(response)
+        self._check_soap_response(response)
         self.logger.info(
             f"Successfully created subscriber attribute: {attribute_name}."
         )
@@ -120,7 +120,7 @@ class CreateUser(BaseMarketingCloudTask):
             data=envelope.encode("utf-8"),
             headers={"Content-Type": "text/xml; charset=utf-8"},
         )
-        self._check_response(response)
+        self._check_soap_response(response)
         self.logger.info(f"Successfully created User: {user_username}.")
         self.return_values = {"success": True}
 
@@ -182,7 +182,7 @@ class UpdateUserRole(BaseMarketingCloudTask):
             data=envelope.encode("utf-8"),
             headers={"Content-Type": "text/xml; charset=utf-8"},
         )
-        self._check_response(response)
+        self._check_soap_response(response)
         user_name = self.options.get("user_name")
         self.logger.info(f"Successfully updated role for User: {user_name}.")
         self.return_values = {"success": True}
