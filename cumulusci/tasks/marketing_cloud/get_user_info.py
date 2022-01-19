@@ -1,7 +1,8 @@
-import json
 from logging import getLogger
 
 import requests
+
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 from .base import BaseMarketingCloudTask
 from .mc_constants import MC_API_VERSION
@@ -26,7 +27,8 @@ class GetUserInfoTask(BaseMarketingCloudTask):
             self.logger.error(f"Exception occurred fetching user info: {response.text}")
             raise
 
-        payload = json.loads(response.text)
+        self.logger.info("Successfully fetched user info")
+        payload = safe_json_from_response(response)
         self.return_values = self._sanitize_payload(payload)
 
     def _sanitize_payload(self, payload: dict) -> dict:
