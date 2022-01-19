@@ -12,7 +12,7 @@ import responses
 import yaml
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.metadeploy import BaseMetaDeployTask, Publish
 from cumulusci.tests.util import create_project_config
@@ -65,6 +65,51 @@ class TestBaseMetaDeployTask(unittest.TestCase):
 
 class TestPublish(unittest.TestCase, GithubApiTestMixin):
     maxDiff = None
+
+    @responses.activate
+    def test_error__base_instead_of_admin_api(self):
+        responses.add(
+            "GET",
+            "https://metadeploy/api/products?repo_url=EXISTING_REPO",
+            status=200,
+            body=b'{"results":[]}',
+        )
+
+        project_config = create_project_config()
+        project_config.keychain.set_service(
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy/api", "token": "TOKEN"}),
+        )
+        project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
+        project_config.config["plans"] = {
+            "install": {
+                "title": "Test Install",
+                "slug": "install",
+                "tier": "primary",
+                "steps": {
+                    1: {"flow": "install_prod"},
+                    2: {
+                        "task": "util_sleep",
+                        "checks": [{"when": "False", "action": "error"}],
+                    },
+                },
+                "checks": [{"when": "False", "action": "error"}],
+            }
+        }
+
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "tag": "release/1.0",
+                }
+            }
+        )
+        with self.assertRaises(CumulusCIException) as e:
+            task = Publish(project_config, task_config)
+            task()
+
+        assert "Admin API" in str(e.exception)
 
     @responses.activate
     def test_run_task(self):
