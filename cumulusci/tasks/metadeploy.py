@@ -6,7 +6,7 @@ from pathlib import Path
 import requests
 
 from cumulusci.core.config import BaseProjectConfig, FlowConfig, TaskConfig
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.github import get_tag_by_name
 from cumulusci.core.tasks import BaseTask
@@ -238,10 +238,17 @@ class Publish(BaseMetaDeployTask):
 
     def _find_product(self):
         repo_url = self.project_config.project__git__repo_url
-        result = self._call_api("GET", "/products", params={"repo_url": repo_url})
-        if len(result["data"]) != 1:
-            raise Exception(
-                "No product found in MetaDeploy with repo URL {}".format(repo_url)
+        try:
+            result = self._call_api("GET", "/products", params={"repo_url": repo_url})
+            if len(result["data"]) != 1:
+                raise CumulusCIException(
+                    "No product found in MetaDeploy with repo URL {}".format(repo_url)
+                )
+        except KeyError:
+            raise CumulusCIException(
+                "CumulusCI received an unexpected response from MetaDeploy. "
+                "Ensure that your MetaDeploy service is configured with the Admin API URL, which "
+                "ends in /rest, and that your authentication token is valid."
             )
         product = result["data"][0]
         self._add_labels(
