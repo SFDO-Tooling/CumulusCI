@@ -1,3 +1,5 @@
+import json
+
 import requests
 
 from cumulusci.utils.http.requests_utils import safe_json_from_response
@@ -27,7 +29,7 @@ class GetUserInfoTask(BaseMarketingCloudTask):
         payload = self._sanitize_payload(payload)
 
         self.logger.info("Successfully fetched user info.")
-        self.logger.info(payload)
+        self.logger.info(json.dumps(payload, indent=4))
 
         self.return_values = payload
 
