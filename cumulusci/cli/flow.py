@@ -21,15 +21,26 @@ def flow():
 
 
 @flow.command(name="doc", help="Exports RST format documentation for all flows")
-@pass_runtime(require_project=False)
-def flow_doc(runtime):
+@click.option(
+    "--project", "project", is_flag=True, help="Include project-specific flows only"
+)
+@pass_runtime(require_project=False, require_keychain=True)
+def flow_doc(runtime, project=False):
     flow_info_path = Path(__file__, "..", "..", "..", "docs", "flows.yml").resolve()
     with open(flow_info_path, "r", encoding="utf-8") as f:
         flow_info = load_yaml_data(f)
     click.echo(flow_ref_title_and_intro(flow_info["intro_blurb"]))
     flow_info_groups = list(flow_info["groups"].keys())
 
-    flows = runtime.get_available_flows()
+    universal_flows = runtime.universal_config.list_flows()
+    if project:
+        flows = [
+            flow
+            for flow in runtime.project_config.list_flows()
+            if flow not in universal_flows
+        ]
+    else:
+        flows = universal_flows
     flows_by_group = group_items(flows)
     flow_groups = sorted(
         flows_by_group.keys(),

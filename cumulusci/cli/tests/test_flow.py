@@ -106,7 +106,6 @@ def test_flow_doc__with_flows_rst_file(load_yaml_data, echo):
                 }
             }
         },
-        load_keychain=False,
     )
 
     load_yaml_data.return_value = {
@@ -117,7 +116,7 @@ def test_flow_doc__with_flows_rst_file(load_yaml_data, echo):
         "flows": {"Flow1": {"rst_text": "Some ``extra`` **pizzaz**!"}},
     }
 
-    run_click_command(flow.flow_doc, runtime=runtime)
+    run_click_command(flow.flow_doc, runtime=runtime, project=True)
 
     assert 1 == load_yaml_data.call_count
 
