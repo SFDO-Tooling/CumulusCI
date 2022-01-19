@@ -40,7 +40,7 @@ def flow_doc(runtime, project=False):
             if flow not in universal_flows
         ]
     else:
-        flows = runtime.universal_config.list_flows()
+        flows = universal_flows
     flows_by_group = group_items(flows)
     flow_groups = sorted(
         flows_by_group.keys(),
