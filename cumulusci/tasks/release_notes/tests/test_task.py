@@ -381,6 +381,19 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         task._add_header(pull_request)  # header shouldn't be added again
         assert pull_request.body.count(task.UNAGGREGATED_PR_HEADER) == 1
 
+    def test_empty_body(self, task_factory, gh_api, project_config):
+        self.init_github()
+        self.project_config = project_config
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        pull_request = ShortPullRequest(self._get_expected_pull_request(1, 1), gh_api)
+        pull_request.body = None
+
+        task._add_header(pull_request)
+        assert task.UNAGGREGATED_PR_HEADER in pull_request.body
+
+        task._add_header(pull_request)  # header shouldn't be added again
+        assert pull_request.body.count(task.UNAGGREGATED_PR_HEADER) == 1
+
     @mock.patch("cumulusci.tasks.release_notes.task.markdown_link_to_pr")
     def test_add_link_to_pr(self, link_to_pr, task_factory, gh_api, project_config):
         self.init_github()
