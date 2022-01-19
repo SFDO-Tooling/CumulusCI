@@ -1,7 +1,7 @@
 import requests
 
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api import mc_soap_envelopes as envelopes
-from cumulusci.utils.xml import lxml_parse_string
 
 from .base import BaseMarketingCloudTask
 
@@ -24,31 +24,16 @@ class CreateSubscriberAttribute(BaseMarketingCloudTask):
             access_token=self.mc_config.access_token,
             attribute_name=attribute_name,
         )
-        # construct request
         response = requests.post(
             f"{self.mc_config.soap_instance_url}Service.asmx",
             data=envelope.encode("utf-8"),
             headers={"Content-Type": "text/xml; charset=utf-8"},
         )
-        response.raise_for_status()
-        # check resulting status code
-        root = lxml_parse_string(response.content)
-        status_code = root.find(
-            ".//{http://exacttarget.com/wsdl/partnerAPI}StatusCode"
-        ).text
-        status_message = root.find(
-            ".//{http://exacttarget.com/wsdl/partnerAPI}StatusMessage"
-        ).text
-        success = True
-        if status_code == "OK":
-            self.logger.info(
-                f"Successfully created subscriber attribute: {attribute_name}."
-            )
-        if status_code != "OK":
-            raise Exception(
-                f"Error from Marketing Cloud: {status_message} \n\nFull response text: {response.text}"
-            )
-        self.return_values = {"success": success}
+        self._check_response(response)
+        self.logger.info(
+            f"Successfully created subscriber attribute: {attribute_name}."
+        )
+        self.return_values = {"success": True}
 
 
 class CreateUser(BaseMarketingCloudTask):
@@ -86,6 +71,10 @@ class CreateUser(BaseMarketingCloudTask):
             "description": "Assign a Role to the new User, specified as an ID. IDs for system defined roles located here: https://developer.salesforce.com/docs/atlas.en-us.noversion.mc-apis.meta/mc-apis/setting_user_permissions_via_the_web_services_api.htm",
             "required": False,
         },
+        "activate_if_existing": {
+            "description": "Activate the user if it already exists in an inactive state. Default: False",
+            "required": False,
+        },
     }
 
     def _run_task(self):
@@ -97,6 +86,8 @@ class CreateUser(BaseMarketingCloudTask):
         if external_key != "":
             external_key = f"<CustomerKey>{external_key}</CustomerKey>"
 
+        user_username = self.options.get("user_username")
+
         user_name = self.options.get("user_name", "")
         if user_name != "":
             user_name = f"<Name>{user_name}</Name>"
@@ -104,6 +95,12 @@ class CreateUser(BaseMarketingCloudTask):
         role_id = self.options.get("role_id", "")
         if role_id != "":
             role_id = f"<UserPermissions><ID>{role_id}</ID></UserPermissions>"
+
+        active_flag = (
+            "<ActiveFlag>true</ActiveFlag>"
+            if process_bool_arg(self.options.get("activate_if_existing"))
+            else ""
+        )
 
         envelope = envelope.format(
             soap_instance_url=self.mc_config.soap_instance_url,
@@ -114,34 +111,18 @@ class CreateUser(BaseMarketingCloudTask):
             user_name=user_name,
             user_email=self.options.get("user_email"),
             user_password=self.options.get("user_password"),
-            user_username=self.options.get("user_username"),
+            user_username=user_username,
             role_id=role_id,
+            active_flag=active_flag,
         )
-        # construct request
-        # TO DO: DRY refactor
         response = requests.post(
             f"{self.mc_config.soap_instance_url}Service.asmx",
             data=envelope.encode("utf-8"),
             headers={"Content-Type": "text/xml; charset=utf-8"},
         )
-        response.raise_for_status()
-        # check resulting status code
-        root = lxml_parse_string(response.content)
-        status_code = root.find(
-            ".//{http://exacttarget.com/wsdl/partnerAPI}StatusCode"
-        ).text
-        status_message = root.find(
-            ".//{http://exacttarget.com/wsdl/partnerAPI}StatusMessage"
-        ).text
-        success = True
-        if status_code == "OK":
-            user_username = self.options.get("user_username")
-            self.logger.info(f"Successfully created User: {user_username}.")
-        if status_code != "OK":
-            raise Exception(
-                f"Error from Marketing Cloud: {status_message}\n\nFull response text: {response.text}"
-            )
-        self.return_values = {"success": success}
+        self._check_response(response)
+        self.logger.info(f"Successfully created User: {user_username}.")
+        self.return_values = {"success": True}
 
 
 class UpdateUserRole(BaseMarketingCloudTask):
@@ -196,28 +177,12 @@ class UpdateUserRole(BaseMarketingCloudTask):
             user_password=self.options.get("user_password"),
             role_id=self.options.get("role_id"),
         )
-        # construct request
-        # TO DO: DRY refactor
         response = requests.post(
             f"{self.mc_config.soap_instance_url}Service.asmx",
             data=envelope.encode("utf-8"),
             headers={"Content-Type": "text/xml; charset=utf-8"},
         )
-        response.raise_for_status()
-        # check resulting status code
-        root = lxml_parse_string(response.content)
-        status_code = root.find(
-            ".//{http://exacttarget.com/wsdl/partnerAPI}StatusCode"
-        ).text
-        status_message = root.find(
-            ".//{http://exacttarget.com/wsdl/partnerAPI}StatusMessage"
-        ).text
-        success = True
-        if status_code == "OK":
-            user_name = self.options.get("user_name")
-            self.logger.info(f"Successfully updated role for User: {user_name}.")
-        if status_code != "OK":
-            raise Exception(
-                f"Error from Marketing Cloud: {status_message}\n\nFull response text: {response.text}"
-            )
-        self.return_values = {"success": success}
+        self._check_response(response)
+        user_name = self.options.get("user_name")
+        self.logger.info(f"Successfully updated role for User: {user_name}.")
+        self.return_values = {"success": True}

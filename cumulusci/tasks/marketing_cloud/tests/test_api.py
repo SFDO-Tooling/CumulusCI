@@ -95,11 +95,16 @@ def test_marketing_cloud_create_user_task(create_task, project_config):
             "user_password": "SterlingCooperDraperPryce1!",
             "user_username": "sterling-don",
             "role_id": "31",
+            "activate_if_existing": "True",
         },
         project_config=project_config,
     )
     task()
     assert task.return_values == {"success": True}
+
+    request = responses.calls[-1].request
+    assert b"<ActiveFlag>true</ActiveFlag>" in request.body
+    assert b"<IsLocked>false</IsLocked>" in request.body
 
 
 @responses.activate
