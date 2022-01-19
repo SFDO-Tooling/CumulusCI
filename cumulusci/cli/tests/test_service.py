@@ -439,6 +439,21 @@ def test_service_default__project(echo):
     )
 
 
+def test_service_connect__project_default_no_project():
+    runtime = mock.Mock()
+    runtime.project_config = None
+    runtime.keychain.project_local_dir = "test"
+
+    with pytest.raises(click.UsageError):
+        run_click_command(
+            service.service_default,
+            runtime=runtime,
+            service_type="test",
+            service_name="test-alias",
+            project=True,
+        )
+
+
 @mock.patch("click.echo")
 def test_service_default__exception(echo):
     runtime = mock.Mock()

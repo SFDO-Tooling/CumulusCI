@@ -286,6 +286,10 @@ def service_info(runtime, service_type, service_name, plain):
 )
 @pass_runtime(require_project=False, require_keychain=True)
 def service_default(runtime, service_type, service_name, project):
+    if not runtime.project_config and project:
+        raise click.UsageError(
+            "The --project flag must be used while in a CumulusCI project directory."
+        )
     try:
         runtime.keychain.set_default_service(service_type, service_name, project)
     except ServiceNotConfigured as e:
