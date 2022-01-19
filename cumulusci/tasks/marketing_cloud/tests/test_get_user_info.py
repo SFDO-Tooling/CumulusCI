@@ -97,6 +97,7 @@ def test_get_user_info__success(get_user_info_task, user_info_payload):
     expected_payload = user_info_payload
     del expected_payload["rest"]
     del expected_payload["application"]
+    del expected_payload["permissions"]
 
     assert get_user_info_task.return_values == expected_payload
 
@@ -129,10 +130,12 @@ def test_sanitize_payload(get_user_info_task):
         "bar": "bar-stuff",
         "rest": "rest-stuff",
         "application": "application-stuff",
+        "permissions": "permission-stuff",
     }
     start_num_keys = len(payload.keys())
     sanitized_payload = get_user_info_task._sanitize_payload(payload)
 
-    assert start_num_keys - 2 == len(sanitized_payload.keys())
+    assert start_num_keys - 3 == len(sanitized_payload.keys())
     assert "rest" not in sanitized_payload
     assert "appliation" not in sanitized_payload
+    assert "permissions" not in sanitized_payload
