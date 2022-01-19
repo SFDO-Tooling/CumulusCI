@@ -1,3 +1,5 @@
+import re
+
 import pytest
 import requests
 import responses
@@ -109,9 +111,15 @@ def test_get_user_info__HTTPError(get_user_info_task, user_info_payload):
     responses.add(
         "GET",
         f"https://TSSD.auth.marketingcloudapis.com/{MC_API_VERSION}/userinfo",
-        body=requests.exceptions.HTTPError("bad request"),
+        status=400,
+        body="bad request",
     )
-    with pytest.raises(requests.exceptions.HTTPError, match="bad request"):
+    with pytest.raises(
+        requests.exceptions.HTTPError,
+        match=re.escape(
+            "400 Client Error: Bad Request for url: https://tssd.auth.marketingcloudapis.com/v2/userinfo"
+        ),
+    ):
         get_user_info_task()
 
 

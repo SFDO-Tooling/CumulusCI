@@ -21,8 +21,9 @@ class GetUserInfoTask(BaseMarketingCloudTask):
         }
         try:
             response = requests.get(endpoint, headers=headers)
-        except requests.exceptions.HTTPError as e:
-            self.logger.error(f"Error fetching user info: {e}")
+            response.raise_for_status()
+        except requests.exceptions.HTTPError:
+            self.logger.error(f"Exception occurred fetching user info: {response.text}")
             raise
 
         payload = json.loads(response.text)
