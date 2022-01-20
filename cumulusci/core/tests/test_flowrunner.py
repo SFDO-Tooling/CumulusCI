@@ -86,11 +86,9 @@ class FullParseTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCas
                 flow_config = self.project_config.get_flow(flow_name)
                 flow = FlowCoordinator(self.project_config, flow_config, name=flow_name)
             except Exception as exc:
-                self.fail("Error creating flow {}: {}".format(flow_name, str(exc)))
-            self.assertIsNotNone(
-                flow.steps, "Flow {} parsed to no steps".format(flow_name)
-            )
-            print("Parsed flow {} as {} steps".format(flow_name, len(flow.steps)))
+                self.fail(f"Error creating flow {flow_name}: {str(exc)}")
+            self.assertIsNotNone(flow.steps, f"Flow {flow_name} parsed to no steps")
+            print(f"Parsed flow {flow_name} as {len(flow.steps)} steps")
 
 
 class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
@@ -612,6 +610,30 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow._init_org()
 
         save.assert_called_once()
+
+    def test_flowrunner__override_task_with_flow(self):
+        """Test that we return a working FlowCoordinator when a project
+        overrides a flow step that is currently a task with a sub-flow."""
+
+        self.project_config.config["flows"]["test"] = {
+            "description": "Replace a task with a flow",
+            "steps": {1: {"task": "None", "flow": "nested_flow"}},
+        }
+        flow_config = self.project_config.get_flow("test")
+        # No assert, we just don't want an exception thrown
+        FlowCoordinator(self.project_config, flow_config)
+
+    def test_flowrunner__override_flow_with_task(self):
+        """Test that we return a working FlowCoordinator when a project
+        overrides a flow step that is currently a task with a sub-flow."""
+
+        self.project_config.config["flows"]["test"] = {
+            "description": "Replace a task with a flow",
+            "steps": {1: {"task": "pass_name", "flow": "None"}},
+        }
+        flow_config = self.project_config.get_flow("test")
+        # No assert, we just don't want an exception thrown
+        FlowCoordinator(self.project_config, flow_config)
 
 
 class StepSpecTest(unittest.TestCase):

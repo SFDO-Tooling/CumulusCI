@@ -541,12 +541,22 @@ class FlowCoordinator(object):
         if parent_ui_options is None:
             parent_ui_options = {}
 
-        # Step Validation
-        # - A step is either a task OR a flow.
-        if all(k in step_config for k in ("flow", "task")):
-            raise FlowConfigError(
-                f"Step {number} is configured as both a flow AND a task. \n\t{step_config}."
-            )
+        STEP_TYPES = ("task", "flow")
+        # Account for overridden steps:
+        # both task and flow will be present in step_config
+        if all(s_type in step_config for s_type in STEP_TYPES) and (
+            step_config["task"] == "None" or step_config["flow"] == "None"
+        ):
+            # If they're both set to None then let's inform the user
+            if all(step_config[s_type] == "None" for s_type in STEP_TYPES):
+                raise FlowConfigError(
+                    f"Both task and flow values for step {number} are set to 'None'. \n\t{step_config}"
+                )
+            # Remove the type that we want to override
+            elif step_config["task"] == "None":
+                del step_config["task"]
+            else:
+                del step_config["flow"]
 
         # Skips
         # - either in YAML (with the None string)
