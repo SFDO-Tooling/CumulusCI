@@ -2,6 +2,26 @@
 History
 =======
 
+3.51.0 (2022-01-20)
+-------------------
+
+# Changes
+
+* The ``cci flow doc`` command now only includes CumulusCI's standard flows unless the ``--project`` option is specified. (#3033)
+* The ``run_tests`` task now has a ``required_per_class_code_coverage_percent`` which ensures that every class in your project meets the code coverage level specified. (#3027)
+* Marketing Cloud tasks:
+
+  * Added the ``marketing_cloud_get_user_info`` task to retrieve user information from the Marketing Cloud REST API ``userinfo`` endpoint. (#3039)
+  * The ``marketing_cloud_create_user`` task now creates an unlocked user with a notification email address so that it is possible for the user to log in. This task also has a new option, ``activate_if_existing``, which can be set to True to ensure that if the user already exists in an inactive state, it will be activated. (#3040)
+
+# Issues Closed
+
+* Fixed an issue preventing step-level preflight checks from working correctly in MetaDeploy when run in a cross-project flow. (#3034)
+* The ``github_parent_pr_notes`` task now handles child pull requests with an empty body. (#3038)
+* The ``metadeploy_publish`` task now displays a clear error message if you supply the wrong API URL for MetaDeploy. (#3034)
+* The ``cci service default --project`` command presents a better error message when called outside of a project directory. (#3037)
+* Fixed a bug where the ``cci flow doc`` command would break when using cross-project flows. (#3033)
+
 3.50.0 (2022-01-06)
 -------------------
 
