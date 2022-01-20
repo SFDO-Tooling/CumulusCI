@@ -497,7 +497,7 @@ class TestGithub(GithubApiTestMixin):
     def test_github_oauth_org_restricted(self):
         resp = Response()
         resp.status_code = 403
-        body = {"message": "organization has enabled OAuth App access restrictions"}
+        body = {"message": "organization has enabled OAuth App access restriction"}
         resp._content = json.dumps(body)
         exc = ForbiddenError(resp)
 

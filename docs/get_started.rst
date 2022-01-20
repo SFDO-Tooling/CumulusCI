@@ -187,6 +187,8 @@ to open a browser and authenticate with your GitHub account using the one-time c
 
 After you've configured the ``github`` service, it's available to *all* CumulusCI projects.
 
+.. note:: If your GitHub organization has enabled OAuth App access restrictions CumulusCI will not be able to access organization repositories until it has been `approved by an owner <https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-user-account/managing-your-membership-in-organizations/requesting-organization-approval-for-oauth-apps>`_. You can use a personal access token instead.
+
 Alternatively, you may `create a new personal access token <https://github.com/settings/tokens/new>`_ with both **repo** and **gist** scopes specified. (Scopes appear as checkboxes when creating the personal access token in GitHub.) Copy the access token to use when configuring the GitHub service.
 
 Next, run the following command and provide your GitHub username and access token:
