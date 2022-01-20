@@ -12,7 +12,7 @@ Changes
 * Marketing Cloud tasks:
 
   * Added the ``marketing_cloud_get_user_info`` task to retrieve user information from the Marketing Cloud REST API ``userinfo`` endpoint. (#3039)
-  * The ``marketing_cloud_create_user`` task now creates an unlocked user with a notification email address so that it is possible for the user to log in. This task also has a new option, ``activate_if_existing``, which can be set to True to ensure that if the user already exists in an inactive state, it will be activated. (#3040)
+  * The ``marketing_cloud_create_user`` task now creates an unlocked user with a notification email address so that it is possible for the user to log in. This task also has a new option, ``activate_if_existing``, which can be set to ``true`` to ensure that if the user already exists in an inactive state, it will be activated. (#3040)
 
 Issues Closed
 
