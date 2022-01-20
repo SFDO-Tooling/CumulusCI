@@ -21,7 +21,7 @@ robotframework
 robotframework-lint
 robotframework-pabot
 robotframework-requests
-robotframework-seleniumlibrary
+robotframework-seleniumlibrary<6
 rst2ansi
 salesforce-bulk
 sarge

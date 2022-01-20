@@ -44,11 +44,14 @@ CREATE_USER = """<?xml version="1.0" encoding="utf-8"?>
                 {user_name}
                 <!-- REQUIRED: Set the user email -->
                 <Email>{user_email}</Email>
+                <NotificationEmailAddress>{user_email}</NotificationEmailAddress>
                 <!-- REQUIRED: Set the user password -->
                 <Password>{user_password}</Password>
                 <!-- REQUIRED: Set the username -->
                 <UserID>{user_username}</UserID>
                 <IsAPIUser>true</IsAPIUser>
+                {active_flag}
+                <IsLocked>false</IsLocked>
                 <!-- OPTIONAL: Include this if you want to assign roles to new user -->
                 <!-- IDs for system defined roles located here: https://developer.salesforce.com/docs/atlas.en-us.noversion.mc-apis.meta/mc-apis/setting_user_permissions_via_the_web_services_api.htm -->
                 {role_id}

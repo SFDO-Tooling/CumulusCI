@@ -201,7 +201,7 @@ class TestDescribeOrg:
                 path = schema.path
             assert not caplog.text
             with open(path, "wb") as p:
-                with gzip.GzipFile(fileobj=p) as gzipped:
+                with gzip.GzipFile(fileobj=p, mode="w") as gzipped:
                     gzipped.write(b"xxx")
 
             with get_org_schema(FakeSF(), org_config) as schema:
