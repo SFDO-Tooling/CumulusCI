@@ -222,6 +222,7 @@ class Salesforce(object):
             raise Exception(f"Unknown fake data request: '{fake}'")
 
     def get_latest_api_version(self):
+        """Return the API version used by the current org"""
         return self.cumulusci.org.latest_api_version
 
     def create_webdriver_with_retry(self, *args, **kwargs):
