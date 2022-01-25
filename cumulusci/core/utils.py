@@ -151,13 +151,80 @@ def decode_to_unicode(content):
 
 
 def merge_config(configs):
-    """recursively deep-merge the configs into one another (highest priority comes first)"""
-    new_config = {}
+    """
+    First remove any flow steps that are being overridden so that there are no conflicts
+    or different step types after merging. Then recursively deep-merge the configs into
+    one another (highest priority comes first)
+    """
+    config_merge_order = [
+        "additional_yaml",
+        "project_local_config",
+        "project_config",
+        "global_config",
+        "universal_config",
+    ]
+    while len(config_merge_order) > 1:
+        overridding_config = config_merge_order[0]
+        config_merge_order = config_merge_order[1:]
+        for config_to_override in config_merge_order:
+            if configs_present_and_not_empty(
+                [config_to_override, overridding_config], configs
+            ):
+                remove_overridden_flow_steps_in_config(
+                    configs[config_to_override], configs[overridding_config]
+                )
 
+    new_config = {}
     for name, config in configs.items():
         new_config = dictmerge(new_config, config, name)
 
     return new_config
+
+
+def configs_present_and_not_empty(
+    configs_to_check: T.List[dict], configs: dict
+) -> bool:
+    return all(c in configs and c != {} for c in configs_to_check)
+
+
+def remove_overridden_flow_steps_in_config(
+    config_to_override: dict, overridding_config: dict
+):
+    """If any steps of flows from the universal config are being overridden by other configs,
+    then we need to set those steps in the universal config to an empty dict so that we don't have
+    conflicts when merging the dicts in `dictmerge()`."""
+    if config_to_override == {} or overridding_config == {}:
+        return
+
+    for flow, flow_config in overridding_config["flows"].items():
+        for overridding_flow_config in flow_config.values():
+            for (
+                step_num,
+                overridding_step_config,
+            ) in overridding_flow_config.items():
+                if config_has_flow_and_step_num(config_to_override, flow, step_num):
+                    step_config_from_universal = config_to_override["flows"][flow][
+                        "steps"
+                    ][step_num]
+                    if not steps_are_of_same_type(
+                        overridding_step_config, step_config_from_universal
+                    ):
+                        config_to_override["flows"][flow]["steps"][step_num] = {}
+
+
+def config_has_flow_and_step_num(config: dict, flow_name: str, step_num: int) -> bool:
+    return (
+        flow_name in config["flows"] and step_num in config["flows"][flow_name]["steps"]
+    )
+
+
+def steps_are_of_same_type(step_one_config: dict, step_two_config: dict) -> bool:
+    """If both steps are of the same type returns True, else False."""
+    config_one_type = "task" if "task" in step_one_config else "flow"
+    config_two_type = "task" if "task" in step_two_config else "flow"
+
+    if config_one_type != config_two_type:
+        return False
 
 
 def dictmerge(a, b, name=None):
