@@ -13,24 +13,32 @@ Suite Teardown  Close all browsers
 Locator strategy 'text'
     [Documentation]
     ...  Test that the 'text' location strategy has been added
-
-    ...  Unfortunately, selenium doesn't provide introspection
-    ...  so we'll just try a locator that should work
-
     [Setup]  Go to setup home
 
+    # Try to use the locator strategy on an element
+    # we know should be on the page.
     Wait until page contains element     text:Mobile Publisher
 
 Locator strategy 'title'
     [Documentation]
     ...  Test that the 'title' location strategy has been added
-
-    ...  Unfortunately, selenium doesn't provide introspection
-    ...  so we'll just try a locator that should work
-
     [Setup]  Go to setup home
 
+    # Try to use the locator strategy on an element
+    # we know should be on the page.
     Wait until page contains element     title:Object Manager
+
+Locator strategy 'label'
+    [Documentation]
+    ...  Test that the 'label' location strategy has been added
+    [Setup]  Run keywords
+    ...  Go To Object Home           Contact
+    ...  AND  Click Object Button    New
+    [Teardown]  Close Modal
+
+    # Try to use the locator strategy on an element
+    # we know should be on the page.
+    Wait until page contains element    label:Phone
 
 Keyword library locators
     [Documentation]
