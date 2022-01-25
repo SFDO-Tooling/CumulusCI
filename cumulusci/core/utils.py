@@ -163,6 +163,10 @@ def merge_config(configs):
         "global_config",
         "universal_config",
     ]
+    # We need to account for scenarios where a single flow step
+    # is being overriden more than once. This looping allows
+    # for us to ensure that _all_ steps that are lower in presedence
+    # will be overridden properly.
     while len(config_merge_order) > 1:
         overridding_config = config_merge_order[0]
         config_merge_order = config_merge_order[1:]
@@ -193,23 +197,22 @@ def remove_overridden_flow_steps_in_config(
     """If any steps of flows from the universal config are being overridden by other configs,
     then we need to set those steps in the universal config to an empty dict so that we don't have
     conflicts when merging the dicts in `dictmerge()`."""
-    if config_to_override == {} or overridding_config == {}:
+    if "flows" not in config_to_override or "flows" not in overridding_config:
         return
 
     for flow, flow_config in overridding_config["flows"].items():
-        for overridding_flow_config in flow_config.values():
-            for (
-                step_num,
-                overridding_step_config,
-            ) in overridding_flow_config.items():
-                if config_has_flow_and_step_num(config_to_override, flow, step_num):
-                    step_config_from_universal = config_to_override["flows"][flow][
-                        "steps"
-                    ][step_num]
-                    if not steps_are_of_same_type(
-                        overridding_step_config, step_config_from_universal
-                    ):
-                        config_to_override["flows"][flow]["steps"][step_num] = {}
+        for (
+            step_num,
+            overridding_step_config,
+        ) in flow_config["steps"].items():
+            if config_has_flow_and_step_num(config_to_override, flow, step_num):
+                step_config_from_universal = config_to_override["flows"][flow]["steps"][
+                    step_num
+                ]
+                if not steps_are_of_same_type(
+                    overridding_step_config, step_config_from_universal
+                ):
+                    config_to_override["flows"][flow]["steps"][step_num] = {}
 
 
 def config_has_flow_and_step_num(config: dict, flow_name: str, step_num: int) -> bool:
