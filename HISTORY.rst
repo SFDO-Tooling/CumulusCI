@@ -2,6 +2,13 @@
 History
 =======
 
+3.51.1 (2022-01-25)
+
+Issues Closed
+
+* We fixed an issue that could cause ``create_package_version`` to fail when the ``version_base`` option is set to ``latest_github_release`` and the latest GitHub release is a 1GP package version.
+
+
 3.51.0 (2022-01-20)
 -------------------
 
