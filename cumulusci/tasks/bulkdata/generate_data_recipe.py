@@ -1,4 +1,3 @@
-import collections
 import csv
 import itertools
 import logging
@@ -9,20 +8,68 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import yaml
-from pydantic import Field, validator
 from sqlalchemy import MetaData, create_engine
 
 from cumulusci.cli.runtime import CliRuntime
 from cumulusci.core.config import TaskConfig
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.org_schema import Schema, get_org_schema
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.tasks.bulkdata.extract import ExtractData
-from cumulusci.tasks.bulkdata.step import DataApi
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.utils.http.multi_request import CompositeParallelSalesforce
-from cumulusci.utils.yaml.model_parser import HashableBaseModel
 
-object_decl = re.compile(r"object\((\w+)\)", re.IGNORECASE)
-field_decl = re.compile(r"fields\((\w+)\)", re.IGNORECASE)
+from .extract import ExtractData
+from .generate_data_recipe_utils.extract_yml import (
+    ExtractDeclaration,
+    ExtractRulesFile,
+    SimplifiedExtractDeclaration,
+)
+
+
+class GenerateDataRecipe(BaseSalesforceApiTask):
+    task_options = {}
+    task_options = {
+        "output_directory": {
+            "description": "Where output CSV files and Snowfakery recipe (grammar)",
+            "required": True,
+        },
+        "extract_rules": {
+            "description": "A file containing declarations about what objects and fields "
+            "to download and what API to use. (optional)",
+            "required": False,
+        },
+    }
+
+    def _run_task(self):
+        self.output_directory = Path(self.options.get("output_directory", "datasets"))
+        if not self.output_directory.exists():
+            raise TaskOptionsError(
+                f"Output directory does not exist: {self.output_directory}"
+            )
+        if self.options.get("extract_rules"):
+            extract_rules_path = Path(self.options.get("extract_rules"))
+            if not extract_rules_path.exists():
+                raise TaskOptionsError("Rules file does not exist")
+
+            self.extract_rules = ExtractRulesFile.parse_from_yaml(extract_rules_path)
+            print("XXX", self.extract_rules)
+            assert isinstance(self.extract_rules, list)
+        else:
+            self.extract_rules = [
+                ExtractDeclaration(
+                    sf_object="OBJECTS(POPULATED)", fields=["FIELDS(ALL)"]
+                )
+            ]
+
+        export_data_and_snowfakery_recipe(
+            self.sf,
+            self.project_config,
+            self.org_config,
+            self.extract_rules,
+            self.output_directory,
+            self.logger,
+        )
+
 
 SKIP_PATTERNS = (
     ".*permission.*",
@@ -40,55 +87,6 @@ SKIP_PATTERNS = (
 SKIP_PATTERNS = [re.compile(pattern, re.IGNORECASE) for pattern in SKIP_PATTERNS]
 
 
-class ExtractDeclaration(HashableBaseModel):
-    sf_object: str
-    where: str = None
-    fields_: T.Optional[list[str]] = Field(["FIELDS(ALL)"], alias="fields")
-    api: DataApi = DataApi.SMART
-
-    @property
-    def complex_type(self):
-        if "(" in self.sf_object:
-            return self._extract_complex_type(self.sf_object)
-        else:
-            return None
-
-    @staticmethod
-    def _extract_complex_type(val: str):
-        return object_decl.match(val)[1].lower()
-
-    @validator("sf_object")
-    def sf_object_fits_pattern(cls, val):
-        if object_decl.match(val):
-            complex_type = cls._extract_complex_type(val)
-            assert complex_type in (
-                "populated",
-                "custom",
-                "standard",
-            ), "Expected OBJECT(POPULATED), OBJECT(CUSTOM) or OBJECT(STANDARD), not {self.complex_type}"
-        else:
-            assert (
-                val.isidentifier()
-            ), "Value should start with OBJECT( or be a simple alphanumeric field name (underscores allowed)"
-        return val
-
-    # TODO: add a validator disabling WHERE clauses on complex types
-
-
-class SimplifiedExtractDeclaration(ExtractDeclaration):
-    lookups: dict[str, str] = None
-
-    @validator("sf_object")
-    def sf_object_fits_pattern(cls, val):
-        assert val.isidentifier()
-        return val
-
-    @validator("fields_", each_item=True)
-    def fields_fit_simplified_pattern(cls, val):
-        assert val.isidentifier()
-        return val
-
-
 def partition(pred, iterable):
     "Use a predicate to partition entries into false entries and true entries"
     # partition(is_odd, range(10)) --> 0 2 4 6 8   and  1 3 5 7 9
@@ -96,24 +94,20 @@ def partition(pred, iterable):
     return itertools.filterfalse(pred, t1), filter(pred, t2)
 
 
-def find_duplicates(input, key):
-    counts = collections.Counter((key(v), v) for v in input)
-    duplicates = [name for name, count in counts.items() if count > 1]
-    return duplicates
-
-
 def simplify_sfobject_declarations(
     declarations, schema: Schema, populated_sobjects: list[str]
 ):
     """Generate a new list of declarations such that all sf_object patterns
-    (like OBJECT(CUSTOM)) have been resolved to specific names and defaults
+    (like OBJECTS(CUSTOM)) have been resolved to specific names and defaults
     have been merged in."""
     simple_declarations, complex_declarations = partition(
         lambda d: d.complex_type, declarations
     )
     simple_declarations = list(simple_declarations)
-    simple_declarations = normalize_user_supplied_simple_declarations(
-        simple_declarations, DEFAULT_DECLARATIONS
+    simple_declarations = (
+        ExtractDeclaration.normalize_user_supplied_simple_declarations(
+            simple_declarations, DEFAULT_DECLARATIONS
+        )
     )
     simple_declarations = merge_complex_declarations_with_simple_declarations(
         simple_declarations, complex_declarations, schema, populated_sobjects
@@ -152,26 +146,6 @@ def merge_complex_declarations_with_simple_declarations(
     return simple_declarations
 
 
-def normalize_user_supplied_simple_declarations(
-    simple_declarations: list[ExtractDeclaration],
-    default_declarations: list[ExtractDeclaration],
-) -> list[ExtractDeclaration]:
-
-    duplicates = find_duplicates(simple_declarations, lambda x: x.sf_object)
-
-    assert not duplicates, f"Duplicate declarations not allowed: {duplicates}"
-    simple_declarations = {
-        decl.sf_object: merge_declarations_with_defaults(
-            decl, default_declarations.get(decl.sf_object)
-        )
-        for decl in simple_declarations
-    }
-    simple_declarations = {
-        **simple_declarations,
-    }
-    return list(simple_declarations.values())
-
-
 def simplify_complex_sobject_declaration(
     decl: ExtractDeclaration, schema: Schema, populated_sobjects
 ):
@@ -205,23 +179,6 @@ def simplify_complex_sobject_declaration(
     return decls
 
 
-DEFAULT_DEFAULTS = ExtractDeclaration(
-    sf_object="default_xyzzy", where=None, fields=None, api=DataApi.SMART
-)
-
-
-def merge_declarations_with_defaults(
-    user_decl: ExtractDeclaration, default_decl: ExtractDeclaration
-):
-    default_decl = default_decl or DEFAULT_DEFAULTS
-    return ExtractDeclaration(
-        sf_object=user_decl.sf_object,
-        where=user_decl.where or default_decl.where,
-        fields=user_decl.fields or default_decl.fields,
-        api=user_decl.api,
-    )
-
-
 def expand_field_definitions(
     sobject_decl: ExtractDeclaration, schema_fields
 ) -> SimplifiedExtractDeclaration:
@@ -230,33 +187,32 @@ def expand_field_definitions(
     )
     declarations = list(simple_declarations)
     for c in complex_declarations:
-        m = field_decl.match(c)
-        if not m:
+        ctype = ExtractDeclaration.parse_field_complex_type(c)
+        if not ctype:
             raise TypeError(f"Could not parse {c}")  # FIX THIS EXCEPTION
 
-        type = m[1].lower()
-        if type == "standard":
+        if ctype == "standard":
             # find updateable standard fields
             declarations.extend(
                 field.name
                 for field in schema_fields.values()
                 if field.createable and not field.custom
             )
-        elif type == "custom":
+        elif ctype == "custom":
             declarations.extend(
                 field.name
                 for field in schema_fields.values()
                 if field.createable and field.custom
             )
-        elif type == "required":
+        elif ctype == "required":
             # required fields are always exported
             pass
-        elif type == "all":
+        elif ctype == "all":
             declarations.extend(
                 field.name for field in schema_fields.values() if field.createable
             )
         else:
-            raise NotImplementedError
+            raise NotImplementedError(type)
     declarations.extend(
         field.name
         for field in schema_fields.values()
@@ -264,7 +220,6 @@ def expand_field_definitions(
     )
     new_sobject_decl = dict(sobject_decl)
     del new_sobject_decl["fields_"]
-    print("AAAA", declarations)
     return SimplifiedExtractDeclaration(**new_sobject_decl, fields=declarations)
 
 
@@ -282,7 +237,20 @@ def flatten_declarations(
     return simplified_declarations
 
 
-def object_template_from_decl(decl):
+def object_template_from_decl(sf_object):
+    for_each = {
+        "var": "current_row",
+        "value": {"Dataset.iterate": {"dataset": f"{sf_object}.csv"}},
+    }
+
+    return {
+        "object": sf_object,
+        "include": f"generated_fields_{sf_object}",
+        "for_each": for_each,
+    }
+
+
+def macro_template_from_decl(decl):
     def as_lookup(field_name, target):
         return {
             "Dataset.object_reference": {
@@ -291,10 +259,6 @@ def object_template_from_decl(decl):
             }
         }
 
-    for_each = {
-        "var": "current_row",
-        "value": {"Dataset.iterate": {"dataset": f"{decl.sf_object}.csv"}},
-    }
     simple_fields = {
         field_name: "${{current_row.%s}}" % field_name for field_name in decl.fields
     }
@@ -303,14 +267,16 @@ def object_template_from_decl(decl):
         for field_name, target in decl.lookups.items()
     }
     return {
-        "object": decl.sf_object,
-        "for_each": for_each,
+        "macro": f"generated_fields_{decl.sf_object}",
         "fields": {**simple_fields, **lookups},
     }
 
 
-def recipe_from_declarations(templates: list, schema):
-    root = [{"plugin": "snowfakery.standard_plugins.datasets.Dataset"}]
+def recipe_from_declarations(templates: list, static_data_filename):
+    root = [
+        {"plugin": "snowfakery.standard_plugins.datasets.Dataset"},
+        {"include_file": static_data_filename},
+    ]
     root.extend(templates)
     return root
 
@@ -357,8 +323,6 @@ def export_data_and_snowfakery_recipe(
         extend_declarations_to_include_referenced_tables(finalized_declarations, schema)
         classify_and_filter_lookups(finalized_declarations, schema)
 
-        print("CCC", finalized_declarations)
-
         extracted_objects = extract_objects(
             finalized_declarations.values(),
             schema,
@@ -368,7 +332,7 @@ def export_data_and_snowfakery_recipe(
             logger,
         )
         recipe = directory / "sample.data_recipe.yml"
-        write_recipe(finalized_declarations, schema, extracted_objects, recipe)
+        write_recipe(finalized_declarations, extracted_objects, recipe)
 
 
 def classify_and_filter_lookups(decls, schema: Schema):
@@ -383,13 +347,28 @@ def classify_and_filter_lookups(decls, schema: Schema):
         decl.lookups = dict(lookups_and_targets)
 
 
-def write_recipe(finalized_declarations, schema, extracted_objects, filename):
-    templates = [
-        object_template_from_decl(finalized_declarations[sf_object])
+def write_recipe(finalized_declarations, extracted_objects, filename):
+    static_data_filename = Path(
+        str(filename).replace(
+            "sample.data_recipe.yml", "sample_generated.data_recipe.yml"
+        )
+    )
+    macro_templates = [
+        macro_template_from_decl(finalized_declarations[sf_object])
         for sf_object in extracted_objects
     ]
 
-    recipe = recipe_from_declarations(templates, schema)
+    with open(static_data_filename, "w") as file:
+        generated_file = macro_templates
+        yaml.dump(generated_file, file, sort_keys=False)
+
+    including_templates = [
+        object_template_from_decl(sf_object) for sf_object in extracted_objects
+    ]
+
+    recipe = recipe_from_declarations(
+        including_templates, "sample_generated.data_recipe.yml"
+    )
     with open(filename, "w") as file:
         yaml.dump(recipe, file, sort_keys=False)
 
@@ -409,11 +388,13 @@ def find_populated_objects(sf, objs):
         )
         from pprint import pprint
 
+        errors = list(errors)
         if errors:
             pprint(("Errors", list(errors)))
         errors, successes = partition(
             lambda response: response["httpStatusCode"] == 200, responses
         )
+        errors = list(errors)
         if errors:
             pprint(("Errors", list(errors)))
 
@@ -451,8 +432,6 @@ def fields_and_lookups_for_decl(decl, sobject_schema_info, referenceable_tables)
 
 def mapping_decl_for_extract_decl(
     decl: SimplifiedExtractDeclaration,
-    sobject_schema_info,
-    referenceable_tables: list[str],
 ):
     lookups = {lookup: {"table": table} for lookup, table in decl.lookups.items()}
     mapping_dict = {
@@ -467,15 +446,6 @@ def mapping_decl_for_extract_decl(
         return (f"Insert {decl.sf_object}", mapping_dict)
     else:
         return None
-
-
-#   sf_object: Account
-#   fields:
-#   - Name
-#   lookups:
-#     ParentId:
-#       table: Account
-#       after: Insert Account
 
 
 def calculate_dependencies(
@@ -500,13 +470,7 @@ def mapping_file_from_declarations(
     decls: list[SimplifiedExtractDeclaration], schema: Schema
 ):
     assert decls is not None
-    referenceable_tables = [decl.sf_object for decl in decls]
-    mappings = [
-        mapping_decl_for_extract_decl(
-            decl, schema[decl.sf_object], referenceable_tables
-        )
-        for decl in decls
-    ]
+    mappings = [mapping_decl_for_extract_decl(decl) for decl in decls]
     return dict(pair for pair in mappings if pair)
 
 
@@ -555,15 +519,6 @@ def peek_iter(iterator, default=None) -> tuple[any, iter]:
     return peek, itertools.chain([peek], iterator)
 
 
-# class CountAndOutput:
-#     def __init__(self, iterator: iter):
-#         self.count = 0
-#         self.iterator = iterator
-
-#     def __iter__(self):
-#         for val in self.iterator:
-#             yield val
-#             self.count += 1
 def synthesize_declaration_for_sobject(sf_object, fields):
     return DEFAULT_DECLARATIONS.get(sf_object) or SimplifiedExtractDeclaration(
         sf_object=sf_object, fields=fields
@@ -588,7 +543,6 @@ def extend_declarations_to_include_referenced_tables(
                         for field in schema[target_table].fields
                         if not field.nillable
                     ]
-                    print("ZZZ", required_fields)
                     decls[target_table] = synthesize_declaration_for_sobject(
                         sf_object, required_fields
                     )
@@ -634,51 +588,6 @@ def db_values_from_db_url(database_url: str):
             for table_name, table in metadata.tables.items()
         }
         yield values
-
-
-# def old_export():
-#     # todo: parallelize this
-#     for decl in simplified_extract_decls:
-#         if not decl.fields:
-#             continue
-#         filename = directory / f"{decl.sf_object}.csv"
-#         extract_object(decl, filename, project_config, org_config, logger)
-
-#         if len(filename.read_text().splitlines()) > 1:
-#             extracted_objects[decl.sf_object] = filename
-#         else:
-#             filename.unlink()
-#     print("ZZZ", extracted_objects)
-#     return extracted_objects
-
-
-# def extract_object_by_Query_task(
-#     decl: SimplifiedExtractDeclaration,
-#     filename: Path,
-#     project_config,
-#     org_config,
-#     logger,
-# ):
-#     fields = decl.fields.copy()
-#     if "id" not in fields:
-#         fields.append("id")
-#     fields = ",".join(fields)
-#     soql = f"select {fields} from {decl.sf_object}"
-#     if decl.where:
-#         soql += f" WHERE {decl.where}"
-
-#     task_config = TaskConfig(
-#         {
-#             "options": {
-#                 "object": decl.sf_object,
-#                 "query": soql,
-#                 "result_file": filename,
-#             }
-#         },
-#     )
-
-#     task = SOQLQuery(project_config, task_config, org_config, logger=logger)
-#     task()
 
 
 _DEFAULT_DECLARATIONS = [
@@ -730,10 +639,10 @@ _DEFAULT_DECLARATIONS = [
 DEFAULT_DECLARATIONS = {decl.sf_object: decl for decl in _DEFAULT_DECLARATIONS}
 
 
-doit(
-    [
-        ExtractDeclaration(sf_object="Account", fields=["FIELDS(CUSTOM)"]),
-        ExtractDeclaration(sf_object="Contact", fields=["FIELDS(STANDARD)"]),
-        ExtractDeclaration(sf_object="OBJECT(POPULATED)", fields=["FIELDS(STANDARD)"]),
-    ]
-)
+# doit(
+#     [
+#         ExtractDeclaration(sf_object="Account", fields=["FIELDS(CUSTOM)"]),
+#         ExtractDeclaration(sf_object="Contact", fields=["FIELDS(STANDARD)"]),
+#         ExtractDeclaration(sf_object="OBJECTS(POPULATED)", fields=["FIELDS(STANDARD)"]),
+#     ]
+# )
