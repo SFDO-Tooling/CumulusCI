@@ -1,10 +1,14 @@
 import os
 import shutil
 from contextlib import contextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from snowfakery import generate_data
+from snowfakery import SnowfakeryApplication, generate_data
+from snowfakery.api import stopping_criteria_from_target_number
+from snowfakery.output_streams import SqlDbOutputStream
+from sqlalchemy import create_engine
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_list_arg, process_list_of_pairs_dict_arg
@@ -159,7 +163,6 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
             generate_data(
                 yaml_file=self.yaml_file,
                 user_options=self.vars,
-                target_number=self.stopping_criteria,
                 continuation_file=old_continuation_file,
                 generate_continuation_file=new_continuation_file,
                 generate_cci_mapping_file=self.generate_mapping_file,
@@ -171,6 +174,9 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
                     "project_config": self.project_config,
                     **self.plugin_options,
                 },
+                parent_application=CumulusCIApplication(
+                    stopping_criteria_from_target_number(self.stopping_criteria)
+                ),
             )
 
         if (
@@ -181,3 +187,22 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
             shutil.move(
                 new_continuation_file.name, self.default_continuation_file_path()
             )
+
+
+class CumulusCITempDBOutputStream(SqlDbOutputStream):
+    """An output stream that fits too quirks of Salesforce outputs."""
+
+    encoders = {
+        **SqlDbOutputStream.encoders,
+        datetime: lambda d: d.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+
+    def __init__(self, dburls: str):
+        super().__init__(create_engine(dburls))
+
+
+class CumulusCIApplication(SnowfakeryApplication):
+    """A representation of CCI in Snowfakery."""
+
+    def configure_output_stream(self, dburls, **kwargs):
+        return CumulusCITempDBOutputStream(dburls[0])
