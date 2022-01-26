@@ -156,21 +156,42 @@ def merge_config(configs):
     or different step types after merging. Then recursively deep-merge the configs into
     one another (highest priority comes first)
     """
-    config_merge_order = [
+    configs = cleanup_flow_step_override_conflicts(configs)
+
+    new_config = {}
+    for name, config in configs.items():
+        new_config = dictmerge(new_config, config, name)
+
+    return new_config
+
+
+def cleanup_flow_step_override_conflicts(configs: T.List[dict]) -> T.List[dict]:
+    """
+    If a flow step is been overridden with a step of a different type (i.e. tas, flow),
+    then we need to set the step that is _lower_ in precedence order to an empty dict ({}).
+    If we don't, then we will end up with both "flow" and "task" listed in the step_config which
+    leads to an error when CumulusCI attempts to run that step in the flow.
+
+    We need to also account for scenarios where a single flow step
+    is being overriden more than once.
+
+    Example:
+    A flow step in the universal config is being overridden somewhere
+    in the project_config, which is being overridden by additional_yaml.
+
+    The while loop below is how we account for these scenarios.
+    """
+    config_precedence_order = [
         "additional_yaml",
         "project_local_config",
         "project_config",
         "global_config",
         "universal_config",
     ]
-    # We need to account for scenarios where a single flow step
-    # is being overriden more than once. This looping allows
-    # for us to ensure that _all_ steps that are lower in presedence
-    # will be overridden properly.
-    while len(config_merge_order) > 1:
-        overridding_config = config_merge_order[0]
-        config_merge_order = config_merge_order[1:]
-        for config_to_override in config_merge_order:
+    while len(config_precedence_order) > 1:
+        overridding_config = config_precedence_order[0]
+        config_precedence_order = config_precedence_order[1:]
+        for config_to_override in config_precedence_order:
             if configs_present_and_not_empty(
                 [config_to_override, overridding_config], configs
             ):
@@ -178,11 +199,7 @@ def merge_config(configs):
                     configs[config_to_override], configs[overridding_config]
                 )
 
-    new_config = {}
-    for name, config in configs.items():
-        new_config = dictmerge(new_config, config, name)
-
-    return new_config
+    return configs
 
 
 def configs_present_and_not_empty(
@@ -194,9 +211,9 @@ def configs_present_and_not_empty(
 def remove_overridden_flow_steps_in_config(
     config_to_override: dict, overridding_config: dict
 ):
-    """If any steps of flows from the universal config are being overridden by other configs,
-    then we need to set those steps in the universal config to an empty dict so that we don't have
-    conflicts when merging the dicts in `dictmerge()`."""
+    """If any steps of flows from the config_to_override are being overridden in overridding_config,
+    then we need to set those steps in the config_to_override to an empty dict so that we don't have
+    both a "task" and a "flow" listed in a flow step after merging the configs with `dictmerge()`."""
     if "flows" not in config_to_override or "flows" not in overridding_config:
         return
 
@@ -206,11 +223,11 @@ def remove_overridden_flow_steps_in_config(
             overridding_step_config,
         ) in flow_config["steps"].items():
             if config_has_flow_and_step_num(config_to_override, flow, step_num):
-                step_config_from_universal = config_to_override["flows"][flow]["steps"][
+                step_config_to_override = config_to_override["flows"][flow]["steps"][
                     step_num
                 ]
                 if not steps_are_of_same_type(
-                    overridding_step_config, step_config_from_universal
+                    overridding_step_config, step_config_to_override
                 ):
                     config_to_override["flows"][flow]["steps"][step_num] = {}
 
@@ -226,8 +243,7 @@ def steps_are_of_same_type(step_one_config: dict, step_two_config: dict) -> bool
     config_one_type = "task" if "task" in step_one_config else "flow"
     config_two_type = "task" if "task" in step_two_config else "flow"
 
-    if config_one_type != config_two_type:
-        return False
+    return config_one_type == config_two_type
 
 
 def dictmerge(a, b, name=None):
