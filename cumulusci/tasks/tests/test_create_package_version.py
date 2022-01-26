@@ -638,6 +638,35 @@ class TestCreatePackageVersion:
         assert version.format() == "1.0.0.1"
 
     @responses.activate
+    def test_get_base_version_number__from_github_1gp(self, task):
+        task.project_config.get_latest_version = mock.Mock(return_value="1.0.0")
+
+        version = task._get_base_version_number(
+            "latest_github_release", "0Ho6g000000fy4ZCAQ"
+        )
+        assert version.format() == "1.0.0.0"
+
+    @responses.activate
+    def test_get_base_version_number__from_github_1gp_2_figures(self, task):
+        task.project_config.get_latest_version = mock.Mock(return_value="1.0")
+
+        version = task._get_base_version_number(
+            "latest_github_release", "0Ho6g000000fy4ZCAQ"
+        )
+        assert version.format() == "1.0.0.0"
+
+    @responses.activate
+    def test_get_base_version_number__from_github_1gp_beta(self, task):
+        # This shouldn't happen unless the project is misconfigured,
+        # but we'll ensure we handle it gracefully.
+        task.project_config.get_latest_version = mock.Mock(return_value="1.0 (Beta 2)")
+
+        version = task._get_base_version_number(
+            "latest_github_release", "0Ho6g000000fy4ZCAQ"
+        )
+        assert version.format() == "1.0.0.2"
+
+    @responses.activate
     def test_get_base_version_number__from_github__no_release(self, task):
         task.project_config.get_latest_version = mock.Mock(side_effect=GithubException)
 
