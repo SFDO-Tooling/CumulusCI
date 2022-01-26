@@ -265,7 +265,7 @@ When CumulusCI detects a task or flow with a value of ``None``, the task or flow
 Replace a Flow Step
 ^^^^^^^^^^^^^^^^^^^
 
-To replace a flow step, name the task or flow to run instead of the current step.
+Replacing a flow step is easy; just note the flow, step number, and task or flow you would like to run on the given step.
 
 For example, to replace the default fourth step of the ``dev_org`` flow with a custom task that loads data into a dev environment, specify the custom task to run instead.
 
@@ -275,19 +275,6 @@ For example, to replace the default fourth step of the ``dev_org`` flow with a c
         steps:
             4:
                 task: load_data_dev
-
-
-Or to replace the existing task with a flow as the fourth step of the ``dev_org`` flow, first set the task to ``None`` and then insert the new flow.
-
-.. code-block:: yaml
-
-    dev_org:
-        steps:
-            4:
-                task: None
-                flow: my_flow
-
-Swap two steps in a flow by replacing one with the other. If the steps are of different types (task/flow), the types being replaced must first be set to ``None``.
 
 
 
