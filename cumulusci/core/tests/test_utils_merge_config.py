@@ -3,7 +3,7 @@ import copy
 import pytest
 
 from cumulusci.core import utils
-from cumulusci.core.exceptions import ConfigMergeError
+from cumulusci.core.exceptions import ConfigMergeError, CumulusCIException
 
 
 @pytest.fixture
@@ -58,6 +58,16 @@ def test_cleanup_flow_step_override_conflicts__no_op(universal_config):
     configs = {"universal_config": universal_config}
     clean_configs = utils.cleanup_flow_step_override_conflicts(configs)
     assert universal_config == clean_configs["universal_config"]
+
+
+def test_cleanup_flow_step_override_conflicts__ambiguous_step(universal_config):
+    project_config = {
+        "flows": {"steps_all_flows": {"steps": {3: {"flow": "None", "task": "None"}}}}
+    }
+
+    configs = {"project_config": project_config, "universal_config": universal_config}
+    with pytest.raises(CumulusCIException):
+        utils.cleanup_flow_step_override_conflicts(configs)
 
 
 def test_cleanup_flow_step_override_conflicts__task_overrides_flow(universal_config):
