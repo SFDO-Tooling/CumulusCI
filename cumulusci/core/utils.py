@@ -11,7 +11,11 @@ from pathlib import Path
 
 import pytz
 
-from cumulusci.core.exceptions import ConfigMergeError, TaskOptionsError
+from cumulusci.core.exceptions import (
+    ConfigMergeError,
+    CumulusCIException,
+    TaskOptionsError,
+)
 
 
 def import_global(path: str):
@@ -214,6 +218,7 @@ def remove_overridden_flow_steps_in_config(
     """If any steps of flows from the config_to_override are being overridden in overridding_config,
     then we need to set those steps in the config_to_override to an empty dict so that we don't have
     both a "task" and a "flow" listed in a flow step after merging the configs with `dictmerge()`."""
+
     if "flows" not in config_to_override or "flows" not in overridding_config:
         return
 
@@ -222,14 +227,35 @@ def remove_overridden_flow_steps_in_config(
             step_num,
             overridding_step_config,
         ) in flow_config["steps"].items():
-            if config_has_flow_and_step_num(config_to_override, flow, step_num):
+            cleanup_old_flow_step_replace_syntax(overridding_step_config)
+            both_configs_have_flow_and_step = config_has_flow_and_step_num(
+                config_to_override, flow, step_num
+            )
+            if both_configs_have_flow_and_step:
                 step_config_to_override = config_to_override["flows"][flow]["steps"][
                     step_num
                 ]
-                if not steps_are_of_same_type(
+                steps_same_type = steps_are_same_type(
                     overridding_step_config, step_config_to_override
-                ):
+                )
+                if not steps_same_type:
                     config_to_override["flows"][flow]["steps"][step_num] = {}
+
+
+def cleanup_old_flow_step_replace_syntax(step_config: dict):
+    """When replacing flow steps with a step of a different type, the old syntax
+    had users declare the original step type as 'None' along with the new step type.
+    If both are present, we want to remove the one that has a value of 'None'."""
+    if all(s_type in step_config for s_type in ("task", "flow")):
+        if step_config["flow"] == "None" and step_config["task"] == "None":
+            raise CumulusCIException(
+                "Cannot have both step types declared with a value of 'None'."
+                "For information on replacing a flow step see: https://cumulusci.readthedocs.io/en/latest/config.html#replace-a-flow-step"
+            )
+        elif step_config["flow"] == "None":
+            del step_config["flow"]
+        else:
+            del step_config["task"]
 
 
 def config_has_flow_and_step_num(config: dict, flow_name: str, step_num: int) -> bool:
@@ -238,7 +264,7 @@ def config_has_flow_and_step_num(config: dict, flow_name: str, step_num: int) ->
     )
 
 
-def steps_are_of_same_type(step_one_config: dict, step_two_config: dict) -> bool:
+def steps_are_same_type(step_one_config: dict, step_two_config: dict) -> bool:
     """If both steps are of the same type returns True, else False."""
     config_one_type = "task" if "task" in step_one_config else "flow"
     config_two_type = "task" if "task" in step_two_config else "flow"
