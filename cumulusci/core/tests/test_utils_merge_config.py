@@ -106,7 +106,7 @@ def test_cleanup_flow_step_override_conflicts__flow_overrides_task(universal_con
     assert expected_universal_config == clean_configs["universal_config"]
 
 
-def test_cleanup_flow_step_override__old_syntax(universal_config):
+def test_cleanup_flow_step_override__old_syntax_task_to_flow(universal_config):
     """The 'old' syntax was to set the current step type to 'None' and the new
     step type with the name of the task/flow you want."""
     project_config = {
@@ -130,14 +130,40 @@ def test_cleanup_flow_step_override__old_syntax(universal_config):
         "options": {"super": "cool"},
     }
 
-    expected_universal_config = copy.deepcopy(universal_config)
-    expected_universal_config["flows"]["steps_all_tasks"]["steps"][3] = {}
+    configs = {"project_config": project_config, "universal_config": universal_config}
+    clean_configs = utils.cleanup_flow_step_override_conflicts(configs)
+
+    assert expected_project_config == clean_configs["project_config"]
+
+
+def test_cleanup_flow_step_override__old_syntax_flow_to_task(universal_config):
+    """The 'old' syntax was to set the current step type to 'None' and the new
+    step type with the name of the task/flow you want."""
+    project_config = {
+        "flows": {
+            "steps_all_flows": {
+                "steps": {
+                    3: {
+                        "flow": "None",
+                        "task": "custom_task",
+                        "options": {"super": "cool"},
+                    }
+                }
+            }
+        }
+    }
+    # Copy things before they're operated on
+    expected_project_config = copy.deepcopy(project_config)
+    expected_project_config["flows"]["steps_all_flows"]["steps"][3] = {
+        # "task" should no longer be present
+        "task": "custom_task",
+        "options": {"super": "cool"},
+    }
 
     configs = {"project_config": project_config, "universal_config": universal_config}
     clean_configs = utils.cleanup_flow_step_override_conflicts(configs)
 
     assert expected_project_config == clean_configs["project_config"]
-    assert expected_universal_config == clean_configs["universal_config"]
 
 
 def test_cleanup_flow_step_override_conflicts__multiple_overrides_of_alternating_types(
