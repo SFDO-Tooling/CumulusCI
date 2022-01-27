@@ -541,8 +541,9 @@ class FlowCoordinator(object):
         if parent_ui_options is None:
             parent_ui_options = {}
 
-        # This should never happen because of cleanup in core/utils/merge_config()
-        assert not all(step_type in step_config for step_type in ("task", "flow"))
+        # This should never happen because of cleanup
+        # in core/utils/cleanup_old_flow_step_replace_syntax()
+        assert step_config.keys() != {"task", "flow"}
 
         # Skips
         # - either in YAML (with the None string)
