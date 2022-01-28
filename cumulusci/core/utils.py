@@ -160,10 +160,11 @@ def merge_config(configs):
     or different step types after merging. Then recursively deep-merge the configs into
     one another (highest priority comes first)
     """
-    configs = cleanup_flow_step_override_conflicts(configs)
+    config_copies = {name: copy.deepcopy(config) for name, config in configs.items()}
+    cleaned_configs = cleanup_flow_step_override_conflicts(config_copies)
 
     new_config = {}
-    for name, config in configs.items():
+    for name, config in cleaned_configs.items():
         new_config = dictmerge(new_config, config, name)
 
     return new_config
