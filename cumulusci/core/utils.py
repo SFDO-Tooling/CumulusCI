@@ -193,14 +193,14 @@ def cleanup_flow_step_override_conflicts(configs: T.List[dict]) -> T.List[dict]:
         "universal_config",
     ]
     while len(config_precedence_order) > 1:
-        overridding_config = config_precedence_order[0]
+        overriding_config = config_precedence_order[0]
         config_precedence_order = config_precedence_order[1:]
         for config_to_override in config_precedence_order:
             if configs_present_and_not_empty(
-                [config_to_override, overridding_config], configs
+                [config_to_override, overriding_config], configs
             ):
                 remove_overridden_flow_steps_in_config(
-                    configs[config_to_override], configs[overridding_config]
+                    configs[config_to_override], configs[overriding_config]
                 )
 
     return configs
@@ -213,21 +213,21 @@ def configs_present_and_not_empty(
 
 
 def remove_overridden_flow_steps_in_config(
-    config_to_override: dict, overridding_config: dict
+    config_to_override: dict, overriding_config: dict
 ):
-    """If any steps of flows from the config_to_override are being overridden in overridding_config,
+    """If any steps of flows from the config_to_override are being overridden in overriding_config,
     then we need to set those steps in the config_to_override to an empty dict so that we don't have
     both a "task" and a "flow" listed in a flow step after merging the configs with `dictmerge()`."""
 
-    if "flows" not in config_to_override or "flows" not in overridding_config:
+    if "flows" not in config_to_override or "flows" not in overriding_config:
         return
 
-    for flow, flow_config in overridding_config["flows"].items():
+    for flow, flow_config in overriding_config["flows"].items():
         for (
             step_num,
-            overridding_step_config,
+            overriding_step_config,
         ) in flow_config["steps"].items():
-            cleanup_old_flow_step_replace_syntax(overridding_step_config)
+            cleanup_old_flow_step_replace_syntax(overriding_step_config)
             both_configs_have_flow_and_step = config_has_flow_and_step_num(
                 config_to_override, flow, step_num
             )
@@ -236,7 +236,7 @@ def remove_overridden_flow_steps_in_config(
                     step_num
                 ]
                 steps_same_type = steps_are_same_type(
-                    overridding_step_config, step_config_to_override
+                    overriding_step_config, step_config_to_override
                 )
                 if not steps_same_type:
                     config_to_override["flows"][flow]["steps"][step_num] = {}
