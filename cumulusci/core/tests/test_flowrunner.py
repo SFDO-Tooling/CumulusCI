@@ -86,11 +86,9 @@ class FullParseTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCas
                 flow_config = self.project_config.get_flow(flow_name)
                 flow = FlowCoordinator(self.project_config, flow_config, name=flow_name)
             except Exception as exc:
-                self.fail("Error creating flow {}: {}".format(flow_name, str(exc)))
-            self.assertIsNotNone(
-                flow.steps, "Flow {} parsed to no steps".format(flow_name)
-            )
-            print("Parsed flow {} as {} steps".format(flow_name, len(flow.steps)))
+                self.fail(f"Error creating flow {flow_name}: {str(exc)}")
+            self.assertIsNotNone(flow.steps, f"Flow {flow_name} parsed to no steps")
+            print(f"Parsed flow {flow_name} as {len(flow.steps)} steps")
 
 
 class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
@@ -279,11 +277,6 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config)
         self.assertEqual("bar", flow.steps[0].task_config["options"]["foo"])
-
-    def test_init_ambiguous_step(self):
-        flow_config = FlowConfig({"steps": {1: {"task": "None", "flow": "None"}}})
-        with self.assertRaises(FlowConfigError):
-            FlowCoordinator(self.project_config, flow_config, name="test")
 
     def test_init__bad_classpath(self):
         self.project_config.config["tasks"] = {
