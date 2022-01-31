@@ -10,7 +10,7 @@ import pytest
 import responses
 
 from cumulusci.cli import cci
-from cumulusci.core.config import OrgConfig, ScratchOrgConfig
+from cumulusci.core.config import OrgConfig, ScratchOrgConfig, ServiceConfig
 from cumulusci.core.exceptions import (
     OrgNotFound,
     ScratchOrgException,
@@ -167,10 +167,13 @@ class TestOrgCommands:
     @mock.patch("cumulusci.cli.org.connect_org_to_keychain")
     @mock.patch("cumulusci.cli.cci.CliRuntime")
     def test_org_connect__prod_default(self, cli_runtime, connect_to_keychain):
-        mocked_connected_app = mock.Mock()
-        mocked_connected_app.client_id = "foo"
-        mocked_connected_app.client_secret = "bar"
-        mocked_connected_app.callback_url = "https://foo.bar.baz/"
+        mocked_connected_app = ServiceConfig(
+            {
+                "client_id": "foo",
+                "client_secret": "bar",
+                "callback_url": "https://foo.bar.baz/",
+            }
+        )
 
         runtime = mock.Mock()
         runtime.keychain.get_service.return_value = mocked_connected_app

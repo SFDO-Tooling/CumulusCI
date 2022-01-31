@@ -3,7 +3,9 @@ from unittest import mock
 import click
 import pytest
 
+from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.tests.utils import EnvironmentVarGuard
 
 from .. import service
@@ -130,6 +132,71 @@ def test_service_connect():
         cmd.callback(ctx.obj, project=False, service_name="test-alias")
 
 
+@mock.patch("click.termui.visible_prompt_func")
+def test_service_connect__attr_with_default_value(prompt, capsys):
+    prompt.return_value = ""
+    multi_cmd = service.ConnectServiceCommand()
+    runtime = mock.MagicMock()
+    runtime.project_config = project_config = BaseProjectConfig(
+        None,
+        {
+            "services": {
+                "test": {
+                    "attributes": {
+                        "attr": {"default": "PRESET", "description": "example"}
+                    }
+                }
+            }
+        },
+    )
+    runtime.keychain = keychain = BaseProjectKeychain(project_config, None)
+
+    with click.Context(
+        multi_cmd,
+        obj=runtime,
+    ) as ctx:
+        cmd = multi_cmd.get_command(ctx, "test")
+        cmd(["test-alias"], standalone_mode=False)
+
+    # User should have been prompted to override the default,
+    # but input of an empty line accepts the default.
+    assert "attr (example) [PRESET]: " in capsys.readouterr().out
+    prompt.assert_called_once()
+    service_config = keychain.get_service("test", "test-alias")
+    assert service_config.attr == "PRESET"
+
+
+def test_service_connect__attr_with_default_factory():
+    multi_cmd = service.ConnectServiceCommand()
+    runtime = mock.MagicMock()
+    runtime.project_config = project_config = BaseProjectConfig(
+        None,
+        {
+            "services": {
+                "test": {
+                    "attributes": {
+                        "attr": {
+                            "default_factory": "cumulusci.cli.tests.test_service.get_default"
+                        }
+                    }
+                }
+            }
+        },
+    )
+    runtime.keychain = keychain = BaseProjectKeychain(project_config, None)
+
+    with click.Context(
+        multi_cmd,
+        obj=runtime,
+    ) as ctx:
+        cmd = multi_cmd.get_command(ctx, "test")
+        cmd(["test-alias"], standalone_mode=False)
+
+    # The service should have the attribute value returned by the default factory.
+    service_config = keychain.get_service("test", "test-alias")
+    assert service_config.attr == "CALCULATED"
+
+
 @mock.patch("click.confirm")
 def test_service_connect__alias_already_exists(confirm):
     confirm.side_effect = "y"
@@ -209,8 +276,7 @@ def test_service_connect__do_not_set_new_service_as_default(confirm):
     runtime.keychain.set_default_service.call_count = 0
 
 
-@mock.patch("click.echo")
-def test_service_connect__no_name_given(echo):
+def test_service_connect__no_name_given(capsys):
     multi_cmd = service.ConnectServiceCommand()
     ctx = mock.Mock()
     runtime = mock.MagicMock()
@@ -233,13 +299,12 @@ def test_service_connect__no_name_given(echo):
     # service_name is None, so the alias when setting the service should be 'default'
     assert "default" in runtime.keychain.set_service.call_args_list[0][0]
     assert (
-        echo.call_args_list[0][0][0]
-        == "No service name specified. Using 'default' as the service name."
+        "No service name specified. Using 'default' as the service name."
+        in capsys.readouterr().out
     )
 
 
-@mock.patch("click.echo")
-def test_service_connect__global_default(echo):
+def test_service_connect__global_default(capsys):
     multi_cmd = service.ConnectServiceCommand()
     ctx = mock.Mock()
     runtime = mock.MagicMock()
@@ -255,15 +320,15 @@ def test_service_connect__global_default(echo):
     runtime.keychain.set_default_service.assert_called_once_with(
         "test", "test-alias", project=False
     )
-    assert echo.call_args_list[0][0][0] == "Service test:test-alias is now connected"
+    output = capsys.readouterr().out
+    assert "Service test:test-alias is now connected" in output
     assert (
-        echo.call_args_list[1][0][0]
-        == "Service test:test-alias is now the default for all CumulusCI projects"
+        "Service test:test-alias is now the default for all CumulusCI projects"
+        in output
     )
 
 
-@mock.patch("click.echo")
-def test_service_connect__project_default(echo):
+def test_service_connect__project_default(capsys):
     multi_cmd = service.ConnectServiceCommand()
     ctx = mock.Mock()
     runtime = mock.MagicMock()
@@ -279,11 +344,9 @@ def test_service_connect__project_default(echo):
     runtime.keychain.set_default_service.assert_called_once_with(
         "test", "test-alias", project=True
     )
-    assert echo.call_args_list[0][0][0] == "Service test:test-alias is now connected"
-    assert (
-        "Service test:test-alias is now the default for project"
-        in echo.call_args_list[1][0][0]
-    )
+    output = capsys.readouterr().out
+    assert "Service test:test-alias is now connected" in output
+    assert "Service test:test-alias is now the default for project" in output
 
 
 def test_service_connect_global_keychain():
@@ -391,8 +454,7 @@ def test_service_info(cli_tbl):
     )
 
 
-@mock.patch("click.echo")
-def test_service_info_not_configured(echo):
+def test_service_info_not_configured(capsys):
     runtime = mock.Mock()
     runtime.keychain.get_service.side_effect = ServiceNotConfigured
 
@@ -403,11 +465,10 @@ def test_service_info_not_configured(echo):
         service_name="test-alias",
         plain=False,
     )
-    assert "not configured for this project" in echo.call_args[0][0]
+    assert "not configured for this project" in capsys.readouterr().out
 
 
-@mock.patch("click.echo")
-def test_service_default__global(echo):
+def test_service_default__global(capsys):
     runtime = mock.Mock()
     run_click_command(
         service.service_default,
@@ -417,13 +478,14 @@ def test_service_default__global(echo):
         project=False,
     )
     runtime.keychain.set_default_service.called_once_with("test", "test-alias")
-    echo.assert_called_once_with(
+
+    assert (
         "Service test:test-alias is now the default for all CumulusCI projects"
+        in capsys.readouterr().out
     )
 
 
-@mock.patch("click.echo")
-def test_service_default__project(echo):
+def test_service_default__project(capsys):
     runtime = mock.Mock()
     runtime.keychain.project_local_dir = "test"
     run_click_command(
@@ -434,8 +496,9 @@ def test_service_default__project(echo):
         project=True,
     )
     runtime.keychain.set_default_service.called_once_with("test", "test-alias")
-    echo.assert_called_once_with(
+    assert (
         "Service test:test-alias is now the default for project 'test'"
+        in capsys.readouterr().out
     )
 
 
@@ -454,8 +517,7 @@ def test_service_connect__project_default_no_project():
         )
 
 
-@mock.patch("click.echo")
-def test_service_default__exception(echo):
+def test_service_default__exception(capsys):
     runtime = mock.Mock()
     runtime.keychain.set_default_service.side_effect = ServiceNotConfigured(
         "test error"
@@ -467,13 +529,13 @@ def test_service_default__exception(echo):
         service_name="test-alias",
         project=False,
     )
-    echo.assert_called_once_with(
+    assert (
         "An error occurred setting the default service: test error"
+        in capsys.readouterr().out
     )
 
 
-@mock.patch("click.echo")
-def test_service_rename(echo):
+def test_service_rename(capsys):
     runtime = mock.Mock()
     run_click_command(
         service.service_rename,
@@ -485,13 +547,13 @@ def test_service_rename(echo):
     runtime.keychain.rename_service.assert_called_once_with(
         "test-type", "old-alias", "new-alias"
     )
-    echo.assert_called_once_with(
+    assert (
         "Service test-type:old-alias has been renamed to new-alias"
+        in capsys.readouterr().out
     )
 
 
-@mock.patch("click.echo")
-def test_service_rename__exception(echo):
+def test_service_rename__exception(capsys):
     runtime = mock.Mock()
     runtime.keychain.rename_service.side_effect = ServiceNotConfigured("test error")
     run_click_command(
@@ -501,12 +563,14 @@ def test_service_rename__exception(echo):
         current_name="old-alias",
         new_name="new-alias",
     )
-    echo.assert_called_once_with("An error occurred renaming the service: test error")
+    assert (
+        "An error occurred renaming the service: test error" in capsys.readouterr().out
+    )
 
 
-@mock.patch("cumulusci.cli.service.click")
-def test_service_remove(click):
-    click.prompt.side_effect = ("future-default-alias",)
+@mock.patch("cumulusci.cli.service.click.prompt")
+def test_service_remove(prompt, capsys):
+    prompt.side_effect = ("future-default-alias",)
     runtime = mock.Mock()
     runtime.keychain.env_service_var_prefix = "CUMULUSCI_SERVICE_"
     runtime.keychain.services = {
@@ -533,14 +597,14 @@ def test_service_remove(click):
         "github", "future-default-alias"
     )
     assert (
-        click.echo.call_args_list[-1][0][0]
-        == "Service github:current-default-alias has been removed."
+        "Service github:current-default-alias has been removed."
+        in capsys.readouterr().out
     )
 
 
-@mock.patch("cumulusci.cli.service.click")
-def test_service_remove__name_does_not_exist(click):
-    click.prompt.side_effect = ("this-alias-does-not-exist",)
+@mock.patch("cumulusci.cli.service.click.prompt")
+def test_service_remove__name_does_not_exist(prompt, capsys):
+    prompt.side_effect = ("this-alias-does-not-exist",)
     runtime = mock.Mock()
     runtime.keychain.env_service_var_prefix = "CUMULUSCI_SERVICE_"
     runtime.keychain.services = {
@@ -561,16 +625,16 @@ def test_service_remove__name_does_not_exist(click):
         service_name="current-default-alias",
     )
     assert (
-        click.echo.call_args_list[-1][0][0]
-        == "No service of type github with name: this-alias-does-not-exist"
+        "No service of type github with name: this-alias-does-not-exist"
+        in capsys.readouterr().out
     )
     assert runtime.keychain.remove_service.call_count == 0
     assert runtime.keychain.set_default_service.call_count == 0
 
 
-@mock.patch("cumulusci.cli.service.click")
-def test_service_remove__exception_thrown(click):
-    click.prompt.side_effect = ("future-default-alias",)
+@mock.patch("cumulusci.cli.service.click.prompt")
+def test_service_remove__exception_thrown(prompt, capsys):
+    prompt.side_effect = ("future-default-alias",)
     runtime = mock.Mock()
     runtime.keychain.env_service_var_prefix = "CUMULUSCI_SERVICE_"
     runtime.keychain.services = {
@@ -592,13 +656,11 @@ def test_service_remove__exception_thrown(click):
         service_name="current-default-alias",
     )
     assert (
-        click.echo.call_args_list[-1][0][0]
-        == "An error occurred removing the service: test error"
+        "An error occurred removing the service: test error" in capsys.readouterr().out
     )
 
 
-@mock.patch("cumulusci.cli.service.click")
-def test_service_remove__environment_service_cannot_be_removed(click):
+def test_service_remove__environment_service_cannot_be_removed(capsys):
     runtime = mock.Mock()
     runtime.keychain.env_service_var_prefix = "CUMULUSCI_SERVICE_"
     runtime.keychain.services = {
@@ -618,10 +680,15 @@ def test_service_remove__environment_service_cannot_be_removed(click):
             service_name="env-foo",
         )
     assert (
-        click.echo.call_args_list[-1][0][0]
-        == "The service github:env-foo is defined by environment variables. If you would like it removed please delete the environment variable with name: CUMULUSCI_SERVICE_github__env-foo"
-    )
+        "The service github:env-foo is defined by environment variables. "
+        "If you would like it removed please delete the environment variable with name: "
+        "CUMULUSCI_SERVICE_github__env-foo"
+    ) in capsys.readouterr().out
 
 
 def validate_service(options):
     pass
+
+
+def get_default():
+    return "CALCULATED"

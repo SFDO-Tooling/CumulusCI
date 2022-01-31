@@ -84,17 +84,43 @@ class ConnectServiceCommand(click.MultiCommand):
         return sorted(services.keys())
 
     def _build_param(self, attribute: str, details: dict) -> click.Option:
-        req = details["required"]
+        required = details.get("required", False)
         default_factory: Optional[Callable] = self._get_callable_default(
             details.get("default_factory")
         )
-        prompt = None if default_factory else req
+        default = details.get("default")
+        if default is not None:
+            # This gives the user a chance to change the default
+            # (but only if they didn't specify it as a command line option)
+            default_factory = lambda: default  # noqa
+            prompt = True
+            # Since there's a default value,
+            # we don't need to indicate this option as required in help,
+            required = False
+        elif default_factory:
+            # If there's a function to calculate the default,
+            # we'll call it instead of prompting the user.
+            # This provides a hook for collecting the value in other ways,
+            # such as via an oauth flow.
+            prompt = None
+        else:
+            # If there's no default, we prompt the user only if the option is required.
+            prompt = required
+
+        # Make sure the description is included in the prompt
+        description = details.get("description")
+        if prompt:
+            prompt = attribute
+            if description:
+                prompt += f" ({description})"
 
         kwargs = {
             "prompt": prompt,
-            "required": req,
-            "help": details.get("description"),
+            "required": required,
+            "help": description,
             "default": default_factory,
+            # If there is a preset default, this causes it to be shown in help.
+            "show_default": default,
         }
         return click.Option((f"--{attribute}",), **kwargs)
 
