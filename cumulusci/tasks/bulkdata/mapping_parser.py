@@ -8,7 +8,7 @@ from pydantic import Field, ValidationError, root_validator, validator
 from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
 from typing_extensions import Literal
 
-from cumulusci.core.config.OrgConfig import OrgConfig
+from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.dates import iso_to_date
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
