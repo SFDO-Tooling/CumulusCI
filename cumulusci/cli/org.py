@@ -302,6 +302,7 @@ def org_info(runtime, org_name, print_json):
         ui_key_set = {
             "config_file",
             "config_name",
+            "connected_app",
             "created",
             "date_created",
             "days",

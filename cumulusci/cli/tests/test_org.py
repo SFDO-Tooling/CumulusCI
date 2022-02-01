@@ -445,7 +445,12 @@ class TestOrgCommands:
 
     def test_org_info(self):
         org_config = mock.Mock()
-        org_config.config = {"days": 1, "default": True, "password": None}
+        org_config.config = {
+            "days": 1,
+            "default": True,
+            "password": None,
+            "connected_app": "built-in",
+        }
         org_config.expires = date.today()
         org_config.latest_api_version = "42.0"
         runtime = mock.Mock()
@@ -459,6 +464,7 @@ class TestOrgCommands:
                 [
                     ["Org: test", ""],
                     ["\x1b[1mapi_version\x1b[0m", "42.0"],
+                    ["\x1b[1mconnected_app\x1b[0m", "built-in"],
                     ["\x1b[1mdays\x1b[0m", "1"],
                     ["\x1b[1mdefault\x1b[0m", "True"],
                     ["\x1b[1mpassword\x1b[0m", "None"],
