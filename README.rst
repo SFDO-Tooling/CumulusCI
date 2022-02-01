@@ -49,8 +49,6 @@ from minute 36 through minute 54.
 Questions?
 ----------
 
-Salesforce.org (http://salesforce.org/) customers and partners can ask in the `CumulusCI group in the Power of Us Hub <https://powerofus.force.com/s/group/0F980000000PSRHCA4/cumulusci-cci>`_.
-
-Others can ask in the `CumulusCI group in the Trailblazer Community <https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU>`_.
+Ask in the `CumulusCI group in the Trailblazer Community <https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU>`_.
 
 *Please note:* CumulusCI is distributed under an `open source license <https://github.com/SFDO-Tooling/CumulusCI/blob/main/LICENSE>`_ and is not covered by the Salesforce Master Subscription Agreement.

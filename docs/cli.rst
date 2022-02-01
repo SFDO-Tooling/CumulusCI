@@ -216,12 +216,10 @@ a plan named 'config'.
      ──────────────────────────────────────────────────────────────────────────────
       Title          Express Setup Configuration Plan
       Preflight      This will install metadata configurations into your org.
-      Post-install   Thanks for installing Advisor Link. Visit the [Advisor Link
-                     topic](https://powerofus.force.com/s/topic/0TO80000000VXyzGA…
-                     on the Power of Us Hub for any questions about Advisor Link.
+      Post-install   Thanks for installing Advisor Link. Visit the [Student Success Hub](https://trailhead.salesforce.com/trailblazer-community/groups/0F94S000000kHhtSAE)
+                     for any questions about Advisor Link.
       Error          If you experience an issue with the installation, please post
-                     in the [Power of Us
-                     Hub](https://powerofus.force.com/s/topic/0TO80000000VXyzGAG/…
+                     in the [Student Success Hub](https://trailhead.salesforce.com/trailblazer-community/groups/0F94S000000kHhtSAE)
 
                                     Plan Preflights
 

@@ -5,7 +5,7 @@ body:
     - type: markdown
       attributes:
           value: |
-              If you are seeking support on using CumulusCI, please do not open an Issue. Instead, please visit us on the [Trailblazer Community](https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9Z), or, for Nonprofit and Education customers, the [Power of Us Hub](https://powerofus.force.com/s/group/0F980000000PSRHCA4/cumulusci-cci)
+              If you are seeking support on using CumulusCI, please do not open an Issue. Instead, please visit us on the [Trailblazer Community](https://trailhead.salesforce.com/trailblazer-community/groups/0F9300000009M9ZCAU).
     - type: dropdown
       id: issue_type
       validations:
