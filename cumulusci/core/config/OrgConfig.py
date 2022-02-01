@@ -10,7 +10,11 @@ from simple_salesforce import Salesforce
 from simple_salesforce.exceptions import SalesforceError, SalesforceResourceNotFound
 
 from cumulusci.core.config import BaseConfig
-from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    DependencyResolutionError,
+    ServiceNotConfigured,
+)
 from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
 from cumulusci.oauth.salesforce import SANDBOX_LOGIN_URL, jwt_session
 from cumulusci.utils.fileutils import open_fs_resource
@@ -84,7 +88,14 @@ class OrgConfig(BaseConfig):
 
     def _refresh_token(self, keychain, connected_app):
         if keychain:  # it might be none'd and caller adds connected_app
-            connected_app = keychain.get_service("connected_app")
+            try:
+                connected_app = keychain.get_service(
+                    "connected_app", self.connected_app
+                )
+            except ServiceNotConfigured:
+                raise ServiceNotConfigured(
+                    f"This org was connected using the {self.connected_app} connected_app service, which is no longer configured."
+                )
         if connected_app is None:
             raise AttributeError(
                 "No connected app or keychain was passed to refresh_oauth_token."

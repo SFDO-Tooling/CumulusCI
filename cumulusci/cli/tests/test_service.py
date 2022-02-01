@@ -1,15 +1,15 @@
+import json
 from unittest import mock
 
 import click
 import pytest
 
-from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.config import BaseProjectConfig, ServiceConfig, UniversalConfig
 from cumulusci.core.exceptions import ServiceNotConfigured
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.tests.utils import EnvironmentVarGuard
 
-from .. import service
-from .utils import run_click_command
+from .utils import run_cli_command
 
 
 @mock.patch("cumulusci.cli.service.CliTable")
@@ -27,9 +27,7 @@ def test_service_list__no_active_defaults(cli_tbl):
     runtime.keychain._default_services = {"test": "test_alias"}
     runtime.universal_config.cli__plain_output = None
 
-    run_click_command(
-        service.service_list, runtime=runtime, plain=False, print_json=False
-    )
+    run_cli_command("service", "list", runtime=runtime)
 
     cli_tbl.assert_called_with(
         [
@@ -59,9 +57,7 @@ def test_service_list(cli_tbl):
     runtime.keychain._default_services = {"test": "test_alias", "bad": "bad_alias"}
     runtime.universal_config.cli__plain_output = None
 
-    run_click_command(
-        service.service_list, runtime=runtime, plain=False, print_json=False
-    )
+    run_cli_command("service", "list", runtime=runtime)
 
     cli_tbl.assert_called_with(
         [
@@ -76,8 +72,7 @@ def test_service_list(cli_tbl):
     )
 
 
-@mock.patch("json.dumps")
-def test_service_list_json(json_):
+def test_service_list_json():
     services = {
         "bad": {"description": "Unconfigured Service"},
         "test": {"description": "Test Service"},
@@ -87,55 +82,43 @@ def test_service_list_json(json_):
     runtime.keychain.list_services.return_value = ["test"]
     runtime.universal_config.cli__plain_output = None
 
-    run_click_command(
-        service.service_list, runtime=runtime, plain=False, print_json=True
-    )
-
-    json_.assert_called_with(services)
+    result = run_cli_command("service", "list", "--json", runtime=runtime)
+    result_json = json.loads(result.output)
+    assert result_json == services
 
 
-def test_service_connect__list_commands():
-    multi_cmd = service.ConnectServiceCommand()
+def test_service_connect__list_service_types():
     runtime = mock.Mock()
-    runtime.project_config.services = {"test": {}}
+    runtime.project_config.services = {"project_test": {}}
 
-    with click.Context(multi_cmd, obj=runtime) as ctx:
-        result = multi_cmd.list_commands(ctx)
-    assert result == ["test"]
+    result = run_cli_command("service", "connect", runtime=runtime)
+    assert "project_test" in result.output
 
 
-def test_service_connect__list_global_keychain():
-    multi_cmd = service.ConnectServiceCommand()
+def test_service_connect__list_service_types_from_universal_config():
     runtime = mock.Mock()
     runtime.project_config = None
-    runtime.universal_config.services = {"test": {}}
+    runtime.universal_config.services = {"universal_test": {}}
 
-    with click.Context(multi_cmd, obj=runtime) as ctx:
-        result = multi_cmd.list_commands(ctx)
-    assert result == ["test"]
+    result = run_cli_command("service", "connect", runtime=runtime)
+    assert "universal_test" in result.output
 
 
 def test_service_connect():
-    multi_cmd = service.ConnectServiceCommand()
     runtime = mock.MagicMock()
     runtime.keychain.get_default_service_name.return_value = None
     runtime.project_config.services = {
         "test": {"attributes": {"attr": {"required": False}}}
     }
 
-    with click.Context(multi_cmd, obj=runtime) as ctx:
-        cmd = multi_cmd.get_command(ctx, "test")
-        cmd.callback(ctx.obj, project=True, service_name="test-alias")
+    run_cli_command(
+        "service", "connect", "test", "test-alias", "--project", runtime=runtime
+    )
 
-        runtime.keychain.set_service.assert_called_once()
-
-        cmd.callback(ctx.obj, project=False, service_name="test-alias")
+    runtime.keychain.set_service.assert_called_once()
 
 
-@mock.patch("click.termui.visible_prompt_func")
-def test_service_connect__attr_with_default_value(prompt, capsys):
-    prompt.return_value = ""
-    multi_cmd = service.ConnectServiceCommand()
+def test_service_connect__attr_with_default_value():
     runtime = mock.MagicMock()
     runtime.project_config = project_config = BaseProjectConfig(
         None,
@@ -151,23 +134,18 @@ def test_service_connect__attr_with_default_value(prompt, capsys):
     )
     runtime.keychain = keychain = BaseProjectKeychain(project_config, None)
 
-    with click.Context(
-        multi_cmd,
-        obj=runtime,
-    ) as ctx:
-        cmd = multi_cmd.get_command(ctx, "test")
-        cmd(["test-alias"], standalone_mode=False)
+    result = run_cli_command(
+        "service", "connect", "test", "test-alias", runtime=runtime, input="\n"
+    )
 
     # User should have been prompted to override the default,
     # but input of an empty line accepts the default.
-    assert "attr (example) [PRESET]: " in capsys.readouterr().out
-    prompt.assert_called_once()
+    assert "attr (example) [PRESET]: " in result.output
     service_config = keychain.get_service("test", "test-alias")
     assert service_config.attr == "PRESET"
 
 
 def test_service_connect__attr_with_default_factory():
-    multi_cmd = service.ConnectServiceCommand()
     runtime = mock.MagicMock()
     runtime.project_config = project_config = BaseProjectConfig(
         None,
@@ -185,47 +163,40 @@ def test_service_connect__attr_with_default_factory():
     )
     runtime.keychain = keychain = BaseProjectKeychain(project_config, None)
 
-    with click.Context(
-        multi_cmd,
-        obj=runtime,
-    ) as ctx:
-        cmd = multi_cmd.get_command(ctx, "test")
-        cmd(["test-alias"], standalone_mode=False)
+    run_cli_command("service", "connect", "test", "test-alias", runtime=runtime)
 
     # The service should have the attribute value returned by the default factory.
     service_config = keychain.get_service("test", "test-alias")
     assert service_config.attr == "CALCULATED"
 
 
-@mock.patch("click.confirm")
-def test_service_connect__alias_already_exists(confirm):
-    confirm.side_effect = "y"
-    multi_cmd = service.ConnectServiceCommand()
-    ctx = mock.Mock()
+def test_service_connect__alias_already_exists():
     runtime = mock.MagicMock()
-    runtime.project_config.services = {
-        "test-type": {"attributes": {"attr": {"required": False}}}
-    }
-    runtime.services = {"test-type": {"already-exists": "some config"}}
-    runtime.keychain.list_services.return_value = {"test-type": ["already-exists"]}
-    runtime.keychain.get_default_service_name.return_value = None
+    runtime.project_config = BaseProjectConfig(
+        None,
+        config={
+            "services": {"test-type": {"attributes": {"attr": {"required": True}}}}
+        },
+    )
+    runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+    runtime.keychain.set_service(
+        "test-type", "already-exists", ServiceConfig({"attr": "old"})
+    )
 
-    with click.Context(multi_cmd, obj=runtime) as ctx:
-        cmd = multi_cmd.get_command(ctx, "test-type")
-        cmd.callback(
-            runtime,
-            service_type="test-type",
-            service_name="already-exists",
-            project=True,
-        )
+    run_cli_command(
+        "service",
+        "connect",
+        "test-type",
+        "already-exists",
+        runtime=runtime,
+        input="new\ny\n",
+    )
 
-    confirm.assert_called_once()
+    service_config = runtime.keychain.get_service("test-type", "already-exists")
+    assert service_config.attr == "new"
 
 
-@mock.patch("click.confirm")
-def test_service_connect__set_new_service_as_default(confirm):
-    confirm.return_value = True
-    multi_cmd = service.ConnectServiceCommand()
+def test_service_connect__set_new_service_as_default():
     runtime = mock.MagicMock()
     runtime.project_config.services = {
         "test-type": {"attributes": {"attr": {"required": False}}}
@@ -235,25 +206,16 @@ def test_service_connect__set_new_service_as_default(confirm):
     runtime.keychain.list_services.return_value = {"test-type": [service_name]}
     runtime.keychain.get_default_service_name.return_value = service_name
 
-    with click.Context(multi_cmd, obj=runtime) as ctx:
-        cmd = multi_cmd.get_command(ctx, "test-type")
-        cmd.callback(
-            runtime,
-            service_type="test-type",
-            service_name="new-service",
-            project=False,
-        )
+    run_cli_command(
+        "service", "connect", "test-type", "new-service", runtime=runtime, input="y\n"
+    )
 
-    confirm.assert_called_once()
     runtime.keychain.set_default_service.assert_called_once_with(
         "test-type", "new-service"
     )
 
 
-@mock.patch("click.confirm")
-def test_service_connect__do_not_set_new_service_as_default(confirm):
-    confirm.return_value = False
-    multi_cmd = service.ConnectServiceCommand()
+def test_service_connect__do_not_set_new_service_as_default():
     runtime = mock.MagicMock()
     runtime.project_config.services = {
         "test-type": {"attributes": {"attr": {"required": False}}}
@@ -263,22 +225,12 @@ def test_service_connect__do_not_set_new_service_as_default(confirm):
     runtime.keychain.list_services.return_value = {"test-type": [service_name]}
     runtime.keychain.get_default_service_name.return_value = service_name
 
-    with click.Context(multi_cmd, obj=runtime) as ctx:
-        cmd = multi_cmd.get_command(ctx, "test-type")
-        cmd.callback(
-            runtime,
-            service_type="test-type",
-            service_name="new-service",
-            project=False,
-        )
+    run_cli_command("service", "connect", "test-type", "new-service", runtime=runtime)
 
-    confirm.assert_called_once()
-    runtime.keychain.set_default_service.call_count = 0
+    assert runtime.keychain.set_default_service.call_count == 0
 
 
-def test_service_connect__no_name_given(capsys):
-    multi_cmd = service.ConnectServiceCommand()
-    ctx = mock.Mock()
+def test_service_connect__no_name_given():
     runtime = mock.MagicMock()
     runtime.project_config.services = {
         "test-type": {"attributes": {"attr": {"required": False}}}
@@ -287,70 +239,49 @@ def test_service_connect__no_name_given(capsys):
     runtime.keychain.list_services.return_value = {"test-type": []}
     runtime.keychain.get_default_service_name.return_value = None
 
-    with click.Context(multi_cmd, obj=runtime) as ctx:
-        cmd = multi_cmd.get_command(ctx, "test-type")
-        cmd.callback(
-            runtime,
-            service_type="test-type",
-            service_name=None,
-            project=True,
-        )
+    result = run_cli_command("service", "connect", "test-type", runtime=runtime)
 
     # service_name is None, so the alias when setting the service should be 'default'
-    assert "default" in runtime.keychain.set_service.call_args_list[0][0]
     assert (
         "No service name specified. Using 'default' as the service name."
-        in capsys.readouterr().out
+        in result.output
     )
 
 
-def test_service_connect__global_default(capsys):
-    multi_cmd = service.ConnectServiceCommand()
-    ctx = mock.Mock()
+def test_service_connect__global_default():
     runtime = mock.MagicMock()
     runtime.project_config.services = {
         "test": {"attributes": {"attr": {"required": False}}}
     }
     runtime.keychain.get_default_service_name.return_value = None
 
-    with click.Context(multi_cmd, obj=runtime) as ctx:
-        cmd = multi_cmd.get_command(ctx, "test")
-        cmd.callback(runtime, service_name="test-alias", default=True, project=False)
-
-    runtime.keychain.set_default_service.assert_called_once_with(
-        "test", "test-alias", project=False
+    result = run_cli_command(
+        "service", "connect", "test", "test-alias", "--default", runtime=runtime
     )
-    output = capsys.readouterr().out
-    assert "Service test:test-alias is now connected" in output
+
+    assert "Service test:test-alias is now connected" in result.output
     assert (
         "Service test:test-alias is now the default for all CumulusCI projects"
-        in output
+        in result.output
     )
 
 
-def test_service_connect__project_default(capsys):
-    multi_cmd = service.ConnectServiceCommand()
-    ctx = mock.Mock()
+def test_service_connect__project_default():
     runtime = mock.MagicMock()
     runtime.project_config.services = {
         "test": {"attributes": {"attr": {"required": False}}}
     }
     runtime.keychain.get_default_service_name.return_value = None
 
-    with click.Context(multi_cmd, obj=runtime) as ctx:
-        cmd = multi_cmd.get_command(ctx, "test")
-        cmd.callback(runtime, service_name="test-alias", default=False, project=True)
-
-    runtime.keychain.set_default_service.assert_called_once_with(
-        "test", "test-alias", project=True
+    result = run_cli_command(
+        "service", "connect", "test", "test-alias", "--project", runtime=runtime
     )
-    output = capsys.readouterr().out
-    assert "Service test:test-alias is now connected" in output
-    assert "Service test:test-alias is now the default for project" in output
+
+    assert "Service test:test-alias is now connected" in result.output
+    assert "Service test:test-alias is now the default for project" in result.output
 
 
-def test_service_connect_global_keychain():
-    multi_cmd = service.ConnectServiceCommand()
+def test_service_connect__global_keychain():
     runtime = mock.MagicMock()
     runtime.project_config = None
     runtime.universal_config.services = {
@@ -358,58 +289,42 @@ def test_service_connect_global_keychain():
     }
     runtime.keychain.get_default_service_name.return_value = None
 
-    with click.Context(multi_cmd, obj=runtime) as ctx:
-        cmd = multi_cmd.get_command(ctx, "test")
-        cmd.callback(ctx.obj, project=True, service_name="test-alias")
+    run_cli_command("service", "connect", "test", "test-alias", runtime=runtime)
 
-        runtime.keychain.set_service.assert_called_once()
-
-        cmd.callback(ctx.obj, project=False, service_name="test-alias")
+    runtime.keychain.set_service.assert_called_once()
 
 
-def test_service_connect_invalid_service():
-    multi_cmd = service.ConnectServiceCommand()
+def test_service_connect__invalid_service():
     runtime = mock.MagicMock()
     runtime.project_config.services = {}
 
-    with click.Context(multi_cmd, obj=runtime) as ctx:
-        with pytest.raises(click.UsageError):
-            multi_cmd.get_command(ctx, "test")
+    with pytest.raises(click.UsageError):
+        run_cli_command("service", "connect", "test", runtime=runtime)
 
 
-@mock.patch("cumulusci.cli.tests.test_service.validate_service")
-def test_service_connect_validator(validator):
-    multi_cmd = service.ConnectServiceCommand()
+def test_service_connect_validator():
     runtime = mock.MagicMock()
-    runtime.project_config.services = {
-        "test": {
-            "attributes": {},
-            "validator": "cumulusci.cli.tests.test_service.validate_service",
-        }
-    }
-    runtime.keychain.get_default_service_name.return_value = None
+    runtime.project_config = BaseProjectConfig(
+        None,
+        config={
+            "services": {
+                "test": {
+                    "attributes": {},
+                    "validator": "cumulusci.cli.tests.test_service.validate_service",
+                }
+            }
+        },
+    )
+    runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
 
-    expected_conf = {
-        "service_type": "test",
-        "service_name": "test-alias",
-        "key": "value",
-    }
-    validator.return_value = expected_conf
-    with click.Context(multi_cmd, obj=runtime) as ctx:
-        cmd = multi_cmd.get_command(ctx, "test")
-        cmd.callback(
-            runtime,
-            service_type="test",
-            service_name="test-alias",
-            project=False,
-            key="value",
-        )
-        validator.assert_called_once_with(expected_conf)
+    run_cli_command("service", "connect", "test", "test-alias", runtime=runtime)
+
+    service_config = runtime.keychain.get_service("test", "test-alias")
+    assert service_config.config == {"service_name": "test-alias", "key": "value"}
 
 
 @mock.patch("cumulusci.cli.tests.test_service.validate_service")
 def test_service_connect_validator_failure(validator):
-    multi_cmd = service.ConnectServiceCommand()
     runtime = mock.MagicMock()
     runtime.project_config.services = {
         "test": {
@@ -420,15 +335,59 @@ def test_service_connect_validator_failure(validator):
     runtime.keychain.get_default_service_name.return_value = None
 
     validator.side_effect = Exception("Validation failed")
-    with click.Context(multi_cmd, obj=runtime) as ctx:
-        cmd = multi_cmd.get_command(ctx, "test")
-        with pytest.raises(Exception, match="Validation failed"):
-            cmd.callback(
-                runtime,
-                service_type="test",
-                service_name="test-alias",
-                project=False,
-            )
+
+    with pytest.raises(Exception, match="Validation failed"):
+        run_cli_command("service", "connect", "test", "test-alias", runtime=runtime)
+
+
+def test_service_connect__connected_app():
+    runtime = mock.MagicMock()
+    runtime.project_config = BaseProjectConfig(UniversalConfig())
+    runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+
+    run_cli_command(
+        "service",
+        "connect",
+        "connected_app",
+        "new",
+        input="\n\nID\nSECRET\n",
+        runtime=runtime,
+    )
+
+    service_config = runtime.keychain.get_service("connected_app", "new")
+    assert service_config.config == {
+        "service_name": "new",
+        "login_url": "https://login.salesforce.com",
+        "callback_url": "http://localhost:8080/callback",
+        "client_id": "ID",
+        "client_secret": "SECRET",
+    }
+
+
+def test_service_connect__connected_app__with_cli_options():
+    runtime = mock.MagicMock()
+    runtime.project_config = BaseProjectConfig(UniversalConfig())
+    runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+
+    run_cli_command(
+        "service",
+        "connect",
+        "connected_app",
+        "new",
+        "--login_url",
+        "https://custom",
+        input="\nID\nSECRET\n",  # not prompted for login_url
+        runtime=runtime,
+    )
+
+    service_config = runtime.keychain.get_service("connected_app", "new")
+    assert service_config.config == {
+        "service_name": "new",
+        "login_url": "https://custom",
+        "callback_url": "http://localhost:8080/callback",
+        "client_id": "ID",
+        "client_secret": "SECRET",
+    }
 
 
 @mock.patch("cumulusci.cli.service.CliTable")
@@ -440,13 +399,7 @@ def test_service_info(cli_tbl):
     runtime.keychain.get_service.return_value = service_config
     runtime.universal_config.cli__plain_output = None
 
-    run_click_command(
-        service.service_info,
-        runtime=runtime,
-        service_type="test",
-        service_name="test-alias",
-        plain=False,
-    )
+    run_cli_command("service", "info", "test", "test-alias", runtime=runtime)
 
     cli_tbl.assert_called_with(
         [["Key", "Value"], ["\x1b[1mdescription\x1b[0m", "Test Service"]],
@@ -454,51 +407,38 @@ def test_service_info(cli_tbl):
     )
 
 
-def test_service_info_not_configured(capsys):
+def test_service_info_not_configured():
     runtime = mock.Mock()
     runtime.keychain.get_service.side_effect = ServiceNotConfigured
 
-    run_click_command(
-        service.service_info,
-        runtime=runtime,
-        service_type="test",
-        service_name="test-alias",
-        plain=False,
-    )
-    assert "not configured for this project" in capsys.readouterr().out
+    result = run_cli_command("service", "info", "test", "test-alias", runtime=runtime)
+
+    assert "not configured for this project" in result.output
 
 
-def test_service_default__global(capsys):
+def test_service_default__global():
     runtime = mock.Mock()
-    run_click_command(
-        service.service_default,
-        runtime=runtime,
-        service_type="test",
-        service_name="test-alias",
-        project=False,
+    result = run_cli_command(
+        "service", "default", "test", "test-alias", runtime=runtime
     )
-    runtime.keychain.set_default_service.called_once_with("test", "test-alias")
 
+    runtime.keychain.set_default_service.called_once_with("test", "test-alias")
     assert (
         "Service test:test-alias is now the default for all CumulusCI projects"
-        in capsys.readouterr().out
+        in result.output
     )
 
 
-def test_service_default__project(capsys):
+def test_service_default__project():
     runtime = mock.Mock()
     runtime.keychain.project_local_dir = "test"
-    run_click_command(
-        service.service_default,
-        runtime=runtime,
-        service_type="test",
-        service_name="test-alias",
-        project=True,
+    result = run_cli_command(
+        "service", "default", "test", "test-alias", "--project", runtime=runtime
     )
+
     runtime.keychain.set_default_service.called_once_with("test", "test-alias")
     assert (
-        "Service test:test-alias is now the default for project 'test'"
-        in capsys.readouterr().out
+        "Service test:test-alias is now the default for project 'test'" in result.output
     )
 
 
@@ -508,69 +448,45 @@ def test_service_connect__project_default_no_project():
     runtime.keychain.project_local_dir = "test"
 
     with pytest.raises(click.UsageError):
-        run_click_command(
-            service.service_default,
-            runtime=runtime,
-            service_type="test",
-            service_name="test-alias",
-            project=True,
+        run_cli_command(
+            "service", "default", "test", "test-alias", "--project", runtime=runtime
         )
 
 
-def test_service_default__exception(capsys):
+def test_service_default__exception():
     runtime = mock.Mock()
     runtime.keychain.set_default_service.side_effect = ServiceNotConfigured(
         "test error"
     )
-    run_click_command(
-        service.service_default,
-        runtime=runtime,
-        service_type="no-such-type",
-        service_name="test-alias",
-        project=False,
+
+    result = run_cli_command(
+        "service", "default", "no-such-type", "test-alias", runtime=runtime
     )
-    assert (
-        "An error occurred setting the default service: test error"
-        in capsys.readouterr().out
-    )
+    assert "An error occurred setting the default service: test error" in result.output
 
 
-def test_service_rename(capsys):
+def test_service_rename():
     runtime = mock.Mock()
-    run_click_command(
-        service.service_rename,
-        runtime=runtime,
-        service_type="test-type",
-        current_name="old-alias",
-        new_name="new-alias",
+    result = run_cli_command(
+        "service", "rename", "test-type", "old-alias", "new-alias", runtime=runtime
     )
+
     runtime.keychain.rename_service.assert_called_once_with(
         "test-type", "old-alias", "new-alias"
     )
-    assert (
-        "Service test-type:old-alias has been renamed to new-alias"
-        in capsys.readouterr().out
-    )
+    assert "Service test-type:old-alias has been renamed to new-alias" in result.output
 
 
-def test_service_rename__exception(capsys):
+def test_service_rename__exception():
     runtime = mock.Mock()
     runtime.keychain.rename_service.side_effect = ServiceNotConfigured("test error")
-    run_click_command(
-        service.service_rename,
-        runtime=runtime,
-        service_type="test-type",
-        current_name="old-alias",
-        new_name="new-alias",
+    result = run_cli_command(
+        "service", "rename", "test-type", "old-alias", "new-alias", runtime=runtime
     )
-    assert (
-        "An error occurred renaming the service: test error" in capsys.readouterr().out
-    )
+    assert "An error occurred renaming the service: test error" in result.output
 
 
-@mock.patch("cumulusci.cli.service.click.prompt")
-def test_service_remove(prompt, capsys):
-    prompt.side_effect = ("future-default-alias",)
+def test_service_remove():
     runtime = mock.Mock()
     runtime.keychain.env_service_var_prefix = "CUMULUSCI_SERVICE_"
     runtime.keychain.services = {
@@ -584,27 +500,26 @@ def test_service_remove(prompt, capsys):
     runtime.keychain.list_services.return_value = {
         "github": ["current-default-alias", "another-alias", "future-default-alias"]
     }
-    run_click_command(
-        service.service_remove,
+
+    result = run_cli_command(
+        "service",
+        "remove",
+        "github",
+        "current-default-alias",
+        input="future-default-alias\n",
         runtime=runtime,
-        service_type="github",
-        service_name="current-default-alias",
     )
+
     runtime.keychain.remove_service.assert_called_once_with(
         "github", "current-default-alias"
     )
     runtime.keychain.set_default_service.assert_called_once_with(
         "github", "future-default-alias"
     )
-    assert (
-        "Service github:current-default-alias has been removed."
-        in capsys.readouterr().out
-    )
+    assert "Service github:current-default-alias has been removed." in result.output
 
 
-@mock.patch("cumulusci.cli.service.click.prompt")
-def test_service_remove__name_does_not_exist(prompt, capsys):
-    prompt.side_effect = ("this-alias-does-not-exist",)
+def test_service_remove__name_does_not_exist():
     runtime = mock.Mock()
     runtime.keychain.env_service_var_prefix = "CUMULUSCI_SERVICE_"
     runtime.keychain.services = {
@@ -618,23 +533,23 @@ def test_service_remove__name_does_not_exist(prompt, capsys):
     runtime.keychain.list_services.return_value = {
         "github": ["current-default-alias", "another-alias", "future-default-alias"]
     }
-    run_click_command(
-        service.service_remove,
+    result = run_cli_command(
+        "service",
+        "remove",
+        "github",
+        "current-default-alias",
+        input="this-alias-does-not-exist\n",
         runtime=runtime,
-        service_type="github",
-        service_name="current-default-alias",
     )
     assert (
         "No service of type github with name: this-alias-does-not-exist"
-        in capsys.readouterr().out
+        in result.output
     )
     assert runtime.keychain.remove_service.call_count == 0
     assert runtime.keychain.set_default_service.call_count == 0
 
 
-@mock.patch("cumulusci.cli.service.click.prompt")
-def test_service_remove__exception_thrown(prompt, capsys):
-    prompt.side_effect = ("future-default-alias",)
+def test_service_remove__exception_thrown():
     runtime = mock.Mock()
     runtime.keychain.env_service_var_prefix = "CUMULUSCI_SERVICE_"
     runtime.keychain.services = {
@@ -649,18 +564,18 @@ def test_service_remove__exception_thrown(prompt, capsys):
         "github": ["current-default-alias", "another-alias", "future-default-alias"]
     }
     runtime.keychain.remove_service.side_effect = ServiceNotConfigured("test error")
-    run_click_command(
-        service.service_remove,
+    result = run_cli_command(
+        "service",
+        "remove",
+        "github",
+        "current-default-alias",
+        input="future-default-alias\n",
         runtime=runtime,
-        service_type="github",
-        service_name="current-default-alias",
     )
-    assert (
-        "An error occurred removing the service: test error" in capsys.readouterr().out
-    )
+    assert "An error occurred removing the service: test error" in result.output
 
 
-def test_service_remove__environment_service_cannot_be_removed(capsys):
+def test_service_remove__environment_service_cannot_be_removed():
     runtime = mock.Mock()
     runtime.keychain.env_service_var_prefix = "CUMULUSCI_SERVICE_"
     runtime.keychain.services = {
@@ -673,21 +588,18 @@ def test_service_remove__environment_service_cannot_be_removed(capsys):
         env.set(
             "CUMULUSCI_SERVICE_github__env-foo", '{"username":"foo", "token": "bar"}'
         )
-        run_click_command(
-            service.service_remove,
-            runtime=runtime,
-            service_type="github",
-            service_name="env-foo",
+        result = run_cli_command(
+            "service", "remove", "github", "env-foo", runtime=runtime
         )
     assert (
         "The service github:env-foo is defined by environment variables. "
         "If you would like it removed please delete the environment variable with name: "
         "CUMULUSCI_SERVICE_github__env-foo"
-    ) in capsys.readouterr().out
+    ) in result.output
 
 
 def validate_service(options):
-    pass
+    return {"key": "value"}
 
 
 def get_default():

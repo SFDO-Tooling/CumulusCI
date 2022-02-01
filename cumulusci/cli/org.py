@@ -138,7 +138,11 @@ def setup_client(connected_app, login_url=None, sandbox=None) -> OAuth2Client:
 
 
 def connect_org_to_keychain(
-    client: OAuth2Client, runtime, global_org: bool, org_name: str
+    client: OAuth2Client,
+    runtime,
+    global_org: bool,
+    org_name: str,
+    connected_app: str,
 ) -> None:
     """Use the given client to authorize into an org, and save the
     new OrgConfig to the keychain."""
@@ -146,6 +150,7 @@ def connect_org_to_keychain(
 
     global_org = global_org or runtime.project_config is None
     org_config = OrgConfig(oauth_dict, org_name, runtime.keychain, global_org)
+    org_config.config["connected_app"] = connected_app
     org_config.load_userinfo()
     org_config._load_orginfo()
     if org_config.organization_sobject["TrialExpirationDate"] is None:
@@ -203,7 +208,9 @@ def org_connect(
     click.echo(f"Connecting org using the {connected_app_name} connected app...")
     connected_app = runtime.keychain.get_service("connected_app", connected_app_name)
     sf_client = setup_client(connected_app, login_url, sandbox)
-    connect_org_to_keychain(sf_client, runtime, global_org, org_name)
+    connect_org_to_keychain(
+        sf_client, runtime, global_org, org_name, connected_app_name
+    )
 
     if default and runtime.project_config is not None:
         runtime.keychain.set_default_org(org_name)

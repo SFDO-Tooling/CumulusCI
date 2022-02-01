@@ -1,8 +1,11 @@
-from typing import Dict
-
 import sarge
 
-from cumulusci.core.config import BaseConfig, ConnectedAppOAuthConfig, ScratchOrgConfig
+from cumulusci.core.config import (
+    BaseConfig,
+    ConnectedAppOAuthConfig,
+    ScratchOrgConfig,
+    ServiceConfig,
+)
 from cumulusci.core.exceptions import (
     CumulusCIException,
     OrgNotFound,
@@ -179,7 +182,7 @@ class BaseProjectKeychain(BaseConfig):
         self,
         service_type: str,
         alias: str,
-        service_config: Dict,
+        service_config: ServiceConfig,
         save: bool = True,
         config_encrypted: bool = False,
     ):

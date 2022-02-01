@@ -1,4 +1,3 @@
-import json
 import os
 from pathlib import Path
 from typing import Callable, Optional
@@ -35,7 +34,7 @@ def service_list(runtime, plain, print_json):
 
     console = Console()
     if print_json:
-        console.print(json.dumps(services))
+        console.print_json(data=services)
         return None
 
     configured_services = runtime.keychain.list_services()
@@ -164,7 +163,7 @@ class ConnectServiceCommand(click.MultiCommand):
                 f"Sorry, I don't know about the '{service_type}' service."
             )
 
-        attributes = service_config["attributes"].items()
+        attributes = service_config.get("attributes", {}).items()
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
         params.extend(self._get_default_options(runtime))
 
