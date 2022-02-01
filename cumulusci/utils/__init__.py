@@ -3,11 +3,14 @@ import fnmatch
 import io
 import math
 import os
+import pathlib
 import re
 import shutil
 import sys
 import tempfile
 import textwrap
+import urllib.request
+import webbrowser
 import zipfile
 from datetime import datetime
 
@@ -612,3 +615,15 @@ def get_git_config(config_key):
     )
 
     return config_value if config_value and not p.returncode else None
+
+
+def view_file(path):
+    """Open the given file in a webbrowser or whatever
+
+    This uses webbrowser.open which might open the file in something other
+    than a web browser (eg: a spreadsheet app if you open a .csv file)
+    """
+    if not isinstance(path, pathlib.Path):
+        path = pathlib.Path(path)
+    url = f"file://{urllib.request.pathname2url(str(path.resolve()))}"
+    webbrowser.open(url)
