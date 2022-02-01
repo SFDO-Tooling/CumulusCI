@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from cumulusci.core.config.OrgConfig import OrgConfig, VersionInfo
+from cumulusci.core.config.org_config import OrgConfig, VersionInfo
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config.universal_config import UniversalConfig
 from cumulusci.core.exceptions import ApexTestException, SalesforceException

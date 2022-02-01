@@ -21,7 +21,7 @@ from cumulusci.core.config import (
     OrgConfig,
     UniversalConfig,
 )
-from cumulusci.core.config.OrgConfig import VersionInfo
+from cumulusci.core.config.org_config import VersionInfo
 from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
