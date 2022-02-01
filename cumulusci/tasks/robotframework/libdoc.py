@@ -14,8 +14,9 @@ from robot.utils import Importer
 import cumulusci
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.utils import process_glob_list_arg
+from cumulusci.core.utils import process_bool_arg, process_glob_list_arg
 from cumulusci.robotframework import PageObjects
+from cumulusci.utils import view_file
 
 
 class RobotLibDoc(BaseTask):
@@ -42,6 +43,13 @@ class RobotLibDoc(BaseTask):
         },
         "title": {
             "description": "A string to use as the title of the generated output",
+            "required": False,
+        },
+        "preview": {
+            "description": (
+                "If True, automatically open a window to view the "
+                "generated data when the task is successful"
+            ),
             "required": False,
         },
     }
@@ -71,6 +79,8 @@ class RobotLibDoc(BaseTask):
                     files
                 )
             raise TaskOptionsError(error_message)
+
+        self.options["preview"] = process_bool_arg(self.options.get("preview", False))
 
     def is_pageobject_library(self, path):
         """Return True if the file looks like a page object library"""
@@ -131,6 +141,9 @@ class RobotLibDoc(BaseTask):
                 with open(self.options["output"], "w") as f:
                     f.write(html)
             self.logger.info("created {}".format(self.options["output"]))
+
+            if self.options["preview"]:
+                view_file(self.options["output"])
 
         except Exception as e:
             raise TaskOptionsError(
