@@ -8,7 +8,7 @@ from zipfile import ZipFile
 import pytest
 from pydantic import ValidationError
 
-from cumulusci.core.config.OrgConfig import OrgConfig, VersionInfo
+from cumulusci.core.config.org_config import OrgConfig, VersionInfo
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.dependencies import (
     DynamicDependency,
