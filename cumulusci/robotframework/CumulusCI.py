@@ -227,6 +227,13 @@ class CumulusCI(object):
         # robot logger can handle that.
         if not hasattr(robot.api.logger, "warning"):
             robot.api.logger.warning = robot.api.logger.warn
+
+        # robot's logger doesn't have the 'log' method, and there's at least one
+        # piece of code that depends on this method. So, if we haven't already
+        # monkeypatched it in, do so now.  See W-10503175
+        if not hasattr(robot.api.logger, "log"):
+            robot.api.logger.log = _logger_log
+
         task = task_class(
             task_config.project_config or self.project_config,
             task_config,
@@ -261,3 +268,22 @@ class CumulusCI(object):
     def debug(self):
         """Pauses execution and enters the Python debugger."""
         set_pdb_trace()
+
+
+def _logger_log(level, msg):
+    """Implements the 'log' method for robot.api.logger
+
+    This takes a normal python log level, converts it to one of
+    the supported robot log levels, then calls the write method
+    of the logger.
+    """
+    level = (
+        "ERROR"
+        if level >= logging.ERROR
+        else "WARN"
+        if level >= logging.WARN
+        else "INFO"
+        if level >= logging.INFO
+        else "DEBUG"
+    )
+    robot.api.logger.write(msg, level)
