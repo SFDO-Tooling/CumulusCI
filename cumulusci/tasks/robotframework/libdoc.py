@@ -3,6 +3,7 @@ import os
 import os.path
 import re
 import time
+from pathlib import Path
 
 import jinja2
 import robot.utils
@@ -207,8 +208,10 @@ class KeywordFile:
         self.keywords[page_object] = libdoc
 
     def to_tuples(self):
-        """Convert the dictionary of keyword data to tuple of tuples"""
+        """Convert the dictionary of keyword data to a set of tuples"""
         rows = []
+        cwd = Path.cwd()
+
         for po, libdoc in self.keywords.items():
             (po_type, po_object) = po if po else ("", "")
             for keyword in libdoc.keywords:
@@ -218,11 +221,19 @@ class KeywordFile:
                 if "cumulusci/robotframework/pageobjects" in keyword.source:
                     continue
 
+                path = keyword.source
+                if path.startswith("/"):
+                    try:
+                        path = str(Path(path).relative_to(cwd))
+                    except ValueError:
+                        # ok, fine. We'll use the path as-is.
+                        pass
+
                 # make sure that if you change the list of columns here
                 # that you modify the `get_header` property too!
                 row = (
                     keyword.name,
-                    keyword.source,
+                    path,
                     keyword.lineno,
                     po_type,
                     po_object,
