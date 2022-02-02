@@ -3,6 +3,7 @@ import os
 import os.path
 import re
 import time
+from pathlib import Path
 
 import jinja2
 import robot.utils
@@ -14,8 +15,9 @@ from robot.utils import Importer
 import cumulusci
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.utils import process_glob_list_arg
+from cumulusci.core.utils import process_bool_arg, process_glob_list_arg
 from cumulusci.robotframework import PageObjects
+from cumulusci.utils.fileutils import view_file
 
 
 class RobotLibDoc(BaseTask):
@@ -42,6 +44,13 @@ class RobotLibDoc(BaseTask):
         },
         "title": {
             "description": "A string to use as the title of the generated output",
+            "required": False,
+        },
+        "preview": {
+            "description": (
+                "If True, automatically open a window to view the "
+                "generated data when the task is successful"
+            ),
             "required": False,
         },
     }
@@ -71,6 +80,8 @@ class RobotLibDoc(BaseTask):
                     files
                 )
             raise TaskOptionsError(error_message)
+
+        self.options["preview"] = process_bool_arg(self.options.get("preview", False))
 
     def is_pageobject_library(self, path):
         """Return True if the file looks like a page object library"""
@@ -131,6 +142,9 @@ class RobotLibDoc(BaseTask):
                 with open(self.options["output"], "w") as f:
                     f.write(html)
             self.logger.info("created {}".format(self.options["output"]))
+
+            if self.options["preview"]:
+                view_file(self.options["output"])
 
         except Exception as e:
             raise TaskOptionsError(
@@ -207,8 +221,10 @@ class KeywordFile:
         self.keywords[page_object] = libdoc
 
     def to_tuples(self):
-        """Convert the dictionary of keyword data to tuple of tuples"""
+        """Convert the dictionary of keyword data to a set of tuples"""
         rows = []
+        cwd = Path.cwd()
+
         for po, libdoc in self.keywords.items():
             (po_type, po_object) = po if po else ("", "")
             for keyword in libdoc.keywords:
@@ -218,11 +234,19 @@ class KeywordFile:
                 if "cumulusci/robotframework/pageobjects" in keyword.source:
                     continue
 
+                path = keyword.source
+                if path.startswith("/"):
+                    try:
+                        path = str(Path(path).relative_to(cwd))
+                    except ValueError:
+                        # ok, fine. We'll use the path as-is.
+                        pass
+
                 # make sure that if you change the list of columns here
                 # that you modify the `get_header` property too!
                 row = (
                     keyword.name,
-                    keyword.source,
+                    path,
                     keyword.lineno,
                     po_type,
                     po_object,

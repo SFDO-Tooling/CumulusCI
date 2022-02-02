@@ -12,6 +12,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 import responses
+from robot.libdocpkg.robotbuilder import LibraryDocBuilder
 
 from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.exceptions import RobotTestFailure, TaskOptionsError
@@ -483,7 +484,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ["Name", "Source", "Line#", "po type", "po_object", "Documentation"],
             [
                 "Keyword One",
-                f"{self.datadir}/TestPageObjects.py",
+                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
                 "13",
                 "Listing",
                 "Something__c",
@@ -491,7 +492,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword One",
-                f"{self.datadir}/TestPageObjects.py",
+                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
                 "24",
                 "Detail",
                 "Something__c",
@@ -499,7 +500,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword Three",
-                f"{self.datadir}/TestPageObjects.py",
+                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
                 "30",
                 "Detail",
                 "Something__c",
@@ -507,7 +508,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword Two",
-                f"{self.datadir}/TestPageObjects.py",
+                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
                 "16",
                 "Listing",
                 "Something__c",
@@ -515,7 +516,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword Two",
-                f"{self.datadir}/TestPageObjects.py",
+                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
                 "27",
                 "Detail",
                 "Something__c",
@@ -523,7 +524,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Library Keyword One",
-                f"{self.datadir}/TestLibrary.py",
+                "cumulusci/tasks/robotframework/tests/TestLibrary.py",
                 "13",
                 "",
                 "",
@@ -531,7 +532,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Library Keyword Two",
-                f"{self.datadir}/TestLibrary.py",
+                "cumulusci/tasks/robotframework/tests/TestLibrary.py",
                 "17",
                 "",
                 "",
@@ -539,7 +540,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Resource keyword one",
-                f"{self.datadir}/TestResource.robot",
+                "cumulusci/tasks/robotframework/tests/TestResource.robot",
                 "2",
                 "",
                 "",
@@ -547,7 +548,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Resource keyword two",
-                f"{self.datadir}/TestResource.robot",
+                "cumulusci/tasks/robotframework/tests/TestResource.robot",
                 "6",
                 "",
                 "",
@@ -556,6 +557,17 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         ]
 
         self.assertListEqual(actual_output, expected_output)
+
+    @mock.patch("cumulusci.tasks.robotframework.libdoc.view_file")
+    def test_preview_option(self, mock_view_file):
+        """Verify that the 'preview' option results in calling the view_file method"""
+        path = os.path.join(self.datadir, "TestLibrary.py")
+        output = os.path.join(self.tmpdir, "index.html")
+        task = create_task(
+            RobotLibDoc, {"path": path, "output": output, "preview": True}
+        )
+        task()
+        mock_view_file.assert_called_once_with(output)
 
 
 class TestRobotLibDocKeywordFile(unittest.TestCase):
@@ -584,6 +596,34 @@ class TestRobotLibDocKeywordFile(unittest.TestCase):
         kwfile.add_keywords("the documentation...", ("Detail", "Contact"))
         assert len(kwfile.keywords) == 1
         assert kwfile.keywords[("Detail", "Contact")] == "the documentation..."
+
+    def test_to_tuples(self):
+        """Test that to_tuples returns relative paths when possible
+
+        The code attempts to convert absolute paths to relative paths,
+        but if it can't then the path remains unchainged. This test generates
+        results with one file that is relative to cwd and one that is not.
+        """
+
+        here = os.path.dirname(__file__)
+        path = Path(here) / "TestLibrary.py"
+        libdoc = LibraryDocBuilder().build(str(path))
+
+        # we'll set the first to a non-relative directory and leave
+        # the other one relative to here (assuming that `here` is
+        # relative to cwd)
+        libdoc.keywords[0].source = "/bogus/whatever.py"
+
+        # The returned result is a set, so the order is indeterminate. That's
+        # why the following line sorts it.
+        kwfile = KeywordFile("Whatever")
+        kwfile.add_keywords(libdoc)
+        rows = sorted(kwfile.to_tuples())
+
+        # verify the absolute path remains absolute
+        assert rows[0][1] == "/bogus/whatever.py"
+        # verify that the path to a file under cwd is relative
+        assert rows[1][1] == str(path.relative_to(os.getcwd()))
 
 
 class TestRobotLibDocOutput(unittest.TestCase):
