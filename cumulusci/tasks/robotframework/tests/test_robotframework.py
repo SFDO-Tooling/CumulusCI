@@ -558,6 +558,17 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
 
         self.assertListEqual(actual_output, expected_output)
 
+    @mock.patch("cumulusci.tasks.robotframework.libdoc.view_file")
+    def test_preview_option(self, mock_view_file):
+        """Verify that the 'preview' option results in calling the view_file method"""
+        path = os.path.join(self.datadir, "TestLibrary.py")
+        output = os.path.join(self.tmpdir, "index.html")
+        task = create_task(
+            RobotLibDoc, {"path": path, "output": output, "preview": True}
+        )
+        task()
+        mock_view_file.assert_called_once_with(output)
+
 
 class TestRobotLibDocKeywordFile(unittest.TestCase):
     def setUp(self):
