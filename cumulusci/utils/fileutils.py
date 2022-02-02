@@ -1,4 +1,6 @@
 import os
+import urllib.request
+import webbrowser
 from contextlib import contextmanager
 from io import StringIO, TextIOWrapper
 from pathlib import Path
@@ -98,6 +100,18 @@ def proxy(funcname):
         return real_func(self.filename, *args, **kwargs)
 
     return func
+
+
+def view_file(path):
+    """Open the given file in a webbrowser or whatever
+
+    This uses webbrowser.open which might open the file in something other
+    than a web browser (eg: a spreadsheet app if you open a .csv file)
+    """
+    if not isinstance(path, Path):
+        path = Path(path)
+    url = f"file://{urllib.request.pathname2url(str(path.resolve()))}"
+    webbrowser.open(url)
 
 
 class FSResource:
