@@ -156,6 +156,6 @@ To edit the Connected App's OAuth scopes:
 #. In Lightning Experience, go to Setup --> Apps --> Apps Manager.
 #. Click the arrow on the far right side of the row that pertains to the newly created Connected App.
 #. Click "Edit."
-#. Add or remove OAuth scopes as desired.
+#. Add or remove OAuth scopes as desired. CumulusCI requires the ``api``, ``full``, and ``refresh_token`` scopes.
 
 For a full list of options, run the :ref:`connected_app` task reference documentation.
