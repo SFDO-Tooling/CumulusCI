@@ -2,7 +2,7 @@
 .DEFAULT_GOAL := help
 define BROWSER_PYSCRIPT
 import sys
-from cumulusci.utils import view_file
+from cumulusci.utils.fileutils import view_file
 view_file(sys.argv[1])
 endef
 export BROWSER_PYSCRIPT

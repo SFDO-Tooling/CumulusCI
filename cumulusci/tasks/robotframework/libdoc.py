@@ -16,7 +16,7 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg, process_glob_list_arg
 from cumulusci.robotframework import PageObjects
-from cumulusci.utils import view_file
+from cumulusci.utils.fileutils import view_file
 
 
 class RobotLibDoc(BaseTask):
