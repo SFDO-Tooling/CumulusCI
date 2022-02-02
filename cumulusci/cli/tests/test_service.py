@@ -38,7 +38,7 @@ def test_service_list():
             test             test2_alias   Test Service          
   ✔         test             test_alias    Test Service          
                                                                  
-"""
+"""  # noqa: W291,W293
     )
 
 
@@ -337,7 +337,7 @@ def test_service_info():
  ───────────────── 
   \x1b[1mx\x1b[0m   1      
                    
-"""
+"""  # noqa: W291,W293
     )
 
 
