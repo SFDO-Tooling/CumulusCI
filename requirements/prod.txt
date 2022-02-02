@@ -14,11 +14,11 @@ certifi==2021.10.8
     #   snowfakery
 cffi==1.15.0
     # via cryptography
-charset-normalizer==2.0.10
+charset-normalizer==2.0.11
     # via
     #   requests
     #   snowfakery
-click==7.1.2
+click==8.0.3
     # via
     #   -r requirements/prod.in
     #   snowfakery
@@ -35,7 +35,7 @@ deprecated==1.2.13
     # via jwcrypto
 docutils==0.16
     # via -r requirements/prod.in
-faker==11.1.0
+faker==12.0.0
     # via
     #   -r requirements/prod.in
     #   snowfakery
@@ -98,7 +98,7 @@ pyyaml==6.0
     # via
     #   -r requirements/prod.in
     #   snowfakery
-requests==2.27.0
+requests==2.27.1
     # via
     #   -r requirements/prod.in
     #   github3.py
@@ -109,7 +109,7 @@ requests==2.27.0
     #   snowfakery
 requests-futures==1.0.0
     # via -r requirements/prod.in
-rich==11.0.0
+rich==11.1.0
     # via -r requirements/prod.in
 robotframework==4.1.3
     # via
@@ -151,15 +151,11 @@ six==1.16.0
     #   python-dateutil
     #   salesforce-bulk
     #   snowfakery
-snowfakery==2.4.0
+snowfakery==2.5.0
     # via -r requirements/prod.in
-sqlalchemy==1.4.29
+sqlalchemy==1.4.31
     # via
     #   -r requirements/prod.in
-    #   snowfakery
-text-unidecode==1.3
-    # via
-    #   faker
     #   snowfakery
 typing-extensions==4.0.1
     # via
@@ -169,7 +165,7 @@ unicodecsv==0.14.1
     # via salesforce-bulk
 uritemplate==4.1.1
     # via github3.py
-urllib3==1.26.7
+urllib3==1.26.8
     # via
     #   requests
     #   selenium
