@@ -1,0 +1,10 @@
+name: Call SFDO-Tooling Docs Review Workflow
+
+on:
+    pull_request:
+        types:
+            - labeled
+
+jobs:
+    shared-docs:
+        uses: SFDO-Tooling/.github/.github/workflows/docs.yml@main
