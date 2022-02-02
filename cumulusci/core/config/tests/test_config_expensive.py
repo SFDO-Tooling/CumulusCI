@@ -795,3 +795,9 @@ class TestScratchOrgConfigPytest:
             args = config._build_org_create_args()
 
         assert "adminEmail=test@example.com" not in args
+
+    def test_temporary_backwards_compatiblity_hacks(self):
+        filename = Path(__file__).parent / "_test_config_backwards_compatibility.py"
+        # run this in a separate process to not confuse
+        # the module table
+        assert os.system(f"pytest {filename}") == 0
