@@ -8,7 +8,6 @@ alabaster==0.7.12
     # via sphinx
 attrs==21.4.0
     # via
-    #   -c requirements/prod.txt
     #   jsonschema
     #   pytest
 babel==2.9.1
@@ -121,7 +120,6 @@ pkginfo==1.8.2
     # via twine
 platformdirs==2.4.1
     # via
-    #   -c requirements/prod.txt
     #   black
     #   virtualenv
 pluggy==1.0.0
@@ -181,9 +179,7 @@ requests==2.27.1
     #   sphinx
     #   twine
 requests-toolbelt==0.9.1
-    # via
-    #   -c requirements/prod.txt
-    #   twine
+    # via twine
 responses==0.14.0
     # via -r requirements/dev.in
 rfc3986==2.0.0
