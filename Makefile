@@ -1,13 +1,9 @@
 .PHONY: clean clean-test clean-pyc clean-build docs help
 .DEFAULT_GOAL := help
 define BROWSER_PYSCRIPT
-import os, webbrowser, sys
-try:
-	from urllib import pathname2url
-except:
-	from urllib.request import pathname2url
-
-webbrowser.open("file://" + pathname2url(os.path.abspath(sys.argv[1])))
+import sys
+from cumulusci.utils.fileutils import view_file
+view_file(sys.argv[1])
 endef
 export BROWSER_PYSCRIPT
 
@@ -59,7 +55,7 @@ test: ## run tests quickly with the default Python
 test-all: ## run tests on every Python version with tox
 	tox
 
-# Use CLASS_PATH to run coverage for a subset of tests. 
+# Use CLASS_PATH to run coverage for a subset of tests.
 # $ make coverage CLASS_PATH="cumulusci/core/tests"
 coverage: ## check code coverage quickly with the default Python
 	coverage run --source cumulusci -m pytest $(CLASS_PATH)
@@ -87,8 +83,8 @@ servedocs: docs ## compile the docs watching for changes
 	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
 
 release: clean ## package and upload a release
-	python setup.py sdist 
-	python setup.py bdist_wheel 
+	python setup.py sdist
+	python setup.py bdist_wheel
 	twine upload dist/*
 
 release-homebrew: clean ## create a homebrew formula and associated pull request
