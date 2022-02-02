@@ -29,6 +29,15 @@ class SubtaskConfigurator:
         parts = name.rsplit("_", 1)
         batch_size = int(parts[-1])
 
+        # The pid is the tool that ensures that every uniqueid is
+        # unique even across different processes.
+        #
+        # big_ids ensures that the pid is incorporated into the ids.
+        plugin_options = {
+            "pid": parts[0],
+            "big_ids": "True",
+        }
+
         return {
             "generator_yaml": str(self.recipe),
             "database_url": wd.database_url,
@@ -37,6 +46,7 @@ class SubtaskConfigurator:
             "continuation_file": wd.continuation_file,
             "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
             "vars": recipe_options,
+            "plugin_options": plugin_options,
         }
 
     def data_loader_opts(self, working_dir: Path):
