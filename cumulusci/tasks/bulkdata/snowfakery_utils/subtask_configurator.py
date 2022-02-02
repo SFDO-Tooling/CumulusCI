@@ -34,7 +34,7 @@ class SubtaskConfigurator:
         #
         # big_ids ensures that the pid is incorporated into the ids.
         plugin_options = {
-            "pid": parts[0],
+            "pid": str(wd.index),
             "big_ids": "True",
         }
 
