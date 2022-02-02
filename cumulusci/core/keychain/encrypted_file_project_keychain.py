@@ -860,18 +860,6 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             if item.is_dir() and item.name not in ["logs", "services"]:
                 yield item
 
-    def _validate_service_type_and_alias(self, service_type, alias):
-        """Raises ServiceNotConfigured exception if the service_type
-        or alias are not valid."""
-        if service_type not in self.services:
-            raise ServiceNotConfigured(
-                f"No services of type {service_type} are currently configured"
-            )
-        elif alias not in self.services[service_type]:
-            raise ServiceNotConfigured(
-                f"No service of type {service_type} configured with the name: {alias}"
-            )
-
     def _raise_service_not_configured(self, name):
         raise ServiceNotConfigured(
             f"'{name}' service configuration could not be found. "
