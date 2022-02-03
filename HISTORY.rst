@@ -5,19 +5,16 @@ History
 3.52.0 (2022-02-03)
 -------------------
 
-Critical Changes
-
-* We fixed a bug where the ``Run Task`` and ``Run Task Class`` robot keywords could throw an error like ``AttributeError: module 'robot.api.logger' has no attribute 'log'`` in rare cases (#3053)
-
 Changes
 
-* Whenever possible, libdoc will generate relative pathnames when creating csv output (#3058)
-* Added a new option ``--preview`` to the ``robot_libdoc`` task. When set to true it will automatically open up a browser window to the generated documentation. (#3057)
+* Whenever possible, while running the ``robot_libdoc`` task libdoc generates relative pathnames when creating CSV output (#3058)
+* Added a new option ``--preview`` to the ``robot_libdoc`` task. When set to ``true`` it automatically opens a browser window to the generated documentation. (#3057)
 * The robot keyword ``Locate element by label`` has been removed from the Salesforce.py library. This wasn't designed to be a keyword but was accidentally exported as one. If you want to find an input or textarea element by its label you can use a locator of the form ``label:<text>`` (eg: ``label:First Name``) (#3048)
 
 Issues Closed
 
 * Fixed an issue where overriding flow steps was not working as documented. (#3043)
+* We fixed a bug where the ``Run Task`` and ``Run Task Class`` robot keywords throw an error like ``AttributeError: module 'robot.api.logger' has no attribute 'log'`` in rare cases (#3053)
 
 
 3.51.1 (2022-01-25)
