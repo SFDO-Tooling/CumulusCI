@@ -7,14 +7,18 @@ History
 
 Changes
 
+* Flow steps can now be replaced with the same syntax for all step types! (Current step types are: 'task' or 'flow'). See the [replacing a flow step](https://cumulusci.readthedocs.io/en/latest/config.html?highlight=override#replace-a-flow-step) docs for more details. CumulusCI is still compatible with the old syntax which required setting the current step type to ``None`` when replacing with a step of a differing type. (#3043)
 * Whenever possible, while running the ``robot_libdoc`` task libdoc generates relative pathnames when creating CSV output (#3058)
 * Added a new option ``--preview`` to the ``robot_libdoc`` task. When set to ``true`` it automatically opens a browser window to the generated documentation. (#3057)
 * The robot keyword ``Locate element by label`` has been removed from the Salesforce.py library. This wasn't designed to be a keyword but was accidentally exported as one. If you want to find an input or textarea element by its label you can use a locator of the form ``label:<text>`` (eg: ``label:First Name``) (#3048)
+* Updated to `Snowfakery 2.5.0 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v2.5.0>`__
+* If you have Python code that is importing CumulusCI's config classes, some of them have been reorganized into modules with a snake_case name. The old CamelCase imports should still work, but the new names are preferred for consistency with other parts of the codebase.
 
 Issues Closed
 
 * Fixed an issue where overriding flow steps was not working as documented. (#3043)
 * We fixed a bug where the ``Run Task`` and ``Run Task Class`` robot keywords throw an error like ``AttributeError: module 'robot.api.logger' has no attribute 'log'`` in rare cases (#3053)
+* Fixed a bug in the `snowfakery` task which caused Unique IDs to not always be actually unique. (#3059)
 
 
 3.51.1 (2022-01-25)
