@@ -272,3 +272,59 @@ class BaseSalesforceTask(BaseTask):
     def _update_credentials(self):
         with self.org_config.save_if_changed():
             self.org_config.refresh_oauth_token(self.project_config.keychain)
+
+    def _validate_and_inject_namespace_prefixes(
+        self,
+        should_inject_namespaces: bool,
+        sobjects_to_validate: list,
+        operation_to_validate: str,
+    ):
+        """Perform namespace injection and ensure that we can successfully access all of the selected objects."""
+
+        global_describe = {
+            entry["name"]: entry
+            for entry in self.org_config.salesforce_client.describe()["sobjects"]
+        }
+
+        # Namespace injection
+        if should_inject_namespaces and self.project_config.project__package__namespace:
+
+            def inject(element: str):
+                return f"{self.project_config.project__package__namespace}__{element}"
+
+            sobjects = [
+                self.fixup_sobject_name(inject, sobject, global_describe)
+                for sobject in sobjects_to_validate
+            ]
+        else:
+            sobjects = sobjects_to_validate
+
+        # Validate CRUD
+        non_accessible_objects = [
+            s
+            for s in sobjects
+            if not (s in global_describe and global_describe[s][operation_to_validate])
+        ]
+        if non_accessible_objects:
+            raise TaskOptionsError(
+                f"The objects {', '.join(non_accessible_objects)} are not present or not {operation_to_validate}."
+            )
+        return sobjects
+
+    def fixup_sobject_name(self, injection_func, sobject, global_describe):
+        def _is_injectable(element: str) -> bool:
+            return element.count("__") == 1
+
+        if not _is_injectable(sobject):
+            return sobject
+
+        injected = injection_func(sobject)
+        if sobject in global_describe and injected in global_describe:
+            self.logger.warning(
+                f"Both {sobject} and {injected} are present in the target org. Using {sobject}."
+            )
+
+        if sobject not in global_describe and injected in global_describe:
+            return injected
+        else:
+            return sobject
