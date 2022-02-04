@@ -612,31 +612,31 @@ Examples
 
 ``update_data``
 ---------------
-You can update records using CumulusCI. An update consists of two parts:
+To update records using CumulusCI, provide:
 
-* a command line or task configuration saying what to update
+* a command line or task configuration describing what to update
 * a recipe in a subset of Snowfakery syntax that says how to update it
 
-Starting from the command line, we can start an update operation like
+On the command line, you can run an update like
 this:
 
 ``$ cci task run update_data --recipe datasets/update.recipe.yml --object Account``
 
-This will download every Account in the org and apply the fields from the
+This command downloads every Account in the org and applies the fields from the specified
 update recipe file.
 
-If we want to filter the rows that we are updating, we can do that too:
+You can filter the rows that you're updating like this:
 
 ``$ cci task run update_data --recipe datasets/update.recipe.yml --object Account --where "name like 'AAA%'" ``
 
-The recipe to say what to update can be as simple as this:
+The recipe for an update can be as simple as this:
 
 .. code-block::
     - object: Account
       fields:
         NumberOfEmployees: 10000
 
-But you may also use all of the power of ``snowfakery``, such as fake data:
+You can use all of the power of ``snowfakery`` to add fake data:
 
 .. code-block::
     - object: Account
@@ -653,8 +653,8 @@ like this:
       fields:
         Description: ${{input.Name}} is our favorite customer in ${{input.BillingCity}}
 
-In order to instruct CumulusCI to extract those fields and make them
-available to Snowfakery, you should use the ``fields`` option:
+To tell CumulusCI to extract those fields and make them
+use the ``fields`` option:
 
 ``$ cci task run update_data --recipe datasets/update.recipe.yml --object Account --Fields Name,BillingCity ``
 
