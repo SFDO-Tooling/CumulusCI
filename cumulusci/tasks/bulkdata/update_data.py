@@ -106,7 +106,7 @@ class UpdateData(BaseSalesforceApiTask):
             )
 
     def _run_task(self):
-        obj = super()._validate_and_inject_namespace_prefixes(
+        obj = self._validate_and_inject_namespace_prefixes(
             should_inject_namespaces=self.inject_namespaces,
             sobjects_to_validate=[self.sobject],
             operation_to_validate="updateable",
@@ -144,7 +144,7 @@ class UpdateData(BaseSalesforceApiTask):
         return created_csv[0]
 
     @contextmanager
-    def save_records(self, qs, fields) -> Path:
+    def save_records(self, qs, fields):  # -> Path
         with TemporaryDirectory() as t:
             csvfile = Path(t) / "input.csv"
             with csvfile.open("w") as f:
