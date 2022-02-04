@@ -22,6 +22,10 @@ class SnowfakeryWorkingDirectory:
         metadata.reflect()
         return engine, metadata
 
+    @property
+    def index(self) -> str:
+        return self.path.name.rsplit("_")[0]
+
     def get_record_counts(self):
         """Get record counts generated for this portion."""
         engine, metadata = self.setup_engine()
