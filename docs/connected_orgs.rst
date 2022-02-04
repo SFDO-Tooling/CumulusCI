@@ -121,35 +121,41 @@ To create a custom Connected App, run the ``connected_app`` task, and then manua
 
     Make sure to create the Connected App in a production org!
 
-
-This command will create a Connected App in the Dev Hub org connected to ``sfdx`` with the label ``cumulusci`` and set it as the ``connected_app`` service in CumulusCI.
+This command will create a Connected App in the Dev Hub org connected to ``sfdx``, and connect it to CumulusCI as a ``connected_app`` service named ``custom``.
 
 .. code-block:: console
 
-    $ cci task run connected_app --label cumulusci --connect true
+    $ cci task run connected_app --label custom --connect true
 
-After the Connected App has been created, verify that it's connected to CumulusCI.
+After running this task, ``cci service list`` should show that the ``custom`` connected_app service exists.
 
 .. code-block:: console
 
     $ cci service list
-    +Services--------------------------------------------------------------------------------------------------------+
-    | Name           Description                                                                          Configured |
-    +----------------------------------------------------------------------------------------------------------------+
-    | connected_app  A Connected App is required to connect to and run commands against persistent orgs.  ✔          |
-    | devhub         Configure which SFDX org to use as a Dev Hub for creating scratch orgs               ✔          |
-    | github         Configure connection for github tasks, e.g. Create Release                           ✔          |
-    | metaci         Connect with a MetaCI site to run builds of projects from this repository                       |
-    | metadeploy     Connect with a MetaDeploy site to publish installers from this repository            ✔          |
-    | apextestsdb    Configure connection for ApexTestsDB tasks, e.g. ApextestsdbUpload                              |
-    | saucelabs      Configure connection for saucelabs tasks.                                                       |
-    +----------------------------------------------------------------------------------------------------------------+
+                                                    Services                                                  
+                                                                                                            
+    Default   Type              Name         Description                                                     
+    ───────────────────────────────────────────────────────────────────────────────────────────────────────── 
+    ✔         connected_app     built-in     A Connected App is required to connect to and run commands      
+                                             against persistent orgs. See https://cumulusci.readthedocs.io/  
+                                             en/latest/connected_orgs.html#use-a-custom-connected-app for    
+                                             more info.                                                      
+              connected_app     custom       A Connected App is required to connect to and run commands      
+                                             against persistent orgs. See https://cumulusci.readthedocs.io/  
+                                             en/latest/connected_orgs.html#use-a-custom-connected-app for    
+                                             more info.                                                      
+
+Use the ``--connected-app`` option to connect an org using the custom connected app:
+
+.. code-block:: console
+
+    $ cci org connect <org_name> --connected-app custom
 
 To edit the Connected App's OAuth scopes:
 
 #. In Lightning Experience, go to Setup --> Apps --> Apps Manager.
 #. Click the arrow on the far right side of the row that pertains to the newly created Connected App.
 #. Click "Edit."
-#. Add or remove OAuth scopes as desired.
+#. Add or remove OAuth scopes as desired. CumulusCI requires the ``api``, ``full``, and ``refresh_token`` scopes.
 
 For a full list of options, run the :ref:`connected_app` task reference documentation.

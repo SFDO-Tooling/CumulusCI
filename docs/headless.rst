@@ -84,6 +84,7 @@ DX Developer Guide to get this set up:
 
 * `Create a private key and self-signed certificate <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_key_and_cert.htm>`_
 * `Create a Connected App <https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_connected_app.htm>`_
+* In addition to the OAuth scopes mentioned in that article, CumulusCI also requires the ``full`` scope.
 
 Once you have a Connected App created, you can configure CumulusCI to use this Connected
 App to login to a persistent org by setting the following environment variables.

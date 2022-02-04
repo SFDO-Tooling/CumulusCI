@@ -2,7 +2,9 @@ import os
 from unittest import mock
 
 import click
+from click.testing import CliRunner
 
+from cumulusci.cli.cci import cli
 from cumulusci.core.tasks import BaseTask
 
 
@@ -11,6 +13,20 @@ def run_click_command(cmd, *args, **kw):
     runtime = kw.pop("runtime", mock.Mock())
     with click.Context(command=mock.Mock(), obj=runtime):
         return cmd.callback(*args, **kw)
+
+
+def run_cli_command(*args, runtime=None, input=None, **kw):
+    """Run a click command with arg parsing and injected CCI runtime object."""
+    runner = CliRunner(mix_stderr=False)
+    result = runner.invoke(
+        cli,
+        args,
+        obj=runtime,
+        input=input,
+        catch_exceptions=False,
+        standalone_mode=False,
+    )
+    return result
 
 
 def recursive_list_files(d="."):

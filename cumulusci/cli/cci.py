@@ -120,7 +120,7 @@ def handle_exception(
             traceback.print_exc(file=log_file)  # log stacktrace silently
 
     if should_show_stacktraces and not isinstance(error, USAGE_ERRORS):
-        raise error
+        error_console.print_exception()
 
 
 def connection_error_message(console: Console):

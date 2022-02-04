@@ -6,6 +6,7 @@ from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import ServiceNotConfigured, TaskOptionsError
 from cumulusci.core.keychain import DEFAULT_CONNECTED_APP
 from cumulusci.core.utils import process_bool_arg
+from cumulusci.oauth.client import PROD_LOGIN_URL
 from cumulusci.tasks.sfdx import SFDX_CLI, SFDXBaseTask
 from cumulusci.utils import random_alphanumeric_underscore, temporary_dir
 
@@ -157,6 +158,7 @@ class CreateConnectedApp(SFDXBaseTask):
                 {
                     "client_id": self.client_id,
                     "client_secret": self.client_secret,
+                    "login_url": PROD_LOGIN_URL,
                     "callback_url": "http://localhost:8080/callback",
                 }
             ),
