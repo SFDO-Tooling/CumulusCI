@@ -78,55 +78,14 @@ class DeleteData(BaseSalesforceApiTask):
         if self.options["hardDelete"] and self.options["api"] is DataApi.REST:
             raise TaskOptionsError("The hardDelete option requires Bulk API.")
 
-    @staticmethod
-    def _is_injectable(element: str) -> bool:
-        return element.count("__") == 1
-
     def _validate_and_inject_namespace(self):
         """Perform namespace injection and ensure that we can successfully delete all of the selected objects."""
 
-        global_describe = {
-            entry["name"]: entry
-            for entry in self.org_config.salesforce_client.describe()["sobjects"]
-        }
-
-        # Namespace injection
-        if (
-            self.options["inject_namespaces"]
-            and self.project_config.project__package__namespace
-        ):
-
-            def inject(element: str):
-                return f"{self.project_config.project__package__namespace}__{element}"
-
-            self.sobjects = []
-            for sobject in self.options["objects"]:
-                if self._is_injectable(sobject):
-                    injected = inject(sobject)
-                    if sobject in global_describe and injected in global_describe:
-                        self.logger.warning(
-                            f"Both {sobject} and {injected} are present in the target org. Using {sobject}."
-                        )
-
-                    if sobject not in global_describe and injected in global_describe:
-                        self.sobjects.append(injected)
-                    else:
-                        self.sobjects.append(sobject)
-                else:
-                    self.sobjects.append(sobject)
-        else:
-            self.sobjects = self.options["objects"]
-
-        # Validate CRUD
-        non_deletable_objects = [
-            s
-            for s in self.sobjects
-            if not (s in global_describe and global_describe[s]["deletable"])
-        ]
-        if non_deletable_objects:
-            raise BulkDataException(
-                f"The objects {', '.join(non_deletable_objects)} are not present or cannot be deleted."
-            )
+        self.sobjects = super()._validate_and_inject_namespace_prefixes(
+            should_inject_namespaces=self.options["inject_namespaces"],
+            sobjects_to_validate=self.options["objects"],
+            operation_to_validate="deletable",
+        )
 
     def _run_task(self):
         self._validate_and_inject_namespace()
@@ -180,7 +139,7 @@ class DeleteData(BaseSalesforceApiTask):
                 DataOperationStatus.ROW_FAILURE,
             ]:
                 raise BulkDataException(
-                    f"Unable to delete records for {obj}: {','.join(qs.job_result.job_errors)}"
+                    f"Unable to delete records for {obj}: {','.join(ds.job_result.job_errors)}"
                 )
 
             error_checker = RowErrorChecker(

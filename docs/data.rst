@@ -610,7 +610,55 @@ Examples
 
     cci task run delete_data -o objects Account -o hardDelete True
 
+``update_data``
+---------------
+To update records using CumulusCI, provide:
 
+* a command line or task configuration describing what to update
+* a recipe in a subset of Snowfakery syntax that says how to update it
+
+On the command line, you can run an update like
+this:
+
+``$ cci task run update_data --recipe datasets/update.recipe.yml --object Account``
+
+This command downloads every Account in the org and applies the fields from the specified
+update recipe file.
+
+You can filter the rows that you're updating like this:
+
+``$ cci task run update_data --recipe datasets/update.recipe.yml --object Account --where "name like 'AAA%'" ``
+
+The recipe for an update can be as simple as this:
+
+.. code-block::
+    - object: Account
+      fields:
+        NumberOfEmployees: 10000
+
+You can use all of the power of ``snowfakery`` to add fake data:
+
+.. code-block::
+    - object: Account
+      fields:
+        NumberOfEmployees: 10_000
+        BillingStreet:
+          fake: Streetname
+
+Using Snowfakery formulas, you can also refer to specific input fields
+like this:
+
+.. code-block::
+    - object: Account
+      fields:
+        Description: ${{input.Name}} is our favorite customer in ${{input.BillingCity}}
+
+To tell CumulusCI to extract those fields and make them
+use the ``fields`` option:
+
+``$ cci task run update_data --recipe datasets/update.recipe.yml --object Account --Fields Name,BillingCity ``
+
+You can learn more about Snowfakery syntax in the next section.
 
 Generate Fake Data
 ==================

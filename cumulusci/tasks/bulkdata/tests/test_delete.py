@@ -328,7 +328,7 @@ class TestDeleteData(unittest.TestCase):
         )
         # ApexTestQueueItem is not deletable
 
-        with pytest.raises(BulkDataException):
+        with pytest.raises(TaskOptionsError):
             task._validate_and_inject_namespace()
 
     def test_validate_and_inject_namespace__packaged(self):

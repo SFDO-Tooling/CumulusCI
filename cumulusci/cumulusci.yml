@@ -187,6 +187,11 @@ tasks:
         description: Query existing data for a specific sObject and perform a Bulk API delete of all matching records.
         class_path: cumulusci.tasks.bulkdata.DeleteData
         group: Data Operations
+    update_data:
+        description: Update records of an sObject matching a where-clause.
+        class_path: cumulusci.tasks.bulkdata.update_data.UpdateData
+        group: Data Operations
+
     deploy:
         description: Deploys the src directory of the repository to the org
         class_path: cumulusci.tasks.salesforce.Deploy
