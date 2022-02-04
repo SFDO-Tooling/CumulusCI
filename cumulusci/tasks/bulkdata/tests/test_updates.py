@@ -1,3 +1,4 @@
+import typing as T
 from functools import wraps
 from unittest import mock
 from unittest.mock import call
@@ -59,16 +60,35 @@ class MockBulkAPIResponses:
         return self.mock_bulk_API_responses_context.add_dml_operation
 
 
+class FakeJobOperationResults(T.NamedTuple):
+    results: list
+    job_result_status: DataOperationStatus
+    loader_callback: T.Callable = noop
+
+
 class MockBulkAPIResponsesContext:
     def __init__(self):
         self.query_operations = {}
         self.dml_operations = {}
 
-    def add_query_operation(self, *, results, **expected):
-        self.query_operations[_hashify_operation(expected)] = results
+    def add_query_operation(
+        self, *, results, job_result_status=DataOperationStatus.SUCCESS, **expected
+    ):
+        self.query_operations[_hashify_operation(expected)] = FakeJobOperationResults(
+            results,
+            job_result_status,
+        )
 
-    def add_dml_operation(self, *, results, loader_callback=noop, **expected):
-        self.dml_operations[_hashify_operation(expected)] = [loader_callback, results]
+    def add_dml_operation(
+        self,
+        *,
+        results,
+        loader_callback=noop,
+        job_result_status=DataOperationStatus.SUCCESS,
+        **expected,
+    ):
+        val = FakeJobOperationResults(results, job_result_status, loader_callback)
+        self.dml_operations[_hashify_operation(expected)] = val
 
     def get_query_operation(self, **given):
         try:
@@ -79,26 +99,21 @@ class MockBulkAPIResponsesContext:
 
     def get_dml_operation(self, **given):
         try:
-            loader_callback, results = self.dml_operations[_hashify_operation(given)]
+            results = self.dml_operations[_hashify_operation(given)]
         except KeyError:
             raise KeyError(f"Cannot find response matching {given}")
-        return FakeDMLOperationResult(
-            results, fields=given["fields"], loader_callback=loader_callback
-        )
+        return FakeDMLOperationResult(results, fields=given["fields"])
 
 
 class FakeOperationResult:
-    def __init__(self, results, numrecords=None):
+    def __init__(self, results: FakeJobOperationResults):
         self.results = results
-        if numrecords is None:
-            numrecords = len(self.results)
-        self.numrecords = numrecords
 
     def yield_per(self, number):  # TODO
-        return self.results
+        return self.results.results
 
     def count(self):
-        return self.numrecords
+        return len(self.results.results)
 
     def query(self):
         pass
@@ -106,20 +121,16 @@ class FakeOperationResult:
     @property
     def job_result(self):
         return DataOperationJobResult(
-            DataOperationStatus.SUCCESS, [], len(self.results), 0
+            self.results.job_result_status, [], len(self.results.results), 0
         )
 
     def get_results(self):
-        return self.results
+        return self.results.results
 
 
 class FakeDMLOperationResult(FakeOperationResult):
-    def __init__(self, results, numrecords=None, loader_callback=noop, fields=None):
+    def __init__(self, results: FakeJobOperationResults, fields=None):
         self.results = results
-        if numrecords is None:
-            numrecords = len(self.results)
-        self.numrecords = numrecords
-        self.loader_callback = loader_callback
         self.fields = fields
 
     def start(self):
@@ -127,13 +138,13 @@ class FakeDMLOperationResult(FakeOperationResult):
 
     def load_records(self, records, *args, **kwargs):
         for record in records:
-            self.loader_callback(dict(zip(self.fields, record)))
+            self.results.loader_callback(dict(zip(self.fields, record)))
 
     def end(self):
         pass
 
 
-def _fake_validate_and_inject_namespace_prefixes(
+def _fake_val_and_inject_ns(
     should_inject_namespaces: bool,
     sobjects_to_validate: list,
     operation_to_validate: str,
@@ -172,7 +183,7 @@ class TestUpdates:
         assert "XML-RPC" in str(e.value), e.value
 
     @bulkapi_responses.activate
-    def test_with_fake_query_results(self, create_task):
+    def test_simple_task(self, create_task):
 
         bulkapi_responses.add_query_operation(
             sobject="Account",
@@ -192,7 +203,10 @@ class TestUpdates:
             api_options={},
             api=DataApi.SMART,
             volume=2,
-            results=[DataOperationResult("00OIDXYZ", success=True, error="")],
+            results=[
+                DataOperationResult("OID000BLAH", success=True, error=""),
+                DataOperationResult("OID000BLAH2", success=True, error=""),
+            ],
             loader_callback=loader,
         )
 
@@ -205,9 +219,7 @@ class TestUpdates:
             },
         )
 
-        task._validate_and_inject_namespace_prefixes = (
-            _fake_validate_and_inject_namespace_prefixes
-        )
+        task._validate_and_inject_namespace_prefixes = _fake_val_and_inject_ns
         task()
         assert loader.mock_calls == [
             call(
@@ -226,7 +238,7 @@ class TestUpdates:
                     "Id": "OID000BLAH2",
                 }
             ),
-        ]
+        ], loader.mock_calls
 
     @bulkapi_responses.activate
     def test_with_no_query_results(self, create_task):
@@ -247,11 +259,146 @@ class TestUpdates:
             },
         )
 
-        task._validate_and_inject_namespace_prefixes = (
-            _fake_validate_and_inject_namespace_prefixes
+        task._validate_and_inject_namespace_prefixes = _fake_val_and_inject_ns
+        task.logger = mock.Mock()
+        task()
+        last_message = task.logger.mock_calls[-1].args[0]
+        assert last_message.startswith("No records found"), last_message
+
+    @bulkapi_responses.activate
+    def test_with_where_clause(self, create_task):
+        bulkapi_responses.add_query_operation(
+            sobject="Account",
+            fields=["Id", "Name"],
+            query="SELECT Id,Name FROM Account WHERE Name Like '%ark%'",
+            api=DataApi.SMART,
+            results=[
+                ["OID000BLAH", "Mark Benihoff"],
+                ["OID000BLAH2", "Parkour Hairish"],
+            ],
+        )
+        bulkapi_responses.add_dml_operation(
+            sobject="Account",
+            operation=DataOperationType.UPDATE,
+            fields=["BillingStreet", "Description", "NumberOfEmployees", "Id"],
+            api_options={},
+            api=DataApi.SMART,
+            volume=2,
+            results=[
+                DataOperationResult("OID000BLAH", success=True, error=""),
+                DataOperationResult("OID000BLAH2", success=True, error=""),
+            ],
+        )
+        task = create_task(
+            UpdateData,
+            {
+                "object": "Account",
+                "recipe": "datasets/update.recipe.yml",
+                "fields": ["Name"],
+                "where": "Name Like '%ark%'",
+            },
+        )
+        task._validate_and_inject_namespace_prefixes = _fake_val_and_inject_ns
+        task.logger = mock.Mock()
+        task()
+        last_message = task.logger.mock_calls[-1].args[0]
+        assert last_message.startswith(
+            "Updated Account objects matching \"Name Like '%ark%'\""
+        ), last_message
+
+    @bulkapi_responses.activate
+    def test_query_failed(self, create_task):
+        bulkapi_responses.add_query_operation(
+            sobject="Account",
+            fields=["Id", "Name"],
+            query="SELECT Id,Name FROM Account",
+            api=DataApi.SMART,
+            results=[],
+            job_result_status=DataOperationStatus.JOB_FAILURE,
+        )
+        loader = mock.Mock()
+        bulkapi_responses.add_dml_operation(
+            sobject="Account",
+            operation=DataOperationType.UPDATE,
+            fields=["BillingStreet", "Description", "NumberOfEmployees", "Id"],
+            api_options={},
+            api=DataApi.SMART,
+            volume=2,
+            results=[
+                DataOperationResult("OID000BLAH", success=True, error=""),
+                DataOperationResult("OID000BLAH2", success=True, error=""),
+            ],
+            loader_callback=loader,
+        )
+
+        task = create_task(
+            UpdateData,
+            {
+                "object": "Account",
+                "recipe": "datasets/update.recipe.yml",
+                "fields": ["Name"],
+            },
+        )
+
+        task._validate_and_inject_namespace_prefixes = _fake_val_and_inject_ns
+        with pytest.raises(exc.BulkDataException) as e:
+            task()
+
+        assert "Unable to query records" in str(e.value)
+        assert "Account" in str(e.value)
+
+    @bulkapi_responses.activate
+    def test_update_query_failed(self, create_task):
+        bulkapi_responses.add_query_operation(
+            sobject="Account",
+            fields=["Id", "Name"],
+            query="SELECT Id,Name FROM Account",
+            api=DataApi.SMART,
+            results=[
+                ["OID000BLAH", "Mark Benihoff"],
+                ["OID000BLAH2", "Parkour Hairish"],
+            ],
+        )
+        loader = mock.Mock()
+        bulkapi_responses.add_dml_operation(
+            sobject="Account",
+            operation=DataOperationType.UPDATE,
+            fields=["BillingStreet", "Description", "NumberOfEmployees", "Id"],
+            api_options={},
+            api=DataApi.SMART,
+            volume=2,
+            results=[],
+            loader_callback=loader,
+            job_result_status=DataOperationStatus.JOB_FAILURE,
+        )
+
+        task = create_task(
+            UpdateData,
+            {
+                "object": "Account",
+                "recipe": "datasets/update.recipe.yml",
+                "fields": ["Name"],
+            },
+        )
+
+        task._validate_and_inject_namespace_prefixes = _fake_val_and_inject_ns
+        with pytest.raises(exc.BulkDataException) as e:
+            task()
+        assert "Unable to update records" in str(e.value)
+
+
+class TestUpdatesIntegrationTests:
+    @pytest.mark.needs_org()
+    def test_updates_task(self, create_task, cumulusci_test_repo_root):
+        task = create_task(
+            UpdateData,
+            {
+                "object": "Account",
+                "recipe": "datasets/update.recipe.yml",
+                "fields": ["Name"],
+            },
         )
         task.logger = mock.Mock()
         task()
-        assert (
-            task.logger.mock_calls[-1].args[0].startswith("No records found")
-        ), task.logger.mock_calls[-1].args[0]
+        last_message = task.logger.mock_calls[-1].args[0]
+        assert "Updated all Account" in str(last_message), str(last_message)

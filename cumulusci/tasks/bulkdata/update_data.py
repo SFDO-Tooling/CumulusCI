@@ -216,6 +216,7 @@ class UpdateData(BaseSalesforceApiTask):
         )
         for result in ds.get_results():
             error_checker.check_for_row_error(result, result.id)
+        return ds
 
     def _object_description(self, obj):
         """Return a readable description of the object set to update."""
