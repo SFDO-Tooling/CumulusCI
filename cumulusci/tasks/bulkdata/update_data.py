@@ -27,7 +27,7 @@ class UpdateData(BaseSalesforceApiTask):
 
     task_options = {
         "object": {
-            "description": "An object",
+            "description": "An SObject",
             "required": True,
         },
         "where": {
