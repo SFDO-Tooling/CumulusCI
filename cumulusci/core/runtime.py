@@ -2,7 +2,7 @@ import sys
 from abc import abstractmethod
 
 from cumulusci.core.config import BaseProjectConfig, UniversalConfig
-from cumulusci.core.debug import get_debug_mode
+from cumulusci.core.debug import DebugMode, get_debug_mode
 from cumulusci.core.exceptions import NotInProject, ProjectConfigNotFound
 from cumulusci.core.flowrunner import FlowCallback, FlowCoordinator
 from cumulusci.core.keychain import BaseProjectKeychain
@@ -15,9 +15,13 @@ class BaseCumulusCI(object):
     keychain_class = BaseProjectKeychain
     callback_class = FlowCallback
 
+    universal_config: UniversalConfig
+    project_config: BaseProjectConfig
+    keychain: BaseProjectKeychain
+    debug_mode: DebugMode
+    project_config_error: Exception
+
     def __init__(self, *args, load_keychain=True, **kwargs):
-        self.universal_config = None
-        self.project_config = None
         self.keychain = None
         self.debug_mode = get_debug_mode()
 
@@ -27,6 +31,7 @@ class BaseCumulusCI(object):
             self._load_project_config(*args, **kwargs)
             self._add_repo_to_path()
         except (NotInProject, ProjectConfigNotFound) as e:
+            self.project_config = None
             self.project_config_error = e
         if load_keychain:
             self._load_keychain()
@@ -79,6 +84,8 @@ class BaseCumulusCI(object):
         )
 
     def _load_keychain(self):
+        if self.keychain is not None:
+            return
 
         keychain_key = self.keychain_key if self.keychain_cls.encrypted else None
 

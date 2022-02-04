@@ -5,6 +5,7 @@ class BaseConfig(object):
     """BaseConfig provides a common interface for nested access for all Config objects in CCI."""
 
     defaults = {}
+    config: dict
 
     def __init__(self, config=None, keychain=None):
         if config is None:

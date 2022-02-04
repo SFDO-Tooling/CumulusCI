@@ -445,6 +445,10 @@
                 "default_factory": {
                     "title": "Default Factory",
                     "type": "string"
+                },
+                "default": {
+                    "title": "Default",
+                    "type": "string"
                 }
             },
             "additionalProperties": false

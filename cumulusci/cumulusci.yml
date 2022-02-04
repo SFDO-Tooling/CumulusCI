@@ -1263,9 +1263,14 @@ services:
     connected_app:
         description: A Connected App is required to connect to and run commands against persistent orgs. See https://cumulusci.readthedocs.io/en/latest/connected_orgs.html#use-a-custom-connected-app for more info.
         attributes:
+            login_url:
+                description: Default Salesforce Login URL to be used with this Connected App
+                required: True
+                default: https://login.salesforce.com
             callback_url:
                 description: Callback URL configured on the Connected App
                 required: True
+                default: http://localhost:8080/callback
             client_id:
                 description: Client ID/Consumer Key from the Connected App
                 required: True
