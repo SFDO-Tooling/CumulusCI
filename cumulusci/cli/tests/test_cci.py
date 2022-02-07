@@ -114,6 +114,7 @@ def test_main__cci_show_stacktraces(
     init_logger,
     get_tempfile_logger,
     tee,
+    capsys,
 ):
     runtime = mock.Mock()
     runtime.universal_config.cli__show_stacktraces = True
@@ -121,7 +122,7 @@ def test_main__cci_show_stacktraces(
     cli.side_effect = Exception
     get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
 
-    with pytest.raises(Exception):
+    with pytest.raises(SystemExit):
         cci.main(["cci"])
 
     check_latest_version.assert_called_once()
@@ -129,6 +130,8 @@ def test_main__cci_show_stacktraces(
     CliRuntime.assert_called_once()
     cli.assert_called_once()
     post_mortem.assert_not_called()
+    captured = capsys.readouterr()
+    assert "Traceback (most recent call last)" in captured.err
 
 
 @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")

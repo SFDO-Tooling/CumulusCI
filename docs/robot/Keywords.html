@@ -1450,61 +1450,6 @@ Input form data
                                 </td>
                             </tr>
 
-                            <tr class="kwrow" id="Salesforce.Locate Element By Label">
-                                <td class="kwname">Locate Element By Label</td>
-                                <td class="kwargs">
-                                    <i>browser</i>,
-
-                                    <i>locator</i>,
-
-                                    <i>tag</i>,
-
-                                    <i>constraints</i>
-                                </td>
-                                <td class="kwdoc">
-                                    <p>
-                                        Find a lightning component, input, or textarea
-                                        based on a label
-                                    </p>
-                                    <p>
-                                        If the component is inside a fieldset, the
-                                        fieldset label can be prefixed to the label with a
-                                        double colon in order to disambiguate the label.
-                                        (eg: Other address::First Name)
-                                    </p>
-                                    <p>
-                                        If the label is inside nested ligntning components
-                                        (eg:
-                                        <code
-                                            >&lt;lightning-input&gt;...&lt;lightning-combobox&gt;...&lt;label&gt;</code
-                                        >), the lightning component closest to the label
-                                        will be returned (in this case,
-                                        <code>lightning-combobox</code>).
-                                    </p>
-                                    <p>
-                                        If a lightning component cannot be found for the
-                                        label, an attempt will be made to find an input or
-                                        textarea associated with the label.
-                                    </p>
-                                    <p>
-                                        This is registered as a custom locator strategy
-                                        named "label"
-                                    </p>
-                                    <p>Example:</p>
-                                    <p>
-                                        The following example is for a form with a formset
-                                        named "Expected Delivery Date", and inside of that
-                                        a date input field with a label of "Date".
-                                    </p>
-                                    <p>These examples produce identical results:</p>
-                                    <pre>
-${element}=  Locate element by label    Expected Delivery Date::Date
-${element}=  Get webelement             label:Expected Delivery Date::Date
-</pre
-                                    >
-                                </td>
-                            </tr>
-
                             <tr class="kwrow" id="Salesforce.Log Browser Capabilities">
                                 <td class="kwname">Log Browser Capabilities</td>
                                 <td class="kwargs">
@@ -3224,7 +3169,7 @@ Populate form
             </div>
         </div>
         <div class="footer">
-            Generated on Tuesday December 07, 02:47 PM - cumulusci v3.48.2
+            Generated on Tuesday January 25, 03:39 PM - cumulusci v3.51.1
         </div>
     </body>
 </html>

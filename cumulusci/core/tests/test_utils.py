@@ -82,28 +82,6 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(None, utils.decode_to_unicode(None))
 
 
-class TestMergedConfig(unittest.TestCase):
-    def test_init(self):
-        config = utils.merge_config(
-            {
-                "universal_config": {"hello": "world"},
-                "user_config": {"hello": "christian"},
-            }
-        )
-        self.assertEqual(config["hello"], "christian")
-
-    def test_merge_failure(self):
-        with self.assertRaises(ConfigMergeError) as cm:
-            utils.merge_config(
-                {
-                    "universal_config": {"hello": "world", "test": {"sample": 1}},
-                    "user_config": {"hello": "christian", "test": [1, 2]},
-                }
-            )
-        exception = cm.exception
-        self.assertEqual(exception.config_name, "user_config")
-
-
 class TestDictMerger(unittest.TestCase):
     """some stuff that didnt get covered by usual usage"""
 

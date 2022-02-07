@@ -541,12 +541,9 @@ class FlowCoordinator(object):
         if parent_ui_options is None:
             parent_ui_options = {}
 
-        # Step Validation
-        # - A step is either a task OR a flow.
-        if all(k in step_config for k in ("flow", "task")):
-            raise FlowConfigError(
-                f"Step {number} is configured as both a flow AND a task. \n\t{step_config}."
-            )
+        # This should never happen because of cleanup
+        # in core/utils/cleanup_old_flow_step_replace_syntax()
+        assert step_config.keys() != {"task", "flow"}
 
         # Skips
         # - either in YAML (with the None string)

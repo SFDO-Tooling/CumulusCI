@@ -118,7 +118,7 @@ class Salesforce(object):
             self.selenium.add_location_strategy(
                 "title", "Salesforce.Locate Element by Title"
             )
-            self.selenium.add_location_strategy("label", self.locate_element_by_label)
+            self.selenium.add_location_strategy("label", self._locate_element_by_label)
             self.builtin.set_suite_variable("${LOCATION STRATEGIES INITIALIZED}", True)
 
     @selenium_retry(False)
@@ -222,6 +222,7 @@ class Salesforce(object):
             raise Exception(f"Unknown fake data request: '{fake}'")
 
     def get_latest_api_version(self):
+        """Return the API version used by the current org"""
         return self.cumulusci.org.latest_api_version
 
     def create_webdriver_with_retry(self, *args, **kwargs):
@@ -1486,7 +1487,7 @@ class Salesforce(object):
         # other element to trigger any event handlers on the last
         # element? But what should we set the focus to?
 
-    def locate_element_by_label(self, browser, locator, tag, constraints):
+    def _locate_element_by_label(self, browser, locator, tag, constraints):
         """Find a lightning component, input, or textarea based on a label
 
         If the component is inside a fieldset, the fieldset label can
