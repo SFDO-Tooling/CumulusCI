@@ -19,9 +19,10 @@ from cumulusci.core.config import (
     BaseProjectConfig,
     BaseTaskFlowConfig,
     OrgConfig,
+    ServiceConfig,
     UniversalConfig,
 )
-from cumulusci.core.config.OrgConfig import VersionInfo
+from cumulusci.core.config.org_config import VersionInfo
 from cumulusci.core.dependencies.dependencies import (
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
@@ -34,7 +35,12 @@ from cumulusci.core.exceptions import (
     GithubException,
     KeychainNotFound,
     NamespaceNotFoundError,
+    ServiceNotConfigured,
     TaskNotFoundError,
+)
+from cumulusci.core.keychain.base_project_keychain import (
+    DEFAULT_CONNECTED_APP,
+    BaseProjectKeychain,
 )
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.tests.util import DummyKeychain
@@ -821,9 +827,43 @@ class TestOrgConfig(unittest.TestCase):
             },
             "test",
         )
-        keychain = mock.Mock()
-        keychain.get_service.return_value = mock.Mock(
-            client_id="asdf", client_secret="asdf"
+        project_config = BaseProjectConfig(UniversalConfig())
+        keychain = BaseProjectKeychain(project_config, None)
+        config._load_userinfo = mock.Mock()
+        config._load_orginfo = mock.Mock()
+
+        refresh_token = mock.Mock(return_value={"access_token": "asdf"})
+        OAuth2Client.return_value = mock.Mock(refresh_token=refresh_token)
+
+        config.refresh_oauth_token(keychain)
+
+        client_config = OAuth2Client.call_args[0][0]
+        assert client_config.client_id == DEFAULT_CONNECTED_APP.client_id
+        refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
+
+    @mock.patch("cumulusci.core.config.OrgConfig.OAuth2Client")
+    def test_refresh_oauth_token__other_connected_app(self, OAuth2Client):
+        config = OrgConfig(
+            {
+                "connected_app": "other",
+                "refresh_token": mock.sentinel.refresh_token,
+                "instance_url": "http://instance_url_111.com",
+            },
+            "test",
+        )
+        project_config = BaseProjectConfig(UniversalConfig())
+        keychain = BaseProjectKeychain(project_config, None)
+        keychain.set_service(
+            "connected_app",
+            "other",
+            ServiceConfig(
+                {
+                    "login_url": "https://other",
+                    "callback_url": "http://localhost:8080/callback",
+                    "client_id": "OTHER_ID",
+                    "client_secret": "OTHER_SECRET",
+                }
+            ),
         )
         config._load_userinfo = mock.Mock()
         config._load_orginfo = mock.Mock()
@@ -833,6 +873,8 @@ class TestOrgConfig(unittest.TestCase):
 
         config.refresh_oauth_token(keychain)
 
+        client_config = OAuth2Client.call_args[0][0]
+        assert client_config.client_id == "OTHER_ID"
         refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
 
     @responses.activate
@@ -860,6 +902,13 @@ class TestOrgConfig(unittest.TestCase):
         config = OrgConfig({}, "test")
         with self.assertRaises(AttributeError):
             config.refresh_oauth_token(None)
+
+    def test_refresh_oauth_token__bad_connected_app(self):
+        org_config = OrgConfig({"connected_app": "bogus"}, "test")
+        project_config = BaseProjectConfig(UniversalConfig())
+        keychain = BaseProjectKeychain(project_config, None)
+        with pytest.raises(ServiceNotConfigured, match="no longer configured"):
+            org_config.refresh_oauth_token(keychain)
 
     @mock.patch("jwt.encode", mock.Mock(return_value="JWT"))
     @responses.activate

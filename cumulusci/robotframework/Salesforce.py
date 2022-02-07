@@ -118,7 +118,7 @@ class Salesforce(object):
             self.selenium.add_location_strategy(
                 "title", "Salesforce.Locate Element by Title"
             )
-            self.selenium.add_location_strategy("label", self.locate_element_by_label)
+            self.selenium.add_location_strategy("label", self._locate_element_by_label)
             self.builtin.set_suite_variable("${LOCATION STRATEGIES INITIALIZED}", True)
 
     @selenium_retry(False)
@@ -222,6 +222,7 @@ class Salesforce(object):
             raise Exception(f"Unknown fake data request: '{fake}'")
 
     def get_latest_api_version(self):
+        """Return the API version used by the current org"""
         return self.cumulusci.org.latest_api_version
 
     def create_webdriver_with_retry(self, *args, **kwargs):
@@ -495,6 +496,7 @@ class Salesforce(object):
         self.selenium.go_to(url + "/lightning/setup/ObjectManager/home")
         self.wait_until_loading_is_complete()
 
+    @capture_screenshot_on_error
     def header_field_should_have_value(self, label):
         """Validates that a field in the record header has a text value.
         NOTE: Use other keywords for non-string value types
@@ -502,6 +504,7 @@ class Salesforce(object):
         locator = lex_locators["record"]["header"]["field_value"].format(label)
         self.selenium.page_should_contain_element(locator)
 
+    @capture_screenshot_on_error
     def header_field_should_not_have_value(self, label):
         """Validates that a field in the record header does not have a value.
         NOTE: Use other keywords for non-string value types
@@ -509,26 +512,31 @@ class Salesforce(object):
         locator = lex_locators["record"]["header"]["field_value"].format(label)
         self.selenium.page_should_not_contain_element(locator)
 
+    @capture_screenshot_on_error
     def header_field_should_have_link(self, label):
         """Validates that a field in the record header has a link as its value"""
         locator = lex_locators["record"]["header"]["field_value_link"].format(label)
         self.selenium.page_should_contain_element(locator)
 
+    @capture_screenshot_on_error
     def header_field_should_not_have_link(self, label):
         """Validates that a field in the record header does not have a link as its value"""
         locator = lex_locators["record"]["header"]["field_value_link"].format(label)
         self.selenium.page_should_not_contain_element(locator)
 
+    @capture_screenshot_on_error
     def click_header_field_link(self, label):
         """Clicks a link in record header."""
         locator = lex_locators["record"]["header"]["field_value_link"].format(label)
         self._jsclick(locator)
 
+    @capture_screenshot_on_error
     def header_field_should_be_checked(self, label):
         """Validates that a checkbox field in the record header is checked"""
         locator = lex_locators["record"]["header"]["field_value_checked"].format(label)
         self.selenium.page_should_contain_element(locator)
 
+    @capture_screenshot_on_error
     def header_field_should_be_unchecked(self, label):
         """Validates that a checkbox field in the record header is unchecked"""
         locator = lex_locators["record"]["header"]["field_value_unchecked"].format(
@@ -1458,6 +1466,7 @@ class Salesforce(object):
             # after that we can assume the fields have been rendered
             # so that we fail quickly if we can't find the element
             element = self.selenium.get_webelement(locator)
+            self.scroll_element_into_view(locator)
             handler = get_form_handler(element, locator)
             try:
                 if handler:
@@ -1478,7 +1487,7 @@ class Salesforce(object):
         # other element to trigger any event handlers on the last
         # element? But what should we set the focus to?
 
-    def locate_element_by_label(self, browser, locator, tag, constraints):
+    def _locate_element_by_label(self, browser, locator, tag, constraints):
         """Find a lightning component, input, or textarea based on a label
 
         If the component is inside a fieldset, the fieldset label can

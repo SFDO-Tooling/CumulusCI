@@ -30,8 +30,8 @@ class RecordingMode(Enum):
 
 replacements = [
     (r"/v?\d\d.0/", r"/vxx.0/"),
-    # (r"/00D[\w\d]{12,15}", "/00D0xORGID00000000"),
-    # (r'"00D[\w\d]{12,15}"', '"00D0xORGID00000000"'),
+    (r"/00D[\w\d]{12,15}", "/00D0xORGID00000000"),
+    (r'"00D[\w\d]{12,15}"', '"00D0xORGID00000000"'),
     (r".com//", r".com/"),
     (r"ersion>\d\d.0<", r"ersion>vxx.0<"),
     (r"<sessionId>.*</sessionId>", r"<sessionId>**Elided**</sessionId>"),

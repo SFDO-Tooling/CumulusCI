@@ -541,12 +541,9 @@ class FlowCoordinator(object):
         if parent_ui_options is None:
             parent_ui_options = {}
 
-        # Step Validation
-        # - A step is either a task OR a flow.
-        if all(k in step_config for k in ("flow", "task")):
-            raise FlowConfigError(
-                f"Step {number} is configured as both a flow AND a task. \n\t{step_config}."
-            )
+        # This should never happen because of cleanup
+        # in core/utils/cleanup_old_flow_step_replace_syntax()
+        assert step_config.keys() != {"task", "flow"}
 
         # Skips
         # - either in YAML (with the None string)
@@ -730,11 +727,12 @@ class PreflightFlowCoordinator(FlowCoordinator):
         self._rule(new_line=True)
 
         self.preflight_results = defaultdict(list)
-        self._task_cache = TaskCache(self)
+        # Expose for test access
+        self._task_caches = {self.project_config: TaskCache(self, self.project_config)}
         try:
             # flow-level checks
             jinja2_context = {
-                "tasks": self._task_cache,
+                "tasks": self._task_caches[self.project_config],
                 "project_config": self.project_config,
                 "org_config": self.org_config,
             }
@@ -746,6 +744,14 @@ class PreflightFlowCoordinator(FlowCoordinator):
             # Step-level checks
             for step in self.steps:
                 jinja2_context["project_config"] = step.project_config
+                # Create a cache for this project config, if not present
+                # and not equal to the root project config.
+                # This accommodates cross-project preflight checks.
+                if step.project_config not in self._task_caches:
+                    self._task_caches[step.project_config] = TaskCache(
+                        self, step.project_config
+                    )
+                jinja2_context["tasks"] = self._task_caches[step.project_config]
                 for check in step.task_config.get("checks", []):
                     result = self.evaluate_check(check, jinja2_context)
                     if result:
@@ -770,8 +776,11 @@ class TaskCache(object):
     can avoid running a task more than once with the same options.
     """
 
-    def __init__(self, flow):
+    def __init__(self, flow, project_config):
         self.flow = flow
+        # Cross-project flows may include preflight checks
+        # that depend on their local context.
+        self.project_config = project_config
         self.results = {}
 
     def __getattr__(self, task_name):
@@ -790,14 +799,14 @@ class CachedTaskRunner(object):
         if cache_key in self.cache.results:
             return self.cache.results[cache_key].return_values
 
-        task_config = self.cache.flow.project_config.tasks[self.task_name]
+        task_config = self.cache.project_config.tasks[self.task_name]
         task_class = import_global(task_config["class_path"])
         step = StepSpec(
             step_num=StepVersion("1"),
             task_name=self.task_name,
             task_config=task_config,
             task_class=task_class,
-            project_config=self.cache.flow.project_config,
+            project_config=self.cache.project_config,
         )
         self.cache.flow.callbacks.pre_task(step)
         result = TaskRunner(step, self.cache.flow.org_config, self.cache.flow).run_step(

@@ -1,4 +1,3 @@
-import json
 import os
 from pathlib import Path
 from typing import Callable, Optional
@@ -35,7 +34,7 @@ def service_list(runtime, plain, print_json):
 
     console = Console()
     if print_json:
-        console.print(json.dumps(services))
+        console.print_json(data=services)
         return None
 
     configured_services = runtime.keychain.list_services()
@@ -84,17 +83,43 @@ class ConnectServiceCommand(click.MultiCommand):
         return sorted(services.keys())
 
     def _build_param(self, attribute: str, details: dict) -> click.Option:
-        req = details["required"]
+        required = details.get("required", False)
         default_factory: Optional[Callable] = self._get_callable_default(
             details.get("default_factory")
         )
-        prompt = None if default_factory else req
+        default = details.get("default")
+        if default is not None:
+            # This gives the user a chance to change the default
+            # (but only if they didn't specify it as a command line option)
+            default_factory = lambda: default  # noqa
+            prompt = True
+            # Since there's a default value,
+            # we don't need to indicate this option as required in help,
+            required = False
+        elif default_factory:
+            # If there's a function to calculate the default,
+            # we'll call it instead of prompting the user.
+            # This provides a hook for collecting the value in other ways,
+            # such as via an oauth flow.
+            prompt = None
+        else:
+            # If there's no default, we prompt the user only if the option is required.
+            prompt = required
+
+        # Make sure the description is included in the prompt
+        description = details.get("description")
+        if prompt:
+            prompt = attribute
+            if description:
+                prompt += f" ({description})"
 
         kwargs = {
             "prompt": prompt,
-            "required": req,
-            "help": details.get("description"),
+            "required": required,
+            "help": description,
             "default": default_factory,
+            # If there is a preset default, this causes it to be shown in help.
+            "show_default": default,
         }
         return click.Option((f"--{attribute}",), **kwargs)
 
@@ -138,7 +163,7 @@ class ConnectServiceCommand(click.MultiCommand):
                 f"Sorry, I don't know about the '{service_type}' service."
             )
 
-        attributes = service_config["attributes"].items()
+        attributes = service_config.get("attributes", {}).items()
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
         params.extend(self._get_default_options(runtime))
 
@@ -286,6 +311,10 @@ def service_info(runtime, service_type, service_name, plain):
 )
 @pass_runtime(require_project=False, require_keychain=True)
 def service_default(runtime, service_type, service_name, project):
+    if not runtime.project_config and project:
+        raise click.UsageError(
+            "The --project flag must be used while in a CumulusCI project directory."
+        )
     try:
         runtime.keychain.set_default_service(service_type, service_name, project)
     except ServiceNotConfigured as e:

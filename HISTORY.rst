@@ -2,22 +2,84 @@
 History
 =======
 
+3.52.0 (2022-02-03)
+-------------------
+
+Changes
+
+* Flow steps can now be replaced with the same syntax for all step types! (Current step types are: 'task' or 'flow'). See the [replacing a flow step](https://cumulusci.readthedocs.io/en/latest/config.html?highlight=override#replace-a-flow-step) docs for more details. CumulusCI is still compatible with the old syntax which required setting the current step type to ``None`` when replacing with a step of a differing type. (#3043)
+* Whenever possible, while running the ``robot_libdoc`` task libdoc generates relative pathnames when creating CSV output (#3058)
+* Added a new option ``--preview`` to the ``robot_libdoc`` task. When set to ``true`` it automatically opens a browser window to the generated documentation. (#3057)
+* The robot keyword ``Locate element by label`` has been removed from the Salesforce.py library. This wasn't designed to be a keyword but was accidentally exported as one. If you want to find an input or textarea element by its label you can use a locator of the form ``label:<text>`` (eg: ``label:First Name``) (#3048)
+* Updated to `Snowfakery 2.5.0 <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v2.5.0>`__
+* If you have Python code that is importing CumulusCI's config classes, some of them have been reorganized into modules with a snake_case name. The old CamelCase imports should still work, but the new names are preferred for consistency with other parts of the codebase.
+
+Issues Closed
+
+* Fixed an issue where overriding flow steps was not working as documented. (#3043)
+* We fixed a bug where the ``Run Task`` and ``Run Task Class`` robot keywords throw an error like ``AttributeError: module 'robot.api.logger' has no attribute 'log'`` in rare cases (#3053)
+* Fixed a bug in the `snowfakery` task which caused Unique IDs to not always be actually unique. (#3059)
+
+
+3.51.1 (2022-01-25)
+-------------------
+
+Issues Closed
+
+* We fixed an issue that could cause ``create_package_version`` to fail when the ``version_base`` option is set to ``latest_github_release`` and the latest GitHub release is a 1GP package version.
+
+
+3.51.0 (2022-01-20)
+-------------------
+
+Changes
+
+* The ``cci flow doc`` command now only includes CumulusCI's standard flows unless the ``--project`` option is specified. (#3033)
+* The ``run_tests`` task now has a ``required_per_class_code_coverage_percent`` which ensures that every class in your project meets the code coverage level specified. (#3027)
+* Marketing Cloud tasks:
+
+  * Added the ``marketing_cloud_get_user_info`` task to retrieve user information from the Marketing Cloud REST API ``userinfo`` endpoint. (#3039)
+  * The ``marketing_cloud_create_user`` task now creates an unlocked user with a notification email address so that it is possible for the user to log in. This task also has a new option, ``activate_if_existing``, which can be set to ``true`` to ensure that if the user already exists in an inactive state, it will be activated. (#3040)
+
+Issues Closed
+
+* Fixed an issue preventing step-level preflight checks from working correctly in MetaDeploy when run in a cross-project flow. (#3034)
+* The ``github_parent_pr_notes`` task now handles child pull requests with an empty body. (#3038)
+* The ``metadeploy_publish`` task now displays a clear error message if you supply the wrong API URL for MetaDeploy. (#3034)
+* The ``cci service default --project`` command presents a better error message when called outside of a project directory. (#3037)
+* Fixed a bug where the ``cci flow doc`` command would break when using cross-project flows. (#3033)
+
+3.50.0 (2022-01-06)
+-------------------
+
+Changes
+
+* Robot keywords have been updated to support the Spring 22' release. (#3021)
+* Using channel declarations in ``load.yml``, users can now do synthetic data loads across multiple user accounts at once. This is faster for some very large orgs. (#3016)
+
+Issues Closed
+
+* Added a missing image to the "Windows Install Steps" portion of the docs. (#3013)
+* Fixed a bug that prevented ``Get webelements`` from returning an empty list if the locator was a custom locator created via the ``register_locators`` function of ``cumulusci.robotframework.locator_manager``. (#3004)
+* Fixed a bug that prevented the locator ``SF:object.button:Assign Reviewers`` from working properly. (#3002)
+* Fixed an issue where the ``--json`` flag was not outputting properly formatted ``JSON`` with the ``cci task list`` command. (#3011)
+
 3.49.0 (2021-12-09)
 -------------------
 
-# Critical Changes
+Critical Changes
 
 - **Python versions 3.6 and 3.7 are no longer supported.** Please ensure you have Python version 3.8, 3.9, or 3.10. (#2959)
 - The ``dx_convert_from`` task now uses a custom Python task class instead of ``cumulusci.tasks.sfdx.SFDXBaseTask``. In most cases this will have no visible impact, but if you have customized this task config to change the command option, make sure you have also explicitly set its ``class_path`` to ``cumulusci.tasks.sfdx.SFDXBaseTask``. (#2981)
  
-# Changes
+Changes
 
 - You can now get the CumulusCI version with ``cci --version``. The output is the same as the ``cci version`` command. (#2974)
 - A new feature has been added to the ``robot_libdoc`` task. You can now use ``--f csv`` to generate a CSV file with all of the keywords. (#2985)
 - New keywords ``Select Rows`` and ``Unselect Rows`` have been added to the robot Listing page object (#2995)
 - Queries passed to the ``SOQL Query`` keyword can now span multiple lines. (#3006)
 
-# Issues Closed
+Issues Closed
 
 - Fixed an issue where deleted components could still deploy into persistent orgs. (#2981)
 

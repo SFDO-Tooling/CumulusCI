@@ -1,4 +1,5 @@
 import http.client
+import logging
 import os
 import shutil
 import tempfile
@@ -7,9 +8,11 @@ from copy import deepcopy
 from distutils.version import StrictVersion
 from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 import responses
 from simple_salesforce import SalesforceGeneralError
 
+from cumulusci.core import exceptions as exc
 from cumulusci.core.config import (
     BaseProjectConfig,
     OrgConfig,
@@ -1280,3 +1283,69 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
             task()
 
         assert "found" in str(e.exception)
+
+
+class TestApexIntegrationTests:
+    @pytest.mark.org_shape("qa", "ccitest:qa_org")
+    @pytest.mark.slow()
+    @pytest.mark.skip()  # until our CI has access to github service, or test
+    # doesn't rely on it. In the meantime, the VCR test below is still good
+    # and this test works on laptops.
+    def test_run_tests__integration_test__call_salesforce(self, create_task, caplog):
+        self._test_run_tests__integration_test(create_task, caplog)
+
+    # There were challenges VCR-ing this because it depends on a
+    # particular flow. To recreate the tape you'll need to run the
+    # ccitest:qa_org flow aginst your org first.
+    #
+    # Also: some redundant "polls" were removed by hand to avoid
+    # disk space usage.
+    def test_run_tests__integration_test(self, create_task, caplog, vcr):
+        with vcr.use_cassette(
+            "ManualEditTestApexIntegrationTests.test_run_tests__integration_test.yaml",
+            record_mode="none",
+        ):
+            self._test_run_tests__integration_test(create_task, caplog)
+
+    def _test_run_tests__integration_test(self, create_task, caplog):
+
+        caplog.set_level(logging.INFO)
+        with pytest.raises(exc.ApexTestException) as e:
+            task = create_task(
+                RunApexTests,
+                {
+                    "required_org_code_coverage_percent": 70,
+                    "required_per_class_code_coverage_percent": 60,
+                    "json_output": None,
+                    "junit_output": None,
+                },
+            )
+            with patch.object(task, "_update_credentials"):
+                task()
+        relevant_records = [
+            record for record in caplog.records if "below required level" in str(record)
+        ]
+        assert len(relevant_records) == 1, caplog.records
+        assert "SampleClass2" in str(relevant_records[0])
+        assert "below required level" in str(e.value)
+        assert "SampleClass2" in str(e.value)
+
+        caplog.clear()
+
+        task = create_task(
+            RunApexTests,
+            {
+                "required_org_code_coverage_percent": 70,
+                "required_per_class_code_coverage_percent": 40,
+                "json_output": None,
+                "junit_output": None,
+            },
+        )
+        with patch.object(task, "_update_credentials"):
+            task()
+        relevant_records = [
+            record for record in caplog.records if "expectations" in str(record)
+        ]
+        assert len(relevant_records) == 2
+        assert "All classes meet" in str(relevant_records)
+        assert "Organization-wide code" in str(relevant_records)

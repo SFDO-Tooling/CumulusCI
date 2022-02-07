@@ -27,7 +27,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.github import get_version_id_from_tag
 from cumulusci.core.sfdx import convert_sfdx_source
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.core.versions import PackageVersionNumber, VersionTypeEnum
+from cumulusci.core.versions import PackageType, PackageVersionNumber, VersionTypeEnum
 from cumulusci.salesforce_api.package_zip import (
     BasePackageZipBuilder,
     MetadataPackageZipBuilder,
@@ -492,19 +492,27 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 "LIMIT 1"
             )
             if res["size"]:
-                return PackageVersionNumber(**res["records"][0])
+                return PackageVersionNumber(
+                    **res["records"][0], package_type=PackageType.SECOND_GEN
+                )
         elif version_base == "latest_github_release":
             # Get the version of the latest github release
             try:
+                # Because we are building a 2GP (which has an incrementable version number)
+                # but the latest package version may in fact be a 1GP, force this version number
+                # to be treated as a 2GP so we can increment it.
                 return PackageVersionNumber.parse(
-                    str(self.project_config.get_latest_version())
+                    str(self.project_config.get_latest_version()),
+                    package_type=PackageType.SECOND_GEN,
                 )
             except GithubException:
                 # handle case where there isn't a release yet
                 pass
         else:
-            return PackageVersionNumber.parse(version_base)
-        return PackageVersionNumber()
+            return PackageVersionNumber.parse(
+                version_base, package_type=PackageType.SECOND_GEN
+            )
+        return PackageVersionNumber(package_type=PackageType.SECOND_GEN)
 
     def _get_dependencies(self):
         """Resolve dependencies into SubscriberPackageVersionIds (04t prefix)"""

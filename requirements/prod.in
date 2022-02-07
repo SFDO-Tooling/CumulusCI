@@ -1,5 +1,4 @@
-click<8
-contextvars
+click
 cryptography
 python-dateutil
 docutils<0.17
@@ -22,12 +21,12 @@ robotframework
 robotframework-lint
 robotframework-pabot
 robotframework-requests
-robotframework-seleniumlibrary
+robotframework-seleniumlibrary<6
 rst2ansi
 salesforce-bulk
 sarge
 selenium<4
-simple-salesforce
-snowfakery
+simple-salesforce==1.11.4
+snowfakery==2.5.1.dev0
 SQLAlchemy
 xmltodict

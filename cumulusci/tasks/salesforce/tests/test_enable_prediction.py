@@ -1,7 +1,7 @@
 import pytest
 import responses
 
-from cumulusci.core.config.OrgConfig import OrgConfig
+from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.salesforce.enable_prediction import EnablePrediction
 from cumulusci.tests.util import DummyKeychain

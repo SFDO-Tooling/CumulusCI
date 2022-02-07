@@ -1,3 +1,10 @@
+"""
+Pydantic models for validating cumulusci.yml
+
+Note: If you change the model here, you should run `make schema`
+to update the JSON Schema version in cumulusci.jsonschema.json
+"""
+
 import enum
 from logging import getLogger
 from pathlib import Path
@@ -149,6 +156,7 @@ class ServiceAttribute(CCIDictModel):
     description: str = None
     required: bool = None
     default_factory: PythonClassPath = None
+    default: str = None
 
 
 class Service(CCIDictModel):

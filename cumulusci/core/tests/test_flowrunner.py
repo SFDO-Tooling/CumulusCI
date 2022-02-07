@@ -86,11 +86,9 @@ class FullParseTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCas
                 flow_config = self.project_config.get_flow(flow_name)
                 flow = FlowCoordinator(self.project_config, flow_config, name=flow_name)
             except Exception as exc:
-                self.fail("Error creating flow {}: {}".format(flow_name, str(exc)))
-            self.assertIsNotNone(
-                flow.steps, "Flow {} parsed to no steps".format(flow_name)
-            )
-            print("Parsed flow {} as {} steps".format(flow_name, len(flow.steps)))
+                self.fail(f"Error creating flow {flow_name}: {str(exc)}")
+            self.assertIsNotNone(flow.steps, f"Flow {flow_name} parsed to no steps")
+            print(f"Parsed flow {flow_name} as {len(flow.steps)} steps")
 
 
 class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
@@ -279,11 +277,6 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest, unittest.TestCase):
         flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config)
         self.assertEqual("bar", flow.steps[0].task_config["options"]["foo"])
-
-    def test_init_ambiguous_step(self):
-        flow_config = FlowConfig({"steps": {1: {"task": "None", "flow": "None"}}})
-        with self.assertRaises(FlowConfigError):
-            FlowCoordinator(self.project_config, flow_config, name="test")
 
     def test_init__bad_classpath(self):
         self.project_config.config["tasks"] = {
@@ -659,7 +652,46 @@ class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest, unittest.TestCas
         )
         # Make sure task result got cached
         key = ("log", (("level", "info"), ("line", "plan")))
-        assert key in flow._task_cache.results
+        assert key in flow._task_caches[flow.project_config].results
+
+    def test_run__cross_project_preflights(self):
+        other_project_config = mock.MagicMock()
+        other_project_config.source.__str__.return_value = "other source"
+        other_project_config.tasks = {
+            "foo": {
+                "class_path": "cumulusci.tasks.util.LogLine",
+                "options": {"level": "info", "line": "test"},
+            }
+        }
+        flow = PreflightFlowCoordinator.from_steps(
+            self.project_config,
+            [
+                StepSpec(
+                    "1/1",
+                    "other:test1",
+                    {
+                        "checks": [{"when": "not tasks.foo()", "action": "error"}],
+                    },
+                    None,
+                    other_project_config,
+                    from_flow="test",
+                ),
+                StepSpec(
+                    "1/2", "test2", {}, None, self.project_config, from_flow="test"
+                ),
+            ],
+        )
+        flow.run(self.org_config)
+        key = ("foo", ())
+        assert key in flow._task_caches[other_project_config].results
+        # log doesn't return anything => None is falsy => preflight is True
+        # which results in the action taking place (error)
+        self.assertDictEqual(
+            {
+                "1/1": [{"status": "error", "message": None}],
+            },
+            flow.preflight_results,
+        )
 
 
 @pytest.fixture

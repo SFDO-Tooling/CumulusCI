@@ -97,7 +97,4 @@ NewModal - Modal errors
     Click modal button  Save
     capture page screenshot
     ${api}=   Get latest API version
-    Run keyword if  int(float($api)) >= 51
-    ...  Modal should show edit error for fields   Name
-    ...  ELSE
-    ...  Modal should contain errors    These required fields must be completed: Last Name
+    Modal should show edit error for fields   Name
