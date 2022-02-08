@@ -8,6 +8,7 @@ from collections import defaultdict
 import click
 import pkg_resources
 import requests
+from rich.console import Console
 
 from cumulusci import __version__
 from cumulusci.core.config import UniversalConfig
@@ -15,6 +16,11 @@ from cumulusci.utils import get_cci_upgrade_command
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 LOWEST_SUPPORTED_VERSION = (3, 8, 0)
+WIN_LONG_PATH_WARNING = """
+WARNING: Long path support is not enabled. This can lead to errors with some
+tasks. Your administrator will need to activate the "Enable Win32 long paths"
+group policy, or set LongPathsEnabled to 1 in the registry key
+HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem."""
 
 
 def group_items(items):
@@ -106,3 +112,29 @@ def check_latest_version():
 def get_installed_version():
     """returns the version name (e.g. 2.0.0b58) that is installed"""
     return pkg_resources.parse_version(__version__)
+
+
+def win32_long_paths_enabled() -> bool:
+    """Boolean indicating whether long paths are available on Windows systems.
+
+    Reads the Windows Registry the running platform. Throws ModuleNotFoundError
+    if run on non-Windows platforms.
+    """
+    # Only present on windows, so import it here instead
+    import winreg
+
+    access_registry = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
+    access_key = winreg.OpenKey(
+        access_registry, r"SYSTEM\CurrentControlSet\Control\FileSystem"
+    )
+
+    is_enabled, _ = winreg.QueryValueEx(access_key, "LongPathsEnabled")
+
+    return is_enabled == 1
+
+
+def warn_if_no_long_paths(console: Console = Console()) -> None:
+    """Print a warning to the user if long paths are not enabled."""
+    print("foo")
+    if sys.platform.startswith("win") and not win32_long_paths_enabled():
+        console.print(WIN_LONG_PATH_WARNING)

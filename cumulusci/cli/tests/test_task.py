@@ -110,6 +110,17 @@ def test_task_run__list_commands(runtime):
     assert commands == ["dummy-derived-task", "dummy-task"]
 
 
+@patch("cumulusci.cli.task.warn_if_no_long_paths")
+def test_task_run__longpath(warn_if, runtime):
+    DummyTask._run_task = Mock()
+    multi_cmd = task.RunTaskCommand()
+    with click.Context(multi_cmd, obj=runtime) as ctx:
+        cmd = multi_cmd.get_command(ctx, "dummy-task")
+        cmd.callback(runtime, "dummy-task", color="blue")
+
+    warn_if.assert_called_once()
+
+
 def test_format_help(runtime):
     runtime.universal_config = Mock()
     multi_cmd = task.RunTaskCommand()

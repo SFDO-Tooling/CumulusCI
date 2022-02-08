@@ -12,7 +12,7 @@ from cumulusci.utils import doc_task
 
 from .runtime import pass_runtime
 from .ui import CliTable
-from .utils import group_items
+from .utils import group_items, warn_if_no_long_paths
 
 
 @click.group("task", help="Commands for finding and running tasks for a project")
@@ -155,6 +155,9 @@ class RunTaskCommand(click.MultiCommand):
             org, org_config = runtime.get_org(
                 kwargs.pop("org", None), fail_if_missing=False
             )
+
+            # Warn Windows users if long paths are not enabled
+            warn_if_no_long_paths()
 
             # Merge old-style and new-style command line options
             old_options = kwargs.pop("o", ())

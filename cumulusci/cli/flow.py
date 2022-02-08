@@ -12,7 +12,7 @@ from cumulusci.utils.yaml.safer_loader import load_yaml_data
 
 from .runtime import pass_runtime
 from .ui import CliTable
-from .utils import group_items
+from .utils import group_items, warn_if_no_long_paths
 
 
 @click.group("flow", help="Commands for finding and running flows for a project")
@@ -143,6 +143,9 @@ def flow_info(runtime, flow_name):
 )
 @pass_runtime(require_keychain=True)
 def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
+
+    # Warn Windows user if long paths are not enabled
+    warn_if_no_long_paths()
 
     # Get necessary configs
     org, org_config = runtime.get_org(org)
