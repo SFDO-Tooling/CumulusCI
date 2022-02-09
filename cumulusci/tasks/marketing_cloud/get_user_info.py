@@ -2,10 +2,8 @@ import json
 
 import requests
 
-from cumulusci.utils.http.requests_utils import safe_json_from_response
-
 from .base import BaseMarketingCloudTask
-from .mc_constants import MC_API_VERSION
+from .util import get_mc_user_info
 
 
 class GetUserInfoTask(BaseMarketingCloudTask):
@@ -13,21 +11,15 @@ class GetUserInfoTask(BaseMarketingCloudTask):
     Sanitizes and returns the payload in self.return_values."""
 
     def _run_task(self):
-        endpoint = f"https://{self.mc_config.tssd}.auth.marketingcloudapis.com/{MC_API_VERSION}/userinfo"
-        headers = {
-            "Authorization": f"Bearer {self.mc_config.access_token}",
-            "Content-Type": "application/json",
-        }
         try:
-            response = requests.get(endpoint, headers=headers)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError:
-            self.logger.error(f"Exception occurred fetching user info: {response.text}")
+            payload = get_mc_user_info(self.mc_config.tssd, self.mc_config.access_token)
+        except requests.exceptions.HTTPError as e:
+            self.logger.error(
+                f"Exception occurred fetching user info: {e.response.text}"
+            )
             raise
 
-        payload = safe_json_from_response(response)
         payload = self._sanitize_payload(payload)
-
         self.logger.info("Successfully fetched user info.")
         self.logger.info(json.dumps(payload, indent=4))
 

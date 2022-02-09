@@ -13,7 +13,11 @@ from cumulusci.tasks.marketing_cloud.deploy import (
     MCPM_ENDPOINT,
     MarketingCloudDeployTask,
 )
+from cumulusci.tasks.marketing_cloud.mc_constants import MC_API_VERSION
 from cumulusci.utils import temporary_dir
+
+TEST_TSSD = "asdf-qwerty"
+STACK_KEY = "S4"
 
 
 @pytest.fixture
@@ -32,7 +36,7 @@ def task(project_config):
     )
     task.mc_config = mock.Mock()
     task.mc_config.access_token = "foo"
-    task.mc_config.tssd = "bar"
+    task.mc_config.tssd = TEST_TSSD
     return task
 
 
@@ -52,21 +56,31 @@ def task_without_custom_inputs(project_config):
     )
     task.mc_config = mock.Mock()
     task.mc_config.access_token = "foo"
-    task.mc_config.tssd = "bar"
+    task.mc_config.tssd = TEST_TSSD
     return task
 
 
+@pytest.fixture
+def mocked_responses():
+    with responses.RequestsMock() as rsps:
+        rsps.add(
+            "GET",
+            f"https://{TEST_TSSD}.auth.marketingcloudapis.com/{MC_API_VERSION}/userinfo",
+            json={"organization": {"stack_key": STACK_KEY}},
+        )
+        yield rsps
+
+
 class TestMarketingCloudDeployTask:
-    @responses.activate
-    def test_run_task__deploy_succeeds_with_custom_inputs(self, task):
-        responses.add(
+    def test_run_task__deploy_succeeds_with_custom_inputs(self, task, mocked_responses):
+        mocked_responses.add(
             "POST",
-            f"{MCPM_ENDPOINT}/deployments",
+            f"{MCPM_ENDPOINT.format(STACK_KEY)}/deployments",
             json={"id": "JOBID", "status": "IN_PROGRESS"},
         )
-        responses.add(
+        mocked_responses.add(
             "GET",
-            f"{MCPM_ENDPOINT}/deployments/JOBID",
+            f"{MCPM_ENDPOINT.format(STACK_KEY)}/deployments/JOBID",
             json={"status": "DONE", "entities": {}},
         )
 
@@ -76,18 +90,17 @@ class TestMarketingCloudDeployTask:
         assert task.logger.error.call_count == 0
         assert task.logger.warn.call_count == 0
 
-    @responses.activate
     def test_run_task__deploy_succeeds_without_custom_inputs(
-        self, task_without_custom_inputs
+        self, task_without_custom_inputs, mocked_responses
     ):
-        responses.add(
+        mocked_responses.add(
             "POST",
-            f"{MCPM_ENDPOINT}/deployments",
+            f"{MCPM_ENDPOINT.format(STACK_KEY)}/deployments",
             json={"id": "JOBID", "status": "IN_PROGRESS"},
         )
-        responses.add(
+        mocked_responses.add(
             "GET",
-            f"{MCPM_ENDPOINT}/deployments/JOBID",
+            f"{MCPM_ENDPOINT.format(STACK_KEY)}/deployments/JOBID",
             json={"status": "DONE", "entities": {}},
         )
         task = task_without_custom_inputs
@@ -97,16 +110,15 @@ class TestMarketingCloudDeployTask:
         assert task.logger.error.call_count == 0
         assert task.logger.warn.call_count == 0
 
-    @responses.activate
-    def test_run_task__deploy_fails(self, task):
-        responses.add(
+    def test_run_task__deploy_fails(self, task, mocked_responses):
+        mocked_responses.add(
             "POST",
-            f"{MCPM_ENDPOINT}/deployments",
+            f"{MCPM_ENDPOINT.format(STACK_KEY)}/deployments",
             json={"id": "JOBID", "status": "IN_PROGRESS"},
         )
-        responses.add(
+        mocked_responses.add(
             "GET",
-            f"{MCPM_ENDPOINT}/deployments/JOBID",
+            f"{MCPM_ENDPOINT.format(STACK_KEY)}/deployments/JOBID",
             json={
                 "status": "DONE",
                 "entities": {
@@ -132,16 +144,15 @@ class TestMarketingCloudDeployTask:
             == "Failed to deploy assets/1. Status: SKIPPED. Issues: ['A problem occurred']"
         )
 
-    @responses.activate
-    def test_run_task__FATAL_ERROR_result(self, task):
-        responses.add(
+    def test_run_task__FATAL_ERROR_result(self, task, mocked_responses):
+        mocked_responses.add(
             "POST",
-            f"{MCPM_ENDPOINT}/deployments",
+            f"{MCPM_ENDPOINT.format(STACK_KEY)}/deployments",
             json={"id": "JOBID", "status": "FATAL_ERROR"},
         )
-        responses.add(
+        mocked_responses.add(
             "GET",
-            f"{MCPM_ENDPOINT}/deployments/JOBID",
+            f"{MCPM_ENDPOINT.format(STACK_KEY)}/deployments/JOBID",
             json={
                 "status": "FATAL_ERROR",
                 "entities": {},
