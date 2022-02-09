@@ -12,8 +12,9 @@ from cumulusci.utils import temporary_dir
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 from .base import BaseMarketingCloudTask
+from .util import get_mc_stack_key
 
-MCPM_ENDPOINT = "https://mc-package-manager.herokuapp.com/api"
+MCPM_ENDPOINT = "https://spf.{}.marketingcloudapps.com/api"
 
 PAYLOAD_CONFIG_VALUES = {"preserveCategories": True}
 
@@ -57,8 +58,6 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         )
 
     def _run_task(self):
-        self.endpoint = self.options.get("endpoint") or MCPM_ENDPOINT
-
         pkg_zip_file = Path(self.options["package_zip_file"])
         if not pkg_zip_file.is_file():
             self.logger.error(f"Package zip file not valid: {pkg_zip_file.name}")
@@ -73,12 +72,17 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             "Authorization": f"Bearer {self.mc_config.access_token}",
             "SFMC-TSSD": self.mc_config.tssd,
         }
+        stack_key = get_mc_stack_key(self.mc_config.tssd, self.mc_config.access_token)
+        self.endpoint = self.options.get("endpoint") or MCPM_ENDPOINT.format(stack_key)
+
+        self.logger.info(f"Deploying package to: {self.endpoint}/deployments")
         response = requests.post(
             f"{self.endpoint}/deployments",
             json=payload,
             headers=self.headers,
         )
         result = safe_json_from_response(response)
+
         self.job_id = result["id"]
         self.logger.info(f"Started job {self.job_id}")
         self._poll()
