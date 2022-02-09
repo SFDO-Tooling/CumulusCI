@@ -72,8 +72,14 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             "Authorization": f"Bearer {self.mc_config.access_token}",
             "SFMC-TSSD": self.mc_config.tssd,
         }
-        stack_key = get_mc_stack_key(self.mc_config.tssd, self.mc_config.access_token)
-        self.endpoint = self.options.get("endpoint") or MCPM_ENDPOINT.format(stack_key)
+        custom_endpoint = self.options.get("endpoint")
+        self.endpoint = (
+            custom_endpoint
+            if custom_endpoint
+            else MCPM_ENDPOINT.format(
+                get_mc_stack_key(self.mc_config.tssd, self.mc_config.access_token)
+            )
+        )
 
         self.logger.info(f"Deploying package to: {self.endpoint}/deployments")
         response = requests.post(
