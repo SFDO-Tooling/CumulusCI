@@ -12,7 +12,6 @@ from cumulusci.utils import temporary_dir
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 from .base import BaseMarketingCloudTask
-from .util import get_mc_stack_key
 
 MCPM_ENDPOINT = "https://spf.{}.marketingcloudapps.com/api"
 
@@ -76,9 +75,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         self.endpoint = (
             custom_endpoint
             if custom_endpoint
-            else MCPM_ENDPOINT.format(
-                get_mc_stack_key(self.mc_config.tssd, self.mc_config.access_token)
-            )
+            else MCPM_ENDPOINT.format(self.get_mc_stack_key())
         )
 
         self.logger.info(f"Deploying package to: {self.endpoint}/deployments")
