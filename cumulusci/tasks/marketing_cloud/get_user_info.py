@@ -12,7 +12,7 @@ class GetUserInfoTask(BaseMarketingCloudTask):
 
     def _run_task(self):
         try:
-            payload = get_mc_user_info(self.mc_config.tssd, self.mc_config.access_token)
+            payload = get_mc_user_info(self.mc_oauth2_client_config, self.mc_config)
         except requests.exceptions.HTTPError as e:
             self.logger.error(
                 f"Exception occurred fetching user info: {e.response.text}"
@@ -26,7 +26,7 @@ class GetUserInfoTask(BaseMarketingCloudTask):
         self.return_values = payload
 
     def _sanitize_payload(self, payload: dict) -> dict:
-        """Removes any sensitive or non-pertinent informaiton from the payload.
+        """Removes any sensitive or non-pertinent information from the payload.
         This currently includes the following top-level portions of the response:
         (1) rest
         (2) application
