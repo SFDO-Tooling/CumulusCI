@@ -135,6 +135,5 @@ def win32_long_paths_enabled() -> bool:
 
 def warn_if_no_long_paths(console: Console = Console()) -> None:
     """Print a warning to the user if long paths are not enabled."""
-    print("foo")
     if sys.platform.startswith("win") and not win32_long_paths_enabled():
         console.print(WIN_LONG_PATH_WARNING)
