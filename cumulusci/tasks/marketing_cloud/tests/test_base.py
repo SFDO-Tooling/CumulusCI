@@ -11,4 +11,5 @@ class TestBaseMarketingCloudTask:
         task = BaseMarketingCloudTask(project_config, task_config)
         task._init_task()
 
-        project_config.keychain.get_service.assert_called_once_with("marketing_cloud")
+        assert task.mc_config is not None
+        assert task.mc_oauth2_client_config is not None
