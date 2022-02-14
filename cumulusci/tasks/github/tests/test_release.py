@@ -52,7 +52,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/git/refs/tags/release/1.0",
+            url=self.repo_api_url + "/git/ref/tags/release/1.0",
             status=404,
         )
         responses.add(
@@ -194,7 +194,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/git/refs/tags/custom/1.0",
+            url=self.repo_api_url + "/git/ref/tags/custom/1.0",
             status=404,
         )
         responses.add(
@@ -263,7 +263,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/git/refs/tags/beta/1.0-Beta_1",
+            url=self.repo_api_url + "/git/ref/tags/beta/1.0-Beta_1",
             status=404,
         )
         responses.add(
@@ -333,7 +333,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/git/refs/tags/beta/1.1",
+            url=self.repo_api_url + "/git/ref/tags/beta/1.1",
             status=404,
         )
         responses.add(
