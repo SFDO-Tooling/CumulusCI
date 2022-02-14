@@ -245,7 +245,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
         )
         responses.add(  # query for ref to tag
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.113-Beta_1",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/beta/1.113-Beta_1",
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=200,
         )
@@ -288,7 +288,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
         )
         responses.add(  # query for ref to tag
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.113-Beta_1",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/beta/1.113-Beta_1",
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=200,
         )
@@ -334,7 +334,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
         )
         responses.add(  # query for ref to tag
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.113-Beta_1",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/beta/1.113-Beta_1",
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=200,
         )
