@@ -3,8 +3,9 @@ import shutil
 import time
 import typing as T
 from collections import defaultdict
-from multiprocessing import Manager
+from multiprocessing import SimpleQueue
 from pathlib import Path
+from queue import Empty
 
 import cumulusci.core.exceptions as exc
 from cumulusci.core.config import OrgConfig
@@ -48,7 +49,7 @@ class SnowfakeryChannelManager:
         # Manager-based queues are more reliable in their timing
         # than multiprocessing queues.
         # https://stackoverflow.com/a/45236748/113477
-        self.results_reporter = Manager().Queue()
+        self.results_reporter = SimpleQueue()
         self.channels = []
         self.project_config = project_config
         self.logger = logger
@@ -164,7 +165,10 @@ class SnowfakeryChannelManager:
         return all([channel.check_finished() for channel in self.channels])
 
     def get_results_report(self, block=False):
-        return self.results_reporter.get(block=block)
+        if self.results_reporter.empty():
+            raise Empty
+        else:
+            return self.results_reporter.get()
 
 
 class Channel:

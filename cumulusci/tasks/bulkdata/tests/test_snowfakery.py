@@ -474,7 +474,8 @@ class TestSnowfakery:
             task()
         assert "Using 11 workers" in str(logger.mock_calls)
 
-    def test_record_count(self, snowfakery, mock_load_data):
+    @pytest.mark.parametrize("execution_number", range(50))
+    def test_record_count(self, snowfakery, mock_load_data, execution_number):
         task = snowfakery(recipe="datasets/recipe.yml", run_until_recipe_repeated="4")
         with mock.patch.object(task, "logger") as logger, mock.patch.object(
             task.project_config, "keychain", DummyKeychain()
@@ -638,8 +639,11 @@ class TestSnowfakery:
             record_counts = get_record_counts_from_snowfakery_results(results)
         assert record_counts["Account"] == 7, record_counts["Account"]
 
+    @pytest.mark.parametrize("execution_number", range(50))
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
-    def test_multi_part_uniqueness(self, mock_load_data, create_task_fixture):
+    def test_multi_part_uniqueness(
+        self, mock_load_data, create_task_fixture, execution_number
+    ):
         task = create_task_fixture(
             Snowfakery,
             {
