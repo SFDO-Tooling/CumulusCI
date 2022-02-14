@@ -34,9 +34,7 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Install dependencies
-              run: |
-                  python -m pip install -U pip
-                  make dev-install
+              run: make dev-install
             - name: Build Docs
               run: make docs
 
@@ -57,9 +55,7 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Install
-              run: |
-                  python -m pip install -U pip
-                  make dev-install
+              run: make dev-install
             - run: |
                   coverage run $(which pytest)
                   coveralls
@@ -76,9 +72,7 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Install Python dependencies
-              run: |
-                  python -m pip install -U pip
-                  make dev-install
+              run: make dev-install
             - name: Install sfdx
               run: |
                   mkdir sfdx
@@ -125,9 +119,7 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Install Python dependencies
-              run: |
-                  python -m pip install -U pip
-                  make dev-install
+              run: make dev-install
             - name: Install sfdx
               run: |
                   mkdir sfdx
@@ -174,9 +166,7 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Install Python dependencies
-              run: |
-                  python -m pip install -U pip
-                  make dev-install
+              run: make dev-install
             - name: Install sfdx
               run: |
                   mkdir sfdx
@@ -223,9 +213,7 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Install Python dependencies
-              run: |
-                  python -m pip install -U pip
-                  make dev-install
+              run: make dev-install
             - name: Install sfdx
               run: |
                   mkdir sfdx
