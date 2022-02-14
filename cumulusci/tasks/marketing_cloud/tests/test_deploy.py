@@ -7,7 +7,10 @@ from unittest import mock
 import pytest
 import responses
 
-from cumulusci.core.config import ServiceConfig, TaskConfig
+from cumulusci.core.config import TaskConfig
+from cumulusci.core.config.marketing_cloud_service_config import (
+    MarketingCloudServiceConfig,
+)
 from cumulusci.core.exceptions import DeploymentException
 from cumulusci.tasks.marketing_cloud.deploy import (
     MCPM_ENDPOINT,
@@ -34,11 +37,13 @@ def task(project_config):
             }
         ),
     )
-    task.mc_config = mock.Mock()
-    task.mc_config.access_token = "foo"
-    task.mc_config.tssd = TEST_TSSD
-    task.mc_oauth2_client_config = ServiceConfig(
-        {"auth_uri": "https://TSSD.auth.marketingcloudapis.com/v2/authorize"}
+    task.mc_config = MarketingCloudServiceConfig(
+        {
+            "rest_instance_url": f"https://{TEST_TSSD}.rest.marketingcloudapis.com/",
+            "access_token": "foo",
+        },
+        "mc",
+        None,
     )
     return task
 
@@ -57,11 +62,13 @@ def task_without_custom_inputs(project_config):
             }
         ),
     )
-    task.mc_config = mock.Mock()
-    task.mc_config.access_token = "foo"
-    task.mc_config.tssd = TEST_TSSD
-    task.mc_oauth2_client_config = ServiceConfig(
-        {"auth_uri": "https://TSSD.auth.marketingcloudapis.com/v2/authorize"}
+    task.mc_config = MarketingCloudServiceConfig(
+        {
+            "rest_instance_url": f"https://{TEST_TSSD}.rest.marketingcloudapis.com/",
+            "access_token": "foo",
+        },
+        "mc",
+        None,
     )
     return task
 

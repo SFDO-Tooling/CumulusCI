@@ -12,4 +12,3 @@ class TestBaseMarketingCloudTask:
         task._init_task()
 
         assert task.mc_config is not None
-        assert task.mc_oauth2_client_config is not None

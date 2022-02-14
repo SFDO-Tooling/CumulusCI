@@ -1,5 +1,4 @@
 from cumulusci.core.tasks import BaseTask
-from cumulusci.tasks.marketing_cloud.util import get_mc_user_info
 from cumulusci.utils.xml import lxml_parse_string
 
 
@@ -17,9 +16,6 @@ class BaseMarketingCloudTask(BaseTask):
     def _init_task(self):
         super()._init_task()
         self.mc_config = self.project_config.keychain.get_service("marketing_cloud")
-        self.mc_oauth2_client_config = self.project_config.keychain.get_service(
-            "oauth2_client", self.mc_config.oauth2_client
-        )
 
     def _check_soap_response(self, response):
         """Make sure the response indicates success."""
@@ -38,7 +34,5 @@ class BaseMarketingCloudTask(BaseTask):
 
     def get_mc_stack_key(self) -> str:
         """Return the stack_key associated with this tasks's marketing_cloud service"""
-        user_info_payload = get_mc_user_info(
-            self.mc_oauth2_client_config, self.mc_config
-        )
+        user_info_payload = self.mc_config.get_user_info()
         return user_info_payload["organization"]["stack_key"]
