@@ -70,7 +70,7 @@ class WorkerQueue:
         # convenience access to names
         self._create_dirs()
         self.workers = []
-        self.results_reporter = results_reporter or self.context.Queue()
+        self.results_reporter = results_reporter
 
     def __getattr__(self, name):
         """Convenience proxy for config values

@@ -3,6 +3,7 @@ import shutil
 import time
 import typing as T
 from collections import defaultdict
+from multiprocessing import Manager
 from pathlib import Path
 
 import cumulusci.core.exceptions as exc
@@ -44,7 +45,10 @@ class SnowfakeryChannelManager:
         project_config,
         logger,
     ):
-        self.results_reporter = WorkerQueue.context.Queue()
+        # Manager-based queues are more reliable in their timing
+        # than multiprocessing queues.
+        # https://stackoverflow.com/a/45236748/113477
+        self.results_reporter = Manager().Queue()
         self.channels = []
         self.project_config = project_config
         self.logger = logger
