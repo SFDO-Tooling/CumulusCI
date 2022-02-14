@@ -109,9 +109,9 @@ update-deps:
 	pip-compile --upgrade requirements/dev.in
 
 dev-install:
-	pip install --upgrade pip pip-tools setuptools
+	python -m pip install --upgrade pip pip-tools setuptools
 	pip-sync requirements/*.txt
-	pip install -e .
+	python -m pip install -e .
 
 schema:
 	python -c 'from cumulusci.utils.yaml import cumulusci_yml; open("cumulusci/schema/cumulusci.jsonschema.json", "w").write(cumulusci_yml.CumulusCIRoot.schema_json(indent=4))'
