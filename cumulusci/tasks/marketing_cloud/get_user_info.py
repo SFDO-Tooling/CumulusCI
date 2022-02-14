@@ -3,7 +3,6 @@ import json
 import requests
 
 from .base import BaseMarketingCloudTask
-from .util import get_mc_user_info
 
 
 class GetUserInfoTask(BaseMarketingCloudTask):
@@ -12,7 +11,7 @@ class GetUserInfoTask(BaseMarketingCloudTask):
 
     def _run_task(self):
         try:
-            payload = get_mc_user_info(self.mc_oauth2_client_config, self.mc_config)
+            payload = self.mc_config.get_user_info()
         except requests.exceptions.HTTPError as e:
             self.logger.error(
                 f"Exception occurred fetching user info: {e.response.text}"
