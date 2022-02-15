@@ -5,9 +5,8 @@
 import logging
 import shutil
 import typing as T
-from multiprocessing import get_context
+from multiprocessing import Queue, get_context
 from pathlib import Path
-from queue import Queue
 from tempfile import gettempdir
 from threading import Thread
 

@@ -1,4 +1,4 @@
-import queue
+import multiprocessing
 import random
 import shutil
 import time
@@ -50,7 +50,7 @@ class SnowfakeryChannelManager:
         #
         # Snowfakery runs its loader in threads, so queue.Queue()
         # works.
-        self.results_reporter = queue.Queue()
+        self.results_reporter = multiprocessing.Manager().Queue()
         self.channels = []
         self.project_config = project_config
         self.logger = logger
