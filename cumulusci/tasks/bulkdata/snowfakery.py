@@ -397,7 +397,17 @@ class Snowfakery(BaseSalesforceApiTask):
         return upload_status
 
     def update_running_totals(self) -> None:
-        """Read and collate result reports from sub-processes/sub-threads"""
+        """Read and collate result reports from sub-processes/sub-threads
+
+        This is a realtime reporting channel which could, in theory, be updated
+        before sub-tasks finish. Currently no sub-tasks are coded to do that.
+
+        The logical next step is to allow LoadData to monitor steps one by
+        one or even batches one by one.
+
+        Note that until we implement that, we are paying the complexity
+        cost of a real-time channel but not getting the benefits of it.
+        """
         while True:
             try:
                 results = self.queue_manager.get_results_report()

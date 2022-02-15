@@ -45,11 +45,18 @@ class SnowfakeryChannelManager:
         project_config,
         logger,
     ):
-        # be careful to use a Queue class appropriate to
+        # Look at the docstring on get_results_report to understand
+        # what this queue is for.
+        #
+        # Be careful to use a Queue class appropriate to
         # the spawn type (thread, process) you're using.
         #
         # Snowfakery runs its loader in threads, so queue.Queue()
         # works.
+        #
+        # multiprocessing.Manager().Queue() also seems to work,
+        # and work across processes, (PR #3080) but it's dramatically
+        # slower. See attachment to PR #3076
         self.results_reporter = queue.Queue()
         self.channels = []
         self.project_config = project_config
@@ -166,6 +173,15 @@ class SnowfakeryChannelManager:
         return all([channel.check_finished() for channel in self.channels])
 
     def get_results_report(self, block=False):
+        """
+        This is a realtime reporting channel which could, in theory, be updated
+        before sub-tasks finish. Currently no sub-tasks are coded to do that.
+
+        The logical next step is to allow LoadData to monitor steps one by
+        one or even batches one by one.
+
+        Note that until we implement that, we are paying the complexity
+        cost of a real-time channel but not getting the benefits of it."""
         return self.results_reporter.get(block=block)
 
 
@@ -224,6 +240,12 @@ class Channel:
             queue_size=0,
             num_workers=self.num_generator_workers,
         )
+        # datagen queues do not get a result reporter because
+        # a) we are less curious about how many records have
+        #    been generated than we aare about how many are loaded
+        # b) finding a queue type which is not prone to race conditions
+        #    or perf slowdowns with "Process" task types (sub-processes)
+        # is a challenge.
         self.data_gen_q = WorkerQueue(data_gen_q_config)
 
         load_data_q_config = WorkerQueueConfig(
