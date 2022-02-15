@@ -2,11 +2,10 @@
    that represent the same "step" in a pipeline.
    """
 
-
 import logging
 import shutil
 import typing as T
-from multiprocessing import Queue, get_context
+from multiprocessing import Manager, Queue, get_context
 from pathlib import Path
 from tempfile import gettempdir
 from threading import Thread
@@ -70,7 +69,7 @@ class WorkerQueue:
         # convenience access to names
         self._create_dirs()
         self.workers = []
-        self.results_reporter = results_reporter or self.context.Queue()
+        self.results_reporter = results_reporter or Manager().Queue()
 
     def __getattr__(self, name):
         """Convenience proxy for config values
@@ -225,10 +224,37 @@ class WorkerQueue:
         """Things are moved from place to place in the 'tick'.
         The tick runs in the parent/controller/original process
         so there are no threading/locking issues."""
+
         self.workers = [w for w in self.workers if w.is_alive()]
+        _move_finished_jobs_to_next_place(self.workers, self.inprogress_job_dirs)
 
         for idx, job_dir in zip(range(self.num_free_workers), self.queued_job_dirs):
-            logger.info(f"Starting job {job_dir}")
+            logger.info(f"Starting job {idx} : {job_dir}")
             self._start_job(job_dir)
         if self.next_queue:
             self.next_queue.tick()
+
+
+def _move_finished_jobs_to_next_place(live_workers, inprogress_job_dirs):
+    """Move finished jobs to their next stage.
+
+    For example, a data generator job might move to loading.
+    A failed load might move to "failed".
+
+    The job said where it wants to go in a file called "next_dir.txt"
+    and we move them in the single-threaded
+    controller process to avoid race conditions.
+    """
+
+    # we do not want to move processes that are still running
+    # because they may have open file handles
+    still_active_directories = set(w.worker_config.working_dir for w in live_workers)
+
+    for working_dir in inprogress_job_dirs:
+        next_dir_file = working_dir / "next_dir.txt"
+        if next_dir_file.exists() and working_dir not in still_active_directories:
+            next_dir_name = next_dir_file.read_text().strip()
+            # delete the next_dir file before we move it, because
+            # it won't be a "next" dir anymore.
+            next_dir_file.unlink()
+            shutil.move(str(working_dir), str(next_dir_name))

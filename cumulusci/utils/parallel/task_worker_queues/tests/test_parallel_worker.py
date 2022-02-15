@@ -12,7 +12,6 @@ from cumulusci.tasks.util import Sleep
 from cumulusci.utils.parallel.task_worker_queues.parallel_worker import (
     ParallelWorker,
     SubprocessKeyChain,
-    TaskWorker,
     WorkerConfig,
 )
 from cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue import (
@@ -311,27 +310,6 @@ class TestParallelWorker:
             worker.start()
             worker.terminate()
             assert "Alive: False" in repr(worker)
-
-
-class TestTaskWorker:
-    def test_worker__cannot_move_to_outdir(self):
-        with TemporaryDirectory() as failures_dir, TemporaryDirectory() as outbox_dir, TemporaryDirectory() as working_dir:
-            config = WorkerConfig(
-                project_config=dummy_project_config,
-                org_config=dummy_org_config,
-                connected_app=None,
-                redirect_logging=True,
-                task_class=Sleep,
-                task_options={"seconds": 0},
-                failures_dir=failures_dir,
-                outbox_dir=outbox_dir,
-                working_dir=working_dir,
-            )
-            p = TaskWorker(config.as_dict(), None)
-            with mock.patch("shutil.move", side_effect=AssertionError):
-                with pytest.raises(AssertionError):
-                    p.run()
-            assert Path(working_dir, "exception.txt").exists()
 
 
 # Frankly these tests are primarily for coverage-counting purposes.
