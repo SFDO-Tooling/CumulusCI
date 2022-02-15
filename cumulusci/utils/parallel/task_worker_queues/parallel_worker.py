@@ -1,6 +1,5 @@
 import json
 import logging
-import shutil
 import typing as T
 from contextlib import contextmanager
 from multiprocessing import Queue
@@ -135,6 +134,7 @@ class TaskWorker:
                 self.subtask()
                 logger.info(str(self.subtask.return_values))
                 logger.info("SubTask Success!")
+                self.ask_to_be_moved(self.outbox_dir)
                 self.results_reporter.put(
                     {
                         "status": "success",
@@ -147,16 +147,15 @@ class TaskWorker:
                 self.save_exception(e)
                 self.failures_dir.mkdir(exist_ok=True)
                 logfile.close()
-                shutil.move(str(self.working_dir), str(self.failures_dir))
+                self.ask_to_be_moved(self.failures_dir)
+
                 self.results_reporter.put({"status": "error", "error": str(e)})
                 raise
 
-        try:
-            self.outbox_dir.mkdir(exist_ok=True)
-            shutil.move(str(self.working_dir), str(self.outbox_dir))
-        except BaseException as e:
-            self.save_exception(e)
-            raise
+    def ask_to_be_moved(self, to: Path):
+        """Ask the overall controlling process to move this job's data"""
+        move_request_file = self.working_dir / "next_dir.txt"
+        move_request_file.write_text(str(to))
 
     @contextmanager
     def make_logger(self):
