@@ -403,7 +403,7 @@ class Snowfakery(BaseSalesforceApiTask):
                 results = self.queue_manager.get_results_report()
             except Empty:
                 break
-            if "results" in results:
+            if "results" in results and "step_results" in results["results"]:
                 self.update_running_totals_from_load_step_results(results["results"])
             elif "error" in results:
                 self.logger.warning(f"Error in load: {results}")

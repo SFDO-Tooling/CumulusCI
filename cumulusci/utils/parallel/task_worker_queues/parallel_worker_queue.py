@@ -2,12 +2,12 @@
    that represent the same "step" in a pipeline.
    """
 
-
 import logging
 import shutil
 import typing as T
-from multiprocessing import Queue, get_context
+from multiprocessing import get_context
 from pathlib import Path
+from queue import Queue
 from tempfile import gettempdir
 from threading import Thread
 
@@ -64,13 +64,17 @@ class WorkerQueue:
     def __init__(
         self,
         queue_config: WorkerQueueConfig,
+        # be careful to pass a Queue compatible with your spawn_type
+        # also, be VERY careful of race conditions.
+        # multiprocessing.Queue seems prone to delays that cause
+        # race conditions
         results_reporter: Queue = None,
     ):
         self.config = queue_config
         # convenience access to names
         self._create_dirs()
         self.workers = []
-        self.results_reporter = results_reporter or self.context.Queue()
+        self.results_reporter = results_reporter
 
     def __getattr__(self, name):
         """Convenience proxy for config values

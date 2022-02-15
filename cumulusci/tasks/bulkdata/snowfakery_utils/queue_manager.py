@@ -1,3 +1,4 @@
+import queue
 import random
 import shutil
 import time
@@ -44,7 +45,12 @@ class SnowfakeryChannelManager:
         project_config,
         logger,
     ):
-        self.results_reporter = WorkerQueue.context.Queue()
+        # be careful to use a Queue class appropriate to
+        # the spawn type (thread, process) you're using.
+        #
+        # Snowfakery runs its loader in threads, so queue.Queue()
+        # works.
+        self.results_reporter = queue.Queue()
         self.channels = []
         self.project_config = project_config
         self.logger = logger
