@@ -137,11 +137,13 @@ class TaskWorker:
                 logger.info("SubTask Success!")
                 if self.results_reporter:
                     self.results_reporter.put(
-                        {
-                            "status": "success",
-                            "results": self.subtask.return_values,
-                            "directory": str(self.working_dir),
-                        }
+                        json.dumps(
+                            {
+                                "status": "success",
+                                "results": self.subtask.return_values,
+                                "directory": str(self.working_dir),
+                            }
+                        )
                     )
             except BaseException as e:
                 logger.info(f"Failure detected: {e}")
@@ -150,7 +152,9 @@ class TaskWorker:
                 logfile.close()
                 shutil.move(str(self.working_dir), str(self.failures_dir))
                 if self.results_reporter:
-                    self.results_reporter.put({"status": "error", "error": str(e)})
+                    self.results_reporter.put(
+                        json.dumps({"status": "error", "error": str(e)})
+                    )
                 raise
 
         try:

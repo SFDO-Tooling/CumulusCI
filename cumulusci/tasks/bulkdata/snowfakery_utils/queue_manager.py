@@ -1,3 +1,4 @@
+import json
 import multiprocessing
 import random
 import shutil
@@ -166,7 +167,7 @@ class SnowfakeryChannelManager:
         return all([channel.check_finished() for channel in self.channels])
 
     def get_results_report(self, block=False):
-        return self.results_reporter.get(block=block)
+        return json.loads(self.results_reporter.get(block=block))
 
 
 class Channel:
