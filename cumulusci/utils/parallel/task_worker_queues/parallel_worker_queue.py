@@ -67,7 +67,7 @@ class WorkerQueue:
         # be careful to pass a Queue compatible with your spawn_type
         # also, be VERY careful of race conditions.
         # multiprocessing.Queue seems prone to delays that cause
-        # race conditions
+        # race conditions. See PR #3076 for more info.
         results_reporter: Queue = None,
     ):
         self.config = queue_config

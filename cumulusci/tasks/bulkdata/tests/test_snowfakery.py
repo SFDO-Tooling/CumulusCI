@@ -474,7 +474,7 @@ class TestSnowfakery:
             task()
         assert "Using 11 workers" in str(logger.mock_calls)
 
-    def test_record_count(self, snowfakery, mock_load_data, execution_number):
+    def test_record_count(self, snowfakery, mock_load_data):
         task = snowfakery(recipe="datasets/recipe.yml", run_until_recipe_repeated="4")
         with mock.patch.object(task, "logger") as logger, mock.patch.object(
             task.project_config, "keychain", DummyKeychain()
