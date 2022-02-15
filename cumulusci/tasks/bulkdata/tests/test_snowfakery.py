@@ -143,7 +143,6 @@ def db_values_from_db_url(database_url):
 @pytest.fixture
 def mock_load_data(
     request,
-    threads_instead_of_processes,  # mock patches wouldn't be inherited by child processs
 ):
 
     fake_load_data = FakeLoadData
@@ -289,7 +288,11 @@ def get_record_counts_from_snowfakery_results(
 
 
 @pytest.fixture()
-def run_snowfakery_and_yield_results(snowfakery, mock_load_data):
+def run_snowfakery_and_yield_results(
+    snowfakery,
+    mock_load_data,
+    threads_instead_of_processes,
+):
     @contextmanager
     def _run_snowfakery_and_inspect_mapping_and_example_records(**options):
         with TemporaryDirectory() as workingdir:
@@ -313,7 +316,9 @@ class TestSnowfakery:
     @mock.patch(
         "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
     )
-    def test_simple_snowfakery(self, Process, mock_load_data, create_task):
+    def test_simple_snowfakery(
+        self, Process, mock_load_data, create_task, threads_instead_of_processes
+    ):
         task = create_task(
             Snowfakery,
             {
@@ -343,7 +348,10 @@ class TestSnowfakery:
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_small(
-        self, mock_load_data, threads_instead_of_processes, create_task_fixture
+        self,
+        mock_load_data,
+        threads_instead_of_processes,
+        create_task_fixture,
     ):
         task = create_task_fixture(
             Snowfakery,
@@ -358,7 +366,10 @@ class TestSnowfakery:
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_multi_part(
-        self, threads_instead_of_processes, mock_load_data, create_task_fixture
+        self,
+        threads_instead_of_processes,
+        mock_load_data,
+        create_task_fixture,
     ):
         task = create_task_fixture(
             Snowfakery,
@@ -377,7 +388,11 @@ class TestSnowfakery:
         "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
     )
     def test_run_until_loaded(
-        self, create_subprocess, mock_load_data, create_task_fixture
+        self,
+        create_subprocess,
+        mock_load_data,
+        create_task_fixture,
+        threads_instead_of_processes,
     ):
         task = create_task_fixture(
             Snowfakery,
@@ -468,13 +483,16 @@ class TestSnowfakery:
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.get_debug_mode", lambda: True)
     @mock.patch("psutil.cpu_count", lambda logical: 11)
-    def test_snowfakery_debug_mode_and_cpu_count(self, snowfakery, mock_load_data):
+    def test_snowfakery_debug_mode_and_cpu_count(
+        self, snowfakery, mock_load_data, threads_instead_of_processes
+    ):
         task = snowfakery(recipe=sample_yaml, run_until_recipe_repeated="5")
         with mock.patch.object(task, "logger") as logger:
             task()
         assert "Using 11 workers" in str(logger.mock_calls)
 
-    def test_record_count(self, snowfakery, mock_load_data):
+    @pytest.mark.parametrize("execution_number", range(50))
+    def test_record_count(self, snowfakery, mock_load_data, execution_number):
         task = snowfakery(recipe="datasets/recipe.yml", run_until_recipe_repeated="4")
         with mock.patch.object(task, "logger") as logger, mock.patch.object(
             task.project_config, "keychain", DummyKeychain()
@@ -523,7 +541,9 @@ class TestSnowfakery:
             )
             task()
 
-    def test_working_directory(self, snowfakery, mock_load_data):
+    def test_working_directory(
+        self, snowfakery, mock_load_data, threads_instead_of_processes
+    ):
         with TemporaryDirectory() as t:
             working_directory = Path(t) / "junkdir"
             task = snowfakery(
@@ -638,8 +658,11 @@ class TestSnowfakery:
             record_counts = get_record_counts_from_snowfakery_results(results)
         assert record_counts["Account"] == 7, record_counts["Account"]
 
+    @pytest.mark.parametrize("execution_number", range(250))
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
-    def test_multi_part_uniqueness(self, mock_load_data, create_task_fixture):
+    def test_multi_part_uniqueness(
+        self, mock_load_data, create_task_fixture, execution_number
+    ):
         task = create_task_fixture(
             Snowfakery,
             {
@@ -655,11 +678,14 @@ class TestSnowfakery:
         ]
 
         unique_values = [row.value for batchrows in all_rows for row in batchrows]
-        assert len(unique_values) == len(set(unique_values))
-        # See also W-10142031: Investigate unreliable test assertions
+        assert len(mock_load_data.mock_calls) == 6, len(mock_load_data.mock_calls)
+        assert len(unique_values) == 30, len(unique_values)
+        assert len(set(unique_values)) == 30, unique_values
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
-    def test_two_channels(self, mock_load_data, create_task):
+    def test_two_channels(
+        self, mock_load_data, create_task, threads_instead_of_processes
+    ):
         task = create_task(
             Snowfakery,
             {
@@ -753,11 +779,14 @@ class TestSnowfakery:
         assert "conflict" in str(e.value)
         assert "some_number" in str(e.value)
 
+    @mock.patch("warnings.warn", lambda *args: ...)
     @mock.patch(
         "cumulusci.tasks.bulkdata.snowfakery.get_debug_mode", lambda: True
     )  # for coverage
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
-    def test_explicit_channel_declarations(self, mock_load_data, create_task):
+    def test_explicit_channel_declarations(
+        self, mock_load_data, create_task, threads_instead_of_processes
+    ):
         task = create_task(
             Snowfakery,
             {
@@ -806,8 +835,11 @@ class TestSnowfakery:
                 "Account",
             }
 
+    @mock.patch("warnings.warn", lambda *args: ...)
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
-    def test_serial_mode(self, mock_load_data, create_task):
+    def test_serial_mode(
+        self, mock_load_data, create_task, threads_instead_of_processes
+    ):
         task = create_task(
             Snowfakery,
             {
@@ -838,7 +870,9 @@ class TestSnowfakery:
             assert 0 <= all(int(count) <= 1 for count in loader_counts), loader_counts
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
-    def test_bulk_mode_error(self, create_task, mock_load_data):
+    def test_bulk_mode_error(
+        self, create_task, mock_load_data, threads_instead_of_processes
+    ):
         with pytest.raises(exc.TaskOptionsError):
             task = create_task(
                 Snowfakery,
@@ -851,7 +885,9 @@ class TestSnowfakery:
             task()
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
-    def test_too_many_channel_declarations(self, mock_load_data, create_task):
+    def test_too_many_channel_declarations(
+        self, mock_load_data, create_task, threads_instead_of_processes
+    ):
         task = create_task(
             Snowfakery,
             {
@@ -877,7 +913,12 @@ class TestSnowfakery:
 
     @pytest.mark.skip()  # TODO: make handling of errors more predictable and re-enable
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
-    def test_error_handling_in_channels(self, mock_load_data, create_task):
+    def test_error_handling_in_channels(
+        self,
+        mock_load_data,
+        create_task,
+        threads_instead_of_processes,
+    ):
         task = create_task(
             Snowfakery,
             {
