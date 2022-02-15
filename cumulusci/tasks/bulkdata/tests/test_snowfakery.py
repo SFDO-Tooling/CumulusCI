@@ -658,8 +658,9 @@ class TestSnowfakery:
         assert len(unique_values) == len(set(unique_values))
         # See also W-10142031: Investigate unreliable test assertions
 
+    @pytest.mark.parametrize("execution_number", range(1000))
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
-    def test_two_channels(self, mock_load_data, create_task):
+    def test_two_channels(self, mock_load_data, create_task, execution_number):
         task = create_task(
             Snowfakery,
             {
