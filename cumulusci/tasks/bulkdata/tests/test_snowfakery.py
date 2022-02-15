@@ -474,8 +474,7 @@ class TestSnowfakery:
             task()
         assert "Using 11 workers" in str(logger.mock_calls)
 
-    @pytest.mark.parametrize("execution_number", range(1000))
-    def test_record_count(self, snowfakery, mock_load_data, execution_number):
+    def test_record_count(self, snowfakery, mock_load_data):
         task = snowfakery(recipe="datasets/recipe.yml", run_until_recipe_repeated="4")
         with mock.patch.object(task, "logger") as logger, mock.patch.object(
             task.project_config, "keychain", DummyKeychain()
@@ -659,8 +658,9 @@ class TestSnowfakery:
         assert len(unique_values) == len(set(unique_values))
         # See also W-10142031: Investigate unreliable test assertions
 
+    @pytest.mark.parametrize("execution_number", range(1000))
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
-    def test_two_channels(self, mock_load_data, create_task):
+    def test_two_channels(self, mock_load_data, create_task, execution_number):
         task = create_task(
             Snowfakery,
             {
