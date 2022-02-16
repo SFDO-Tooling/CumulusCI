@@ -7,9 +7,9 @@ keyword library `SeleniumLibrary
 <http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html>`_. This
 library supports multiple ways to reference an element: by XPath, by
 CSS selector, by id, by text, and so on. SeleniumLibrary calls these
-location strategies.
+*location strategies.*
 
-These strategies can be specified by providing a prefix to the
+You can specify a strategy by providing a prefix to the
 locator.  For example:
 
 * ``id:123`` specifies an element with an id of 123
@@ -17,12 +17,12 @@ locator.  For example:
 * ``css:div.slds-spinner`` defines an object by its css path
 
 .. tip::
-   The full list of supported locator strategies can be found in the
+  You can find the full list of supported locator strategies in the
    section titled `Explicit locator strategy
    <https://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Explicit%20locator%20strategy>`_
    in the SeleniumLibrary documentation.
 
-In this section, we’ll show how to easily create a project-specific
+In this section, we’ll show how to create a project-specific
 locator strategy by storing locators in a dictionary and then
 associating them with a custom prefix.
 
@@ -32,11 +32,11 @@ Storing locators in a dictionary
 The first step toward creating custom locator strategies with the
 locator manager is to define your project’s locators in a
 dictionary. If you have just a handful of locators you can define them
-directly in a keyword library, or you can save them in a separate
+directly in a keyword library. You can also save them in a separate
 file.
 
 If you need to be able to run tests against a prerelease org you
-may want to store your locators in two files: one for the current
+might want to store your locators in two files: one for the current
 release and one for the prerelease. You can then import the
 appropriate version at runtime.
 
@@ -46,8 +46,8 @@ appropriate version at runtime.
    supporting one release at a time in this documentation.
 
 
-This dictionary can have nested dictionaries in order to allow the
-organization of locators into logical groups. The leaf nodes
+The locator dictionary can include nested dictionaries, so you can
+organize locators into logical groups. Each leaf node
 can be any locator string supported by
 SeleniumLibrary. Notice that these locator strings can include
 locators of different types.
@@ -76,7 +76,7 @@ one is an XPath.
 
 .. tip::
 
-  Dictionaries can be nested as deeply as you want, though it’s
+  Dictionaries can be nested as deeply as you want, but it’s
   rarely necessary to have locators more than a couple of levels deep.
 
 
@@ -112,19 +112,19 @@ contains keywords for the calendar tab.
            locator_manager.register_locators("calendar", locators)
 
 When this library is imported into a test case file, the prefix
-“calendar” will be registered with SeleniumLibrary as a custom locator
+“calendar” is registered with SeleniumLibrary as a custom locator
 strategy.
 
 Using custom locators
 ---------------------
 
 Once the dictionary has been defined and has been registered with a
-prefix, the locators work very similarly to any other locator. Because
-the dictionaries can be nested, you can separate the levels with a
+prefix, the locators work very similarly to any other locator. If
+the dictionaries are nested, you can separate the levels with a
 period (ie: dot notation).
 
 For example, with our example locators the options button locator can
-be used like in the following example:
+be used like this:
 
 .. code-block::
 
@@ -156,7 +156,7 @@ While you could create three separate locators for these three
 buttons, using a parameterized locator means we can replace three
 locators with one, which helps to keep our tech debt under control.
 
-Notice in our calendar locators we have one locator for a menuitem
+Notice in our calendar locators we have one locator for a ``menuitem``
 with the title of 'New Calendar':
 
 .. code-block::
@@ -167,15 +167,13 @@ with the title of 'New Calendar':
         ...
     }
 
-If the calendar menu had multiple menuitems, we could use a unique
-locator for each, or we could use a single parameterized locator so
-that we only need to maintain one locator.
+For a calendar menu with multiple menuitems, you can use a unique
+locator for each, or a single parameterized locator so
+that you only need to maintain one locator.
 
-To create a locator with one or more parameters we simply need to replace a
-portion of the locator with `{}`. When the locator is used, parameters
-can be provided which will be substituded for the `{}`.
+To create a locator with one or more parameters, replace a
+portion of the locator with `{}` like this:
 
-The locator would then look like the following example.
 
 .. code-block::
 
@@ -185,15 +183,15 @@ The locator would then look like the following example.
         ...
     }
 
-When using the locator, one or more parameters can be passed by
+When you use the locator, you can pass one or more parameters by
 specfying a comma separated list of values after a colon. For example:
 
 .. code-block::
 
     Click element  calendar:sidebar.menu_item:New Calendar
 
-When the locator is used with a keyword, the `{}` will get replaced with `New
-Calendar` to give us the actual locator.
+The `{}` placeholders are replaced with the parameter values, in order. For example, the title in the above example becomes `New
+Calendar`.
 
 .. note::
 
