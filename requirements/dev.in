@@ -9,6 +9,7 @@ isort
 jsonschema
 pre-commit
 pytest
+pytest-cov
 pytest-random-order
 pytest-vcr
 responses==0.14.0
