@@ -638,11 +638,8 @@ class TestSnowfakery:
             record_counts = get_record_counts_from_snowfakery_results(results)
         assert record_counts["Account"] == 7, record_counts["Account"]
 
-    @pytest.mark.parametrize("execution_number", range(500))
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
-    def test_multi_part_uniqueness(
-        self, mock_load_data, create_task_fixture, execution_number
-    ):
+    def test_multi_part_uniqueness(self, mock_load_data, create_task_fixture):
         task = create_task_fixture(
             Snowfakery,
             {
