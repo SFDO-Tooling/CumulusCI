@@ -5,7 +5,6 @@ from unittest.mock import call
 
 import pytest
 
-import cumulusci.tasks.bulkdata.tests.integration_test_utils  # noQA
 from cumulusci.core import exceptions as exc
 from cumulusci.tasks.bulkdata.step import (
     DataApi,
@@ -14,6 +13,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationType,
 )
+from cumulusci.tasks.bulkdata.tests.integration_test_utils import ensure_accounts
 from cumulusci.tasks.bulkdata.update_data import UpdateData
 
 
@@ -30,6 +30,9 @@ def _hashify_operation(kwargs):
 
 def noop(*args, **kwargs):
     pass
+
+
+ensure_accounts = ensure_accounts  # cleans up multiple lint errors at once.
 
 
 class MockBulkAPIResponses:

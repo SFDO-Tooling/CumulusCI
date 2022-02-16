@@ -12,7 +12,6 @@ import pytest
 import yaml
 from sqlalchemy import MetaData, create_engine
 
-import cumulusci.tasks.bulkdata.tests.integration_test_utils  # noQA   - for fixture
 from cumulusci.core import exceptions as exc
 from cumulusci.core.config import OrgConfig
 from cumulusci.tasks.bulkdata.snowfakery import (
@@ -20,12 +19,15 @@ from cumulusci.tasks.bulkdata.snowfakery import (
     Snowfakery,
     SnowfakeryWorkingDirectory,
 )
+from cumulusci.tasks.bulkdata.tests.integration_test_utils import ensure_accounts
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tests.util import DummyKeychain, DummyOrgConfig
 from cumulusci.utils.parallel.task_worker_queues.tests.test_parallel_worker import (
     DelaySpawner,
 )
+
+ensure_accounts = ensure_accounts  # fixes 4 lint errors at once. DOn't hate the player, hate the game.
 
 simple_salesforce_yaml = (
     Path(__file__).parent / "snowfakery/simple_snowfakery.recipe.yml"
