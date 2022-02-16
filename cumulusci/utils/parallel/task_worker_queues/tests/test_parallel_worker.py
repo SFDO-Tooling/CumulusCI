@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from logging import getLogger
+from multiprocessing import Lock
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
@@ -63,7 +64,7 @@ class TestWorkerQueue:
             parent_dir=Path(parent_dir),
             **kwargs,
         )
-        q = WorkerQueue(config)
+        q = WorkerQueue(config, filesystem_lock=Lock())
 
         yield q
 
@@ -307,7 +308,7 @@ class TestParallelWorker:
                 outbox_dir=outbox_dir,
                 working_dir=working_dir,
             )
-            worker = ParallelWorker(DelaySpawner, config, None)
+            worker = ParallelWorker(DelaySpawner, config, None, Lock())
             worker.start()
             worker.terminate()
             assert "Alive: False" in repr(worker)
@@ -327,7 +328,7 @@ class TestTaskWorker:
                 outbox_dir=outbox_dir,
                 working_dir=working_dir,
             )
-            p = TaskWorker(config.as_dict(), None)
+            p = TaskWorker(config.as_dict(), None, Lock())
             with mock.patch("shutil.move", side_effect=AssertionError):
                 with pytest.raises(AssertionError):
                     p.run()
