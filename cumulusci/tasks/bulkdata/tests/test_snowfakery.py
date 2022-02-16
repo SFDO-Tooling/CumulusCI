@@ -12,9 +12,9 @@ import pytest
 import yaml
 from sqlalchemy import MetaData, create_engine
 
+import cumulusci.tasks.bulkdata.tests.integration_test_utils  # noQA   - for fixture
 from cumulusci.core import exceptions as exc
 from cumulusci.core.config import OrgConfig
-from cumulusci.tasks.bulkdata.delete import DeleteData
 from cumulusci.tasks.bulkdata.snowfakery import (
     RunningTotals,
     Snowfakery,
@@ -204,25 +204,6 @@ def temporary_file_path(filename):
     with TemporaryDirectory() as tmpdirname:
         path = Path(tmpdirname) / filename
         yield path
-
-
-@pytest.fixture()
-def ensure_accounts(create_task, run_code_without_recording, sf):
-    """Delete all accounts and create a certain number of new ones"""
-
-    @contextmanager
-    def _ensure_accounts(number_of_accounts):
-        def setup(number):
-            task = create_task(DeleteData, {"objects": "Entitlement, Account"})
-            task()
-            for i in range(0, number):
-                sf.Account.create({"Name": f"Account {i}"})
-
-        run_code_without_recording(lambda: setup(number_of_accounts))
-        yield
-        run_code_without_recording(lambda: setup(0))
-
-    return _ensure_accounts
 
 
 class SnowfakeryTaskResults(T.NamedTuple):

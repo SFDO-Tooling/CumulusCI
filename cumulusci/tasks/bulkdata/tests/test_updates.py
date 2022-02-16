@@ -5,6 +5,7 @@ from unittest.mock import call
 
 import pytest
 
+import cumulusci.tasks.bulkdata.tests.integration_test_utils  # noQA
 from cumulusci.core import exceptions as exc
 from cumulusci.tasks.bulkdata.step import (
     DataApi,
@@ -389,16 +390,17 @@ class TestUpdates:
 
 class TestUpdatesIntegrationTests:
     @pytest.mark.needs_org()
-    def test_updates_task(self, create_task, cumulusci_test_repo_root):
-        task = create_task(
-            UpdateData,
-            {
-                "object": "Account",
-                "recipe": "datasets/update.recipe.yml",
-                "fields": ["Name"],
-            },
-        )
-        task.logger = mock.Mock()
-        task()
-        last_message = task.logger.mock_calls[-1].args[0]
-        assert "Updated all Account" in str(last_message), str(last_message)
+    def test_updates_task(self, create_task, cumulusci_test_repo_root, ensure_accounts):
+        with ensure_accounts(6):
+            task = create_task(
+                UpdateData,
+                {
+                    "object": "Account",
+                    "recipe": "datasets/update.recipe.yml",
+                    "fields": ["Name"],
+                },
+            )
+            task.logger = mock.Mock()
+            task()
+            last_message = task.logger.mock_calls[-1].args[0]
+            assert "Updated all Account" in str(last_message), str(last_message)
