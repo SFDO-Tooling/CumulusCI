@@ -333,7 +333,15 @@ class Channel:
 
     def check_finished(self) -> bool:
         self.data_gen_q.tick()
-        still_running = len(self.data_gen_q.workers + self.load_data_q.workers) > 0
+        still_running = (
+            len(
+                self.data_gen_q.workers
+                + self.load_data_q.workers
+                + self.data_gen_q.inprogress_jobs
+                + self.load_data_q.inprogress_jobs
+            )
+            > 0
+        )
         return not still_running
 
 
