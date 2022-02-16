@@ -81,7 +81,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             )
             rsps.add(
                 method=responses.GET,
-                url=self.repo_api_url + "/git/refs/tags/release/1.0",
+                url=self.repo_api_url + "/git/ref/tags/release/1.0",
                 status=200,
                 json=self._get_expected_tag_ref("release/1.0", "SHA"),
             )
@@ -98,7 +98,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             )
             rsps.add(
                 responses.GET,
-                self.public_repo_url + "/git/refs/tags/release/1.0",
+                self.public_repo_url + "/git/ref/tags/release/1.0",
                 status=404,
             )
             rsps.add(
@@ -166,7 +166,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             )
             rsps.add(
                 method=responses.GET,
-                url=self.repo_api_url + "/git/refs/tags/release/1.0",
+                url=self.repo_api_url + "/git/ref/tags/release/1.0",
                 status=200,
                 json=self._get_expected_tag_ref("release/1.0", "SHA"),
             )
@@ -183,7 +183,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             )
             rsps.add(
                 responses.GET,
-                self.public_repo_url + "/git/refs/tags/release/1.0",
+                self.public_repo_url + "/git/ref/tags/release/1.0",
                 status=404,
             )
             rsps.add(
@@ -253,7 +253,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             )
             rsps.add(
                 method=responses.GET,
-                url=self.repo_api_url + "/git/refs/tags/beta/1.0-Beta_1",
+                url=self.repo_api_url + "/git/ref/tags/beta/1.0-Beta_1",
                 status=200,
                 json=self._get_expected_tag_ref("release/1.0", "SHA"),
             )
@@ -270,7 +270,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             )
             rsps.add(
                 responses.GET,
-                self.public_repo_url + "/git/refs/tags/beta/1.0-Beta_1",
+                self.public_repo_url + "/git/ref/tags/beta/1.0-Beta_1",
                 status=404,
             )
             rsps.add(
@@ -335,7 +335,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/git/refs/tags/release/1.0",
+            url=self.repo_api_url + "/git/ref/tags/release/1.0",
             status=404,
         )
         task_config = TaskConfig(
@@ -384,7 +384,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/git/refs/tags/release/1.0",
+            url=self.repo_api_url + "/git/ref/tags/release/1.0",
             status=201,
             json=self._get_expected_tag_ref("release/1.0", "REF_SHA"),
         )
@@ -442,7 +442,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/git/refs/tags/release/1.0",
+            url=self.repo_api_url + "/git/ref/tags/release/1.0",
             status=200,
             json=self._get_expected_tag_ref("release/1.0", "SHA"),
         )
@@ -499,13 +499,13 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.public_repo_url + "/git/refs/tags/release/1.0",
+            url=self.public_repo_url + "/git/ref/tags/release/1.0",
             status=201,
             json=self._get_expected_tag_ref("release/1.0", "SHA"),
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/git/refs/tags/release/1.0",
+            url=self.repo_api_url + "/git/ref/tags/release/1.0",
             status=201,
             json=self._get_expected_tag_ref("release/1.0", "SHA"),
         )
