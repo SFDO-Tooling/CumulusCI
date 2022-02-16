@@ -636,8 +636,9 @@ class TestSnowfakery:
         ]
 
         unique_values = [row.value for batchrows in all_rows for row in batchrows]
-        assert len(unique_values) == len(set(unique_values))
-        # See also W-10142031: Investigate unreliable test assertions
+        assert len(mock_load_data.mock_calls) == 6, len(mock_load_data.mock_calls)
+        assert len(unique_values) == 30, len(unique_values)
+        assert len(set(unique_values)) == 30, unique_values
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
     def test_two_channels(self, mock_load_data, create_task):
