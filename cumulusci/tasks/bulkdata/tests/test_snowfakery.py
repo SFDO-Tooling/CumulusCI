@@ -638,8 +638,11 @@ class TestSnowfakery:
             record_counts = get_record_counts_from_snowfakery_results(results)
         assert record_counts["Account"] == 7, record_counts["Account"]
 
+    @pytest.mark.parametrize("execution_number", range(500))
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
-    def test_multi_part_uniqueness(self, mock_load_data, create_task_fixture):
+    def test_multi_part_uniqueness(
+        self, mock_load_data, create_task_fixture, execution_number
+    ):
         task = create_task_fixture(
             Snowfakery,
             {
@@ -655,8 +658,9 @@ class TestSnowfakery:
         ]
 
         unique_values = [row.value for batchrows in all_rows for row in batchrows]
-        assert len(unique_values) == len(set(unique_values))
-        # See also W-10142031: Investigate unreliable test assertions
+        assert len(mock_load_data.mock_calls) == 6, len(mock_load_data.mock_calls)
+        assert len(unique_values) == 30, len(unique_values)
+        assert len(set(unique_values)) == 30, unique_values
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
     def test_two_channels(self, mock_load_data, create_task):
