@@ -57,7 +57,7 @@ jobs:
             - name: Install
               run: make dev-install
             - run: |
-                  coverage run $(which pytest)
+                  pytest --cov-report= --cov=cumulusci
                   coveralls
 
     robot_api:
