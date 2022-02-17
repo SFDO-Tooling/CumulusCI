@@ -2,8 +2,11 @@ name: Call SFDO-Tooling Docs Review Workflow
 
 on:
     pull_request:
-        types:
-            - labeled
+        paths:
+            - "**.md"
+            - "**.rst"
+    pull_request_review:
+        types: [submitted]
 
 jobs:
     shared-docs:
