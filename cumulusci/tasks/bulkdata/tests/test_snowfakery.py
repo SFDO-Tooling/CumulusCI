@@ -27,7 +27,7 @@ from cumulusci.utils.parallel.task_worker_queues.tests.test_parallel_worker impo
     DelaySpawner,
 )
 
-ensure_accounts = ensure_accounts  # fixes 4 lint errors at once. DOn't hate the player, hate the game.
+ensure_accounts = ensure_accounts  # fixes 4 lint errors at once. Don't hate the player, hate the game.
 
 simple_salesforce_yaml = (
     Path(__file__).parent / "snowfakery/simple_snowfakery.recipe.yml"
