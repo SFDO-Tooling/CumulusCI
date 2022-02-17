@@ -240,5 +240,4 @@ class CumulusCIUpdatesApplication(SnowfakeryApplication):
     def echo(self, message, *args, **kwargs):
         # skip CSV creation messages
         if not self.MATCHER.match(message):
-            print(repr(message))
             self.logger.info(message)
