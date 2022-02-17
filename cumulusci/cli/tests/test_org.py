@@ -723,6 +723,73 @@ class TestOrgCommands:
         echo.assert_called_once_with(json.dumps(expected))
 
     @mock.patch("click.echo")
+    @mock.patch("cumulusci.cli.org.CliTable")
+    def test_org_list__error(self, cli_tbl, echo):
+        runtime = mock.Mock()
+        runtime.universal_config.cli__plain_output = None
+        org_configs = {
+            "test0": ScratchOrgConfig(
+                {
+                    "default": True,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=8),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test0@example.com",
+                },
+                "test0",
+            ),
+            "test1": AssertionError("NOPE!"),
+            "test2": OrgConfig(
+                {
+                    "default": False,
+                    "scratch": False,
+                    "expires": "Persistent",
+                    "expired": False,
+                    "config_name": "dev",
+                    "username": "test2@example.com",
+                    "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
+                },
+                "test2",
+            ),
+        }
+
+        runtime.keychain.list_orgs.return_value = list(org_configs.keys())
+
+        def get_org(orgname):
+            value = org_configs[orgname]
+            if isinstance(value, Exception):
+                raise value
+            return value
+
+        runtime.keychain.get_org = get_org
+        runtime.project_config.cache_dir = Path("does_not_possibly_exist")
+        runtime.keychain.cleanup_org_cache_dirs.side_effect = AssertionError("OUCH!")
+
+        runtime.keychain.get_default_org.return_value = (
+            "test0",
+            ScratchOrgConfig(
+                {
+                    "default": True,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=8),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test0@example.com",
+                },
+                "test0",
+            ),
+        )
+
+        run_click_command(org.org_list, runtime=runtime, json_flag=False, plain=False)
+
+        assert "Cannot load org config for `test1`" in str(
+            echo.mock_calls
+        ), echo.mock_calls
+        assert "NOPE!" in str(echo.mock_calls), echo.mock_calls
+        assert "Cannot cleanup org cache dirs" in str(echo.mock_calls), echo.mock_calls
+
+    @mock.patch("click.echo")
     def test_org_prune(self, echo):
         runtime = mock.Mock()
         runtime.keychain.list_orgs.return_value = [
