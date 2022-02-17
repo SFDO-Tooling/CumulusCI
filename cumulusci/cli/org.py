@@ -348,12 +348,22 @@ def org_info(runtime, org_name, print_json):
 )
 @pass_runtime(require_project=False, require_keychain=True)
 def org_list(runtime, json_flag, plain):
+    def _get_org_safe(org):
+        try:
+            return runtime.keychain.get_org(org)
+        except Exception as e:
+            click.echo(f"Cannot load org config for `{org}`: {e}")
+
     plain = plain or runtime.universal_config.cli__plain_output
-    org_configs = {
-        org: runtime.keychain.get_org(org) for org in runtime.keychain.list_orgs()
-    }
+    org_configs = ((org, _get_org_safe(org)) for org in runtime.keychain.list_orgs())
+    org_configs = {org: org_config for org, org_config in org_configs if org_config}
+
     json_data = {}
-    default_org_name, _ = runtime.keychain.get_default_org()
+    try:
+        default_org_name, _ = runtime.keychain.get_default_org()
+    except Exception:  # pragma: no cover
+        default_org_name = None
+
     for org, org_config in org_configs.items():
         is_org_default = org == default_org_name
         row_data = {"is_default": is_org_default, "name": org}
@@ -369,7 +379,12 @@ def org_list(runtime, json_flag, plain):
     console.print(scratch_table, justify="left")
     console.print(persistent_table, justify="left")
 
-    runtime.keychain.cleanup_org_cache_dirs()
+    try:
+        runtime.keychain.cleanup_org_cache_dirs()
+    except Exception:
+        click.echo(
+            "Cannot cleanup org cache dirs, perhaps due to org config files which cannot be decrypted."
+        )
 
 
 def _make_tables(json_data: dict):
