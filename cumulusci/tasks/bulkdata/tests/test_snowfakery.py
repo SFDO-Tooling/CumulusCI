@@ -14,18 +14,20 @@ from sqlalchemy import MetaData, create_engine
 
 from cumulusci.core import exceptions as exc
 from cumulusci.core.config import OrgConfig
-from cumulusci.tasks.bulkdata.delete import DeleteData
 from cumulusci.tasks.bulkdata.snowfakery import (
     RunningTotals,
     Snowfakery,
     SnowfakeryWorkingDirectory,
 )
+from cumulusci.tasks.bulkdata.tests.integration_test_utils import ensure_accounts
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tests.util import DummyKeychain, DummyOrgConfig
 from cumulusci.utils.parallel.task_worker_queues.tests.test_parallel_worker import (
     DelaySpawner,
 )
+
+ensure_accounts = ensure_accounts  # fixes 4 lint errors at once. Don't hate the player, hate the game.
 
 simple_salesforce_yaml = (
     Path(__file__).parent / "snowfakery/simple_snowfakery.recipe.yml"
@@ -204,25 +206,6 @@ def temporary_file_path(filename):
     with TemporaryDirectory() as tmpdirname:
         path = Path(tmpdirname) / filename
         yield path
-
-
-@pytest.fixture()
-def ensure_accounts(create_task, run_code_without_recording, sf):
-    """Delete all accounts and create a certain number of new ones"""
-
-    @contextmanager
-    def _ensure_accounts(number_of_accounts):
-        def setup(number):
-            task = create_task(DeleteData, {"objects": "Entitlement, Account"})
-            task()
-            for i in range(0, number):
-                sf.Account.create({"Name": f"Account {i}"})
-
-        run_code_without_recording(lambda: setup(number_of_accounts))
-        yield
-        run_code_without_recording(lambda: setup(0))
-
-    return _ensure_accounts
 
 
 class SnowfakeryTaskResults(T.NamedTuple):
@@ -655,8 +638,9 @@ class TestSnowfakery:
         ]
 
         unique_values = [row.value for batchrows in all_rows for row in batchrows]
-        assert len(unique_values) == len(set(unique_values))
-        # See also W-10142031: Investigate unreliable test assertions
+        assert len(mock_load_data.mock_calls) == 6, len(mock_load_data.mock_calls)
+        assert len(unique_values) == 30, len(unique_values)
+        assert len(set(unique_values)) == 30, unique_values
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
     def test_two_channels(self, mock_load_data, create_task):

@@ -165,7 +165,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         responses.add("PATCH", "https://metadeploy/translations/es-bogus", status=404)
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
         responses.add(

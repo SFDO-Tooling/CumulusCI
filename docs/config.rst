@@ -21,11 +21,9 @@ A ``cumulusci.yml`` file contains these top-level sections.
 
 * ``orgs``: Defines the scratch org configurations that are available for your project. See `scratch org configurations`_ for configuration options in this section.
 
-* ``plans``: Contains any custom plans defined to install your project into a customer org. See :ref:`configuring plans in MetaDeploy <Publish an Install Plan to MetaDeploy>` for more information.
+* ``plans``: Contains any custom plans defined to install your project into a customer org. See the :ref:`**metadeploy_publish**` task for more information.
 
 The :doc:`cumulusci.yml reference <cci_yml_reference>` has a complete list of values that can be used in each section.
-
-
 
 Task Configurations
 -------------------
@@ -337,7 +335,7 @@ for the standard library flow ``build_feature_test_package``.
 The ``update_package_xml`` task will execute *only if* the project's source code format is not equal to "``sfdx``".
 
 .. code-block:: yaml
-        
+
     build_feature_test_package:
         group: Release Operations
         description: Create a 2gp managed package version

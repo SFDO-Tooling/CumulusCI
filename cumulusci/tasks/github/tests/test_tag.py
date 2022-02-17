@@ -38,7 +38,7 @@ class TestCloneTag(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             responses.GET,
-            self.repo_api_url + "/git/refs/tags/beta/1.0-Beta_1",
+            self.repo_api_url + "/git/ref/tags/beta/1.0-Beta_1",
             json={
                 "object": {"sha": "SHA", "url": "", "type": "tag"},
                 "url": "",
@@ -75,7 +75,7 @@ class TestCloneTag(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             responses.GET,
-            self.repo_api_url + "/git/refs/tags/beta/1.0-Beta_1",
+            self.repo_api_url + "/git/ref/tags/beta/1.0-Beta_1",
             json={
                 "object": {"sha": "SHA", "url": "", "type": "tag"},
                 "url": "",
