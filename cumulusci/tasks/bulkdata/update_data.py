@@ -1,4 +1,5 @@
 import csv
+import re
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -230,11 +231,14 @@ class UpdateData(BaseSalesforceApiTask):
 class CumulusCIUpdatesApplication(SnowfakeryApplication):
     """Takes over Snowfakery logging so CumulusCI can control it"""
 
+    MATCHER = re.compile(r"^Created [^ ]+.(csv|json)$")
+
     def __init__(self, logger) -> None:
         self.logger = logger
         super().__init__()
 
     def echo(self, message, *args, **kwargs):
         # skip CSV creation messages
-        if not message.startswith("Created "):
+        if not self.MATCHER.match(message):
+            print(repr(message))
             self.logger.info(message)
