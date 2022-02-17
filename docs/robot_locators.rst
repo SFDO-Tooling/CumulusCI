@@ -18,9 +18,9 @@ locator.  For example:
 
 .. tip::
   You can find the full list of supported locator strategies in the
-   section titled `Explicit locator strategy
-   <https://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Explicit%20locator%20strategy>`_
-   in the SeleniumLibrary documentation.
+  section titled `Explicit locator strategy
+  <https://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Explicit%20locator%20strategy>`_
+  in the SeleniumLibrary documentation.
 
 In this section, we’ll show how to create a project-specific
 locator strategy by storing locators in a dictionary and then
@@ -152,9 +152,9 @@ the text displayed in that element. For example, the html markup for a
 save, edit, and cancel button may be identical except for the word
 "Save", "Edit", or "Cancel".
 
-While you could create three separate locators for these three
-buttons, using a parameterized locator means we can replace three
-locators with one, which helps to keep our tech debt under control.
+While you can create a separate locator for each button, it's better
+to use a single parameterized locator for multiple buttons, which
+gives you more flexibility.
 
 Notice in our calendar locators we have one locator for a ``menuitem``
 with the title of 'New Calendar':
