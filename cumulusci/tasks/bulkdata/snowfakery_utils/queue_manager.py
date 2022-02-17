@@ -4,6 +4,7 @@ import shutil
 import time
 import typing as T
 from collections import defaultdict
+from multiprocessing import Lock
 from pathlib import Path
 
 import cumulusci.core.exceptions as exc
@@ -208,6 +209,7 @@ class Channel:
         self.run_until = subtask_configurator.run_until
         self.logger = logger
         self.results_reporter = results_reporter
+        self.filesystem_lock = Lock()
         self.job_counter = 0
         recipe_options = recipe_options or {}
         self._configure_queues(recipe_options)
@@ -246,7 +248,7 @@ class Channel:
         # b) finding a queue type which is not prone to race conditions
         #    or perf slowdowns with "Process" task types (sub-processes)
         # is a challenge.
-        self.data_gen_q = WorkerQueue(data_gen_q_config)
+        self.data_gen_q = WorkerQueue(data_gen_q_config, self.filesystem_lock)
 
         load_data_q_config = WorkerQueueConfig(
             project_config=self.project_config,
@@ -262,7 +264,9 @@ class Channel:
             num_workers=self.num_loader_workers,
             rename_directory=self.data_loader_new_directory_name,
         )
-        self.load_data_q = WorkerQueue(load_data_q_config, self.results_reporter)
+        self.load_data_q = WorkerQueue(
+            load_data_q_config, self.filesystem_lock, self.results_reporter
+        )
 
         self.data_gen_q.feeds_data_to(self.load_data_q)
         return self.data_gen_q, self.load_data_q
@@ -318,31 +322,35 @@ class Channel:
         return data_dir
 
     def get_upload_status_for_channel(self):
-        def set_count_from_names(names):
-            return sum(int(name.split("_")[1]) for name in names)
+        with self.filesystem_lock:
 
-        return {
-            "sets_queued_to_be_generated": set_count_from_names(
-                self.data_gen_q.queued_jobs
-            ),
-            "sets_being_generated": set_count_from_names(
-                self.data_gen_q.inprogress_jobs
-            ),
-            "sets_queued_for_loading": set_count_from_names(
-                self.load_data_q.queued_jobs
-            ),
-            # note that these may count as already imported in the org
-            "sets_being_loaded": set_count_from_names(self.load_data_q.inprogress_jobs),
-            "max_num_loader_workers": self.num_loader_workers,
-            "max_num_generator_workers": self.num_generator_workers,
-            # todo: use row-level result from org load for better accuracy
-            "sets_finished": set_count_from_names(self.load_data_q.outbox_jobs),
-            "sets_failed": len(self.load_data_q.failed_jobs),
-            # TODO: are these two redundant?
-            "inprogress_generator_jobs": len(self.data_gen_q.inprogress_jobs),
-            "inprogress_loader_jobs": len(self.load_data_q.inprogress_jobs),
-            "data_gen_free_workers": self.data_gen_q.num_free_workers,
-        }
+            def set_count_from_names(names):
+                return sum(int(name.split("_")[1]) for name in names)
+
+            return {
+                "sets_queued_to_be_generated": set_count_from_names(
+                    self.data_gen_q.queued_jobs
+                ),
+                "sets_being_generated": set_count_from_names(
+                    self.data_gen_q.inprogress_jobs
+                ),
+                "sets_queued_for_loading": set_count_from_names(
+                    self.load_data_q.queued_jobs
+                ),
+                # note that these may count as already imported in the org
+                "sets_being_loaded": set_count_from_names(
+                    self.load_data_q.inprogress_jobs
+                ),
+                "max_num_loader_workers": self.num_loader_workers,
+                "max_num_generator_workers": self.num_generator_workers,
+                # todo: use row-level result from org load for better accuracy
+                "sets_finished": set_count_from_names(self.load_data_q.outbox_jobs),
+                "sets_failed": len(self.load_data_q.failed_jobs),
+                # TODO: are these two redundant?
+                "inprogress_generator_jobs": len(self.data_gen_q.inprogress_jobs),
+                "inprogress_loader_jobs": len(self.load_data_q.inprogress_jobs),
+                "data_gen_free_workers": self.data_gen_q.num_free_workers,
+            }
 
     def failure_descriptions(self) -> T.List[str]:
         """Log failures from sub-processes to main process"""
@@ -361,7 +369,18 @@ class Channel:
 
     def check_finished(self) -> bool:
         self.data_gen_q.tick()
-        still_running = len(self.data_gen_q.workers + self.load_data_q.workers) > 0
+        with self.filesystem_lock:
+            still_running = (
+                len(
+                    self.data_gen_q.workers
+                    + self.data_gen_q.queued_job_dirs
+                    + self.data_gen_q.inprogress_jobs
+                    + self.load_data_q.workers
+                    + self.load_data_q.inprogress_jobs
+                    + self.load_data_q.queued_job_dirs
+                )
+                > 0
+            )
         return not still_running
 
 

@@ -68,6 +68,7 @@ class WorkerQueue:
         # also, be VERY careful of race conditions.
         # multiprocessing.Queue seems prone to delays that cause
         # race conditions. See PR #3076 for more info.
+        filesystem_lock,
         results_reporter: Queue = None,
     ):
         self.config = queue_config
@@ -75,6 +76,7 @@ class WorkerQueue:
         self._create_dirs()
         self.workers = []
         self.results_reporter = results_reporter
+        self.filesystem_lock = filesystem_lock
 
     def __getattr__(self, name):
         """Convenience proxy for config values
@@ -220,7 +222,10 @@ class WorkerQueue:
         )
 
         worker = ParallelWorker(
-            self.config.spawn_class, worker_config, self.results_reporter
+            self.config.spawn_class,
+            worker_config,
+            self.results_reporter,
+            self.filesystem_lock,
         )
         worker.start()
         self.workers.append(worker)
