@@ -54,11 +54,12 @@ jobs:
                   python-version: "${{ matrix.python-version }}"
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
-            - name: Install
+            - name: Install dependencies
               run: make dev-install
-            - run: |
-                  coverage run $(which pytest)
-                  coveralls
+            - name: Run Pytest
+              run: pytest --cov-report= --cov=cumulusci
+            - name: Run coveralls
+              run: coveralls
 
     robot_api:
         name: "Robot: No browser"

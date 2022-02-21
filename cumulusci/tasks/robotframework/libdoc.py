@@ -133,7 +133,7 @@ class RobotLibDoc(BaseTask):
         try:
             if self.options["output"].endswith(".csv"):
                 data = self._convert_to_tuples(kwfiles)
-                with open(self.options["output"], "w") as f:
+                with open(self.options["output"], "w", newline="") as f:
                     csv_writer = csv.writer(f)
                     csv_writer.writerows(data)
 
@@ -224,6 +224,9 @@ class KeywordFile:
         """Convert the dictionary of keyword data to a set of tuples"""
         rows = []
         cwd = Path.cwd()
+        base_pageobjects_path = os.path.join(
+            "cumulusci", "robotframework", "pageobjects"
+        )
 
         for po, libdoc in self.keywords.items():
             (po_type, po_object) = po if po else ("", "")
@@ -231,16 +234,17 @@ class KeywordFile:
                 # we don't want to see the same base pageobject
                 # keywords a kajillion times. This should probably
                 # be configurable, but I don't need it to be right now.
-                if "cumulusci/robotframework/pageobjects" in keyword.source:
+                if base_pageobjects_path in keyword.source:
                     continue
 
-                path = keyword.source
-                if path.startswith("/"):
+                path = Path(keyword.source)
+                if path.is_absolute():
                     try:
-                        path = str(Path(path).relative_to(cwd))
+                        path = path.relative_to(cwd)
                     except ValueError:
                         # ok, fine. We'll use the path as-is.
                         pass
+                path = str(path)
 
                 # make sure that if you change the list of columns here
                 # that you modify the `get_header` property too!

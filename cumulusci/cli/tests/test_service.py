@@ -1,4 +1,5 @@
 import json
+from unittest import mock
 
 import click
 import pytest
@@ -10,7 +11,8 @@ from cumulusci.core.tests.utils import EnvironmentVarGuard
 from .utils import run_cli_command
 
 
-def test_service_list():
+@mock.patch("cumulusci.cli.service.CliTable")
+def test_service_list(table_mock):
     runtime = BaseCumulusCI(
         config={
             "services": {
@@ -26,19 +28,18 @@ def test_service_list():
     }
     runtime.keychain._default_services = {"test": "test_alias", "bad": "bad_alias"}
 
-    result = run_cli_command("service", "list", runtime=runtime)
-    assert (
-        result.output
-        == """                            Services                             
-                                                                 
-  Default   Type             Name          Description           
- ─────────────────────────────────────────────────────────────── 
-  ✔         bad              bad_alias     Unconfigured Service  
-            something_else                 something else        
-            test             test2_alias   Test Service          
-  ✔         test             test_alias    Test Service          
-                                                                 
-"""  # noqa: W291,W293
+    run_cli_command("service", "list", runtime=runtime)
+
+    table_mock.assert_called_once_with(
+        [
+            ["Default", "Type", "Name", "Description"],
+            [True, "bad", "bad_alias", "Unconfigured Service"],
+            [False, "something_else", "", "something else"],
+            [False, "test", "test2_alias", "Test Service"],
+            [True, "test", "test_alias", "Test Service"],
+        ],
+        title="Services",
+        dim_rows=[2],
     )
 
 
