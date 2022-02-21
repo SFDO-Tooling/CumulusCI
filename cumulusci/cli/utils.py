@@ -20,7 +20,8 @@ WIN_LONG_PATH_WARNING = """
 WARNING: Long path support is not enabled. This can lead to errors with some
 tasks. Your administrator will need to activate the "Enable Win32 long paths"
 group policy, or set LongPathsEnabled to 1 in the registry key
-HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem."""
+HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem.
+"""
 
 
 def group_items(items):
