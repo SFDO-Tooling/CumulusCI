@@ -480,11 +480,12 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
 
         # not only does this verify that the expected keywords are in
         # the output, but that the base class keywords are *not*
+        datadir = os.path.join("cumulusci", "tasks", "robotframework", "tests", "")
         expected_output = [
             ["Name", "Source", "Line#", "po type", "po_object", "Documentation"],
             [
                 "Keyword One",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "13",
                 "Listing",
                 "Something__c",
@@ -492,7 +493,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword One",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "24",
                 "Detail",
                 "Something__c",
@@ -500,7 +501,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword Three",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "30",
                 "Detail",
                 "Something__c",
@@ -508,7 +509,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword Two",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "16",
                 "Listing",
                 "Something__c",
@@ -516,7 +517,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword Two",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "27",
                 "Detail",
                 "Something__c",
@@ -524,7 +525,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Library Keyword One",
-                "cumulusci/tasks/robotframework/tests/TestLibrary.py",
+                f"{datadir}TestLibrary.py",
                 "13",
                 "",
                 "",
@@ -532,7 +533,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Library Keyword Two",
-                "cumulusci/tasks/robotframework/tests/TestLibrary.py",
+                f"{datadir}TestLibrary.py",
                 "17",
                 "",
                 "",
@@ -540,7 +541,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Resource keyword one",
-                "cumulusci/tasks/robotframework/tests/TestResource.robot",
+                f"{datadir}TestResource.robot",
                 "2",
                 "",
                 "",
@@ -548,7 +549,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Resource keyword two",
-                "cumulusci/tasks/robotframework/tests/TestResource.robot",
+                f"{datadir}TestResource.robot",
                 "6",
                 "",
                 "",
