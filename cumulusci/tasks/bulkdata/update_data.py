@@ -1,9 +1,10 @@
 import csv
+import re
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from snowfakery import generate_data
+from snowfakery import SnowfakeryApplication, generate_data
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import (
@@ -154,6 +155,7 @@ class UpdateData(BaseSalesforceApiTask):
             },
             output_folder=outdir,
             output_format="csv",
+            parent_application=CumulusCIUpdatesApplication(self.logger),
         )
         created_csv = tuple(outdir.glob("*.csv"))
         assert len(created_csv) == 1, "CSV was not created by Snowfakery"
@@ -241,3 +243,18 @@ class UpdateData(BaseSalesforceApiTask):
             return f'{obj} objects matching "{self.options["where"]}"'
         else:
             return f"all {obj} objects"
+
+
+class CumulusCIUpdatesApplication(SnowfakeryApplication):
+    """Takes over Snowfakery logging so CumulusCI can control it"""
+
+    MATCHER = re.compile(r"^Created [^ ]+.(csv|json)$")
+
+    def __init__(self, logger) -> None:
+        self.logger = logger
+        super().__init__()
+
+    def echo(self, message, *args, **kwargs):
+        # skip CSV creation messages
+        if not self.MATCHER.match(message):
+            self.logger.info(message)
