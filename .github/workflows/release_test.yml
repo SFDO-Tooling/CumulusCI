@@ -5,6 +5,8 @@ on:
         branches:
             - feature/**
             - main
+    pull_request:
+        types: [opened, synchronize, reopened] # Default
 
 env:
     CUMULUSCI_ORG_scratch: '{"config_file": "orgs/dev.json", "scratch": true}'
