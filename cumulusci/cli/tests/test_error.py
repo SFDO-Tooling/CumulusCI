@@ -1,5 +1,4 @@
 import re
-from pathlib import Path
 from unittest import mock
 
 import github3
@@ -8,34 +7,27 @@ import pytest
 import cumulusci
 from cumulusci.cli.error import get_traceback
 from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.utils import temporary_dir
+from cumulusci.core.runtime import BaseCumulusCI
 
 from .. import error
-from .utils import run_click_command
+from .utils import run_cli_command
 
 
 class TestErrorCommands:
-    @mock.patch("click.echo")
-    @mock.patch("cumulusci.cli.error.CCI_LOGFILE_PATH")
-    def test_error_info_no_logfile_present(self, log_path, echo):
-        log_path.is_file.return_value = False
-        run_click_command(error.error_info)
-
-        echo.assert_called_once_with(f"No logfile found at: {error.CCI_LOGFILE_PATH}")
-
-    @mock.patch("click.echo")
-    def test_error_info(self, echo):
-        with temporary_dir() as path:
-            logfile = Path(path) / "cci.log"
-            logfile.write_text(
-                "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n\u2603",
-                encoding="utf-8",
-            )
-            with mock.patch("cumulusci.cli.error.CCI_LOGFILE_PATH", logfile):
-                run_click_command(error.error_info)
-        echo.assert_called_once_with(
-            "\nTraceback (most recent call last):\n1\n2\n3\n\u2603"
+    def test_error_info(self, capsys):
+        logfile = error.get_logfile_path()
+        logfile.parent.mkdir(parents=True)
+        logfile.write_text(
+            "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n\u2603",
+            encoding="utf-8",
         )
+        result = run_cli_command("error", "info")
+
+        assert "\nTraceback (most recent call last):\n1\n2\n3\n\u2603" in result.stdout
+
+    def test_error_info__no_logfile_present(self, capsys):
+        result = run_cli_command("error", "info")
+        assert f"No logfile found at: {error.get_logfile_path()}" in result.stdout
 
     def test_get_traceback__no_traceback(self):
         output = get_traceback("test_content")
@@ -47,7 +39,6 @@ class TestErrorCommands:
         output = get_traceback(content)
         assert output == traceback
 
-    @mock.patch("cumulusci.cli.error.CCI_LOGFILE_PATH")
     @mock.patch("webbrowser.open")
     @mock.patch("cumulusci.cli.error.platform")
     @mock.patch("cumulusci.cli.error.sys")
@@ -55,7 +46,7 @@ class TestErrorCommands:
     @mock.patch("cumulusci.cli.error.create_gist")
     @mock.patch("cumulusci.cli.error.get_github_api")
     def test_error_gist(
-        self, gh_api, create_gist, date, sys, platform, webbrowser_open, logfile_path
+        self, gh_api, create_gist, date, sys, platform, webbrowser_open
     ):
 
         platform.uname.return_value = mock.Mock(system="Rossian", machine="x68_46")
@@ -66,9 +57,10 @@ class TestErrorCommands:
         expected_gist_url = "https://gist.github.com/1234567890abcdefghijkl"
         create_gist.return_value = mock.Mock(html_url=expected_gist_url)
 
+        logfile_path = error.get_logfile_path()
+        logfile_path.parent.mkdir(parents=True)
         expected_logfile_content = "Hello there, I'm a logfile."
-        logfile_path.is_file.return_value = True
-        logfile_path.read_text.return_value = expected_logfile_content
+        logfile_path.write_text(expected_logfile_content)
 
         runtime = mock.Mock()
         runtime.project_config.repo_root = None
@@ -77,7 +69,7 @@ class TestErrorCommands:
             "token": "token",
         }
 
-        run_click_command(error.gist, runtime=runtime)
+        run_cli_command("error", "gist", runtime=runtime)
 
         expected_content = f"""CumulusCI version: {cumulusci.__version__}
 Python version: {sys.version.split()[0]} ({sys.executable})
@@ -93,20 +85,16 @@ Environment Info: Rossian / x68_46
         )
         webbrowser_open.assert_called_once_with(expected_gist_url)
 
-    @mock.patch("cumulusci.cli.error.CCI_LOGFILE_PATH")
-    @mock.patch("cumulusci.cli.error.click")
     @mock.patch("cumulusci.cli.error.platform")
     @mock.patch("cumulusci.cli.error.sys")
     @mock.patch("cumulusci.cli.error.datetime")
     @mock.patch("cumulusci.cli.error.create_gist")
     @mock.patch("cumulusci.cli.error.get_github_api")
-    def test_gist__creation_error(
-        self, gh_api, create_gist, date, sys, platform, click, logfile_path
-    ):
-
+    def test_gist__creation_error(self, gh_api, create_gist, date, sys, platform):
+        logfile_path = error.get_logfile_path()
+        logfile_path.parent.mkdir(parents=True)
         expected_logfile_content = "Hello there, I'm a logfile."
-        logfile_path.is_file.return_value = True
-        logfile_path.read_text.return_value = expected_logfile_content
+        logfile_path.write_text(expected_logfile_content)
 
         platform.uname.return_value = mock.Mock(sysname="Rossian", machine="x68_46")
         sys.version = "1.0.0 (default Jul 24 2019)"
@@ -130,7 +118,7 @@ Environment Info: Rossian / x68_46
         with pytest.raises(
             CumulusCIException, match="An error occurred attempting to create your gist"
         ):
-            run_click_command(error.gist, runtime=runtime)
+            run_cli_command("error", "gist", runtime=runtime)
 
         class GitHubExceptionWithResponse(github3.exceptions.NotFoundError, mock.Mock):
             def __init__(self, status_code):
@@ -142,14 +130,9 @@ Environment Info: Rossian / x68_46
 
         create_gist.side_effect = GitHubExceptionWithResponse(404)
         with pytest.raises(CumulusCIException, match=re.escape(error.GIST_404_ERR_MSG)):
-            run_click_command(error.gist, runtime=runtime)
+            run_cli_command("error", "gist", runtime=runtime)
 
-    @mock.patch("cumulusci.cli.error.CCI_LOGFILE_PATH")
-    @mock.patch("cumulusci.cli.error.click")
-    @mock.patch("cumulusci.cli.error.datetime")
-    @mock.patch("cumulusci.cli.error.create_gist")
-    @mock.patch("cumulusci.cli.error.get_github_api")
-    def test_gist__file_not_found(self, gh_api, create_gist, date, click, logfile_path):
-        logfile_path.is_file.return_value = False
-        with pytest.raises(CumulusCIException):
-            run_click_command(error.gist)
+    def test_gist__file_not_found(self):
+        runtime = BaseCumulusCI()
+        with pytest.raises(CumulusCIException, match="No logfile to open"):
+            run_cli_command("error", "gist", runtime=runtime)

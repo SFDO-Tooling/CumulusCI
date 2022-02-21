@@ -714,6 +714,7 @@ To learn more about Robot, visit the `Robot Framework User Guide <http://robotfr
 .. toctree::
     :maxdepth: 1
 
+    robot_locators.rst
     robot_advanced.rst
     robot_tutorial.rst
     robot_debugger.rst

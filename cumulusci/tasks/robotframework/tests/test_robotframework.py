@@ -372,6 +372,8 @@ class TestRobotTestDoc(unittest.TestCase):
 
 
 class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
+    maxDiff = None
+
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.task_config = TaskConfig()
@@ -474,17 +476,18 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         task = create_task(RobotLibDoc, {"path": path, "output": output.as_posix()})
         task()
         assert os.path.exists(output)
-        with open(output, "r") as csvfile:
+        with open(output, "r", newline="") as csvfile:
             reader = csv.reader(csvfile)
             actual_output = [row for row in reader]
 
         # not only does this verify that the expected keywords are in
         # the output, but that the base class keywords are *not*
+        datadir = os.path.join("cumulusci", "tasks", "robotframework", "tests", "")
         expected_output = [
             ["Name", "Source", "Line#", "po type", "po_object", "Documentation"],
             [
                 "Keyword One",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "13",
                 "Listing",
                 "Something__c",
@@ -492,7 +495,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword One",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "24",
                 "Detail",
                 "Something__c",
@@ -500,7 +503,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword Three",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "30",
                 "Detail",
                 "Something__c",
@@ -508,7 +511,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword Two",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "16",
                 "Listing",
                 "Something__c",
@@ -516,7 +519,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword Two",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "27",
                 "Detail",
                 "Something__c",
@@ -524,7 +527,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Library Keyword One",
-                "cumulusci/tasks/robotframework/tests/TestLibrary.py",
+                f"{datadir}TestLibrary.py",
                 "13",
                 "",
                 "",
@@ -532,7 +535,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Library Keyword Two",
-                "cumulusci/tasks/robotframework/tests/TestLibrary.py",
+                f"{datadir}TestLibrary.py",
                 "17",
                 "",
                 "",
@@ -540,7 +543,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Resource keyword one",
-                "cumulusci/tasks/robotframework/tests/TestResource.robot",
+                f"{datadir}TestResource.robot",
                 "2",
                 "",
                 "",
@@ -548,7 +551,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Resource keyword two",
-                "cumulusci/tasks/robotframework/tests/TestResource.robot",
+                f"{datadir}TestResource.robot",
                 "6",
                 "",
                 "",
@@ -612,7 +615,8 @@ class TestRobotLibDocKeywordFile(unittest.TestCase):
         # we'll set the first to a non-relative directory and leave
         # the other one relative to here (assuming that `here` is
         # relative to cwd)
-        libdoc.keywords[0].source = "/bogus/whatever.py"
+        absolute_path = str(Path("/bogus/whatever.py"))
+        libdoc.keywords[0].source = absolute_path
 
         # The returned result is a set, so the order is indeterminate. That's
         # why the following line sorts it.
@@ -621,7 +625,7 @@ class TestRobotLibDocKeywordFile(unittest.TestCase):
         rows = sorted(kwfile.to_tuples())
 
         # verify the absolute path remains absolute
-        assert rows[0][1] == "/bogus/whatever.py"
+        assert rows[0][1] == absolute_path
         # verify that the path to a file under cwd is relative
         assert rows[1][1] == str(path.relative_to(os.getcwd()))
 

@@ -1,9 +1,10 @@
 import csv
+import re
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from snowfakery import generate_data
+from snowfakery import SnowfakeryApplication, generate_data
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import (
@@ -118,13 +119,29 @@ class UpdateData(BaseSalesforceApiTask):
             return
         with self.save_records(qs, fields) as csvfile, TemporaryDirectory() as outdir:
             csv_out = self.generate_data(csvfile, Path(outdir))
-            with csv_out.open() as csv_out:
-                enriched_data = csv.DictReader(csv_out)
+
+            with csv_out.open() as csv_out_open:
+                enriched_data = csv.DictReader(csv_out_open)
                 oid_index = enriched_data.fieldnames.index("Oid")
                 enriched_data.fieldnames[oid_index] = "Id"
-                self.load_data(qs.job_result.records_processed, enriched_data)
+                ds = self.load_data(qs.job_result.records_processed, enriched_data)
+            records = ds.job_result.records_processed
+            errors = ds.job_result.total_row_errors
 
-        self.logger.info(f"Updated {self._object_description(obj)}")
+        obj_description = self._object_description(obj).capitalize()
+        if errors:
+            self.logger.info(
+                f"{obj_description} processed ({records}). {errors} errors"
+            )
+        else:
+            self.logger.info(f"{obj_description} successfully updated ({records}).")
+
+        if errors and not self.ignore_row_errors:
+            plural = "s" if errors > 1 else ""
+            raise BulkDataException(f"{errors} update error{plural}")
+        else:
+            self.return_values = {**ds.job_result.simplify()}
+        return self.return_values
 
     def generate_data(self, csvfile: Path, outdir: Path) -> Path:
         generate_data(
@@ -138,6 +155,7 @@ class UpdateData(BaseSalesforceApiTask):
             },
             output_folder=outdir,
             output_format="csv",
+            parent_application=CumulusCIUpdatesApplication(self.logger),
         )
         created_csv = tuple(outdir.glob("*.csv"))
         assert len(created_csv) == 1, "CSV was not created by Snowfakery"
@@ -169,7 +187,7 @@ class UpdateData(BaseSalesforceApiTask):
             api=DataApi.SMART,  # maybe this should always be bulk
         )
 
-        self.logger.info(f"Querying for {obj} objects")
+        self.logger.info(f"Querying for {self._object_description(obj)}")
         qs.query()
         if qs.job_result.status is not DataOperationStatus.SUCCESS:
             raise BulkDataException(
@@ -181,7 +199,7 @@ class UpdateData(BaseSalesforceApiTask):
 
     def load_data(self, row_count: int, records: csv.DictReader):
         obj = self.sobject
-        self.logger.info(f"Loading data {self._object_description(obj)} ")
+        self.logger.info(f"Updating {row_count} {obj} records")
         fieldnames = [
             f for f in records.fieldnames if f != "id" and not f.startswith("_")
         ]
@@ -211,9 +229,10 @@ class UpdateData(BaseSalesforceApiTask):
                 f"Unable to update records for {obj}: {','.join(ds.job_result.job_errors)}"
             )
 
-        error_checker = RowErrorChecker(
-            self.logger, self.ignore_row_errors, self.row_warning_limit
-        )
+        # "ignore" row errors because at this point it's too late. We're done the
+        # job entirely. Raising an exception isn't very helpful. We can raise
+        # it later.
+        error_checker = RowErrorChecker(self.logger, True, self.row_warning_limit)
         for result in ds.get_results():
             error_checker.check_for_row_error(result, result.id)
         return ds
@@ -224,3 +243,18 @@ class UpdateData(BaseSalesforceApiTask):
             return f'{obj} objects matching "{self.options["where"]}"'
         else:
             return f"all {obj} objects"
+
+
+class CumulusCIUpdatesApplication(SnowfakeryApplication):
+    """Takes over Snowfakery logging so CumulusCI can control it"""
+
+    MATCHER = re.compile(r"^Created [^ ]+.(csv|json)$")
+
+    def __init__(self, logger) -> None:
+        self.logger = logger
+        super().__init__()
+
+    def echo(self, message, *args, **kwargs):
+        # skip CSV creation messages
+        if not self.MATCHER.match(message):
+            self.logger.info(message)

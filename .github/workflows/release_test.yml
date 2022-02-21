@@ -5,6 +5,8 @@ on:
         branches:
             - feature/**
             - main
+    pull_request:
+        types: [opened, synchronize, reopened] # Default
 
 env:
     CUMULUSCI_ORG_scratch: '{"config_file": "orgs/dev.json", "scratch": true}'
@@ -27,13 +29,8 @@ jobs:
               uses: actions/setup-python@v1
               with:
                   python-version: 3.8
-            - name: pip cache
-              uses: actions/cache@v1
-              with:
-                  path: ~/.cache/pip
-                  key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
-                  restore-keys: |
-                      ${{ runner.os }}-pip-
+                  cache: pip
+                  cache-dependency-path: "requirements/*.txt"
             - name: Install Python dependencies
               run: |
                   python -m pip install -U pip

@@ -165,7 +165,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         responses.add(method=responses.GET, url=api_url, json=expected_response)
 
     def _mock_current_tag_ref(self):
-        api_url = "{}/git/refs/tags/{}".format(self.repo_api_url, self.current_tag)
+        api_url = "{}/git/ref/tags/{}".format(self.repo_api_url, self.current_tag)
         expected_response_current_tag_ref = self._get_expected_tag_ref(
             self.current_tag, self.current_tag_sha
         )
@@ -174,7 +174,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         )
 
     def _mock_invalid_tag(self):
-        api_url = "{}/git/refs/tags/{}".format(self.repo_api_url, self.invalid_tag)
+        api_url = "{}/git/ref/tags/{}".format(self.repo_api_url, self.invalid_tag)
         expected_response = {
             "message": "Not Found",
             "documentation_url": "https://developer.github.com/v3",
@@ -217,7 +217,7 @@ class TestGithubChangeNotesProvider(unittest.TestCase, GithubApiTestMixin):
         responses.add(method=responses.GET, url=api_url, json=expected_response)
 
     def _mock_last_tag_ref(self):
-        api_url = "{}/git/refs/tags/{}".format(self.repo_api_url, self.last_tag)
+        api_url = "{}/git/ref/tags/{}".format(self.repo_api_url, self.last_tag)
         expected_response_last_tag_ref = self._get_expected_tag_ref(
             self.last_tag, self.last_tag_sha
         )
