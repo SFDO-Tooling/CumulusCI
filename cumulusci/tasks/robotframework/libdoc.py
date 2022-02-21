@@ -133,7 +133,7 @@ class RobotLibDoc(BaseTask):
         try:
             if self.options["output"].endswith(".csv"):
                 data = self._convert_to_tuples(kwfiles)
-                with open(self.options["output"], "w") as f:
+                with open(self.options["output"], "w", newline="") as f:
                     csv_writer = csv.writer(f)
                     csv_writer.writerows(data)
 

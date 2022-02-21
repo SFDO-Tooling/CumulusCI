@@ -372,6 +372,8 @@ class TestRobotTestDoc(unittest.TestCase):
 
 
 class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
+    maxDiff = None
+
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.task_config = TaskConfig()
@@ -474,7 +476,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         task = create_task(RobotLibDoc, {"path": path, "output": output.as_posix()})
         task()
         assert os.path.exists(output)
-        with open(output, "r") as csvfile:
+        with open(output, "r", newline="") as csvfile:
             reader = csv.reader(csvfile)
             actual_output = [row for row in reader]
 
@@ -572,8 +574,6 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
 
 
 class TestRobotLibDocKeywordFile(unittest.TestCase):
-    maxDiff = None
-
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
 
