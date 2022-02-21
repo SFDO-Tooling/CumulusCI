@@ -77,7 +77,7 @@ def test_win32_warning(query_value):
 
     is_enabled = utils.win32_long_paths_enabled()
 
-    query_value.assert_called_once()("LongPathsEnabled")
+    query_value.assert_called_once()
     "LongPathsEnabled" in query_value.cal_args.args
     assert is_enabled
 
