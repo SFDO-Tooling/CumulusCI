@@ -274,35 +274,3 @@ def test_flow_run__org_delete_error(echo):
     echo.assert_any_call(
         "Scratch org deletion failed.  Ignoring the error below to complete the flow:"
     )
-
-
-@mock.patch("cumulusci.cli.flow.warn_if_no_long_paths")
-def test_flow_run__longpath_warn(warn_if):
-    org_config = mock.Mock(scratch=True, config={})
-    runtime = CliRuntime(
-        config={
-            "flows": {"test": {"steps": {1: {"task": "test_task"}}}},
-            "tasks": {
-                "test_task": {
-                    "class_path": "cumulusci.cli.tests.test_flow.DummyTask",
-                    "description": "Test Task",
-                }
-            },
-        },
-        load_keychain=False,
-    )
-    runtime.get_org = mock.Mock(return_value=("test", org_config))
-    runtime.get_flow = mock.Mock()
-
-    run_click_command(
-        flow.flow_run,
-        runtime=runtime,
-        flow_name="test",
-        org="test",
-        delete_org=True,
-        debug=False,
-        o=[("test_task__color", "blue")],
-        no_prompt=True,
-    )
-
-    warn_if.assert_called()
