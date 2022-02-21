@@ -572,6 +572,8 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
 
 
 class TestRobotLibDocKeywordFile(unittest.TestCase):
+    maxDiff = None
+
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
 
@@ -613,7 +615,8 @@ class TestRobotLibDocKeywordFile(unittest.TestCase):
         # we'll set the first to a non-relative directory and leave
         # the other one relative to here (assuming that `here` is
         # relative to cwd)
-        libdoc.keywords[0].source = "/bogus/whatever.py"
+        absolute_path = str(Path("/bogus/whatever.py"))
+        libdoc.keywords[0].source = absolute_path
 
         # The returned result is a set, so the order is indeterminate. That's
         # why the following line sorts it.
@@ -622,7 +625,7 @@ class TestRobotLibDocKeywordFile(unittest.TestCase):
         rows = sorted(kwfile.to_tuples())
 
         # verify the absolute path remains absolute
-        assert rows[0][1] == "/bogus/whatever.py"
+        assert rows[0][1] == absolute_path
         # verify that the path to a file under cwd is relative
         assert rows[1][1] == str(path.relative_to(os.getcwd()))
 
