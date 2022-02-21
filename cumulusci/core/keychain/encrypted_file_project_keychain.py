@@ -18,6 +18,7 @@ from cumulusci.core.exceptions import (
     CumulusCIException,
     CumulusCIUsageError,
     KeychainKeyNotFound,
+    OrgCannotBeLoaded,
     OrgNotFound,
     ServiceNotConfigured,
 )
@@ -249,7 +250,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 if "orgs" not in self.config:
                     self.config["orgs"] = {}
                 self.config["orgs"][name] = (
-                    constructor(config) if constructor else config
+                    constructor(config, filename=item) if constructor else config
                 )
 
     def _set_org(self, org_config, global_org, save=True):
@@ -314,6 +315,27 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         except KeyError:
             raise OrgNotFound(f"Org with name '{name}' does not exist.")
 
+        try:
+            org = self._config_from_bytes(config, name)
+        except Exception as e:
+            try:
+                filename = self.orgs[name].filename
+            except Exception:  # pragma: no cover
+                filename = None
+            if not filename:
+                raise e
+            raise OrgCannotBeLoaded(
+                f"Cannot parse config loaded from\n{filename}\n{e}\n"
+                "A changed CUMULUSCI_KEY or laptop password might be the cause.\n"
+                "Unfortunately, there is usually no way to recover an Org's Configuration \n"
+                "once this has happened.\n"
+                "Typically we advise users to delete the unusable file or rename it to .bak.\n"
+                "The org can be connected or imported again to replace the corrupted config."
+            )
+        org.global_org = global_org
+        return org
+
+    def _config_from_bytes(self, config, name):
         if self.key:
             org = self._decrypt_config(
                 OrgConfig,
@@ -325,7 +347,6 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             config = pickle.loads(config)
             org = self._construct_config(OrgConfig, [config, name, self])
 
-        org.global_org = global_org
         return org
 
     def _remove_org(self, name, global_org):
@@ -870,8 +891,10 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
 class GlobalOrg(T.NamedTuple):
     data: bytes
     global_org: bool = True
+    filename: str = None
 
 
 class LocalOrg(T.NamedTuple):
     data: bytes
     global_org: bool = False
+    filename: str = None

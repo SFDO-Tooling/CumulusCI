@@ -299,7 +299,7 @@ class TestGithub(GithubApiTestMixin):
         self.init_github()
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/tag_SHA",
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=200,
         )
@@ -317,7 +317,7 @@ class TestGithub(GithubApiTestMixin):
         self.init_github()
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/tag_SHA",
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=200,
         )
@@ -337,7 +337,7 @@ class TestGithub(GithubApiTestMixin):
         light_tag["object"]["type"] = "commit"
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/tag_SHA",
             json=light_tag,
             status=200,
         )
@@ -357,7 +357,7 @@ class TestGithub(GithubApiTestMixin):
         self.init_github()
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/tag_SHA",
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=200,
         )
@@ -369,7 +369,7 @@ class TestGithub(GithubApiTestMixin):
         self.init_github()
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/tag_SHA",
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=404,
         )
@@ -381,7 +381,7 @@ class TestGithub(GithubApiTestMixin):
         self.init_github()
         responses.add(  # the ref for the tag is fetched first
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/test-tag-name",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/test-tag-name",
             json=self._get_expected_tag_ref("test-tag-name", "tag_SHA"),
             status=200,
         )
@@ -400,7 +400,7 @@ class TestGithub(GithubApiTestMixin):
         self.init_github()
         responses.add(  # the ref for the tag is fetched first
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/test-tag-name",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/test-tag-name",
             json=self._get_expected_tag_ref("test-tag-name", "tag_SHA"),
             status=200,
         )

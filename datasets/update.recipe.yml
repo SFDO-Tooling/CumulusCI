@@ -1,7 +1,5 @@
 # cci task run update_data --recipe datasets/update.recipe.yml
 #                          --object Account --fields Name --org qa
-- plugin: snowfakery.standard_plugins.Counters
-
 - object: Account
   fields:
       BillingStreet:
