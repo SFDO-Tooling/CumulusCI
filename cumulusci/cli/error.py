@@ -8,6 +8,7 @@ import click
 import github3
 
 import cumulusci
+from cumulusci.cli.utils import warn_if_no_long_paths, win32_long_paths_enabled
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.github import check_github_scopes, create_gist, get_github_api
 
@@ -49,6 +50,7 @@ def get_logfile_path():
     help="Outputs the most recent traceback (if one exists in the most recent log)",
 )
 def error_info():
+    warn_if_no_long_paths()
     logfile_path = get_logfile_path()
     if not logfile_path.is_file():
         click.echo(f"No logfile found at: {logfile_path}")
@@ -118,4 +120,6 @@ def get_context_info():
     info.append(f"CumulusCI version: {cumulusci.__version__}")
     info.append(f"Python version: {sys.version.split()[0]} ({sys.executable})")
     info.append(f"Environment Info: {host_info.system} / {host_info.machine}")
+    if host_info.system == "Windows":
+        info.append(f"Windows long path support enabled: {win32_long_paths_enabled()}")
     return "\n".join(info)

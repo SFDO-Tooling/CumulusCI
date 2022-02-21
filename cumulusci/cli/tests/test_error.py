@@ -1,11 +1,12 @@
 import re
+import sys
 from unittest import mock
 
 import github3
 import pytest
 
 import cumulusci
-from cumulusci.cli.error import get_traceback
+from cumulusci.cli.error import get_context_info, get_traceback
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.runtime import BaseCumulusCI
 
@@ -24,6 +25,18 @@ class TestErrorCommands:
         result = run_cli_command("error", "info")
 
         assert "\nTraceback (most recent call last):\n1\n2\n3\n\u2603" in result.stdout
+
+    @mock.patch("cumulusci.cli.error.warn_if_no_long_paths")
+    def test_error_info_win_warn(self, warn_if):
+        logfile = error.get_logfile_path()
+        logfile.parent.mkdir(parents=True)
+        logfile.write_text(
+            "This\nis\na\ntest\nTraceback (most recent call last):\n1\n2\n3\n\u2603",
+            encoding="utf-8",
+        )
+        run_cli_command("error", "info")
+
+        warn_if.assert_called_once()
 
     def test_error_info__no_logfile_present(self, capsys):
         result = run_cli_command("error", "info")
@@ -136,3 +149,21 @@ Environment Info: Rossian / x68_46
         runtime = BaseCumulusCI()
         with pytest.raises(CumulusCIException, match="No logfile to open"):
             run_cli_command("error", "gist", runtime=runtime)
+
+    @pytest.mark.skipif(
+        sys.platform.startswith("win"), reason="Requires Windows Registry"
+    )
+    @mock.patch("cumulusci.cli.error.win32_long_paths_enabled")
+    def test_get_context_not_win(self, win32_check):
+        info = get_context_info()
+        win32_check.assert_not_called()
+        assert "Windows" not in info
+
+    @pytest.mark.skipif(
+        not sys.platform.startswith("win"), reason="Requires Windows Registry"
+    )
+    @mock.patch("cumulusci.cli.error.win32_long_paths_enabled")
+    def test_get_context_win(self, win32_check):
+        info = get_context_info()
+        win32_check.assert_called_once()
+        assert "Windows" in info
