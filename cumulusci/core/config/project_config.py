@@ -47,7 +47,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
     config_filename = "cumulusci.yml"
 
-    def __init__(self, universal_config_obj, config=None, *args, **kwargs):
+    def __init__(
+        self, universal_config_obj, config=None, cache_dir=None, *args, **kwargs
+    ):
         self.universal_config_obj = universal_config_obj
         self.keychain = None
 
@@ -71,6 +73,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # initialize map of project configs referenced from an external source
         self.source = NullSource()
         self.included_sources = kwargs.pop("included_sources", {})
+
+        # Store requested cache directory, which may be our parent's if we are a subproject
+        self._cache_dir = cache_dir
 
         super(BaseProjectConfig, self).__init__(config=config)
 
@@ -582,15 +587,18 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     @property
     def cache_dir(self):
         "A project cache which is on the local filesystem. Prefer open_cache where possible."
+        if self._cache_dir:
+            return self._cache_dir
+
         assert self.repo_root
         cache_dir = Path(self.repo_root, ".cci")
         cache_dir.mkdir(exist_ok=True)
+
         return cache_dir
 
     @contextmanager
     def open_cache(self, cache_name):
         "A context managed PyFilesystem-based cache which could theoretically be on any filesystem."
-        with open_fs_resource(self.cache_dir) as cache_dir:
-            cache = cache_dir / cache_name
-            cache.mkdir(exist_ok=True)
-            yield cache
+        with open_fs_resource(self.cache_dir / cache_name) as cache_dir:
+            cache_dir.mkdir(exist_ok=True)
+            yield cache_dir

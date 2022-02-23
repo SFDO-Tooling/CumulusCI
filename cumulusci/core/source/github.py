@@ -1,6 +1,7 @@
 import os
 import shutil
 
+import fs
 from github3.exceptions import NotFoundError
 
 from cumulusci.core.exceptions import DependencyResolutionError
@@ -124,18 +125,12 @@ class GitHubSource:
         self.description = ref[6:] if ref.startswith("heads/") else ref
         self.commit = self.repo.ref(ref).object.sha
 
-    def fetch(self, path=None):
+    def fetch(self):
         """Fetch the archive of the specified commit and construct its project config."""
-        # To do: copy this from a shared cache
-        if path is None:
-            path = (
-                self.project_config.cache_dir
-                / "projects"
-                / self.repo_name
-                / self.commit
-            )
-        if not path.exists():
-            path.mkdir(parents=True)
+        # fs.path, which we use in open_cache, doesn't work with Pathlib path objects
+        with self.project_config.open_cache(
+            fs.path.join("projects", self.repo_name, self.commit)
+        ) as path:
             zf = download_extract_github(
                 self.gh, self.repo_owner, self.repo_name, ref=self.commit
             )
@@ -146,8 +141,6 @@ class GitHubSource:
                 shutil.rmtree(path)
                 raise
 
-        assert path.is_dir()
-
         project_config = self.project_config.construct_subproject_config(
             repo_info={
                 "root": os.path.realpath(path),
@@ -155,7 +148,8 @@ class GitHubSource:
                 "name": self.repo_name,
                 "url": self.url,
                 "commit": self.commit,
-            }
+            },
+            cache_dir=self.project_config.cache_dir,
         )
         return project_config
 
