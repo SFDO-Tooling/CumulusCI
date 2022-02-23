@@ -600,5 +600,5 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def open_cache(self, cache_name):
         "A context managed PyFilesystem-based cache which could theoretically be on any filesystem."
         with open_fs_resource(self.cache_dir / cache_name) as cache_dir:
-            cache_dir.mkdir(exist_ok=True)
+            cache_dir.mkdir(exist_ok=True, parents=True)
             yield cache_dir

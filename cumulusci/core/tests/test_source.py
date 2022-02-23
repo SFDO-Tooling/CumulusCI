@@ -31,6 +31,10 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
         universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(universal_config)
         self.project_config.set_keychain(BaseProjectKeychain(self.project_config, None))
+        self.project_config.sources__foo = {
+            "github": "https://github.com/TestOwner/Foo",
+            "release": "latest",
+        }
         self.repo_root = TemporaryDirectory()
         self.project_config.repo_info["root"] = pathlib.Path(self.repo_root.name)
         self.project_config.keychain.set_service(
@@ -359,6 +363,75 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
                 self.project_config.cache_dir, "projects", "TestRepo", "tag_sha"
             )
         )
+
+    @responses.activate
+    def test_fetch__nested_sources(self):
+        def mock_repo(name: str, cci_yaml: dict):
+            responses.add(
+                method=responses.GET,
+                url=f"https://api.github.com/repos/TestOwner/{name}",
+                json=self._get_expected_repo(owner="TestOwner", name=name),
+            )
+            responses.add(
+                "GET",
+                f"https://api.github.com/repos/TestOwner/{name}/releases/latest",
+                json=self._get_expected_release("release/1.0"),
+            )
+            responses.add(
+                "GET",
+                f"https://api.github.com/repos/TestOwner/{name}/git/ref/tags/release/1.0",
+                json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
+            )
+            f = io.BytesIO()
+            zf = zipfile.ZipFile(f, "w")
+            zfi = zipfile.ZipInfo("toplevel/")
+            zf.writestr(zfi, "")
+            zf.writestr(
+                "toplevel/cumulusci.yml",
+                yaml.dump(cci_yaml),
+            )
+            zf.close()
+            responses.add(
+                "GET",
+                f"https://api.github.com/repos/TestOwner/{name}/zipball/tag_sha",
+                body=f.getvalue(),
+                content_type="application/zip",
+            )
+
+        mock_repo(
+            "Foo",
+            {
+                "project": {"package": {"name": "Test Foo", "namespace": "foo"}},
+                "sources": {
+                    "bar": {
+                        "github": "https://github.com/TestOwner/Bar",
+                        "release": "latest",
+                    }
+                },
+            },
+        )
+        mock_repo(
+            "Bar", {"project": {"package": {"name": "Test Bar", "namespace": "bar"}}}
+        )
+
+        foo_config = self.project_config.get_namespace("foo")
+        assert isinstance(foo_config, BaseProjectConfig)
+        bar_config = foo_config.get_namespace("bar")
+        assert isinstance(bar_config, BaseProjectConfig)
+
+        assert (
+            pathlib.Path(self.project_config.cache_dir) / "projects" / "Foo" / "tag_sha"
+        ).exists()
+        assert (
+            pathlib.Path(self.project_config.cache_dir) / "projects" / "Bar" / "tag_sha"
+        ).exists()
+        assert not (
+            pathlib.Path(self.project_config.cache_dir)
+            / "projects"
+            / "Foo"
+            / "tag_sha"
+            / ".cci"
+        ).exists()
 
     @responses.activate
     @mock.patch("cumulusci.core.source.github.download_extract_github")
