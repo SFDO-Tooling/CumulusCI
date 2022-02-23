@@ -416,6 +416,12 @@ def test_version__latest(capsys):
     assert "You have the latest version of CumulusCI" in console_output
 
 
+@mock.patch("cumulusci.cli.cci.warn_if_no_long_paths")
+def test_version__win_path_warning(warn_if):
+    run_click_command(cci.version)
+    warn_if.assert_called_once()
+
+
 @mock.patch("code.interact")
 def test_shell(interact):
     run_click_command(cci.shell)

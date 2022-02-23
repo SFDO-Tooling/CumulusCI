@@ -25,7 +25,12 @@ from .project import project
 from .runtime import CliRuntime, pass_runtime
 from .service import service
 from .task import task
-from .utils import check_latest_version, get_installed_version, get_latest_final_version
+from .utils import (
+    check_latest_version,
+    get_installed_version,
+    get_latest_final_version,
+    warn_if_no_long_paths,
+)
 
 SUGGEST_ERROR_COMMAND = (
     """Run this command for more information about debugging errors: cci error --help"""
@@ -142,6 +147,7 @@ def show_version_info():
     console.print(f"CumulusCI version: {cumulusci.__version__} ({sys.argv[0]})")
     console.print(f"Python version: {sys.version.split()[0]} ({sys.executable})")
     console.print()
+    warn_if_no_long_paths(console=console)
 
     current_version = get_installed_version()
     latest_version = get_latest_final_version()
