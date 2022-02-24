@@ -2,6 +2,23 @@
 History
 =======
 
+3.53.0 (2022-02-24)
+-------------------
+
+Changes
+
+- Orgs connected using ``cci org connect`` now keep track of which ``connected_app`` service was used to connect them, and will use the same ``connected_app`` service when getting a fresh access token, even if it isn't currently the default ``connected_app`` service. This makes it easier to use CumulusCI with multiple ``connected_app`` services. (Orgs that were connected before this update will continue to use the default ``connected_app`` service.)
+- When connecting a custom ``connected_app`` service, a default ``login_url`` can be specified (to use a login URL other than https://login.salesforce.com when connecting orgs using this ``connected_app`` service).
+- The ``deploy_marketing_cloud_package`` task now utilizes the new API endpoint for deployments.
+- CumulusCI commands are more resilient in the face of corrupted or impossible to decode org config files.
+- We added documentation about managing Robot Framework locators
+- CumulusCI will now warn Windows users if long pathname support is not set up correctly.
+- CumulusCI now ships with Snowfakery 3.0
+
+Issues Closed
+
+- Fixed a bug in the JSON format output of cci service list --json
+
 3.52.0 (2022-02-03)
 -------------------
 
