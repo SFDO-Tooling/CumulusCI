@@ -7,7 +7,7 @@ History
 
 Critical Changes
 
-- CumulusCI now ships with Snowfakery 3.0. See the `Snowfakery release notes <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v3.0.0>`__. Snowfakery 3.0 ships with opt-in features that will become the default in June 2022; please test your recipes now with ``snowfakery_version: 3`` to ensure compatibility.
+- CumulusCI now ships with Snowfakery 3.0. See the `Snowfakery release notes <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v3.0.0>`__. Snowfakery 3.0 ships with opt-in features that will become the default in June 2022; please `test your recipes <https://snowfakery.readthedocs.io/en/latest/#snowfakery-3>`__  now with ``snowfakery_version: 3`` to ensure compatibility.
 
 Changes
 
