@@ -564,7 +564,10 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
 
 class TestLocalFolderSource:
     def test_fetch(self):
-        project_config = BaseProjectConfig(UniversalConfig())
+        project_config = BaseProjectConfig(
+            UniversalConfig(),
+            repo_info={"root": pathlib.Path(__file__).parent.absolute()},
+        )
         with temporary_dir() as d:
             touch("cumulusci.yml")
             source = LocalFolderSource(project_config, LocalFolderSourceModel(path=d))

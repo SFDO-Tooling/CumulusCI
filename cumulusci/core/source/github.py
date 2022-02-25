@@ -127,7 +127,6 @@ class GitHubSource:
 
     def fetch(self):
         """Fetch the archive of the specified commit and construct its project config."""
-        # fs.path, which we use in open_cache, doesn't work with Pathlib path objects
         with self.project_config.open_cache(
             fs.path.join("projects", self.repo_name, self.commit)
         ) as path:
@@ -148,8 +147,7 @@ class GitHubSource:
                 "name": self.repo_name,
                 "url": self.url,
                 "commit": self.commit,
-            },
-            cache_dir=self.project_config.cache_dir,
+            }
         )
         return project_config
 

@@ -603,7 +603,9 @@ class TestBaseProjectConfig(unittest.TestCase):
         with temporary_dir() as d:
             touch("cumulusci.yml")
             project_config = BaseProjectConfig(
-                universal_config, {"sources": {"test": {"path": d}}}
+                universal_config,
+                {"sources": {"test": {"path": d}}},
+                repo_info={"root": Path(__file__).parent.absolute()},
             )
             task_config = project_config.get_task("test:log")
         assert task_config.project_config is not project_config
@@ -614,7 +616,9 @@ class TestBaseProjectConfig(unittest.TestCase):
         with temporary_dir() as d:
             touch("cumulusci.yml")
             project_config = BaseProjectConfig(
-                universal_config, {"sources": {"test": {"path": d}}}
+                universal_config,
+                {"sources": {"test": {"path": d}}},
+                repo_info={"root": Path(__file__).parent.absolute()},
             )
             flow_config = project_config.get_flow("test:dev_org")
         assert flow_config.project_config is not project_config
@@ -636,7 +640,10 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_include_source__cached(self):
         universal_config = UniversalConfig()
-        project_config = BaseProjectConfig(universal_config)
+        project_config = BaseProjectConfig(
+            universal_config,
+            repo_info={"root": os.getcwd()},
+        )
         with temporary_dir() as d:
             touch("cumulusci.yml")
             other1 = project_config.include_source(LocalFolderSourceModel(path=d))

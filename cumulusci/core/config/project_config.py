@@ -577,7 +577,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def construct_subproject_config(self, **kwargs):
         """Construct another project config for an external source"""
         return self.__class__(
-            self.universal_config_obj, included_sources=self.included_sources, **kwargs
+            self.universal_config_obj,
+            included_sources=self.included_sources,
+            cache_dir=self.cache_dir,
+            **kwargs,
         )
 
     def relpath(self, path):
