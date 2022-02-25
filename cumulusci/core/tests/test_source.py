@@ -29,14 +29,15 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
     def setUp(self):
         self.repo_api_url = "https://api.github.com/repos/TestOwner/TestRepo"
         universal_config = UniversalConfig()
-        self.project_config = BaseProjectConfig(universal_config)
+        self.project_config = BaseProjectConfig(
+            universal_config, repo_info={"root": os.getcwd()}
+        )
         self.project_config.set_keychain(BaseProjectKeychain(self.project_config, None))
         self.project_config.sources__foo = {
             "github": "https://github.com/TestOwner/Foo",
             "release": "latest",
         }
         self.repo_root = TemporaryDirectory()
-        self.project_config.repo_info["root"] = pathlib.Path(self.repo_root.name)
         self.project_config.keychain.set_service(
             "github",
             "test_alias",
@@ -566,7 +567,7 @@ class TestLocalFolderSource:
     def test_fetch(self):
         project_config = BaseProjectConfig(
             UniversalConfig(),
-            repo_info={"root": pathlib.Path(__file__).parent.absolute()},
+            repo_info={"root": os.getcwd()},
         )
         with temporary_dir() as d:
             touch("cumulusci.yml")
