@@ -287,6 +287,8 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                         "options": {
                             "namespace": "ns",
                             "version": "1.0",
+                            "interactive": False,
+                            "base_package_url_format": "{}",
                         },
                         "checks": [],
                     },
