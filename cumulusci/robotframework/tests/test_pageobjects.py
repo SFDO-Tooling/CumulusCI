@@ -25,6 +25,11 @@ from robot.libraries.BuiltIn import BuiltIn
 
 from cumulusci.robotframework import PageObjects
 from cumulusci.robotframework.CumulusCI import CumulusCI
+from cumulusci.robotframework.pageobjects.BasePageObjects import (
+    DetailPage,
+    HomePage,
+    ListingPage,
+)
 from cumulusci.robotframework.pageobjects.PageObjectLibrary import _PageObjectLibrary
 from cumulusci.utils import temporary_dir
 
@@ -36,6 +41,11 @@ BAR_PATH = os.path.join(HERE, "BarTestPage.py")
 # peasy to import by file path
 importer = robot.utils.Importer()
 
+# These tests don't need an arg, so mocking it out will prevent some
+# keywords from trying to create the org.
+cci_lib = CumulusCI()
+cci_lib._org = mock.Mock()
+
 
 class MockGetLibraryInstance:
     """Mock robot's get_library_instance method
@@ -45,8 +55,14 @@ class MockGetLibraryInstance:
 
     libs = {
         "SeleniumLibrary": mock.Mock(),
-        "cumulusci.robotframework.CumulusCI": CumulusCI(),
+        "cumulusci.robotframework.CumulusCI": cci_lib,
         "cumulusci.robotframework.Salesforce": mock.Mock(),
+        # Note: the fact that we're using "Contact" here is largely
+        # irrelevant. The important thing is that we create a page
+        # object for the base types of Home, Listing,and Detail
+        "ContactHomePage": _PageObjectLibrary(HomePage("Contact")),
+        "ContactListingPage": _PageObjectLibrary(ListingPage("Contact")),
+        "ContactDetailPage": _PageObjectLibrary(DetailPage("Contact")),
     }
 
     def __call__(self, libname):
@@ -187,6 +203,37 @@ class TestPageObjects(unittest.TestCase):
 
                 pobj = po.get_page_object("Test", "Foo__c")
                 self.assertEqual(pobj.object_name, "Foo__c")
+
+    def test_go_to_page_with_locator(self, get_context_mock, get_library_instance_mock):
+        """Verify 'Go to page' accepts and uses a locator argument
+
+        See W-8580487 for more details
+        """
+
+        with reload_PageObjects() as po:
+            for page_type in ("Home", "Listing", "Detail"):
+                # the exact locator isn't important for the test, we
+                # just need to make sure it is passed on to
+                # wait_until_loading_is_complete
+                locator = f"//div[@class='{page_type}']"
+                po.go_to_page(page_type, "Contact", locator=locator)
+                sflib = BuiltIn().get_library_instance(
+                    "cumulusci.robotframework.Salesforce"
+                )
+                sflib.wait_until_loading_is_complete.assert_called_with(locator=locator)
+
+    def test_go_to_page_without_locator(
+        self, get_context_mock, get_library_instance_mock
+    ):
+        """Verify 'Go to page' doesn't require a locator"""
+
+        with reload_PageObjects() as po:
+            for page_type in ("Home", "Listing", "Detail"):
+                po.go_to_page(page_type, "Contact")
+                sflib = BuiltIn().get_library_instance(
+                    "cumulusci.robotframework.Salesforce"
+                )
+                sflib.wait_until_loading_is_complete.assert_called_with(locator=None)
 
 
 @mock.patch(
