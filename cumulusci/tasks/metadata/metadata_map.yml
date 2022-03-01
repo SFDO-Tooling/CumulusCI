@@ -703,6 +703,10 @@ skills:
     - type: Skill
       class: MetadataFilenameParser
       extension: skill
+slackapps:
+    - type: SlackApp
+      class: MetadataFilenameParser
+      extension: slackapp
 standardValueSets:
     - type: StandardValueSet
       class: MetadataFilenameParser
@@ -751,6 +755,10 @@ userCriteria:
     - type: UserCriteria
       class: MetadataFilenameParser
       extension: userCriteria
+viewdefinitions:
+    - type: ViewDefinition
+      class: MetadataFilenameParser
+      extension: view
 wave:
     - type: WaveApplication
       class: MetadataFilenameParser
