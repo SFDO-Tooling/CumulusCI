@@ -62,8 +62,8 @@ class TestBaseReleaseNotesGenerator(unittest.TestCase):
         release_notes.parsers.append(DummyParser("Dummy 1"))
         release_notes.parsers.append(DummyParser("Dummy 2"))
         expected = (
-            u"# Dummy 1\r\n\r\ndummy parser output\r\n\r\n"
-            + u"# Dummy 2\r\n\r\ndummy parser output"
+            "# Dummy 1\r\n\r\ndummy parser output\r\n\r\n"
+            + "# Dummy 2\r\n\r\ndummy parser output"
         )
         self.assertEqual(release_notes.render(), expected)
 
@@ -225,8 +225,8 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
     @responses.activate
     def test_publish_update_unicode(self):
         tag = "prod/1.4"
-        note = u"“Unicode quotes”"
-        expected_release_body = u"# Changes\r\n\r\n{}".format(note)
+        note = "“Unicode quotes”"
+        expected_release_body = "# Changes\r\n\r\n{}".format(note)
         # mock GitHub API responses
         self.mock_util.mock_get_repo()
         # create generator instance
