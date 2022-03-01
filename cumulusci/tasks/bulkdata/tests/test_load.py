@@ -30,7 +30,11 @@ from cumulusci.tasks.bulkdata.tests.utils import (
     FakeBulkAPIDmlOperation,
     _make_task,
 )
-from cumulusci.tests.util import assert_max_memory_usage, mock_describe_calls
+from cumulusci.tests.util import (
+    assert_max_memory_usage,
+    current_sf_version,
+    mock_describe_calls,
+)
 from cumulusci.utils import temporary_dir
 
 
@@ -42,7 +46,7 @@ class TestLoadData(unittest.TestCase):
     def test_run(self, dml_mock):
         responses.add(
             method="GET",
-            url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url=f"https://example.com/services/data/v{current_sf_version}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )
@@ -186,7 +190,7 @@ class TestLoadData(unittest.TestCase):
     def test_run__sql(self, dml_mock):
         responses.add(
             method="GET",
-            url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url=f"https://example.com/services/data/v{current_sf_version}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )
@@ -291,11 +295,12 @@ class TestLoadData(unittest.TestCase):
             },
         )
 
+        t._init_task()
         t._init_mapping()
 
         validate_and_inject_mapping.assert_called_once_with(
             mapping=t.mapping,
-            org_config=t.org_config,
+            sf=t.sf,
             namespace=t.project_config.project__package__namespace,
             data_operation=DataOperationType.INSERT,
             inject_namespaces=True,
@@ -312,6 +317,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         mock_describe_calls()
+        task._init_task()
         task._init_mapping()
 
         model = mock.Mock()
@@ -429,8 +435,7 @@ class TestLoadData(unittest.TestCase):
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
         )
-        task.sf = mock.Mock()
-
+        task._init_task()
         mapping = MappingStep(
             sf_object="Contact",
             action="insert",
@@ -1503,6 +1508,7 @@ class TestLoadData(unittest.TestCase):
         )
         mock_describe_calls()
 
+        task._init_task()
         task._init_mapping()
         task.mapping["Insert Households"]["fields"]["RecordTypeId"] = "RecordTypeId"
         with task._init_db():
@@ -1532,7 +1538,7 @@ class TestLoadData(unittest.TestCase):
     def test_run__autopk(self, dml_mock):
         responses.add(
             method="GET",
-            url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url=f"https://example.com/services/data/v{current_sf_version}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )
@@ -1595,6 +1601,7 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
         mock_describe_calls()
+        task._init_task()
         task._init_mapping()
         assert (
             task.mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
@@ -1623,6 +1630,7 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
         mock_describe_calls()
+        task._init_task()
         task._init_mapping()
 
         class FakeModel:
@@ -1645,6 +1653,7 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
         mock_describe_calls()
+        task._init_task()
         task._init_mapping()
 
         class FakeModel:
@@ -2185,7 +2194,7 @@ class TestLoadData(unittest.TestCase):
     def test_load_memory_usage(self):
         responses.add(
             method="GET",
-            url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url=f"https://example.com/services/data/v{current_sf_version}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )

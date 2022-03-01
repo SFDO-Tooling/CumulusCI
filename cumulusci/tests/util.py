@@ -19,7 +19,7 @@ from cumulusci.core.config import (
     UniversalConfig,
 )
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.tasks.bulkdata.tests import utils as bulkdata_utils
+from cumulusci.tasks.bulkdata.tests.utils import FakeBulkAPI, current_sf_version
 
 
 def random_sha():
@@ -153,11 +153,18 @@ def big_objs(traced_only=False):
         print(type(obj), size, tracemalloc.get_object_traceback(obj))
 
 
+class FakeSFSobjectProxy:
+    def __init__(self, describe_data):
+        self.describe_data = describe_data
+
+    def describe(self):
+        return self.describe_data
+
+
 class FakeSF:
-    """Extremely simplistic mock of the Simple-Salesforce API
+    """Simplistic mock of the Simple-Salesforce API
 
     Can be improved as needed over time.
-    In particular, __getattr__ is not implemented yet.
     """
 
     fakes = {}
@@ -170,10 +177,13 @@ class FakeSF:
         return "47.0"
 
     def _get_json(self, fake_dataset):
-        self.fakes[fake_dataset] = self.fakes.get("sobjname", None) or read_mock(
-            fake_dataset
+        self.fakes[fake_dataset] = self.fakes.get(fake_dataset, None) or json.loads(
+            read_mock(fake_dataset)
         )
         return self.fakes[fake_dataset]
+
+    def __getattr__(self, name):
+        return FakeSFSobjectProxy(self._get_json(name))
 
 
 def read_mock(name: str):
@@ -231,7 +241,7 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
 
     def _init_task():
         real_init()
-        task.bulk = bulkdata_utils.FakeBulkAPI()
+        task.bulk = FakeBulkAPI()
         task.sf = salesforce_client
 
     with mock.patch(
@@ -297,3 +307,5 @@ class FakeUnreliableRequestHandler:
 
     def real_reliable_request_callback(self, request):
         return self.response
+
+current_sf_version = current_sf_version # quiet linter and export to other modules

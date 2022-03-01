@@ -176,8 +176,8 @@ class TestMappingParser:
             anchor_date="2020-07-01",
         )
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.Account.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.Account.describe.return_value = {
             "fields": [
                 {"name": "Some_Date__c", "type": "date"},
                 {"name": "Some_Datetime__c", "type": "datetime"},
@@ -186,14 +186,14 @@ class TestMappingParser:
         }
 
         assert mapping.get_relative_date_context(
-            mapping.get_load_field_list(), org_config
+            mapping.get_load_field_list(), salesforce_client
         ) == ([0], [1], date.today())
 
     def test_get_relative_date_e2e(self):
         base_path = Path(__file__).parent / "mapping_v1.yml"
         mapping = parse_from_yaml(base_path)
-        org_config = mock.Mock()
-        org_config.salesforce_client.Contact.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.Contact.describe.return_value = {
             "fields": [
                 {"name": "Some_Date__c", "type": "date"},
                 {"name": "Some_Datetime__c", "type": "datetime"},
@@ -205,7 +205,7 @@ class TestMappingParser:
             {"Some_Date__c": "Some_Date__c", "Some_Datetime__c": "Some_Datetime__c"}
         )
         assert contacts_mapping.get_relative_date_context(
-            contacts_mapping.get_load_field_list(), org_config
+            contacts_mapping.get_load_field_list(), salesforce_client
         ) == (
             [3],
             [4],
@@ -441,16 +441,16 @@ class TestMappingParser:
             )
         )["Insert Accounts"]
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.describe.return_value = {
             "sobjects": [{"name": "Account", "createable": True}]
         }
-        org_config.salesforce_client.Account.describe.return_value = {
+        salesforce_client.Account.describe.return_value = {
             "fields": [{"name": "ns__Test__c", "createable": True}]
         }
 
         assert ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT, inject_namespaces=True
+            salesforce_client, "ns", DataOperationType.INSERT, inject_namespaces=True
         )
 
         ms._validate_sobject.assert_called_once_with(
@@ -507,11 +507,11 @@ class TestMappingParser:
             )
         )["Insert Accounts"]
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.describe.return_value = {
             "sobjects": [{"name": "Account", "createable": True}]
         }
-        org_config.salesforce_client.Account.describe.return_value = {
+        salesforce_client.Account.describe.return_value = {
             "fields": [
                 {"name": "Name", "createable": True},
                 {"name": "ns__Lookup__c", "updateable": False, "createable": True},
@@ -519,7 +519,7 @@ class TestMappingParser:
         }
 
         assert ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT, inject_namespaces=True
+            salesforce_client, "ns", DataOperationType.INSERT, inject_namespaces=True
         )
 
         ms._validate_sobject.assert_called_once_with(
@@ -577,15 +577,15 @@ class TestMappingParser:
             sf_object="Test__c", fields=["Field__c"], action=DataOperationType.INSERT
         )
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.describe.return_value = {
             "sobjects": [{"name": "Test__c", "createable": True}]
         }
-        org_config.salesforce_client.Test__c.describe.return_value = {
+        salesforce_client.Test__c.describe.return_value = {
             "fields": [{"name": "Field__c", "createable": True}]
         }
         assert ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT
+            salesforce_client, "ns", DataOperationType.INSERT
         )
 
         ms._validate_sobject.assert_called_once_with(
@@ -631,15 +631,15 @@ class TestMappingParser:
             sf_object="Test__c", fields=["Name"], action=DataOperationType.INSERT
         )
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.describe.return_value = {
             "sobjects": [{"name": "Test__c", "createable": False}]
         }
-        org_config.salesforce_client.Test__c.describe.return_value = {
+        salesforce_client.Test__c.describe.return_value = {
             "fields": [{"name": "Name", "createable": True}]
         }
         assert not ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT
+            salesforce_client, "ns", DataOperationType.INSERT
         )
 
         ms._validate_sobject.assert_called_once_with(
@@ -666,15 +666,15 @@ class TestMappingParser:
             sf_object="Test__c", fields=["Name"], action=DataOperationType.INSERT
         )
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.describe.return_value = {
             "sobjects": [{"name": "Test__c", "createable": True}]
         }
-        org_config.salesforce_client.Test__c.describe.return_value = {
+        salesforce_client.Test__c.describe.return_value = {
             "fields": [{"name": "Name", "createable": False}]
         }
         assert not ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT
+            salesforce_client, "ns", DataOperationType.INSERT
         )
 
         ms._validate_sobject.assert_called_once_with(
@@ -721,18 +721,18 @@ class TestMappingParser:
             )
         )["Insert Accounts"]
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.describe.return_value = {
             "sobjects": [{"name": "Account", "createable": True}]
         }
-        org_config.salesforce_client.Account.describe.return_value = {
+        salesforce_client.Account.describe.return_value = {
             "fields": [
                 {"name": "Name", "createable": True},
                 {"name": "Lookup__c", "updateable": True, "createable": False},
             ]
         }
         assert not ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT
+            salesforce_client, "ns", DataOperationType.INSERT
         )
 
         ms._validate_sobject.assert_called_once_with(
@@ -802,18 +802,18 @@ class TestMappingParser:
             )
         )["Insert Accounts"]
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.describe.return_value = {
             "sobjects": [{"name": "Account", "createable": True}]
         }
-        org_config.salesforce_client.Account.describe.return_value = {
+        salesforce_client.Account.describe.return_value = {
             "fields": [
                 {"name": "Name", "createable": True},
                 {"name": "Lookup__c", "updateable": False, "createable": True},
             ]
         }
         assert not ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT
+            salesforce_client, "ns", DataOperationType.INSERT
         )
 
         ms._validate_sobject.assert_called_once_with(
@@ -875,7 +875,7 @@ class TestMappingParser:
         with pytest.raises(BulkDataException):
             validate_and_inject_mapping(
                 mapping=mapping,
-                org_config=org_config,
+                sf=org_config.salesforce_client,
                 namespace=None,
                 data_operation=DataOperationType.INSERT,
                 inject_namespaces=False,
@@ -896,7 +896,7 @@ class TestMappingParser:
 
         validate_and_inject_mapping(
             mapping=mapping,
-            org_config=org_config,
+            sf=org_config.salesforce_client,
             namespace=None,
             data_operation=DataOperationType.INSERT,
             inject_namespaces=False,
@@ -922,7 +922,7 @@ class TestMappingParser:
 
         validate_and_inject_mapping(
             mapping=mapping,
-            org_config=org_config,
+            sf=org_config.salesforce_client,
             namespace=None,
             data_operation=DataOperationType.INSERT,
             inject_namespaces=False,
@@ -955,7 +955,7 @@ class TestMappingParser:
         with pytest.raises(BulkDataException):
             validate_and_inject_mapping(
                 mapping=mapping,
-                org_config=org_config,
+                sf=org_config.salesforce_client,
                 namespace=None,
                 data_operation=DataOperationType.INSERT,
                 inject_namespaces=False,
@@ -980,7 +980,10 @@ class TestMappingParser:
         )
 
         assert ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT, inject_namespaces=True
+            org_config.salesforce_client,
+            "ns",
+            DataOperationType.INSERT,
+            inject_namespaces=True,
         )
 
         assert list(ms.fields.keys()) == ["ns__Description__c"]
@@ -1003,7 +1006,10 @@ class TestMappingParser:
         )
 
         assert ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT, inject_namespaces=True
+            org_config.salesforce_client,
+            "ns",
+            DataOperationType.INSERT,
+            inject_namespaces=True,
         )
 
         assert list(ms.fields.keys()) == ["History__c"]
@@ -1025,7 +1031,7 @@ class TestMappingParser:
 
         validate_and_inject_mapping(
             mapping=mapping,
-            org_config=org_config,
+            sf=org_config.salesforce_client,
             namespace=None,
             data_operation=DataOperationType.QUERY,
             inject_namespaces=False,
@@ -1099,7 +1105,7 @@ class TestMappingLookup:
 
         validate_and_inject_mapping(
             mapping=mapping,
-            org_config=org_config,
+            sf=org_config.salesforce_client,
             namespace=None,
             data_operation=DataOperationType.INSERT,
             inject_namespaces=False,

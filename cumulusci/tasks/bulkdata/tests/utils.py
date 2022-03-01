@@ -7,13 +7,18 @@ from cumulusci.tasks.bulkdata.step import (
 )
 from cumulusci.tests import util as cci_test_utils
 
+current_sf_version = "48.0"
+
 
 def _make_task(task_class, task_config):
     task_config = TaskConfig(task_config)
     universal_config = UniversalConfig()
     project_config = BaseProjectConfig(
         universal_config,
-        config={"noyaml": True, "project": {"package": {"api_version": "46.0"}}},
+        config={
+            "noyaml": True,
+            "project": {"package": {"api_version": current_sf_version}},
+        },
     )
     keychain = BaseProjectKeychain(project_config, "")
     project_config.set_keychain(keychain)
@@ -31,6 +36,7 @@ class FakeBulkAPI:
 
     next_job_id = 0
     next_batch_id = 0
+    endpoint = f"https://example.my.salesforce.com/services/async/{current_sf_version}"
 
     @classmethod
     def create_job(cls, *args, **kwargs):

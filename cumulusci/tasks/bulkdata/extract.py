@@ -110,7 +110,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         validate_and_inject_mapping(
             mapping=self.mapping,
-            org_config=self.org_config,
+            sf=self.sf,
             namespace=self.project_config.project__package__namespace,
             data_operation=DataOperationType.QUERY,
             inject_namespaces=self.options["inject_namespaces"],
@@ -180,7 +180,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # Convert relative dates to stable dates.
         if mapping.anchor_date:
             date_context = mapping.get_relative_date_context(
-                list(field_map.keys()), self.org_config
+                list(field_map.keys()), self.sf
             )
             if date_context[0] or date_context[1]:
                 record_iterator = (
