@@ -1,17 +1,14 @@
 Insert Accounts:
-    api: rest
+    api: bulk
     sf_object: Account
-    action: upsert
-    update_key: Extid__c
     fields:
         - Name
-        - Extid__c
 Insert Contacts:
     api: bulk
     sf_object: Contact
     action: upsert
-    update_key: Extid__c
+    update_key: Email
     fields:
         - FirstName
         - LastName
-        - Extid__c
+        - Email
