@@ -19,7 +19,7 @@ from cumulusci.core.config import (
     UniversalConfig,
 )
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.tasks.bulkdata.tests.utils import FakeBulkAPI, current_sf_version
+from cumulusci.tasks.bulkdata.tests.utils import CURRENT_SF_API_VERSION, FakeBulkAPI
 
 
 def random_sha():
@@ -308,4 +308,7 @@ class FakeUnreliableRequestHandler:
     def real_reliable_request_callback(self, request):
         return self.response
 
-current_sf_version = current_sf_version # quiet linter and export to other modules
+
+CURRENT_SF_API_VERSION = (
+    CURRENT_SF_API_VERSION  # quiet linter and export to other modules
+)

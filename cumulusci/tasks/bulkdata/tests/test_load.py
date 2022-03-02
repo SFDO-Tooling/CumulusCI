@@ -31,8 +31,8 @@ from cumulusci.tasks.bulkdata.tests.utils import (
     _make_task,
 )
 from cumulusci.tests.util import (
+    CURRENT_SF_API_VERSION,
     assert_max_memory_usage,
-    current_sf_version,
     mock_describe_calls,
 )
 from cumulusci.utils import temporary_dir
@@ -46,7 +46,7 @@ class TestLoadData(unittest.TestCase):
     def test_run(self, dml_mock):
         responses.add(
             method="GET",
-            url=f"https://example.com/services/data/v{current_sf_version}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )
@@ -190,7 +190,7 @@ class TestLoadData(unittest.TestCase):
     def test_run__sql(self, dml_mock):
         responses.add(
             method="GET",
-            url=f"https://example.com/services/data/v{current_sf_version}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )
@@ -1538,7 +1538,7 @@ class TestLoadData(unittest.TestCase):
     def test_run__autopk(self, dml_mock):
         responses.add(
             method="GET",
-            url=f"https://example.com/services/data/v{current_sf_version}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )
@@ -2194,7 +2194,7 @@ class TestLoadData(unittest.TestCase):
     def test_load_memory_usage(self):
         responses.add(
             method="GET",
-            url=f"https://example.com/services/data/v{current_sf_version}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )
