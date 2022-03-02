@@ -950,7 +950,7 @@ class TestExtractData:
 
             step_mock.side_effect = [mock_query_households, mock_query_contacts]
 
-            with assert_max_memory_usage(15 * 10 ** 6):
+            with assert_max_memory_usage(15 * 10**6):
                 task()
 
     @responses.activate

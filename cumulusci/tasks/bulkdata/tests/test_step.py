@@ -76,33 +76,27 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
         mixin.bulk = mock.Mock()
         mixin.bulk.jobNS = "http://ns"
 
-        assert (
-            mixin._parse_job_state(
-                BULK_BATCH_RESPONSE.format(
-                    **{
-                        "first_state": "Not Processed",
-                        "first_message": "Test",
-                        "second_state": "Completed",
-                        "second_message": "",
-                    }
-                )
+        assert mixin._parse_job_state(
+            BULK_BATCH_RESPONSE.format(
+                **{
+                    "first_state": "Not Processed",
+                    "first_message": "Test",
+                    "second_state": "Completed",
+                    "second_message": "",
+                }
             )
-            == DataOperationJobResult(DataOperationStatus.ABORTED, [], 0, 0)
-        )
+        ) == DataOperationJobResult(DataOperationStatus.ABORTED, [], 0, 0)
 
-        assert (
-            mixin._parse_job_state(
-                BULK_BATCH_RESPONSE.format(
-                    **{
-                        "first_state": "InProgress",
-                        "first_message": "Test",
-                        "second_state": "Completed",
-                        "second_message": "",
-                    }
-                )
+        assert mixin._parse_job_state(
+            BULK_BATCH_RESPONSE.format(
+                **{
+                    "first_state": "InProgress",
+                    "first_message": "Test",
+                    "second_state": "Completed",
+                    "second_message": "",
+                }
             )
-            == DataOperationJobResult(DataOperationStatus.IN_PROGRESS, [], 0, 0)
-        )
+        ) == DataOperationJobResult(DataOperationStatus.IN_PROGRESS, [], 0, 0)
 
         assert mixin._parse_job_state(
             BULK_BATCH_RESPONSE.format(
@@ -117,19 +111,16 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
             DataOperationStatus.JOB_FAILURE, ["Bad", "Worse"], 0, 0
         )
 
-        assert (
-            mixin._parse_job_state(
-                BULK_BATCH_RESPONSE.format(
-                    **{
-                        "first_state": "Completed",
-                        "first_message": "Test",
-                        "second_state": "Completed",
-                        "second_message": "",
-                    }
-                )
+        assert mixin._parse_job_state(
+            BULK_BATCH_RESPONSE.format(
+                **{
+                    "first_state": "Completed",
+                    "first_message": "Test",
+                    "second_state": "Completed",
+                    "second_message": "",
+                }
             )
-            == DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
-        )
+        ) == DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
 
         assert mixin._parse_job_state(
             '<root xmlns="http://ns">'
