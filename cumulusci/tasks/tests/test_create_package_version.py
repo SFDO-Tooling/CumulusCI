@@ -560,17 +560,14 @@ class TestCreatePackageVersion:
 
     def test_convert_project_dependencies__no_unlocked_packages(self, task):
         task.options["create_unlocked_dependency_packages"] = False
-        assert (
-            task._convert_project_dependencies(
-                [
-                    PackageVersionIdDependency(version_id="04t000000000000"),
-                    UnmanagedGitHubRefDependency(
-                        github="https://github.com/test/test", ref="abcdef"
-                    ),
-                ]
-            )
-            == [{"subscriberPackageVersionId": "04t000000000000"}]
-        )
+        assert task._convert_project_dependencies(
+            [
+                PackageVersionIdDependency(version_id="04t000000000000"),
+                UnmanagedGitHubRefDependency(
+                    github="https://github.com/test/test", ref="abcdef"
+                ),
+            ]
+        ) == [{"subscriberPackageVersionId": "04t000000000000"}]
 
     def test_unpackaged_pre_dependencies__none(self, task):
         shutil.rmtree(str(pathlib.Path(task.project_config.repo_root, "unpackaged")))

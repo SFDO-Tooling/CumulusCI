@@ -2258,7 +2258,7 @@ class TestLoadData(unittest.TestCase):
                     0,
                 )
 
-            MEGABYTE = 2 ** 20
+            MEGABYTE = 2**20
 
             # FIXME: more anlysis about the number below
             with mock.patch(
