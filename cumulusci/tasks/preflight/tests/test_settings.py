@@ -126,7 +126,7 @@ def test_check_settings__exception():
 def test_check_custom_settings(settings_field, value, outcome):
     responses.add(
         "GET",
-        f"https://test.salesforce.com/services/data/v50.0/query/?q=SELECT+{settings_field}+FROM+namespace__Settings__c",
+        f"https://test.salesforce.com/services/data/v52.0/query/?q=SELECT+{settings_field}+FROM+namespace__Settings__c",
         json=JSON_RESPONSE,
     )
     task = create_task(
@@ -147,7 +147,7 @@ def test_check_custom_settings(settings_field, value, outcome):
 def test_check_custom_settings__no_settings():
     responses.add(
         "GET",
-        "https://test.salesforce.com/services/data/v50.0/query/?q=SELECT+namespace__Foo__c+FROM+namespace__Settings__c",
+        "https://test.salesforce.com/services/data/v52.0/query/?q=SELECT+namespace__Foo__c+FROM+namespace__Settings__c",
         json={"records": []},
     )
     task = create_task(
@@ -169,7 +169,7 @@ def test_check_custom_settings__failure():
     responses.add(
         "GET",
         status=400,
-        url="https://test.salesforce.com/services/data/v50.0/query/?q=SELECT+namespace__Test__c+FROM+namespace__NoSettings__c",
+        url="https://test.salesforce.com/services/data/v52.0/query/?q=SELECT+namespace__Test__c+FROM+namespace__NoSettings__c",
         json={},
     )
     task = create_task(
@@ -192,7 +192,7 @@ def test_check_custom_settings__exception():
     responses.add(
         "GET",
         status=400,
-        url="https://test.salesforce.com/services/data/v50.0/query/?q=SELECT+namespace__Test__c+FROM+namespace__NoSettings__c",
+        url="https://test.salesforce.com/services/data/v52.0/query/?q=SELECT+namespace__Test__c+FROM+namespace__NoSettings__c",
         json={},
     )
     task = create_task(
