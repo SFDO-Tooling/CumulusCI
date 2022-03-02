@@ -101,7 +101,7 @@ Example Task Definition
         if self.options.get("randomize_username", False):
             random_tld = "".join(random.choices(string.ascii_lowercase, k=4))
             body = re.sub(
-                r'("Username": .[\w-]+@[\w-]+\.)+[\w-]+', fr"\1{random_tld}", body
+                r'("Username": .[\w-]+@[\w-]+\.)+[\w-]+', rf"\1{random_tld}", body
             )
 
         return body
