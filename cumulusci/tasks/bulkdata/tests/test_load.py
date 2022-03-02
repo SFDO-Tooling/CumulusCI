@@ -37,6 +37,8 @@ from cumulusci.tests.util import (
 )
 from cumulusci.utils import temporary_dir
 
+current_sf_version = "52.0"
+
 
 class TestLoadData(unittest.TestCase):
     mapping_file = "mapping_v1.yml"
@@ -224,7 +226,7 @@ class TestLoadData(unittest.TestCase):
             DataOperationResult("003000000000000", True, None),
             DataOperationResult("003000000000001", True, None),
         ]
-        mock_describe_calls()
+        mock_describe_calls(version=current_sf_version)
         task()
 
         assert step.records == [
@@ -431,7 +433,7 @@ class TestLoadData(unittest.TestCase):
 
     @responses.activate
     def test_stream_queried_data__adjusts_relative_dates(self):
-        mock_describe_calls()
+        mock_describe_calls(version=current_sf_version)
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
         )
@@ -1506,7 +1508,7 @@ class TestLoadData(unittest.TestCase):
         task._validate_org_has_person_accounts_enabled_if_person_account_data_exists = (
             mock.Mock()
         )
-        mock_describe_calls()
+        mock_describe_calls(version=current_sf_version)
 
         task._init_task()
         task._init_mapping()
@@ -1578,7 +1580,7 @@ class TestLoadData(unittest.TestCase):
                 DataOperationResult("003000000000001", True, None),
             ]
 
-            mock_describe_calls()
+            mock_describe_calls(version=current_sf_version)
             task()
 
             assert step.records == [

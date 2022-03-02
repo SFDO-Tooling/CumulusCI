@@ -37,6 +37,8 @@ BULK_BATCH_RESPONSE = """<root xmlns="http://ns">
 </batch>
 </root>"""
 
+current_sf_version = "52.0"
+
 
 class TestDownloadFile(unittest.TestCase):
     @responses.activate
