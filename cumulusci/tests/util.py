@@ -19,7 +19,9 @@ from cumulusci.core.config import (
     UniversalConfig,
 )
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.tasks.bulkdata.tests.utils import CURRENT_SF_API_VERSION, FakeBulkAPI
+
+CURRENT_SF_API_VERSION = "54.0"
+from cumulusci.tasks.bulkdata.tests.utils import FakeBulkAPI
 
 
 def random_sha():
@@ -153,7 +155,7 @@ def big_objs(traced_only=False):
         print(type(obj), size, tracemalloc.get_object_traceback(obj))
 
 
-class FakeSFSobjectProxy:
+class FakeSObjectProxy:
     def __init__(self, describe_data):
         self.describe_data = describe_data
 
@@ -168,13 +170,16 @@ class FakeSF:
     """
 
     fakes = {}
+    headers = {}
+    session = mock.Mock()
+    base_url = "https://fakesf.example.org/"
 
     def describe(self):
         return self._get_json("global_describe")
 
     @property
     def sf_version(self):
-        return "47.0"
+        return CURRENT_SF_API_VERSION
 
     def _get_json(self, fake_dataset):
         self.fakes[fake_dataset] = self.fakes.get(fake_dataset, None) or json.loads(
@@ -183,7 +188,7 @@ class FakeSF:
         return self.fakes[fake_dataset]
 
     def __getattr__(self, name):
-        return FakeSFSobjectProxy(self._get_json(name))
+        return FakeSObjectProxy(self._get_json(name))
 
 
 def read_mock(name: str):
@@ -193,11 +198,11 @@ def read_mock(name: str):
         return f.read()
 
 
-def mock_describe_calls(domain="example.com"):
+def mock_describe_calls(domain="example.com", version="54.0"):
     def mock_sobject_describe(name: str):
         responses.add(
             method="GET",
-            url=f"https://{domain}/services/data/v48.0/sobjects/{name}/describe",
+            url=f"https://{domain}/services/data/v{version}/sobjects/{name}/describe",
             body=read_mock(name),
             status=200,
         )
@@ -205,19 +210,19 @@ def mock_describe_calls(domain="example.com"):
     responses.add(
         method="GET",
         url=f"https://{domain}/services/data",
-        body=json.dumps([{"version": "40.0"}, {"version": "48.0"}]),
+        body=json.dumps([{"version": version}]),
         status=200,
     )
     responses.add(
         method="GET",
         url=f"https://{domain}/services/data",
-        body=json.dumps([{"version": "40.0"}, {"version": "48.0"}]),
+        body=json.dumps([{"version": version}]),
         status=200,
     )
 
     responses.add(
         method="GET",
-        url=f"https://{domain}/services/data/v48.0/sobjects",
+        url=f"https://{domain}/services/data/v{version}/sobjects",
         body=read_mock("global_describe"),
         status=200,
     )

@@ -24,7 +24,7 @@ from cumulusci.tasks.bulkdata.step import (
     get_query_operation,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
-from cumulusci.tests.util import mock_describe_calls
+from cumulusci.tests.util import CURRENT_SF_API_VERSION, mock_describe_calls
 
 BULK_BATCH_RESPONSE = """<root xmlns="http://ns">
 <batch>
@@ -737,12 +737,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -751,7 +751,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[{"id": "003000000000003", "success": True}],
             status=200,
         )
@@ -791,12 +791,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -805,7 +805,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[{"id": "003000000000003", "success": True}],
             status=200,
         )
@@ -909,12 +909,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -923,7 +923,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[{"id": "003000000000003", "success": True}],
             status=200,
         )
@@ -957,12 +957,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -971,7 +971,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[
                 {
                     "id": "003000000000003",
@@ -1025,12 +1025,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
         task._init_task()
 
         responses.add(
             responses.DELETE,
-            url="https://example.com/services/data/v48.0/composite/sobjects?ids=003000000000001,003000000000002",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects?ids=003000000000001,003000000000002",
             json=[
                 {"id": "003000000000001", "success": True},
                 {"id": "003000000000002", "success": True},
@@ -1039,7 +1039,7 @@ class TestRestApiDmlOperation:
         )
         responses.add(
             responses.DELETE,
-            url="https://example.com/services/data/v48.0/composite/sobjects?ids=003000000000003",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects?ids=003000000000003",
             json=[{"id": "003000000000003", "success": True}],
             status=200,
         )
@@ -1079,12 +1079,12 @@ class TestRestApiDmlOperation:
                 }
             },
         )
-        task.project_config.project__package__api_version = "48.0"
+        task.project_config.project__package__api_version = CURRENT_SF_API_VERSION
         task._init_task()
 
         responses.add(
             responses.POST,
-            url="https://example.com/services/data/v48.0/composite/sobjects",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/composite/sobjects",
             json=[{"id": "003000000000001", "success": True}],
             status=200,
         )
