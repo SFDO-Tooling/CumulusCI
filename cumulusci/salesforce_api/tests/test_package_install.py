@@ -170,7 +170,7 @@ def test_install_package_by_namespace_version__retry(zip_builder, api_deploy):
     api_deploy.return_value.assert_has_calls([mock.call(), mock.call()])
 
 
-def test_package_install_options_from_task_options__omitting_optionals():
+def test_package_install_options_from_task_options():
     task_options = {
         "activate_remote_site_settings": "False",
         "name_conflict_resolution": "RenameMetadata",
@@ -185,12 +185,10 @@ def test_package_install_options_from_task_options__omitting_optionals():
         name_conflict_resolution=NameConflictResolution.RENAME,
         password="foo",
         security_type=SecurityType.PUSH,
-        apex_compile_type=ApexCompileType.PACKAGE,
-        upgrade_type=UpgradeType.DEPRECATE_ONLY,
     )
 
 
-def test_package_install_options_from_task_options():
+def test_package_install_options_from_task_options__omitting_optionals():
     task_options = {
         "activate_remote_site_settings": "False",
         "name_conflict_resolution": "RenameMetadata",
@@ -207,4 +205,6 @@ def test_package_install_options_from_task_options():
         name_conflict_resolution=NameConflictResolution.RENAME,
         password="foo",
         security_type=SecurityType.PUSH,
+        apex_compile_type=ApexCompileType.PACKAGE,
+        upgrade_type=UpgradeType.DEPRECATE_ONLY,
     )
