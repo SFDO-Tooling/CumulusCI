@@ -1,3 +1,4 @@
+import typing as T
 from datetime import date
 from enum import Enum
 from logging import getLogger
@@ -268,7 +269,10 @@ class MappingStep(CCIDictModel):
     def _is_injectable(element: str) -> bool:
         return element.count("__") == 1
 
-    def _get_permission_types(self, operation: DataOperationType) -> str:
+    def _get_required_permission_types(
+        self, operation: DataOperationType
+    ) -> T.Tuple[str]:
+        """Return a tuple of the permssion types required to execute an operaation"""
         if operation is DataOperationType.QUERY:
             return ("queryable",)
         if (
@@ -288,13 +292,13 @@ class MappingStep(CCIDictModel):
         self, global_describe: Mapping, sobject: str, operation: DataOperationType
     ):
         assert sobject in global_describe
-        perms = self._get_permission_types(operation)
+        perms = self._get_required_permission_types(operation)
         return all(global_describe[sobject][perm] for perm in perms)
 
     def _check_field_permission(
         self, describe: Mapping, field: str, operation: DataOperationType
     ):
-        perms = self._get_permission_types(operation)
+        perms = self._get_required_permission_types(operation)
         # Fields don't have "queryable" permission.
         return field in describe and all(
             # To discuss: is this different than `describe[field].get(perm, True)`

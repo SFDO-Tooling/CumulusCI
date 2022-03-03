@@ -223,13 +223,19 @@ class TestMappingParser:
         ms = MappingStep(
             sf_object="Account", fields=["Name"], action=DataOperationType.INSERT
         )
-        assert ms._get_permission_types(DataOperationType.INSERT) == ("createable",)
-        assert ms._get_permission_types(DataOperationType.QUERY) == ("queryable",)
+        assert ms._get_required_permission_types(DataOperationType.INSERT) == (
+            "createable",
+        )
+        assert ms._get_required_permission_types(DataOperationType.QUERY) == (
+            "queryable",
+        )
 
         ms = MappingStep(
             sf_object="Account", fields=["Name"], action=DataOperationType.UPDATE
         )
-        assert ms._get_permission_types(DataOperationType.INSERT) == ("updateable",)
+        assert ms._get_required_permission_types(DataOperationType.INSERT) == (
+            "updateable",
+        )
 
         ms = MappingStep(
             sf_object="Account",
@@ -237,7 +243,7 @@ class TestMappingParser:
             action=DataOperationType.UPSERT,
             update_key="Extid__c",
         )
-        assert ms._get_permission_types(DataOperationType.UPSERT) == (
+        assert ms._get_required_permission_types(DataOperationType.UPSERT) == (
             "updateable",
             "createable",
         )
