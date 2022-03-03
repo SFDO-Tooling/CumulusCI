@@ -9,9 +9,11 @@ from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.exceptions import PackageInstallError
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.package_install import (
+    ApexCompileType,
     NameConflictResolution,
     PackageInstallOptions,
     SecurityType,
+    UpgradeType,
     install_package_by_namespace_version,
     install_package_by_version_id,
 )
@@ -183,4 +185,26 @@ def test_package_install_options_from_task_options():
         name_conflict_resolution=NameConflictResolution.RENAME,
         password="foo",
         security_type=SecurityType.PUSH,
+    )
+
+
+def test_package_install_options_from_task_options__omitting_optionals():
+    task_options = {
+        "activate_remote_site_settings": "False",
+        "name_conflict_resolution": "RenameMetadata",
+        "password": "foo",
+        "security_type": "PUSH",
+        "apex_compile_type": "package",
+        "upgrade_type": "deprecate-only",
+    }
+
+    assert PackageInstallOptions.from_task_options(
+        task_options
+    ) == PackageInstallOptions(
+        activate_remote_site_settings=False,
+        name_conflict_resolution=NameConflictResolution.RENAME,
+        password="foo",
+        security_type=SecurityType.PUSH,
+        apex_compile_type=ApexCompileType.PACKAGE,
+        upgrade_type=UpgradeType.DEPRECATE_ONLY,
     )
