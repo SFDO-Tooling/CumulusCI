@@ -9,6 +9,7 @@ from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.exceptions import PackageInstallError
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.package_install import (
+    ApexCompileType,
     NameConflictResolution,
     PackageInstallOptions,
     SecurityType,
@@ -174,6 +175,7 @@ def test_package_install_options_from_task_options():
         "name_conflict_resolution": "RenameMetadata",
         "password": "foo",
         "security_type": "PUSH",
+        "apex_compile_type": "package",
     }
 
     assert PackageInstallOptions.from_task_options(
@@ -183,4 +185,5 @@ def test_package_install_options_from_task_options():
         name_conflict_resolution=NameConflictResolution.RENAME,
         password="foo",
         security_type=SecurityType.PUSH,
+        apex_compile_type=ApexCompileType.PACKAGE,
     )
