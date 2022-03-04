@@ -1,3 +1,4 @@
+import re
 from unittest import mock
 
 import pytest
@@ -178,12 +179,13 @@ class TestUpsert:
                     },
                 }
             }, rc
-            relevant_debug_call = [
-                call
-                for call in task.logger.debug.mock_calls
-                if call.args[0] == "Creating %s Operation for %s using %s"
-            ][0]
-            assert relevant_debug_call.args[-1] == DataApi.REST
+
+            relevant_debug_statement = look_for_operation_creation_debug_statement(
+                task.logger.debug.mock_calls
+            )
+            assert relevant_debug_statement == str(
+                DataApi.REST
+            ), relevant_debug_statement
 
     @responses.activate
     def test_upsert__fake_bulk(self, create_task, cumulusci_test_repo_root):
@@ -372,9 +374,27 @@ class TestUpsert:
                     },
                 }
             }, ret
-            relevant_debug_call = [
-                call
-                for call in task.logger.debug.mock_calls
-                if call.args[0] == "Creating %s Operation for %s using %s"
-            ][0]
-            assert relevant_debug_call.args[-1] == DataApi.BULK
+            relevant_debug_statement = look_for_operation_creation_debug_statement(
+                task.logger.debug.mock_calls
+            )
+            assert relevant_debug_statement == str(
+                DataApi.BULK
+            ), relevant_debug_statement
+
+
+def look_for_operation_creation_debug_statement(mock_calls):
+    relevant_debug_statements = (
+        look_for_operation_creation_debug_statement_for_string(call.args[0])
+        for call in mock_calls
+    )
+
+    return next(stmt for stmt in relevant_debug_statements if stmt)
+
+
+DEBUG_MATCHER = re.compile("Creating (.*) Operation for (.*) using (.*)")
+
+
+def look_for_operation_creation_debug_statement_for_string(s):
+    match = DEBUG_MATCHER.match(s)
+    if match:
+        return match[3]

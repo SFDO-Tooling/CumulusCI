@@ -602,12 +602,7 @@ def get_dml_operation(
     between REST and Bulk APIs based upon volume (Bulk used at volumes over 2000 records,
     or if the operation is HARD_DELETE, which is only available for Bulk)."""
 
-    context.logger.debug(
-        "Creating %s Operation for %s using %s",
-        operation,
-        sobject,
-        api,
-    )
+    context.logger.debug(f"Creating {operation} Operation for {sobject} using {api}")
 
     # REST Collections requires 42.0.
     api_version = float(context.sf.sf_version)
