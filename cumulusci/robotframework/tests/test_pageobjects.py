@@ -41,7 +41,7 @@ BAR_PATH = os.path.join(HERE, "BarTestPage.py")
 # peasy to import by file path
 importer = robot.utils.Importer()
 
-# These tests don't need an arg, so mocking it out will prevent some
+# These tests don't need an org, so mocking it out will prevent some
 # keywords from trying to create the org.
 cci_lib = CumulusCI()
 cci_lib._org = mock.Mock()
