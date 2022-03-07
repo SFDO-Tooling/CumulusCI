@@ -1,4 +1,3 @@
-import json
 import os
 import unittest
 from unittest import mock
@@ -29,44 +28,6 @@ def create_db_memory():
     metadata = MetaData()
     metadata.bind = engine
     return engine, metadata
-
-
-def mock_describe_calls():
-    def read_mock(name: str):
-        base_path = os.path.dirname(__file__)
-
-        with open(os.path.join(base_path, f"{name}.json"), "r") as f:
-            return f.read()
-
-    def mock_sobject_describe(name: str):
-        responses.add(
-            method="GET",
-            url=f"https://example.com/services/data/v48.0/sobjects/{name}/describe",
-            body=read_mock(name),
-            status=200,
-        )
-
-    responses.add(
-        method="GET",
-        url="https://example.com/services/data",
-        body=json.dumps([{"version": "40.0"}, {"version": "48.0"}]),
-        status=200,
-    )
-    responses.add(
-        method="GET",
-        url="https://example.com/services/data/v48.0/sobjects",
-        body=read_mock("global_describe"),
-        status=200,
-    )
-
-    for sobject in [
-        "Account",
-        "Contact",
-        "Opportunity",
-        "OpportunityContactRole",
-        "Case",
-    ]:
-        mock_sobject_describe(sobject)
 
 
 class TestSqlAlchemyMixin(unittest.TestCase):

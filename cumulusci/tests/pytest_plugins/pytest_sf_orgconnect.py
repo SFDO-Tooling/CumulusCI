@@ -10,7 +10,7 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.core.config import OrgConfig, TaskConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.tests.util import unmock_env
+from cumulusci.tests.util import CURRENT_SF_API_VERSION, unmock_env
 
 
 def pytest_addoption(parser, pluginmanager):
@@ -114,9 +114,9 @@ def org_config(request, current_org_shape, cli_org_config, fallback_org_config):
     # fast running test suites it might return a hardcoded
     # org and for integration test suites it might return
     # a specific default org or throw an exception.
-    with mock.patch.object(OrgConfig, "latest_api_version", "48.0"), mock.patch.object(
-        OrgConfig, "refresh_oauth_token"
-    ):
+    with mock.patch.object(
+        OrgConfig, "latest_api_version", CURRENT_SF_API_VERSION
+    ), mock.patch.object(OrgConfig, "refresh_oauth_token"):
         yield org_config
 
 
