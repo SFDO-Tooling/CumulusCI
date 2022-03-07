@@ -6,9 +6,9 @@ from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Union
 
 from pydantic import Field, ValidationError, root_validator, validator
 from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
+from simple_salesforce import Salesforce
 from typing_extensions import Literal
 
-from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.dates import iso_to_date
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
@@ -139,8 +139,8 @@ class MappingStep(CCIDictModel):
 
         return fields
 
-    def get_fields_by_type(self, field_type: str, org_config: OrgConfig):
-        describe = getattr(org_config.salesforce_client, self.sf_object).describe()
+    def get_fields_by_type(self, field_type: str, sf: Salesforce):
+        describe = getattr(sf, self.sf_object).describe()
         describe = CaseInsensitiveDict(
             {entry["name"]: entry for entry in describe["fields"]}
         )
@@ -171,15 +171,15 @@ class MappingStep(CCIDictModel):
 
         return columns
 
-    def get_relative_date_context(self, fields: List[str], org_config: OrgConfig):
+    def get_relative_date_context(self, fields: List[str], sf: Salesforce):
         date_fields = [
             fields.index(f)
-            for f in self.get_fields_by_type("date", org_config)
+            for f in self.get_fields_by_type("date", sf)
             if f in self.fields
         ]
         date_time_fields = [
             fields.index(f)
-            for f in self.get_fields_by_type("datetime", org_config)
+            for f in self.get_fields_by_type("datetime", sf)
             if f in self.fields
         ]
 
@@ -388,7 +388,7 @@ class MappingStep(CCIDictModel):
 
     def validate_and_inject_namespace(
         self,
-        org_config: OrgConfig,
+        sf: Salesforce,
         namespace: Optional[str],
         operation: DataOperationType,
         inject_namespaces: bool = False,
@@ -422,10 +422,7 @@ class MappingStep(CCIDictModel):
             inject = strip = None
 
         global_describe = CaseInsensitiveDict(
-            {
-                entry["name"]: entry
-                for entry in org_config.salesforce_client.describe()["sobjects"]
-            }
+            {entry["name"]: entry for entry in sf.describe()["sobjects"]}
         )
 
         if not self._validate_sobject(global_describe, inject, strip, operation):
@@ -434,7 +431,7 @@ class MappingStep(CCIDictModel):
 
         # Validate, inject, and drop (if configured) fields.
         # By this point, we know the attribute is valid.
-        describe = getattr(org_config.salesforce_client, self.sf_object).describe()
+        describe = getattr(sf, self.sf_object).describe()
         describe = CaseInsensitiveDict(
             {entry["name"]: entry for entry in describe["fields"]}
         )
@@ -479,7 +476,7 @@ def parse_from_yaml(source: Union[str, Path, IO]) -> Dict:
 def validate_and_inject_mapping(
     *,
     mapping: Dict,
-    org_config: OrgConfig,
+    sf: Salesforce,
     namespace: str,
     data_operation: DataOperationType,
     inject_namespaces: bool,
@@ -488,7 +485,7 @@ def validate_and_inject_mapping(
 ):
     should_continue = [
         m.validate_and_inject_namespace(
-            org_config, namespace, data_operation, inject_namespaces, drop_missing
+            sf, namespace, data_operation, inject_namespaces, drop_missing
         )
         for m in mapping.values()
     ]
@@ -508,7 +505,7 @@ def validate_and_inject_mapping(
 
         # Remove any remaining lookups to dropped objects.
         for m in mapping.values():
-            describe = getattr(org_config.salesforce_client, m.sf_object).describe()
+            describe = getattr(sf, m.sf_object).describe()
             describe = {entry["name"]: entry for entry in describe["fields"]}
 
             for field in list(m.lookups.keys()):

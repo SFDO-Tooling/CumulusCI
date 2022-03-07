@@ -201,9 +201,9 @@ class BaseTestMetadataApi(unittest.TestCase):
         self.assertEqual(
             api._build_headers(action, message),
             {
-                u"Content-Type": u"text/xml; charset=UTF-8",
-                u"Content-Length": "8",
-                u"SOAPAction": u"foo",
+                "Content-Type": "text/xml; charset=UTF-8",
+                "Content-Length": "8",
+                "SOAPAction": "foo",
             },
         )
 
@@ -810,18 +810,18 @@ class TestApiListMetadata(BaseTestMetadataApi):
         metadata = defaultdict(list)
         metadata["CustomObject"] = [
             {
-                u"createdById": None,
-                u"createdByName": None,
-                u"createdDate": datetime.datetime(2018, 8, 7, 16, 31, 57),
-                u"fileName": None,
-                u"fullName": u"Test__c",
-                u"id": None,
-                u"lastModifiedById": None,
-                u"lastModifiedByName": None,
-                u"lastModifiedDate": None,
-                u"manageableState": None,
-                u"namespacePrefix": None,
-                u"type": "CustomObject",
+                "createdById": None,
+                "createdByName": None,
+                "createdDate": datetime.datetime(2018, 8, 7, 16, 31, 57),
+                "fileName": None,
+                "fullName": "Test__c",
+                "id": None,
+                "lastModifiedById": None,
+                "lastModifiedByName": None,
+                "lastModifiedDate": None,
+                "manageableState": None,
+                "namespacePrefix": None,
+                "type": "CustomObject",
             }
         ]
         return metadata

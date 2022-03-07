@@ -386,6 +386,7 @@ class TestExtractData:
         step = mock.Mock()
         step.get_results.return_value = [[1], [2]]
         task.session = mock.Mock()
+        task._init_task()
         task._init_mapping()
         task.mapping["Opportunity"] = mapping
         with task._init_db():
@@ -414,6 +415,7 @@ class TestExtractData:
         )
         task.session = mock.Mock()
         task._sql_bulk_insert_from_records = mock.Mock()
+        task._init_task()
         task._import_results(mapping, step)
 
         task.session.connection.assert_called_once_with()
@@ -524,6 +526,7 @@ class TestExtractData:
         task._convert_lookups_to_id = mock.Mock()
         task.metadata = mock.MagicMock()
 
+        task._init_task()
         task._init_mapping()
         task._map_autopks()
 
@@ -740,6 +743,7 @@ class TestExtractData:
         )
         task.org_config._is_person_accounts_enabled = False
 
+        task._init_task()
         task._init_mapping()
         assert "Insert Households" in task.mapping
 
@@ -757,6 +761,7 @@ class TestExtractData:
         )
         task.org_config._is_person_accounts_enabled = True
 
+        task._init_task()
         task._init_mapping()
         assert "Insert Households" in task.mapping
 
@@ -780,11 +785,12 @@ class TestExtractData:
         )
         t.org_config._is_person_accounts_enabled = True
 
+        t._init_task()
         t._init_mapping()
 
         validate_and_inject_mapping.assert_called_once_with(
             mapping=t.mapping,
-            org_config=t.org_config,
+            sf=t.sf,
             namespace=t.project_config.project__package__namespace,
             data_operation=DataOperationType.QUERY,
             inject_namespaces=True,
@@ -950,7 +956,7 @@ class TestExtractData:
 
             step_mock.side_effect = [mock_query_households, mock_query_contacts]
 
-            with assert_max_memory_usage(15 * 10 ** 6):
+            with assert_max_memory_usage(15 * 10**6):
                 task()
 
     @responses.activate

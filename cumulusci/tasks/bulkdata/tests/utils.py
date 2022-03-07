@@ -13,7 +13,12 @@ def _make_task(task_class, task_config):
     universal_config = UniversalConfig()
     project_config = BaseProjectConfig(
         universal_config,
-        config={"noyaml": True, "project": {"package": {"api_version": "46.0"}}},
+        config={
+            "noyaml": True,
+            "project": {
+                "package": {"api_version": cci_test_utils.CURRENT_SF_API_VERSION}
+            },
+        },
     )
     keychain = BaseProjectKeychain(project_config, "")
     project_config.set_keychain(keychain)
@@ -31,6 +36,7 @@ class FakeBulkAPI:
 
     next_job_id = 0
     next_batch_id = 0
+    endpoint = f"https://example.my.salesforce.com/services/async/{cci_test_utils.CURRENT_SF_API_VERSION}"
 
     @classmethod
     def create_job(cls, *args, **kwargs):

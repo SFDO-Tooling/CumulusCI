@@ -202,7 +202,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         if mapping.anchor_date:
             date_context = mapping.get_relative_date_context(
-                mapping.get_load_field_list(), self.org_config
+                mapping.get_load_field_list(), self.sf
             )
         # Clamping the yield from the query ensures we do not
         # create more Bulk API batches than expected, regardless
@@ -498,7 +498,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         validate_and_inject_mapping(
             mapping=self.mapping,
-            org_config=self.org_config,
+            sf=self.sf,
             namespace=self.project_config.project__package__namespace,
             data_operation=DataOperationType.INSERT,
             inject_namespaces=self.options["inject_namespaces"],
@@ -554,14 +554,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         IsPersonAccount as 'true' but the org does not have person accounts enabled.
         """
         for mapping in self.mapping.values():
-            if (
-                mapping.sf_object
-                in [
-                    "Account",
-                    "Contact",
-                ]
-                and self._db_has_person_accounts_column(mapping)
-            ):
+            if mapping.sf_object in [
+                "Account",
+                "Contact",
+            ] and self._db_has_person_accounts_column(mapping):
                 table = self.models[mapping.table].__table__
                 if (
                     self.session.query(table)
