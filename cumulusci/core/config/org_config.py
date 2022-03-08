@@ -205,6 +205,10 @@ class OrgConfig(BaseConfig):
     def organization_sobject(self):
         return self._org_sobject
 
+    @property
+    def rest_url(self):
+        return self.instance_url + "/services/data/v" + self.latest_api_version
+
     def _fetch_community_info(self):
         """Use the API to re-fetch information about communities"""
         response = self.salesforce_client.restful("connect/communities")

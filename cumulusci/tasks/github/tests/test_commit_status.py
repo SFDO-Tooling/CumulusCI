@@ -9,12 +9,19 @@ from cumulusci.tasks.github.commit_status import GetPackageDataFromCommitStatus
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tests.util import create_project_config
 
+EXPECTED_API_VERSION = "52.0"  # to match the task itself
+
 
 class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
     @responses.activate
     def test_run_task(self):
         self.init_github()
         repo_response = self._get_expected_repo("TestOwner", "TestRepo")
+        org_config = OrgConfig(
+            {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
+        )
+        org_config._latest_api_version = EXPECTED_API_VERSION
+        base_url = org_config.rest_url
         now = datetime.now().isoformat()
         responses.add(method=responses.GET, url=self.repo_api_url, json=repo_response)
         responses.add(
@@ -48,7 +55,7 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
         )
         responses.add(
             "GET",
-            "https://salesforce/services/data/v52.0/tooling/query/",
+            f"{base_url}/tooling/query/",
             json={
                 "records": [
                     {"Dependencies": {"ids": [{"subscriberPackageVersionId": "04t_2"}]}}
@@ -69,9 +76,6 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
             ),
         )
         task_config = TaskConfig({"options": {"context": "2gp"}})
-        org_config = OrgConfig(
-            {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
-        )
         task = GetPackageDataFromCommitStatus(project_config, task_config, org_config)
         task._init_task()
         task._run_task()
@@ -166,9 +170,17 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
 
     @responses.activate
     def test_get_dependencies__version_not_found(self):
+        org_config = OrgConfig(
+            {
+                "instance_url": "https://salesforce",
+                "access_token": "TOKEN",
+            },
+            "test",
+        )
+        org_config._latest_api_version = EXPECTED_API_VERSION
         responses.add(
             "GET",
-            "https://salesforce/services/data/v52.0/tooling/query/",
+            f"{org_config.rest_url}/tooling/query/",
             json={"records": []},
         )
 
@@ -185,9 +197,6 @@ class TestGetPackageDataFromCommitStatus(GithubApiTestMixin):
             ),
         )
         task_config = TaskConfig({"options": {"context": "2gp"}})
-        org_config = OrgConfig(
-            {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
-        )
         task = GetPackageDataFromCommitStatus(project_config, task_config, org_config)
         task._init_task()
         with pytest.raises(

@@ -3,7 +3,11 @@ from tempfile import TemporaryDirectory
 from unittest import mock
 
 from cumulusci.core.config import OrgConfig, TaskConfig
-from cumulusci.tests.util import DummyKeychain, create_project_config
+from cumulusci.tests.util import (
+    CURRENT_SF_API_VERSION,
+    DummyKeychain,
+    create_project_config,
+)
 
 
 def create_task(task_class, options=None, project_config=None, org_config=None):
@@ -23,6 +27,7 @@ def create_task(task_class, options=None, project_config=None, org_config=None):
             keychain=DummyKeychain(),
         )
         org_config.refresh_oauth_token = mock.Mock()
+        org_config._latest_api_version = CURRENT_SF_API_VERSION
     if options is None:
         options = {}
     task_config = TaskConfig({"options": options})
