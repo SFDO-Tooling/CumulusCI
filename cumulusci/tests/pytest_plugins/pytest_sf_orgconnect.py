@@ -10,7 +10,9 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.core.config import OrgConfig, TaskConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.tests.util import CURRENT_SF_API_VERSION, unmock_env
+from cumulusci.tests.util import CURRENT_SF_API_VERSION
+from cumulusci.tests.util import sf_url as orig_sf_url
+from cumulusci.tests.util import unmock_env
 
 
 def pytest_addoption(parser, pluginmanager):
@@ -125,6 +127,16 @@ def sf(request, project_config, org_config):
     """Get a simple-salesforce client for org_config."""
     sf = get_simple_salesforce_connection(project_config, org_config)
     return sf
+
+
+@pytest.fixture
+def sf_url(org_config):
+    """Generate a Salesforce URL"""
+
+    def sf_url(org_config=org_config, version=None):
+        return orig_sf_url(org_config, version)
+
+    return sf_url
 
 
 @pytest.fixture

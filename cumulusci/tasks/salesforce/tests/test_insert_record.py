@@ -79,7 +79,7 @@ class TestCreateRecord:
             task._run_task()
 
     @responses.activate
-    def test_salesforce_error_raised_by_simple_salesforce(self):
+    def test_salesforce_error_raised_by_simple_salesforce(self, sf_url):
         task = create_task(
             InsertRecord,
             {
@@ -87,9 +87,10 @@ class TestCreateRecord:
                 "values": "Name:HardDelete,PermissionsBulkApiHardDelete:true",
             },
         )
+        base_url = sf_url(task.org_config)
         responses.add(
             responses.POST,
-            re.compile(r"https://test.salesforce.com/services/data/v52.0/.*"),
+            re.compile(rf"{base_url}/.*"),
             content_type="application/json",
             status=404,
             json={

@@ -13,7 +13,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.salesforce.promote_package_version import PromotePackageVersion
-from cumulusci.tests.util import create_project_config
+from cumulusci.tests.util import CURRENT_SF_API_VERSION, create_project_config
 
 
 @pytest.fixture
@@ -58,7 +58,9 @@ def task(project_config, devhub_config, org_config):
 
 
 class TestPromotePackageVersion(GithubApiTestMixin):
-    devhub_base_url = "https://devhub.my.salesforce.com/services/data/v52.0"
+    devhub_base_url = (
+        f"https://devhub.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}"
+    )
 
     def _mock_target_package_api_calls(self):
         responses.add(  # query for main package's Package2Version info

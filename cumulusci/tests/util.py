@@ -314,6 +314,12 @@ class FakeUnreliableRequestHandler:
         return self.response
 
 
-CURRENT_SF_API_VERSION = (
-    CURRENT_SF_API_VERSION  # quiet linter and export to other modules
-)
+def sf_url(org_config, version=None):
+    if not version:
+        version = org_config.version or CURRENT_SF_API_VERSION
+
+    return (
+        org_config.instance_url
+        + "/services/data/v"
+        + (org_config.sf_version or version)
+    )

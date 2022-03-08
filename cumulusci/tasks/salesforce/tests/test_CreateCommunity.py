@@ -8,8 +8,11 @@ from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.tasks.salesforce import CreateCommunity
+from cumulusci.tests.util import sf_url
 
 from .util import create_task
+
+EXPECTED_API_VERSION = "48.0"  # to match the task itself
 
 task_options = {
     "name": "Test Community",
@@ -30,9 +33,8 @@ class test_CreateCommunity(unittest.TestCase):
     @responses.activate
     def test_creates_community(self):
         cc_task = create_task(CreateCommunity, task_options)
-        community_url = "{}/services/data/v48.0/connect/communities".format(
-            cc_task.org_config.instance_url
-        )
+        base_url = sf_url(cc_task.org_config, version=EXPECTED_API_VERSION)
+        community_url = f"{base_url}/connect/communities"
 
         responses.add(
             method=responses.GET,
@@ -68,9 +70,8 @@ class test_CreateCommunity(unittest.TestCase):
     @responses.activate
     def test_creates_community_no_url_path_prefix(self):
         cc_task = create_task(CreateCommunity, task_options_no_url_path_prefix)
-        community_url = "{}/services/data/v48.0/connect/communities".format(
-            cc_task.org_config.instance_url
-        )
+        base_url = sf_url(cc_task.org_config, version=EXPECTED_API_VERSION)
+        community_url = f"{base_url}/connect/communities"
 
         responses.add(
             method=responses.GET,
@@ -106,7 +107,8 @@ class test_CreateCommunity(unittest.TestCase):
     @responses.activate
     def test_error_for_existing_community(self):
         cc_task = create_task(CreateCommunity, task_options)
-        community_url = "{}/services/data/v48.0/connect/communities".format(
+        base_url = sf_url(cc_task.org_config, version=EXPECTED_API_VERSION)
+        community_url = f"{base_url}/connect/communities".format(
             cc_task.org_config.instance_url
         )
 
@@ -124,7 +126,8 @@ class test_CreateCommunity(unittest.TestCase):
     def test_no_error_for_existing_community_when_skip_existing(self):
         task_options["skip_existing"] = True
         cc_task = create_task(CreateCommunity, task_options)
-        community_url = "{}/services/data/v48.0/connect/communities".format(
+        base_url = sf_url(cc_task.org_config, version=EXPECTED_API_VERSION)
+        community_url = f"{base_url}/connect/communities".format(
             cc_task.org_config.instance_url
         )
 
@@ -141,9 +144,8 @@ class test_CreateCommunity(unittest.TestCase):
     @responses.activate
     def test_handles_community_created_between_tries(self):
         cc_task = create_task(CreateCommunity, task_options)
-        community_url = "{}/services/data/v48.0/connect/communities".format(
-            cc_task.org_config.instance_url
-        )
+        base_url = sf_url(cc_task.org_config, version=EXPECTED_API_VERSION)
+        community_url = f"{base_url}/connect/communities"
 
         responses.add(
             method=responses.GET,
@@ -174,9 +176,8 @@ class test_CreateCommunity(unittest.TestCase):
     @responses.activate
     def test_throws_exception_for_existing_url_path_prefix(self):
         cc_task = create_task(CreateCommunity, task_options)
-        community_url = "{}/services/data/v48.0/connect/communities".format(
-            cc_task.org_config.instance_url
-        )
+        base_url = sf_url(cc_task.org_config, version=EXPECTED_API_VERSION)
+        community_url = f"{base_url}/connect/communities"
 
         responses.add(
             method=responses.GET,
@@ -203,9 +204,8 @@ class test_CreateCommunity(unittest.TestCase):
     @responses.activate
     def test_throws_exception_for_existing_no_url_path_prefix(self):
         cc_task = create_task(CreateCommunity, task_options_no_url_path_prefix)
-        community_url = "{}/services/data/v48.0/connect/communities".format(
-            cc_task.org_config.instance_url
-        )
+        base_url = sf_url(cc_task.org_config, version=EXPECTED_API_VERSION)
+        community_url = f"{base_url}/connect/communities"
 
         responses.add(
             method=responses.GET,
@@ -233,9 +233,8 @@ class test_CreateCommunity(unittest.TestCase):
     def test_waits_for_community_result__not_complete(self):
         cc_task = create_task(CreateCommunity, task_options)
 
-        community_url = "{}/services/data/v48.0/connect/communities".format(
-            cc_task.org_config.instance_url
-        )
+        base_url = sf_url(cc_task.org_config, version=EXPECTED_API_VERSION)
+        community_url = f"{base_url}/connect/communities"
         responses.add(
             method=responses.GET,
             url=community_url,
@@ -252,9 +251,8 @@ class test_CreateCommunity(unittest.TestCase):
     @responses.activate
     def test_waits_for_community_result__complete(self):
         cc_task = create_task(CreateCommunity, task_options)
-        community_url = "{}/services/data/v48.0/connect/communities".format(
-            cc_task.org_config.instance_url
-        )
+        base_url = sf_url(cc_task.org_config, version=EXPECTED_API_VERSION)
+        community_url = f"{base_url}/connect/communities"
         responses.add(
             method=responses.GET,
             url=community_url,

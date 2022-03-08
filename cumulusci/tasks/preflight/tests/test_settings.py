@@ -25,12 +25,7 @@ JSON_RESPONSE = {
         ("StringVal", "bad", False),
     ],
 )
-def test_check_settings(settings_field, value, outcome):
-    responses.add(
-        "GET",
-        f"https://test.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+{settings_field}+FROM+ChatterSettings",
-        json=JSON_RESPONSE,
-    )
+def test_check_settings(settings_field, value, outcome, sf_url):
     task = create_task(
         CheckSettingsValue,
         {
@@ -39,6 +34,12 @@ def test_check_settings(settings_field, value, outcome):
             "value": value,
         },
     )
+    responses.add(
+        "GET",
+        sf_url(task.org_config)
+        + f"/tooling/query/?q=SELECT+{settings_field}+FROM+ChatterSettings",
+        json=JSON_RESPONSE,
+    )
 
     task()
 
@@ -46,12 +47,7 @@ def test_check_settings(settings_field, value, outcome):
 
 
 @responses.activate
-def test_check_settings__no_settings():
-    responses.add(
-        "GET",
-        "https://test.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Foo+FROM+ChatterSettings",
-        json={"records": []},
-    )
+def test_check_settings__no_settings(sf_url):
     task = create_task(
         CheckSettingsValue,
         {
@@ -60,6 +56,11 @@ def test_check_settings__no_settings():
             "value": True,
         },
     )
+    responses.add(
+        "GET",
+        sf_url(task.org_config) + "/tooling/query/?q=SELECT+Foo+FROM+ChatterSettings",
+        json={"records": []},
+    )
 
     task()
 
@@ -67,13 +68,7 @@ def test_check_settings__no_settings():
 
 
 @responses.activate
-def test_check_settings__failure():
-    responses.add(
-        "GET",
-        status=400,
-        url="https://test.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Test+FROM+NoSettings",
-        json={},
-    )
+def test_check_settings__failure(sf_url):
     task = create_task(
         CheckSettingsValue,
         {
@@ -83,6 +78,12 @@ def test_check_settings__failure():
             "treat_missing_as_failure": True,
         },
     )
+    responses.add(
+        "GET",
+        status=400,
+        url=sf_url(task.org_config) + "/tooling/query/?q=SELECT+Test+FROM+NoSettings",
+        json={},
+    )
 
     task()
 
@@ -90,13 +91,7 @@ def test_check_settings__failure():
 
 
 @responses.activate
-def test_check_settings__exception():
-    responses.add(
-        "GET",
-        status=400,
-        url="https://test.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Test+FROM+NoSettings",
-        json={},
-    )
+def test_check_settings__exception(sf_url):
     task = create_task(
         CheckSettingsValue,
         {
@@ -105,7 +100,12 @@ def test_check_settings__exception():
             "value": True,
         },
     )
-
+    responses.add(
+        "GET",
+        status=400,
+        url=sf_url(task.org_config) + "/tooling/query/?q=SELECT+Test+FROM+NoSettings",
+        json={},
+    )
     with pytest.raises(SalesforceMalformedRequest):
         task()
 

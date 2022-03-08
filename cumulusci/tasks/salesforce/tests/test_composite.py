@@ -95,7 +95,7 @@ COMPOSITE_RESPONSE = {
 class TestCompositeApi:
     @responses.activate
     @patch("cumulusci.tasks.salesforce.composite.CliTable")
-    def test_composite_request(self, table, tmp_path):
+    def test_composite_request(self, table, tmp_path, sf_url):
         test_json = tmp_path / "test.json"
         test_json.write_text(json.dumps(COMPOSITE_REQUEST))
         task = create_task(
@@ -108,7 +108,7 @@ class TestCompositeApi:
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
+            url=sf_url(task.org_config) + "/composite",
             status=200,
             json=COMPOSITE_RESPONSE,
         )
@@ -121,7 +121,7 @@ class TestCompositeApi:
 
     @responses.activate
     @patch("cumulusci.tasks.salesforce.composite.CliTable")
-    def test_composite_request_success_message(self, table, tmp_path):
+    def test_composite_request_success_message(self, table, tmp_path, sf_url):
         test_json = tmp_path / "test.json"
         test_json.write_text(json.dumps(COMPOSITE_REQUEST))
         task = create_task(
@@ -132,9 +132,10 @@ class TestCompositeApi:
                 ],
             },
         )
+        base_url = sf_url(task.org_config)
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
+            url=f"{base_url}/composite",
             status=200,
             json=COMPOSITE_RESPONSE,
         )
@@ -150,7 +151,7 @@ class TestCompositeApi:
 
     @responses.activate
     @patch("cumulusci.tasks.salesforce.composite.CliTable")
-    def test_composite_request_exception(self, table, tmp_path):
+    def test_composite_request_exception(self, table, tmp_path, sf_url):
         test_json = tmp_path / "test.json"
         test_json.write_text(json.dumps(COMPOSITE_REQUEST))
         task = create_task(
@@ -188,9 +189,10 @@ class TestCompositeApi:
                 },
             ]
         }
+        base_url = sf_url(task.org_config)
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
+            url=f"{base_url}/composite",
             status=200,
             json=error_response,
         )
