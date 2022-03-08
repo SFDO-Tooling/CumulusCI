@@ -170,7 +170,7 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
                 - section: [index] (Use with relative: top, bottom)
                 - column: [first | last] (Use with relative: top, bottom)
 
-        Example Task Usage
+        Example Usage
         -----------------------
 
         .. code-block::  yaml
@@ -182,13 +182,15 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
                   - api_name: Giving_Level__c
                     position:
                       - relative: bottom
-                        section: 6
+                        section: 0
                         column: first
                   - api_name: Previous_Giving_Level__c
                     position:
                       - relative: bottom
-                        section: 6
+                        section: 0
                         column: last
+            ui_options:
+                name: Add custom giving fields to Contact Layout
 
         """
     entity = "Layout"
