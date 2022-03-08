@@ -8,7 +8,7 @@ from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationStatus
 from cumulusci.tests.util import mock_describe_calls
 
-current_sf_version = "52.0"
+CURRENT_SF_API_VERSION = "52.0"  # match cumulusci.yml until it updates
 
 
 class TestUpsert:
@@ -18,11 +18,11 @@ class TestUpsert:
         self, create_task, cumulusci_test_repo_root, sf, delete_data_from_org
     ):
         delete_data_from_org(["Entitlement", "Opportunity", "Contact", "Account"])
-        self._common_integration_testing_code(
+        self._test_two_upserts_and_check_results(
             "bulk", create_task, cumulusci_test_repo_root, sf
         )
 
-    def _common_integration_testing_code(
+    def _test_two_upserts_and_check_results(
         self, api, create_task, cumulusci_test_repo_root, sf
     ):
         task = create_task(
@@ -64,8 +64,8 @@ class TestUpsert:
             assert "Sitwell-Bluth" in accounts
             contacts = sf.query("select FirstName from Contact")
             contacts = {contact["FirstName"] for contact in contacts["records"]}
-            assert "Annyong" not in contacts
-            assert "JaJavier" not in contacts
+            assert "Nichael" not in contacts
+            assert "George Oscar" not in contacts
             assert "UPSERT" in str(task.logger.info.mock_calls)
 
         with mock.patch.object(task.logger, "info"):
@@ -85,9 +85,9 @@ class TestUpsert:
             contacts = sf.query("select FirstName from Contact")
             contacts = {contact["FirstName"] for contact in contacts["records"]}
 
-            assert "Annyong" in contacts
-            assert "JaJavier" in contacts
-            assert "UPSERT" in str(task.logger.mock_calls)
+            assert "Nichael" in contacts
+            assert "George Oscar" in contacts
+            assert "UPSERT" in str(task.logger.info.mock_calls)
 
     @pytest.mark.needs_org()
     def test_upsert__rest(
@@ -104,7 +104,7 @@ class TestUpsert:
                 ["Entitlement", "Opportunity", "Contact", "Account"]
             )
         )
-        self._common_integration_testing_code(
+        self._test_two_upserts_and_check_results(
             "rest",
             create_task,
             cumulusci_test_repo_root,
@@ -113,18 +113,15 @@ class TestUpsert:
 
     @responses.activate
     def test_upsert_rest__faked(
-        self,
-        create_task,
-        cumulusci_test_repo_root,
-        run_code_without_recording,
-        delete_data_from_org,
+        self, create_task, cumulusci_test_repo_root, org_config
     ):
-        ver = current_sf_version
+        domain = org_config.get_domain()
+        ver = CURRENT_SF_API_VERSION
         responses.add(
             method="PATCH",
-            url=f"https://orgname.my.salesforce.com/services/data/v{ver}/composite/sobjects/Contact/Email",
+            url=f"https://{domain}/services/data/v{ver}/composite/sobjects/Contact/Email",
             status=200,
-            json=[  # TODO: Compress this
+            json=[
                 {
                     "id": "003P000001Y5exdIAB",
                     "success": True,
@@ -145,7 +142,7 @@ class TestUpsert:
                 },
             ],
         )
-        mock_describe_calls(domain="orgname.my.salesforce.com", version="52.0")
+        mock_describe_calls(domain=domain, version=CURRENT_SF_API_VERSION)
         task = create_task(
             LoadData,
             {
@@ -157,6 +154,7 @@ class TestUpsert:
                 "set_recently_viewed": False,
             },
         )
+        task._update_credentials = mock.Mock()
         with mock.patch.object(task.logger, "debug"):
             rc = task()
             assert rc == {
@@ -188,51 +186,43 @@ class TestUpsert:
             ), relevant_debug_statement
 
     @responses.activate
-    def test_upsert__fake_bulk(self, create_task, cumulusci_test_repo_root):
-        mock_describe_calls(domain="orgname.my.salesforce.com", version="52.0")
+    def test_upsert__fake_bulk(self, create_task, cumulusci_test_repo_root, org_config):
+        domain = org_config.get_domain()
+        mock_describe_calls(domain=domain, version=CURRENT_SF_API_VERSION)
         responses.add(
             method="POST",
-            url=f"https://orgname.my.salesforce.com/services/async/{current_sf_version}/job",
+            url=f"https://{domain}/services/async/{CURRENT_SF_API_VERSION}/job",
             status=200,
             body=f"""<?xml version="1.0" encoding="UTF-8"?>
             <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload">
         <id>750P0000005mX3LIAU</id>
         <operation>insert</operation>
         <object>Account</object>
-
         <createdById>005P0000009ajX7IAI</createdById>
         <createdDate>2022-03-02T04:14:43.000Z</createdDate>
-
         <systemModstamp>2022-03-02T04:14:43.000Z</systemModstamp>
         <state>Open</state>
-
         <concurrencyMode>Parallel</concurrencyMode>
         <contentType>CSV</contentType>
-
         <numberBatchesQueued>0</numberBatchesQueued>
         <numberBatchesInProgress>0</numberBatchesInProgress>
-
         <numberBatchesCompleted>0</numberBatchesCompleted>
         <numberBatchesFailed>0</numberBatchesFailed>
-
         <numberBatchesTotal>0</numberBatchesTotal>
         <numberRecordsProcessed>0</numberRecordsProcessed>
-
         <numberRetries>0</numberRetries>
-        <apiVersion>v{current_sf_version}</apiVersion>
+        <apiVersion>v{CURRENT_SF_API_VERSION}</apiVersion>
         <numberRecordsFailed>0</numberRecordsFailed>
-
         <totalProcessingTime>0</totalProcessingTime>
         <apiActiveProcessingTime>0</apiActiveProcessingTime>
-
         <apexProcessingTime>0</apexProcessingTime>
         </jobInfo>""",
         )
         responses.add(
             method="POST",
-            url=f"https://orgname.my.salesforce.com/services/async/{current_sf_version}/job/750P0000005mX3LIAU",
+            url=f"https://{domain}/services/async/{CURRENT_SF_API_VERSION}/job/750P0000005mX3LIAU",
             status=200,
-            body=""""<?xml version="1.0" encoding="UTF-8"?>
+            body=f""""<?xml version="1.0" encoding="UTF-8"?>
             <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload">
             <id>750P0000005mX3LIAU</id>
             <operation>insert</operation>
@@ -250,7 +240,7 @@ class TestUpsert:
             <numberBatchesTotal>0</numberBatchesTotal>
             <numberRecordsProcessed>0</numberRecordsProcessed>
             <numberRetries>0</numberRetries>
-            <apiVersion>v52.0</apiVersion>
+            <apiVersion>v{CURRENT_SF_API_VERSION}.0</apiVersion>
             <numberRecordsFailed>0</numberRecordsFailed>
             <totalProcessingTime>0</totalProcessingTime>
             <apiActiveProcessingTime>0</apiActiveProcessingTime>
@@ -260,7 +250,7 @@ class TestUpsert:
 
         responses.add(
             method="GET",
-            url=f"https://orgname.my.salesforce.com/services/async/{current_sf_version}/job/750P0000005mX3LIAU",
+            url=f"https://{domain}/services/async/{CURRENT_SF_API_VERSION}/job/750P0000005mX3LIAU",
             status=200,
             body="""<?xml version="1.0" encoding="UTF-8"?>
             <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload">
@@ -268,38 +258,29 @@ class TestUpsert:
             <id>750P0000005mX3LIAU</id>
             <operation>insert</operation>
             <object>Account</object>
-
-        <createdById>005P0000009ajX7IAI</createdById>
-        <createdDate>2022-03-02T04:14:43.000Z</createdDate>
-
-        <systemModstamp>2022-03-02T04:14:43.000Z</systemModstamp>
-        <state>Closed</state>
-
-        <concurrencyMode>Parallel</concurrencyMode>
-        <contentType>CSV</contentType>
-
-        <numberBatchesQueued>0</numberBatchesQueued>
-        <numberBatchesInProgress>0</numberBatchesInProgress>
-
-        <numberBatchesCompleted>0</numberBatchesCompleted>
-        <numberBatchesFailed>0</numberBatchesFailed>
-
-        <numberBatchesTotal>0</numberBatchesTotal>
-        <numberRecordsProcessed>0</numberRecordsProcessed>
-
-        <numberRetries>0</numberRetries>
-        <apiVersion>vxx.0</apiVersion>
-        <numberRecordsFailed>0</numberRecordsFailed>
-
-        <totalProcessingTime>0</totalProcessingTime>
-        <apiActiveProcessingTime>0</apiActiveProcessingTime>
-
-        <apexProcessingTime>0</apexProcessingTime>
-        </jobInfo>""",
+            <createdById>005P0000009ajX7IAI</createdById>
+            <createdDate>2022-03-02T04:14:43.000Z</createdDate>
+            <systemModstamp>2022-03-02T04:14:43.000Z</systemModstamp>
+            <state>Closed</state>
+            <concurrencyMode>Parallel</concurrencyMode>
+            <contentType>CSV</contentType>
+            <numberBatchesQueued>0</numberBatchesQueued>
+            <numberBatchesInProgress>0</numberBatchesInProgress>
+            <numberBatchesCompleted>0</numberBatchesCompleted>
+            <numberBatchesFailed>0</numberBatchesFailed>
+            <numberBatchesTotal>0</numberBatchesTotal>
+            <numberRecordsProcessed>4</numberRecordsProcessed>
+            <numberRetries>0</numberRetries>
+            <apiVersion>vxx.0</apiVersion>
+            <numberRecordsFailed>0</numberRecordsFailed>
+            <totalProcessingTime>0</totalProcessingTime>
+            <apiActiveProcessingTime>0</apiActiveProcessingTime>
+            <apexProcessingTime>0</apexProcessingTime>
+            </jobInfo>""",
         )
         responses.add(
             method="GET",
-            url=f"https://orgname.my.salesforce.com/services/async/{current_sf_version}/job/750P0000005mX3LIAU/batch",
+            url=f"https://{domain}/services/async/{CURRENT_SF_API_VERSION}/job/750P0000005mX3LIAU/batch",
             status=200,
             body="""<?xml version="1.0" encoding="UTF-8"?>
             <batchInfoList xmlns="http://www.force.com/2009/06/asyncapi/dataload"/>""",
@@ -307,7 +288,7 @@ class TestUpsert:
 
         responses.add(
             method="POST",
-            url=f"https://orgname.my.salesforce.com/services/async/{current_sf_version}/job/750P0000005mX3LIAU/batch",
+            url=f"https://{domain}/services/async/{CURRENT_SF_API_VERSION}/job/750P0000005mX3LIAU/batch",
             status=200,
             body="""<?xml version="1.0" encoding="UTF-8"?>
             <batchInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload">
@@ -315,23 +296,19 @@ class TestUpsert:
         <id>751P0000006fIUAIA2</id>
         <jobId>750P0000005mX2wIAE</jobId>
         <state>Queued</state>
-
         <createdDate>2022-03-02T04:14:44.000Z</createdDate>
         <systemModstamp>2022-03-02T04:14:44.000Z</systemModstamp>
-
-        <numberRecordsProcessed>0</numberRecordsProcessed>
+        <numberRecordsProcessed>4</numberRecordsProcessed>
         <numberRecordsFailed>0</numberRecordsFailed>
-
         <totalProcessingTime>0</totalProcessingTime>
         <apiActiveProcessingTime>0</apiActiveProcessingTime>
-
         <apexProcessingTime>0</apexProcessingTime>
         </batchInfo>""",
         )
 
         responses.add(
             method="GET",
-            url=f"https://orgname.my.salesforce.com/services/async/{current_sf_version}/job/750P0000005mX3LIAU/batch/751P0000006fIUAIA2/result",
+            url=f"https://{domain}/services/async/{CURRENT_SF_API_VERSION}/job/750P0000005mX3LIAU/batch/751P0000006fIUAIA2/result",
             status=200,
             body="""""Id","Success","Created","Error"
         "003P000001Y5yvdIAB","true","false",""
@@ -351,6 +328,7 @@ class TestUpsert:
                 "set_recently_viewed": False,
             },
         )
+        task._update_credentials = mock.Mock()
 
         with mock.patch.object(task.logger, "debug"):
             ret = task()
@@ -369,7 +347,7 @@ class TestUpsert:
                         "record_type": None,
                         "status": DataOperationStatus.SUCCESS,
                         "job_errors": [],
-                        "records_processed": 0,
+                        "records_processed": 0,  # change here and above to 4 to match data
                         "total_row_errors": 0,
                     },
                 }

@@ -258,6 +258,7 @@ class MappingStep(CCIDictModel):
     @root_validator
     @classmethod
     def validate_external_id_and_upsert(cls, v):
+        # TODO: should also validate that update_key is in fields list.
         has_update_key = bool(v.get("update_key"))
         is_upsert = v["action"] == DataOperationType.UPSERT
         assert (

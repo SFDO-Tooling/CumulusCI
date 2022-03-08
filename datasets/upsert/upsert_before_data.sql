@@ -12,7 +12,7 @@ CREATE TABLE "Contact" (
 	"Email" VARCHAR(255), 
 	PRIMARY KEY (id)
 );
-INSERT INTO "Contact" VALUES(1,'Eric','Ayala','eric.ayala@example.com');
+INSERT INTO "Contact" VALUES(1,'Lindsay','Sitwell','lindsay.bluth@example.com');
 INSERT INTO "Contact" VALUES(2,'Audrey','Cain','audrey.cain@example.com');
 INSERT INTO "Contact" VALUES(3,'Micheal','Bernard','michael.bernard@example.com');
 INSERT INTO "Contact" VALUES(4,'Chloe','Myers','Chloe.Myers@example.com');
