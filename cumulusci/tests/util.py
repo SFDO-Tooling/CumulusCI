@@ -198,7 +198,7 @@ def read_mock(name: str):
         return f.read()
 
 
-def mock_describe_calls(domain="example.com", version="54.0"):
+def mock_describe_calls(domain="example.com", version=CURRENT_SF_API_VERSION):
     def mock_sobject_describe(name: str):
         responses.add(
             method="GET",

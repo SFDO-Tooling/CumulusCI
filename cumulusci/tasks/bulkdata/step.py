@@ -30,6 +30,7 @@ class DataOperationType(Enum):
     DELETE = "delete"
     HARD_DELETE = "hardDelete"
     QUERY = "query"
+    UPSERT = "upsert"
 
 
 class DataApi(Enum):
@@ -346,6 +347,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             self.operation.value,
             contentType="CSV",
             concurrency=self.api_options.get("bulk_mode", "Parallel"),
+            external_id_name=self.api_options.get("update_key"),
         )
 
     def end(self):
@@ -489,14 +491,20 @@ class RestApiDmlOperation(BaseDmlOperation):
             DataOperationType.INSERT: "POST",
             DataOperationType.UPDATE: "PATCH",
             DataOperationType.DELETE: "DELETE",
+            DataOperationType.UPSERT: "PATCH",
         }[self.operation]
 
+        update_key = self.api_options.get("update_key")
         for chunk in iterate_in_chunks(self.api_options.get("batch_size"), records):
             if self.operation is DataOperationType.DELETE:
                 url_string = "?ids=" + ",".join(_convert(rec)["Id"] for rec in chunk)
                 json = None
             else:
-                url_string = ""
+                if update_key:
+                    assert self.operation == DataOperationType.UPSERT
+                    url_string = f"/{self.sobject}/{update_key}"
+                else:
+                    url_string = ""
                 json = {"allOrNone": False, "records": [_convert(rec) for rec in chunk]}
 
             self.results.extend(
@@ -593,6 +601,8 @@ def get_dml_operation(
     """Create an appropriate DmlOperation instance for the given parameters, selecting
     between REST and Bulk APIs based upon volume (Bulk used at volumes over 2000 records,
     or if the operation is HARD_DELETE, which is only available for Bulk)."""
+
+    context.logger.debug(f"Creating {operation} Operation for {sobject} using {api}")
 
     # REST Collections requires 42.0.
     api_version = float(context.sf.sf_version)

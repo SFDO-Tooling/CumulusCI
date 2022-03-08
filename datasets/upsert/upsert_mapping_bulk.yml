@@ -1,0 +1,14 @@
+Insert Accounts:
+    api: bulk
+    sf_object: Account
+    fields:
+        - Name
+Insert Contacts:
+    api: bulk
+    sf_object: Contact
+    action: upsert
+    update_key: Email
+    fields:
+        - FirstName
+        - LastName
+        - Email
