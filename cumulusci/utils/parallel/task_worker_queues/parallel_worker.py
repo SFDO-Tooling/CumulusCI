@@ -17,7 +17,7 @@ from cumulusci.core.config import (
     TaskConfig,
     UniversalConfig,
 )
-from cumulusci.core.exceptions import ServiceNotConfigured
+from cumulusci.core.keychain.subprocess_keychain import SubprocessKeychain
 from cumulusci.core.utils import import_global
 
 
@@ -28,7 +28,7 @@ class SharedConfig(BaseModel):
     org_config: OrgConfig
     failures_dir: Path
     redirect_logging: bool
-    connected_app: T.Optional[BaseConfig]  # send a list of services
+    connected_app: T.Optional[BaseConfig]  # a connected app service
     outbox_dir: Path  # where do jobs go when they are done
 
     class Config:
@@ -114,7 +114,7 @@ class TaskWorker:
             self.task_options["working_directory"] = self.worker_config.working_dir
         task_config = TaskConfig({"options": self.task_options})
         connected_app = self.connected_app
-        keychain = SubprocessKeyChain(connected_app)
+        keychain = SubprocessKeychain(connected_app)
         self.project_config.set_keychain(keychain)
         self.org_config.keychain = keychain
         return task_class(
@@ -236,18 +236,3 @@ class ParallelWorker:
 
     def __repr__(self):
         return f"<Worker {self.worker_config.task_class.__name__} {self.worker_config.working_dir.name} Alive: {self.is_alive()}>"
-
-
-class SubprocessKeyChain(T.NamedTuple):
-    """A pretend, in-memory keychain that knows about connected apps and nothing else."""
-
-    connected_app: T.Any = None
-
-    def get_service(self, name):
-        if name == "connected_app" and self.connected_app:
-            return self.connected_app
-
-        raise ServiceNotConfigured(name)
-
-    def set_org(self, *args):
-        pass

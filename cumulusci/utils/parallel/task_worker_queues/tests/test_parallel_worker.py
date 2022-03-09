@@ -12,7 +12,7 @@ from cumulusci.core.config import BaseProjectConfig, OrgConfig, UniversalConfig
 from cumulusci.tasks.util import Sleep
 from cumulusci.utils.parallel.task_worker_queues.parallel_worker import (
     ParallelWorker,
-    SubprocessKeyChain,
+    SubprocessKeychain,
     TaskWorker,
     WorkerConfig,
 )
@@ -343,9 +343,9 @@ class TestTaskWorker:
 # Also we usually mock refresh_oauth_token which is what would
 # invoke this. In other words, using integration tests to cover this
 # function is far easier than using unit test.
-class TestSubprocessKeyChain:
+class TestSubprocessKeychain:
     def test_subprocess_keychain(self):
-        skc = SubprocessKeyChain("Blah")
+        skc = SubprocessKeychain("Blah")
 
         assert skc.get_service("connected_app") == "Blah"
         skc.set_org()
