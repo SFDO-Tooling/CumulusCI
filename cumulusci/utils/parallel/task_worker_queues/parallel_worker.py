@@ -243,7 +243,7 @@ class SubprocessKeyChain(T.NamedTuple):
 
     connected_app: T.Any = None
 
-    def get_service(self, name):
+    def get_service(self, name, alias=None):
         if name == "connected_app" and self.connected_app:
             return self.connected_app
 
