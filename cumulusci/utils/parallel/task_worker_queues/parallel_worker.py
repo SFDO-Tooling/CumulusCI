@@ -28,7 +28,7 @@ class SharedConfig(BaseModel):
     org_config: OrgConfig
     failures_dir: Path
     redirect_logging: bool
-    connected_app: T.Optional[BaseConfig]  # send a list of services
+    connected_app: T.Optional[BaseConfig]  # a connected app service
     outbox_dir: Path  # where do jobs go when they are done
 
     class Config:
