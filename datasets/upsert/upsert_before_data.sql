@@ -1,3 +1,4 @@
+-- Data to be loaded before an upsert as the "base data"
 BEGIN TRANSACTION;
 CREATE TABLE "Account" (
 	id INTEGER NOT NULL, 
@@ -29,3 +30,13 @@ INSERT INTO "Contact" VALUES(14,'Kaitlyn','Rubio','Kaitlyn.Rubio@example.com');
 INSERT INTO "Contact" VALUES(15,'Jerry','Eaton','Jerry.Eaton@example.com');
 INSERT INTO "Contact" VALUES(16,'Gabrielle','Vargas','Gabrielle.Vargas@example.com');
 COMMIT;
+CREATE TABLE "Opportunity" (
+	id INTEGER NOT NULL,
+	"Name" VARCHAR(255),
+	"CloseDate" VARCHAR(255),
+	"Amount" VARCHAR(255),
+	"StageName" VARCHAR(255),
+	"AccountId" VARCHAR(255),
+	"ContactId" VARCHAR(255),
+	PRIMARY KEY (id)
+);
