@@ -12,3 +12,15 @@ Insert Contacts:
         - FirstName
         - LastName
         - Email
+Insert Opportunities:
+    api: rest
+    sf_object: Opportunity
+    fields:
+        - Name
+        - StageName
+        - CloseDate
+    lookups:
+        AccountId:
+            table: Account
+        ContactId:
+            table: Contact

@@ -124,9 +124,6 @@ and `external ID <https://help.salesforce.com/s/articleView?id=sf.faq_import_gen
 `upserts <https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/langCon_apex_dml_examples_upsert.htm>`_ 
 and updates by specifying additional settings in a mapping step.
 
-Objects inserted through an upsert are not able to be referred to through lookups uploaded in the same
-```load_data`` task.
-
 .. code-block:: yaml
 
     Insert Accounts:

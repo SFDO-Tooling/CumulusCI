@@ -57,15 +57,23 @@ class TestUpsert:
                         "records_processed": 16,
                         "total_row_errors": 0,
                     },
+                    "Insert Opportunities": {
+                        "sobject": "Opportunity",
+                        "record_type": None,
+                        "status": DataOperationStatus.SUCCESS,
+                        "job_errors": [],
+                        "records_processed": 0,
+                        "total_row_errors": 0,
+                    },
                 }
             }, result
             accounts = sf.query("select Name from Account")
             accounts = {account["Name"] for account in accounts["records"]}
             assert "Sitwell-Bluth" in accounts
-            contacts = sf.query("select FirstName from Contact")
-            contacts = {contact["FirstName"] for contact in contacts["records"]}
-            assert "Nichael" not in contacts
-            assert "George Oscar" not in contacts
+            contacts = sf.query("select FirstName from Contact")["records"]
+            firstnames = {contact["FirstName"] for contact in contacts}
+            assert "Nichael" not in firstnames
+            assert "George Oscar" not in firstnames
             assert "UPSERT" in str(task.logger.info.mock_calls)
 
         with mock.patch.object(task.logger, "info"):
@@ -82,12 +90,22 @@ class TestUpsert:
             )
             task()
             result = task.return_values
-            contacts = sf.query("select FirstName from Contact")
-            contacts = {contact["FirstName"] for contact in contacts["records"]}
+            contacts = sf.query(
+                "select FirstName,(select Name from Opportunities) from Contact"
+            )["records"]
+            firstnames = {contact["FirstName"] for contact in contacts}
 
-            assert "Nichael" in contacts
-            assert "George Oscar" in contacts
+            assert "Nichael" in firstnames
+            assert "George Oscar" in firstnames
             assert "UPSERT" in str(task.logger.info.mock_calls)
+            opportunity_names = [
+                contact["Opportunities"]["records"][0]["Name"]
+                for contact in contacts
+                if contact["Opportunities"]
+            ]
+            assert set(opportunity_names) == set(
+                ["Espionage Opportunity", "Illusional Opportunity"]
+            ), set(opportunity_names)
 
     @pytest.mark.needs_org()
     def test_upsert__rest(
@@ -348,6 +366,14 @@ class TestUpsert:
                         "status": DataOperationStatus.SUCCESS,
                         "job_errors": [],
                         "records_processed": 0,  # change here and above to 4 to match data
+                        "total_row_errors": 0,
+                    },
+                    "Insert Opportunities": {
+                        "sobject": "Opportunity",
+                        "record_type": None,
+                        "status": DataOperationStatus.SUCCESS,
+                        "job_errors": [],
+                        "records_processed": 0,
                         "total_row_errors": 0,
                     },
                 }
