@@ -102,7 +102,7 @@ class DummyService(BaseConfig):
     password = "dummy_password"
     client_id = "ZOOMZOOM"
 
-    def __init__(self, name):
+    def __init__(self, name, alias):
         self.name = name
         super().__init__(name)
 
@@ -124,8 +124,8 @@ class DummyKeychain(BaseProjectKeychain):
     def cache_dir(self):
         return self._cache_dir or Path.home() / "project/.cci"
 
-    def get_service(self, name):
-        return DummyService(name)
+    def get_service(self, name, alias=None):
+        return DummyService(name, alias)
 
     def set_org(self, org: OrgConfig, global_org: bool):
         pass
