@@ -2,6 +2,22 @@
 History
 =======
 
+3.54.0 (2022-03-10)
+-------------------
+
+Changes
+
+- We added the ``apex_compile_type`` and ``upgrade_type`` options for performing Unlocked Package installations. (#3105)
+- We added support for new Slack metadata types (#3103)
+- We added the ability to do Upserts during Data Loading (`documentation <https://cumulusci.readthedocs.io/en/stable/data.html#upserts>`__). (#3099)
+- Robot tests can now pass a locator when calling ``Go To Page`` for one of our bulit-in page objects (Listing, Detail, Home), and the keyword will wait until that locator is visible. This is mostly useful for custom pages where you need to wait for an iframe or custom component to be available. (#3098)
+- The ``update_dependencies`` and ``install_managed`` tasks accept the options ``interactive`` and ``base-package-url-format``, which pause the automation and wait for the user to confirm the list of packages to be installed. (#3093)
+- We improved our caching mechanisms to better handle projects whose cross-project sources themselves have cross-project sources. (#3092)
+
+Issues Closed
+
+- Fixed a bug running the ``snowfakery`` task in parallel mode with orgs connected using a Connected App. (#3109)
+
 3.53.0 (2022-02-24)
 -------------------
 
