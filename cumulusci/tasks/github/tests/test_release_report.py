@@ -86,7 +86,7 @@ Production orgs: 2018-09-01""",
                 {
                     "beta": False,
                     "name": "1.0",
-                    "tag": u"rel/2.0",
+                    "tag": "rel/2.0",
                     "time_created": datetime(2018, 1, 1, 0, 0, tzinfo=pytz.UTC),
                     "time_push_production": datetime(
                         2018, 9, 1, 0, 0, 0, 5, tzinfo=pytz.UTC

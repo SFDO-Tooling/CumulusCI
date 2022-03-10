@@ -19,7 +19,9 @@ from cumulusci.core.config import (
     UniversalConfig,
 )
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.tasks.bulkdata.tests import utils as bulkdata_utils
+
+CURRENT_SF_API_VERSION = "54.0"
+from cumulusci.tasks.bulkdata.tests.utils import FakeBulkAPI
 
 
 def random_sha():
@@ -100,7 +102,7 @@ class DummyService(BaseConfig):
     password = "dummy_password"
     client_id = "ZOOMZOOM"
 
-    def __init__(self, name):
+    def __init__(self, name, alias):
         self.name = name
         super().__init__(name)
 
@@ -122,8 +124,8 @@ class DummyKeychain(BaseProjectKeychain):
     def cache_dir(self):
         return self._cache_dir or Path.home() / "project/.cci"
 
-    def get_service(self, name):
-        return DummyService(name)
+    def get_service(self, name, alias=None):
+        return DummyService(name, alias)
 
     def set_org(self, org: OrgConfig, global_org: bool):
         pass
@@ -153,27 +155,40 @@ def big_objs(traced_only=False):
         print(type(obj), size, tracemalloc.get_object_traceback(obj))
 
 
+class FakeSObjectProxy:
+    def __init__(self, describe_data):
+        self.describe_data = describe_data
+
+    def describe(self):
+        return self.describe_data
+
+
 class FakeSF:
-    """Extremely simplistic mock of the Simple-Salesforce API
+    """Simplistic mock of the Simple-Salesforce API
 
     Can be improved as needed over time.
-    In particular, __getattr__ is not implemented yet.
     """
 
     fakes = {}
+    headers = {}
+    session = mock.Mock()
+    base_url = "https://fakesf.example.org/"
 
     def describe(self):
         return self._get_json("global_describe")
 
     @property
     def sf_version(self):
-        return "47.0"
+        return CURRENT_SF_API_VERSION
 
     def _get_json(self, fake_dataset):
-        self.fakes[fake_dataset] = self.fakes.get("sobjname", None) or read_mock(
-            fake_dataset
+        self.fakes[fake_dataset] = self.fakes.get(fake_dataset, None) or json.loads(
+            read_mock(fake_dataset)
         )
         return self.fakes[fake_dataset]
+
+    def __getattr__(self, name):
+        return FakeSObjectProxy(self._get_json(name))
 
 
 def read_mock(name: str):
@@ -183,11 +198,11 @@ def read_mock(name: str):
         return f.read()
 
 
-def mock_describe_calls(domain="example.com"):
+def mock_describe_calls(domain="example.com", version=CURRENT_SF_API_VERSION):
     def mock_sobject_describe(name: str):
         responses.add(
             method="GET",
-            url=f"https://{domain}/services/data/v48.0/sobjects/{name}/describe",
+            url=f"https://{domain}/services/data/v{version}/sobjects/{name}/describe",
             body=read_mock(name),
             status=200,
         )
@@ -195,19 +210,19 @@ def mock_describe_calls(domain="example.com"):
     responses.add(
         method="GET",
         url=f"https://{domain}/services/data",
-        body=json.dumps([{"version": "40.0"}, {"version": "48.0"}]),
+        body=json.dumps([{"version": version}]),
         status=200,
     )
     responses.add(
         method="GET",
         url=f"https://{domain}/services/data",
-        body=json.dumps([{"version": "40.0"}, {"version": "48.0"}]),
+        body=json.dumps([{"version": version}]),
         status=200,
     )
 
     responses.add(
         method="GET",
-        url=f"https://{domain}/services/data/v48.0/sobjects",
+        url=f"https://{domain}/services/data/v{version}/sobjects",
         body=read_mock("global_describe"),
         status=200,
     )
@@ -231,7 +246,7 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
 
     def _init_task():
         real_init()
-        task.bulk = bulkdata_utils.FakeBulkAPI()
+        task.bulk = FakeBulkAPI()
         task.sf = salesforce_client
 
     with mock.patch(
@@ -297,3 +312,8 @@ class FakeUnreliableRequestHandler:
 
     def real_reliable_request_callback(self, request):
         return self.response
+
+
+CURRENT_SF_API_VERSION = (
+    CURRENT_SF_API_VERSION  # quiet linter and export to other modules
+)

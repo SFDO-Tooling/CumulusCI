@@ -217,8 +217,9 @@ class Channel:
     def _configure_queues(self, recipe_options):
         """Configure two ParallelWorkerQueues for datagen and dataload"""
         try:
-            # in the future, the connected_app should come from the org
-            connected_app = self.project_config.keychain.get_service("connected_app")
+            connected_app = self.project_config.keychain.get_service(
+                "connected_app", self.org_config.connected_app
+            )
         except exc.ServiceNotConfigured:  # pragma: no cover
             # to discuss...when can this happen? What are the consequences?
             connected_app = None

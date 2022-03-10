@@ -1,3 +1,4 @@
+import typing as T
 from datetime import date
 from enum import Enum
 from logging import getLogger
@@ -6,9 +7,9 @@ from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Union
 
 from pydantic import Field, ValidationError, root_validator, validator
 from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
+from simple_salesforce import Salesforce
 from typing_extensions import Literal
 
-from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.dates import iso_to_date
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
@@ -98,6 +99,7 @@ class MappingStep(CCIDictModel):
     ] = None  # default should come from task options
     anchor_date: Optional[Union[str, date]] = None
     soql_filter: Optional[str] = None  # soql_filter property
+    update_key: str = None  # only for upserts
 
     @validator("bulk_mode", "api", "action", pre=True)
     def case_normalize(cls, val):
@@ -139,8 +141,8 @@ class MappingStep(CCIDictModel):
 
         return fields
 
-    def get_fields_by_type(self, field_type: str, org_config: OrgConfig):
-        describe = getattr(org_config.salesforce_client, self.sf_object).describe()
+    def get_fields_by_type(self, field_type: str, sf: Salesforce):
+        describe = getattr(sf, self.sf_object).describe()
         describe = CaseInsensitiveDict(
             {entry["name"]: entry for entry in describe["fields"]}
         )
@@ -171,15 +173,15 @@ class MappingStep(CCIDictModel):
 
         return columns
 
-    def get_relative_date_context(self, fields: List[str], org_config: OrgConfig):
+    def get_relative_date_context(self, fields: List[str], sf: Salesforce):
         date_fields = [
             fields.index(f)
-            for f in self.get_fields_by_type("date", org_config)
+            for f in self.get_fields_by_type("date", sf)
             if f in self.fields
         ]
         date_time_fields = [
             fields.index(f)
-            for f in self.get_fields_by_type("datetime", org_config)
+            for f in self.get_fields_by_type("datetime", sf)
             if f in self.fields
         ]
 
@@ -253,35 +255,56 @@ class MappingStep(CCIDictModel):
             lookup.name = name
         return v
 
+    @root_validator
+    @classmethod
+    def validate_external_id_and_upsert(cls, v):
+        # TODO: should also validate that update_key is in fields list.
+        has_update_key = bool(v.get("update_key"))
+        is_upsert = v["action"] == DataOperationType.UPSERT
+        assert (
+            has_update_key == is_upsert
+        ), "Action 'upsert' and option 'update_key' must always be used together."
+        return v
+
     @staticmethod
     def _is_injectable(element: str) -> bool:
         return element.count("__") == 1
 
-    def _get_permission_type(self, operation: DataOperationType) -> str:
+    def _get_required_permission_types(
+        self, operation: DataOperationType
+    ) -> T.Tuple[str]:
+        """Return a tuple of the permssion types required to execute an operaation"""
         if operation is DataOperationType.QUERY:
-            return "queryable"
+            return ("queryable",)
         if (
             operation is DataOperationType.INSERT
             and self.action is DataOperationType.UPDATE
         ):
-            return "updateable"
+            return ("updateable",)
+        if (
+            operation is DataOperationType.UPSERT
+            or self.action is DataOperationType.UPSERT
+        ):
+            return ("updateable", "createable")
 
-        return "createable"
+        return ("createable",)
 
     def _check_object_permission(
         self, global_describe: Mapping, sobject: str, operation: DataOperationType
     ):
         assert sobject in global_describe
-        perm = self._get_permission_type(operation)
-        return global_describe[sobject][perm]
+        perms = self._get_required_permission_types(operation)
+        return all(global_describe[sobject][perm] for perm in perms)
 
     def _check_field_permission(
         self, describe: Mapping, field: str, operation: DataOperationType
     ):
-        perm = self._get_permission_type(operation)
+        perms = self._get_required_permission_types(operation)
         # Fields don't have "queryable" permission.
-        return field in describe and (
+        return field in describe and all(
+            # To discuss: is this different than `describe[field].get(perm, True)`
             describe[field].get(perm) if perm in describe[field] else True
+            for perm in perms
         )
 
     def _validate_field_dict(
@@ -388,7 +411,7 @@ class MappingStep(CCIDictModel):
 
     def validate_and_inject_namespace(
         self,
-        org_config: OrgConfig,
+        sf: Salesforce,
         namespace: Optional[str],
         operation: DataOperationType,
         inject_namespaces: bool = False,
@@ -422,10 +445,7 @@ class MappingStep(CCIDictModel):
             inject = strip = None
 
         global_describe = CaseInsensitiveDict(
-            {
-                entry["name"]: entry
-                for entry in org_config.salesforce_client.describe()["sobjects"]
-            }
+            {entry["name"]: entry for entry in sf.describe()["sobjects"]}
         )
 
         if not self._validate_sobject(global_describe, inject, strip, operation):
@@ -434,7 +454,7 @@ class MappingStep(CCIDictModel):
 
         # Validate, inject, and drop (if configured) fields.
         # By this point, we know the attribute is valid.
-        describe = getattr(org_config.salesforce_client, self.sf_object).describe()
+        describe = getattr(sf, self.sf_object).describe()
         describe = CaseInsensitiveDict(
             {entry["name"]: entry for entry in describe["fields"]}
         )
@@ -479,7 +499,7 @@ def parse_from_yaml(source: Union[str, Path, IO]) -> Dict:
 def validate_and_inject_mapping(
     *,
     mapping: Dict,
-    org_config: OrgConfig,
+    sf: Salesforce,
     namespace: str,
     data_operation: DataOperationType,
     inject_namespaces: bool,
@@ -488,7 +508,7 @@ def validate_and_inject_mapping(
 ):
     should_continue = [
         m.validate_and_inject_namespace(
-            org_config, namespace, data_operation, inject_namespaces, drop_missing
+            sf, namespace, data_operation, inject_namespaces, drop_missing
         )
         for m in mapping.values()
     ]
@@ -508,7 +528,7 @@ def validate_and_inject_mapping(
 
         # Remove any remaining lookups to dropped objects.
         for m in mapping.values():
-            describe = getattr(org_config.salesforce_client, m.sf_object).describe()
+            describe = getattr(sf, m.sf_object).describe()
             describe = {entry["name"]: entry for entry in describe["fields"]}
 
             for field in list(m.lookups.keys()):

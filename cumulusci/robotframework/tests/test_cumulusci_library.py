@@ -31,6 +31,7 @@ class TestCumulusCILibrary(MockLoggerMixin, unittest.TestCase):
                     "example": {"path": "/tmp"},
                 },
             },
+            repo_info={"root": Path(__file__).parent.absolute()},
         )
         self.cumulusci = CumulusCI()
         self.cumulusci._project_config = self.project_config

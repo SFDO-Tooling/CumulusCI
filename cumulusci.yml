@@ -40,6 +40,12 @@ tasks:
                 - cumulusci/robotframework/Salesforce.robot
                 - cumulusci/robotframework/pageobjects/BasePageObjects.py
 
+    test_upserts:
+        description: Test the upsert feature
+        class_path: cumulusci.tasks.bulkdata.LoadData
+        options:
+            sql_path: datasets/upsert/upsert/upsert_before_data.sql
+            mapping: datasets/upsert/upsert/upsert_mapping.yml
 flows:
     qa_org:
         steps:

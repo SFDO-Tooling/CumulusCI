@@ -1,3 +1,5 @@
+import click
+
 from cumulusci.core.dependencies.dependencies import (
     GitHubDynamicDependency,
     PackageInstallOptions,
@@ -7,6 +9,7 @@ from cumulusci.core.dependencies.dependencies import (
 from cumulusci.core.dependencies.resolvers import get_resolver_stack
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.github import find_previous_release
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
     PACKAGE_INSTALL_TASK_OPTIONS,
@@ -42,6 +45,12 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         },
         "retry_interval_add": {
             "description": "Number of seconds to add before each retry (default=30),"
+        },
+        "interactive": {
+            "description": "If True, stop after resolving the package version and output the package Id that will be installed. Defaults to False."
+        },
+        "base_package_url_format": {
+            "description": "If `interactive` is set to True, display package Ids using a format string ({} will be replaced with the package Id)."
         },
         **PACKAGE_INSTALL_TASK_OPTIONS,
     }
@@ -114,6 +123,9 @@ class InstallPackageVersion(BaseSalesforceApiTask):
                     dependency.package_dependency, PackageNamespaceVersionDependency
                 ):
                     self.options["version"] = dependency.package_dependency.version
+                    self.options[
+                        "version_id"
+                    ] = dependency.package_dependency.version_id
                 elif isinstance(
                     dependency.package_dependency, PackageVersionIdDependency
                 ):
@@ -136,6 +148,14 @@ class InstallPackageVersion(BaseSalesforceApiTask):
         self.install_options = PackageInstallOptions.from_task_options(self.options)
         self._check_for_tooling()
 
+        # Interactivity options
+        self.options["interactive"] = process_bool_arg(
+            self.options.get("interactive") or False
+        )
+        self.options["base_package_url_format"] = (
+            self.options.get("base_package_url_format") or "{}"
+        )
+
     def _run_task(self):
         version = self.options["version"]
 
@@ -145,30 +165,45 @@ class InstallPackageVersion(BaseSalesforceApiTask):
             )
             if "version_number" in self.options:
                 dep.version_number = self.options["version_number"]
-            dep.install(
-                self.project_config,
-                self.org_config,
-                self.install_options,
-                self.retry_options,
-            )
         else:
             dep = PackageNamespaceVersionDependency(
                 namespace=self.options["namespace"],
                 version=version,
                 package_name=self.options["name"],
+                version_id=self.options.get("version_id"),
             )
-            dep.install(
-                self.project_config,
-                self.org_config,
-                self.install_options,
-                self.retry_options,
-            )
+
+        if self.options.get("interactive", False):
+            if dep.version_id:
+                package_desc = self.options["base_package_url_format"].format(
+                    dep.version_id
+                )
+            else:
+                package_desc = str(dep)
+            self.logger.info("Package to install: {}".format(package_desc))
+            if not click.confirm("Continue to install dependencies?", default=True):
+                raise CumulusCIException("Dependency installation was canceled.")
+
+        dep.install(
+            self.project_config,
+            self.org_config,
+            self.install_options,
+            self.retry_options,
+        )
 
         self.org_config.reset_installed_packages()
 
     def freeze(self, step):
+        if self.options["interactive"]:
+            raise CumulusCIException(
+                "update_dependencies cannot be frozen when `interactive` is True."
+            )
+
         options = self.options.copy()
         options["version"] = str(options["version"])
+        if "version_id" in options:
+            # This is used only in interactive mode.
+            del options["version_id"]
         name = options.pop("name")
         task_config = {"options": options, "checks": self.task_config.checks or []}
         ui_step = {

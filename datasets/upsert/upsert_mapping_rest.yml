@@ -1,0 +1,26 @@
+Insert Accounts:
+    api: rest
+    sf_object: Account
+    fields:
+        - Name
+Insert Contacts:
+    api: rest
+    sf_object: Contact
+    action: upsert
+    update_key: Email
+    fields:
+        - FirstName
+        - LastName
+        - Email
+Insert Opportunities:
+    api: rest
+    sf_object: Opportunity
+    fields:
+        - Name
+        - StageName
+        - CloseDate
+    lookups:
+        AccountId:
+            table: Account
+        ContactId:
+            table: Contact

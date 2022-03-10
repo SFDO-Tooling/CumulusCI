@@ -36,7 +36,7 @@ class ListingPage(BasePage):
 
     """
 
-    def _go_to_page(self, filter_name=None):
+    def _go_to_page(self, filter_name=None, locator=None):
         url_template = "{root}/lightning/o/{object_name}/list"
         url = url_template.format(
             root=self.cumulusci.org.lightning_base_url, object_name=self.object_name
@@ -44,7 +44,7 @@ class ListingPage(BasePage):
         if filter_name:
             url += "?filterName={}".format(filter_name)
         self.selenium.go_to(url)
-        self.salesforce.wait_until_loading_is_complete()
+        self.salesforce.wait_until_loading_is_complete(locator=locator)
 
     def _is_current_page(self):
         self.selenium.location_should_contain(
@@ -345,13 +345,13 @@ class HomePage(BasePage):
 
     """
 
-    def _go_to_page(self):
+    def _go_to_page(self, locator=None):
         url_template = "{root}/lightning/o/{object_name}/home"
         url = url_template.format(
             root=self.cumulusci.org.lightning_base_url, object_name=self.object_name
         )
         self.selenium.go_to(url)
-        self.salesforce.wait_until_loading_is_complete()
+        self.salesforce.wait_until_loading_is_complete(locator=locator)
 
     def _is_current_page(self):
         self.selenium.location_should_contain(
@@ -382,7 +382,7 @@ class DetailPage(BasePage):
 
     """
 
-    def _go_to_page(self, object_id=None, **kwargs):
+    def _go_to_page(self, object_id=None, locator=None, **kwargs):
         """Go to the detail page for the given record.
 
         You may pass in an object id, or you may pass in keyword arguments
@@ -408,7 +408,7 @@ class DetailPage(BasePage):
             object_id=object_id,
         )
         self.selenium.go_to(url)
-        self.salesforce.wait_until_loading_is_complete()
+        self.salesforce.wait_until_loading_is_complete(locator=locator)
 
     def _is_current_page(self, **kwargs):
         """Verify we are on a detail page.

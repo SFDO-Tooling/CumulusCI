@@ -173,10 +173,13 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         query = self._query_db(mapping)
         bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
+        api_options = {"batch_size": mapping.batch_size, "bulk_mode": bulk_mode}
+        if mapping.update_key:
+            api_options["update_key"] = mapping.update_key
         step = get_dml_operation(
             sobject=mapping.sf_object,
             operation=mapping.action,
-            api_options={"batch_size": mapping.batch_size, "bulk_mode": bulk_mode},
+            api_options=api_options,
             context=self,
             fields=mapping.get_load_field_list(),
             api=mapping.api,
@@ -202,7 +205,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         if mapping.anchor_date:
             date_context = mapping.get_relative_date_context(
-                mapping.get_load_field_list(), self.org_config
+                mapping.get_load_field_list(), self.sf
             )
         # Clamping the yield from the query ensures we do not
         # create more Bulk API batches than expected, regardless
@@ -345,7 +348,12 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
     def _process_job_results(self, mapping, step, local_ids):
         """Get the job results and process the results. If we're raising for
         row-level errors, do so; if we're inserting, store the new Ids."""
-        if mapping.action is DataOperationType.INSERT:
+
+        is_insert_or_upsert = mapping.action in (
+            DataOperationType.INSERT,
+            DataOperationType.UPSERT,
+        )
+        if is_insert_or_upsert:
             id_table_name = self._initialize_id_table(mapping, self.reset_oids)
             conn = self.session.connection()
 
@@ -353,7 +361,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         # If we know we have no successful inserts, don't attempt to persist Ids.
         # Do, however, drain the generator to get error-checking behavior.
-        if mapping.action is DataOperationType.INSERT and (
+        if is_insert_or_upsert and (
             step.job_result.records_processed - step.job_result.total_row_errors
         ):
             self._sql_bulk_insert_from_records(
@@ -371,7 +379,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # person account Contact records so lookups to
         # person account Contact records get populated downstream as expected.
         if (
-            mapping.action is DataOperationType.INSERT
+            is_insert_or_upsert
             and mapping.sf_object == "Contact"
             and self._can_load_person_accounts(mapping)
         ):
@@ -386,7 +394,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     ),
                 )
 
-        if mapping.action is DataOperationType.INSERT:
+        if is_insert_or_upsert:
             self.session.commit()
 
     def _generate_results_id_map(self, step, local_ids):
@@ -498,7 +506,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         validate_and_inject_mapping(
             mapping=self.mapping,
-            org_config=self.org_config,
+            sf=self.sf,
             namespace=self.project_config.project__package__namespace,
             data_operation=DataOperationType.INSERT,
             inject_namespaces=self.options["inject_namespaces"],
@@ -554,14 +562,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         IsPersonAccount as 'true' but the org does not have person accounts enabled.
         """
         for mapping in self.mapping.values():
-            if (
-                mapping.sf_object
-                in [
-                    "Account",
-                    "Contact",
-                ]
-                and self._db_has_person_accounts_column(mapping)
-            ):
+            if mapping.sf_object in [
+                "Account",
+                "Contact",
+            ] and self._db_has_person_accounts_column(mapping):
                 table = self.models[mapping.table].__table__
                 if (
                     self.session.query(table)

@@ -1038,9 +1038,7 @@
             "precision": 0,
             "queryByDistance": false,
             "referenceTargetField": null,
-            "referenceTo": [
-                "Contact"
-            ],
+            "referenceTo": ["Contact"],
             "relationshipName": "MasterRecord",
             "relationshipOrder": null,
             "restrictedDelete": false,
@@ -1099,9 +1097,7 @@
             "precision": 0,
             "queryByDistance": false,
             "referenceTargetField": null,
-            "referenceTo": [
-                "Account"
-            ],
+            "referenceTo": ["Account"],
             "relationshipName": "Account",
             "relationshipOrder": null,
             "restrictedDelete": false,
@@ -3004,9 +3000,7 @@
             "precision": 0,
             "queryByDistance": false,
             "referenceTargetField": null,
-            "referenceTo": [
-                "Contact"
-            ],
+            "referenceTo": ["Contact"],
             "relationshipName": "ReportsTo",
             "relationshipOrder": null,
             "restrictedDelete": false,
@@ -3514,9 +3508,7 @@
             "precision": 0,
             "queryByDistance": false,
             "referenceTargetField": null,
-            "referenceTo": [
-                "User"
-            ],
+            "referenceTo": ["User"],
             "relationshipName": "Owner",
             "relationshipOrder": null,
             "restrictedDelete": false,
@@ -3634,9 +3626,7 @@
             "precision": 0,
             "queryByDistance": false,
             "referenceTargetField": null,
-            "referenceTo": [
-                "User"
-            ],
+            "referenceTo": ["User"],
             "relationshipName": "CreatedBy",
             "relationshipOrder": null,
             "restrictedDelete": false,
@@ -3754,9 +3744,7 @@
             "precision": 0,
             "queryByDistance": false,
             "referenceTargetField": null,
-            "referenceTo": [
-                "User"
-            ],
+            "referenceTo": ["User"],
             "relationshipName": "LastModifiedBy",
             "relationshipOrder": null,
             "restrictedDelete": false,
@@ -4639,9 +4627,7 @@
             "precision": 0,
             "queryByDistance": false,
             "referenceTargetField": null,
-            "referenceTo": [
-                "Individual"
-            ],
+            "referenceTo": ["Individual"],
             "relationshipName": "Individual",
             "relationshipOrder": null,
             "restrictedDelete": false,

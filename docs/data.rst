@@ -111,6 +111,34 @@ which is subject to its own limits, including restrictions on total processing t
 Bulk API batches are automatically chunked further into transactions by the platform,
 and the transaction size cannot be controlled.
 
+Upserts
+-------
+The definition of "upsert" is an operation which creates new records and updates 
+existing records depending on a field (the update key) which determines whether
+the input row and the existing row are "the same".
+
+
+You can do ID-based, 
+`idLookup-based <https://developer.salesforce.com/docs/atlas.en-us.204.0.object_reference.meta/object_reference/access_for_fields.htm#access_lookup>`_ 
+and `external ID <https://help.salesforce.com/s/articleView?id=sf.faq_import_general_what_is_an_external.htm&type=5>`_-based
+`upserts <https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/langCon_apex_dml_examples_upsert.htm>`_ 
+and updates by specifying additional settings in a mapping step.
+
+.. code-block:: yaml
+
+    Insert Accounts:
+        sf_object: Account
+        action: upsert
+        update_key: Extid__c
+        fields:
+            - Name
+            - Extid__c
+
+Whenever ``update_key`` is supplied, the action must be ``upsert`` and
+vice versa.
+
+
+
 Database Mapping
 ----------------
 
