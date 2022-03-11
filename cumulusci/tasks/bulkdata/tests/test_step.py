@@ -1,6 +1,5 @@
 import io
 import json
-import unittest
 from unittest import mock
 
 import pytest
@@ -38,7 +37,7 @@ BULK_BATCH_RESPONSE = """<root xmlns="http://ns">
 </root>"""
 
 
-class TestDownloadFile(unittest.TestCase):
+class TestDownloadFile:
     @responses.activate
     def test_download_file(self):
         url = "https://example.com"
@@ -51,7 +50,7 @@ class TestDownloadFile(unittest.TestCase):
             assert f.read() == "TEST\u2014"
 
 
-class TestBulkDataJobTaskMixin(unittest.TestCase):
+class TestBulkDataJobTaskMixin:
     @responses.activate
     def test_job_state_from_batches(self):
         mixin = BulkJobMixin()
@@ -237,7 +236,7 @@ class TestBulkDataJobTaskMixin(unittest.TestCase):
         mixin.logger.error.assert_any_call("Batch failure message: Test2")
 
 
-class TestBulkApiQueryOperation(unittest.TestCase):
+class TestBulkApiQueryOperation:
     def test_query(self):
         context = mock.Mock()
         query = BulkApiQueryOperation(
@@ -375,7 +374,7 @@ class TestBulkApiQueryOperation(unittest.TestCase):
         assert list(results) == []
 
 
-class TestBulkApiDmlOperation(unittest.TestCase):
+class TestBulkApiDmlOperation:
     def test_start(self):
         context = mock.Mock()
         context.bulk.create_job.return_value = "JOB"
@@ -614,7 +613,7 @@ class TestBulkApiDmlOperation(unittest.TestCase):
         step.job_id = "JOB"
         step.batch_ids = ["BATCH1", "BATCH2"]
 
-        with self.assertRaises(BulkDataException):
+        with pytest.raises(BulkDataException):
             list(step.get_results())
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")

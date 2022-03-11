@@ -43,14 +43,14 @@ def test_init():
 
 
 def test_merge_failure():
-    with pytest.raises(ConfigMergeError) as cm:
+    with pytest.raises(ConfigMergeError) as e:
         utils.merge_config(
             {
                 "universal_config": {"hello": "world", "test": {"sample": 1}},
                 "user_config": {"hello": "christian", "test": [1, 2]},
             }
         )
-    exception = cm.value
+    exception = e.value
     assert exception.config_name == "user_config"
 
 

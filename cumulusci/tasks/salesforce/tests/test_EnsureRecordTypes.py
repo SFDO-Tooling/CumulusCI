@@ -1,6 +1,7 @@
 import os
-import unittest
 from unittest import mock
+
+import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.salesforce import EnsureRecordTypes
@@ -113,7 +114,7 @@ OPPORTUNITY_DESCRIBE_WITH_RTS = {
 }
 
 
-class TestEnsureRecordTypes(unittest.TestCase):
+class TestEnsureRecordTypes:
     def test_infers_correct_business_process(self):
         task = create_task(
             EnsureRecordTypes,
@@ -131,9 +132,9 @@ class TestEnsureRecordTypes(unittest.TestCase):
 
         task._infer_requirements()
 
-        self.assertTrue(task.options["generate_business_process"])
-        self.assertTrue(task.options["generate_record_type"])
-        self.assertEqual("Test", task.options["stage_name"])
+        assert task.options["generate_business_process"]
+        assert task.options["generate_record_type"]
+        assert "Test" == task.options["stage_name"]
 
     def test_no_business_process_where_unneeded(self):
         task = create_task(
@@ -150,9 +151,9 @@ class TestEnsureRecordTypes(unittest.TestCase):
 
         task._infer_requirements()
 
-        self.assertFalse(task.options["generate_business_process"])
-        self.assertTrue(task.options["generate_record_type"])
-        self.assertNotIn("stage_name", task.options)
+        assert not task.options["generate_business_process"]
+        assert task.options["generate_record_type"]
+        assert "stage_name" not in task.options
 
     def test_generates_record_type_and_business_process(self):
         # Asserts Record Type Description is optional.
@@ -176,11 +177,11 @@ class TestEnsureRecordTypes(unittest.TestCase):
             task._build_package()
             with open(os.path.join("objects", "Opportunity.object"), "r") as f:
                 opp_contents = f.read()
-                self.assertEqual(OPPORTUNITY_METADATA, opp_contents)
-                self.assertMultiLineEqual(OPPORTUNITY_METADATA, opp_contents)
+                assert OPPORTUNITY_METADATA == opp_contents
+                assert OPPORTUNITY_METADATA == opp_contents
             with open(os.path.join("package.xml"), "r") as f:
                 pkg_contents = f.read()
-                self.assertMultiLineEqual(PACKAGE_XML, pkg_contents)
+                assert PACKAGE_XML == pkg_contents
 
     def test_generates_record_type_and_business_process__case(self):
         # Asserts Record Type Description is added and truncated to 255 characters.
@@ -203,10 +204,10 @@ class TestEnsureRecordTypes(unittest.TestCase):
             task._build_package()
             with open(os.path.join("objects", "Case.object"), "r") as f:
                 opp_contents = f.read()
-                self.assertMultiLineEqual(CASE_METADATA, opp_contents)
+                assert CASE_METADATA == opp_contents
             with open(os.path.join("package.xml"), "r") as f:
                 pkg_contents = f.read()
-                self.assertMultiLineEqual(PACKAGE_XML, pkg_contents)
+                assert PACKAGE_XML == pkg_contents
 
     def test_generates_record_type_only(self):
         # Asserts Record Type Description is added when the Description is less than 255 characters.
@@ -229,10 +230,10 @@ class TestEnsureRecordTypes(unittest.TestCase):
             task._build_package()
             with open(os.path.join("objects", "Account.object"), "r") as f:
                 opp_contents = f.read()
-                self.assertMultiLineEqual(ACCOUNT_METADATA, opp_contents)
+                assert ACCOUNT_METADATA == opp_contents
             with open(os.path.join("package.xml"), "r") as f:
                 pkg_contents = f.read()
-                self.assertMultiLineEqual(PACKAGE_XML, pkg_contents)
+                assert PACKAGE_XML == pkg_contents
 
     def test_no_action_if_existing_record_types(self):
         task = create_task(
@@ -251,8 +252,8 @@ class TestEnsureRecordTypes(unittest.TestCase):
 
         task._infer_requirements()
 
-        self.assertFalse(task.options["generate_business_process"])
-        self.assertFalse(task.options["generate_record_type"])
+        assert not task.options["generate_business_process"]
+        assert not task.options["generate_record_type"]
 
     def test_second_rt_if_force_create(self):
         # Asserts a second Record Type is added even when RTs already exist when force_create is True
@@ -277,10 +278,10 @@ class TestEnsureRecordTypes(unittest.TestCase):
             task._build_package()
             with open(os.path.join("objects", "Account.object"), "r") as f:
                 obj_contents = f.read()
-                self.assertMultiLineEqual(ACCOUNT_METADATA, obj_contents)
+                assert ACCOUNT_METADATA == obj_contents
             with open(os.path.join("package.xml"), "r") as f:
                 pkg_contents = f.read()
-                self.assertMultiLineEqual(PACKAGE_XML, pkg_contents)
+                assert PACKAGE_XML == pkg_contents
 
     def test_executes_deployment(self):
         task = create_task(
@@ -324,7 +325,7 @@ class TestEnsureRecordTypes(unittest.TestCase):
         task._deploy.assert_not_called()
 
     def test_init_options(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             create_task(
                 EnsureRecordTypes,
                 {
@@ -334,7 +335,7 @@ class TestEnsureRecordTypes(unittest.TestCase):
                 },
             )
 
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             create_task(
                 EnsureRecordTypes,
                 {

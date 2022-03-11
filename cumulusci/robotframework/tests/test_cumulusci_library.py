@@ -1,8 +1,8 @@
 import logging
-import unittest
 from pathlib import Path
 from unittest import mock
 
+import pytest
 import robot.api.logger
 
 from cumulusci.core.config import BaseProjectConfig, UniversalConfig
@@ -12,8 +12,8 @@ from cumulusci.robotframework.CumulusCI import CumulusCI
 from cumulusci.utils import temporary_dir
 
 
-class TestCumulusCILibrary(MockLoggerMixin, unittest.TestCase):
-    def setUp(self):
+class TestCumulusCILibrary(MockLoggerMixin):
+    def setup_method(self):
         self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
             self.universal_config,
@@ -43,7 +43,7 @@ class TestCumulusCILibrary(MockLoggerMixin, unittest.TestCase):
     def test_run_task(self):
         """Smoke test; can we run the command task?"""
         result = self.cumulusci.run_task("get_pwd")
-        self.assertEqual(result["returncode"], 0)
+        assert result["returncode"] == 0
 
     def test_run_task_robot_logger(self):
         """Verify that 'run task' uses the robot logger"""
@@ -51,7 +51,7 @@ class TestCumulusCILibrary(MockLoggerMixin, unittest.TestCase):
             self.cumulusci.run_task("get_pwd")
             args, kwargs = self.cumulusci._run_task.call_args
             task = args[0]
-            self.assertEqual(task.logger, robot.api.logger)
+            assert task.logger == robot.api.logger
 
     def test_robot_logger_supports_warning(self):
         """Verify that 'run task' uses a logger that supports .warning()
@@ -122,10 +122,10 @@ class TestCumulusCILibrary(MockLoggerMixin, unittest.TestCase):
             )
             args, kwargs = self.cumulusci._run_task.call_args
             task = args[0]
-            self.assertEqual(task.logger, robot.api.logger)
+            assert task.logger == robot.api.logger
 
     def test_run_unknown_task(self):
-        with self.assertRaises(TaskNotFoundError):
+        with pytest.raises(TaskNotFoundError):
             self.cumulusci.run_task("bogus")
 
     def test_cross_project_task(self):
@@ -151,11 +151,11 @@ class TestCumulusCILibrary(MockLoggerMixin, unittest.TestCase):
                 self.cumulusci.run_task("example:whatever")
 
                 args, kwargs = self.cumulusci._run_task.call_args
-                self.assertEqual(len(args), 1)
+                assert len(args) == 1
 
                 # make sure it's not using the current project config
                 # for the task, and that the config it _is_ using is
                 # rooted in the directory we created
                 task = args[0]
-                self.assertNotEqual(task.project_config, self.cumulusci.project_config)
-                self.assertEqual(tmpdir, Path(task.project_config.repo_root))
+                assert task.project_config != self.cumulusci.project_config
+                assert tmpdir == Path(task.project_config.repo_root)

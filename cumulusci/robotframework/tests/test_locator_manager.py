@@ -1,4 +1,3 @@
-import unittest
 from unittest import mock
 
 import pytest
@@ -18,10 +17,9 @@ def mock_get_library_instance(name):
     return mock_libs[name]
 
 
-class TestTranslateLocator(unittest.TestCase):
+class TestTranslateLocator:
     @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
+    def setup_class(cls):
         LOCATORS.clear()
         register_locators(
             prefix="test",
@@ -95,10 +93,9 @@ class TestTranslateLocator(unittest.TestCase):
             translate_locator("test", "foo.not.valid")
 
 
-class TestLocateElement(unittest.TestCase):
+class TestLocateElement:
     @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
+    def setup_class(cls):
         LOCATORS.clear()
         register_locators(
             prefix="test",
@@ -129,8 +126,8 @@ class TestLocateElement(unittest.TestCase):
             )
 
 
-class TestRegisterLocators(unittest.TestCase):
-    def setUp(self):
+class TestRegisterLocators:
+    def setup_method(self):
         LOCATORS.clear()
 
     def test_register_locators(self):
@@ -138,7 +135,7 @@ class TestRegisterLocators(unittest.TestCase):
         register_locators("test", {"foo": "//div/foo"})
 
         expected = {"test": {"foo": "//div/foo"}}
-        self.assertDictEqual(LOCATORS, expected)
+        assert LOCATORS == expected
 
     def test_multiple_registrations(self):
         """Verify that more than one prefix can be registered"""
@@ -147,7 +144,7 @@ class TestRegisterLocators(unittest.TestCase):
         register_locators("test2", {"bar": "//div/bar"})
 
         expected = {"test1": {"foo": "//div/foo"}, "test2": {"bar": "//div/bar"}}
-        self.assertDictEqual(LOCATORS, expected)
+        assert LOCATORS == expected
 
     def test_register_locators_merge(self):
         """Verify that calling register_locators will merge the new locators
@@ -158,4 +155,4 @@ class TestRegisterLocators(unittest.TestCase):
         register_locators("test1", {"foo": {"two": "//div/two"}})
 
         expected = {"test1": {"foo": {"one": "//div/one", "two": "//div/two"}}}
-        self.assertDictEqual(LOCATORS, expected)
+        assert LOCATORS == expected

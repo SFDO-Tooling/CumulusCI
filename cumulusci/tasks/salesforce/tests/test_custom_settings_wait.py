@@ -1,5 +1,4 @@
-import unittest
-
+import pytest
 import responses
 
 from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
@@ -10,8 +9,8 @@ from cumulusci.tasks.salesforce.custom_settings_wait import CustomSettingValueWa
 from cumulusci.tests.util import DummyOrgConfig
 
 
-class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
-    def setUp(self):
+class TestRunCustomSettingsWait(MockLoggerMixin):
+    def setup_method(self):
         self.api_version = 42.0
         self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
@@ -152,10 +151,10 @@ class TestRunCustomSettingsWait(MockLoggerMixin, unittest.TestCase):
             ],
         )
 
-        with self.assertRaises(TaskOptionsError) as e:
+        with pytest.raises(TaskOptionsError) as e:
             task()
 
-        assert "supported" in str(e.exception)
+        assert "supported" in str(e.value)
 
     def test_apply_namespace__managed(self):
         self.project_config.config["project"]["package"]["namespace"] = "ns"

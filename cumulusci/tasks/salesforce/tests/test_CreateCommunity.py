@@ -1,8 +1,8 @@
 import json
-import unittest
 from datetime import datetime
 from unittest import mock
 
+import pytest
 import responses
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
@@ -26,7 +26,7 @@ task_options_no_url_path_prefix = {
 }
 
 
-class test_CreateCommunity(unittest.TestCase):
+class test_CreateCommunity:
     @responses.activate
     def test_creates_community(self):
         cc_task = create_task(CreateCommunity, task_options)
@@ -50,10 +50,10 @@ class test_CreateCommunity(unittest.TestCase):
 
         cc_task()
 
-        self.assertEqual(3, len(responses.calls))
-        self.assertEqual(community_url, responses.calls[1].request.url)
-        self.assertEqual(community_url, responses.calls[2].request.url)
-        self.assertEqual(
+        assert 3 == len(responses.calls)
+        assert community_url == responses.calls[1].request.url
+        assert community_url == responses.calls[2].request.url
+        assert (
             json.dumps(
                 {
                     "name": "Test Community",
@@ -61,8 +61,8 @@ class test_CreateCommunity(unittest.TestCase):
                     "templateName": "VF Template",
                     "urlPathPrefix": "test",
                 }
-            ),
-            responses.calls[1].request.body,
+            )
+            == responses.calls[1].request.body
         )
 
     @responses.activate
@@ -88,10 +88,10 @@ class test_CreateCommunity(unittest.TestCase):
 
         cc_task()
 
-        self.assertEqual(3, len(responses.calls))
-        self.assertEqual(community_url, responses.calls[1].request.url)
-        self.assertEqual(community_url, responses.calls[2].request.url)
-        self.assertEqual(
+        assert 3 == len(responses.calls)
+        assert community_url == responses.calls[1].request.url
+        assert community_url == responses.calls[2].request.url
+        assert (
             json.dumps(
                 {
                     "name": "Test Community",
@@ -99,8 +99,8 @@ class test_CreateCommunity(unittest.TestCase):
                     "templateName": "VF Template",
                     "urlPathPrefix": "",
                 }
-            ),
-            responses.calls[1].request.body,
+            )
+            == responses.calls[1].request.body
         )
 
     @responses.activate
@@ -117,7 +117,7 @@ class test_CreateCommunity(unittest.TestCase):
             json={"communities": [{"name": "Test Community", "id": "000000000000000"}]},
         )
 
-        with self.assertRaises(Exception):
+        with pytest.raises(Exception):
             cc_task()
 
     @responses.activate
@@ -197,7 +197,7 @@ class test_CreateCommunity(unittest.TestCase):
         )
 
         cc_task._init_task()
-        with self.assertRaises(SalesforceMalformedRequest):
+        with pytest.raises(SalesforceMalformedRequest):
             cc_task._run_task()()
 
     @responses.activate
@@ -226,7 +226,7 @@ class test_CreateCommunity(unittest.TestCase):
         )
 
         cc_task._init_task()
-        with self.assertRaises(SalesforceMalformedRequest):
+        with pytest.raises(SalesforceMalformedRequest):
             cc_task._run_task()()
 
     @responses.activate
@@ -247,7 +247,7 @@ class test_CreateCommunity(unittest.TestCase):
         cc_task.time_start = datetime.now()
         cc_task._poll_action()
 
-        self.assertFalse(cc_task.poll_complete)
+        assert not cc_task.poll_complete
 
     @responses.activate
     def test_waits_for_community_result__complete(self):
@@ -267,12 +267,12 @@ class test_CreateCommunity(unittest.TestCase):
         cc_task.time_start = datetime.now()
         cc_task._poll_action()
 
-        self.assertTrue(cc_task.poll_complete)
+        assert cc_task.poll_complete
         cc_task.logger.info.assert_called_once_with("Community 000000000000000 created")
 
     def test_throws_exception_for_timeout(self):
         cc_task = create_task(CreateCommunity, task_options)
 
         cc_task.time_start = datetime(2019, 1, 1)
-        with self.assertRaises(SalesforceException):
+        with pytest.raises(SalesforceException):
             cc_task._poll_action()

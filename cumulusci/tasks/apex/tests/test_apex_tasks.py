@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 import tempfile
-import unittest
 from copy import deepcopy
 from distutils.version import StrictVersion
 from unittest.mock import MagicMock, Mock, patch
@@ -38,8 +37,8 @@ from cumulusci.tasks.apex.testrunner import RunApexTests
     "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials",
     MagicMock(return_value=None),
 )
-class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
-    def setUp(self):
+class TestRunApexTests(MockLoggerMixin):
+    def setup_method(self):
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages
         self.api_version = 38.0
@@ -309,14 +308,14 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         self._mock_get_test_results()
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
         task()
-        self.assertEqual(len(responses.calls), 5)
+        assert len(responses.calls) == 5
 
     @responses.activate
     def test_run_task__server_error(self):
         self._mock_apex_class_query()
         self._mock_run_tests(success=False)
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
-        with self.assertRaises(SalesforceGeneralError):
+        with pytest.raises(SalesforceGeneralError):
             task()
 
     @responses.activate
@@ -327,7 +326,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         self._mock_tests_complete()
         self._mock_get_test_results("Fail")
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
-        with self.assertRaises(ApexTestException):
+        with pytest.raises(ApexTestException):
             task()
 
     @responses.activate
@@ -339,7 +338,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         self._mock_get_test_results()
         self._mock_get_symboltable()
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
-        with self.assertRaises(ApexTestException):
+        with pytest.raises(ApexTestException):
             task()
 
     @responses.activate
@@ -351,7 +350,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         self._mock_get_test_results()
         self._mock_get_symboltable_failure()
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             task()
 
     @responses.activate
@@ -399,7 +398,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         }
         task = RunApexTests(self.project_config, task_config, self.org_config)
         task()
-        self.assertEqual(len(responses.calls), 9)
+        assert len(responses.calls) == 9
 
     @responses.activate
     def test_run_task__retry_tests_with_retry_always(self):
@@ -433,7 +432,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             "retry_always": True,
         }
         task = RunApexTests(self.project_config, task_config, self.org_config)
-        with self.assertRaises(ApexTestException):
+        with pytest.raises(ApexTestException):
             task()
 
     @responses.activate
@@ -456,7 +455,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             "retry_failures": ["UNABLE_TO_LOCK_ROW"],
         }
         task = RunApexTests(self.project_config, task_config, self.org_config)
-        with self.assertRaises(ApexTestException):
+        with pytest.raises(ApexTestException):
             task()
 
     @responses.activate
@@ -501,7 +500,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             "test_name_match": "%_TEST",
         }
         task = RunApexTests(self.project_config, task_config, self.org_config)
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             task()
         log = self._task_log_handler.messages
         assert "Class: TestClass_TEST" in log["info"]
@@ -604,7 +603,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             "required_org_code_coverage_percent": "foo",
         }
 
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             RunApexTests(self.project_config, task_config, self.org_config)
 
     @responses.activate
@@ -660,7 +659,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             "totalSize": 1,
         }
 
-        with self.assertRaises(ApexTestException):
+        with pytest.raises(ApexTestException):
             task._check_code_coverage()
 
     def test_is_retriable_failure(self):
@@ -677,32 +676,26 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         task = RunApexTests(self.project_config, task_config, self.org_config)
         task._init_options(task_config.config["options"])
 
-        self.assertTrue(
-            task._is_retriable_failure(
-                {
-                    "Message": "UNABLE_TO_LOCK_ROW",
-                    "StackTrace": "test",
-                    "Outcome": "Fail",
-                }
-            )
+        assert task._is_retriable_failure(
+            {
+                "Message": "UNABLE_TO_LOCK_ROW",
+                "StackTrace": "test",
+                "Outcome": "Fail",
+            }
         )
-        self.assertTrue(
-            task._is_retriable_failure(
-                {
-                    "Message": "TEST",
-                    "StackTrace": "unable to obtain exclusive access to this record",
-                    "Outcome": "Fail",
-                }
-            )
+        assert task._is_retriable_failure(
+            {
+                "Message": "TEST",
+                "StackTrace": "unable to obtain exclusive access to this record",
+                "Outcome": "Fail",
+            }
         )
-        self.assertFalse(
-            task._is_retriable_failure(
-                {
-                    "Message": "DUPLICATES_DETECTED",
-                    "StackTrace": "test",
-                    "Outcome": "Fail",
-                }
-            )
+        assert not task._is_retriable_failure(
+            {
+                "Message": "DUPLICATES_DETECTED",
+                "StackTrace": "test",
+                "Outcome": "Fail",
+            }
         )
 
     def test_init_options__regexes(self):
@@ -716,8 +709,9 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         task = RunApexTests(self.project_config, task_config, self.org_config)
         task._init_options(task_config.config["options"])
 
-        self.assertIsNotNone(
+        assert (
             task.options["retry_failures"][0].search("UNABLE_TO_LOCK_ROW: test failed")
+            is not None
         )
 
     def test_init_options__bad_regexes(self):
@@ -728,7 +722,7 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
             "test_name_match": "%_TEST",
             "retry_failures": ["("],
         }
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             task = RunApexTests(self.project_config, task_config, self.org_config)
             task._init_options(task_config.config["options"])
 
@@ -736,12 +730,12 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         task_config = TaskConfig({"options": {"managed": True, "namespace": "testns"}})
         task = RunApexTests(self.project_config, task_config, self.org_config)
         namespace = task._get_namespace_filter()
-        self.assertEqual("'testns'", namespace)
+        assert "'testns'" == namespace
 
     def test_get_namespace_filter__managed_no_namespace(self):
         task_config = TaskConfig({"options": {"managed": True}})
         task = RunApexTests(self.project_config, task_config, self.org_config)
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             task._get_namespace_filter()
 
     def test_get_test_class_query__exclude(self):
@@ -750,25 +744,24 @@ class TestRunApexTests(MockLoggerMixin, unittest.TestCase):
         )
         task = RunApexTests(self.project_config, task_config, self.org_config)
         query = task._get_test_class_query()
-        self.assertEqual(
+        assert (
             "SELECT Id, Name FROM ApexClass WHERE NamespacePrefix = null "
-            "AND (Name LIKE '%_TEST') AND (NOT Name LIKE 'EXCL')",
-            query,
+            "AND (Name LIKE '%_TEST') AND (NOT Name LIKE 'EXCL')" == query
         )
 
     def test_run_task__no_tests(self):
         task = RunApexTests(self.project_config, self.task_config, self.org_config)
         task._get_test_classes = MagicMock(return_value={"totalSize": 0})
         task()
-        self.assertIsNone(task.result)
+        assert task.result is None
 
 
 @patch(
     "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials",
     MagicMock(return_value=None),
 )
-class TestAnonymousApexTask(unittest.TestCase):
-    def setUp(self):
+class TestAnonymousApexTask:
+    def setup_method(self):
         self.api_version = 42.0
         self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
@@ -807,7 +800,7 @@ class TestAnonymousApexTask(unittest.TestCase):
             self.org_config.instance_url, self.api_version
         )
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def _get_url_and_task(self):
@@ -817,19 +810,19 @@ class TestAnonymousApexTask(unittest.TestCase):
 
     def test_validate_options(self):
         task_config = TaskConfig({})
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             AnonymousApexTask(self.project_config, task_config, self.org_config)
 
     def test_run_from_path_outside_repo(self):
         task_config = TaskConfig({"options": {"path": "/"}})
         task = AnonymousApexTask(self.project_config, task_config, self.org_config)
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             task()
 
     def test_run_path_not_found(self):
         task_config = TaskConfig({"options": {"path": "bogus"}})
         task = AnonymousApexTask(self.project_config, task_config, self.org_config)
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             task()
 
     def test_prepare_apex(self):
@@ -838,25 +831,25 @@ class TestAnonymousApexTask(unittest.TestCase):
         task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
         before = "String %%%NAMESPACED_ORG%%%str = '%%%NAMESPACED_RT%%%';"
         expected = "String abc__str = 'abc.';"
-        self.assertEqual(expected, task._prepare_apex(before))
+        assert expected == task._prepare_apex(before)
 
     def test_prepare_apex__detect_namespace(self):
         task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
         before = "String %%%NAMESPACED_ORG%%%str = '%%%NAMESPACED_RT%%%';"
         expected = "String abc__str = 'abc.';"
-        self.assertEqual(expected, task._prepare_apex(before))
+        assert expected == task._prepare_apex(before)
 
     def test_optional_parameter_1_replacement(self):
         task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
         before = "String str = '%%%PARAM_1%%%';"
         expected = "String str = 'StringValue';"
-        self.assertEqual(expected, task._prepare_apex(before))
+        assert expected == task._prepare_apex(before)
 
     def test_optional_parameter_2_replacement(self):
         task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
         before = "String str = '%%%PARAM_2%%%';"
         expected = "String str = '';"
-        self.assertEqual(expected, task._prepare_apex(before))
+        assert expected == task._prepare_apex(before)
 
     @responses.activate
     def test_run_anonymous_apex_success(self):
@@ -879,13 +872,13 @@ class TestAnonymousApexTask(unittest.TestCase):
     def test_run_anonymous_apex_status_fail(self):
         task, url = self._get_url_and_task()
         responses.add(responses.GET, url, status=418, body="I'm a teapot")
-        with self.assertRaises(SalesforceGeneralError) as cm:
+        with pytest.raises(SalesforceGeneralError) as e:
             task()
-        err = cm.exception
-        self.assertEqual(str(err), "Error Code 418. Response content: I'm a teapot")
-        self.assertTrue(err.url.startswith(url))
-        self.assertEqual(err.status, 418)
-        self.assertEqual(err.content, "I'm a teapot")
+        err = e.value
+        assert str(err) == "Error Code 418. Response content: I'm a teapot"
+        assert err.url.startswith(url)
+        assert err.status == 418
+        assert err.content == "I'm a teapot"
 
     @responses.activate
     def test_run_anonymous_apex_compile_except(self):
@@ -902,11 +895,11 @@ class TestAnonymousApexTask(unittest.TestCase):
             "logs": "",
         }
         responses.add(responses.GET, url, status=200, json=resp)
-        with self.assertRaises(ApexCompilationException) as cm:
+        with pytest.raises(ApexCompilationException) as e:
             task()
-        err = cm.exception
-        self.assertEqual(err.args[0], 1)
-        self.assertEqual(err.args[1], problem)
+        err = e.value
+        assert err.args[0] == 1
+        assert err.args[1] == problem
 
     @responses.activate
     def test_run_anonymous_apex_except(self):
@@ -924,19 +917,19 @@ class TestAnonymousApexTask(unittest.TestCase):
             "logs": "",
         }
         responses.add(responses.GET, url, status=200, json=resp)
-        with self.assertRaises(ApexException) as cm:
+        with pytest.raises(ApexException) as e:
             task()
-        err = cm.exception
-        self.assertEqual(err.args[0], problem)
-        self.assertEqual(err.args[1], trace)
+        err = e.value
+        assert err.args[0] == problem
+        assert err.args[1] == trace
 
     @responses.activate
     def test_run_anonymous_apex__gack(self):
         task, url = self._get_url_and_task()
         responses.add(responses.GET, url, status=200, body="null")
-        with self.assertRaises(SalesforceException) as cm:
+        with pytest.raises(SalesforceException) as e:
             task()
-        err = str(cm.exception)
+        err = str(e.value)
         assert "gack" in err
 
 
@@ -944,8 +937,8 @@ class TestAnonymousApexTask(unittest.TestCase):
     "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials",
     MagicMock(return_value=None),
 )
-class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
-    def setUp(self):
+class TestRunBatchApex(MockLoggerMixin):
+    def setup_method(self):
         self.api_version = 42.0
         self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
@@ -1036,10 +1029,10 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         response["records"][0]["NumberOfErrors"] = 1
         response["records"][0]["ExtendedStatus"] = "Bad Status"
         responses.add(responses.GET, url, json=response)
-        with self.assertRaises(SalesforceException) as cm:
+        with pytest.raises(SalesforceException) as e:
             task()
-        err = cm.exception
-        self.assertIn("Bad Status", err.args[0])
+        err = e.value
+        assert "Bad Status" in err.args[0]
 
     @responses.activate
     def test_run_batch_apex_number_mismatch(self):
@@ -1050,7 +1043,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         responses.add(responses.GET, url, json=response)
         task()
 
-        self.assertIn("The final record counts do not add up.", self.task_log["info"])
+        assert "The final record counts do not add up." in self.task_log["info"]
 
     @responses.activate
     def test_run_batch_apex_status_ok(self):
@@ -1065,7 +1058,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         response = self._get_query_resp()
         responses.add(responses.GET, url, json=response)
         task()
-        self.assertEqual(task.elapsed_time(task.subjobs), 61)
+        assert task.elapsed_time(task.subjobs) == 61
 
     @responses.activate
     def test_run_batch_apex_queueable_status_failed(self):
@@ -1077,9 +1070,9 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         response["records"][0]["TotalJobItems"] = 0
         response["records"][0]["ExtendedStatus"] = "Error Details"
         responses.add(responses.GET, url, json=response)
-        with self.assertRaises(SalesforceException) as e:
+        with pytest.raises(SalesforceException) as e:
             task()
-        assert "failure" in str(e.exception)
+        assert "failure" in str(e.value)
 
     @responses.activate
     def test_run_batch_apex_status_aborted(self):
@@ -1089,9 +1082,9 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         response["records"][0]["JobItemsProcessed"] = 1
         response["records"][0]["TotalJobItems"] = 3
         responses.add(responses.GET, url, json=response)
-        with self.assertRaises(SalesforceException) as e:
+        with pytest.raises(SalesforceException) as e:
             task()
-        assert "aborted" in str(e.exception)
+        assert "aborted" in str(e.value)
 
     @responses.activate
     def test_run_batch_apex_status_failed(self):
@@ -1102,9 +1095,9 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         response["records"][0]["TotalJobItems"] = 3
         responses.add(responses.GET, url, json=response)
         self.task_log["info"] = []
-        with self.assertRaises(SalesforceException) as e:
+        with pytest.raises(SalesforceException) as e:
             task()
-        assert "failure" in str(e.exception)
+        assert "failure" in str(e.value)
 
     @responses.activate
     def test_chained_subjobs(self):
@@ -1154,7 +1147,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         )
         responses.add(responses.GET, url2, json=response.copy())
 
-        with self.assertRaises(SalesforceException) as e:
+        with pytest.raises(SalesforceException) as e:
             task()
 
         assert len(task.subjobs) == 4
@@ -1165,7 +1158,7 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         assert summary["JobItemsProcessed"] == 4
         assert summary["TotalJobItems"] == 12
         assert summary["NumberOfErrors"] == 3
-        assert "batch errors" in str(e.exception)
+        assert "batch errors" in str(e.value)
 
     @responses.activate
     def test_chained_subjobs_beginning(self):
@@ -1279,10 +1272,10 @@ class TestRunBatchApex(MockLoggerMixin, unittest.TestCase):
         response["records"] = []
         responses.add(responses.GET, url, json=response)
 
-        with self.assertRaises(SalesforceException) as e:
+        with pytest.raises(SalesforceException) as e:
             task()
 
-        assert "found" in str(e.exception)
+        assert "found" in str(e.value)
 
 
 class TestApexIntegrationTests:

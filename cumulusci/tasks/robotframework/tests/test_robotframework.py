@@ -4,7 +4,6 @@ import re
 import shutil
 import sys
 import tempfile
-import unittest
 from contextlib import contextmanager
 from pathlib import Path
 from unittest import mock
@@ -26,12 +25,12 @@ from cumulusci.utils import temporary_dir, touch
 from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
 
 
-class TestRobot(unittest.TestCase):
+class TestRobot:
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     def test_run_task_with_failure(self, robot_run):
         robot_run.return_value = 1
         task = create_task(Robot, {"suites": "tests", "pdb": True})
-        with self.assertRaises(RobotTestFailure):
+        with pytest.raises(RobotTestFailure):
             task()
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
@@ -49,9 +48,9 @@ class TestRobot(unittest.TestCase):
         for error_code in expected.keys():
             robot_run.return_value = error_code
             task = create_task(Robot, {"suites": "tests", "pdb": True})
-            with self.assertRaises(RobotTestFailure) as error:
+            with pytest.raises(RobotTestFailure) as e:
                 task()
-            self.assertEqual(str(error.exception), expected[error_code])
+            assert str(e.value) == expected[error_code]
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.patch_statusreporter")
     def test_pdb_arg(self, patch_statusreporter):
@@ -218,9 +217,9 @@ class TestRobot(unittest.TestCase):
         listener_classes = [
             listener.__class__ for listener in task.options["options"]["listener"]
         ]
-        self.assertIn(
-            DebugListener, listener_classes, "DebugListener was not in task options"
-        )
+        assert (
+            DebugListener in listener_classes
+        ), "DebugListener was not in task options"
 
     def test_verbose_option(self):
         """Verify that setting verbose to True attaches the appropriate listener"""
@@ -234,9 +233,9 @@ class TestRobot(unittest.TestCase):
         listener_classes = [
             listener.__class__ for listener in task.options["options"]["listener"]
         ]
-        self.assertIn(
-            KeywordLogger, listener_classes, "KeywordLogger was not in task options"
-        )
+        assert (
+            KeywordLogger in listener_classes
+        ), "KeywordLogger was not in task options"
 
     def test_user_defined_listeners_option(self):
         """Verify that our listeners don't replace user-defined listeners"""
@@ -252,9 +251,9 @@ class TestRobot(unittest.TestCase):
         listener_classes = [
             listener.__class__ for listener in task.options["options"]["listener"]
         ]
-        self.assertIn("FakeListener.py", task.options["options"]["listener"])
-        self.assertIn(DebugListener, listener_classes)
-        self.assertIn(KeywordLogger, listener_classes)
+        assert "FakeListener.py" in task.options["options"]["listener"]
+        assert DebugListener in listener_classes
+        assert KeywordLogger in listener_classes
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch(
@@ -288,8 +287,8 @@ class TestRobot(unittest.TestCase):
         )
 
         mock_robot_run.return_value = 0
-        self.assertNotIn("dummy1", sys.path)
-        self.assertNotIn("dummy2", sys.path)
+        assert "dummy1" not in sys.path
+        assert "dummy2" not in sys.path
         task()
         project_config.get_namespace.assert_has_calls(
             [mock.call("test1"), mock.call("test2")]
@@ -297,10 +296,10 @@ class TestRobot(unittest.TestCase):
         mock_add_path.assert_has_calls(
             [mock.call("dummy1", end=True), mock.call("dummy2", end=True)]
         )
-        self.assertNotIn("dummy1", sys.path)
-        self.assertNotIn("dummy2", sys.path)
-        self.assertEqual(
-            Path(".").resolve(), Path(task.return_values["robot_outputdir"]).resolve()
+        assert "dummy1" not in sys.path
+        assert "dummy2" not in sys.path
+        assert (
+            Path(".").resolve() == Path(task.return_values["robot_outputdir"]).resolve()
         )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
@@ -324,10 +323,10 @@ class TestRobot(unittest.TestCase):
             task = create_task(
                 Robot, {"suites": "tests"}, project_config=project_config
             )
-            self.assertNotIn(d, sys.path)
+            assert d not in sys.path
             task()
             mock_add_path.assert_called_once_with(d)
-            self.assertNotIn(d, sys.path)
+            assert d not in sys.path
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     def test_sources_not_found(self, mock_robot_run):
@@ -363,7 +362,7 @@ def test_outputdir_return_value(mock_run, tmpdir):
     ).resolve()
 
 
-class TestRobotTestDoc(unittest.TestCase):
+class TestRobotTestDoc:
     @mock.patch("cumulusci.tasks.robotframework.robotframework.testdoc")
     def test_run_task(self, testdoc):
         task = create_task(RobotTestDoc, {"path": ".", "output": "out"})
@@ -371,17 +370,17 @@ class TestRobotTestDoc(unittest.TestCase):
         testdoc.assert_called_once_with(".", "out")
 
 
-class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
+class TestRobotLibDoc(MockLoggerMixin):
     maxDiff = None
 
-    def setUp(self):
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.task_config = TaskConfig()
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages
         self.datadir = os.path.dirname(__file__)
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_output_directory_not_exist(self):
@@ -559,7 +558,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
         ]
 
-        self.assertListEqual(actual_output, expected_output)
+        assert actual_output == expected_output
 
     @mock.patch("cumulusci.tasks.robotframework.libdoc.view_file")
     def test_preview_option(self, mock_view_file):
@@ -573,11 +572,11 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         mock_view_file.assert_called_once_with(output)
 
 
-class TestRobotLibDocKeywordFile(unittest.TestCase):
-    def setUp(self):
+class TestRobotLibDocKeywordFile:
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_existing_file(self):
@@ -630,10 +629,10 @@ class TestRobotLibDocKeywordFile(unittest.TestCase):
         assert rows[1][1] == str(path.relative_to(os.getcwd()))
 
 
-class TestRobotLibDocOutput(unittest.TestCase):
+class TestRobotLibDocOutput:
     """Tests for the generated robot keyword documentation"""
 
-    def setUp(self):
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.datadir = os.path.dirname(__file__)
         path = [
@@ -649,7 +648,7 @@ class TestRobotLibDocOutput(unittest.TestCase):
         docroot = ET.parse(output).getroot()
         self.html_body = docroot.find("body")
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_output_title(self):
@@ -698,10 +697,10 @@ class TestRobotLibDocOutput(unittest.TestCase):
         ]
 
 
-class TestLibdocPageObjects(unittest.TestCase):
+class TestLibdocPageObjects:
     """Tests for generating docs for page objects"""
 
-    def setUp(self):
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.datadir = os.path.dirname(__file__)
         path = [os.path.join(self.datadir, "TestPageObjects.py")]
@@ -715,7 +714,7 @@ class TestLibdocPageObjects(unittest.TestCase):
         self.docroot = ET.parse(self.output).getroot()
         self.html_body = self.docroot.find("body")
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_file_title(self):

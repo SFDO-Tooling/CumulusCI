@@ -1,5 +1,6 @@
 import os
-import unittest
+
+import pytest
 
 from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.exceptions import TaskOptionsError
@@ -7,7 +8,7 @@ from cumulusci.tasks.metadata.modify import RemoveElementsXPath
 from cumulusci.utils import temporary_dir
 
 
-class TestRemoveElementsXPath(unittest.TestCase):
+class TestRemoveElementsXPath:
     def _run_task(self, options):
         project_config = BaseProjectConfig(UniversalConfig(), config={"noyaml": True})
         task_config = TaskConfig({"options": options})
@@ -25,13 +26,13 @@ class TestRemoveElementsXPath(unittest.TestCase):
             return result
 
     def test_cli_errors(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             self._run_task({})
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             self._run_task({"path": "foo"})
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             self._run_task({"xpath": "foo"})
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             self._run_task(
                 {
                     "XPath": "foo",
@@ -45,18 +46,14 @@ class TestRemoveElementsXPath(unittest.TestCase):
             xml="<root>a<todelete/></root>",
             options={"xpath": "todelete", "path": "test.xml"},
         )
-        self.assertEqual(
-            '<?xml version="1.0" encoding="UTF-8"?>\n<root>a</root>\n', result
-        )
+        assert '<?xml version="1.0" encoding="UTF-8"?>\n<root>a</root>\n' == result
 
     def test_run_task(self):
         result = self._run_xml_through_task(
             "<root>a<todelete/></root>",
             {"elements": [{"path": "test.xml", "xpath": "./todelete"}]},
         )
-        self.assertEqual(
-            '<?xml version="1.0" encoding="UTF-8"?>\n<root>a</root>\n', result
-        )
+        assert '<?xml version="1.0" encoding="UTF-8"?>\n<root>a</root>\n' == result
 
     def test_salesforce_encoding(self):
         result = self._run_xml_through_task(
@@ -66,9 +63,9 @@ class TestRemoveElementsXPath(unittest.TestCase):
                 "output_style": "salesforce",
             },
         )
-        self.assertEqual(
-            '<?xml version="1.0" encoding="UTF-8"?>\n<root xmlns="http://soap.sforce.com/2006/04/metadata"><a>&quot;&apos;</a>\n</root>\n',
-            result,
+        assert (
+            '<?xml version="1.0" encoding="UTF-8"?>\n<root xmlns="http://soap.sforce.com/2006/04/metadata"><a>&quot;&apos;</a>\n</root>\n'
+            == result
         )
 
     def test_namespaces_ns(self):
@@ -79,9 +76,9 @@ class TestRemoveElementsXPath(unittest.TestCase):
                 "output_style": "salesforce",
             },
         )
-        self.assertEqual(
-            '<?xml version="1.0" encoding="UTF-8"?>\n<root xmlns="http://soap.sforce.com/2006/04/metadata"><a>&quot;&apos;</a>\n</root>\n',
-            result,
+        assert (
+            '<?xml version="1.0" encoding="UTF-8"?>\n<root xmlns="http://soap.sforce.com/2006/04/metadata"><a>&quot;&apos;</a>\n</root>\n'
+            == result
         )
 
     def test_regular_expressions(self):
@@ -97,9 +94,9 @@ class TestRemoveElementsXPath(unittest.TestCase):
                 "output_style": "salesforce",
             },
         )
-        self.assertEqual(
-            '<?xml version="1.0" encoding="UTF-8"?>\n<root xmlns="http://soap.sforce.com/2006/04/metadata"><todelete>baz</todelete>\n</root>\n',
-            result,
+        assert (
+            '<?xml version="1.0" encoding="UTF-8"?>\n<root xmlns="http://soap.sforce.com/2006/04/metadata"><todelete>baz</todelete>\n</root>\n'
+            == result
         )
 
     def test_comment(self):
@@ -110,9 +107,9 @@ class TestRemoveElementsXPath(unittest.TestCase):
                 "output_style": "salesforce",
             },
         )
-        self.assertEqual(
-            '<?xml version="1.0" encoding="UTF-8"?>\n<root><a><!-- Foo --></a>\n</root>\n',
-            result,
+        assert (
+            '<?xml version="1.0" encoding="UTF-8"?>\n<root><a><!-- Foo --></a>\n</root>\n'
+            == result
         )
 
     def test_empty_element(self):
@@ -123,6 +120,4 @@ class TestRemoveElementsXPath(unittest.TestCase):
                 "output_style": "salesforce",
             },
         )
-        self.assertEqual(
-            '<?xml version="1.0" encoding="UTF-8"?>\n<root><a/>\n</root>\n', result
-        )
+        assert '<?xml version="1.0" encoding="UTF-8"?>\n<root><a/>\n</root>\n' == result

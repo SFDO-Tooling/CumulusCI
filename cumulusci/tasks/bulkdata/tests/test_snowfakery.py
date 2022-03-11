@@ -1023,7 +1023,7 @@ class TestSnowfakery:
     #             {"options": {"generator_yaml": sample_yaml, "num_records": 10}},
     #         )
     #         task()
-    #     assert "without num_records_tablename" in str(e.exception)
+    #     assert "without num_records_tablename" in str(e.value)
 
     # def generate_continuation_data(self, fileobj):
     #     g = data_generator_runtime.Globals()
@@ -1075,8 +1075,8 @@ class TestSnowfakery:
     #             rows = self.assertRowsCreated(database_url)
     #             assert dict(rows[0])["id"] == 6
 
-    #     assert "jazz" in str(e.exception)
-    #     assert "does not exist" in str(e.exception)
+    #     assert "jazz" in str(e.value)
+    #     assert "does not exist" in str(e.value)
 
     # def test_generate_continuation_file(self):
     #     with temporary_file_path("cont.yml") as temp_continuation_file:

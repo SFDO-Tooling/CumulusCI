@@ -1,6 +1,6 @@
 import json
-import unittest
 
+import pytest
 import responses
 
 from cumulusci.core.exceptions import TaskOptionsError
@@ -9,7 +9,7 @@ from cumulusci.tasks.salesforce.activate_flow import ActivateFlow
 from .util import create_task
 
 
-class TestActivateFlow(unittest.TestCase):
+class TestActivateFlow:
     @responses.activate
     def test_activate_some_flow_processes(self):
         cc_task = create_task(
@@ -47,7 +47,7 @@ class TestActivateFlow(unittest.TestCase):
         responses.add(method=responses.PATCH, url=activate_url, status=204, json=data)
 
         cc_task()
-        self.assertEqual(2, len(responses.calls))
+        assert 2 == len(responses.calls)
 
     @responses.activate
     def test_activate_all_flow_processes(self):
@@ -97,10 +97,10 @@ class TestActivateFlow(unittest.TestCase):
         responses.add(method=responses.PATCH, url=activate_url, status=204, json=data)
         responses.add(method=responses.PATCH, url=activate_url2, status=204, json=data)
         cc_task()
-        self.assertEqual(3, len(responses.calls))
+        assert 3 == len(responses.calls)
 
     @responses.activate
     def test_activate_no_flow_processes(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             cc_task = create_task(ActivateFlow, {"developer_names": []})
             cc_task()

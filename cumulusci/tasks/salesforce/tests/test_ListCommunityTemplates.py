@@ -1,5 +1,3 @@
-import unittest
-
 import responses
 
 from cumulusci.tasks.salesforce import ListCommunityTemplates
@@ -9,7 +7,7 @@ from .util import create_task
 task_options = {}
 
 
-class test_ListCommunityTemplates(unittest.TestCase):
+class test_ListCommunityTemplates:
     @responses.activate
     def test_lists_community_templates(self):
         cc_task = create_task(ListCommunityTemplates, task_options)
@@ -47,5 +45,5 @@ class test_ListCommunityTemplates(unittest.TestCase):
 
         cc_task()
 
-        self.assertEqual(1, len(responses.calls))
-        self.assertEqual(community_url, responses.calls[0].request.url)
+        assert 1 == len(responses.calls)
+        assert community_url == responses.calls[0].request.url

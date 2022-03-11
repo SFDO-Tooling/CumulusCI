@@ -15,7 +15,6 @@ BarTestPage has two.
 
 import os.path
 import sys
-import unittest
 from contextlib import contextmanager
 from unittest import mock
 
@@ -93,7 +92,7 @@ def reload_PageObjects(*args):
 # We have to mock out _get_context or the robot libraries will
 # throw an exception saying it cannot access the execution context.
 @mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
-class TestPageObjects(unittest.TestCase):
+class TestPageObjects:
     def test_PageObject(self, get_context_mock, get_library_instance_mock):
         """Smoke test to make sure the default registry is set up and keywords exist"""
 
@@ -108,7 +107,7 @@ class TestPageObjects(unittest.TestCase):
                 "wait_for_page_object",
             ]
             actual_keywords = po.get_keyword_names()
-            self.assertEqual(actual_keywords, expected_keywords)
+            assert actual_keywords == expected_keywords
 
             # fmt: off
             # This is much easier to read than if black were to reformat it.
@@ -122,7 +121,7 @@ class TestPageObjects(unittest.TestCase):
             }
             # fmt: on
             actual_registry = {key: repr(value) for key, value in po.registry.items()}
-            self.assertEqual(actual_registry, expected_registry)
+            assert actual_registry == expected_registry
 
     def test_file_in_pythonpath(self, get_context_mock, get_library_instance_mock):
         """Verify we can find a page object via PYTHONPATH"""
@@ -172,7 +171,7 @@ class TestPageObjects(unittest.TestCase):
             }
             # fmt: on
             actual_registry = {key: repr(value) for key, value in po.registry.items()}
-            self.assertEqual(actual_registry, expected_registry)
+            assert actual_registry == expected_registry
 
     def test_namespaced_object_name(self, get_context_mock, get_library_instance_mock):
         """Verify that the object name is prefixed by the namespace when there's a namespace"""
@@ -187,7 +186,7 @@ class TestPageObjects(unittest.TestCase):
                 )
 
                 pobj = po.get_page_object("Test", "Foo__c")
-                self.assertEqual(pobj.object_name, "foobar__Foo__c")
+                assert pobj.object_name == "foobar__Foo__c"
 
     def test_non_namespaced_object_name(
         self, get_context_mock, get_library_instance_mock
@@ -202,7 +201,7 @@ class TestPageObjects(unittest.TestCase):
                 )
 
                 pobj = po.get_page_object("Test", "Foo__c")
-                self.assertEqual(pobj.object_name, "Foo__c")
+                assert pobj.object_name == "Foo__c"
 
     def test_go_to_page_with_locator(self, get_context_mock, get_library_instance_mock):
         """Verify 'Go to page' accepts and uses a locator argument
@@ -240,7 +239,7 @@ class TestPageObjects(unittest.TestCase):
     "robot.libraries.BuiltIn.BuiltIn.get_library_instance",
     side_effect=MockGetLibraryInstance(),
 )
-class TestBasePage(unittest.TestCase):
+class TestBasePage:
     """Some low-level tests of page object classes"""
 
     def test_no_implicit_wait(self, mock_get_library_instance):

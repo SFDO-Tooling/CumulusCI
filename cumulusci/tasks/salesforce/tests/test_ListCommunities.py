@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import unittest
+
 
 import responses
 
@@ -10,7 +10,7 @@ from .util import create_task
 task_options = {}
 
 
-class test_ListCommunities(unittest.TestCase):
+class test_ListCommunities:
     @responses.activate
     def test_lists_community(self):
         cc_task = create_task(ListCommunities, task_options)

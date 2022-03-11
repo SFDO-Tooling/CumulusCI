@@ -1,7 +1,7 @@
 import http.client
-import unittest
 
 import github3
+import pytest
 import responses
 from testfixtures import LogCapture
 
@@ -12,8 +12,8 @@ from cumulusci.tasks.release_notes.tests.utils import MockUtil
 from cumulusci.tests.util import DummyOrgConfig, create_project_config
 
 
-class TestMergeBranch(unittest.TestCase, MockUtil):
-    def setUp(self):
+class TestMergeBranch(MockUtil):
+    def setup_method(self):
 
         # Set up the mock values
         self.repo = "TestRepo"
@@ -151,7 +151,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         self._mock_branch_does_not_exist(self.branch)
 
         task = self._create_task()
-        with self.assertRaises(GithubApiNotFoundError):
+        with pytest.raises(GithubApiNotFoundError):
             task()
         assert 2 == len(responses.calls)
 
@@ -242,7 +242,7 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
         )
         self._mock_merge(http.client.INTERNAL_SERVER_ERROR)
         task = self._create_task()
-        with self.assertRaises(github3.GitHubError):
+        with pytest.raises(github3.GitHubError):
             task()
 
     @responses.activate
@@ -480,8 +480,8 @@ class TestMergeBranch(unittest.TestCase, MockUtil):
                 ),
             ]
             actual_log = self._get_log_lines(log)
-            self.assertEqual(expected_log, actual_log)
-        self.assertEqual(9, len(responses.calls))
+            assert expected_log == actual_log
+        assert 9 == len(responses.calls)
 
     @responses.activate
     def test_branches_to_merge__main_to_feature_and_next_release(self):

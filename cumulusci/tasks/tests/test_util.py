@@ -1,5 +1,6 @@
 import os
-import unittest
+import shutil
+from tempfile import mkdtemp
 from unittest import mock
 
 import pytest
@@ -13,11 +14,13 @@ from cumulusci.core.config import (
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks import util
 from cumulusci.tests.util import DummyLogger
-from cumulusci.utils import temporary_dir
 
 
-class TestUtilTasks(unittest.TestCase):
-    def setUp(self):
+class TestUtilTasks:
+    def setup_method(self, method):
+        self.old_dir = os.getcwd()
+        self.tempdir = mkdtemp()
+        os.chdir(self.tempdir)
         os.mkdir(os.path.join(self.tempdir, ".git"))
         self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
@@ -26,10 +29,9 @@ class TestUtilTasks(unittest.TestCase):
         self.org_config = OrgConfig({}, "test")
         self.task_config = TaskConfig({})
 
-    def run(self, result=None):
-        with temporary_dir() as d:
-            self.tempdir = d
-            super(TestUtilTasks, self).run(result)
+    def teardown_method(self):
+        os.chdir(self.old_dir)
+        shutil.rmtree(self.tempdir)
 
     @mock.patch("cumulusci.tasks.util.download_extract_zip")
     def test_DownloadZip(self, download_extract_zip):
@@ -60,8 +62,8 @@ class TestUtilTasks(unittest.TestCase):
         task()
 
         output = task.logger.get_output()
-        self.assertIn("Metadata types found", output)
-        self.assertIn("CustomObject", output)
+        assert "Metadata types found" in output
+        assert "CustomObject" in output
 
     @mock.patch("cumulusci.tasks.util.time")
     def test_Sleep(self, time):
@@ -79,7 +81,7 @@ class TestUtilTasks(unittest.TestCase):
         task = util.Delete(self.project_config, task_config, self.org_config)
         task()
 
-        self.assertFalse(os.path.exists(file_path))
+        assert not os.path.exists(file_path)
 
     def test_Delete__glob(self):
         target = os.path.join(self.tempdir, "dir1")
@@ -92,7 +94,7 @@ class TestUtilTasks(unittest.TestCase):
         task = util.Delete(self.project_config, task_config, self.org_config)
         task()
 
-        self.assertFalse(os.path.exists(file_path))
+        assert not os.path.exists(file_path)
 
     def test_Delete__subdir(self):
         target = os.path.join(self.tempdir, "dir1")
@@ -102,7 +104,7 @@ class TestUtilTasks(unittest.TestCase):
         task = util.Delete(self.project_config, task_config, self.org_config)
         task()
 
-        self.assertFalse(os.path.exists(target))
+        assert not os.path.exists(target)
 
     def test_Delete__no_match(self):
         task_config = TaskConfig({"options": {"path": "bogus"}})
@@ -170,7 +172,7 @@ class TestUtilTasks(unittest.TestCase):
         task = util.CopyFile(self.project_config, task_config, self.org_config)
         task()
 
-        self.assertTrue(os.path.exists(dest))
+        assert os.path.exists(dest)
 
     def test_LogLine(self):
         task_config = TaskConfig({"options": {"level": "debug", "line": "test"}})
@@ -178,7 +180,7 @@ class TestUtilTasks(unittest.TestCase):
         task.logger = DummyLogger()
         task()
         output = task.logger.get_output()
-        self.assertEqual("Beginning task: LogLine\n\ntest", output)
+        assert "Beginning task: LogLine\n\ntest" == output
 
     def test_PassOptionAsResult(self):
         task_config = TaskConfig({"options": {"result": "test"}})
@@ -186,7 +188,7 @@ class TestUtilTasks(unittest.TestCase):
             self.project_config, task_config, self.org_config
         )
         task()
-        self.assertEqual("test", task.result)
+        assert "test" == task.result
 
     def test_PassOptionAsReturnValue(self):
         task_config = TaskConfig({"options": {"key": "foo", "value": "bar"}})
@@ -194,4 +196,4 @@ class TestUtilTasks(unittest.TestCase):
             self.project_config, task_config, self.org_config
         )
         result = task()
-        self.assertEqual("bar", result["foo"])
+        assert "bar" == result["foo"]

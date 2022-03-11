@@ -1,4 +1,3 @@
-import unittest
 from pathlib import Path
 from unittest import mock
 
@@ -9,7 +8,7 @@ from cumulusci.robotframework.Salesforce import Salesforce
 
 # FIXME: we shouldn't have to tweak these tests for every
 # version. The tests should be smarter.
-class TestLocators(unittest.TestCase):
+class TestLocators:
     @mock.patch("cumulusci.robotframework.Salesforce.Salesforce.get_latest_api_version")
     def test_locators_in_robot_context(self, get_latest_api_version):
         """Verify we can get locators for the current org api version"""
@@ -24,7 +23,7 @@ class TestLocators(unittest.TestCase):
         expected = "cumulusci.robotframework.locators_53"
         actual = sf.locators_module.__name__
         message = "expected to load '{}', actually loaded '{}'".format(expected, actual)
-        self.assertEqual(expected, actual, message)
+        assert expected == actual, message
 
     @mock.patch(
         "robot.libraries.BuiltIn.BuiltIn.get_library_instance",
@@ -46,7 +45,7 @@ class TestLocators(unittest.TestCase):
 
         actual = sf.locators_module.__name__
         message = "expected to load '{}', actually loaded '{}'".format(expected, actual)
-        self.assertEqual(expected, actual, message)
+        assert expected == actual, message
 
     def test_locators_53(self):
         """Verify that locators_53 is a superset of the locators_52
@@ -65,10 +64,8 @@ class TestLocators(unittest.TestCase):
         keys_50 = set(locators_52.lex_locators)
         keys_51 = set(locators_53.lex_locators)
 
-        self.assertNotEqual(
-            id(locators_52.lex_locators),
-            id(locators_53.lex_locators),
-            "locators_52.lex_locators and locators_53.lex_locators are the same object",
-        )
-        self.assertTrue(len(keys_50) > 0)
-        self.assertTrue(keys_50.issubset(keys_51))
+        assert id(locators_52.lex_locators) != id(
+            locators_53.lex_locators
+        ), "locators_52.lex_locators and locators_53.lex_locators are the same object"
+        assert len(keys_50) > 0
+        assert keys_50.issubset(keys_51)

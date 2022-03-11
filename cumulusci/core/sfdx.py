@@ -132,7 +132,7 @@ def convert_sfdx_source(
     with contextlib.ExitStack() as stack:
         # Convert SFDX -> MDAPI format if path exists but does not have package.xml
         if (
-            len(os.listdir(path))  # path == None -> CWD
+            len(os.listdir(path))  # path is None -> CWD
             and get_source_format_for_path(path) is SourceFormat.SFDX
         ):
             logger.info("Converting from SFDX to MDAPI format.")

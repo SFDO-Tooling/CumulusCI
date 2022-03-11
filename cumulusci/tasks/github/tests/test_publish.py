@@ -1,6 +1,5 @@
 import json
 import tempfile
-import unittest
 from pathlib import Path
 from unittest import mock
 
@@ -18,8 +17,8 @@ from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tests.util import create_project_config
 
 
-class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
-    def setUp(self):
+class TestPublishSubtree(GithubApiTestMixin):
+    def setup_method(self):
         self.repo_owner = "TestOwner"
         self.repo_name = "TestRepo"
         self.repo_api_url = (

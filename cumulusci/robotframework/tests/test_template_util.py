@@ -1,9 +1,7 @@
-import unittest
-
 from cumulusci.core import template_utils
 
 
-class TemplateUtils(unittest.TestCase):
+class TemplateUtils:
     def test_string_generator(self):
         x = 100
         y = template_utils.StringGenerator(lambda: str(x))

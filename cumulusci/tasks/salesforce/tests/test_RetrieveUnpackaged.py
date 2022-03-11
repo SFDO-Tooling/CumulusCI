@@ -1,5 +1,4 @@
 import os
-import unittest
 from unittest import mock
 
 from cumulusci.tasks.salesforce import RetrieveUnpackaged
@@ -8,7 +7,7 @@ from cumulusci.utils import temporary_dir
 from .util import create_task
 
 
-class TestRetrieveUnpackaged(unittest.TestCase):
+class TestRetrieveUnpackaged:
     def test_get_api(self):
         with temporary_dir() as path:
             with open(os.path.join(path, "package.xml"), "w") as f:
@@ -19,4 +18,4 @@ class TestRetrieveUnpackaged(unittest.TestCase):
             )
             task.api_class = mock.Mock()
             task._get_api()
-            self.assertEqual("PACKAGE", task.api_class.call_args[0][1])
+            assert "PACKAGE" == task.api_class.call_args[0][1]
