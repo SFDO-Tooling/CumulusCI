@@ -378,7 +378,7 @@ class TestPublish(GithubApiTestMixin):
         version = task._find_or_create_version(
             {"url": "http://EXISTING_PRODUCT", "id": "abcdef"}
         )
-        assert "http://EXISTING_VERSION" == version["url"]
+        assert version["url"] == "http://EXISTING_VERSION"
 
     @responses.activate
     def test_find_or_create_version__commit(self):
@@ -409,7 +409,7 @@ class TestPublish(GithubApiTestMixin):
         version = task._find_or_create_version(
             {"url": "http://EXISTING_PRODUCT", "id": "abcdef"}
         )
-        assert "http://EXISTING_VERSION" == version["url"]
+        assert version["url"] == "http://EXISTING_VERSION"
 
     @responses.activate
     def test_find_product__not_found(self):
@@ -506,7 +506,7 @@ class TestPublish(GithubApiTestMixin):
             "install",
             {"slug": "install"},
         )
-        assert "https://NEW_PLANTEMPLATE" == plantemplate["url"]
+        assert plantemplate["url"] == "https://NEW_PLANTEMPLATE"
 
     def test_freeze_steps__skip(self):
         project_config = create_project_config()

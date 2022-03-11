@@ -166,7 +166,7 @@ class TestGithubLinesParser:
         )
         parser.parse(pr)
         assert 1 == parser.pr_number
-        assert "http://pr" == parser.pr_url
+        assert parser.pr_url == "http://pr"
         assert ["foo [[PR1](http://pr)]"] == parser.content
 
     def test_parse_empty_pull_request_body(self):
@@ -212,7 +212,7 @@ class TestIssuesParser:
     def test_render(self):
         parser = IssuesParser(None, self.title)
         parser.content = ["1: foo"]
-        assert "# Issues\r\n\r\n#1: foo" == parser.render()
+        assert parser.render() == "# Issues\r\n\r\n#1: foo"
 
 
 class TestGithubIssuesParser(GithubApiTestMixin):

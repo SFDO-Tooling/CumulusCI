@@ -180,7 +180,7 @@ class TestUtilTasks:
         task.logger = DummyLogger()
         task()
         output = task.logger.get_output()
-        assert "Beginning task: LogLine\n\ntest" == output
+        assert output == "Beginning task: LogLine\n\ntest"
 
     def test_PassOptionAsResult(self):
         task_config = TaskConfig({"options": {"result": "test"}})
@@ -188,7 +188,7 @@ class TestUtilTasks:
             self.project_config, task_config, self.org_config
         )
         task()
-        assert "test" == task.result
+        assert task.result == "test"
 
     def test_PassOptionAsReturnValue(self):
         task_config = TaskConfig({"options": {"key": "foo", "value": "bar"}})
@@ -196,4 +196,4 @@ class TestUtilTasks:
             self.project_config, task_config, self.org_config
         )
         result = task()
-        assert "bar" == result["foo"]
+        assert result["foo"] == "bar"

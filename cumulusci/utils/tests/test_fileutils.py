@@ -158,7 +158,7 @@ class _TestFSResourceShared:
         abspath = "c:\\foo\\bar"
         with open_fs_resource(abspath) as f:
             if sys.platform == "win32":
-                assert "c:\\foo\\bar" == str(f.getsyspath()), str(f.getsyspath())
+                assert str(f.getsyspath()), str(f.getsyspath()) == "c:\\foo\\bar"
 
 
 class TestFSResource(_TestFSResourceShared):

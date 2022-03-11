@@ -45,8 +45,8 @@ class TestSFDXBaseTask(MockLoggerMixin):
         except CommandException:
             pass
 
-        assert "force:org" == task.options["command"]
-        assert "sfdx force:org --help" == task._get_command()
+        assert task.options["command"] == "force:org"
+        assert task._get_command() == "sfdx force:org --help"
 
     @patch("cumulusci.tasks.command.Command._run_task", MagicMock(return_value=None))
     def test_keychain_org_creds(self):
@@ -88,7 +88,7 @@ class TestSFDXJsonTask:
     def test_get_command(self):
         task = create_task(SFDXJsonTask)
         command = task._get_command()
-        assert "sfdx force:mdapi:deploy --json" == command
+        assert command == "sfdx force:mdapi:deploy --json"
 
     def test_process_output(self):
         task = create_task(SFDXJsonTask)

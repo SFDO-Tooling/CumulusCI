@@ -264,7 +264,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest):
         )
 
         # the first step should have the option
-        assert "bar" == flow.steps[0].task_config["options"]["response"]
+        assert flow.steps[0].task_config["options"]["response"] == "bar"
 
     def test_init__nested_options(self):
         self.project_config.config["flows"]["test"] = {
@@ -275,7 +275,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest):
         }
         flow_config = self.project_config.get_flow("test")
         flow = FlowCoordinator(self.project_config, flow_config)
-        assert "bar" == flow.steps[0].task_config["options"]["foo"]
+        assert flow.steps[0].task_config["options"]["foo"] == "bar"
 
     def test_init__bad_classpath(self):
         self.project_config.config["tasks"] = {
@@ -456,7 +456,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest):
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
         # the flow results for the second task should be 'name'
-        assert "supername" == flow.results[1].result
+        assert flow.results[1].result == "supername"
 
     def test_run__option_backref_not_found(self):
         # instantiate a flow with two tasks
@@ -492,7 +492,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest):
         flow = FlowCoordinator(self.project_config, flow_config)
         flow.run(self.org_config)
 
-        assert "supername" == flow.results[-1].result
+        assert flow.results[-1].result == "supername"
 
     def test_run__skip_flow_None(self):
         flow_config = FlowConfig(
@@ -607,7 +607,7 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest):
 class StepSpecTest:
     def test_repr(self):
         spec = StepSpec(1, "test_task", {}, None, None, skip=True)
-        assert "<!SKIP! StepSpec 1:test_task {}>" == repr(spec)
+        assert repr(spec) == "<!SKIP! StepSpec 1:test_task {}>"
 
 
 class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest):

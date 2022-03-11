@@ -330,12 +330,12 @@ class TestBaseProjectConfig:
     def test_repo_root_from_env(self):
         config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"root": "."}
-        assert "." == config.repo_root
+        assert config.repo_root == "."
 
     def test_repo_name_from_repo_info(self):
         config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"name": "CumulusCI"}
-        assert "CumulusCI" == config.repo_name
+        assert config.repo_name == "CumulusCI"
 
     def test_repo_name_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
@@ -344,12 +344,12 @@ class TestBaseProjectConfig:
 
     def test_repo_name_from_git(self):
         config = BaseProjectConfig(UniversalConfig())
-        assert "CumulusCI" == config.repo_name
+        assert config.repo_name == "CumulusCI"
 
     def test_repo_url_from_repo_info(self):
         config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"url": "https://github.com/SFDO-Tooling/CumulusCI"}
-        assert "https://github.com/SFDO-Tooling/CumulusCI" == config.repo_url
+        assert config.repo_url == "https://github.com/SFDO-Tooling/CumulusCI"
 
     def test_repo_url_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
@@ -372,7 +372,7 @@ class TestBaseProjectConfig:
     def test_repo_owner_from_repo_info(self):
         config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"owner": "SFDO-Tooling"}
-        assert "SFDO-Tooling" == config.repo_owner
+        assert config.repo_owner == "SFDO-Tooling"
 
     def test_repo_owner_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
@@ -382,7 +382,7 @@ class TestBaseProjectConfig:
     def test_repo_branch_from_repo_info(self):
         config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"branch": "main"}
-        assert "main" == config.repo_branch
+        assert config.repo_branch == "main"
 
     def test_repo_branch_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
@@ -392,7 +392,7 @@ class TestBaseProjectConfig:
     def test_repo_commit_from_repo_info(self):
         config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"commit": "abcdef"}
-        assert "abcdef" == config.repo_commit
+        assert config.repo_commit == "abcdef"
 
     def test_repo_commit_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
@@ -450,7 +450,7 @@ class TestBaseProjectConfig:
         )
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_latest_tag()
-        assert "release/1.1" == result
+        assert result == "release/1.1"
 
     def test_get_latest_tag_matching_prefix(self):
         config = BaseProjectConfig(
@@ -463,7 +463,7 @@ class TestBaseProjectConfig:
         )
         config.get_github_api = mock.Mock(return_value=github)
         result = config.get_latest_tag()
-        assert "rel/0.9" == result
+        assert result == "rel/0.9"
 
     def test_get_latest_tag_beta(self):
         config = BaseProjectConfig(
@@ -476,7 +476,7 @@ class TestBaseProjectConfig:
         )
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_latest_tag(beta=True)
-        assert "beta/1.0-Beta_2" == result
+        assert result == "beta/1.0-Beta_2"
 
     def test_get_latest_tag__beta_not_found(self):
         config = BaseProjectConfig(UniversalConfig())
@@ -513,7 +513,7 @@ class TestBaseProjectConfig:
         )
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_latest_version()
-        assert "1.1" == result
+        assert result == "1.1"
 
     def test_get_latest_version_beta(self):
         config = BaseProjectConfig(
@@ -526,7 +526,7 @@ class TestBaseProjectConfig:
         )
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_latest_version(beta=True)
-        assert "1.0 (Beta 2)" == result
+        assert result == "1.0 (Beta 2)"
 
     def test_get_previous_version(self):
         config = BaseProjectConfig(
@@ -539,7 +539,7 @@ class TestBaseProjectConfig:
         )
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_previous_version()
-        assert "1.0" == result
+        assert result == "1.0"
 
     def test_config_project_path_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
@@ -550,17 +550,17 @@ class TestBaseProjectConfig:
         config = BaseProjectConfig(
             UniversalConfig(), {"project": {"git": {"prefix_release": "release/"}}}
         )
-        assert "beta/1.0" == config.get_tag_for_version("beta/", "1.0")
+        assert config.get_tag_for_version("beta/", "1.0") == "beta/1.0"
 
     def test_get_tag_for_version__1gp_beta(self):
         config = BaseProjectConfig(
             UniversalConfig(), {"project": {"git": {"prefix_beta": "beta/"}}}
         )
-        assert "beta/1.0-Beta_1" == config.get_tag_for_version("beta/", "1.0 (Beta 1)")
+        assert config.get_tag_for_version("beta/", "1.0 (Beta 1)") == "beta/1.0-Beta_1"
 
     def test_get_tag_for_version__with_tag_prefix_option(self):
         config = BaseProjectConfig(UniversalConfig(), {})
-        assert "custom/1.0" == config.get_tag_for_version("custom/", "1.0")
+        assert config.get_tag_for_version("custom/", "1.0") == "custom/1.0"
 
     def test_get_version_for_tag(self):
         config = BaseProjectConfig(
@@ -571,7 +571,7 @@ class TestBaseProjectConfig:
                 }
             },
         )
-        assert "1.0" == config.get_version_for_tag("release/1.0")
+        assert config.get_version_for_tag("release/1.0") == "1.0"
 
     def test_get_version_for_tag_invalid_beta(self):
         config = BaseProjectConfig(
@@ -984,17 +984,17 @@ class TestOrgConfig:
 
     def test_lightning_base_url__instance(self):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
-        assert "https://na01.lightning.force.com" == config.lightning_base_url
+        assert config.lightning_base_url == "https://na01.lightning.force.com"
 
     def test_lightning_base_url__scratch_org(self):
         config = OrgConfig(
             {"instance_url": "https://foo.cs42.my.salesforce.com"}, "test"
         )
-        assert "https://foo.lightning.force.com" == config.lightning_base_url
+        assert config.lightning_base_url == "https://foo.lightning.force.com"
 
     def test_lightning_base_url__mydomain(self):
         config = OrgConfig({"instance_url": "https://foo.my.salesforce.com"}, "test")
-        assert "https://foo.lightning.force.com" == config.lightning_base_url
+        assert config.lightning_base_url == "https://foo.lightning.force.com"
 
     @responses.activate
     def test_get_salesforce_version(self):
@@ -1037,7 +1037,7 @@ class TestOrgConfig:
 
     def test_user_id(self):
         config = OrgConfig({"id": "org/user"}, "test")
-        assert "user" == config.user_id
+        assert config.user_id == "user"
 
     def test_can_delete(self):
         config = OrgConfig({}, "test")
@@ -1070,7 +1070,7 @@ class TestOrgConfig:
 
         config._load_orginfo()
 
-        assert "Enterprise Edition" == config.org_type
+        assert config.org_type == "Enterprise Edition"
         assert config.is_sandbox is False
         assert config.organization_sobject is not None
         assert config.namespace == "ns"

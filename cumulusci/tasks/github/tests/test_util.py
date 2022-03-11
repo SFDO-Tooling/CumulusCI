@@ -112,9 +112,9 @@ class TestCommitDir:
         with pytest.raises(GithubException):
             commit._validate_dirs("bogus", None)
         _, repo_dir = commit._validate_dirs(".", None)
-        assert "" == repo_dir
+        assert repo_dir == ""
         _, repo_dir = commit._validate_dirs(".", "./test/")
-        assert "test" == repo_dir
+        assert repo_dir == "test"
 
     def test_call__error_creating_tree(self):
         with temporary_dir() as d:

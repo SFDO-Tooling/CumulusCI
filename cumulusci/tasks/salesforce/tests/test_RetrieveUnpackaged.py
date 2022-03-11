@@ -18,4 +18,4 @@ class TestRetrieveUnpackaged:
             )
             task.api_class = mock.Mock()
             task._get_api()
-            assert "PACKAGE" == task.api_class.call_args[0][1]
+            assert task.api_class.call_args[0][1] == "PACKAGE"

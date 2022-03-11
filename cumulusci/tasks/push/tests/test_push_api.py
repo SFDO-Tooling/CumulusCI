@@ -282,12 +282,12 @@ def test_sf_push_return_query_records(sf_push_api):
 
 def test_sf_push_format_where(sf_push_api):
     returned = sf_push_api.format_where_clause(None)
-    assert "" == returned
+    assert returned == ""
 
     default_where = "Id='001000000XXX000'"
     sf_push_api.default_where = {"Account": default_where}
     returned = sf_push_api.format_where_clause(None, "Object__c")
-    assert "" == returned
+    assert returned == ""
 
     returned = sf_push_api.format_where_clause(None, "Account")
     assert " WHERE ({})".format(default_where) == returned

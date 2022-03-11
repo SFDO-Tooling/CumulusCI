@@ -485,7 +485,7 @@ class TestScratchOrgConfig:
     def test_email_address_from_config(self, Command):
         config = ScratchOrgConfig({"email_address": "test@example.com"}, "test")
 
-        assert "test@example.com" == config.email_address
+        assert config.email_address == "test@example.com"
         Command.return_value.assert_not_called()
 
     def test_email_address_from_git(self, Command):
@@ -494,7 +494,7 @@ class TestScratchOrgConfig:
             stdout=io.BytesIO(b"test@example.com"), stderr=io.BytesIO(b""), returncode=0
         )
 
-        assert "test@example.com" == config.email_address
+        assert config.email_address == "test@example.com"
         config.email_address  # Make sure value is cached
         p.run.assert_called_once()
 

@@ -28,7 +28,7 @@ class TestCliRuntime:
 
         for key in {"cumulusci", "tasks", "flows", "services", "orgs", "project"}:
             assert key in config.universal_config.config
-        assert "CumulusCI" == config.project_config.project__name
+        assert config.project_config.project__name == "CumulusCI"
         for key in {"services", "orgs", "app"}:
             assert key in config.keychain.config
         assert config.project_config.repo_root in sys.path
@@ -86,7 +86,7 @@ class TestCliRuntime:
         config.keychain.get_org.return_value = org_config = OrgConfig({}, "test")
 
         org_name, org_config_result = config.get_org("test")
-        assert "test" == org_name
+        assert org_name == "test"
         assert org_config is org_config_result
 
     def test_get_org_default(self):
@@ -96,7 +96,7 @@ class TestCliRuntime:
         config.keychain.get_default_org.return_value = ("test", org_config)
 
         org_name, org_config_result = config.get_org()
-        assert "test" == org_name
+        assert org_name == "test"
         assert org_config is org_config_result
 
     def test_get_org_missing(self):

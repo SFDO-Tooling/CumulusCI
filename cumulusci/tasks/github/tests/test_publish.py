@@ -473,7 +473,7 @@ class TestPublishSubtree(GithubApiTestMixin):
         task = PublishSubtree(self.project_config, task_config)
         with pytest.raises(GithubException) as exc:
             task()
-        assert "Release for release/1.0 not found" == str(exc.value)
+        assert str(exc.value) == "Release for release/1.0 not found"
 
     @responses.activate
     @mock.patch("cumulusci.tasks.github.publish.download_extract_github_from_repo")
@@ -543,7 +543,7 @@ class TestPublishSubtree(GithubApiTestMixin):
         task = PublishSubtree(self.project_config, task_config)
         with pytest.raises(GithubException) as exc:
             task()
-        assert "Ref for tag release/1.0 already exists in target repo" == str(exc.value)
+        assert str(exc.value) == "Ref for tag release/1.0 already exists in target repo"
 
     def test_ref_nor_tag_name_error(self):
         task_config = TaskConfig(
@@ -557,7 +557,7 @@ class TestPublishSubtree(GithubApiTestMixin):
         )
         with pytest.raises(TaskOptionsError) as exc:
             PublishSubtree(self.project_config, task_config)
-        assert "Either `ref` or `tag_name` option is required." == str(exc.value)
+        assert str(exc.value) == "Either `ref` or `tag_name` option is required."
 
     def test_renames_not_list_error(self):
         task_config = TaskConfig(
@@ -722,7 +722,7 @@ class TestPublishSubtree(GithubApiTestMixin):
             task()
 
             extract_github.assert_called_once()
-            assert "feature/publish" == extract_github.call_args[1]["ref"]
+            assert extract_github.call_args[1]["ref"] == "feature/publish"
             commit_dir.assert_called_once()
             expected_commit_message = "Published content from ref feature/publish"
             assert commit_dir.call_args[1]["commit_message"] == expected_commit_message

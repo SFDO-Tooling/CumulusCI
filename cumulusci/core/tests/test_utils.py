@@ -72,8 +72,8 @@ class TestUtils:
             assert [filename] == utils.process_glob_list_arg("**/*.resource")
 
     def test_decode_to_unicode(self):
-        assert "\xfc" == utils.decode_to_unicode(b"\xfc")
-        assert "\u2603" == utils.decode_to_unicode("\u2603")
+        assert utils.decode_to_unicode(b"\xfc") == "\xfc"
+        assert utils.decode_to_unicode("\u2603") == "\u2603"
         assert utils.decode_to_unicode(None) is None
 
 

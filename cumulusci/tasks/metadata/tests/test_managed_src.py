@@ -28,7 +28,7 @@ class TestCreateManagedSrc:
             task()
             with open(class_path, "r") as f:
                 result = f.read()
-            assert "" == result
+            assert result == ""
 
     def test_run_task__path_not_found(self):
         project_config = BaseProjectConfig(UniversalConfig(), config={"noyaml": True})

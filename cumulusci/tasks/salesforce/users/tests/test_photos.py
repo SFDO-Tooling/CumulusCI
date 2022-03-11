@@ -26,7 +26,7 @@ def test_join_errors():
         ],
     )
 
-    assert "Error message 1.; Error message 2.; Error message 3." == join_errors(e)
+    assert join_errors(e) == "Error message 1.; Error message 2.; Error message 3."
 
 
 class TestUploadProfilePhoto:

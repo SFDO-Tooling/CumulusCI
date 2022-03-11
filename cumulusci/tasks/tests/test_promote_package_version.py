@@ -394,8 +394,8 @@ class TestPromotePackageVersion(GithubApiTestMixin):
         ]
         with caplog.at_level(logging.INFO):
             task._process_two_gp_deps(dependencies)
-        assert "Total 2GP dependencies: 1" == caplog.records[1].message
-        assert "Unpromoted 2GP dependencies: 1" == caplog.records[2].message
+        assert caplog.records[1].message == "Total 2GP dependencies: 1"
+        assert caplog.records[2].message == "Unpromoted 2GP dependencies: 1"
         assert (
             "This package depends on other packages that have not yet been promoted."
             == caplog.records[4].message

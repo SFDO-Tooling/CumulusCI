@@ -134,7 +134,7 @@ class TestEnsureRecordTypes:
 
         assert task.options["generate_business_process"]
         assert task.options["generate_record_type"]
-        assert "Test" == task.options["stage_name"]
+        assert task.options["stage_name"] == "Test"
 
     def test_no_business_process_where_unneeded(self):
         task = create_task(

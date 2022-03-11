@@ -116,7 +116,7 @@ class TestGithubReleaseNotesGenerator(GithubApiTestMixin):
         assert generator.last_tag is None
         assert generator.change_notes.current_tag == self.current_tag
         assert generator.change_notes._last_tag is None
-        assert "04t" == generator.version_id
+        assert generator.version_id == "04t"
 
     @responses.activate
     def test_init_with_last_tag(self):
@@ -143,7 +143,7 @@ class TestGithubReleaseNotesGenerator(GithubApiTestMixin):
         generator.empty_change_notes.extend([pr1, pr2])
         content = render_empty_pr_section(generator.empty_change_notes)
         assert 3 == len(content)
-        assert "\n# Pull requests with no release notes" == content[0]
+        assert content[0] == "\n# Pull requests with no release notes"
         assert (
             "\n* {} [[PR{}]({})]".format(pr1.title, pr1.number, pr1.html_url)
             == content[1]
@@ -169,8 +169,8 @@ class TestGithubReleaseNotesGenerator(GithubApiTestMixin):
 
         split_content = content.split("\r\n")
         assert 4 == len(split_content)
-        assert "new content" == split_content[0]
-        assert "\n# Pull requests with no release notes" == split_content[1]
+        assert split_content[0] == "new content"
+        assert split_content[1] == "\n# Pull requests with no release notes"
         assert (
             "\n* Pull Request #{0} [[PR{0}]({1})]".format(pr1.number, pr1.html_url)
             == split_content[2]

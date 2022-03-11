@@ -102,7 +102,7 @@ class TestOAuth2Client:
             body=b'{"message":"SENTINEL"}',
         )
         info = client.refresh_token("token")
-        assert "SENTINEL" == info["message"]
+        assert info["message"] == "SENTINEL"
 
     @responses.activate
     def test_auth_code_flow___http(self, http_client):

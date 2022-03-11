@@ -730,7 +730,7 @@ class TestRunApexTests(MockLoggerMixin):
         task_config = TaskConfig({"options": {"managed": True, "namespace": "testns"}})
         task = RunApexTests(self.project_config, task_config, self.org_config)
         namespace = task._get_namespace_filter()
-        assert "'testns'" == namespace
+        assert namespace == "'testns'"
 
     def test_get_namespace_filter__managed_no_namespace(self):
         task_config = TaskConfig({"options": {"managed": True}})

@@ -63,7 +63,7 @@ class TestCloneTag(GithubApiTestMixin):
         )
         task = CloneTag(self.project_config, task_config)
         task()
-        assert "release/1.0" == task.result.tag
+        assert task.result.tag == "release/1.0"
 
     @responses.activate
     def test_run_task__tag_not_found(self):

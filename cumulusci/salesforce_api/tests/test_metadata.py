@@ -775,9 +775,9 @@ class TestApiDeploy(BaseTestMetadataApi):
     def test_get_action(self):
         task = self._create_task()
         api = self._create_instance(task)
-        assert "Create" == api._get_action(True, False)
-        assert "Delete" == api._get_action(False, True)
-        assert "Update" == api._get_action(False, False)
+        assert api._get_action(True, False) == "Create"
+        assert api._get_action(False, True) == "Delete"
+        assert api._get_action(False, False) == "Update"
 
 
 class TestApiListMetadata(BaseTestMetadataApi):

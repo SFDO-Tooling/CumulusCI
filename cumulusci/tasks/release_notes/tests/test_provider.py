@@ -462,6 +462,6 @@ class TestGithubChangeNotesProvider(GithubApiTestMixin):
         tag = "beta/1.0-Beta_1"
         generator = self._create_generator(tag)
         provider = GithubChangeNotesProvider(generator, tag)
-        assert "1.0-Beta_1" == provider._get_version_from_tag(tag)
+        assert provider._get_version_from_tag(tag) == "1.0-Beta_1"
         with pytest.raises(ValueError):
             provider._get_version_from_tag("bogus")

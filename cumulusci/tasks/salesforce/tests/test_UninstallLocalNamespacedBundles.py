@@ -19,4 +19,4 @@ class TestUninstallLocalNamespacedBundles:
                 project_config,
             )
             PackageXmlGenerator.return_value = "%TOKEN%"
-            assert "ns__" == task._get_destructive_changes()
+            assert task._get_destructive_changes() == "ns__"
