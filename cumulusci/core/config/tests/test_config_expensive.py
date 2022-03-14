@@ -607,9 +607,9 @@ class TestScratchOrgConfig:
             with open("tmp.json", "w") as f:
                 f.write("{}")
 
-            with pytest.raises(ScratchOrgException) as ctx:
+            with pytest.raises(ScratchOrgException) as e:
                 config.create_org()
-                assert "scratcherror" in str(ctx.error)
+            assert "scratcherror" in str(e.value)
 
     def test_generate_password(self, Command):
         p = mock.Mock(

@@ -14,6 +14,8 @@ class MockLoggingHandler(logging.Handler):
 
     Messages are available from an instance's ``messages`` dict, in order,
     indexed by a lowercase log level string (e.g., 'debug', 'info', etc.).
+
+    TODO: Should be replaced by caplog at some point.
     """
 
     def __init__(self, *args, **kwargs):
