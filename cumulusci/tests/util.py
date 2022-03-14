@@ -263,6 +263,7 @@ def mock_env(home, cumulusci_key="0123456789ABCDEF"):
         "HOME": home,
         "USERPROFILE": home,
         "REAL_HOME": real_homedir,
+        "CUMULUSCI_SYSTEM_CERTS": "True",
     }
 
     with mock.patch("pathlib.Path.home", lambda: Path(home)), mock.patch.dict(

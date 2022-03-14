@@ -1,4 +1,4 @@
-# import os
+import os
 import sys
 from json import JSONDecodeError
 
@@ -41,11 +41,12 @@ def init_requests_trust():
     a. we don't have to change every location we are using requests.get or requests.post without an explicit session
     b. our policy will also apply to 3rd-party libraries that use requests
     """
-    # if os.environ.get("CUMULUSCI_SYSTEM_CERTS") != "True":
-    #     return
+    if os.environ.get("CUMULUSCI_SYSTEM_CERTS") != "True":
+        return
     global is_trust_patched
     if is_trust_patched:
         return
+    is_trust_patched = True
 
     # On macOS, replace urllib3's SSLContext with one that uses SecureTransport
     if sys.platform == "darwin":
