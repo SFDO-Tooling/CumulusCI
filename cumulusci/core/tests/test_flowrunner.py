@@ -52,10 +52,9 @@ class _SfdcTask(BaseTask):
         return -1
 
 
-class AbstractFlowCoordinatorTest(object):
+class AbstractFlowCoordinatorTest:
     @classmethod
     def setup_class(cls):
-        super(AbstractFlowCoordinatorTest, cls).setup_class()
         logger = logging.getLogger(cumulusci.__name__)
         logger.setLevel(logging.DEBUG)
         cls._flow_log_handler = MockLoggingHandler(logging.DEBUG)
@@ -76,7 +75,7 @@ class AbstractFlowCoordinatorTest(object):
         pass
 
 
-class FullParseTestFlowCoordinator(AbstractFlowCoordinatorTest):
+class TestFullParseTestFlowCoordinator(AbstractFlowCoordinatorTest):
     def test_each_flow(self):
         for flow_name in [
             flow_info["name"] for flow_info in self.project_config.list_flows()
@@ -90,7 +89,7 @@ class FullParseTestFlowCoordinator(AbstractFlowCoordinatorTest):
             print(f"Parsed flow {flow_name} as {len(flow.steps)} steps")
 
 
-class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest):
+class TestSimpleTestFlowCoordinator(AbstractFlowCoordinatorTest):
     """Tests the expectations of a BaseFlow caller"""
 
     def _setup_project_config(self):
@@ -604,13 +603,13 @@ class SimpleTestFlowCoordinator(AbstractFlowCoordinatorTest):
         save.assert_called_once()
 
 
-class StepSpecTest:
+class TestStepSpec:
     def test_repr(self):
         spec = StepSpec(1, "test_task", {}, None, None, skip=True)
         assert repr(spec) == "<!SKIP! StepSpec 1:test_task {}>"
 
 
-class PreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest):
+class TestPreflightFlowCoordinatorTest(AbstractFlowCoordinatorTest):
     def test_run(self):
         flow_config = FlowConfig(
             {

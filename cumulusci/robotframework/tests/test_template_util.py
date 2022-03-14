@@ -1,7 +1,7 @@
 from cumulusci.core import template_utils
 
 
-class TemplateUtils:
+class TestTemplateUtils:
     def test_string_generator(self):
         x = 100
         y = template_utils.StringGenerator(lambda: str(x))

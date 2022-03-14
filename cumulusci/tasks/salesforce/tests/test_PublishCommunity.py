@@ -11,7 +11,7 @@ task_options = {"name": "Test Community"}
 task_options_with_id = {"name": "Test Community", "community_id": "000000000000000000"}
 
 
-class test_PublishCommunity:
+class TestPublishCommunity:
     @responses.activate
     def test_publishes_community(self):
         cc_task = create_task(PublishCommunity, task_options)

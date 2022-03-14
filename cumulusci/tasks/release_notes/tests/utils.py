@@ -5,14 +5,9 @@ import responses
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 
 
-class MockUtil(GithubApiTestMixin):
+class MockUtilBase(GithubApiTestMixin):
     BASE_HTML_URL = "https://github.com"
     BASE_API_URL = "https://api.github.com"
-
-    def __init__(self, owner, repo):
-        self.owner = owner
-        self.repo = repo
-        self.init_github()
 
     @property
     def html_url(self):
@@ -141,3 +136,10 @@ class MockUtil(GithubApiTestMixin):
             json=[self._get_expected_pull_request(1, 1)],
             status=http.client.OK,
         )
+
+
+class MockUtil(MockUtilBase):
+    def __init__(self, owner, repo):
+        self.owner = owner
+        self.repo = repo
+        self.init_github()

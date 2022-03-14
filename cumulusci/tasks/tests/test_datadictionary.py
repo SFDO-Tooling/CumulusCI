@@ -30,7 +30,7 @@ from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 
-class test_GenerateDataDictionary:
+class TestGenerateDataDictionary:
     def test_version_from_tag_name(self):
         task = create_task(GenerateDataDictionary, {})
 

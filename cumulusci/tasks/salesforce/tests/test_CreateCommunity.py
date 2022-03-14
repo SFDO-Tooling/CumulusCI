@@ -26,7 +26,7 @@ task_options_no_url_path_prefix = {
 }
 
 
-class test_CreateCommunity:
+class TestCreateCommunity:
     @responses.activate
     def test_creates_community(self):
         cc_task = create_task(CreateCommunity, task_options)

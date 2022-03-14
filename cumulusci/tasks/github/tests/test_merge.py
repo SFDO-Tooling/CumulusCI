@@ -8,11 +8,11 @@ from testfixtures import LogCapture
 from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.tasks.github import MergeBranch
-from cumulusci.tasks.release_notes.tests.utils import MockUtil
+from cumulusci.tasks.release_notes.tests.utils import MockUtilBase
 from cumulusci.tests.util import DummyOrgConfig, create_project_config
 
 
-class TestMergeBranch(MockUtil):
+class TestMergeBranch(MockUtilBase):
     def setup_method(self):
 
         # Set up the mock values

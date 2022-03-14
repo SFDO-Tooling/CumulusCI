@@ -50,7 +50,10 @@ class DummyPackageZipBuilder(BasePackageZipBuilder):
         return
 
 
-class BaseTestMetadataApi:
+# TODO: Should this be renamed? Is it intended that it be a "Pure"
+#       base class or a test-class of its own, as it was under
+#       the unittest framework?
+class TestBaseTestMetadataApi:
     api_class = BaseMetadataApiCall
     envelope_start = None
     envelope_status = status_envelope
@@ -521,7 +524,7 @@ class BaseTestMetadataApi:
         assert res.content == response.content
 
 
-class TestBaseMetadataApiCall(BaseTestMetadataApi):
+class TestBaseMetadataApiCall(TestBaseTestMetadataApi):
     def test_build_envelope_start_no_envelope(self):
         task = self._create_task()
         api = self._create_instance(task)
@@ -560,7 +563,7 @@ class TestBaseMetadataApiCall(BaseTestMetadataApi):
         assert resp.content == response
 
 
-class TestApiDeploy(BaseTestMetadataApi):
+class TestApiDeploy(TestBaseTestMetadataApi):
     api_class = ApiDeploy
     envelope_status = deploy_status_envelope
 
@@ -780,7 +783,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         assert api._get_action(False, False) == "Update"
 
 
-class TestApiListMetadata(BaseTestMetadataApi):
+class TestApiListMetadata(TestBaseTestMetadataApi):
     api_class = ApiListMetadata
     envelope_start = list_metadata_start_envelope
 
@@ -840,7 +843,7 @@ class TestApiListMetadata(BaseTestMetadataApi):
             api()
 
 
-class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
+class TestApiRetrieveUnpackaged(TestBaseTestMetadataApi):
     maxDiff = None
     api_class = ApiRetrieveUnpackaged
     envelope_start = retrieve_unpackaged_start_envelope
@@ -896,7 +899,7 @@ class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
         )
 
 
-class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
+class TestApiRetrieveInstalledPackages(TestBaseTestMetadataApi):
     api_class = ApiRetrieveInstalledPackages
 
     def _create_instance(self, task, api_version=None):

@@ -10,7 +10,7 @@ from .util import create_task
 task_options = {}
 
 
-class test_ListCommunities:
+class TestListCommunities:
     @responses.activate
     def test_lists_community(self):
         cc_task = create_task(ListCommunities, task_options)
