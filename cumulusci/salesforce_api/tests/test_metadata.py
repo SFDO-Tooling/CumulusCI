@@ -849,7 +849,7 @@ class TestApiRetrieveUnpackaged(TestBaseTestMetadataApi):
     envelope_start = retrieve_unpackaged_start_envelope
 
     def setup_method(self):
-        super(TestApiRetrieveUnpackaged, self).setup_method()
+        super().setup_method()
         self.package_xml = """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <version>41.0</version>
@@ -953,7 +953,7 @@ class TestApiRetrievePackaged(TestApiRetrieveUnpackaged):
     envelope_start = retrieve_packaged_start_envelope
 
     def setup_method(self):
-        super(TestApiRetrievePackaged, self).setup_method()
+        super().setup_method()
         self.package_name = "Test Package"
 
     def _expected_envelope_start(self):
