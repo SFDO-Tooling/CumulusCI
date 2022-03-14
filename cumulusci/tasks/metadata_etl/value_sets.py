@@ -14,6 +14,26 @@ OPP_STAGE_ERR = (
 
 
 class AddValueSetEntries(MetadataSingleEntityTransformTask):
+    task_docs = """
+
+        Example Usage
+        -----------------------
+
+        .. code-block::  yaml
+
+            task: add_standard_value_set_entries
+            options:
+                api_names: CaseOrigin
+                entries:
+                    - fullName: New Account
+                      label: New Account
+                    - fullName: Questionable Contact
+                      label: Questionable Contact
+                ui_options:
+                    name: Add values to Case Origin picklist
+
+        """
+
     entity = "StandardValueSet"
     task_options = {
         **MetadataSingleEntityTransformTask.task_options,
