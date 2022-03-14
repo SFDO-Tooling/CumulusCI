@@ -1,4 +1,4 @@
-import os
+# import os
 import sys
 from json import JSONDecodeError
 
@@ -13,6 +13,9 @@ def safe_json_from_response(response):
         return response.json()
     except JSONDecodeError:
         raise CumulusCIException(f"Cannot decode as JSON:  {response.text}")
+
+
+is_trust_patched = False
 
 
 def init_requests_trust():
@@ -38,7 +41,10 @@ def init_requests_trust():
     a. we don't have to change every location we are using requests.get or requests.post without an explicit session
     b. our policy will also apply to 3rd-party libraries that use requests
     """
-    if os.environ.get("CUMULUSCI_SYSTEM_CERTS") != "True":
+    # if os.environ.get("CUMULUSCI_SYSTEM_CERTS") != "True":
+    #     return
+    global is_trust_patched
+    if is_trust_patched:
         return
 
     # On macOS, replace urllib3's SSLContext with one that uses SecureTransport

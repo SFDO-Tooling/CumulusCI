@@ -15,8 +15,3 @@ if sys.version_info < (3, 8):  # pragma: no cover
 
 api.OrderedDict = dict
 bulk.OrderedDict = dict
-
-from cumulusci.utils.http.requests_utils import init_requests_trust
-
-# Should we do this only when cci is being run as a CLI and not imported as a library?
-init_requests_trust()
