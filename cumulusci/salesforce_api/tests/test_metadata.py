@@ -1,7 +1,6 @@
 import datetime
 import http.client
 import io
-import unittest
 from collections import defaultdict
 from xml.dom.minidom import parseString
 
@@ -51,13 +50,16 @@ class DummyPackageZipBuilder(BasePackageZipBuilder):
         return
 
 
-class BaseTestMetadataApi(unittest.TestCase):
+# TODO: Should this be renamed? Is it intended that it be a "Pure"
+#       base class or a test-class of its own, as it was under
+#       the unittest framework?
+class TestBaseTestMetadataApi:
     api_class = BaseMetadataApiCall
     envelope_start = None
     envelope_status = status_envelope
     envelope_result = result_envelope
 
-    def setUp(self):
+    def setup_method(self):
 
         # Set up the mock values
         self.repo_name = "TestRepo"
@@ -103,10 +105,8 @@ class BaseTestMetadataApi(unittest.TestCase):
     def test_init(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEqual(api.task, task)
-        self.assertEqual(
-            api.api_version, self.project_config.project__package__api_version
-        )
+        assert api.task == task
+        assert api.api_version == self.project_config.project__package__api_version
 
     def test_build_endpoint_url(self):
         org_config = {
@@ -115,13 +115,10 @@ class BaseTestMetadataApi(unittest.TestCase):
         }
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        self.assertEqual(
-            api._build_endpoint_url(),
-            "{}/services/Soap/m/{}/{}".format(
-                org_config["instance_url"],
-                self.project_config.project__package__api_version,
-                task.org_config.org_id,
-            ),
+        assert api._build_endpoint_url() == "{}/services/Soap/m/{}/{}".format(
+            org_config["instance_url"],
+            self.project_config.project__package__api_version,
+            task.org_config.org_id,
         )
 
     def test_build_endpoint_url_mydomain(self):
@@ -131,12 +128,12 @@ class BaseTestMetadataApi(unittest.TestCase):
         }
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        self.assertEqual(
-            api._build_endpoint_url(),
-            "https://test-org.na12.my.salesforce.com/services/Soap/m/{}/{}".format(
+        assert (
+            api._build_endpoint_url()
+            == "https://test-org.na12.my.salesforce.com/services/Soap/m/{}/{}".format(
                 self.project_config.project__package__api_version,
                 task.org_config.org_id,
-            ),
+            )
         )
 
     def test_build_endpoint_url_apiversion(self):
@@ -147,11 +144,8 @@ class BaseTestMetadataApi(unittest.TestCase):
         task = self._create_task(org_config=org_config)
         api_version = "43.0"
         api = self._create_instance(task, api_version=api_version)
-        self.assertEqual(
-            api._build_endpoint_url(),
-            "{}/services/Soap/m/{}/{}".format(
-                org_config["instance_url"], api_version, task.org_config.org_id
-            ),
+        assert api._build_endpoint_url() == "{}/services/Soap/m/{}/{}".format(
+            org_config["instance_url"], api_version, task.org_config.org_id
         )
 
     def test_build_envelope_result(self):
@@ -163,7 +157,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         else:
             expected = self.envelope_result.format(process_id="123")
         api.process_id = "123"
-        self.assertEqual(api._build_envelope_result(), expected)
+        assert api._build_envelope_result() == expected
 
     def test_build_envelope_start(self):
         task = self._create_task()
@@ -174,7 +168,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         else:
             expected = self._expected_envelope_start()
 
-        self.assertEqual(api._build_envelope_start(), expected)
+        assert api._build_envelope_start() == expected
 
     def _expected_envelope_start(self):
         return self.envelope_start.format(
@@ -191,21 +185,18 @@ class BaseTestMetadataApi(unittest.TestCase):
         else:
             expected = self.envelope_status.format(process_id=process_id)
         api.process_id = process_id
-        self.assertEqual(api._build_envelope_status(), expected)
+        assert api._build_envelope_status() == expected
 
     def test_build_headers(self):
         action = "foo"
         message = "12345678"
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEqual(
-            api._build_headers(action, message),
-            {
-                "Content-Type": "text/xml; charset=UTF-8",
-                "Content-Length": "8",
-                "SOAPAction": "foo",
-            },
-        )
+        assert api._build_headers(action, message) == {
+            "Content-Type": "text/xml; charset=UTF-8",
+            "Content-Length": "8",
+            "SOAPAction": "foo",
+        }
 
     @responses.activate
     def test_call_faultcode(self):
@@ -220,7 +211,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             api.soap_envelope_start = "{api_version}"
         response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>foo</faultcode>'
         self._mock_call_mdapi(api, response)
-        with self.assertRaises(MetadataApiError):
+        with pytest.raises(MetadataApiError):
             api()
 
     @responses.activate
@@ -250,7 +241,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         resp = api()
         expected_resp = self._expected_call_success_result(response_result)
 
-        self.assertEqual(resp, expected_resp)
+        assert resp == expected_resp
 
     def _expected_call_success_result(self, response_result):
         return response_result
@@ -262,27 +253,27 @@ class BaseTestMetadataApi(unittest.TestCase):
         task = self._create_task()
         api = self._create_instance(task)
         dom = parseString("<foo>bar</foo>")
-        self.assertEqual(api._get_element_value(dom, "foo"), "bar")
+        assert api._get_element_value(dom, "foo") == "bar"
 
     def test_get_element_value_not_found(self):
         task = self._create_task()
         api = self._create_instance(task)
         dom = parseString("<foo>bar</foo>")
-        self.assertEqual(api._get_element_value(dom, "baz"), None)
+        assert api._get_element_value(dom, "baz") is None
 
     def test_get_element_value_empty(self):
         task = self._create_task()
         api = self._create_instance(task)
         dom = parseString("<foo />")
-        self.assertEqual(api._get_element_value(dom, "foo"), None)
+        assert api._get_element_value(dom, "foo") is None
 
     def test_get_check_interval(self):
         task = self._create_task()
         api = self._create_instance(task)
         api.check_num = 1
-        self.assertEqual(api._get_check_interval(), 1)
+        assert api._get_check_interval() == 1
         api.check_num = 10
-        self.assertEqual(api._get_check_interval(), 4)
+        assert api._get_check_interval() == 4
 
     @responses.activate
     def test_get_response_faultcode(self):
@@ -297,7 +288,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             api.soap_envelope_start = "{api_version}"
         response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>foo</faultcode>'
         self._mock_call_mdapi(api, response)
-        with self.assertRaises(MetadataApiError):
+        with pytest.raises(MetadataApiError):
             api._get_response()
 
     @responses.activate
@@ -317,7 +308,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         response += "\n  <faultstring>bar</faultstring>"
         response += "\n</test>"
         self._mock_call_mdapi(api, response)
-        with self.assertRaises(MetadataApiError):
+        with pytest.raises(MetadataApiError):
             api._get_response()
 
     @responses.activate
@@ -333,9 +324,9 @@ class BaseTestMetadataApi(unittest.TestCase):
             api.soap_envelope_start = "{api_version}"
         response = '<?xml version="1.0" encoding="UTF-8"?><faultcode>sf:INVALID_SESSION_ID</faultcode>'
         self._mock_call_mdapi(api, response)
-        with self.assertRaises(MetadataApiError):
+        with pytest.raises(MetadataApiError):
             api._get_response()
-        self.assertEqual(api.status, "Failed")
+        assert api.status == "Failed"
 
     @responses.activate
     def test_get_response_faultcode_invalid_session_refresh(self):
@@ -362,7 +353,7 @@ class BaseTestMetadataApi(unittest.TestCase):
             self._mock_call_mdapi(api, response)
 
         resp = api._get_response()
-        self.assertEqual(resp.content, mock_responses[2])
+        assert resp.content == mock_responses[2]
 
     @responses.activate
     def test_get_response_start_error_500(self):
@@ -382,7 +373,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         response = '<?xml version="1.0" encoding="UTF-8"?><foo>start</foo>'
         self._mock_call_mdapi(api, response, status_code)
 
-        with self.assertRaises(MetadataApiError):
+        with pytest.raises(MetadataApiError):
             api._get_response()
 
     @responses.activate
@@ -404,7 +395,7 @@ class BaseTestMetadataApi(unittest.TestCase):
         self._mock_call_mdapi(api, response)
         self._mock_call_mdapi(api, response, status_code)
 
-        with self.assertRaises(MetadataApiError):
+        with pytest.raises(MetadataApiError):
             api._get_response()
 
     @responses.activate
@@ -432,7 +423,7 @@ class BaseTestMetadataApi(unittest.TestCase):
 
         resp = api._get_response()
 
-        self.assertEqual(resp.content, response_result)
+        assert resp.content == response_result
 
     @responses.activate
     def test_get_response_status_loop_twice(self):
@@ -464,11 +455,11 @@ class BaseTestMetadataApi(unittest.TestCase):
 
         resp = api._get_response()
 
-        self.assertEqual(resp.content, response_result)
+        assert resp.content == response_result
 
-        self.assertEqual(api.status, "Done")
+        assert api.status == "Done"
 
-        self.assertEqual(api.check_num, 4)
+        assert api.check_num == 4
 
     def test_process_response_status_no_done_element(self):
         task = self._create_task()
@@ -479,8 +470,8 @@ class BaseTestMetadataApi(unittest.TestCase):
             b'<?xml version="1.0" encoding="UTF-8"?><foo>status</foo>'
         )
         res = api._process_response_status(response)
-        self.assertEqual(api.status, "Failed")
-        self.assertEqual(res.content, response.content)
+        assert api.status == "Failed"
+        assert res.content == response.content
 
     def test_process_response_status_done_is_true(self):
         task = self._create_task()
@@ -491,8 +482,8 @@ class BaseTestMetadataApi(unittest.TestCase):
             b'<?xml version="1.0" encoding="UTF-8"?><done>true</done>'
         )
         res = api._process_response_status(response)
-        self.assertEqual(api.status, "Done")
-        self.assertEqual(res.content, response.content)
+        assert api.status == "Done"
+        assert res.content == response.content
 
     def test_process_response_status_pending(self):
         task = self._create_task()
@@ -503,8 +494,8 @@ class BaseTestMetadataApi(unittest.TestCase):
             b'<?xml version="1.0" encoding="UTF-8"?><done>false</done>'
         )
         res = api._process_response_status(response)
-        self.assertEqual(api.status, "Pending")
-        self.assertEqual(res.content, response.content)
+        assert api.status == "Pending"
+        assert res.content == response.content
 
     def test_process_response_status_in_progress(self):
         task = self._create_task()
@@ -516,8 +507,8 @@ class BaseTestMetadataApi(unittest.TestCase):
         )
         api.status = "InProgress"
         res = api._process_response_status(response)
-        self.assertEqual(api.status, "InProgress")
-        self.assertEqual(res.content, response.content)
+        assert api.status == "InProgress"
+        assert res.content == response.content
 
     def test_process_response_status_in_progress_state_detail(self):
         task = self._create_task()
@@ -529,11 +520,11 @@ class BaseTestMetadataApi(unittest.TestCase):
         )
         api.status = "InProgress"
         res = api._process_response_status(response)
-        self.assertEqual(api.status, "InProgress")
-        self.assertEqual(res.content, response.content)
+        assert api.status == "InProgress"
+        assert res.content == response.content
 
 
-class TestBaseMetadataApiCall(BaseTestMetadataApi):
+class TestBaseMetadataApiCall(TestBaseTestMetadataApi):
     def test_build_envelope_start_no_envelope(self):
         task = self._create_task()
         api = self._create_instance(task)
@@ -543,17 +534,17 @@ class TestBaseMetadataApiCall(BaseTestMetadataApi):
     def test_build_envelope_status_no_envelope(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEqual(api._build_envelope_status(), None)
+        assert api._build_envelope_status() is None
 
     def test_build_envelope_result_no_envelope(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEqual(api._build_envelope_result(), None)
+        assert api._build_envelope_result() is None
 
     def test_get_response_no_start_env(self):
         task = self._create_task()
         api = self._create_instance(task)
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             api._get_response()
 
     @responses.activate
@@ -569,15 +560,15 @@ class TestBaseMetadataApiCall(BaseTestMetadataApi):
         response = b'<?xml version="1.0" encoding="UTF-8"?><foo />'
         self._mock_call_mdapi(api, response)
         resp = api._get_response()
-        self.assertEqual(resp.content, response)
+        assert resp.content == response
 
 
-class TestApiDeploy(BaseTestMetadataApi):
+class TestApiDeploy(TestBaseTestMetadataApi):
     api_class = ApiDeploy
     envelope_status = deploy_status_envelope
 
-    def setUp(self):
-        super(TestApiDeploy, self).setUp()
+    def setup_method(self):
+        super(TestApiDeploy, self).setup_method()
         self.package_zip = DummyPackageZipBuilder().as_base64()
 
     def _expected_envelope_start(self):
@@ -617,37 +608,37 @@ class TestApiDeploy(BaseTestMetadataApi):
     def test_init_no_purge_on_delete(self):
         task = self._create_task()
         api = self._create_instance(task, purge_on_delete=False)
-        self.assertEqual(api.purge_on_delete, "false")
+        assert api.purge_on_delete == "false"
 
     def test_init_default_check_only(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEqual(api.check_only, "false")
+        assert api.check_only == "false"
 
     def test_init_check_only(self):
         task = self._create_task()
         api = self._create_instance(task, check_only=True)
-        self.assertEqual(api.check_only, "true")
+        assert api.check_only == "true"
 
     def test_init_default_test_level(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEqual(api.test_level, None)
+        assert api.test_level is None
 
     def test_init_test_level(self):
         task = self._create_task()
         api = self._create_instance(task, test_level="NoTestRun")
-        self.assertEqual(api.test_level, "NoTestRun")
+        assert api.test_level == "NoTestRun"
 
     def test_init_default_run_tests(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEqual(api.run_tests, [])
+        assert api.run_tests == []
 
     def test_init_run_tests(self):
         task = self._create_task()
         api = self._create_instance(task, run_tests=["TestA", "TestB"])
-        self.assertEqual(api.run_tests, ["TestA", "TestB"])
+        assert api.run_tests == ["TestA", "TestB"]
 
     def test_build_envelope_status__run_specified_tests(self):
         task = self._create_task()
@@ -681,10 +672,10 @@ class TestApiDeploy(BaseTestMetadataApi):
 </componentFailures>"""
             ).encode()
         )
-        with self.assertRaises(MetadataComponentFailure) as cm:
+        with pytest.raises(MetadataComponentFailure) as e:
             api._process_response(response)
         expected = "Update of CustomObject Test__c: Error on line 1, col 1: problem"
-        self.assertEqual(expected, str(cm.exception))
+        assert expected == str(e.value)
 
     def test_process_response_metadata_failure_no_lineno(self):
         task = self._create_task()
@@ -703,10 +694,10 @@ class TestApiDeploy(BaseTestMetadataApi):
 </componentFailures>"""
             ).encode()
         )
-        with self.assertRaises(MetadataComponentFailure) as cm:
+        with pytest.raises(MetadataComponentFailure) as e:
             api._process_response(response)
         expected = "Update of CustomObject Test__c: Error: problem"
-        self.assertEqual(expected, str(cm.exception))
+        assert expected == str(e.value)
 
     def test_process_response_metadata_failure_no_file_name(self):
         task = self._create_task()
@@ -724,10 +715,10 @@ class TestApiDeploy(BaseTestMetadataApi):
 </componentFailures>"""
             ).encode()
         )
-        with self.assertRaises(MetadataComponentFailure) as cm:
+        with pytest.raises(MetadataComponentFailure) as e:
             api._process_response(response)
         expected = "Update of CustomObject: Error: problem"
-        self.assertEqual(expected, str(cm.exception))
+        assert expected == str(e.value)
 
     def test_process_response_problem(self):
         task = self._create_task()
@@ -739,10 +730,10 @@ class TestApiDeploy(BaseTestMetadataApi):
                 details="""<problem>problem</problem>"""
             ).encode()
         )
-        with self.assertRaises(MetadataApiError) as cm:
+        with pytest.raises(MetadataApiError) as e:
             api._process_response(response)
         expected = "problem"
-        self.assertEqual(expected, str(cm.exception))
+        assert expected == str(e.value)
 
     def test_process_response_test_failure(self):
         task = self._create_task()
@@ -760,10 +751,10 @@ class TestApiDeploy(BaseTestMetadataApi):
 """
             ).encode()
         )
-        with self.assertRaises(ApexTestException) as cm:
+        with pytest.raises(ApexTestException) as e:
             api._process_response(response)
         expected = "Apex Test Failure: from namespace test: stack"
-        self.assertEqual(expected, str(cm.exception))
+        assert expected == str(e.value)
 
     def test_process_response_no_status(self):
         task = self._create_task()
@@ -772,7 +763,7 @@ class TestApiDeploy(BaseTestMetadataApi):
         response.status_code = 200
         response.raw = io.BytesIO(b"<bogus />")
         status = api._process_response(response)
-        self.assertEqual(status, "Failed")
+        assert status == "Failed"
 
     def test_process_response_failure_but_no_message(self):
         task = self._create_task()
@@ -780,24 +771,24 @@ class TestApiDeploy(BaseTestMetadataApi):
         response = Response()
         response.status_code = 200
         response.raw = io.BytesIO(b"<status>Failed</status>")
-        with self.assertRaises(MetadataApiError) as cm:
+        with pytest.raises(MetadataApiError) as e:
             api._process_response(response)
-        self.assertEqual(response.text, str(cm.exception))
+        assert response.text == str(e.value)
 
     def test_get_action(self):
         task = self._create_task()
         api = self._create_instance(task)
-        self.assertEqual("Create", api._get_action(True, False))
-        self.assertEqual("Delete", api._get_action(False, True))
-        self.assertEqual("Update", api._get_action(False, False))
+        assert api._get_action(True, False) == "Create"
+        assert api._get_action(False, True) == "Delete"
+        assert api._get_action(False, False) == "Update"
 
 
-class TestApiListMetadata(BaseTestMetadataApi):
+class TestApiListMetadata(TestBaseTestMetadataApi):
     api_class = ApiListMetadata
     envelope_start = list_metadata_start_envelope
 
-    def setUp(self):
-        super(TestApiListMetadata, self).setUp()
+    def setup_method(self):
+        super(TestApiListMetadata, self).setup_method()
         self.metadata_type = "CustomObject"
         self.metadata = None
         self.folder = None
@@ -848,17 +839,17 @@ class TestApiListMetadata(BaseTestMetadataApi):
         api = self._create_instance(task)
 
         self._mock_call_mdapi(api, list_metadata_result_bad_val)
-        with self.assertRaises(MetadataParseError):
+        with pytest.raises(MetadataParseError):
             api()
 
 
-class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
+class TestApiRetrieveUnpackaged(TestBaseTestMetadataApi):
     maxDiff = None
     api_class = ApiRetrieveUnpackaged
     envelope_start = retrieve_unpackaged_start_envelope
 
-    def setUp(self):
-        super(TestApiRetrieveUnpackaged, self).setUp()
+    def setup_method(self):
+        super().setup_method()
         self.package_xml = """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <version>41.0</version>
@@ -902,13 +893,13 @@ class TestApiRetrieveUnpackaged(BaseTestMetadataApi):
 
         zip_file = api()
 
-        self.assertEqual(
-            zip_file.namelist(),
-            self._expected_call_success_result(response_result).namelist(),
+        assert (
+            zip_file.namelist()
+            == self._expected_call_success_result(response_result).namelist()
         )
 
 
-class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
+class TestApiRetrieveInstalledPackages(TestBaseTestMetadataApi):
     api_class = ApiRetrieveInstalledPackages
 
     def _create_instance(self, task, api_version=None):
@@ -927,7 +918,7 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
             deploy_result.format(status="testing", extra="").encode()
         )
         resp = api._process_response(response)
-        self.assertEqual(resp, {})
+        assert resp == {}
 
     def test_process_response_zipstr_no_packages(self):
         task = self._create_task()
@@ -941,7 +932,7 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
             ).encode()
         )
         resp = api._process_response(response)
-        self.assertEqual(resp, {})
+        assert resp == {}
 
     def test_process_response_zipstr_one_package(self):
         task = self._create_task()
@@ -954,15 +945,15 @@ class TestApiRetrieveInstalledPackages(BaseTestMetadataApi):
             ).encode()
         )
         resp = api._process_response(response)
-        self.assertEqual(resp, {"foo": "1.1"})
+        assert resp == {"foo": "1.1"}
 
 
 class TestApiRetrievePackaged(TestApiRetrieveUnpackaged):
     api_class = ApiRetrievePackaged
     envelope_start = retrieve_packaged_start_envelope
 
-    def setUp(self):
-        super(TestApiRetrievePackaged, self).setUp()
+    def setup_method(self):
+        super().setup_method()
         self.package_name = "Test Package"
 
     def _expected_envelope_start(self):
@@ -981,5 +972,5 @@ class TestApiRetrievePackaged(TestApiRetrieveUnpackaged):
         response.raw = io.BytesIO(
             b"INVALID_CROSS_REFERENCE_KEY: No package named Test Package"
         )
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             api._process_response(response)

@@ -126,14 +126,14 @@ class TestExtractData:
 
             with create_engine(task.options["database_url"]).connect() as conn:
                 household = next(conn.execute("select * from households"))
-                assert "1" == household.sf_id
+                assert household.sf_id == "1"
                 assert not hasattr(household, "IsPersonAccount")
-                assert "HH_Account" == household.record_type
+                assert household.record_type == "HH_Account"
 
                 contact = next(conn.execute("select * from contacts"))
-                assert "2" == contact.sf_id
+                assert contact.sf_id == "2"
                 assert not hasattr(contact, "IsPersonAccount")
-                assert "1" == contact.household_id
+                assert contact.household_id == "1"
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
@@ -181,14 +181,14 @@ class TestExtractData:
             with create_engine(task.options["database_url"]).connect() as conn:
 
                 household = next(conn.execute("select * from households"))
-                assert "1" == household.sf_id
-                assert "false" == household.IsPersonAccount
-                assert "HH_Account" == household.record_type
+                assert household.sf_id == "1"
+                assert household.IsPersonAccount == "false"
+                assert household.record_type == "HH_Account"
 
                 contact = next(conn.execute("select * from contacts"))
-                assert "2" == contact.sf_id
-                assert "true" == contact.IsPersonAccount
-                assert "1" == contact.household_id
+                assert contact.sf_id == "2"
+                assert contact.IsPersonAccount == "true"
+                assert contact.household_id == "1"
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")

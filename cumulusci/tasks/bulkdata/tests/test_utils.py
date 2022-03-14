@@ -1,5 +1,4 @@
 import os
-import unittest
 from unittest import mock
 
 import responses
@@ -30,7 +29,7 @@ def create_db_memory():
     return engine, metadata
 
 
-class TestSqlAlchemyMixin(unittest.TestCase):
+class TestSqlAlchemyMixin:
     @mock.patch("cumulusci.tasks.bulkdata.utils.Table")
     @mock.patch("cumulusci.tasks.bulkdata.utils.mapper")
     def test_create_record_type_table(self, mapper, table):
@@ -40,7 +39,7 @@ class TestSqlAlchemyMixin(unittest.TestCase):
 
         util._create_record_type_table("Account_rt_mapping")
 
-        self.assertIn("Account_rt_mapping", util.models)
+        assert "Account_rt_mapping" in util.models
 
     @responses.activate
     def test_extract_record_types(self):
@@ -93,7 +92,7 @@ class TestSqlAlchemyMixin(unittest.TestCase):
         assert session.query(model).count() == 10
 
 
-class TestCreateTable(unittest.TestCase):
+class TestCreateTable:
     def test_create_table_legacy_oid_mapping(self):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v1.yml")
 
@@ -128,7 +127,7 @@ class TestCreateTable(unittest.TestCase):
             assert isinstance(t.columns["email"].type, Unicode)
 
 
-class TestBatching(unittest.TestCase):
+class TestBatching:
     def test_batching_no_remainder(self):
         batches = list(generate_batches(num_records=20, batch_size=10))
         assert batches == [(10, 0, 2), (10, 1, 2)], batches

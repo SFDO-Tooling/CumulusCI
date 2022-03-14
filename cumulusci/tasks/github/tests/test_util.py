@@ -1,7 +1,7 @@
 import hashlib
-import unittest
 from unittest import mock
 
+import pytest
 from github3.git import Tree
 from github3.repos import Repository
 
@@ -10,7 +10,7 @@ from cumulusci.tasks.github.util import CommitDir
 from cumulusci.utils import temporary_dir
 
 
-class TestCommitDir(unittest.TestCase):
+class TestCommitDir:
     def test_call(self):
         with temporary_dir() as d:
             repo = mock.Mock(spec=Repository)
@@ -109,12 +109,12 @@ class TestCommitDir(unittest.TestCase):
     def test_validate_dirs(self):
         repo = mock.Mock(spec=Repository)
         commit = CommitDir(repo)
-        with self.assertRaises(GithubException):
+        with pytest.raises(GithubException):
             commit._validate_dirs("bogus", None)
         _, repo_dir = commit._validate_dirs(".", None)
-        self.assertEqual("", repo_dir)
+        assert repo_dir == ""
         _, repo_dir = commit._validate_dirs(".", "./test/")
-        self.assertEqual("test", repo_dir)
+        assert repo_dir == "test"
 
     def test_call__error_creating_tree(self):
         with temporary_dir() as d:
@@ -128,7 +128,7 @@ class TestCommitDir(unittest.TestCase):
             with open("new", "w") as f:
                 f.write("new")
             commit = CommitDir(repo)
-            with self.assertRaises(GithubException):
+            with pytest.raises(GithubException):
                 commit(d, "main", commit_message="msg")
 
     def test_call__error_creating_commit(self):
@@ -143,7 +143,7 @@ class TestCommitDir(unittest.TestCase):
             with open("new", "w") as f:
                 f.write("new")
             commit = CommitDir(repo)
-            with self.assertRaises(GithubException):
+            with pytest.raises(GithubException):
                 commit(d, "main", commit_message="msg")
 
     def test_call__error_updating_head(self):
@@ -160,19 +160,19 @@ class TestCommitDir(unittest.TestCase):
             with open("new", "w") as f:
                 f.write("new")
             commit = CommitDir(repo)
-            with self.assertRaises(GithubException):
+            with pytest.raises(GithubException):
                 commit(d, "main", commit_message="msg")
 
     def test_create_blob__handles_decode_error(self):
         repo = mock.Mock(spec=Repository)
         commit = CommitDir(repo)
         commit.dry_run = False
-        self.assertTrue(commit._create_blob(b"\x9c", "local_path"))
+        assert commit._create_blob(b"\x9c", "local_path")
 
     def test_create_blob__error(self):
         repo = mock.Mock(spec=Repository)
         repo.create_blob.return_value = None
         commit = CommitDir(repo)
         commit.dry_run = False
-        with self.assertRaises(GithubException):
-            self.assertTrue(commit._create_blob(b"", "local_path"))
+        with pytest.raises(GithubException):
+            assert commit._create_blob(b"", "local_path")

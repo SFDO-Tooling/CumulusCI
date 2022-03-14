@@ -1,7 +1,6 @@
 import datetime
 import os
 import re
-import unittest
 
 import pytest
 import pytz
@@ -12,17 +11,17 @@ from cumulusci.utils import temporary_dir, touch
 from .. import utils
 
 
-class TestUtils(unittest.TestCase):
+class TestUtils:
     def test_parse_datetime(self):
         dt = utils.parse_datetime("2018-07-30", "%Y-%m-%d")
-        self.assertEqual(dt, datetime.datetime(2018, 7, 30, 0, 0, 0, 0, pytz.UTC))
+        assert dt == datetime.datetime(2018, 7, 30, 0, 0, 0, 0, pytz.UTC)
 
     def test_process_bool_arg(self):
         for arg in (True, "True", "true", "1"):
-            self.assertTrue(utils.process_bool_arg(arg))
+            assert utils.process_bool_arg(arg)
 
         for arg in (False, "False", "false", "0"):
-            self.assertFalse(utils.process_bool_arg(arg))
+            assert not utils.process_bool_arg(arg)
 
         import warnings
 
@@ -36,9 +35,9 @@ class TestUtils(unittest.TestCase):
             utils.process_bool_arg("xyzzy")
 
     def test_process_list_arg(self):
-        self.assertEqual([1, 2], utils.process_list_arg([1, 2]))
-        self.assertEqual(["a", "b"], utils.process_list_arg("a, b"))
-        self.assertEqual(None, utils.process_list_arg(None))
+        assert [1, 2] == utils.process_list_arg([1, 2])
+        assert ["a", "b"] == utils.process_list_arg("a, b")
+        assert utils.process_list_arg(None) is None
 
     def test_process_glob_list_arg(self):
         with temporary_dir():
@@ -46,55 +45,51 @@ class TestUtils(unittest.TestCase):
             touch("bar.robot")
 
             # Expect passing arg as list works.
-            self.assertEqual(
-                ["foo.py", "bar.robot"],
-                utils.process_glob_list_arg(["foo.py", "bar.robot"]),
+            assert ["foo.py", "bar.robot"] == utils.process_glob_list_arg(
+                ["foo.py", "bar.robot"]
             )
 
             # Falsy arg should return an empty list
-            self.assertEqual([], utils.process_glob_list_arg(None))
-            self.assertEqual([], utils.process_glob_list_arg(""))
-            self.assertEqual([], utils.process_glob_list_arg([]))
+            assert [] == utils.process_glob_list_arg(None)
+            assert [] == utils.process_glob_list_arg("")
+            assert [] == utils.process_glob_list_arg([])
 
             # Expect output to be in order given
-            self.assertEqual(
-                ["foo.py", "bar.robot"],
-                utils.process_glob_list_arg("foo.py, bar.robot"),
+            assert ["foo.py", "bar.robot"] == utils.process_glob_list_arg(
+                "foo.py, bar.robot"
             )
 
             # Expect sorted output of glob results
-            self.assertEqual(["bar.robot", "foo.py"], utils.process_glob_list_arg("*"))
+            assert ["bar.robot", "foo.py"] == utils.process_glob_list_arg("*")
 
             # Patterns that don't match any files
-            self.assertEqual(
-                ["*.bar", "x.y.z"], utils.process_glob_list_arg("*.bar, x.y.z")
-            )
+            assert ["*.bar", "x.y.z"] == utils.process_glob_list_arg("*.bar, x.y.z")
 
             # Recursive
             os.mkdir("subdir")
             filename = os.path.join("subdir", "baz.resource")
             touch(filename)
-            self.assertEqual([filename], utils.process_glob_list_arg("**/*.resource"))
+            assert [filename] == utils.process_glob_list_arg("**/*.resource")
 
     def test_decode_to_unicode(self):
-        self.assertEqual("\xfc", utils.decode_to_unicode(b"\xfc"))
-        self.assertEqual("\u2603", utils.decode_to_unicode("\u2603"))
-        self.assertEqual(None, utils.decode_to_unicode(None))
+        assert utils.decode_to_unicode(b"\xfc") == "\xfc"
+        assert utils.decode_to_unicode("\u2603") == "\u2603"
+        assert utils.decode_to_unicode(None) is None
 
 
-class TestDictMerger(unittest.TestCase):
+class TestDictMerger:
     """some stuff that didnt get covered by usual usage"""
 
     def test_merge_into_list(self):
         combo = utils.dictmerge([1, 2], 3)
-        self.assertSequenceEqual(combo, [1, 2, 3])
+        assert combo == [1, 2, 3]
 
     def test_cant_merge_into_dict(self):
-        with self.assertRaises(ConfigMergeError):
+        with pytest.raises(ConfigMergeError):
             utils.dictmerge({"a": "b"}, 2)
 
     def test_cant_merge_nonsense(self):
-        with self.assertRaises(ConfigMergeError):
+        with pytest.raises(ConfigMergeError):
             utils.dictmerge(pytz, 2)
 
 

@@ -1,6 +1,7 @@
 import os
-import unittest
 from unittest import mock
+
+import pytest
 
 from cumulusci.core.config import (
     BaseProjectConfig,
@@ -32,11 +33,11 @@ from cumulusci.utils import temporary_dir, touch
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
 
-class TestPackageXmlGenerator(unittest.TestCase):
+class TestPackageXmlGenerator:
     def test_metadata_sort_key(self):
         md = ["a__Test__c", "Test__c"]
         md.sort(key=metadata_sort_key)
-        self.assertEqual(["Test__c", "a__Test__c"], md)
+        assert ["Test__c", "a__Test__c"] == md
 
     def test_package_name_urlencoding(self):
         api_version = "36.0"
@@ -52,7 +53,7 @@ class TestPackageXmlGenerator(unittest.TestCase):
             generator = PackageXmlGenerator(path, api_version, package_name)
             package_xml = generator()
 
-        self.assertEqual(package_xml, expected)
+        assert package_xml == expected
 
     def test_namespaced_report_folder(self):
         api_version = "36.0"
@@ -66,7 +67,7 @@ class TestPackageXmlGenerator(unittest.TestCase):
             expected_package_xml = f.read().strip()
         package_xml = generator()
 
-        self.assertEqual(package_xml, expected_package_xml)
+        assert package_xml == expected_package_xml
 
     def test_delete_namespaced_report_folder(self):
         api_version = "36.0"
@@ -80,13 +81,13 @@ class TestPackageXmlGenerator(unittest.TestCase):
             expected_package_xml = f.read().strip()
         package_xml = generator()
 
-        self.assertEqual(package_xml, expected_package_xml)
+        assert package_xml == expected_package_xml
 
     def test_parse_types_unknown_md_type(self):
         with temporary_dir() as path:
             os.mkdir(os.path.join(path, "bogus"))
             generator = PackageXmlGenerator(path, "43.0", "Test Package")
-            with self.assertRaises(MetadataParserMissingError):
+            with pytest.raises(MetadataParserMissingError):
                 generator.parse_types()
 
     def test_render_xml__managed(self):
@@ -100,7 +101,7 @@ class TestPackageXmlGenerator(unittest.TestCase):
                 uninstall_class="Uninstall",
             )
             result = generator()
-            self.assertEqual(EXPECTED_MANAGED, result)
+            assert EXPECTED_MANAGED == result
 
 
 EXPECTED_MANAGED = """<?xml version="1.0" encoding="UTF-8"?>
@@ -112,7 +113,7 @@ EXPECTED_MANAGED = """<?xml version="1.0" encoding="UTF-8"?>
 </Package>"""
 
 
-class TestBaseMetadataParser(unittest.TestCase):
+class TestBaseMetadataParser:
     def test_parse_items__skips_files(self):
         with temporary_dir() as path:
             # create files that should be ignored by the parser
@@ -134,33 +135,33 @@ class TestBaseMetadataParser(unittest.TestCase):
 
     def test_check_delete_excludes__not_deleting(self):
         parser = BaseMetadataParser("TestMDT", None, "object", delete=False)
-        self.assertFalse(parser.check_delete_excludes("asdf"))
+        assert not parser.check_delete_excludes("asdf")
 
     def test_parse_item(self):
         parser = BaseMetadataParser("TestMDT", None, "object", delete=False)
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             parser._parse_item("asdf")
 
     def test_render_xml__no_members(self):
         parser = BaseMetadataParser("TestMDT", None, "object", delete=False)
-        self.assertIsNone(parser.render_xml())
+        assert parser.render_xml() is None
 
 
-class TestMetadataFilenameParser(unittest.TestCase):
+class TestMetadataFilenameParser:
     def test_parse_item(self):
         parser = MetadataFilenameParser("TestMDT", None, "object", delete=False)
         result = parser._parse_item("Test.object")
-        self.assertEqual(["Test"], result)
+        assert ["Test"] == result
 
     def test_parse_item_translates_namespace_tokens(self):
         with temporary_dir() as path:
             touch("___NAMESPACE___Foo__c.object")
             parser = MetadataFilenameParser("TestMDT", path, "object", delete=False)
             parser.parse_items()
-        self.assertEqual(["%%%NAMESPACE%%%Foo__c"], parser.members)
+        assert ["%%%NAMESPACE%%%Foo__c"] == parser.members
 
 
-class TestMetadataFolderParser(unittest.TestCase):
+class TestMetadataFolderParser:
     def test_parse_item(self):
         with temporary_dir() as path:
             item_path = os.path.join(path, "Test")
@@ -174,17 +175,17 @@ class TestMetadataFolderParser(unittest.TestCase):
             with open(os.path.join(item_path, "Test.object"), "w"):
                 pass
             parser = MetadataFolderParser("TestMDT", path, "object", delete=False)
-            self.assertEqual(["Test", "Test/Test"], parser._parse_item("Test"))
+            assert ["Test", "Test/Test"] == parser._parse_item("Test")
 
     def test_parse_item__non_directory(self):
         with temporary_dir() as path:
             with open(os.path.join(path, "file"), "w"):
                 pass
             parser = MetadataFolderParser("TestMDT", path, "object", delete=False)
-            self.assertEqual([], parser._parse_item("file"))
+            assert [] == parser._parse_item("file")
 
 
-class TestBundleParser(unittest.TestCase):
+class TestBundleParser:
     def test_parse_item(self):
         with temporary_dir() as path:
             item_path = os.path.join(path, "Test")
@@ -195,17 +196,17 @@ class TestBundleParser(unittest.TestCase):
             with open(os.path.join(item_path, "Test.object"), "w"):
                 pass
             parser = BundleParser("TestMDT", path, "object", delete=False)
-            self.assertEqual(["Test"], parser._parse_item("Test"))
+            assert ["Test"] == parser._parse_item("Test")
 
     def test_parse_item__non_directory(self):
         with temporary_dir() as path:
             with open(os.path.join(path, "file"), "w"):
                 pass
             parser = BundleParser("TestMDT", path, "object", delete=False)
-            self.assertEqual([], parser._parse_item("file"))
+            assert [] == parser._parse_item("file")
 
 
-class TestLWCBundleParser(unittest.TestCase):
+class TestLWCBundleParser:
     def test_parse_item(self):
         with temporary_dir() as path:
             item_path = os.path.join(path, "Test")
@@ -218,7 +219,7 @@ class TestLWCBundleParser(unittest.TestCase):
             parser = LWCBundleParser(
                 "LightningComponentBundle", path, "object", delete=False
             )
-            self.assertEqual(["Test"], parser._parse_item("Test"))
+            assert ["Test"] == parser._parse_item("Test")
 
     def test_parse_item__no_tests_mocks(self):
         with temporary_dir() as path:
@@ -228,7 +229,7 @@ class TestLWCBundleParser(unittest.TestCase):
             parser = LWCBundleParser(
                 "LightningComponentBundle", path, None, delete=False
             )
-            self.assertEqual([], parser._parse_item("__tests__"))
+            assert [] == parser._parse_item("__tests__")
 
     def test_parse_item__non_directory(self):
         with temporary_dir() as path:
@@ -237,10 +238,10 @@ class TestLWCBundleParser(unittest.TestCase):
             parser = LWCBundleParser(
                 "LightningComponentBundle", path, None, delete=False
             )
-            self.assertEqual([], parser._parse_item("file"))
+            assert [] == parser._parse_item("file")
 
 
-class TestMetadataXmlElementParser(unittest.TestCase):
+class TestMetadataXmlElementParser:
     def test_parser(self):
         with temporary_dir() as path:
             with open(os.path.join(path, "Test.test"), "w") as f:
@@ -256,18 +257,17 @@ class TestMetadataXmlElementParser(unittest.TestCase):
                 "TestMDT", path, "test", delete=False, item_xpath="./sf:test"
             )
             result = parser()
-            self.assertEqual(
-                """    <types>
+            assert """    <types>
         <members>Test.Test</members>
         <name>TestMDT</name>
-    </types>""",
-                "\n".join(result),
+    </types>""" == "\n".join(
+                result
             )
 
     def test_parser__missing_item_xpath(self):
-        with self.assertRaises(ParserConfigurationError):
+        with pytest.raises(ParserConfigurationError):
             parser = MetadataXmlElementParser("TestMDT", None, "test", False)
-            self.assertIsNotNone(parser)
+            assert parser is not None
 
     def test_parser__missing_name(self):
         with temporary_dir() as path:
@@ -281,11 +281,11 @@ class TestMetadataXmlElementParser(unittest.TestCase):
             parser = MetadataXmlElementParser(
                 "TestMDT", path, "test", delete=False, item_xpath="./sf:test"
             )
-            with self.assertRaises(MissingNameElementError):
+            with pytest.raises(MissingNameElementError):
                 parser()
 
 
-class TestCustomLabelsParser(unittest.TestCase):
+class TestCustomLabelsParser:
     def test_parser(self):
         with temporary_dir() as path:
             with open(os.path.join(path, "custom.labels"), "w") as f:
@@ -300,46 +300,46 @@ class TestCustomLabelsParser(unittest.TestCase):
             parser = CustomLabelsParser(
                 "CustomLabels", path, "labels", False, item_xpath="./sf:labels"
             )
-            self.assertEqual(["TestLabel"], parser._parse_item("custom.labels"))
+            assert ["TestLabel"] == parser._parse_item("custom.labels")
 
 
-class TestCustomObjectParser(unittest.TestCase):
+class TestCustomObjectParser:
     def test_parse_item(self):
         parser = CustomObjectParser("CustomObject", None, "object", False)
-        self.assertEqual(["Test__c"], parser._parse_item("Test__c.object"))
+        assert ["Test__c"] == parser._parse_item("Test__c.object")
 
     def test_parse_item__skips_namespaced(self):
         parser = CustomObjectParser("CustomObject", None, "object", False)
-        self.assertEqual([], parser._parse_item("ns__Object__c.object"))
+        assert [] == parser._parse_item("ns__Object__c.object")
 
     def test_parse_item__skips_standard(self):
         parser = CustomObjectParser("CustomObject", None, "object", False)
-        self.assertEqual([], parser._parse_item("Account.object"))
+        assert [] == parser._parse_item("Account.object")
 
 
-class TestRecordTypeParser(unittest.TestCase):
+class TestRecordTypeParser:
     def test_check_delete_excludes(self):
         parser = RecordTypeParser(
             "RecordType", None, "object", True, "./sf:recordTypes"
         )
-        self.assertTrue(parser.check_delete_excludes("asdf"))
+        assert parser.check_delete_excludes("asdf")
 
 
-class TestBusinessProcessParser(unittest.TestCase):
+class TestBusinessProcessParser:
     def test_check_delete_excludes(self):
         parser = BusinessProcessParser(
             "BusinessProcess", None, "object", True, "./sf:businessProcesses"
         )
-        self.assertTrue(parser.check_delete_excludes("asdf"))
+        assert parser.check_delete_excludes("asdf")
 
 
-class TestDocumentParser(unittest.TestCase):
+class TestDocumentParser:
     def test_parse_subitem(self):
         parser = DocumentParser("Document", None, None, False)
-        self.assertEqual(["folder/doc"], parser._parse_subitem("folder", "doc"))
+        assert ["folder/doc"] == parser._parse_subitem("folder", "doc")
 
 
-class TestUpdatePackageXml(unittest.TestCase):
+class TestUpdatePackageXml:
     def test_run_task(self):
         src_path = os.path.join(
             __location__, "package_metadata", "namespaced_report_folder"
@@ -364,4 +364,4 @@ class TestUpdatePackageXml(unittest.TestCase):
             task()
             with open(output_path, "r") as f:
                 result = f.read()
-            self.assertEqual(expected, result)
+            assert expected == result

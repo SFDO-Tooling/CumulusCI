@@ -63,7 +63,7 @@ class TestPackageUpload:
             return_value=mock.Mock(create=mock.Mock(return_value={"id": "UPLOAD_ID"}))
         )
         task()
-        assert "SUCCESS" == task.upload["Status"]
+        assert task.upload["Status"] == "SUCCESS"
 
     def test_set_package_id(self):
         name = "Test Release"
@@ -262,7 +262,7 @@ class TestPackageUpload:
         )
         with pytest.raises(ApexTestException):
             task()
-        assert "ERROR" == task.upload["Status"]
+        assert task.upload["Status"] == "ERROR"
 
     def test_get_one__no_result(self):
         task = create_task(PackageUpload, {"name": "Test Release"})
