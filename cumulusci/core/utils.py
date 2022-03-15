@@ -227,7 +227,7 @@ def remove_overridden_flow_steps_in_config(
         for (
             step_num,
             overriding_step_config,
-        ) in flow_config["steps"].items():
+        ) in flow_config.get("steps", {}).items():
             cleanup_old_flow_step_replace_syntax(overriding_step_config)
             both_configs_have_flow_and_step = config_has_flow_and_step_num(
                 config_to_override, flow, step_num
