@@ -14,6 +14,7 @@ import cumulusci
 from cumulusci.core.debug import set_debug_mode
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.utils import get_cci_upgrade_command
+from cumulusci.utils.http.requests_utils import init_requests_trust
 from cumulusci.utils.logging import tee_stdout_stderr
 
 from .error import error
@@ -51,6 +52,10 @@ def main(args=None):
     """
     with contextlib.ExitStack() as stack:
         args = args or sys.argv
+
+        # (If enabled) set up requests to validate certs using system CA certs instead of certifi
+        init_requests_trust()
+
         # Check for updates _unless_ we've been asked to output JSON,
         # or if we're going to check anyway as part of the `version` command.
         is_version_command = len(args) > 1 and args[1] == "version"
