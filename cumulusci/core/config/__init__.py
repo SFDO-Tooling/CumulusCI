@@ -11,19 +11,34 @@ from cumulusci.core.config.base_config import BaseConfig
 class ConnectedAppOAuthConfig(BaseConfig):
     """Salesforce Connected App OAuth configuration"""
 
-    pass
+    client_id: str
+    client_secret: str
 
 
 class FlowConfig(BaseConfig):
     """A flow with its configuration merged"""
 
-    pass
+    description: str
+    steps: list
+    group: str
+    checks: list
+    project_config: BaseConfig
 
 
 from cumulusci.core.config.org_config import OrgConfig
 
 
 class ServiceConfig(BaseConfig):
+    url: str
+    username: str
+    password: str
+    token: str
+    email: str
+    client_id: str
+    client_secret: str
+    token_uri: str
+    callback_url: str
+
     def __init__(self, config, name=None, keychain=None):
         """Services may need access to a keychain and the alias of their service."""
         super().__init__(config, keychain)
@@ -31,6 +46,15 @@ class ServiceConfig(BaseConfig):
 
 class TaskConfig(BaseConfig):
     """A task with its configuration merged"""
+
+    options: str
+    class_path: str
+    description: str
+    group: str
+    ui_options: str
+    name: str
+    checks: str
+    project_config: str
 
     pass
 

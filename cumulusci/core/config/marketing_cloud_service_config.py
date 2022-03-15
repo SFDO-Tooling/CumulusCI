@@ -10,6 +10,11 @@ from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 class MarketingCloudServiceConfig(OAuth2ServiceConfig):
+
+    refresh_token: str
+    oauth2_client: str
+    soap_instance_url: str
+
     def __init__(self, config, name, keychain):
         super().__init__(config, name, keychain)
         self._name = name

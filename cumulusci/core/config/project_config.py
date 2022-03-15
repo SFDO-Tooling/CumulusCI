@@ -10,6 +10,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Union
 
+from cumulusci.core.config.base_config import BaseConfig
 from cumulusci.core.versions import PackageVersionNumber
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
@@ -42,7 +43,23 @@ from cumulusci.utils.yaml.cumulusci_yml import (
 )
 
 
-class BaseProjectConfig(BaseTaskFlowConfig):
+class ProjectConfigPropertiesMixin(BaseConfig):
+    cli: dict
+    services: dict
+    project: dict
+    cumulusci: dict
+    orgs: dict
+    minimum_cumulusci_version: str
+    sources: dict
+    flows: dict
+    plans: dict
+    tasks: dict
+    repo_owner: str
+    repo_name: str
+    dev_config: dict  # this is not documented and should be deprecated
+
+
+class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     """Base class for a project's configuration which extends the global config"""
 
     config_filename = "cumulusci.yml"
@@ -528,7 +545,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         Also makes sure the project has been fetched, if it's from an external source.
         """
-        spec = getattr(self, f"sources__{ns}")
+        spec = self.lookup(f"sources__{ns}")
         if spec is None:
             raise NamespaceNotFoundError(f"Namespace not found: {ns}")
 
@@ -603,5 +620,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def open_cache(self, cache_name):
         "A context managed PyFilesystem-based cache which could theoretically be on any filesystem."
         with open_fs_resource(self.cache_dir / cache_name) as cache_dir:
-            cache_dir.mkdir(exist_ok=True, parents=True)
+            cache_dir.mkdir(exist_ok=True)
             yield cache_dir
+
+
+class RemoteProjectConfig(BaseConfig):
+    project: dict

@@ -20,6 +20,8 @@ from cumulusci.oauth.salesforce import SANDBOX_LOGIN_URL, jwt_session
 from cumulusci.utils.fileutils import open_fs_resource
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
+from .org_config import *  # noqa
+
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
 SANDBOX_MYDOMAIN_RE = re.compile(r"\.cs\d+\.my\.(.*)salesforce\.com")
 MYDOMAIN_RE = re.compile(r"\.my\.(.*)salesforce\.com")
@@ -30,6 +32,38 @@ VersionInfo = namedtuple("VersionInfo", ["id", "number"])
 
 class OrgConfig(BaseConfig):
     """Salesforce org configuration (i.e. org credentials)"""
+
+    access_token: str
+    config_file: str
+    config_name: str
+    created: str
+    date_created: str
+    days: int
+    email_address: str
+    instance_name: str
+    instance_url: str
+    is_sandbox: str
+    namespace: str
+    namespaced: str
+    org_id: str
+    org_type: str
+    password: str
+    scratch: str
+    scratch_org_type: str
+    set_password: str
+    sfdx_alias: str
+    username: str
+    userinfo: str
+    id: str
+    expires: str
+    active: str
+    default: str
+    expired: bool
+    client_id: str
+    refresh_token: str
+    client_secret: str
+
+    createable: bool = None
 
     # make sure it can be mocked for tests
     OAuth2Client = OAuth2Client

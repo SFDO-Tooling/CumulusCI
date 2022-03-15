@@ -32,7 +32,7 @@ class TestGitHubSource(MockUtilBase):
             universal_config, repo_info={"root": os.getcwd()}
         )
         self.project_config.set_keychain(BaseProjectKeychain(self.project_config, None))
-        self.project_config.sources__foo = {
+        self.project_config.config["sources"]["foo"] = {
             "github": "https://github.com/TestOwner/Foo",
             "release": "latest",
         }

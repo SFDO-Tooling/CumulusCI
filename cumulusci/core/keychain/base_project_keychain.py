@@ -28,12 +28,15 @@ DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig(
 
 class BaseProjectKeychain(BaseConfig):
     encrypted = False
+    orgs: dict
+    app: object  # what is this?
+    services: dict
 
     def __init__(self, project_config, key):
         super(BaseProjectKeychain, self).__init__()
         self.config = {
             "orgs": {},
-            "app": None,
+            "app": None,  # what is this?
             "services": {},
         }
         self.project_config = project_config
@@ -58,7 +61,7 @@ class BaseProjectKeychain(BaseConfig):
 
     def create_scratch_org(self, org_name, config_name, days=None, set_password=True):
         """Adds/Updates a scratch org config to the keychain from a named config"""
-        scratch_config = getattr(self.project_config, f"orgs__scratch__{config_name}")
+        scratch_config = self.project_config.lookup(f"orgs__scratch__{config_name}")
         if days is not None:
             # Allow override of scratch config's default days
             scratch_config["days"] = days
@@ -383,7 +386,7 @@ class BaseProjectKeychain(BaseConfig):
         missing_required = []
         attr_key = f"services__{service_type}__attributes"
         for atr, config in list(getattr(self.project_config, attr_key).items()):
-            if config.get("required") and not getattr(service_config, atr):
+            if config.get("required") and not service_config.lookup(atr):
                 missing_required.append(atr)
 
         if missing_required:

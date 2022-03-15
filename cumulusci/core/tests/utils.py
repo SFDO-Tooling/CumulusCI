@@ -26,7 +26,7 @@ class MockLoggingHandler(logging.Handler):
             "error": [],
             "critical": [],
         }
-        super().__init__(*args, **kwargs)
+        super(MockLoggingHandler, self).__init__(*args, **kwargs)
 
     def emit(self, record):
         "Store a message from ``record`` in the instance's ``messages`` dict."
@@ -106,3 +106,11 @@ class MockLoggerMixin(object):
         logger.setLevel(logging.DEBUG)
         cls._task_log_handler = MockLoggingHandler(logging.DEBUG)
         logger.addHandler(cls._task_log_handler)
+
+
+class MockLookup:
+    def __init__(self, **kwargs):
+        self.dict = kwargs
+
+    def __call__(self, name, default=None):
+        return self.dict[name]
