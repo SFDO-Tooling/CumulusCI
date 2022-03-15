@@ -26,7 +26,7 @@ class MockLoggingHandler(logging.Handler):
             "error": [],
             "critical": [],
         }
-        super(MockLoggingHandler, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def emit(self, record):
         "Store a message from ``record`` in the instance's ``messages`` dict."

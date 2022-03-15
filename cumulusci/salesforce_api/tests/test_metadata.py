@@ -568,7 +568,7 @@ class TestApiDeploy(TestBaseTestMetadataApi):
     envelope_status = deploy_status_envelope
 
     def setup_method(self):
-        super(TestApiDeploy, self).setup_method()
+        super().setup_method()
         self.package_zip = DummyPackageZipBuilder().as_base64()
 
     def _expected_envelope_start(self):
@@ -788,7 +788,7 @@ class TestApiListMetadata(TestBaseTestMetadataApi):
     envelope_start = list_metadata_start_envelope
 
     def setup_method(self):
-        super(TestApiListMetadata, self).setup_method()
+        super().setup_method()
         self.metadata_type = "CustomObject"
         self.metadata = None
         self.folder = None
