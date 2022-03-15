@@ -29,6 +29,10 @@ An alphanumeric string used to encrypt org credentials at rest when an OS keycha
 Used for specifying a GitHub Repository for CumulusCI to use when running in a CI environment.
 
 
+``CUMULUSCI_SYSTEM_CERTS``
+--------------------------
+If set to ``True``, CumulusCI will configure the Python ``requests`` library to validate server TLS certificates using the system's certificate authorities, instead of the set of CA certs that is bundled with ``requests``.
+
 
 ``GITHUB_APP_ID``
 -----------------
