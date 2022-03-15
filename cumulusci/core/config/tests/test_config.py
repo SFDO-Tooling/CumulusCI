@@ -57,10 +57,12 @@ class TestBaseConfig:
         config.config = {"foo": "bar"}
         assert config.foo == "bar"
 
-    def test_getattr_toplevel_key_missing(self):
+    @mock.patch("warnings.warn")
+    def test_getattr_toplevel_key_missing(self, warn):
         config = BaseConfig()
         config.config = {}
         assert config.foo is None
+        assert len(warn.mock_calls) == 1
 
     def test_getattr_child_key(self):
         config = FakeConfig()
@@ -72,7 +74,7 @@ class TestBaseConfig:
         config.config = {"foo": {"bar": "baz"}}
         with mock.patch(
             "cumulusci.core.config.base_config.STRICT_GETATTR", "True"
-        ), pytest.raises(AssertionError):
+        ), mock.patch("warnings.warn"), pytest.raises(AssertionError):
             print(config.jfiesojfieoj)
 
     def test_getattr_child_parent_key_missing(self):

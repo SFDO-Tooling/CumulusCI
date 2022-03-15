@@ -50,10 +50,9 @@ class BaseConfig(object):
                     DeprecationWarning,
                 )
 
-                if STRICT_GETATTR:
-                    assert (
-                        0
-                    ), f"__getattr__ on Configs is deprecated: `{first_part}` on `{self.__class__.__name__}`"
+                assert (
+                    not STRICT_GETATTR
+                ), f"__getattr__ on Configs is deprecated: `{first_part}` on `{self.__class__.__name__}`"
         return self.lookup(name)
 
     @classmethod

@@ -13,6 +13,8 @@ class ConnectedAppOAuthConfig(BaseConfig):
 
     client_id: str
     client_secret: str
+    login_url: str
+    callback_url: str
 
 
 class FlowConfig(BaseConfig):
@@ -38,6 +40,7 @@ class ServiceConfig(BaseConfig):
     client_secret: str
     token_uri: str
     callback_url: str
+    login_url: str
 
     def __init__(self, config, name=None, keychain=None):
         """Services may need access to a keychain and the alias of their service."""

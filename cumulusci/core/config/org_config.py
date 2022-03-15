@@ -62,6 +62,7 @@ class OrgConfig(BaseConfig):
     client_id: str
     refresh_token: str
     client_secret: str
+    connected_app: str
 
     createable: bool = None
 
