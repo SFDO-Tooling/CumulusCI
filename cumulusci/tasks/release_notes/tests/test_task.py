@@ -175,7 +175,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             task.repo, "main", self.PARENT_BRANCH_NAME
         )
         assert 1 == actual_pull_request.number
-        assert "Body" == actual_pull_request.body
+        assert actual_pull_request.body == "Body"
 
     @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
     def test_get_parent_pull_request__pull_request_not_found(

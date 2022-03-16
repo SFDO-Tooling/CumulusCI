@@ -37,7 +37,7 @@ def test_get_latest_final_version():
         status=200,
     )
     result = utils.get_latest_final_version()
-    assert "1.0.1" == result.base_version
+    assert result.base_version == "1.0.1"
 
 
 @mock.patch("cumulusci.cli.utils.get_installed_version")

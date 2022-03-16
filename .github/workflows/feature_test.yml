@@ -107,10 +107,22 @@ jobs:
               with:
                   name: robot
                   path: robot/CumulusCI/results
-
-    robot_ui_chrome:
-        name: "Robot: Chrome"
+    robot_ui:
+        name: "Robot: ${{ matrix.job-name }}"
         runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - browser: "BROWSER:headlesschrome"
+                      job-name: "Chrome"
+                      org-shape: "dev"
+                    - browser: "BROWSER:headlessfirefox"
+                      job-name: "Firefox"
+                      org-shape: "dev"
+                    # - browser: "BROWSER:headlesschrome"
+                    #   job-name: "Pre-release"
+                    #   org-shape: "prerelease"
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python 3.8
@@ -138,14 +150,14 @@ jobs:
             - name: Run robot tests
               run: |
                   coverage run --append $(which cci) task run robot \
-                    --org dev \
+                    --org ${{ matrix.org-shape }} \
                     -o suites cumulusci/robotframework/tests/salesforce \
                     -o exclude no-browser \
-                    -o vars BROWSER:headlesschrome
+                    -o vars ${{ matrix.browser }}
             - name: Delete scratch org
               if: always()
               run: |
-                  cci org scratch_delete dev
+                  cci org scratch_delete ${{ matrix.org-shape }}
             - name: Report coverage
               run: coveralls
             - name: Store robot results
@@ -154,104 +166,10 @@ jobs:
               with:
                   name: robot
                   path: robot/CumulusCI/results
-
-    robot_ui_firefox:
-        name: "Robot: Firefox"
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v2
-            - name: Set up Python 3.8
-              uses: actions/setup-python@v2
-              with:
-                  python-version: 3.8
-                  cache: pip
-                  cache-dependency-path: "requirements/*.txt"
-            - name: Install Python dependencies
-              run: make dev-install
-            - name: Install sfdx
-              run: |
-                  mkdir sfdx
-                  wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
-                  echo $(realpath sfdx/bin) >> $GITHUB_PATH
-            - name: Authenticate Dev Hub
-              run: |
-                  sfdx plugins --core
-                  echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
-                  sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-              env:
-                  SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
-                  SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
-                  SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
-            - name: Run robot tests
-              run: |
-                  coverage run --append $(which cci) task run robot \
-                    --org dev \
-                    -o suites cumulusci/robotframework/tests/salesforce \
-                    -o exclude no-browser \
-                    -o vars BROWSER:headlessfirefox
-            - name: Delete scratch org
-              if: always()
-              run: |
-                  cci org scratch_delete dev
-            - name: Report coverage
-              run: coveralls
-            - name: Store robot results
-              if: failure()
-              uses: actions/upload-artifact@v1
-              with:
-                  name: robot
-                  path: robot/CumulusCI/results
-
-    # robot_ui_prerelease:
-    #     name: "Robot: Winter '22"
-    #     runs-on: ubuntu-latest
-    #     steps:
-    #         - uses: actions/checkout@v2
-    #         - name: Set up Python 3.8
-    #           uses: actions/setup-python@v2
-    #           with:
-    #               python-version: 3.8
-    #               cache: pip
-    #               cache-dependency-path: "requirements/*.txt"
-    #         - name: Install Python dependencies
-    #           run: make dev-install
-    #         - name: Install sfdx
-    #           run: |
-    #               mkdir sfdx
-    #               wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
-    #               echo $(realpath sfdx/bin) >> $GITHUB_PATH
-    #         - name: Authenticate Dev Hub
-    #           run: |
-    #               sfdx plugins --core
-    #               echo $SFDX_HUB_KEY_BASE64 | base64 --decode > sfdx.key
-    #               sfdx auth:jwt:grant --clientid $SFDX_CLIENT_ID --jwtkeyfile sfdx.key --username $SFDX_HUB_USERNAME --setdefaultdevhubusername -a hub
-    #           env:
-    #               SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
-    #               SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
-    #               SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
-    #         - name: Run robot tests
-    #           run: |
-    #               coverage run --append $(which cci) task run robot \
-    #                 --org prerelease \
-    #                 -o suites cumulusci/robotframework/tests/salesforce \
-    #                 -o exclude no-browser \
-    #                 -o vars BROWSER:headlesschrome
-    #         - name: Delete scratch org
-    #           if: always()
-    #           run: |
-    #               cci org scratch_delete prerelease
-    #         - name: Report coverage
-    #           run: coveralls
-    #         - name: Store robot results
-    #           if: failure()
-    #           uses: actions/upload-artifact@v1
-    #           with:
-    #               name: robot
-    #               path: robot/CumulusCI/results
 
     coveralls_done:
         name: Finalize coveralls
-        needs: [unit_tests, robot_api, robot_ui_chrome, robot_ui_firefox]
+        needs: [unit_tests, robot_api, robot_ui]
         runs-on: ubuntu-latest
         steps:
             - run: curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$GITHUB_SHA&payload[status]=done"

@@ -1,6 +1,6 @@
-import unittest
 from unittest.mock import Mock
 
+import pytest
 from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.exceptions import TaskOptionsError
@@ -12,7 +12,7 @@ from cumulusci.tasks.preflight.sobjects import (
 from cumulusci.tasks.salesforce.tests.util import create_task
 
 
-class TestCheckSObjectsAvailable(unittest.TestCase):
+class TestCheckSObjectsAvailable:
     def test_sobject_preflight(self):
         task = create_task(CheckSObjectsAvailable, {})
 
@@ -27,7 +27,7 @@ class TestCheckSObjectsAvailable(unittest.TestCase):
         assert task.return_values == {"Network", "Account"}
 
 
-class TestCheckSObjectPerms(unittest.TestCase):
+class TestCheckSObjectPerms:
     def test_sobject_perms_preflight(self):
         task = create_task(
             CheckSObjectPerms,
@@ -96,11 +96,11 @@ class TestCheckSObjectPerms(unittest.TestCase):
         assert task.return_values is False
 
     def test_sobject_perms_preflight__bad_options(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             create_task(CheckSObjectPerms, {"permissions": True})
 
 
-class TestCheckSObjectOWDs(unittest.TestCase):
+class TestCheckSObjectOWDs:
     def test_sobject_preflight__positive(self):
         task = create_task(
             CheckSObjectOWDs,
@@ -218,14 +218,14 @@ class TestCheckSObjectOWDs(unittest.TestCase):
         assert task.return_values is False
 
     def test_sobject_preflight__task_options(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             create_task(CheckSObjectOWDs, {})
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             create_task(
                 CheckSObjectOWDs,
                 {"org_wide_defaults": [{"internal_sharing_model": "Private"}]},
             )
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             create_task(
                 CheckSObjectOWDs, {"org_wide_defaults": [{"api_name": "Account"}]}
             )

@@ -600,9 +600,9 @@ Options\n------------------------------------------\n\n
         assert utils.PIPX_UPDATE_CMD == upgrade_cmd
 
     def test_convert_to_snake_case(self):
-        assert "one_two" == utils.convert_to_snake_case("OneTwo")
-        assert "one_two" == utils.convert_to_snake_case("ONETwo")
-        assert "one_two" == utils.convert_to_snake_case("One_Two")
+        assert utils.convert_to_snake_case("OneTwo") == "one_two"
+        assert utils.convert_to_snake_case("ONETwo") == "one_two"
+        assert utils.convert_to_snake_case("One_Two") == "one_two"
 
     @mock.patch("sarge.Command")
     def test_get_git_config(self, Command):
@@ -610,7 +610,7 @@ Options\n------------------------------------------\n\n
             stdout=io.BytesIO(b"test@example.com"), stderr=io.BytesIO(b""), returncode=0
         )
 
-        assert "test@example.com" == utils.get_git_config("user.email")
+        assert utils.get_git_config("user.email") == "test@example.com"
         assert (
             sarge.shell_format('git config --get "{0!s}"', "user.email")
             == Command.call_args[0][0]

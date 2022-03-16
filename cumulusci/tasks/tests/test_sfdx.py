@@ -1,6 +1,6 @@
 """ Tests for the SFDX Command Wrapper"""
 
-import unittest
+
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -18,10 +18,10 @@ from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.sfdx import SFDXBaseTask, SFDXJsonTask, SFDXOrgTask
 
 
-class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
+class TestSFDXBaseTask(MockLoggerMixin):
     """Tests for the Base Task type"""
 
-    def setUp(self):
+    def setup_method(self):
         self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
             self.universal_config, config={"noyaml": True}
@@ -45,8 +45,8 @@ class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
         except CommandException:
             pass
 
-        self.assertEqual("force:org", task.options["command"])
-        self.assertEqual("sfdx force:org --help", task._get_command())
+        assert task.options["command"] == "force:org"
+        assert task._get_command() == "sfdx force:org --help"
 
     @patch("cumulusci.tasks.command.Command._run_task", MagicMock(return_value=None))
     def test_keychain_org_creds(self):
@@ -71,9 +71,9 @@ class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
         task()
 
         org_config.refresh_oauth_token.assert_called_once()
-        self.assertIn("SFDX_INSTANCE_URL", task._get_env())
-        self.assertIn("SFDX_DEFAULTUSERNAME", task._get_env())
-        self.assertIn(access_token, task._get_env()["SFDX_DEFAULTUSERNAME"])
+        assert "SFDX_INSTANCE_URL" in task._get_env()
+        assert "SFDX_DEFAULTUSERNAME" in task._get_env()
+        assert access_token in task._get_env()["SFDX_DEFAULTUSERNAME"]
 
     def test_scratch_org_username(self):
         """Scratch Org credentials are passed by -u flag"""
@@ -81,14 +81,14 @@ class TestSFDXBaseTask(MockLoggerMixin, unittest.TestCase):
         org_config = ScratchOrgConfig({"username": "test@example.com"}, "test")
 
         task = SFDXOrgTask(self.project_config, self.task_config, org_config)
-        self.assertIn("-u test@example.com", task._get_command())
+        assert "-u test@example.com" in task._get_command()
 
 
-class TestSFDXJsonTask(unittest.TestCase):
+class TestSFDXJsonTask:
     def test_get_command(self):
         task = create_task(SFDXJsonTask)
         command = task._get_command()
-        self.assertEqual("sfdx force:mdapi:deploy --json", command)
+        assert command == "sfdx force:mdapi:deploy --json"
 
     def test_process_output(self):
         task = create_task(SFDXJsonTask)

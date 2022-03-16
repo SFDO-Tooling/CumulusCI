@@ -1,7 +1,8 @@
 import io
-import unittest
 import zipfile
 from unittest import mock
+
+import pytest
 
 from cumulusci.core.config import OrgConfig, TaskConfig
 from cumulusci.core.exceptions import ServiceNotConfigured
@@ -18,8 +19,8 @@ from cumulusci.utils import temporary_dir
 from . import create_task
 
 
-class TestBaseSalesforceTask(unittest.TestCase):
-    def setUp(self):
+class TestBaseSalesforceTask:
+    def setup_method(self):
         self.project_config = create_project_config()
         self.project_config.keychain = mock.Mock()
         self.project_config.keychain.get_service.side_effect = ServiceNotConfigured
@@ -33,7 +34,7 @@ class TestBaseSalesforceTask(unittest.TestCase):
             task = BaseSalesforceTask(
                 self.project_config, self.task_config, self.org_config
             )
-            with self.assertRaises(NotImplementedError):
+            with pytest.raises(NotImplementedError):
                 task()
 
     def test_update_credentials(self):
@@ -54,17 +55,17 @@ class TestBaseSalesforceTask(unittest.TestCase):
         self.project_config.keychain.set_org.assert_called_once()
 
 
-class TestBaseSalesforceApiTask(unittest.TestCase):
+class TestBaseSalesforceApiTask:
     def test_sf_instance(self):
         org_config = OrgConfig(
             {"instance_url": "https://foo/", "access_token": "TOKEN"}, "test"
         )
         task = create_task(BaseSalesforceApiTask, org_config=org_config)
         task._init_task()
-        self.assertFalse(task.sf.sf_instance.endswith("/"))
+        assert not task.sf.sf_instance.endswith("/")
 
 
-class TestBaseSalesforceMetadataApiTask(unittest.TestCase):
+class TestBaseSalesforceMetadataApiTask:
     def test_run_task(self):
         task = create_task(BaseSalesforceMetadataApiTask)
         api = mock.Mock()
@@ -73,7 +74,7 @@ class TestBaseSalesforceMetadataApiTask(unittest.TestCase):
         api.assert_called_once()
 
 
-class TestBaseRetrieveMetadata(unittest.TestCase):
+class TestBaseRetrieveMetadata:
     def test_process_namespace(self):
         with temporary_dir() as path:
             task = create_task(
@@ -87,10 +88,10 @@ class TestBaseRetrieveMetadata(unittest.TestCase):
             )
             zf = zipfile.ZipFile(io.BytesIO(), "w")
             result = task._process_namespace(zf)
-            self.assertIsInstance(result, zipfile.ZipFile)
+            assert isinstance(result, zipfile.ZipFile)
 
 
-class TestBaseUninstallMetadata(unittest.TestCase):
+class TestBaseUninstallMetadata:
     def test_get_api(self):
         with temporary_dir() as path:
             task = create_task(BaseUninstallMetadata, {"path": path})

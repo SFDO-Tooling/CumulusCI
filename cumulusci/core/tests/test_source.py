@@ -1,7 +1,6 @@
 import io
 import os
 import pathlib
-import unittest
 import zipfile
 from base64 import b64encode
 from tempfile import TemporaryDirectory
@@ -14,7 +13,7 @@ import yaml
 from cumulusci.core.config import BaseProjectConfig, ServiceConfig, UniversalConfig
 from cumulusci.core.exceptions import DependencyResolutionError, GithubApiError
 from cumulusci.core.keychain import BaseProjectKeychain
-from cumulusci.tasks.release_notes.tests.utils import MockUtil
+from cumulusci.tasks.release_notes.tests.utils import MockUtilBase
 from cumulusci.utils import temporary_dir, touch
 from cumulusci.utils.yaml.cumulusci_yml import (
     GitHubSourceModel,
@@ -25,8 +24,8 @@ from cumulusci.utils.yaml.cumulusci_yml import (
 from ..source import GitHubSource, LocalFolderSource
 
 
-class TestGitHubSource(unittest.TestCase, MockUtil):
-    def setUp(self):
+class TestGitHubSource(MockUtilBase):
+    def setup_method(self):
         self.repo_api_url = "https://api.github.com/repos/TestOwner/TestRepo"
         universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
@@ -50,7 +49,7 @@ class TestGitHubSource(unittest.TestCase, MockUtil):
             ),
         )
 
-    def tearDown(self):
+    def teardown_method(self):
         self.repo_root.cleanup()
 
     @responses.activate

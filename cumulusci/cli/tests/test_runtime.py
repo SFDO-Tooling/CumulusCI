@@ -1,10 +1,10 @@
 import os
 import sys
-import unittest
 from datetime import date, timedelta
 from unittest import mock
 
 import click
+import pytest
 
 import cumulusci
 from cumulusci.cli.runtime import CliRuntime
@@ -12,32 +12,32 @@ from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import ConfigError, OrgNotFound
 
 
-class TestCliRuntime(unittest.TestCase):
+class TestCliRuntime:
     key = "1234567890abcdef"
 
-    def setUp(self):
+    def setup_method(self):
         os.chdir(os.path.dirname(cumulusci.__file__))
         self.environ_mock = mock.patch.dict(os.environ, {"CUMULUSCI_KEY": self.key})
         self.environ_mock.start()
 
-    def tearDown(self):
+    def teardown_method(self):
         self.environ_mock.stop()
 
     def test_init(self):
         config = CliRuntime()
 
         for key in {"cumulusci", "tasks", "flows", "services", "orgs", "project"}:
-            self.assertIn(key, config.universal_config.config)
-        self.assertEqual("CumulusCI", config.project_config.project__name)
+            assert key in config.universal_config.config
+        assert config.project_config.project__name == "CumulusCI"
         for key in {"services", "orgs", "app"}:
-            self.assertIn(key, config.keychain.config)
-        self.assertIn(config.project_config.repo_root, sys.path)
+            assert key in config.keychain.config
+        assert config.project_config.repo_root in sys.path
 
     @mock.patch("cumulusci.cli.runtime.CliRuntime._load_project_config")
     def test_load_project_config_error(self, load_proj_cfg_mock):
         load_proj_cfg_mock.side_effect = ConfigError
 
-        with self.assertRaises(click.UsageError):
+        with pytest.raises(click.UsageError):
             CliRuntime()
 
     @mock.patch("cumulusci.cli.runtime.keyring")
@@ -45,7 +45,7 @@ class TestCliRuntime(unittest.TestCase):
         keyring.get_password.return_value = None
 
         config = CliRuntime()
-        self.assertEqual(self.key, config.keychain.key)
+        assert self.key == config.keychain.key
         keyring.set_password.assert_called_once_with(
             "cumulusci", "CUMULUSCI_KEY", self.key
         )
@@ -57,7 +57,7 @@ class TestCliRuntime(unittest.TestCase):
         keyring.get_password.return_value = "overridden"
 
         config = CliRuntime()
-        self.assertEqual(self.key, config.keychain.key)
+        assert self.key == config.keychain.key
 
     @mock.patch("cumulusci.cli.runtime.keyring")
     def test_get_keychain_key__generates_key(self, keyring):
@@ -68,8 +68,8 @@ class TestCliRuntime(unittest.TestCase):
             keyring.get_password.return_value = None
 
             config = CliRuntime()
-        self.assertNotEqual(self.key, config.keychain.key)
-        self.assertEqual(16, len(config.keychain.key))
+        assert self.key != config.keychain.key
+        assert 16 == len(config.keychain.key)
 
     @mock.patch("cumulusci.cli.runtime.keyring")
     def test_get_keychain_key__warns_if_generated_key_cannot_be_stored(self, keyring):
@@ -86,8 +86,8 @@ class TestCliRuntime(unittest.TestCase):
         config.keychain.get_org.return_value = org_config = OrgConfig({}, "test")
 
         org_name, org_config_result = config.get_org("test")
-        self.assertEqual("test", org_name)
-        self.assertIs(org_config, org_config_result)
+        assert org_name == "test"
+        assert org_config is org_config_result
 
     def test_get_org_default(self):
         config = CliRuntime()
@@ -96,15 +96,15 @@ class TestCliRuntime(unittest.TestCase):
         config.keychain.get_default_org.return_value = ("test", org_config)
 
         org_name, org_config_result = config.get_org()
-        self.assertEqual("test", org_name)
-        self.assertIs(org_config, org_config_result)
+        assert org_name == "test"
+        assert org_config is org_config_result
 
     def test_get_org_missing(self):
         config = CliRuntime()
         config.keychain = mock.Mock()
         config.keychain.get_org.return_value = None
 
-        with self.assertRaises(click.UsageError):
+        with pytest.raises(click.UsageError):
             org_name, org_config_result = config.get_org("test", fail_if_missing=True)
 
     def test_check_org_expired(self):
@@ -126,7 +126,7 @@ class TestCliRuntime(unittest.TestCase):
         config = CliRuntime()
         config.keychain.get_org = mock.Mock(side_effect=OrgNotFound)
 
-        self.assertTrue(config.check_org_overwrite("test"))
+        assert config.check_org_overwrite("test")
 
     def test_check_org_overwrite_scratch_exists(self):
         config = CliRuntime()
@@ -134,7 +134,7 @@ class TestCliRuntime(unittest.TestCase):
             return_value=OrgConfig({"scratch": True, "created": True}, "test")
         )
 
-        with self.assertRaises(click.ClickException):
+        with pytest.raises(click.ClickException):
             config.check_org_overwrite("test")
 
     def test_check_org_overwrite_non_scratch_exists(self):
@@ -143,14 +143,14 @@ class TestCliRuntime(unittest.TestCase):
             return_value=OrgConfig({"scratch": False}, "test")
         )
 
-        with self.assertRaises(click.ClickException):
+        with pytest.raises(click.ClickException):
             config.check_org_overwrite("test")
 
     def test_check_cumulusci_version(self):
         config = CliRuntime()
         config.project_config.minimum_cumulusci_version = "999"
 
-        with self.assertRaises(click.UsageError):
+        with pytest.raises(click.UsageError):
             config.check_cumulusci_version()
 
     @mock.patch("cumulusci.cli.runtime.call")
@@ -162,7 +162,7 @@ class TestCliRuntime(unittest.TestCase):
         config.alert("hello")
         echo_mock.assert_called_once()
         shell_mock.assert_called_once()
-        self.assertIn("osascript", shell_mock.call_args[0][0])
+        assert "osascript" in shell_mock.call_args[0][0]
 
     @mock.patch("cumulusci.cli.runtime.call")
     @mock.patch("cumulusci.cli.runtime.click.echo")
@@ -173,7 +173,7 @@ class TestCliRuntime(unittest.TestCase):
         config.alert("hello")
         echo_mock.assert_called_once()
         shell_mock.assert_called_once()
-        self.assertIn("notify-send", shell_mock.call_args[0][0])
+        assert "notify-send" in shell_mock.call_args[0][0]
 
     @mock.patch("cumulusci.cli.runtime.call")
     @mock.patch("cumulusci.cli.runtime.click.echo")

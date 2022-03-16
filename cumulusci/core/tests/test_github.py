@@ -466,11 +466,11 @@ class TestGithub(GithubApiTestMixin):
         resp = Response()
         resp.status_code = 401
         exc = AuthenticationFailed(resp)
-        assert "" == check_github_sso_auth(exc)
+        assert check_github_sso_auth(exc) == ""
 
         resp.status_code = 403
         exc = ForbiddenError(resp)
-        assert "" == check_github_sso_auth(exc)
+        assert check_github_sso_auth(exc) == ""
 
     @mock.patch("webbrowser.open")
     def test_check_github_sso_unauthorized_token(self, browser_open):
@@ -658,7 +658,7 @@ class TestGithub(GithubApiTestMixin):
 
         returned_token = get_oauth_device_flow_token()
 
-        assert "expected_access_token" == returned_token
+        assert returned_token == "expected_access_token"
         get_token.assert_called_once()
         get_code.assert_called_once()
         browser_open.assert_called_with("https://github.com/login/device")

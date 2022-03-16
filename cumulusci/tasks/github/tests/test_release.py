@@ -1,7 +1,7 @@
 import json
-import unittest
 from unittest import mock
 
+import pytest
 import responses
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
@@ -14,8 +14,8 @@ DUMMY_SHA = "21e04cfe480f5293e2f7103eee8a5cbdb94f7982"
 
 
 @mock.patch("cumulusci.tasks.github.release.time.sleep", mock.Mock())
-class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
-    def setUp(self):
+class TestCreateRelease(GithubApiTestMixin):
+    def setup_method(self):
         self.repo_owner = "TestOwner"
         self.repo_name = "TestRepo"
         self.repo_api_url = "https://api.github.com/repos/{}/{}".format(
@@ -97,14 +97,11 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             ),
         )
         task()
-        self.assertEqual(
-            {
-                "tag_name": "release/1.0",
-                "name": "1.0",
-                "dependencies": [{"namespace": "foo", "version": "1.0"}],
-            },
-            task.return_values,
-        )
+        assert {
+            "tag_name": "release/1.0",
+            "name": "1.0",
+            "dependencies": [{"namespace": "foo", "version": "1.0"}],
+        } == task.return_values
         # confirm the package_type was recorded in the tag message
         tag_request = json.loads(responses.calls._calls[4].request.body)
         assert "package_type: 1GP" in tag_request["message"]
@@ -138,7 +135,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
                 }
             ),
         )
-        with self.assertRaises(GithubException):
+        with pytest.raises(GithubException):
             task()
 
     @responses.activate
@@ -155,7 +152,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
         del self.project_config._repo_info["commit"]
 
-        with self.assertRaises(GithubException):
+        with pytest.raises(GithubException):
             CreateRelease(
                 self.project_config,
                 TaskConfig({"options": {"version": "1.0", "commit": None}}),
@@ -175,7 +172,7 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
         )
         self.project_config._repo_info["commit"] = "too_short"
 
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             CreateRelease(
                 self.project_config, TaskConfig({"options": {"version": "1.0"}})
             )
@@ -239,14 +236,11 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             ),
         )
         task()
-        self.assertEqual(
-            {
-                "tag_name": "custom/1.0",
-                "name": "1.0",
-                "dependencies": [{"namespace": "foo", "version": "1.0"}],
-            },
-            task.return_values,
-        )
+        assert {
+            "tag_name": "custom/1.0",
+            "name": "1.0",
+            "dependencies": [{"namespace": "foo", "version": "1.0"}],
+        } == task.return_values
         assert "package_type: 2GP" in responses.calls._calls[4].request.body
 
     @responses.activate
@@ -307,14 +301,11 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             ),
         )
         task()
-        self.assertEqual(
-            {
-                "tag_name": "beta/1.0-Beta_1",
-                "name": "1.0 (Beta 1)",
-                "dependencies": [],
-            },
-            task.return_values,
-        )
+        assert {
+            "tag_name": "beta/1.0-Beta_1",
+            "name": "1.0 (Beta 1)",
+            "dependencies": [],
+        } == task.return_values
         # confirm we didn't create a prerelease
         release_request = json.loads(responses.calls._calls[-1].request.body)
         assert release_request["prerelease"]
@@ -388,12 +379,9 @@ class TestCreateRelease(unittest.TestCase, GithubApiTestMixin):
             ),
         )
         task()
-        self.assertEqual(
-            {
-                "tag_name": "beta/1.1",
-                "name": "1.1",
-                "dependencies": [{"namespace": "foo", "version": "1.0"}],
-            },
-            task.return_values,
-        )
+        assert {
+            "tag_name": "beta/1.1",
+            "name": "1.1",
+            "dependencies": [{"namespace": "foo", "version": "1.0"}],
+        } == task.return_values
         assert "package_type: 2GP" in responses.calls._calls[4].request.body

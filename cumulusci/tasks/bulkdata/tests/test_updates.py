@@ -506,6 +506,6 @@ class TestUpdatesIntegrationTests:
             task.logger = mock.Mock()
             task()
             last_message = task.logger.mock_calls[-1].args[0]
-            assert "All account objects successfully updated (6)." == str(
-                last_message
+            assert (
+                str(last_message) == "All account objects successfully updated (6)."
             ), str(last_message)

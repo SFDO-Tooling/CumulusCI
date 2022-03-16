@@ -2,8 +2,9 @@ import base64
 import io
 import os
 import pathlib
-import unittest
 import zipfile
+
+import pytest
 
 from cumulusci.salesforce_api.package_zip import (
     BasePackageZipBuilder,
@@ -339,39 +340,39 @@ class TestMetadataPackageZipBuilder:
             assert b"FeatureParameterInteger" not in package_xml
 
 
-class TestCreatePackageZipBuilder(unittest.TestCase):
+class TestCreatePackageZipBuilder:
     def test_init__missing_name(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             CreatePackageZipBuilder(None, "43.0")
 
     def test_init__missing_api_version(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             CreatePackageZipBuilder("TestPackage", None)
 
 
-class TestInstallPackageZipBuilder(unittest.TestCase):
+class TestInstallPackageZipBuilder:
     def test_init__missing_namespace(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             InstallPackageZipBuilder(None, "1.0")
 
     def test_init__missing_version(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             InstallPackageZipBuilder("testns", None)
 
 
-class TestDestructiveChangesZipBuilder(unittest.TestCase):
+class TestDestructiveChangesZipBuilder:
     def test_call(self):
         builder = DestructiveChangesZipBuilder("", "1.0")
         names = builder.zf.namelist()
-        self.assertIn("package.xml", names)
-        self.assertIn("destructiveChanges.xml", names)
+        assert "package.xml" in names
+        assert "destructiveChanges.xml" in names
 
 
-class TestUninstallPackageZipBuilder(unittest.TestCase):
+class TestUninstallPackageZipBuilder:
     def test_init__missing_namespace(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             UninstallPackageZipBuilder(None, "1.0")
 
     def test_call(self):
         builder = UninstallPackageZipBuilder("testns", "1.0")
-        self.assertIn("destructiveChanges.xml", builder.zf.namelist())
+        assert "destructiveChanges.xml" in builder.zf.namelist()

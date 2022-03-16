@@ -1,6 +1,6 @@
-import unittest
 from unittest import mock
 
+import pytest
 import responses
 
 from cumulusci.core.exceptions import TaskOptionsError
@@ -10,7 +10,7 @@ from cumulusci.utils import temporary_dir
 from .util import create_task
 
 
-class TestRetrievePackaged(unittest.TestCase):
+class TestRetrievePackaged:
     @responses.activate
     def test_get_api(self):
         with temporary_dir() as path:
@@ -33,7 +33,7 @@ class TestRetrievePackaged(unittest.TestCase):
             task.api_class = mock.Mock()
             task._get_api()
             package_xml = task.api_class.call_args[0][1]
-            self.assertEqual(
+            assert (
                 """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
@@ -47,10 +47,10 @@ class TestRetrievePackaged(unittest.TestCase):
         <name>Report</name>
     </types>
     <version>43.0</version>
-</Package>""",
-                package_xml,
+</Package>"""
+                == package_xml
             )
 
     def test_init__missing_options(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             create_task(RetrieveReportsAndDashboards, {"path": None})
