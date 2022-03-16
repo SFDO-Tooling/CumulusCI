@@ -374,7 +374,7 @@ def warn_oauth_restricted(exc: ResponseError) -> str:
 
     is_403 = exc.response.status_code == 403
     org_restricted_oauth_warning = (
-        "organization has enabled OAuth App access restrictions"
+        "organization has enabled OAuth App access restriction"
     )
 
     if is_403 and org_restricted_oauth_warning in str(exc):
