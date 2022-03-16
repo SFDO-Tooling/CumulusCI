@@ -1,5 +1,4 @@
 from difflib import get_close_matches
-from warnings import warn
 
 from cumulusci.core.config import BaseConfig, FlowConfig, TaskConfig
 from cumulusci.core.exceptions import (
@@ -76,10 +75,3 @@ class BaseTaskFlowConfig(BaseConfig):
             return f'. Did you mean "{match_list[0]}"?'
         else:
             return ""
-
-
-from .base_task_flow_config import *  # noqa
-
-warn(
-    "Deprecation warning: Please import from .base_task_flow_config rather than .BaseTaskFlowConfig"
-)
