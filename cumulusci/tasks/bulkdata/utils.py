@@ -1,11 +1,13 @@
 import collections
 import logging
 import tempfile
+import typing as T
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 from simple_salesforce import Salesforce
 from sqlalchemy import Column, Integer, MetaData, Table, Unicode
+from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session, mapper
 
 from cumulusci.core.exceptions import BulkDataException
@@ -21,31 +23,37 @@ class SqlAlchemyMixin:
     sf: Salesforce
 
     def _sql_bulk_insert_from_records(
-        self, *, connection, table, columns, record_iterable
-    ):
+        self,
+        *,
+        connection: Connection,
+        table: str,
+        columns: T.Tuple[str],
+        record_iterable: T.Iterable,
+    ) -> None:
         """Persist records from the given generator into the local database."""
-        consume(
-            self._sql_bulk_insert_from_records_incremental(
-                connection=connection,
-                table=table,
-                columns=columns,
-                record_iterable=record_iterable,
-            )
+        _sql_bulk_insert_from_records(
+            connection=connection,
+            metadata=self.metadata,
+            table=table,
+            columns=columns,
+            record_iterable=record_iterable,
         )
 
     def _sql_bulk_insert_from_records_incremental(
-        self, *, connection, table, columns, record_iterable
-    ):
-        """Generator that persists batches of records from the given generator into the local database
-
-        Yields after every batch."""
-        table = self.metadata.tables[table]
-        dict_iterable = (dict(zip(columns, row)) for row in record_iterable)
-        for group in iterate_in_chunks(10000, dict_iterable):
-            with connection.begin():
-                connection.execute(table.insert(), group)
-            self.session.flush()
-            yield
+        self,
+        *,
+        connection: Connection,
+        table: str,
+        columns: T.Tuple[str],
+        record_iterable: T.Iterable,
+    ) -> T.Generator:
+        return _sql_bulk_insert_from_records_incremental(
+            connection=connection,
+            metadata=self.metadata,
+            table=table,
+            columns=columns,
+            record_iterable=record_iterable,
+        )
 
     def _create_record_type_table(self, table_name):
         """Create a table to store mapping between Record Type Ids and Developer Names."""
@@ -172,3 +180,43 @@ def consume(iterator):
     Simplified from the function in https://docs.python.org/3/library/itertools.html
     """
     collections.deque(iterator, maxlen=0)
+
+
+def _sql_bulk_insert_from_records(
+    *,
+    connection: Connection,
+    metadata: MetaData,
+    table: str,
+    columns: T.Tuple[str],
+    record_iterable: T.Iterable,
+) -> None:
+    """Persist records from the given generator into the local database."""
+    consume(
+        _sql_bulk_insert_from_records_incremental(
+            connection=connection,
+            metadata=metadata,
+            table=table,
+            columns=columns,
+            record_iterable=record_iterable,
+        )
+    )
+
+
+def _sql_bulk_insert_from_records_incremental(
+    *,
+    connection: Connection,
+    metadata: MetaData,
+    table: str,
+    columns: T.Tuple[str],
+    record_iterable: T.Iterable,
+):
+    """Generator that persists batches of records from the given generator into the local database
+
+    Yields after every batch."""
+    table = metadata.tables[table]
+    dict_iterable = (dict(zip(columns, row)) for row in record_iterable)
+    for group in iterate_in_chunks(10000, dict_iterable):
+        with connection.begin():
+            connection.execute(table.insert(), group)
+        # self.session.flush()  -- Did this line do anything?
+        yield
