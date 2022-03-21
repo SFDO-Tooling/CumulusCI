@@ -72,25 +72,25 @@ Non-lightning based form - checkbox
     ...  e.g.: <input type="checkbox">
 
     [Setup]  Run keywords
-    ...  Go to page                  Home    Shift
+    ...  Go to page                  Home    ServiceCrewMember
     ...  AND  Click Object Button    New
-    ...  AND  Wait for modal         New     Shift
+    ...  AND  Wait for modal         New     ServiceCrewMember
     [Teardown]   Click modal button  Cancel
 
     # first, let's make sure that the keyword returns an element
     # that is a plain html input element
-    ${element}=      Get webelement       label:Non-Standard
+    ${element}=      Get webelement       label:Leader
     Should be equal  ${element.tag_name}  input
 
     # next, set the checkbox and assert it is checked
     Input form data
-    ...  Non-Standard    checked
-    Checkbox should be selected      label:Non-Standard
+    ...  Leader    checked
+    Checkbox should be selected      label:Leader
 
     # finally, unset it and assert it is unchecked
     Input form data
-    ...  Non-Standard    unchecked
-    Checkbox should not be selected      label:Non-Standard
+    ...  Leader    unchecked
+    Checkbox should not be selected      label:Leader
 
 
 Non-lightning based form - Shipment
