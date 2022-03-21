@@ -66,32 +66,9 @@ Lightning based form - Opportunity
 
     capture page screenshot
 
-Non-lightning based form - checkbox
-    [Documentation]
-    ...  Verify that we can check and uncheck standard html checkboxes
-    ...  e.g.: <input type="checkbox">
-
-    [Setup]  Run keywords
-    ...  Go to page                  Home    Shift
-    ...  AND  Click Object Button    New
-    ...  AND  Wait for modal         New     Shift
-    [Teardown]   Click modal button  Cancel
-
-    # first, let's make sure that the keyword returns an element
-    # that is a plain html input element
-    ${element}=      Get webelement       label:Non-Standard
-    Should be equal  ${element.tag_name}  input
-
-    # next, set the checkbox and assert it is checked
-    Input form data
-    ...  Non-Standard    checked
-    Checkbox should be selected      label:Non-Standard
-
-    # finally, unset it and assert it is unchecked
-    Input form data
-    ...  Non-Standard    unchecked
-    Checkbox should not be selected      label:Non-Standard
-
+    # ${contact_id} =       Get Current Record Id
+    # Store Session Record  Contact  ${contact_id}
+    # Validate Contact      ${contact_id}  ${first_name}  ${last_name}
 
 Non-lightning based form - Shipment
     [Documentation]
@@ -110,6 +87,7 @@ Non-lightning based form - Shipment
         Should not start with  ${element.tag_name}  lightning-
         ...  Element tag for '${label}' not expected to be lightning component
     END
+
     Input form data
     ...  Ship To Street  2501 Exchange Ave
     ...  Ship To City    Oklahoma City
