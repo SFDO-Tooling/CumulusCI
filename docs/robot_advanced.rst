@@ -105,7 +105,7 @@ In addition to browser interactions, the Salesforce Library also provides keywor
 
 
 
-Using PageObjects
+Using Page Objects
 -----------------
 
 The `PageObjects <Keywords.html#file-cumulusci.robotframework.PageObjects>`_ library provides support for page objects, Robot Framework-style. Even though Robot is a keyword-driven framework, it's also possible to dynamically load in keywords unique to a page or an object on the page.
@@ -117,30 +117,66 @@ With the ``PageObjects`` library, you can define classes that represent page obj
 The ``pageobject`` Decorator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Page objects are normal Python classes that use the ``pageobject`` decorator provided by CumulusCI. Unlike traditional Robot Framework keyword libraries, you can define multiple sets of keywords in a single file.
+Page objects are normal Python classes that use the ``pageobject`` decorator provided by CumulusCI. Unlike traditional Robot Framework keyword libraries, you can easily define and use keywords in multiple classes within a single file.
 
-To create a page object class, start by inheriting from one of the provided base classes. No matter which class you inherit from, your page object class gets these predefined properties.
+To create a page object class, start by inheriting from one of the provided base classes. You need to use the ``pageobject`` decorator to designate the class as a page object, and to describe the type of page (Listing, Detail, etc) and the associated salesfore object. From within a test, these page objects are referenced using both the type and object name (eg: ``Go to page  Listing  CustomObject__c``).
 
-* ``self.object_name``: The name of the object related to the class. This is defined via the ``object_name`` parameter to the ``pageobject`` decorator. Do not add the namespace prefix in the decorator. This attribute will automatically add the prefix from the ``cumulusci.yml`` file when necessary.
-* ``self.builtin``: A reference to the Robot Framework ``BuiltIn`` library that can be used to directly call built-in keywords. Any built-in keyword can be called by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.builtin.log`` and ``self.builtin.get_variable_value``).
-* ``self.cumulusci``: A reference to the CumulusCI keyword library. Call any keyword in this library by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.cumulusci.get_org_info``).
-* ``self.salesforce``: A reference to the Salesforce keyword library. Call any keyword in this library by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.salesforce.wait_until_loading_is_complete``).
-* ``self.selenium``: A reference to SeleniumLibrary. Call any keyword in this library by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.selenim.wait_until_page_contains_element``).
+The following example illustrates how to create a ``Listing`` page object for ``CustomObject__c``.
 
+.. code-block:: python
+
+    from cumulusci.robotframework.pageobjects import ListingPage, pageobject
+
+    @pageobject(page_type='Listing', object_name='CustomObject__c')
+    class CustomObjectListingPage(ListingPage):
+        ...
+
+Using object aliases
+""""""""""""""""""""
+
+Within a test, if you want to refer to the page object with a more human-readable name such as ``Custom Object`` rather than ``CustomObject__c`` you can do so by setting ``object_name`` to ``Custom Object`` and then defining ``_object_name`` in the class, as in the following example.
+
+.. code-block:: python
+
+    from cumulusci.robotframework.pageobjects import ListingPage, pageobject
+
+    @pageobject(page_type = 'Listing', object_name = 'My Object')
+    class CustomObjectListingPage(ListingPage):
+        _object_name = 'MyObject__c'
+        ...
+
+By using an alias, you can reference the page object with either the alias or the actual object name. For example, if ``object_name`` is set as described above, the following two uses of ``Go to page`` are identical:
+
+.. code-block:: robot
+
+    Go to page  Listing  My Object
+    Go to page  Listing  MyObject__c
 
 
 Page Object Base Classes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Presently, CumulusCI provides the following base classes, which should be used for all classes that use the ``pageobject`` decorator:
+CumulusCI provides the following base classes, which should be used for all classes that use the ``pageobject`` decorator. You can import these base classes from ``cumulusci.robotframework.pageobjects``.
 
-* `cumulusci.robotframework.pageobjects.BasePage <Keywords.html#file-cumulusci/robotframework/pageobjects/BasePageObjects.py>`_ A generic base class used by the other base classes. Use the ``BasePage`` class for creating custom page objects when none of the other base classes make sense.
-    * The ``BasePage`` adds the ``Log current page object`` keyword to every page object. This keyword is most useful when debugging tests. It will add to the log information about the currently loaded page object.
+* `cumulusci.robotframework.pageobjects.BasePage <Keywords.html#file-cumulusci/robotframework/pageobjects/BasePageObjects.py>`_ A generic base class used by the other pageobject classes. Use the ``BasePage`` class for creating custom page objects when none of the other base classes make sense.
+    * The ``BasePage`` adds the ``Log current page object`` keyword to every page object. This keyword is most useful when debugging tests. It will add information about the currently loaded page object to the log file generated when the test runs.
 * ``cumulusci.robotframework.pageobjects.DetailPage``: A class for a page object that represents a detail page.
 * ``cumulusci.robotframework.pageobjects.HomePage``: A class for a page object that represents a home page.
 * ``cumulusci.robotframework.pageobjects.ListingPage``: A class for a page object that represents a listing page.
 * ``cumulusci.robotframework.pageobject.NewModal``: A class for a page object that represents the "new object" modal.
 * ``cumulusci.robotframework.pageobject.ObjectManagerPage``: A class for interacting with the object manager.
+
+
+Common page object attributes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When using the decorator and inheriting from one of the page object base classes, your class inherits the following attributes and properties.
+
+* ``self._object_name``: The name of the object related to the class. If the class does not define this property, it is set to the value provided as the  ``object_name`` parameter to the ``pageobject`` decorator. Note: do not add the namespace prefix in the decorator. This attribute automatically adds the prefix from the ``cumulusci.yml`` file when necessary.
+* ``self.object_name``: A property that combines the ``_object_name`` attribute with the namespace returned by the ``get namespace prefix`` keyword from the CumulusCI library. If there is no namespace, this returns the value of the ``_object_name`` attribute.
+* ``self.builtin``: A reference to the Robot Framework ``BuiltIn`` library that you can use to directly call built-in keywords. You can call any built-in keyword by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.builtin.log`` and ``self.builtin.get_variable_value``).
+* ``self.cumulusci``: A reference to the CumulusCI keyword library. You can call any keyword in this library by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.cumulusci.get_org_info``).
+* ``self.salesforce``: A reference to the Salesforce keyword library. You can call any keyword in this library by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.salesforce.wait_until_loading_is_complete``).
+* ``self.selenium``: A reference to SeleniumLibrary. You can call any keyword in this library by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.selenim.wait_until_page_contains_element``).
 
 
 
@@ -159,8 +195,6 @@ This example shows the definition of a page object for the listing page of custo
        def click_on_the_row_with_name(self, name):
            self.selenium.click_link('xpath://a[@title="{}"]'.format(name))
            self.salesforce.wait_until_loading_is_complete()
-
-The ``pageobject`` decorator takes two arguments: ``page_type`` and ``object_name``. These two arguments are used to identify the page object (`Go to page  Listing  Contact`_). The values can be any arbitrary string, but ordinarily should represent standard page types (such as "Detail", "Home", "Listing", or "New") and standard object names.
 
 
 Importing the Page Object Library Into a Test
@@ -182,9 +216,7 @@ For example, consider a case where you create two files that each have one or mo
 Using Page Objects
 ^^^^^^^^^^^^^^^^^^
 
-To use the keywords in a page object:
-
-As mentioned in the previous section, first import the ``PageObjects`` library and any custom page object files you wish to use.
+As mentioned in the previous section, you must first import the ``PageObjects`` library and any custom page object files you wish to use.
 
 Next, either explicitly load the keywords for a page object, or reference a page object with one of the generic `page object keywords`_ provided by the ``PageObjects`` library.
 
@@ -219,7 +251,7 @@ This keyword is useful if you get to a page via a button or some other form of n
 
 
 Get Page Object
-^^^^^^^^^^^^^^^
+"""""""""""""""
 
 Example: ``Get page object  Listing  Contact``
 
@@ -227,7 +259,7 @@ This keyword is most often used to get the reference to a keyword from another k
 
 
 Go To Page
-^^^^^^^^^^
+""""""""""
 
 Example: ``Go to page  Listing  Contact``
 
@@ -235,7 +267,7 @@ This keyword attempts to go to the listing page for the Contact object, and then
 
 
 Log Page Object Keywords
-^^^^^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""
 
 Example: ``Log Page Object Keywords``
 
@@ -243,7 +275,7 @@ This keyword is primarily used as a debugging tool. When called, it will log eac
 
 
 Load Page Object
-^^^^^^^^^^^^^^^^
+""""""""""""""""
 
 Example: ``Load page object  Listing  Contact``
 
@@ -251,7 +283,7 @@ This keyword loads the page object for the given ``page_type`` and ``object_name
 
 
 Wait for Modal
-^^^^^^^^^^^^^^^
+""""""""""""""
 
 Example: ``Wait for modal  New  Contact``
 
@@ -259,7 +291,7 @@ This keyword can be used to wait for a modal, such as the one that pops up when 
 
 
 Wait for Page Object
-^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""
 
 Example: ``Wait for page object  Popup  ActivityManager``
 
@@ -274,7 +306,7 @@ You don't need to create a page object in order to take advantage of page object
 
 For example, if you use ``Current page should be  Home  Event`` and there is no page object by that name, a generic ``Home`` page object will be loaded, and its object name will be set to ``Event``.
 
-Or let's say your project has created a custom object named ``Island``. You don't have a home page, but the object does have a standard listing page. Without creating any page objects, this test works by using generic implementations of the ``Home`` and ``Listing`` page objects:
+Or let's say your project has created a custom object named ``Island__c``. You don't have a home page, but the object does have a standard listing page. Without creating any page objects, this test works by using generic implementations of the ``Home`` and ``Listing`` page objects:
 
 .. code-block:: robotframework
 
@@ -282,24 +314,24 @@ Or let's say your project has created a custom object named ``Island``. You don'
    Example test which uses generic page objects
        # Go to the custom object home page, which should
        # redirect to the listing page
-       Go To Page  Home  Islands
+       Go To Page  Home  Island__c
 
        # Verify that the redirect happened
-       Current Page Should Be  Listing  Islands
+       Current Page Should Be  Listing  Island__c
 
 CumulusCI provides these generic page objects.
 
 
-``Detail``
-^^^^^^^^^^
+Detail
+"""""""""
 
 Example: ``Go to page  Detail  Contact  ${contact id}``
 
 Detail pages refer to pages with a URL that matches the pattern ``<host>/lightning/r/<object name>/<object id>/view``.
 
 
-``Home``
-^^^^^^^^
+Home
+""""
 
 Example: ``Go to page  Home  Contact``
 
@@ -314,8 +346,8 @@ Example: ``Go to  page  Listing  Contact``
 Listing pages refer to pages with a URL that matches the pattern "<host>b/lightning/o/<object name>/list"
 
 
-``New``
-^^^^^^^
+New
+""""
 
 Example: ``Wait for modal  New  Contact``
 
