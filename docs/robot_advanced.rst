@@ -134,7 +134,7 @@ The following example illustrates how to create a ``Listing`` page object for ``
 Using object aliases
 """"""""""""""""""""
 
-Within a test, if you want to refer to the page object with a more human-readable name such as ``Custom Object`` rather than ``CustomObject__c`` you can do so by setting ``object_name`` to ``Custom Object`` and then defining ``_object_name`` in the class, like in the following example.
+Within a test, if you want to refer to the page object with a more human-readable name such as ``Custom Object`` rather than ``CustomObject__c`` you can do so by setting ``object_name`` to ``Custom Object`` and then defining ``_object_name`` in the class, as in the following example.
 
 .. code-block:: python
 
@@ -145,7 +145,7 @@ Within a test, if you want to refer to the page object with a more human-readabl
         _object_name = 'MyObject__c'
         ...
 
-By using an alias, you can reference the page object with either the alias or the actual object name. For example, the following two uses of ``Go to page`` are identical:
+By using an alias, you can reference the page object with either the alias or the actual object name. For example, if ``object_name`` is set as described above, the following two uses of ``Go to page`` are identical:
 
 .. code-block:: robot
 
@@ -156,7 +156,7 @@ By using an alias, you can reference the page object with either the alias or th
 Page Object Base Classes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Presently, CumulusCI provides the following base classes, which should be used for all classes that use the ``pageobject`` decorator. These base classes may be imported from ``cumulusci.robotframework.pageobjects``.
+CumulusCI provides the following base classes, which should be used for all classes that use the ``pageobject`` decorator. You can import these base classes from ``cumulusci.robotframework.pageobjects``.
 
 * `cumulusci.robotframework.pageobjects.BasePage <Keywords.html#file-cumulusci/robotframework/pageobjects/BasePageObjects.py>`_ A generic base class used by the other pageobject classes. Use the ``BasePage`` class for creating custom page objects when none of the other base classes make sense.
     * The ``BasePage`` adds the ``Log current page object`` keyword to every page object. This keyword is most useful when debugging tests. It will add information about the currently loaded page object to the log file generated when the test runs.
@@ -169,14 +169,14 @@ Presently, CumulusCI provides the following base classes, which should be used f
 
 Common page object attributes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-When using the decorator and inheriting from one of the page object base classes, your class will inherit the following attributes and properties.
+When using the decorator and inheriting from one of the page object base classes, your class inherits the following attributes and properties.
 
-* ``self._object_name``: The name of the object related to the class. If the class does not define this property, it will be set to the value provide as the  ``object_name`` parameter to the ``pageobject`` decorator. Note: do not add the namespace prefix in the decorator. This attribute will automatically add the prefix from the ``cumulusci.yml`` file when necessary.
-* ``self.object_name``: this is a property that combines the ``_object_name`` attribute along with the namespace returned by the ``get namespace prefix`` keyword from the CumulusCI library. If there is no namespace this returns the value of the ``_object_name`` attribute.
-* ``self.builtin``: A reference to the Robot Framework ``BuiltIn`` library that can be used to directly call built-in keywords. Any built-in keyword can be called by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.builtin.log`` and ``self.builtin.get_variable_value``).
-* ``self.cumulusci``: A reference to the CumulusCI keyword library. Call any keyword in this library by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.cumulusci.get_org_info``).
-* ``self.salesforce``: A reference to the Salesforce keyword library. Call any keyword in this library by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.salesforce.wait_until_loading_is_complete``).
-* ``self.selenium``: A reference to SeleniumLibrary. Call any keyword in this library by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.selenim.wait_until_page_contains_element``).
+* ``self._object_name``: The name of the object related to the class. If the class does not define this property, it is set to the value provided as the  ``object_name`` parameter to the ``pageobject`` decorator. Note: do not add the namespace prefix in the decorator. This attribute automatically adds the prefix from the ``cumulusci.yml`` file when necessary.
+* ``self.object_name``: A property that combines the ``_object_name`` attribute with the namespace returned by the ``get namespace prefix`` keyword from the CumulusCI library. If there is no namespace, this returns the value of the ``_object_name`` attribute.
+* ``self.builtin``: A reference to the Robot Framework ``BuiltIn`` library that you can use to directly call built-in keywords. You can call any built-in keyword by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.builtin.log`` and ``self.builtin.get_variable_value``).
+* ``self.cumulusci``: A reference to the CumulusCI keyword library. You can call any keyword in this library by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.cumulusci.get_org_info``).
+* ``self.salesforce``: A reference to the Salesforce keyword library. You can call any keyword in this library by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.salesforce.wait_until_loading_is_complete``).
+* ``self.selenium``: A reference to SeleniumLibrary. You can call any keyword in this library by converting the name to all lowercase, and replacing all spaces with underscores (such as ``self.selenim.wait_until_page_contains_element``).
 
 
 
