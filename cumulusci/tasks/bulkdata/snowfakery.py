@@ -157,6 +157,10 @@ class Snowfakery(BaseSalesforceApiTask):
         self.ignore_row_errors = process_bool_arg(
             self.options.get("ignore_row_errors", False)
         )
+        self.drop_missing_schema = process_bool_arg(
+            self.options.get("drop_missing_schema", False)
+        )
+
         loading_rules = process_list_arg(self.options.get("loading_rules")) or []
         self.loading_rules = [Path(path) for path in loading_rules if path]
         self.recipe_options = process_list_of_pairs_dict_arg(
@@ -269,8 +273,12 @@ class Snowfakery(BaseSalesforceApiTask):
 
         Each channel can hold multiple queues.
         """
+        additional_load_options = {
+            "ignore_row_errors": self.ignore_row_errors,
+            "drop_missing_schema": self.drop_missing_schema,
+        }
         subtask_configurator = SubtaskConfigurator(
-            self.recipe, self.run_until, self.ignore_row_errors, self.bulk_mode
+            self.recipe, self.run_until, self.bulk_mode, additional_load_options
         )
         self.queue_manager = SnowfakeryChannelManager(
             project_config=self.project_config,
@@ -472,24 +480,6 @@ class Snowfakery(BaseSalesforceApiTask):
         for exception in self.queue_manager.failure_descriptions():
             self.logger.info(exception)
 
-    def data_loader_opts(self, working_dir: Path):
-        """Callback for initializing a data loader task.
-
-        For all of our dataloader sub-threads, these options
-        will be applied.
-        """
-        wd = SnowfakeryWorkingDirectory(working_dir)
-
-        options = {
-            "mapping": wd.mapping_file,
-            "reset_oids": False,
-            "database_url": wd.database_url,
-            "set_recently_viewed": False,
-            "ignore_row_errors": self.ignore_row_errors,
-            # don't need to pass loading_rules because they are merged into mapping
-        }
-        return options
-
     # TODO: This method is actually based on the number generated,
     #       because it is called before the load.
     #       If there are row errors, it will drift out of correctness
@@ -607,6 +597,7 @@ class Snowfakery(BaseSalesforceApiTask):
             "working_directory": tempdir,
             "set_recently_viewed": False,
             "ignore_row_errors": self.ignore_row_errors,
+            "drop_missing_schema": self.drop_missing_schema,
         }
         subtask_config = TaskConfig({"options": options})
         subtask = GenerateAndLoadDataFromYaml(
