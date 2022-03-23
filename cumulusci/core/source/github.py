@@ -122,7 +122,6 @@ class GitHubSource:
                 get_resolver_stack(self.project_config, self.spec.resolution_strategy),
             )
             self.commit = self.description = dep.ref
-            self.branch = self.repo.default_branch
             return
 
         self.description = ref[6:] if ref.startswith("heads/") else ref
@@ -150,6 +149,9 @@ class GitHubSource:
                 "name": self.repo_name,
                 "url": self.url,
                 "commit": self.commit,
+                # Note: we currently only pass the branch if it was explicitly
+                # included in the source spec. If the commit was found another way,
+                # we aren't looking up what branches have that commit as their head.
                 "branch": self.branch,
             }
         )
@@ -158,7 +160,9 @@ class GitHubSource:
     @property
     def frozenspec(self):
         """Return a spec to reconstruct this source at the current commit"""
-        # FIXME: The branch name is lost when freezing the source for MetaDeploy.
+        # TODO: The branch name is lost when freezing the source for MetaDeploy.
+        # We could include it here, but it would fail validation when GitHubSourceModel
+        # parses it due to having both commit and branch.
         return {
             "github": self.url,
             "commit": self.commit,
