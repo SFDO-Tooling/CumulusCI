@@ -76,6 +76,7 @@ class GitHubSource:
         to locate the appropriate release or ref.
         """
         ref = None
+        self.branch = None
         # These branches preserve some existing behavior: when a source is set to
         # a specific tag or release, there's no fallback, as there would be
         # if we were subsumed within the dependency resolution machinery.
@@ -90,6 +91,7 @@ class GitHubSource:
         elif self.spec.tag:
             ref = "tags/" + self.spec.tag
         elif self.spec.branch:
+            self.branch = self.spec.branch
             ref = "heads/" + self.spec.branch
         elif self.spec.release:
             release = None
@@ -147,6 +149,10 @@ class GitHubSource:
                 "name": self.repo_name,
                 "url": self.url,
                 "commit": self.commit,
+                # Note: we currently only pass the branch if it was explicitly
+                # included in the source spec. If the commit was found another way,
+                # we aren't looking up what branches have that commit as their head.
+                "branch": self.branch,
             }
         )
         return project_config
@@ -154,6 +160,9 @@ class GitHubSource:
     @property
     def frozenspec(self):
         """Return a spec to reconstruct this source at the current commit"""
+        # TODO: The branch name is lost when freezing the source for MetaDeploy.
+        # We could include it here, but it would fail validation when GitHubSourceModel
+        # parses it due to having both commit and branch.
         return {
             "github": self.url,
             "commit": self.commit,

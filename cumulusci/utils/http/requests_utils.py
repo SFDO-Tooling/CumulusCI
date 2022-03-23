@@ -1,5 +1,7 @@
 import os
+import subprocess
 import sys
+import typing as T
 from json import JSONDecodeError
 
 from cumulusci.core.exceptions import CumulusCIException
@@ -26,19 +28,20 @@ def init_requests_trust():
 
     This is called from cumulusci.__init__ to enact our policy:
 
-    - If a request explicitly sets `verify` to a path
-      (perhaps via the REQUESTS_CA_BUNDLE environment variable),
-      we'll continue to honor that.
+    - On all platforms, block `requests` from passing the `certifi` CA bundle
+      to urllib3, so that urllib3 will instead set up an SSLContext by
+      running SSLContext.load_default_certs()
 
-    - On macOS, verify certificates via the SecureTransport API,
-      which is aware of the system keychain.
+    - On macOS, override SSLContext.load_default_certs() to load certs
+      from the system keychain instead of from OpenSSL's default path.
 
-    - On other platforms, verify certificates using urllib3's default approach,
-      which loads CAs using SSLContext.load_default_certs()
-      and should work on Linux and Windows in most cases.
+    If a request explicitly sets `verify` to a path
+    (perhaps via the REQUESTS_CA_BUNDLE environment variable),
+    the CA certs from that path will still be trusted as well.
 
     The monkey-patching approach may be controversial, but it ensures that:
-    a. we don't have to change every location we are using requests.get or requests.post without an explicit session
+    a. we don't have to change every location we are using requests.get
+       or requests.post without an explicit session
     b. our policy will also apply to 3rd-party libraries that use requests
     """
     if os.environ.get("CUMULUSCI_SYSTEM_CERTS") != "True":
@@ -48,15 +51,23 @@ def init_requests_trust():
         return
     is_trust_patched = True
 
-    # On macOS, replace urllib3's SSLContext with one that uses SecureTransport
-    if sys.platform == "darwin":
-        import urllib3.contrib.securetransport
-
-        urllib3.contrib.securetransport.inject_into_urllib3()
-
-    # Monkey patch HTTPAdapter.cert_verify to avoid using the CA bundle from certifi
     from requests.adapters import HTTPAdapter
     from requests.utils import DEFAULT_CA_BUNDLE_PATH
+
+    # On macOS, monkey patch SSLContext.load_default_locations
+    # to load CA certs from the system keychain
+    if sys.platform == "darwin":
+        import ssl
+
+        cadata = get_macos_ca_certs()
+
+        def load_default_certs(self, purpose=ssl.Purpose.SERVER_AUTH):
+            self.load_verify_locations(cadata=cadata)
+
+        ssl.SSLContext.load_default_certs = load_default_certs
+
+    # On all platforms, monkey patch HTTPAdapter.cert_verify
+    #  to avoid using the CA bundle from certifi
 
     orig_cert_verify = HTTPAdapter.cert_verify
 
@@ -66,3 +77,27 @@ def init_requests_trust():
             conn.ca_certs = None
 
     HTTPAdapter.cert_verify = cert_verify
+
+
+def get_certs_from_keychain(path: T.Optional[str] = None) -> str:
+    """Get certs from the specified macOS keychain path (or default keychains if path is None)"""
+    args = [
+        "security",
+        "find-certificate",
+        "-a",
+        "-p",
+    ]
+    if path:
+        args.append(path)
+    return subprocess.run(
+        args,
+        stdout=subprocess.PIPE,
+        encoding="latin-1",
+    ).stdout
+
+
+def get_macos_ca_certs() -> str:
+    """Get certs from both the default keychains and the SystemRootCertificates keychain"""
+    return get_certs_from_keychain(None) + get_certs_from_keychain(
+        "/System/Library/Keychains/SystemRootCertificates.keychain"
+    )

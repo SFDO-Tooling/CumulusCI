@@ -15,9 +15,12 @@ def git_path(repo_root: str, tail: Any = None) -> Optional[pathlib.Path]:
 
 
 def current_branch(repo_root: str) -> Optional[str]:
-    branch_ref = git_path(repo_root, "HEAD").read_text().strip()
-    if branch_ref.startswith("ref: "):
-        return "/".join(branch_ref[5:].split("/")[2:])
+    if repo_root:
+        head_path = git_path(repo_root, "HEAD")
+        if head_path.exists():
+            branch_ref = head_path.read_text().strip()
+            if branch_ref.startswith("ref: "):
+                return "/".join(branch_ref[5:].split("/")[2:])
 
 
 def is_release_branch(branch_name: str, prefix: str) -> bool:
