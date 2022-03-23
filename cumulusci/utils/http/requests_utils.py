@@ -1,4 +1,6 @@
+import functools
 import os
+import subprocess
 import sys
 from json import JSONDecodeError
 
@@ -30,8 +32,7 @@ def init_requests_trust():
       (perhaps via the REQUESTS_CA_BUNDLE environment variable),
       we'll continue to honor that.
 
-    - On macOS, verify certificates via the SecureTransport API,
-      which is aware of the system keychain.
+    - On macOS, fetch CA certs from the system keychain.
 
     - On other platforms, verify certificates using urllib3's default approach,
       which loads CAs using SSLContext.load_default_certs()
@@ -48,15 +49,21 @@ def init_requests_trust():
         return
     is_trust_patched = True
 
-    # On macOS, replace urllib3's SSLContext with one that uses SecureTransport
-    if sys.platform == "darwin":
-        import urllib3.contrib.securetransport
-
-        urllib3.contrib.securetransport.inject_into_urllib3()
-
-    # Monkey patch HTTPAdapter.cert_verify to avoid using the CA bundle from certifi
     from requests.adapters import HTTPAdapter
     from requests.utils import DEFAULT_CA_BUNDLE_PATH
+
+    # On macOS, monkey patch SSLContext.load_defauult_locations
+    # to load CA certs from the system keychain
+    if sys.platform == "darwin":
+        import ssl
+
+        def load_default_certs(self, purpose=ssl.Purpose.SERVER_AUTH):
+            self.load_verify_locations(cadata=get_macos_ca_certs())
+
+        ssl.SSLContext.load_default_certs = load_default_certs
+
+    # On all platforms, monkey patch HTTPAdapter.cert_verify
+    #  to avoid using the CA bundle from certifi
 
     orig_cert_verify = HTTPAdapter.cert_verify
 
@@ -66,3 +73,24 @@ def init_requests_trust():
             conn.ca_certs = None
 
     HTTPAdapter.cert_verify = cert_verify
+
+
+@functools.cache
+def get_macos_ca_certs() -> str:
+    # get certs from both the default keychains and the SystemRootCertificates keychain
+    result = ""
+    for path in (None, "/System/Library/Keychains/SystemRootCertificates.keychain"):
+        args = [
+            "security",
+            "find-certificate",
+            "-a",
+            "-p",
+        ]
+        if path:
+            args.append(path)
+        result += subprocess.run(
+            args,
+            stdout=subprocess.PIPE,
+            encoding="latin-1",
+        ).stdout
+    return result
