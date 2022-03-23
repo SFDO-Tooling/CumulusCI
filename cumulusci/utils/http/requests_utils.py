@@ -1,4 +1,3 @@
-import functools
 import os
 import subprocess
 import sys
@@ -57,8 +56,10 @@ def init_requests_trust():
     if sys.platform == "darwin":
         import ssl
 
+        cadata = get_macos_ca_certs()
+
         def load_default_certs(self, purpose=ssl.Purpose.SERVER_AUTH):
-            self.load_verify_locations(cadata=get_macos_ca_certs())
+            self.load_verify_locations(cadata=cadata)
 
         ssl.SSLContext.load_default_certs = load_default_certs
 
@@ -75,7 +76,6 @@ def init_requests_trust():
     HTTPAdapter.cert_verify = cert_verify
 
 
-@functools.cache
 def get_macos_ca_certs() -> str:
     # get certs from both the default keychains and the SystemRootCertificates keychain
     result = ""
