@@ -54,7 +54,7 @@ def init_requests_trust():
     from requests.adapters import HTTPAdapter
     from requests.utils import DEFAULT_CA_BUNDLE_PATH
 
-    # On macOS, monkey patch SSLContext.load_defauult_locations
+    # On macOS, monkey patch SSLContext.load_default_locations
     # to load CA certs from the system keychain
     if sys.platform == "darwin":
         import ssl
