@@ -27,18 +27,20 @@ def init_requests_trust():
 
     This is called from cumulusci.__init__ to enact our policy:
 
-    - If a request explicitly sets `verify` to a path
-      (perhaps via the REQUESTS_CA_BUNDLE environment variable),
-      we'll continue to honor that.
+    - On all platforms, block `requests` from passing the `certifi` CA bundle
+      to urllib3, so that urllib3 will instead set up an SSLContext by
+      running SSLContext.load_default_certs()
 
-    - On macOS, fetch CA certs from the system keychain.
+    - On macOS, override SSLContext.load_default_certs() to load certs
+      from the system keychain instead of from OpenSSL's default path.
 
-    - On other platforms, verify certificates using urllib3's default approach,
-      which loads CAs using SSLContext.load_default_certs()
-      and should work on Linux and Windows in most cases.
+    If a request explicitly sets `verify` to a path
+    (perhaps via the REQUESTS_CA_BUNDLE environment variable),
+    the CA certs from that path will still be trusted as well.
 
     The monkey-patching approach may be controversial, but it ensures that:
-    a. we don't have to change every location we are using requests.get or requests.post without an explicit session
+    a. we don't have to change every location we are using requests.get
+       or requests.post without an explicit session
     b. our policy will also apply to 3rd-party libraries that use requests
     """
     if os.environ.get("CUMULUSCI_SYSTEM_CERTS") != "True":
