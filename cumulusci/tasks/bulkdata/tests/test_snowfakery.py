@@ -304,7 +304,6 @@ class TestSnowfakery:
             },
         )
         task()
-        assert mock_load_data.mock_calls
         # should not be called for a simple one-rep load
         assert not Process.mock_calls
 
@@ -330,7 +329,11 @@ class TestSnowfakery:
     ):
         task = create_task_fixture(
             Snowfakery,
-            {"recipe": sample_yaml, "run_until_recipe_repeated": "7"},
+            {
+                "recipe": sample_yaml,
+                "run_until_recipe_repeated": "7",
+                "drop_missing_schema": True,
+            },
         )
         task()
         # Batch size was 3, so 7 records takes
@@ -338,6 +341,8 @@ class TestSnowfakery:
         assert len(mock_load_data.mock_calls) == 3, mock_load_data.mock_calls
         # One should be in a sub-process/thread
         assert len(threads_instead_of_processes.mock_calls) == 2
+        for call in mock_load_data.mock_calls:
+            assert call.task_config.config["options"]["drop_missing_schema"] is True
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_multi_part(
@@ -355,6 +360,8 @@ class TestSnowfakery:
             len(threads_instead_of_processes.mock_calls)
             == len(mock_load_data.mock_calls) - 1
         )
+        for call in mock_load_data.mock_calls:
+            assert call.task_config.config["options"]["drop_missing_schema"] is False
 
     @mock.patch(
         "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
