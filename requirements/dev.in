@@ -8,7 +8,7 @@ furo
 isort
 jsonschema
 pre-commit
-pytest<7.1
+pytest<7.1 # https://github.com/pytest-dev/pytest/issues/9765
 pytest-cov
 pytest-random-order
 pytest-vcr
