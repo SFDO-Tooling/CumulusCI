@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import typing as T
 from json import JSONDecodeError
 
 from cumulusci.core.exceptions import CumulusCIException
@@ -78,21 +79,25 @@ def init_requests_trust():
     HTTPAdapter.cert_verify = cert_verify
 
 
+def get_certs_from_keychain(path: T.Optional[str] = None) -> str:
+    """Get certs from the specified macOS keychain path (or default keychains if path is None)"""
+    args = [
+        "security",
+        "find-certificate",
+        "-a",
+        "-p",
+    ]
+    if path:
+        args.append(path)
+    return subprocess.run(
+        args,
+        stdout=subprocess.PIPE,
+        encoding="latin-1",
+    ).stdout
+
+
 def get_macos_ca_certs() -> str:
-    # get certs from both the default keychains and the SystemRootCertificates keychain
-    result = ""
-    for path in (None, "/System/Library/Keychains/SystemRootCertificates.keychain"):
-        args = [
-            "security",
-            "find-certificate",
-            "-a",
-            "-p",
-        ]
-        if path:
-            args.append(path)
-        result += subprocess.run(
-            args,
-            stdout=subprocess.PIPE,
-            encoding="latin-1",
-        ).stdout
-    return result
+    """Get certs from both the default keychains and the SystemRootCertificates keychain"""
+    return get_certs_from_keychain(None) + get_certs_from_keychain(
+        "/System/Library/Keychains/SystemRootCertificates.keychain"
+    )
