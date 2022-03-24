@@ -18,7 +18,7 @@ explicit. (#3044)
 
 Issues Closed
 
-- Fixed an error that could occur when loading a project that uses very old flow syntax with tasks instead of steps (#3118)
+- Fixed an error that could occur when loading a project that uses very old flow syntax with tasks instead of steps. (#3118)
 - Fixed a bug when using `sources` to access another project from a github branch, where the branch context was not available to branch-based dependency resolvers. (#3123)
 - The drop_missing_schema option was not respected by the snowfakery task. Now it is. (#3125)
 
