@@ -140,14 +140,6 @@ Push Changes
 Developers often use an editor or IDE like Visual Studio Code to modify code and metadata stored in the repository.
 After making changes in an editor, push these changes from your project's local repository to the target org.
 
-If your project uses the Salesforce DX source format, use the :ref:`dx_push` task.
-
-.. code-block:: console
-
-    $ cci task run dx_push
-
-If your project uses the Metadata API source format, use the :ref:`deploy` task:
-
 .. code-block:: console
 
     $ cci task run deploy 
