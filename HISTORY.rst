@@ -2,6 +2,28 @@
 History
 =======
 
+3.55.0 (2022-03-24)
+-------------------
+
+Changes
+
+- Tweaked Oauth App org restriction docs. Alters the trigger for warn_oauth_restricted error handler
+to reflect upstream changes. Also adds a note to the onboarding docs to make the workaround
+explicit. (#3044)
+- Usage examples for task reference, Adds example usage for a couple of tasks (#3110).
+- CumulusCI now provides an option to verify server certificates using root CA certs loaded from the system, instead of the default set of CA certs bundled with the Python requests library. This is considered experimental, so must be opted in by setting the CUMULUSCI_SYSTEM_CERTS environment variable to "True" (#3114)
+- Improvements to the custom locator strategy used by the robot framework keyword input form data to find form fields and lightning components based on label text. This locator strategy (label:) is now up to 10x faster at finding non-lightning form components, and is able to find elements with more complicated labels (eg: labels with text inside of nested spans). (#3117)
+- Fixed a bug that prevented the use of aliases for robot framework page objects
+improved the documentation for using robot framework page objects and the pageobject decorator (#3120)
+- The robot framework keyword 'input form data' now does a better job of working with non-lightning checkboxes (#3122)
+
+Issues Closed
+
+- Fixed an error that could occur when loading a project that uses very old flow syntax with tasks instead of steps (#3118)
+- Fixed a bug when using `sources` to access another project from a github branch, where the branch context was not available to branch-based dependency resolvers. (#3123)
+- The drop_missing_schema option was not respected by the snowfakery task. Now it is. (#3125)
+
+
 3.54.0 (2022-03-10)
 -------------------
 
