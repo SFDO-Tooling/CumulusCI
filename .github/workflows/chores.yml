@@ -2,8 +2,6 @@ name: Scheduled Chores
 
 on:
     workflow_dispatch:
-    pull_request:
-        types: [opened, synchronize, reopened] # Default
     schedule:
         - cron: "0 0 * * 0" # At 00:00 on Sunday
 
