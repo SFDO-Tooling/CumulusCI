@@ -1,9 +1,9 @@
 name: Release Test
 
 on:
+    workflow_dispatch:
     push:
         branches:
-            - feature/**
             - main
     pull_request:
         types: [opened, synchronize, reopened] # Default
