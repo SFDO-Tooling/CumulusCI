@@ -12,9 +12,11 @@ There are several key reasons we like using CumulusCI Flow:
 CumulusCI Flow is implemented in the standard library flows provided by CumulusCI, but the approach to working
 with a GitHub repository does not require the use of CumulusCI.
 
-.. image:: images/salesforce-org-process.png
+The diagram below depicts the branch and merge structure of CumulusCI Flow in its fullest form, as applied to a long-running release. The diagram also depicts the use of the Salesforce.org :doc:`Testing with Second-Generation Packaging <2gp_testing>` process. Your practice of CumulusCI Flow might include some or all of these features.
+
+.. image:: images/cumulusci_flow.png
    :scale: 50 %
-   :alt: Salesforce.org Dev/Release Process Diagram
+   :alt: CumulusCI Flow Branching Diagram
 
 
 
