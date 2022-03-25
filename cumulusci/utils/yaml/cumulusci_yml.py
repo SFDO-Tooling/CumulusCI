@@ -61,6 +61,7 @@ class Step(CCIDictModel):
 
 class Task(CCIDictModel):
     class_path: str = None
+    task_id: str = None
     description: str = None
     group: str = None
     # additionalProperties here works around an

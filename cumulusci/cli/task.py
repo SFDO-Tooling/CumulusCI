@@ -8,6 +8,7 @@ from rst2ansi import rst2ansi
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.core.utils import import_global
+from cumulusci.new_tasks.new_tasks import get_task_by_id, run_newtask
 from cumulusci.utils import doc_task
 
 from .runtime import pass_runtime
@@ -144,15 +145,25 @@ class RunTaskCommand(click.MultiCommand):
         if "options" not in task_config.config:
             task_config.config["options"] = {}
 
-        task_class = import_global(task_config.class_path)
-        task_options = task_class.task_options
+        if task_config.class_path:
+            # Old-style task
+            task_class = import_global(task_config.class_path)
+            params = self._get_default_command_options(task_class.salesforce_task)
+            task_options = task_class.task_options
+            task_style = "OLD"
+        else:
+            task_class = get_task_by_id(task_config.task_id)
+            params = self._get_default_command_options(
+                True
+            )  # TODO: check if it takes an Org fixture
+            task_options = {}  # TODO
+            task_style = "NEW"
 
-        params = self._get_default_command_options(task_class.salesforce_task)
         params.extend(self._get_click_options_for_task(task_options))
 
         def run_task(*args, **kwargs):
             """Callback function that executes when the command fires."""
-            org, org_config = runtime.get_org(
+            _, org_config = runtime.get_org(
                 kwargs.pop("org", None), fail_if_missing=False
             )
 
@@ -169,16 +180,26 @@ class RunTaskCommand(click.MultiCommand):
             task_config.config["options"].update(options)
 
             try:
-                task = task_class(
-                    task_config.project_config, task_config, org_config=org_config
-                )
+                if task_style == "OLD":
+                    task = task_class(
+                        task_config.project_config, task_config, org_config=org_config
+                    )
 
                 if kwargs.get("debug_before", None):
                     import pdb
 
                     pdb.set_trace()
 
-                task()
+                if task_style == "OLD":
+                    task()
+                else:
+                    # TODO: This can be handled better.
+                    del task_config.config["options"]["no_prompt"]
+                    del task_config.config["options"]["debug_before"]
+                    del task_config.config["options"]["debug_after"]
+                    run_newtask(
+                        task_class, task_config, org_config, task_config.project_config
+                    )
 
                 if kwargs.get("debug_after", None):
                     import pdb

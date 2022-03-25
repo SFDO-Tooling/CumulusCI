@@ -1,6 +1,16 @@
 cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
 tasks:
+    installpkg:
+        task_id: cumulusci.new_tasks.InstallPackage
+        options:
+            namespace: pub
+            version: "1.5"
+    installpkg_dyn:
+        task_id: cumulusci.new_tasks.InstallPackage
+        options:
+            version: latest
+
     activate_flow:
         group: Metadata Transformations
         description: Activates Flows identified by a given list of Developer Names

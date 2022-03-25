@@ -43,9 +43,9 @@ class BaseTaskFlowConfig(BaseConfig):
             # task exists but there is no config at all
             error_msg = f"No configuration found for task: {name}"
             raise CumulusCIException(error_msg)
-        elif "class_path" not in config:
+        elif "class_path" not in config and "task_id" not in config:
             # task exists and there is a config but it has no class_path defined and it is not a base task override
-            error_msg = f"Task has no class_path defined: {name}"
+            error_msg = f"Task has no class_path or task_id defined: {name}"
             raise CumulusCIException(error_msg)
 
         return TaskConfig(config)
