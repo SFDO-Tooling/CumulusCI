@@ -1,0 +1,60 @@
+name: Scheduled Chores
+
+on:
+    workflow_dispatch:
+    schedule:
+        - cron: "0 0 * * 0" # At 00:00 on Sunday
+
+jobs:
+    check_api_versions:
+        runs-on: ubuntu-latest
+        outputs:
+            hub_version: ${{ steps.devhub-api-version.outputs.hub_version }}
+            cci_version: ${{ steps.cci-api-version.outputs.cci_version }}
+        steps:
+            - uses: actions/checkout@v3
+              with:
+                  ref: main
+            - name: Set up Python
+              uses: actions/setup-python@v2
+            - name: Get Dev Hub API Version
+              id: devhub-api-version
+              env:
+                  HUB_URL: ${{ format('{0}/services/data', secrets.SFDO_HUB_URL) }}
+              run: |
+                  version=$(curl -s $HUB_URL | jq -r '.[-1] | .version')
+                  echo "::set-output name=hub_version::$version"
+            - name: Get CURRENT_SF_API_VERSION
+              id: cci-api-version
+              run: |
+                  version=$(yq '.project.package.api_version' cumulusci/cumulusci.yml)
+                  echo "::set-output name=cci_version::$version"
+    update_api_versions:
+        runs-on: ubuntu-latest
+        needs: check_api_versions
+        if: ${{ needs.check_api_versions.outputs.hub_version != needs.check_api_versions.outputs.cci_version }}
+        env:
+            VERSION: ${{ needs.check_api_versions.outputs.hub_version }}
+        steps:
+            - uses: actions/checkout@v3
+              with:
+                  fetch-depth: 0
+                  ref: main
+            - name: Set CURRENT_SF_API_VERSION
+              id: set-cci-api-version
+              run: |
+                  yq --indent 4 --inplace '
+                    .project.package.api_version = strenv(VERSION)
+                  ' cumulusci/cumulusci.yml
+            - name: Commit changes
+              run: |
+                  git config user.name github-actions
+                  git config user.email github-actions@github.com
+                  git switch -c "update-sfdc-api-v$VERSION"
+                  git add cumulusci/cumulusci.yml
+                  git commit -m "Automated update to sfdc API version $VERSION"
+                  git push origin "update-sfdc-api-v$VERSION"
+            - env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  gh pr create --fill --label 'auto-pr'
