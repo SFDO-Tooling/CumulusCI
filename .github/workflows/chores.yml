@@ -23,12 +23,12 @@ jobs:
                   HUB_URL: ${{ format('{0}/services/data', secrets.SFDO_HUB_URL) }}
               run: |
                   version=$(curl -s $HUB_URL | jq -r '.[-1] | .version')
-                  echo "::set-output hub_version=$version"
+                  echo "::set-output name=hub_version::$version"
             - name: Get CURRENT_SF_API_VERSION
               id: cci-api-version
               run: |
                   version=$(yq '.project.package.api_version' cumulusci/cumulusci.yml)
-                  echo "::set-output cci_version=$version"
+                  echo "::set-output name=cci_version::$version"
     update_api_versions:
         runs-on: ubuntu-latest
         needs: check_api_versions
