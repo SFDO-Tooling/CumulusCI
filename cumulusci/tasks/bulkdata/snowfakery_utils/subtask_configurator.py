@@ -12,13 +12,13 @@ class SubtaskConfigurator:
         self,
         recipe: Path,
         run_until: RunUntilBase,
-        ignore_row_errors: bool,
         bulk_mode: T.Literal["Serial", "Parallel"],
+        load_options: dict,
     ):
         self.recipe = recipe
         self.run_until = run_until
-        self.ignore_row_errors = ignore_row_errors
         self.bulk_mode = bulk_mode
+        self.load_options = load_options
 
     # todo: move generate_and_load_initial_portion here
 
@@ -57,8 +57,8 @@ class SubtaskConfigurator:
             "reset_oids": False,
             "database_url": wd.database_url,
             "set_recently_viewed": False,
-            "ignore_row_errors": self.ignore_row_errors,
-            "bulk_mode": self.bulk_mode
+            "bulk_mode": self.bulk_mode,
+            **self.load_options,
             # don't need to pass loading_rules because they are merged into mapping
         }
         return options
