@@ -5,7 +5,7 @@ tasks:
         task_id: cumulusci.new_tasks.InstallPackage
         options:
             namespace: pub
-            version: "1.5"
+            #version: "1.5"
     installpkg_dyn:
         task_id: cumulusci.new_tasks.InstallPackage
         options:
@@ -685,6 +685,15 @@ tasks:
             restore: True
 
 flows:
+    newtask_test:
+        steps:
+            1:
+                task: installpkg
+                options:
+                    version: "1.5"
+            2:
+                task: util_sleep
+
     ci_beta:
         group: Continuous Integration
         description: Install the latest beta version and runs apex tests from the managed package

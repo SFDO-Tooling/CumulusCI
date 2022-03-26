@@ -13,7 +13,7 @@ from cumulusci.core.dependencies.dependencies import (
 from cumulusci.core.dependencies.resolvers import get_resolver_stack
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.github import find_previous_release
-from cumulusci.new_tasks.new_tasks import task
+from cumulusci.new_tasks.registry import task
 from cumulusci.salesforce_api.package_install import PackageInstallOptions
 
 
@@ -122,12 +122,9 @@ class InstallPackage:
     def __init__(self, options: Options):
         self.options = options
 
-    # temp_dir, git_context, project, logger, and org are fixtures
     def run(
         self,
-        # temp_dir: TemporaryDir,
         org: OrgConfig,
-        # git_context: GitContext,
         logger: Logger,
         project: BaseProjectConfig,
     ) -> None:

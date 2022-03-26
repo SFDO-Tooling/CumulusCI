@@ -1,24 +1,13 @@
-import logging
+import functools
+import itertools
 from inspect import signature
-from typing import Any, Callable, Optional, Type
+from typing import Any, Callable, Type
 
 import pydantic
 
 from cumulusci.core.config import BaseProjectConfig, OrgConfig, TaskConfig
-from cumulusci.core.exceptions import TaskOptionsError
-
-ALL_FIXTURES = ["repo", "logger", "org", "project"]
-
-
-def get_fixture(fixture: str, org: OrgConfig, project: BaseProjectConfig) -> Any:
-    if fixture == "repo":
-        return project.get_repo()
-    elif fixture == "logger":
-        return logging.getLogger(__name__)
-    elif fixture == "org":
-        return org
-    elif fixture == "project":
-        return project
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.new_tasks import fixtures
 
 
 def call_with_fixtures(
@@ -29,13 +18,15 @@ def call_with_fixtures(
     # Inject fixtures
     parameters = []
     for name in sig.parameters:
-        if name in ALL_FIXTURES:
-            parameters.append(get_fixture(name, org, project))
+        if hasattr(fixtures, name):
+            parameters.append(getattr(fixtures, name)(org, project))
+        else:
+            raise CumulusCIException(f"Invalid task fixture: {name}")
 
     return function(*parameters)
 
 
-def run_newtask(
+def construct_newtask(
     nt: Type, task_config: TaskConfig, org: OrgConfig, project: BaseProjectConfig
 ) -> Any:
     # Validate options
@@ -66,30 +57,54 @@ def run_newtask(
         raise TaskOptionsError("Unable to parse options for task")
 
     task = nt(options)
-    return call_with_fixtures(task.run, org, project)
+    return task
 
 
-TASK_REGISTRY = {}
+def run_constructed_newtask(nt: Any, org: OrgConfig, project: BaseProjectConfig) -> Any:
+    return call_with_fixtures(nt.run, org, project)
 
 
-def get_task_by_id(id: str) -> Optional[Type]:
-    return TASK_REGISTRY.get(id)
+def run_newtask(
+    nt: Type, task_config: TaskConfig, org: OrgConfig, project: BaseProjectConfig
+) -> Any:
+
+    return run_constructed_newtask(
+        construct_newtask(nt, task_config, org, project), org, project
+    )
 
 
-REQUIRED_KEYS = (
-    "task_id",
-    "options_models",
-    "dynamic_options_models",
-    "return_model",
-    "idempotent",
-    "name",
-)
+def get_newtask_options(klass: Type) -> dict:
+    # NOTE: the CLI does not enforce the `required` parameter
+    # This is enforced via Pydantic itself.
+
+    return functools.reduce(
+        lambda a, b: a | b,
+        (
+            {
+                k: {
+                    "description": v.get("description") or "no description",
+                    "required": k in schema.get("required", []),
+                }
+                for k, v in schema.items()
+            }
+            for schema in map(
+                lambda m: m.schema()["properties"],
+                itertools.chain(
+                    klass.Meta.dynamic_options_models, klass.Meta.options_models
+                ),
+            )
+        ),
+        {},
+    )
 
 
-def task(klass: Type):
-
-    assert hasattr(klass, "Meta")
-    for k in REQUIRED_KEYS:
-        assert hasattr(klass.Meta, k)
-
-    TASK_REGISTRY[klass.Meta.task_id] = klass
+def get_newtask_needs_org(klass: Type) -> bool:
+    """Returns whether the task's `run()` method or any dynamic option
+    class' `freeze()` method requires the `org` fixture."""
+    return (
+        any(
+            "org" in signature(d.freeze).parameters
+            for d in klass.Meta.dynamic_options_models
+        )
+        or "org" in signature(klass.run).parameters
+    )

@@ -6,9 +6,14 @@ from rich.console import Console
 from rst2ansi import rst2ansi
 
 from cumulusci.core.config import TaskConfig
-from cumulusci.core.exceptions import CumulusCIUsageError
+from cumulusci.core.exceptions import CumulusCIException, CumulusCIUsageError
 from cumulusci.core.utils import import_global
-from cumulusci.new_tasks.new_tasks import get_task_by_id, run_newtask
+from cumulusci.new_tasks.new_tasks import (
+    get_newtask_needs_org,
+    get_newtask_options,
+    run_newtask,
+)
+from cumulusci.new_tasks.registry import get_task_by_id
 from cumulusci.utils import doc_task
 
 from .runtime import pass_runtime
@@ -153,10 +158,15 @@ class RunTaskCommand(click.MultiCommand):
             task_style = "OLD"
         else:
             task_class = get_task_by_id(task_config.task_id)
+            if not task_class:
+                raise CumulusCIException(
+                    f"Unable to locate class for task id {task_config.task_id}."
+                )
+
             params = self._get_default_command_options(
-                True
-            )  # TODO: check if it takes an Org fixture
-            task_options = {}  # TODO
+                get_newtask_needs_org(task_class)
+            )
+            task_options = get_newtask_options(task_class)
             task_style = "NEW"
 
         params.extend(self._get_click_options_for_task(task_options))

@@ -69,6 +69,8 @@ from jinja2.sandbox import ImmutableSandboxedEnvironment
 from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
 from cumulusci.core.utils import import_global
+from cumulusci.new_tasks.new_tasks import construct_newtask, run_constructed_newtask
+from cumulusci.new_tasks.registry import get_task_by_id
 
 # TODO: define exception types: flowfailure, taskimporterror, etc?
 
@@ -234,31 +236,55 @@ class TaskRunner(object):
 
         task_config["options"].update(options)
 
-        task = self.step.task_class(
-            self.step.project_config,
-            TaskConfig(task_config),
-            org_config=self.org_config,
-            name=self.step.task_name,
-            stepnum=self.step.step_num,
-            flow=self.flow,
-        )
+        # Determine if we have a new-style task or an old-style task.
+        if hasattr(self.step.task_class, "Meta"):
+            # Newtask
+            task = construct_newtask(
+                self.step.task_class,
+                TaskConfig(task_config),
+                self.org_config,
+                self.step.project_config,
+            )
+        else:
+            task = self.step.task_class(
+                self.step.project_config,
+                TaskConfig(task_config),
+                org_config=self.org_config,
+                name=self.step.task_name,
+                stepnum=self.step.step_num,
+                flow=self.flow,
+            )
         self._log_options(task)
         exc = None
+        result = retval = None
         try:
-            task()
+            if hasattr(type(task), "Meta"):
+                # newtask
+                retval = run_constructed_newtask(
+                    task, self.org_config, self.step.project_config
+                )
+                result = None
+            else:
+                task()
+                retval = task.return_values
+                result = task.result
         except Exception as e:
             self.flow.logger.error(f"Exception in task {self.step.path}")
             exc = e
+            raise
+
         return StepResult(
             self.step.step_num,
             self.step.task_name,
             self.step.path,
-            task.result,
-            task.return_values,
+            result,
+            retval,
             exc,
         )
 
     def _log_options(self, task):
+        if not hasattr(task, "task_options"):
+            return  # TODO: be able to log options for newtasks
         if not task.task_options:
             task.logger.info("No task options present")
             return
@@ -599,7 +625,12 @@ class FlowCoordinator(object):
 
             # get implementation class. raise/fail if it doesn't exist, because why continue
             try:
-                task_class = import_global(task_config_dict["class_path"])
+                if "class_path" in task_config_dict:
+                    task_class = import_global(task_config_dict["class_path"])
+                elif "task_id" in task_config_dict:
+                    task_class = get_task_by_id(task_config_dict["task_id"])
+                else:
+                    raise FlowConfigError("No task class or id specified")
             except (ImportError, AttributeError):
                 raise FlowConfigError(f"Task named {name} has bad classpath")
 
