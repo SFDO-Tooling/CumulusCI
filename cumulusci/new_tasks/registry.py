@@ -1,34 +1,22 @@
 import importlib
-from typing import Optional, Type
+import typing as T
+
+from cumulusci.new_tasks.new_tasks import TaskProtocol
 
 TASK_REGISTRY = {}
 TASK_FORWARD_REGISTRY = {}
 
 
-def get_task_by_id(id: str) -> Optional[Type]:
+def get_task_by_id(id: str) -> T.Optional[T.Type[TaskProtocol]]:
     if id not in TASK_REGISTRY and id in TASK_FORWARD_REGISTRY:
         importlib.import_module(TASK_FORWARD_REGISTRY[id])
 
     return TASK_REGISTRY.get(id)
 
 
-REQUIRED_KEYS = (
-    "task_id",
-    "options_models",
-    "dynamic_options_models",
-    "return_model",
-    "idempotent",
-    "name",
-)
+def task(klass: T.Type[TaskProtocol]):
 
-
-def task(klass: Type):
-
-    assert hasattr(klass, "Meta")
-    for k in REQUIRED_KEYS:
-        assert hasattr(klass.Meta, k)
-
-    TASK_REGISTRY[klass.Meta.task_id] = klass
+    TASK_REGISTRY[klass.task_spec.task_id] = klass
 
 
 def forward_task(task_id: str, class_path: str):

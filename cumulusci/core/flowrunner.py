@@ -237,7 +237,7 @@ class TaskRunner(object):
         task_config["options"].update(options)
 
         # Determine if we have a new-style task or an old-style task.
-        if hasattr(self.step.task_class, "Meta"):
+        if hasattr(self.step.task_class, "task_spec"):
             # Newtask
             task = construct_newtask(
                 self.step.task_class,
@@ -258,7 +258,7 @@ class TaskRunner(object):
         exc = None
         result = retval = None
         try:
-            if hasattr(type(task), "Meta"):
+            if hasattr(type(task), "task_spec"):
                 # newtask
                 retval = run_constructed_newtask(
                     task, self.org_config, self.step.project_config

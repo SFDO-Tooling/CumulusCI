@@ -24,5 +24,5 @@ def org(o: OrgConfig, _p: BaseProjectConfig) -> OrgConfig:
     return o
 
 
-def project(o_: OrgConfig, p: BaseProjectConfig) -> BaseProjectConfig:
+def project(_o: OrgConfig, p: BaseProjectConfig) -> BaseProjectConfig:
     return p

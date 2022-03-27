@@ -13,6 +13,7 @@ from cumulusci.core.dependencies.dependencies import (
 from cumulusci.core.dependencies.resolvers import get_resolver_stack
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.github import find_previous_release
+from cumulusci.new_tasks.new_tasks import TaskSpec
 from cumulusci.new_tasks.registry import task
 from cumulusci.salesforce_api.package_install import PackageInstallOptions
 
@@ -106,18 +107,18 @@ class InstallPackage:
     """Do the thing"""
 
     options: Options
+    # CumulusCI will try to parse options with each class in order.
+    # This allows for versioned backwards compatibility.
+    # Dynamic options models will be tried first.
 
-    class Meta:
-        # CumulusCI will try to parse options with each class in order.
-        # This allows for versioned backwards compatibility.
-        # Dynamic options models will be tried first.
-        # Union types are allowable for multiple legal options
-        options_models = [InstallPackageOptions, InstallPackageOptionsNS]
-        dynamic_options_models = [InstallPackageDynamicOptions]
-        return_model = None
-        task_id = "cumulusci.new_tasks.InstallPackage"
-        idempotent = True
-        name = "Install Package"
+    task_spec = TaskSpec(
+        options_models=[InstallPackageOptions, InstallPackageOptionsNS],
+        dynamic_options_models=[InstallPackageDynamicOptions],
+        return_model=None,
+        task_id="cumulusci.new_tasks.InstallPackage",
+        idempotent=True,
+        name="Install Package",
+    )
 
     def __init__(self, options: Options):
         self.options = options

@@ -1,18 +1,49 @@
 import functools
 import itertools
+import typing as T
 from inspect import signature
-from typing import Any, Callable, Type
 
 import pydantic
+from pydantic import BaseModel
 
 from cumulusci.core.config import BaseProjectConfig, OrgConfig, TaskConfig
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.new_tasks import fixtures
 
 
+class DynamicOptionsProtocol(T.Protocol):
+    def freeze(self, *args):
+        ...
+
+
+class TaskSpec(BaseModel):
+    options_models: T.List[T.Type[BaseModel]]
+    dynamic_options_models: T.List[
+        T.Type[BaseModel]
+    ]  # TODO: constraint to DynamicOptionsProtocol
+    return_model: T.Optional[T.Type[BaseModel]] = None
+    task_id: str
+    idempotent: bool
+    name: str
+
+
+class TaskProtocol(T.Protocol):
+    task_spec: T.ClassVar[TaskSpec]
+
+    # TODO: constrain options to specified options types
+    def __init__(self, options: T.Any):
+        ...
+
+    def run(self, *args) -> T.Any:
+        ...
+
+
+G = T.TypeVar("G")
+
+
 def call_with_fixtures(
-    function: Callable, org: OrgConfig, project: BaseProjectConfig
-) -> Any:
+    function: T.Callable[..., G], org: OrgConfig, project: BaseProjectConfig
+) -> G:
     sig = signature(function)
 
     # Inject fixtures
@@ -27,27 +58,30 @@ def call_with_fixtures(
 
 
 def construct_newtask(
-    nt: Type, task_config: TaskConfig, org: OrgConfig, project: BaseProjectConfig
-) -> Any:
+    nt: T.Type[TaskProtocol],
+    task_config: TaskConfig,
+    org: OrgConfig,
+    project: BaseProjectConfig,
+) -> T.Any:
     # Validate options
 
     input_options = task_config.config["options"]
     options = None
     # Attempt to initialize with dynamic options classes
     # If we succeed, freeze the options.
-    for options_class in nt.Meta.dynamic_options_models:
+    for options_class in nt.task_spec.dynamic_options_models:
         try:
             options = options_class.parse_obj(input_options)
         except pydantic.ValidationError:
             pass
         else:
             options = call_with_fixtures(options.freeze, org, project)
-            assert type(options) in nt.Meta.options_models
+            assert type(options) in nt.task_spec.options_models
             break
 
     # Attempt to initialize with frozen options classes
     if options is None:
-        for options_class in nt.Meta.options_models:
+        for options_class in nt.task_spec.options_models:
             try:
                 options = options_class.parse_obj(input_options)
             except pydantic.ValidationError:
@@ -60,20 +94,25 @@ def construct_newtask(
     return task
 
 
-def run_constructed_newtask(nt: Any, org: OrgConfig, project: BaseProjectConfig) -> Any:
+def run_constructed_newtask(
+    nt: T.Any, org: OrgConfig, project: BaseProjectConfig
+) -> T.Any:
     return call_with_fixtures(nt.run, org, project)
 
 
 def run_newtask(
-    nt: Type, task_config: TaskConfig, org: OrgConfig, project: BaseProjectConfig
-) -> Any:
+    nt: T.Type[TaskProtocol],
+    task_config: TaskConfig,
+    org: OrgConfig,
+    project: BaseProjectConfig,
+) -> T.Any:
 
     return run_constructed_newtask(
         construct_newtask(nt, task_config, org, project), org, project
     )
 
 
-def get_newtask_options(klass: Type) -> dict:
+def get_newtask_options(klass: T.Type[TaskProtocol]) -> dict:
     # NOTE: the CLI does not enforce the `required` parameter
     # This is enforced via Pydantic itself.
 
@@ -90,7 +129,8 @@ def get_newtask_options(klass: Type) -> dict:
             for schema in map(
                 lambda m: m.schema()["properties"],
                 itertools.chain(
-                    klass.Meta.dynamic_options_models, klass.Meta.options_models
+                    klass.task_spec.dynamic_options_models,
+                    klass.task_spec.options_models,
                 ),
             )
         ),
@@ -98,13 +138,13 @@ def get_newtask_options(klass: Type) -> dict:
     )
 
 
-def get_newtask_needs_org(klass: Type) -> bool:
+def get_newtask_needs_org(klass: T.Type[TaskProtocol]) -> bool:
     """Returns whether the task's `run()` method or any dynamic option
     class' `freeze()` method requires the `org` fixture."""
     return (
         any(
             "org" in signature(d.freeze).parameters
-            for d in klass.Meta.dynamic_options_models
+            for d in klass.task_spec.dynamic_options_models
         )
         or "org" in signature(klass.run).parameters
     )
