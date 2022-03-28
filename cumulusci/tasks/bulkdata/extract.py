@@ -17,7 +17,13 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     get_query_operation,
 )
-from cumulusci.tasks.bulkdata.utils import SqlAlchemyMixin, consume, create_table
+from cumulusci.tasks.bulkdata.utils import (
+    SqlAlchemyMixin,
+    consume,
+    create_table,
+    sql_bulk_insert_from_records,
+    sql_bulk_insert_from_records_incremental,
+)
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import log_progress
 
@@ -209,9 +215,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             record_iterator = (strip_name_field(record) for record in record_iterator)
 
         if mapping.get_oid_as_pk():
-            self._sql_bulk_insert_from_records(
+            sql_bulk_insert_from_records(
                 connection=conn,
-                table=mapping.table,
+                table=self.metadata.tables[mapping.table],
                 columns=columns,
                 record_iterable=record_iterator,
             )
@@ -222,15 +228,15 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             f_values = (row[1:] for row in values)
             f_ids = (row[:1] for row in ids)
 
-            values_chunks = self._sql_bulk_insert_from_records_incremental(
+            values_chunks = sql_bulk_insert_from_records_incremental(
                 connection=conn,
-                table=mapping.table,
+                table=self.metadata.tables[mapping.table],
                 columns=columns[1:],  # Strip off the Id column
                 record_iterable=f_values,
             )
-            ids_chunks = self._sql_bulk_insert_from_records_incremental(
+            ids_chunks = sql_bulk_insert_from_records_incremental(
                 connection=conn,
-                table=mapping.get_sf_id_table(),
+                table=self.metadata.tables[mapping.get_sf_id_table()],
                 columns=["sf_id"],
                 record_iterable=f_ids,
             )
