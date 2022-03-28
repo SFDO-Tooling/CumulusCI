@@ -9,7 +9,7 @@ on:
 
 jobs:
     run-release-test:
-        uses: ./.github/workflows/release_test.yml@main
+        uses: ./.github/workflows/release_test.yml
     publish-to-pypi:
         name: Publish new release to PyPI
         runs-on: ubuntu-18.04
