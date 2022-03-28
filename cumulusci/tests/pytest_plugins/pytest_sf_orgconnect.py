@@ -1,8 +1,12 @@
+import os
+import pathlib
+import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 from unittest import mock
 
 import pytest
+import requests
 
 import cumulusci
 from cumulusci.cli.org import org_remove, org_scratch, org_scratch_delete
@@ -140,7 +144,9 @@ def create_task(request, project_config, org_config):
 
         task_config = TaskConfig({"options": options})
 
-        return task_class(project_config, task_config, org_config)
+        t = task_class(project_config, task_config, org_config)
+        t._update_credentials = mock.Mock()
+        return t
 
     return create_task
 
@@ -284,3 +290,28 @@ def _create_org(org_name, config_name, flow_name):
     coordinator = runtime.get_flow(flow_name)
     coordinator.run(org_config)
     return org_config
+
+
+@contextmanager
+def _vcr_compatible_download_file(uri, bulk_api):
+    """Download the Bulk API result file for a single batch,
+    and remove it when the context manager exits."""
+    try:
+        (handle, path) = tempfile.mkstemp(text=False)
+        resp = requests.get(uri, headers=bulk_api.headers())
+        resp.raise_for_status()
+        f = os.fdopen(handle, "wb")
+        f.write(resp.content)
+        f.close()
+        with open(path, "r", newline="", encoding="utf-8") as f:
+            yield f
+    finally:
+        pathlib.Path(path).unlink()
+
+
+@pytest.fixture(scope="function")
+def mock_bulk_download_for_vcr():
+    with mock.patch(
+        "cumulusci.tasks.bulkdata.step.download_file", _vcr_compatible_download_file
+    ):
+        yield

@@ -12,12 +12,21 @@ CURRENT_SF_API_VERSION = "52.0"  # match cumulusci.yml until it updates
 
 
 class TestUpsert:
-    # bulk API not supported by VCR yet
-    @pytest.mark.needs_org()
+    @pytest.mark.vcr()
     def test_upsert_external_id_field(
-        self, create_task, cumulusci_test_repo_root, sf, delete_data_from_org
+        self,
+        create_task,
+        cumulusci_test_repo_root,
+        sf,
+        delete_data_from_org,
+        mock_bulk_download_for_vcr,
+        run_code_without_recording,
     ):
-        delete_data_from_org(["Entitlement", "Opportunity", "Contact", "Account"])
+        run_code_without_recording(
+            lambda: delete_data_from_org(
+                ["Entitlement", "Opportunity", "Contact", "Account"]
+            )
+        )
         self._test_two_upserts_and_check_results(
             "bulk", create_task, cumulusci_test_repo_root, sf
         )
@@ -107,7 +116,7 @@ class TestUpsert:
                 ["Espionage Opportunity", "Illusional Opportunity"]
             ), set(opportunity_names)
 
-    @pytest.mark.needs_org()
+    @pytest.mark.vcr()
     def test_upsert__rest(
         self,
         create_task,

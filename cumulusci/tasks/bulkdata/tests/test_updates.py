@@ -492,7 +492,7 @@ class TestUpdates:
 
 
 class TestUpdatesIntegrationTests:
-    @pytest.mark.needs_org()
+    @pytest.mark.vcr()
     def test_updates_task(self, create_task, cumulusci_test_repo_root, ensure_accounts):
         with ensure_accounts(6):
             task = create_task(
