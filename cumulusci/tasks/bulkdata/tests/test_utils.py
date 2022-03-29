@@ -7,7 +7,11 @@ from sqlalchemy.orm import create_session, mapper
 
 from cumulusci.tasks import bulkdata
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
-from cumulusci.tasks.bulkdata.utils import create_table, generate_batches
+from cumulusci.tasks.bulkdata.utils import (
+    create_table,
+    generate_batches,
+    sql_bulk_insert_from_records,
+)
 from cumulusci.utils import temporary_dir
 
 
@@ -44,24 +48,27 @@ class TestSqlAlchemyMixin:
     @responses.activate
     def test_extract_record_types(self):
         util = bulkdata.utils.SqlAlchemyMixin()
-        util._sql_bulk_insert_from_records = mock.Mock()
         util.sf = mock.Mock()
         util.sf.query.return_value = {
             "totalSize": 1,
             "records": [{"Id": "012000000000000", "DeveloperName": "Organization"}],
         }
         util.logger = mock.Mock()
+        util.metadata = mock.MagicMock()
 
-        conn = mock.Mock()
-        util._extract_record_types("Account", "test_table", conn)
+        conn = mock.MagicMock()
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.utils.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            util._extract_record_types("Account", "test_table", conn)
 
         util.sf.query.assert_called_once_with(
             "SELECT Id, DeveloperName FROM RecordType WHERE SObjectType='Account'"
         )
-        util._sql_bulk_insert_from_records.assert_called_once()
-        call = util._sql_bulk_insert_from_records.call_args_list[0][1]
+        sql_bulk_insert_from_records.assert_called_once()
+        call = sql_bulk_insert_from_records.call_args_list[0][1]
         assert call["connection"] == conn
-        assert call["table"] == "test_table"
+        assert call["table"] == util.metadata.tables["test_table"]
         assert call["columns"] == ["record_type_id", "developer_name"]
         assert list(call["record_iterable"]) == [["012000000000000", "Organization"]]
 
@@ -76,15 +83,12 @@ class TestSqlAlchemyMixin:
         model = type("TestModel", (object,), {})
         mapper(model, id_t)
 
-        util = bulkdata.utils.SqlAlchemyMixin()
-        util.metadata = metadata
         session = create_session(bind=engine, autocommit=False)
-        util.session = session
         connection = session.connection()
 
-        util._sql_bulk_insert_from_records(
+        sql_bulk_insert_from_records(
             connection=connection,
-            table="TestTable",
+            table=id_t,
             columns=("id", "sf_id"),
             record_iterable=([f"{x}", f"00100000000000{x}"] for x in range(10)),
         )

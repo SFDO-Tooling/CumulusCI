@@ -34,7 +34,11 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     get_dml_operation,
 )
-from cumulusci.tasks.bulkdata.utils import RowErrorChecker, SqlAlchemyMixin
+from cumulusci.tasks.bulkdata.utils import (
+    RowErrorChecker,
+    SqlAlchemyMixin,
+    sql_bulk_insert_from_records,
+)
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
@@ -364,9 +368,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if is_insert_or_upsert and (
             step.job_result.records_processed - step.job_result.total_row_errors
         ):
-            self._sql_bulk_insert_from_records(
+            sql_bulk_insert_from_records(
                 connection=conn,
-                table=id_table_name,
+                table=self.metadata.tables[id_table_name],
                 columns=("id", "sf_id"),
                 record_iterable=results_generator,
             )
@@ -385,9 +389,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         ):
             account_id_lookup = mapping.lookups.get("AccountId")
             if account_id_lookup:
-                self._sql_bulk_insert_from_records(
+                sql_bulk_insert_from_records(
                     connection=conn,
-                    table=id_table_name,
+                    table=self.metadata.tables[id_table_name],
                     columns=("id", "sf_id"),
                     record_iterable=self._generate_contact_id_map_for_person_accounts(
                         mapping, account_id_lookup, conn
