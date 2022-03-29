@@ -239,7 +239,7 @@ class TestMappingParser:
 
         ms = MappingStep(
             sf_object="Account",
-            fields=["Name"],
+            fields=["Name", "Extid__c"],
             action=DataOperationType.UPSERT,
             update_key="Extid__c",
         )
@@ -1173,3 +1173,62 @@ class TestMappingLookup:
         assert mapping["Insert Accounts"].bulk_mode == "Serial"
         assert mapping["Insert Accounts"].action.value == "insert"
         assert mapping["Insert Accounts"].batch_size == 50
+
+
+class TestUpsertKeyValidations:
+    def test_upsert_key_wrong_type(self):
+        with pytest.raises(ValidationError) as e:
+            parse_from_yaml(
+                StringIO(
+                    (
+                        """Insert Accounts:
+                        sf_object: account
+                        table: account
+                        action: upsert
+                        update_key: 11
+                        fields:
+                            - name"""
+                    )
+                )
+            )
+        assert "update_key" in str(e.value)
+
+    def test_upsert_key_wrong_type__list_item(self):
+        with pytest.raises(ValidationError) as e:
+            parse_from_yaml(
+                StringIO(
+                    (
+                        """Insert Accounts:
+                        sf_object: account
+                        table: account
+                        action: upsert
+                        update_key:
+                            - 11
+                        fields:
+                            - name"""
+                    )
+                )
+            )
+        assert "update_key" in str(e.value)
+
+    def test_upsert_key_list(self):
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    """Insert Accounts:
+                        sf_object: account
+                        table: account
+                        action: etl_upsert
+                        update_key:
+                            - FirstName
+                            - LastName
+                        fields:
+                            - FirstName
+                            - LastName """
+                )
+            )
+        )
+        assert mapping["Insert Accounts"]["update_key"] == (
+            "FirstName",
+            "LastName",
+        ), mapping["Insert Accounts"]["update_key"]
