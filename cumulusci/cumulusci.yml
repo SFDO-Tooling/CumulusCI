@@ -259,7 +259,7 @@ tasks:
             command: "force:source:pull"
         group: Salesforce DX
     dx_push:
-        description: "DEPRECATED: Use the `deploy` command to deploy metadata instead. Use the `dx` command if you nned to run `force:source:push` for some reason."
+        description: "DEPRECATED: Use the `deploy` command to deploy metadata instead. Use the `dx` command if you need to run `force:source:push` for some reason."
         class_path: cumulusci.tasks.sfdx.SFDXOrgTask
         options:
             command: "force:source:push"
