@@ -12,15 +12,19 @@ CURRENT_SF_API_VERSION = "52.0"  # match cumulusci.yml until it updates
 
 
 class TestUpsert:
-    @pytest.mark.vcr()
+    # Would be nice to slim down this VCR further. It's still 50kb.
+    # The next step of VCR compression would be to have some templates
+    # for XML that can be reused when matched.
+    # gzip would be another (albeit binary) answer.
+    @pytest.mark.needs_org()
     def test_upsert_external_id_field(
         self,
         create_task,
         cumulusci_test_repo_root,
         sf,
         delete_data_from_org,
-        mock_bulk_download_for_vcr,
         run_code_without_recording,
+        mock_bulk_download_for_vcr,
     ):
         run_code_without_recording(
             lambda: delete_data_from_org(

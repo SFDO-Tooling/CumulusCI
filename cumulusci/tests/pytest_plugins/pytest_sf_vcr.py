@@ -188,8 +188,8 @@ def salesforce_matcher(r1, r2, should_explain=False):
     # are working properly
     if summary1 != summary2:
         if should_explain:
-            return None
-            # return explain_mismatch(summary1, summary2)
+            # return None
+            return explain_mismatch(summary1, summary2)
         else:
             assert summary1 == summary2
 

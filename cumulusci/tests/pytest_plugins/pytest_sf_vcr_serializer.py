@@ -74,7 +74,7 @@ def _expand_reference(possible_reference, include_files: dict):
 
 
 def _replace_interaction_if_possible(
-    interaction: dict, replacements: dict[str:RequestResponseReplacement]
+    interaction: dict, replacements: T.Dict[str, RequestResponseReplacement]
 ) -> dict:
     """Try to replace an interaction with a canned one.
 

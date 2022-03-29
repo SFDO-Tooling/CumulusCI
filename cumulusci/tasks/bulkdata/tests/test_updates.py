@@ -492,8 +492,10 @@ class TestUpdates:
 
 
 class TestUpdatesIntegrationTests:
+
+    # VCR doesn't match because of randomized data
     @pytest.mark.vcr()
-    def test_updates_task(self, create_task, cumulusci_test_repo_root, ensure_accounts):
+    def test_updates_task(self, create_task, ensure_accounts):
         with ensure_accounts(6):
             task = create_task(
                 UpdateData,
