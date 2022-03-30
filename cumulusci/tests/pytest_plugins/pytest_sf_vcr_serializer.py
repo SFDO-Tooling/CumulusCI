@@ -104,7 +104,6 @@ def _compress_in_place(d: dict, saved_responses: dict, sc: StringToTemplateCompr
         _replace_interaction_if_possible(interaction, saved_responses)
         for interaction in d["interactions"]
     ]
-    yaml.dump(d, open("/tmp/intermediate.yaml", "w"))
     walk_yaml(d, VCRCompressor(sc))
     return d
 

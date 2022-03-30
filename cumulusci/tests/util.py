@@ -6,7 +6,7 @@ import random
 import sys
 import tracemalloc
 from contextlib import contextmanager, nullcontext
-from functools import cache
+from functools import lru_cache
 from pathlib import Path
 from unittest import mock
 
@@ -193,7 +193,7 @@ class FakeSF:
         return FakeSObjectProxy(self._get_json(name))
 
 
-@cache
+@lru_cache  # change to @cache when Python 3.9 is allowed
 def read_mock(name: str):
     base_path = Path(__file__).parent.parent / "tests/shared_cassettes"
 
