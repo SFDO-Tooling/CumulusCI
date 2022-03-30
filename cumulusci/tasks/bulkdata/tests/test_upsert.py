@@ -16,7 +16,7 @@ class TestUpsert:
     # The next step of VCR compression would be to have some templates
     # for XML that can be reused when matched.
     # gzip would be another (albeit binary) answer.
-    @pytest.mark.needs_org()
+    @pytest.mark.vcr()
     def test_upsert_external_id_field(
         self,
         create_task,
