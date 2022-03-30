@@ -1,11 +1,13 @@
 import collections
 import logging
 import tempfile
+import typing as T
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 from simple_salesforce import Salesforce
 from sqlalchemy import Column, Integer, MetaData, Table, Unicode
+from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session, mapper
 
 from cumulusci.core.exceptions import BulkDataException
@@ -20,33 +22,6 @@ class SqlAlchemyMixin:
     session: Session
     sf: Salesforce
 
-    def _sql_bulk_insert_from_records(
-        self, *, connection, table, columns, record_iterable
-    ):
-        """Persist records from the given generator into the local database."""
-        consume(
-            self._sql_bulk_insert_from_records_incremental(
-                connection=connection,
-                table=table,
-                columns=columns,
-                record_iterable=record_iterable,
-            )
-        )
-
-    def _sql_bulk_insert_from_records_incremental(
-        self, *, connection, table, columns, record_iterable
-    ):
-        """Generator that persists batches of records from the given generator into the local database
-
-        Yields after every batch."""
-        table = self.metadata.tables[table]
-        dict_iterable = (dict(zip(columns, row)) for row in record_iterable)
-        for group in iterate_in_chunks(10000, dict_iterable):
-            with connection.begin():
-                connection.execute(table.insert(), group)
-            self.session.flush()
-            yield
-
     def _create_record_type_table(self, table_name):
         """Create a table to store mapping between Record Type Ids and Developer Names."""
         rt_map_model_name = f"{table_name}Model"
@@ -58,7 +33,7 @@ class SqlAlchemyMixin:
         rt_map_table = Table(table_name, self.metadata, *rt_map_fields)
         mapper(self.models[table_name], rt_map_table)
 
-    def _extract_record_types(self, sobject, table, conn):
+    def _extract_record_types(self, sobject, tablename: str, conn):
         """Query for Record Type information and persist it in the database."""
         self.logger.info(f"Extracting Record Types for {sobject}")
         query = (
@@ -68,9 +43,9 @@ class SqlAlchemyMixin:
         result = self.sf.query(query)
 
         if result["totalSize"]:
-            self._sql_bulk_insert_from_records(
+            sql_bulk_insert_from_records(
                 connection=conn,
-                table=table,
+                table=self.metadata.tables[tablename],
                 columns=["record_type_id", "developer_name"],
                 record_iterable=(
                     [rt["Id"], rt["DeveloperName"]] for rt in result["records"]
@@ -172,3 +147,39 @@ def consume(iterator):
     Simplified from the function in https://docs.python.org/3/library/itertools.html
     """
     collections.deque(iterator, maxlen=0)
+
+
+def sql_bulk_insert_from_records(
+    *,
+    connection: Connection,
+    table: Table,
+    columns: T.Tuple[str],
+    record_iterable: T.Iterable,
+) -> None:
+    """Persist records from the given generator into the local database."""
+    consume(
+        sql_bulk_insert_from_records_incremental(
+            connection=connection,
+            table=table,
+            columns=columns,
+            record_iterable=record_iterable,
+        )
+    )
+
+
+def sql_bulk_insert_from_records_incremental(
+    *,
+    connection: Connection,
+    table: Table,
+    columns: T.Tuple[str],
+    record_iterable: T.Iterable,
+):
+    """Generator that persists batches of records from the given generator into the local database
+
+    Yields after every batch."""
+    dict_iterable = (dict(zip(columns, row)) for row in record_iterable)
+    for group in iterate_in_chunks(10000, dict_iterable):
+        with connection.begin():
+            connection.execute(table.insert(), group)
+        # self.session.flush()  -- Did this line do anything?
+        yield
