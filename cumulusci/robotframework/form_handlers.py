@@ -60,7 +60,7 @@ class BaseFormHandler(abc.ABC):
 
     @property
     def input_element(self):
-        """Returns the actual <input> or <textarea> element inside the element"""
+        """Returns the first <input> or <textarea> element inside the element"""
         elements = self.element.find_elements_by_xpath(
             ".//*[self::input or self::textarea]"
         )
@@ -97,7 +97,14 @@ class HTMLInputHandler(BaseFormHandler):
     tags = ["input", "textarea"]
 
     def set(self, value):
-        self.element.send_keys(value)
+        if self.element.get_attribute("type") == "checkbox":
+            value = value.lower()
+            checked = self.element.is_selected()
+            if (checked and value != "checked") or (not checked and value == "checked"):
+                self.element.click()
+        else:
+            self.clear()
+            self.element.send_keys(value)
 
     def get(self, value):
         # not currently being used

@@ -1473,7 +1473,7 @@ class Salesforce(object):
                     handler.set(value)
                 else:
                     raise Exception(
-                        f"No form handler found for tag '{element.tag_name}'"
+                        f"No form handler found for '{label}' (tag: '{element.tag_name}')"
                     )
             except Exception as e:
                 errors.append(f"{label}: {str(e)}")
@@ -1522,26 +1522,40 @@ class Salesforce(object):
             fieldset, label = [x.strip() for x in locator.split("::", 1)]
             fieldset_prefix = f'//fieldset[.//*[.="{fieldset}"]]'
         else:
-            label = locator
+            label = locator.strip()
             fieldset_prefix = ""
 
-        xpath = fieldset_prefix + (
-            # a label with the given text, optionally with a leading
-            # or trailing "*" (ie: required field)
-            f'//label[.="{label}" or .="*{label}" or .="{label}*"]'
-            # then find the nearest ancestor lightning component
-            '/ancestor::*[starts-with(local-name(), "lightning-")][1]'
+        label_xpath = (
+            fieldset_prefix
+            + f'//label[descendant-or-self::*[text()[normalize-space() = "{label}"]]]'
         )
-        elements = browser.find_elements_by_xpath(xpath)
+        labels = browser.find_elements_by_xpath(label_xpath)
+        if not labels:
+            return []
 
-        if not elements:
-            # fall back to finding an input or textarea based on the 'for'
-            # attribute of a label
-            xpath = fieldset_prefix + (
-                "//*[self::input or self::textarea]"
-                f'[@id=string(//label[.="{label}" or .="*{label}" or .="{label}*"]/@for)]'
-            )
-            elements = browser.find_elements_by_xpath(xpath)
+        # For each match, find either the nearest ancestor lightning component,
+        # or the component pointed to by the `for` attribute.
+        elements = []
+        for label_element in labels:
+            try:
+                # Since we've already waited for the label, there's not much point of waiting
+                # for the component or input area. If it's not in the DOM by now, it will
+                # probably never be. Famous last words, right?
+                orig_wait = self.selenium.set_selenium_implicit_wait(0)
+                component = None
+                component = label_element.find_element_by_xpath(
+                    "./ancestor::*[starts-with(local-name(), 'lightning-')][1]"
+                )
+            except NoSuchElementException:
+                component_id = label_element.get_attribute("for")
+                if component_id:
+                    component = browser.find_element_by_id(component_id)
+                # else find an input or textarea in a sibling or descendant?
+            finally:
+                self.selenium.set_selenium_implicit_wait(orig_wait)
+
+            if component is not None:
+                elements.append(component)
 
         return elements
 

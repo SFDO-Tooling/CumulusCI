@@ -34,7 +34,7 @@ from cumulusci.utils import temporary_dir
 
 HERE = os.path.dirname(__file__)
 FOO_PATH = os.path.join(HERE, "FooTestPage.py")
-BAR_PATH = os.path.join(HERE, "BarTestPage.py")
+CUSTOM_PATH = os.path.join(HERE, "CustomObjectTestPage.py")
 
 # this is the importer used by the page objects, which makes it easy
 # peasy to import by file path
@@ -156,7 +156,7 @@ class TestPageObjects:
         self, get_context_mock, get_library_instance_mock
     ):
         """Verify that custom page objects get added to the registry"""
-        with reload_PageObjects(FOO_PATH, BAR_PATH) as po:
+        with reload_PageObjects(FOO_PATH, CUSTOM_PATH) as po:
             # fmt: off
             # This is much easier to read than if black were to reformat it.
             expected_registry = {
@@ -166,7 +166,9 @@ class TestPageObjects:
                 ("Listing", ""): "<class 'cumulusci.robotframework.pageobjects.BasePageObjects.ListingPage'>",
                 ("New", ""): "<class 'cumulusci.robotframework.pageobjects.BasePageObjects.NewModal'>",
                 ("ObjectManager", ""): "<class 'cumulusci.robotframework.pageobjects.ObjectManagerPageObject.ObjectManagerPage'>",
-                ("Test", "Bar__c"): "<class 'BarTestPage.BarTestPage'>",
+                # the custom page object uses an alias for the object name so it will be in the registry twice
+                ("Listing", "CustomObject__c"): "<class 'CustomObjectTestPage.CustomObjectListingPage'>",
+                ("Listing", "Custom Object"): "<class 'CustomObjectTestPage.CustomObjectListingPage'>",
                 ("Test", "Foo__c"): "<class 'FooTestPage.FooTestPage'>",
             }
             # fmt: on

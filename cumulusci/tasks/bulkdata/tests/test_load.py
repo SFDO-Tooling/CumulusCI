@@ -852,9 +852,9 @@ class TestLoadData:
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
 
-        task.session = mock.Mock()
+        task.session = mock.MagicMock()
+        task.metadata = mock.MagicMock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
 
@@ -870,11 +870,14 @@ class TestLoadData:
         step.results = [DataOperationResult("001111111111111", True, None)]
 
         mapping = MappingStep(sf_object="Account")
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
         task._initialize_id_table.assert_called_once_with(mapping, True)
-        task._sql_bulk_insert_from_records.assert_called_once()
+        sql_bulk_insert_from_records.assert_called_once()
         task.session.commit.assert_called_once()
 
     def test_process_job_results__insert_rows_fail(self):
@@ -891,7 +894,6 @@ class TestLoadData:
 
         task.session = mock.Mock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
         task.logger = mock.Mock()
@@ -917,11 +919,14 @@ class TestLoadData:
         ]
 
         mapping = MappingStep(sf_object="Account", table="Account")
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
         task._initialize_id_table.assert_called_once_with(mapping, True)
-        task._sql_bulk_insert_from_records.assert_not_called()
+        sql_bulk_insert_from_records.assert_not_called()
         task.session.commit.assert_called_once()
         assert len(task.logger.mock_calls) == 4
 
@@ -933,7 +938,6 @@ class TestLoadData:
 
         task.session = mock.Mock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
 
@@ -949,11 +953,14 @@ class TestLoadData:
         step.results = [DataOperationResult("001111111111111", True, None)]
 
         mapping = MappingStep(sf_object="Account", action=DataOperationType.UPDATE)
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_not_called()
         task._initialize_id_table.assert_not_called()
-        task._sql_bulk_insert_from_records.assert_not_called()
+        sql_bulk_insert_from_records.assert_not_called()
         task.session.commit.assert_not_called()
 
     def test_process_job_results__exception_failure(self):
@@ -964,7 +971,6 @@ class TestLoadData:
 
         task.session = mock.Mock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
 
@@ -982,7 +988,9 @@ class TestLoadData:
 
         mapping = MappingStep(sf_object="Account", action=DataOperationType.UPDATE)
 
-        with pytest.raises(BulkDataException) as e:
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
+        ), pytest.raises(BulkDataException) as e:
             task._process_job_results(mapping, step, local_ids)
 
         assert "Error on record with id" in str(e.value)
@@ -1019,7 +1027,6 @@ class TestLoadData:
 
         task.session = mock.Mock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
         task._can_load_person_accounts = mock.Mock(
@@ -1046,7 +1053,8 @@ class TestLoadData:
         )
         if account_id_lookup:
             mapping.lookups["AccountId"] = account_id_lookup
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch("cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"):
+            task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
 
@@ -1080,8 +1088,8 @@ class TestLoadData:
         )
 
         task.session = mock.Mock()
+        task.metadata = mock.MagicMock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
         task._can_load_person_accounts = mock.Mock(
@@ -1108,7 +1116,8 @@ class TestLoadData:
         )
         if account_id_lookup:
             mapping.lookups["AccountId"] = account_id_lookup
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch("cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"):
+            task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
 
@@ -1141,9 +1150,9 @@ class TestLoadData:
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
 
-        task.session = mock.Mock()
+        task.session = mock.MagicMock()
+        task.metadata = mock.MagicMock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
         task._can_load_person_accounts = mock.Mock(
@@ -1170,7 +1179,8 @@ class TestLoadData:
         )
         if account_id_lookup:
             mapping.lookups["AccountId"] = account_id_lookup
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch("cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"):
+            task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
 
@@ -1204,8 +1214,8 @@ class TestLoadData:
         )
 
         task.session = mock.Mock()
+        task.metadata = mock.MagicMock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
         task._can_load_person_accounts = mock.Mock(
@@ -1232,7 +1242,8 @@ class TestLoadData:
         )
         if account_id_lookup:
             mapping.lookups["AccountId"] = account_id_lookup
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch("cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"):
+            task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
 
@@ -1264,8 +1275,8 @@ class TestLoadData:
         )
 
         task.session = mock.Mock()
+        task.metadata = mock.MagicMock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
         task._can_load_person_accounts = mock.Mock(
@@ -1290,16 +1301,18 @@ class TestLoadData:
             action=action,
             lookups={"AccountId": account_id_lookup},
         )
-
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_called_once_with(
             mapping, mapping.lookups["AccountId"], task.session.connection.return_value
         )
 
-        task._sql_bulk_insert_from_records.assert_called_with(
+        sql_bulk_insert_from_records.assert_called_with(
             connection=task.session.connection.return_value,
-            table=task._initialize_id_table.return_value,
+            table=task.metadata.tables[task._initialize_id_table.return_value],
             columns=("id", "sf_id"),
             record_iterable=task._generate_contact_id_map_for_person_accounts.return_value,
         )
