@@ -39,6 +39,23 @@ Require Salesforce object
     ...  log  created object  DEBUG
 
 *** Test Cases ***
+Lightning based radiobutton
+    [tags]       whatever
+    [Setup]      Run keywords
+    ...  Go to page          Listing    Opportunity
+    ...  AND  Click element  sf:list_view_menu.button
+    ...  AND  Click element  sf:list_view_menu.item:New
+    ...  AND  Wait for modal  New  List View
+    [Teardown]   Click modal button  Cancel
+
+    Input form data
+    ...  Who sees this list view?::All users can see this list view    selected
+
+    # Using the label: locator returns a lightning-input element. We need to find
+    # the actual html input element to verify that it is checked. Ugly, but efficient.
+    ${element}=  Get webelement  label:All users can see this list view
+    Should be true  ${element.find_element_by_xpath(".//input").is_selected()}
+
 Lightning based form - Opportunity
     [Documentation]
     ...  Sets all of the input fields for an opportunity, to make sure

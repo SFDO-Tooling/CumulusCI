@@ -164,6 +164,12 @@ class LightningInputHandler(BaseFormHandler):
             checked = self.element.get_attribute("checked")
             if (checked and value != "checked") or (not checked and value == "checked"):
                 self.input_element.send_keys(" ")
+
+        elif self.input_element.get_attribute("type") == "radio":
+            if value.strip().lower() != "selected":
+                raise Exception("value must be 'selected'")
+            self.input_element.send_keys(" ")
+
         else:
             self.clear()
             self.input_element.send_keys(value)
