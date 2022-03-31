@@ -2,6 +2,7 @@ import os
 import re
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
+from datetime import date, datetime
 from distutils.version import StrictVersion
 from urllib.parse import urlparse
 
@@ -34,26 +35,27 @@ class OrgConfig(BaseConfig):
     access_token: str
     config_file: str
     config_name: str
-    created: str
-    date_created: str
+    created: bool
+    date_created: (datetime, date)  # type: ignore
     days: int
     email_address: str
     instance_name: str
     instance_url: str
-    is_sandbox: str
+    expires: str  # TODO: note that ScratchOrgConfig has a bool method of same name
+    expired: bool  # ditto
+    is_sandbox: bool
     namespace: str
-    namespaced: str
+    namespaced: bool
     org_id: str
     org_type: str
     password: str
-    scratch: str
+    scratch: bool
     scratch_org_type: str
-    set_password: str
+    set_password: bool
     sfdx_alias: str
     username: str
     userinfo: str
     id: str
-    expires: str
     active: bool
     default: bool
     client_id: str

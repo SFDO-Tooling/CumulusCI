@@ -104,7 +104,7 @@ class DummyService(BaseConfig):
 
     def __init__(self, name, alias):
         self.name = name
-        super().__init__(name)
+        super().__init__()
 
 
 class DummyKeychain(BaseProjectKeychain):

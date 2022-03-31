@@ -1,11 +1,13 @@
 import logging
 import os
+import typing as T
 import warnings
-from functools import lru_cache, reduce
+from functools import lru_cache
 
 # turn on strictness.
 # delete this when strictness is mandatory
 STRICT_GETATTR = os.environ.get("STRICT_GETATTR")
+CHECK_CONFIG_TYPES = os.environ.get("CHECK_CONFIG_TYPES")
 
 
 class BaseConfig(object):
@@ -18,7 +20,18 @@ class BaseConfig(object):
         if config is None:
             self.config = {}
         else:
-            self.config = config
+            types = self._all_allowed_names()
+            if CHECK_CONFIG_TYPES:
+                for k, v in config.items():
+                    type_for_value = types.get(k)
+                    if not type_for_value:
+                        warnings.warn(f"{k}: {v} not declared for {type(self)}")
+                    if (v is not None) and (type_for_value is not None):
+                        assert isinstance(
+                            v, type_for_value
+                        ), f"{k}: {v} should be of type {type_for_value}, not {type(v)} for {type(self)}"
+            self.config = config.copy()
+
         self._init_logger()
         self._load_config()
 
@@ -31,10 +44,8 @@ class BaseConfig(object):
         pass
 
     @classmethod
-    def _allowed_names(cls) -> set:
-        properties = set(dir(cls))
-        annotations = set(getattr(cls, "__annotations__", {}))
-        return properties.union(annotations)
+    def _allowed_names(cls) -> T.Dict[str, type]:
+        return getattr(cls, "__annotations__", {})
 
     # long term plan is to get rid of this
     def __getattr__(self, name):
@@ -66,11 +77,10 @@ class BaseConfig(object):
             for baseclass in cls.__mro__
             if hasattr(baseclass, "_allowed_names")
         )
-        return reduce(
-            set.union,
-            allowed_names_from_all_base_classes,
-            cls._allowed_names(),
-        )
+        ret = {}
+        for d in allowed_names_from_all_base_classes:
+            ret.update(d)
+        return ret
 
     def lookup(self, name, default=None):
         tree = name.split("__")

@@ -19,10 +19,16 @@ class FlowConfig(BaseConfig):
     """A flow with its configuration merged"""
 
     description: str
-    steps: list
+    steps: dict
     group: str
     checks: list
     project_config: "BaseProjectConfig"
+    title: str
+    slug: str
+    tier: str
+    preflight_message: str
+    error_message: str
+    tasks: dict  # deprecated
 
 
 from cumulusci.core.config.org_config import OrgConfig
@@ -39,6 +45,8 @@ class ServiceConfig(BaseConfig):
     token_uri: str
     callback_url: str
     login_url: str
+    service_name: str
+    name: str
 
     def __init__(self, config, name=None, keychain=None):
         """Services may need access to a keychain and the alias of their service."""
@@ -48,7 +56,7 @@ class ServiceConfig(BaseConfig):
 class TaskConfig(BaseConfig):
     """A task with its configuration merged"""
 
-    options: str
+    options: dict
     class_path: str
     description: str
     group: str

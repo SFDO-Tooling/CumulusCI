@@ -43,7 +43,7 @@ from cumulusci.utils.yaml.cumulusci_yml import (
 )
 
 
-class ProjectConfigPropertiesMixin:
+class ProjectConfigPropertiesMixin(BaseConfig):
     """Mixin for shared properties used by ProjectConfigs and UniversalConfigs"""
 
     cli: dict
@@ -63,6 +63,9 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     """Base class for a project's configuration which extends the global config"""
 
     universal_config_obj: dict  # undocumented
+    noyaml: bool  # hack to be removed
+    no_yaml: bool  # hack to be removed
+
     config_filename = "cumulusci.yml"
 
     def __init__(
@@ -625,5 +628,5 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             yield cache_dir
 
 
-class RemoteProjectConfig(BaseConfig, ProjectConfigPropertiesMixin):
+class RemoteProjectConfig(ProjectConfigPropertiesMixin):
     pass

@@ -57,12 +57,17 @@ class TestBaseConfig:
         config.config = {"foo": "bar"}
         assert config.foo == "bar"
 
-    @mock.patch("warnings.warn")
-    def test_getattr_toplevel_key_missing(self, warn):
+    def test_getattr_toplevel_key_missing(self):
         config = BaseConfig()
         config.config = {}
-        assert config.foo is None
-        assert len(warn.mock_calls) == 1
+        with mock.patch(
+            "cumulusci.core.config.base_config.STRICT_GETATTR", False
+        ), pytest.warns(DeprecationWarning, match="foo"):
+            assert config.foo is None
+        with mock.patch(
+            "cumulusci.core.config.base_config.STRICT_GETATTR", True
+        ), pytest.raises(AssertionError):
+            assert config.foo is None
 
     def test_getattr_child_key(self):
         config = FakeConfig()
@@ -834,7 +839,7 @@ class TestOrgConfig:
     def test_refresh_oauth_token(self, OAuth2Client):
         config = OrgConfig(
             {
-                "refresh_token": mock.sentinel.refresh_token,
+                "refresh_token": "aaaaa",
                 "instance_url": "http://instance_url_111.com",
             },
             "test",
@@ -851,14 +856,14 @@ class TestOrgConfig:
 
         client_config = OAuth2Client.call_args[0][0]
         assert client_config.client_id == DEFAULT_CONNECTED_APP.client_id
-        refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
+        refresh_token.assert_called_once_with("aaaaa")
 
     @mock.patch("cumulusci.core.config.OrgConfig.OAuth2Client")
     def test_refresh_oauth_token__other_connected_app(self, OAuth2Client):
         config = OrgConfig(
             {
                 "connected_app": "other",
-                "refresh_token": mock.sentinel.refresh_token,
+                "refresh_token": "bbbbb",
                 "instance_url": "http://instance_url_111.com",
             },
             "test",
@@ -887,13 +892,13 @@ class TestOrgConfig:
 
         client_config = OAuth2Client.call_args[0][0]
         assert client_config.client_id == "OTHER_ID"
-        refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
+        refresh_token.assert_called_once_with("bbbbb")
 
     @responses.activate
     def test_load_user_info__bad_json(self):
         config = OrgConfig(
             {
-                "refresh_token": mock.sentinel.refresh_token,
+                "refresh_token": "aaaaa",
                 "instance_url": "http://instance_url_111.com",
             },
             "test",
