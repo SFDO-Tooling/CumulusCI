@@ -102,6 +102,12 @@ class HTMLInputHandler(BaseFormHandler):
             checked = self.element.is_selected()
             if (checked and value != "checked") or (not checked and value == "checked"):
                 self.element.click()
+
+        elif self.element.get_attribute("type") == "radio":
+            if value.strip().lower() != "selected":
+                raise Exception("value must be 'selected'")
+            self.element.send_keys(" ")
+
         else:
             self.clear()
             self.element.send_keys(value)
