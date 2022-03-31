@@ -31,43 +31,45 @@ class BaseConfig(object):
         pass
 
     @classmethod
-    def allowed_names(cls) -> set:
+    def _allowed_names(cls) -> set:
         properties = set(dir(cls))
         annotations = set(getattr(cls, "__annotations__", {}))
         return properties.union(annotations)
 
     # long term plan is to get rid of this
     def __getattr__(self, name):
+        """Look up a property in a sub-dictionary
+
+        Property names should be declared in each Config class with type annotations.
+        """
         if not name.startswith("_"):
             first_part = name.split("__")[0]
-            if (
-                first_part
-                not in self.all_allowed_names()
-                # and first_part not in self.config
-            ):
+            if first_part not in self._all_allowed_names():
+                message = (
+                    f"Property `{first_part}` is unknown on class `{self.__class__.__name__}`. "
+                    + "Either declare it in the type declaration or use lookup() to look it up dynamically"
+                )
                 warnings.warn(
-                    f"__getattr__ on Configs is deprecated: `{first_part}` on `{self.__class__.__name__}`",
+                    message,
                     DeprecationWarning,
                 )
 
-                assert (
-                    not STRICT_GETATTR
-                ), f"__getattr__ on Configs is deprecated: `{first_part}` on `{self.__class__.__name__}`"
+                assert not STRICT_GETATTR, message
         return self.lookup(name)
 
     @classmethod
     @lru_cache
-    def all_allowed_names(cls):
+    def _all_allowed_names(cls):
         "Allowed names from this class and its base classes"
         allowed_names_from_all_base_classes = (
-            baseclass.allowed_names()
+            baseclass._allowed_names()
             for baseclass in cls.__mro__
-            if hasattr(baseclass, "allowed_names")
+            if hasattr(baseclass, "_allowed_names")
         )
         return reduce(
             set.union,
             allowed_names_from_all_base_classes,
-            cls.allowed_names(),
+            cls._allowed_names(),
         )
 
     def lookup(self, name, default=None):

@@ -5,8 +5,6 @@ FAILED_TO_CREATE_SCRATCH_ORG = "Failed to create scratch org"
 
 from cumulusci.core.config.base_config import BaseConfig
 
-# inherit from BaseConfig
-
 
 class ConnectedAppOAuthConfig(BaseConfig):
     """Salesforce Connected App OAuth configuration"""
@@ -24,7 +22,7 @@ class FlowConfig(BaseConfig):
     steps: list
     group: str
     checks: list
-    project_config: BaseConfig
+    project_config: "BaseProjectConfig"
 
 
 from cumulusci.core.config.org_config import OrgConfig
@@ -54,10 +52,10 @@ class TaskConfig(BaseConfig):
     class_path: str
     description: str
     group: str
-    ui_options: str
+    ui_options: dict
     name: str
-    checks: str
-    project_config: str
+    checks: list
+    project_config: "BaseProjectConfig"
 
     pass
 

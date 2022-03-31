@@ -15,7 +15,6 @@ __location__ = os.path.dirname(os.path.realpath(__file__))
 class UniversalConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     """Base class for the global config which contains all configuration not specific to projects"""
 
-    universal_config_obj: dict  # undocumented
     project_local_dir: str
     cli: dict
 

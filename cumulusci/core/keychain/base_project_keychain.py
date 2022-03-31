@@ -29,14 +29,12 @@ DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig(
 class BaseProjectKeychain(BaseConfig):
     encrypted = False
     orgs: dict
-    app: object  # what is this?
     services: dict
 
     def __init__(self, project_config, key):
         super(BaseProjectKeychain, self).__init__()
         self.config = {
             "orgs": {},
-            "app": None,  # what is this?
             "services": {},
         }
         self.project_config = project_config

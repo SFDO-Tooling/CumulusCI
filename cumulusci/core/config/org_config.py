@@ -20,8 +20,6 @@ from cumulusci.oauth.salesforce import SANDBOX_LOGIN_URL, jwt_session
 from cumulusci.utils.fileutils import open_fs_resource
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
-from .org_config import *  # noqa
-
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
 SANDBOX_MYDOMAIN_RE = re.compile(r"\.cs\d+\.my\.(.*)salesforce\.com")
 MYDOMAIN_RE = re.compile(r"\.my\.(.*)salesforce\.com")
@@ -56,9 +54,8 @@ class OrgConfig(BaseConfig):
     userinfo: str
     id: str
     expires: str
-    active: str
-    default: str
-    expired: bool
+    active: bool
+    default: bool
     client_id: str
     refresh_token: str
     client_secret: str

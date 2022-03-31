@@ -15,6 +15,8 @@ class MarketingCloudServiceConfig(OAuth2ServiceConfig):
     oauth2_client: str
     soap_instance_url: str
     rest_instance_url: str
+    redirect_uri: str
+    access_token: str
 
     def __init__(self, config, name, keychain):
         super().__init__(config, name, keychain)

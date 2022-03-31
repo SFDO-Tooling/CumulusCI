@@ -44,6 +44,8 @@ from cumulusci.utils.yaml.cumulusci_yml import (
 
 
 class ProjectConfigPropertiesMixin(BaseConfig):
+    """Mixin for shared properties used by ProjectConfigs and UniversalConfigs"""
+
     cli: dict
     services: dict
     project: dict
@@ -62,6 +64,7 @@ class ProjectConfigPropertiesMixin(BaseConfig):
 class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     """Base class for a project's configuration which extends the global config"""
 
+    universal_config_obj: dict  # undocumented
     config_filename = "cumulusci.yml"
 
     def __init__(
