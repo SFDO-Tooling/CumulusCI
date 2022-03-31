@@ -62,10 +62,6 @@ class ProjectConfigPropertiesMixin(BaseConfig):
 class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     """Base class for a project's configuration which extends the global config"""
 
-    universal_config_obj: dict  # undocumented
-    noyaml: bool  # hack to be removed
-    no_yaml: bool  # hack to be removed
-
     config_filename = "cumulusci.yml"
 
     def __init__(
@@ -310,7 +306,8 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             return
 
         url_line = self.git_config_remote_origin_url()
-        return split_repo_url(url_line)[1]
+        if url_line:
+            return split_repo_url(url_line)[1]
 
     @property
     def repo_url(self):
@@ -334,7 +331,8 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             return
 
         url_line = self.git_config_remote_origin_url()
-        return split_repo_url(url_line)[0]
+        if url_line:
+            return split_repo_url(url_line)[0]
 
     @property
     def repo_branch(self):
