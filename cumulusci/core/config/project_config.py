@@ -43,7 +43,7 @@ from cumulusci.utils.yaml.cumulusci_yml import (
 )
 
 
-class ProjectConfigPropertiesMixin(BaseConfig):
+class ProjectConfigPropertiesMixin:
     """Mixin for shared properties used by ProjectConfigs and UniversalConfigs"""
 
     cli: dict
@@ -56,8 +56,6 @@ class ProjectConfigPropertiesMixin(BaseConfig):
     flows: dict
     plans: dict
     tasks: dict
-    repo_owner: str
-    repo_name: str
     dev_config: dict  # this is not documented and should be deprecated
 
 
@@ -627,5 +625,5 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             yield cache_dir
 
 
-class RemoteProjectConfig(BaseConfig):
-    project: dict
+class RemoteProjectConfig(BaseConfig, ProjectConfigPropertiesMixin):
+    pass
