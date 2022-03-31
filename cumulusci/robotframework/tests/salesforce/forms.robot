@@ -40,7 +40,6 @@ Require Salesforce object
 
 *** Test Cases ***
 Lightning based radiobutton
-    [tags]       whatever
     [Setup]      Run keywords
     ...  Go to page          Listing    Opportunity
     ...  AND  Click element  sf:list_view_menu.button
