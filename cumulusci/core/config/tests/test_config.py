@@ -839,7 +839,7 @@ class TestOrgConfig:
     def test_refresh_oauth_token(self, OAuth2Client):
         config = OrgConfig(
             {
-                "refresh_token": "aaaaa",
+                "refresh_token": mock.sentinel.refresh_token,
                 "instance_url": "http://instance_url_111.com",
             },
             "test",
@@ -856,14 +856,14 @@ class TestOrgConfig:
 
         client_config = OAuth2Client.call_args[0][0]
         assert client_config.client_id == DEFAULT_CONNECTED_APP.client_id
-        refresh_token.assert_called_once_with("aaaaa")
+        refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
 
     @mock.patch("cumulusci.core.config.OrgConfig.OAuth2Client")
     def test_refresh_oauth_token__other_connected_app(self, OAuth2Client):
         config = OrgConfig(
             {
                 "connected_app": "other",
-                "refresh_token": "bbbbb",
+                "refresh_token": mock.sentinel.refresh_token,
                 "instance_url": "http://instance_url_111.com",
             },
             "test",
@@ -892,13 +892,13 @@ class TestOrgConfig:
 
         client_config = OAuth2Client.call_args[0][0]
         assert client_config.client_id == "OTHER_ID"
-        refresh_token.assert_called_once_with("bbbbb")
+        refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
 
     @responses.activate
     def test_load_user_info__bad_json(self):
         config = OrgConfig(
             {
-                "refresh_token": "aaaaa",
+                "refresh_token": mock.sentinel.refresh_token,
                 "instance_url": "http://instance_url_111.com",
             },
             "test",

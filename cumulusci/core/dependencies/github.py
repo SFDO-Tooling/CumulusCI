@@ -7,7 +7,7 @@ from github3.exceptions import NotFoundError
 from github3.git import Tag
 from github3.repos.repo import Repository
 
-from cumulusci.core.config.project_config import BaseProjectConfig, RemoteProjectConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.versions import PackageType
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
@@ -30,14 +30,14 @@ def get_repo(github: str, context: BaseProjectConfig) -> Repository:
 
 
 @functools.lru_cache(50)
-def get_remote_project_config(repo: Repository, ref: str) -> RemoteProjectConfig:
+def get_remote_project_config(repo: Repository, ref: str) -> BaseProjectConfig:
     contents = repo.file_contents("cumulusci.yml", ref=ref)
     contents_io = io.StringIO(contents.decoded.decode("utf-8"))
     contents_io.url = f"cumulusci.yml from {repo.owner}/{repo.name}"  # for logging
-    return RemoteProjectConfig(cci_safe_load(contents_io))
+    return BaseProjectConfig(None, cci_safe_load(contents_io))
 
 
-def get_package_data(config: RemoteProjectConfig):
+def get_package_data(config: BaseProjectConfig):
     namespace = config.project__package__namespace
     package_name = (
         config.project__package__name_managed
