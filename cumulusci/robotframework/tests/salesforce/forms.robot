@@ -7,7 +7,7 @@ Suite Setup     Run keywords
 ...  Initialize Test Objects
 ...  Open test browser
 Suite Teardown  Delete records and close browser
-Force tags      forms
+Force tags      forms  whatever
 
 *** Variables ***
 ${account name}   ACME Labs
@@ -122,20 +122,24 @@ Lightning based form - radiobutton
 Non-lightning based form - radiobutton
     [Documentation]  Verify we can set a plain non-lightning radiobutton
 
-    [Setup]  Run keywords
-    ...  Go to My Email Settings
+    [Setup]     Run keywords
+    ...  Skip if  "firefox" in $browser
+    ...  AND  Go to My Email Settings
     ...  AND  Select frame  //div[@class="setupcontent"]//iframe
+    [Teardown]  Unselect frame
 
     # The settings page is just about the only page I could find
     # with old school non-lightning radiobuttons
     # Thankfully, I can use built-in keywords to validate that
     # the radiobuttons have actually bet set.
+    Log  attempting to select 'Send through Salesforce'
     Input form data
     ...  Send through Salesforce  selected
     Radio button should be set to  use_external_email  0
 
+    Log  attempting to select 'Send through Gmail'
     Input form data
-    ...  Send through Office 365   selected
+    ...  Send through Gmail  selected
     Radio button should be set to  use_external_email  1
 
 Non-lightning based form - Shipment
@@ -158,8 +162,6 @@ Non-lightning based form - Shipment
     Input form data
     ...  Ship To Street  2501 Exchange Ave
     ...  Ship To City    Oklahoma City
-
-    capture page screenshot
 
 Fieldsets - Shipment
     [Documentation]
