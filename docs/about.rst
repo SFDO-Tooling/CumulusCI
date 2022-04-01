@@ -5,4 +5,5 @@ About CumulusCI
    :maxdepth: 1
    
    history
-   contributing
+   contributing 
+
