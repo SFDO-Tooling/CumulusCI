@@ -7,7 +7,7 @@ Suite Setup     Run keywords
 ...  Initialize Test Objects
 ...  Open test browser
 Suite Teardown  Delete records and close browser
-Force tags      forms  whatever
+Force tags      forms
 
 *** Variables ***
 ${account name}   ACME Labs
@@ -136,11 +136,6 @@ Non-lightning based form - radiobutton
     Input form data
     ...  Send through Salesforce  selected
     Radio button should be set to  use_external_email  0
-
-    Log  attempting to select 'Send through Gmail'
-    Input form data
-    ...  Send through Gmail  selected
-    Radio button should be set to  use_external_email  1
 
 Non-lightning based form - Shipment
     [Documentation]
