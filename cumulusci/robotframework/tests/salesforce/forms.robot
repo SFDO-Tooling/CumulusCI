@@ -132,9 +132,15 @@ Non-lightning based form - radiobutton
     # with old school non-lightning radiobuttons
     # Thankfully, I can use built-in keywords to validate that
     # the radiobuttons have actually bet set.
-    Log  attempting to select 'Send through Salesforce'
+
+    # make sure it is set to 1
+    Select radio button  use_external_email  1
+
+    # then try to use our keyword to set it
     Input form data
     ...  Send through Salesforce  selected
+
+    # ... and then verify that it was set
     Radio button should be set to  use_external_email  0
 
 Non-lightning based form - Shipment
