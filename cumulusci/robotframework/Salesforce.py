@@ -78,6 +78,7 @@ class Salesforce(object):
         """
         try:
             version = int(float(self.get_latest_api_version()))
+
         except RobotNotRunningError:
             # Likely this means we are running in the context of
             # documentation generation. Setting the version to
@@ -1440,7 +1441,8 @@ class Salesforce(object):
         For most input form fields the actual value string will be
         used.  For a checkbox, passing the value "checked" will check
         the checkbox and any other value will uncheck it. Using
-        "unchecked" is recommended for clarity.
+        "unchecked" is recommended for clarity. For radiobuttons, you
+        must pass the string "selected" for the value.
 
         Example:
 
@@ -1452,6 +1454,15 @@ class Salesforce(object):
         | ...  Type                     New Customer      # combobox
         | ...  Primary Campaign Source  The Big Campaign  # picklist
 
+        Example setting a radio button:
+
+        In this example, the radiobutton group has the label
+        "Who sees this list view?", and one of the radiobuttons
+        has the label "All users can see this list view"
+
+        | Input form data
+        | ...  Who sees this list view?::All users can see this list view    selected
+
         This keyword will eventually replace the "populate form"
         keyword once it has been more thoroughly tested in production.
 
@@ -1462,9 +1473,6 @@ class Salesforce(object):
         for label, value in list(zip(it, it)):
             # this uses our custom "label" locator strategy
             locator = f"label:{label}"
-            # FIXME: we should probably only wait for the first label;
-            # after that we can assume the fields have been rendered
-            # so that we fail quickly if we can't find the element
             element = self.selenium.get_webelement(locator)
             self.scroll_element_into_view(locator)
             handler = get_form_handler(element, locator)
