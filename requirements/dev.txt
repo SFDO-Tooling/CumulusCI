@@ -14,7 +14,7 @@ babel==2.9.1
     # via sphinx
 beautifulsoup4==4.10.0
     # via furo
-black==22.1.0
+black==22.3.0
     # via -r requirements/dev.in
 bleach==4.1.0
     # via readme-renderer
