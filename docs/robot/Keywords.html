@@ -1157,7 +1157,9 @@ Input text  //input  ${faker.date(pattern='%Y-%m-%d')}
                             <tr class="kwrow" id="Salesforce.Get Latest Api Version">
                                 <td class="kwname">Get Latest Api Version</td>
                                 <td class="kwargs"></td>
-                                <td class="kwdoc"></td>
+                                <td class="kwdoc">
+                                    <p>Return the API version used by the current org</p>
+                                </td>
                             </tr>
 
                             <tr class="kwrow" id="Salesforce.Get Locator">
@@ -1406,7 +1408,8 @@ Input text  //input  ${faker.date(pattern='%Y-%m-%d')}
                                         will be used. For a checkbox, passing the value
                                         "checked" will check the checkbox and any other
                                         value will uncheck it. Using "unchecked" is
-                                        recommended for clarity.
+                                        recommended for clarity. For radiobuttons, you
+                                        must pass the string "selected" for the value.
                                     </p>
                                     <p>Example:</p>
                                     <pre>
@@ -1417,6 +1420,18 @@ Input form data
 ...  Private                  checked           # checkbox
 ...  Type                     New Customer      # combobox
 ...  Primary Campaign Source  The Big Campaign  # picklist
+</pre
+                                    >
+                                    <p>Example setting a radio button:</p>
+                                    <p>
+                                        In this example, the radiobutton group has the
+                                        label "Who sees this list view?", and one of the
+                                        radiobuttons has the label "All users can see this
+                                        list view"
+                                    </p>
+                                    <pre>
+Input form data
+...  Who sees this list view?::All users can see this list view    selected
 </pre
                                     >
                                     <p>
@@ -3169,7 +3184,7 @@ Populate form
             </div>
         </div>
         <div class="footer">
-            Generated on Tuesday January 25, 03:39 PM - cumulusci v3.51.1
+            Generated on Thursday March 31, 02:13 PM - cumulusci v3.55.0
         </div>
     </body>
 </html>
