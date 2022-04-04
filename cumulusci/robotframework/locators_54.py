@@ -15,3 +15,8 @@ lex_locators["record"]["header"][
 lex_locators["modal"][
     "review_alert"
 ] = "//a[@records-recordediterror_recordediterror and text()='{}']"
+
+lex_locators["list_view_menu"] = {
+    "button": "css:button[title='List View Controls']",
+    "item": "//div[@title='List View Controls']//ul[@role='menu']//li/a[.='{}']",
+}
