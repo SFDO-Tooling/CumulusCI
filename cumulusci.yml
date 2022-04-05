@@ -8,6 +8,8 @@ sources:
     ccitest:
         github: https://github.com/SFDO-Tooling/CumulusCI-Test
         branch: main
+wasm_modules:
+    - rust-tasks/target/wasm32-unknown-unknown/debug/rust_tasks.wasm
 
 tasks:
     robot:

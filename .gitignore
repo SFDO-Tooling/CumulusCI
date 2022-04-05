@@ -42,3 +42,5 @@ pabot_results/
 .pabotsuitenames
 large_cassettes/
 github_release_notes.html
+
+rust-tasks/target

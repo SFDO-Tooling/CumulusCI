@@ -236,7 +236,7 @@ class TaskRunner(object):
 
         task_config["options"].update(options)
 
-        # Determine if we have a new-style task or an old-style task.
+        # Determine if we have a new-style task, an old-style task, or a WASM task.
         if hasattr(self.step.task_class, "task_spec"):
             # Newtask
             task = construct_newtask(
@@ -245,6 +245,9 @@ class TaskRunner(object):
                 self.org_config,
                 self.step.project_config,
             )
+        elif hasattr(self.step.task_class, "module"):
+            # WASM task
+            task = self.step.task_class(task_config["options"])
         else:
             task = self.step.task_class(
                 self.step.project_config,
@@ -263,6 +266,9 @@ class TaskRunner(object):
                 retval = run_constructed_newtask(
                     task, self.org_config, self.step.project_config
                 )
+                result = None
+            elif hasattr(type(task), "module"):
+                retval = task.run()
                 result = None
             else:
                 task()

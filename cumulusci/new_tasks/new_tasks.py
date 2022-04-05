@@ -95,7 +95,7 @@ def construct_newtask(
 
 
 def run_constructed_newtask(
-    nt: T.Any, org: OrgConfig, project: BaseProjectConfig
+    nt: T.Type[TaskProtocol], org: OrgConfig, project: BaseProjectConfig
 ) -> T.Any:
     return call_with_fixtures(nt.run, org, project)
 

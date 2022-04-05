@@ -30,3 +30,5 @@ simple-salesforce==1.11.4
 snowfakery
 SQLAlchemy
 xmltodict
+wasmer
+wasmer_compiler_llvm
