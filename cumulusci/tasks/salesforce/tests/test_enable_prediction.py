@@ -4,7 +4,7 @@ import responses
 from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.salesforce.enable_prediction import EnablePrediction
-from cumulusci.tests.util import DummyKeychain
+from cumulusci.tests.util import CURRENT_SF_API_VERSION, DummyKeychain
 
 from .util import create_task
 
@@ -45,15 +45,15 @@ def mock_oauth():
             json=[
                 {
                     "label": "Summer '21",
-                    "url": "/services/data/v52.0",
-                    "version": "52.0",
+                    "url": f"/services/data/v{CURRENT_SF_API_VERSION}",
+                    "version": CURRENT_SF_API_VERSION,
                 }
             ],
             status=200,
         )
         rsps.add(
             "GET",
-            "https://test-dev-ed.my.salesforce.com/services/data/v52.0/sobjects/Organization/",
+            f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/",
             json={
                 "OrganizationType": "Developer",
                 "IsSandbox": False,
@@ -68,32 +68,32 @@ def mock_oauth():
 def test_run_task(mock_oauth, task):
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27test_prediction_v0%27",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27test_prediction_v0%27",
         json={"totalSize": 1, "records": [{"Id": "001"}]},
     )
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27test_prediction_2_v0%27",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27test_prediction_2_v0%27",
         json={"totalSize": 1, "records": [{"Id": "002"}]},
     )
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/001",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/001",
         json={"Metadata": {"status": "Draft"}},
     )
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/002",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/002",
         json={"Metadata": {"status": "Draft"}},
     )
     mock_oauth.add(
         method="PATCH",
-        url="https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/001",
+        url=f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/001",
         match=[responses.json_params_matcher({"Metadata": {"status": "Enabled"}})],
     )
     mock_oauth.add(
         method="PATCH",
-        url="https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/002",
+        url=f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/002",
         match=[responses.json_params_matcher({"Metadata": {"status": "Enabled"}})],
     )
 
@@ -103,7 +103,7 @@ def test_run_task(mock_oauth, task):
 def test_run_task__not_found_exception(mock_oauth, task):
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27test_prediction_v0%27",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27test_prediction_v0%27",
         json={"totalSize": 0, "records": []},
     )
 
@@ -115,17 +115,17 @@ def test_run_task__not_found_exception(mock_oauth, task):
 def test_run_task__failed_update_exception(mock_oauth, task):
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27test_prediction_v0%27",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27test_prediction_v0%27",
         json={"totalSize": 1, "records": [{"Id": "001"}]},
     )
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/001",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/001",
         json={"Metadata": {"status": "Draft"}},
     )
     mock_oauth.add(
         method="PATCH",
-        url="https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/001",
+        url=f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/001",
         status=400,
     )
 
@@ -143,43 +143,43 @@ def test_run_task__namespaced_org(mock_oauth, task):
 
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27foo__test_prediction_v0%27",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27foo__test_prediction_v0%27",
         json={"totalSize": 1, "records": [{"Id": "001"}]},
     )
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27foo__test_prediction_2_v0%27",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27foo__test_prediction_2_v0%27",
         json={"totalSize": 1, "records": [{"Id": "002"}]},
     )
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/001",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/001",
         json={"Metadata": {"status": "Draft"}},
     )
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/002",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/002",
         json={"Metadata": {"status": "Draft"}},
     )
     mock_oauth.add(
         method="PATCH",
-        url="https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/001",
+        url=f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/001",
         match=[responses.json_params_matcher({"Metadata": {"status": "Enabled"}})],
     )
     mock_oauth.add(
         method="PATCH",
-        url="https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/002",
+        url=f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/002",
         match=[responses.json_params_matcher({"Metadata": {"status": "Enabled"}})],
     )
 
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT%20SubscriberPackage.Id,%20SubscriberPackage.NamespacePrefix,%20SubscriberPackageVersionId%20FROM%20InstalledSubscriberPackage",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/?q=SELECT%20SubscriberPackage.Id,%20SubscriberPackage.NamespacePrefix,%20SubscriberPackageVersionId%20FROM%20InstalledSubscriberPackage",
         json={"totalSize": 0, "records": []},
     )
     mock_oauth.replace(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/sobjects/Organization/",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Organization/",
         json={
             "OrganizationType": "Developer",
             "IsSandbox": False,
@@ -201,32 +201,32 @@ def test_run_task__managed_org(mock_oauth, task):
 
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27foo__test_prediction_v0%27",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27foo__test_prediction_v0%27",
         json={"totalSize": 1, "records": [{"Id": "001"}]},
     )
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27foo__test_prediction_2_v0%27",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/?q=SELECT+Id+FROM+MLPredictionDefinition+WHERE+DeveloperName+%3D+%27foo__test_prediction_2_v0%27",
         json={"totalSize": 1, "records": [{"Id": "002"}]},
     )
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/001",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/001",
         json={"Metadata": {"status": "Draft"}},
     )
     mock_oauth.add(
         "GET",
-        "https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/002",
+        f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/002",
         json={"Metadata": {"status": "Draft"}},
     )
     mock_oauth.add(
         method="PATCH",
-        url="https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/001",
+        url=f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/001",
         match=[responses.json_params_matcher({"Metadata": {"status": "Enabled"}})],
     )
     mock_oauth.add(
         method="PATCH",
-        url="https://test-dev-ed.my.salesforce.com/services/data/v52.0/tooling/sobjects/MLPredictionDefinition/002",
+        url=f"https://test-dev-ed.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/MLPredictionDefinition/002",
         match=[responses.json_params_matcher({"Metadata": {"status": "Enabled"}})],
     )
 
