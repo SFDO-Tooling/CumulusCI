@@ -1,6 +1,67 @@
+import typing as T
+
+import pydantic
+
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
+
+
+class IPRange(pydantic.BaseModel):
+    description: T.Optional[str]
+    start_address: pydantic.IPvAnyAddress
+    end_address: pydantic.IPvAnyAddress
+
+
+class IPNetwork(pydantic.BaseModel):
+    description: T.Optional[str]
+    network: pydantic.IPvAnyNetwork
+
+
+class AddIPRangesOptions(pydantic.BaseModel):
+    ranges: T.List[T.Union[IPRange, IPNetwork]]
+    replace: bool = False
+
+
+class AddIPRanges(MetadataSingleEntityTransformTask):
+    entity = "Profile"
+    task_options = {
+        "ranges": {
+            "description": "A list of IP ranges, specified as dicts with the keys 'description' (optional) and either 'start_address' and 'end_address' or 'network' (in CIDR notation).",
+            "required": True,
+        },
+        "replace": {
+            "description": "If True, replace all existing ranges. Otherwise, just add ranges. Default is False."
+        },
+    }
+
+    def _transform_entity(
+        self, metadata: MetadataElement, api_name: str
+    ) -> MetadataElement:
+        try:
+            opts = AddIPRangesOptions.parse_obj(self.options)
+        except pydantic.ValidationError as exc:
+            raise TaskOptionsError(f"Invalid options: {exc}")
+
+        if opts.replace:
+            # Remove existing ranges
+            for elem in metadata.findall("loginIpRanges"):
+                metadata.remove(elem)
+
+        for ip_range in opts.ranges:
+            if isinstance(ip_range, IPNetwork):
+                ips = list(ip_range.network.hosts())
+                elem = metadata.append("loginIpRanges")
+                elem.append("description", text=ip_range.description or "")
+                elem.append("startAddress", text=str(ips[0]))
+                elem.append("endAddress", text=str(ips[-1]))
+            else:
+                elem = metadata.append("loginIpRanges")
+                elem.append("description", text=ip_range.description or "")
+                elem.append("startAddress", text=str(ip_range.start_address))
+                elem.append("endAddress", text=str(ip_range.end_address))
+
+        return metadata
 
 
 class AddPermissionSetPermissions(MetadataSingleEntityTransformTask):
