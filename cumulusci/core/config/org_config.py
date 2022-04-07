@@ -495,6 +495,13 @@ class OrgConfig(BaseConfig):
             # DatedConversionRate Sobject is not exposed meaning Multiple Currencies is not enabled.
             return False
 
+    @property
+    def is_survey_advanced_features_enabled(self) -> bool:
+        return any(
+            f["name"] == "PermissionsAllowSurveyAdvancedFeatures"
+            for f in self.salesforce_client.PermissionSet.describe()["fields"]
+        )
+
     def resolve_04t_dependencies(self, dependencies):
         """Look up 04t SubscriberPackageVersion ids for 1GP project dependencies"""
         from cumulusci.core.dependencies.dependencies import (
