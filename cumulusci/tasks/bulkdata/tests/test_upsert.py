@@ -7,9 +7,7 @@ import responses
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationStatus
-from cumulusci.tests.util import mock_describe_calls
-
-CURRENT_SF_API_VERSION = "52.0"  # match cumulusci.yml until it updates
+from cumulusci.tests.util import CURRENT_SF_API_VERSION, mock_describe_calls
 
 
 class TestUpsert:
