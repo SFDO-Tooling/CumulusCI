@@ -6,7 +6,7 @@ History
 
 Changes
 
-- Added support for lightning radiobuttons in the robot keyword input form data. (#3142)
+- Added support for Lightning radiobuttons in the Robot keyword input form data. (#3142)
 
 Issues Closed
 
