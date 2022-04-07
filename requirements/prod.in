@@ -17,7 +17,8 @@ pyyaml
 requests
 requests-futures
 rich
-robotframework
+# check with Bryan about upgrading to v5
+robotframework<5
 robotframework-lint
 robotframework-pabot
 robotframework-requests
