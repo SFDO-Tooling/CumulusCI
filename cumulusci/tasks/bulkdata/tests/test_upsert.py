@@ -24,7 +24,6 @@ class TestUpsert:
         sf,
         delete_data_from_org,
         run_code_without_recording,
-        mock_bulk_download_for_vcr,
     ):
         run_code_without_recording(
             lambda: delete_data_from_org(

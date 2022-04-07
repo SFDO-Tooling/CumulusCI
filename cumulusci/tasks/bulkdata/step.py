@@ -76,7 +76,7 @@ def download_file(uri, bulk_api):
         resp = requests.get(uri, headers=bulk_api.headers(), stream=True)
         resp.raise_for_status()
         f = os.fdopen(handle, "wb")
-        for chunk in resp.iter_content(chunk_size=None):
+        for chunk in resp.iter_content(chunk_size=8192):  # VCR needs a chunk_size
             f.write(chunk)
 
         f.close()
