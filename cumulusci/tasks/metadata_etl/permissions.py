@@ -50,11 +50,12 @@ class AddIPRanges(MetadataSingleEntityTransformTask):
 
         for ip_range in opts.ranges:
             if isinstance(ip_range, IPNetwork):
-                ips = list(ip_range.network.hosts())
                 elem = metadata.append("loginIpRanges")
                 elem.append("description", text=ip_range.description or "")
-                elem.append("startAddress", text=str(ips[0]))
-                elem.append("endAddress", text=str(ips[-1]))
+                elem.append("startAddress", text=str(ip_range.network.network_address))
+                elem.append(
+                    "endAddress", text=str(ip_range.network.broadcast_address - 1)
+                )
             else:
                 elem = metadata.append("loginIpRanges")
                 elem.append("description", text=ip_range.description or "")
