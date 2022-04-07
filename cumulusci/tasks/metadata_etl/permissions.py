@@ -52,7 +52,9 @@ class AddIPRanges(MetadataSingleEntityTransformTask):
             if isinstance(ip_range, IPNetwork):
                 elem = metadata.append("loginIpRanges")
                 elem.append("description", text=ip_range.description or "")
-                elem.append("startAddress", text=str(ip_range.network.network_address))
+                elem.append(
+                    "startAddress", text=str(ip_range.network.network_address + 1)
+                )
                 elem.append(
                     "endAddress", text=str(ip_range.network.broadcast_address - 1)
                 )
