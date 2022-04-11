@@ -8,6 +8,7 @@ import shutil
 import sys
 import tempfile
 import textwrap
+import warnings
 import zipfile
 from datetime import datetime
 
@@ -536,7 +537,10 @@ def temporary_dir(chdir=True):
             yield d
     finally:
         if os.path.exists(d):
-            shutil.rmtree(d)
+            try:
+                shutil.rmtree(d)
+            except Exception as e:  # pragma: no cover
+                warnings.warn(f"Cannot remove temporary directory: {d}: {e}")
 
 
 def touch(path):
