@@ -13,6 +13,8 @@ on:
                 required: true
             CUMULUSCI_SERVICE_github:
                 required: true
+            GITHUB_APP_KEY:
+                required: true
             SFDX_CLIENT_ID:
                 required: true
             SFDX_HUB_KEY:
