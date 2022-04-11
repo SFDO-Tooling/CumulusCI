@@ -1,6 +1,16 @@
 =======
 History
 =======
+3.56.0 (2022-04-07)
+-------------------
+
+Changes
+
+- Added support for Lightning radiobuttons in the Robot keyword input form data. (#3142)
+
+Issues Closed
+
+- Fixed an issue where CumulusCI was incorrectly merging task option overrides. (#3145)
 
 3.55.0 (2022-03-24)
 -------------------
