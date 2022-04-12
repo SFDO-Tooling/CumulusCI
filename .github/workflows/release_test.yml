@@ -1,15 +1,28 @@
 name: Release Test
 
 on:
-    workflow_call:
-    workflow_dispatch:
     push:
         branches:
+            - feature/**
             - main
-        paths_ignore:
-            - cumulusci/version.txt # Called from release.yml instead
     pull_request:
         types: [opened, synchronize, reopened] # Default
+    workflow_call:
+        secrets:
+            CUMULUSCI_ORG_packaging:
+                required: true
+            CUMULUSCI_SERVICE_github:
+                required: true
+            CCITEST_APP_KEY:
+                required: true
+            SFDX_CLIENT_ID:
+                required: true
+            SFDX_HUB_KEY:
+                required: true
+            SFDX_HUB_KEY_BASE64:
+                required: true
+            SFDX_HUB_USERNAME:
+                required: true
 
 env:
     CUMULUSCI_ORG_scratch: '{"config_file": "orgs/dev.json", "scratch": true}'
