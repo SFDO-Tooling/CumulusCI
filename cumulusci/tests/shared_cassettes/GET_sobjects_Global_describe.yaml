@@ -1,0 +1,1308 @@
+# generated with this script: cumulusci/tasks/bulkdata/tests/update_describe.py
+request:
+    method: GET
+    uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects
+    body: null
+    headers:
+        Request-Headers:
+            - Elided
+response:
+    status:
+        code: 200
+        message: OK
+    headers:
+        Content-Type:
+            - application/json;charset=UTF-8
+        Others: Elided
+    body:
+        string: '{"encoding": "UTF-8", "maxBatchSize": 200, "sobjects": [{"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": true,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "001", "label": "Account", "labelPlural": "Accounts", "layoutable": true,
+            "mergeable": true, "mruEnabled": true, "name": "Account", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": true,
+            "triggerable": true, "undeletable": true, "updateable": true, "urls":
+            {"compactLayouts": "/services/data/v52.0/sobjects/Account/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/Account/{ID}", "approvalLayouts":
+            "/services/data/v52.0/sobjects/Account/describe/approvalLayouts", "listviews":
+            "/services/data/v52.0/sobjects/Account/listviews", "describe": "/services/data/v52.0/sobjects/Account/describe",
+            "quickActions": "/services/data/v52.0/sobjects/Account/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/Account/describe/layouts", "sobject":
+            "/services/data/v52.0/sobjects/Account"}}, {"activateable": false, "associateEntityType":
+            null, "associateParentEntity": null, "createable": true, "custom": false,
+            "customSetting": false, "deepCloneable": true, "deletable": true, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": "701", "label": "Campaign", "labelPlural":
+            "Campaigns", "layoutable": true, "mergeable": false, "mruEnabled": true,
+            "name": "Campaign", "queryable": true, "replicateable": true, "retrieveable":
+            true, "searchable": true, "triggerable": true, "undeletable": true, "updateable":
+            true, "urls": {"compactLayouts": "/services/data/v52.0/sobjects/Campaign/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/Campaign/{ID}", "approvalLayouts":
+            "/services/data/v52.0/sobjects/Campaign/describe/approvalLayouts", "listviews":
+            "/services/data/v52.0/sobjects/Campaign/listviews", "describe": "/services/data/v52.0/sobjects/Campaign/describe",
+            "quickActions": "/services/data/v52.0/sobjects/Campaign/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/Campaign/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/Campaign"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "00v", "label": "Campaign Member", "labelPlural": "Campaign Members",
+            "layoutable": true, "mergeable": false, "mruEnabled": false, "name": "CampaignMember",
+            "queryable": true, "replicateable": true, "retrieveable": true, "searchable":
+            false, "triggerable": true, "undeletable": false, "updateable": true,
+            "urls": {"compactLayouts": "/services/data/v52.0/sobjects/CampaignMember/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/CampaignMember/{ID}", "describe":
+            "/services/data/v52.0/sobjects/CampaignMember/describe", "layouts": "/services/data/v52.0/sobjects/CampaignMember/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/CampaignMember"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": true,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "500", "label": "Case", "labelPlural": "Cases", "layoutable": true, "mergeable":
+            false, "mruEnabled": true, "name": "Case", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": true, "triggerable": true, "undeletable":
+            true, "updateable": true, "urls": {"compactLayouts": "/services/data/v52.0/sobjects/Case/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/Case/{ID}", "approvalLayouts":
+            "/services/data/v52.0/sobjects/Case/describe/approvalLayouts", "caseArticleSuggestions":
+            "/services/data/v52.0/sobjects/Case/suggestedArticles", "caseRowArticleSuggestions":
+            "/services/data/v52.0/sobjects/Case/{ID}/suggestedArticles", "listviews":
+            "/services/data/v52.0/sobjects/Case/listviews", "describe": "/services/data/v52.0/sobjects/Case/describe",
+            "quickActions": "/services/data/v52.0/sobjects/Case/quickActions", "layouts":
+            "/services/data/v52.0/sobjects/Case/describe/layouts", "sobject": "/services/data/v52.0/sobjects/Case"}},
+            {"activateable": false, "associateEntityType": null, "associateParentEntity":
+            null, "createable": true, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            true, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": "003", "label": "Contact", "labelPlural": "Contacts", "layoutable":
+            true, "mergeable": true, "mruEnabled": true, "name": "Contact", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": true,
+            "triggerable": true, "undeletable": true, "updateable": true, "urls":
+            {"compactLayouts": "/services/data/v52.0/sobjects/Contact/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/Contact/{ID}", "approvalLayouts":
+            "/services/data/v52.0/sobjects/Contact/describe/approvalLayouts", "listviews":
+            "/services/data/v52.0/sobjects/Contact/listviews", "describe": "/services/data/v52.0/sobjects/Contact/describe",
+            "quickActions": "/services/data/v52.0/sobjects/Contact/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/Contact/describe/layouts", "sobject":
+            "/services/data/v52.0/sobjects/Contact"}}, {"activateable": false, "associateEntityType":
+            null, "associateParentEntity": null, "createable": true, "custom": false,
+            "customSetting": false, "deepCloneable": true, "deletable": true, "deprecatedAndHidden":
+            false, "feedEnabled": true, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": "006", "label": "Opportunity", "labelPlural":
+            "Opportunities", "layoutable": true, "mergeable": false, "mruEnabled":
+            true, "name": "Opportunity", "queryable": true, "replicateable": true,
+            "retrieveable": true, "searchable": true, "triggerable": true, "undeletable":
+            true, "updateable": true, "urls": {"compactLayouts": "/services/data/v52.0/sobjects/Opportunity/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/Opportunity/{ID}", "approvalLayouts":
+            "/services/data/v52.0/sobjects/Opportunity/describe/approvalLayouts",
+            "listviews": "/services/data/v52.0/sobjects/Opportunity/listviews", "describe":
+            "/services/data/v52.0/sobjects/Opportunity/describe", "quickActions":
+            "/services/data/v52.0/sobjects/Opportunity/quickActions", "layouts": "/services/data/v52.0/sobjects/Opportunity/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/Opportunity"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "00K", "label": "Opportunity Contact Role", "labelPlural": "Opportunity
+            Contact Role", "layoutable": true, "mergeable": false, "mruEnabled": false,
+            "name": "OpportunityContactRole", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": false, "triggerable": true,
+            "undeletable": false, "updateable": true, "urls": {"compactLayouts": "/services/data/v52.0/sobjects/OpportunityContactRole/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/OpportunityContactRole/{ID}",
+            "describe": "/services/data/v52.0/sobjects/OpportunityContactRole/describe",
+            "quickActions": "/services/data/v52.0/sobjects/OpportunityContactRole/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/OpportunityContactRole/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/OpportunityContactRole"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            false, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": false, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "00D", "label": "Organization", "labelPlural": "Organizations", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "Organization",
+            "queryable": true, "replicateable": true, "retrieveable": true, "searchable":
+            false, "triggerable": false, "undeletable": false, "updateable": true,
+            "urls": {"rowTemplate": "/services/data/v52.0/sobjects/Organization/{ID}",
+            "describe": "/services/data/v52.0/sobjects/Organization/describe", "sobject":
+            "/services/data/v52.0/sobjects/Organization"}}, {"activateable": false,
+            "associateEntityType": null, "associateParentEntity": null, "createable":
+            false, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": false, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "09t", "label": "Ui Formula Rule", "labelPlural": "Ui Formula Rules",
+            "layoutable": false, "mergeable": false, "mruEnabled": false, "name":
+            "UiFormulaRule", "queryable": true, "replicateable": false, "retrieveable":
+            true, "searchable": false, "triggerable": false, "undeletable": false,
+            "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UiFormulaRule/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UiFormulaRule/describe", "sobject":
+            "/services/data/v52.0/sobjects/UiFormulaRule"}}, {"activateable": false,
+            "associateEntityType": null, "associateParentEntity": null, "createable":
+            false, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": false, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            null, "label": "Undecided Event Relation", "labelPlural": "Undecided Event
+            Relations", "layoutable": false, "mergeable": false, "mruEnabled": false,
+            "name": "UndecidedEventRelation", "queryable": true, "replicateable":
+            false, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UndecidedEventRelation/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UndecidedEventRelation/describe",
+            "sobject": "/services/data/v52.0/sobjects/UndecidedEventRelation"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            false, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": false, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0Uw", "label": "URI Event", "labelPlural": "URI Events", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "UriEvent", "queryable":
+            true, "replicateable": false, "retrieveable": false, "searchable": false,
+            "triggerable": false, "undeletable": false, "updateable": false, "urls":
+            {"rowTemplate": "/services/data/v52.0/sobjects/UriEvent/{ID}", "describe":
+            "/services/data/v52.0/sobjects/UriEvent/describe", "sobject": "/services/data/v52.0/sobjects/UriEvent"}},
+            {"activateable": false, "associateEntityType": null, "associateParentEntity":
+            null, "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": "0Ux", "label": "URI Event Stream ", "labelPlural": "URI
+            Event Streams", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "UriEventStream", "queryable": false, "replicateable":
+            false, "retrieveable": false, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UriEventStream/{ID}",
+            "eventSchema": "/services/data/v52.0/sobjects/UriEventStream/eventSchema",
+            "describe": "/services/data/v52.0/sobjects/UriEventStream/describe", "sobject":
+            "/services/data/v52.0/sobjects/UriEventStream"}}, {"activateable": false,
+            "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": false, "deprecatedAndHidden": false, "feedEnabled": true,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "005", "label": "User", "labelPlural": "Users", "layoutable": true, "mergeable":
+            false, "mruEnabled": true, "name": "User", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": true, "triggerable": true, "undeletable":
+            false, "updateable": true, "urls": {"compactLayouts": "/services/data/v52.0/sobjects/User/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/User/{ID}", "namedLayouts":
+            "/services/data/v52.0/sobjects/User/describe/namedLayouts/{LayoutName}",
+            "passwordUtilities": "/services/data/v52.0/sobjects/User/{ID}/password",
+            "describe": "/services/data/v52.0/sobjects/User/describe", "quickActions":
+            "/services/data/v52.0/sobjects/User/quickActions", "layouts": "/services/data/v52.0/sobjects/User/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/User"}}, {"activateable": false,
+            "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0Ds", "label": "Last Used App", "labelPlural": "Last Used App", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "UserAppInfo",
+            "queryable": true, "replicateable": true, "retrieveable": true, "searchable":
+            false, "triggerable": false, "undeletable": true, "updateable": true,
+            "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserAppInfo/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserAppInfo/describe", "sobject":
+            "/services/data/v52.0/sobjects/UserAppInfo"}}, {"activateable": false,
+            "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0Nw", "label": "UserAppMenuCustomization", "labelPlural": "UserAppMenuCustomizations",
+            "layoutable": false, "mergeable": false, "mruEnabled": false, "name":
+            "UserAppMenuCustomization", "queryable": true, "replicateable": true,
+            "retrieveable": true, "searchable": false, "triggerable": false, "undeletable":
+            true, "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserAppMenuCustomization/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserAppMenuCustomization/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserAppMenuCustomization"}},
+            {"activateable": false, "associateEntityType": "Share", "associateParentEntity":
+            "UserAppMenuCustomization", "createable": true, "custom": false, "customSetting":
+            false, "deepCloneable": false, "deletable": true, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": null, "label": "UserAppMenuCustomization
+            Share", "labelPlural": "UserAppMenuCustomization Share", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "UserAppMenuCustomizationShare",
+            "queryable": true, "replicateable": false, "retrieveable": true, "searchable":
+            false, "triggerable": false, "undeletable": false, "updateable": true,
+            "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserAppMenuCustomizationShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserAppMenuCustomizationShare/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserAppMenuCustomizationShare"}},
+            {"activateable": false, "associateEntityType": null, "associateParentEntity":
+            null, "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": "07p", "label": "Application", "labelPlural": "Applications",
+            "layoutable": true, "mergeable": false, "mruEnabled": true, "name": "UserAppMenuItem",
+            "queryable": true, "replicateable": false, "retrieveable": false, "searchable":
+            true, "triggerable": false, "undeletable": false, "updateable": false,
+            "urls": {"compactLayouts": "/services/data/v52.0/sobjects/UserAppMenuItem/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/UserAppMenuItem/{ID}", "describe":
+            "/services/data/v52.0/sobjects/UserAppMenuItem/describe", "layouts": "/services/data/v52.0/sobjects/UserAppMenuItem/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/UserAppMenuItem"}}, {"activateable":
+            false, "associateEntityType": "ChangeEvent", "associateParentEntity":
+            "User", "createable": false, "custom": false, "customSetting": false,
+            "deepCloneable": false, "deletable": false, "deprecatedAndHidden": false,
+            "feedEnabled": false, "hasSubtypes": false, "isInterface": false, "isSubtype":
+            false, "keyPrefix": null, "label": "User Change Event", "labelPlural":
+            "User Change Event", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "UserChangeEvent", "queryable": false, "replicateable":
+            false, "retrieveable": true, "searchable": false, "triggerable": true,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserChangeEvent/{ID}",
+            "eventSchema": "/services/data/v52.0/sobjects/UserChangeEvent/eventSchema",
+            "describe": "/services/data/v52.0/sobjects/UserChangeEvent/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserChangeEvent"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0MQ", "label": "Custom User Badge", "labelPlural": "Custom User Badges",
+            "layoutable": false, "mergeable": false, "mruEnabled": false, "name":
+            "UserCustomBadge", "queryable": true, "replicateable": false, "retrieveable":
+            true, "searchable": false, "triggerable": false, "undeletable": false,
+            "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserCustomBadge/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserCustomBadge/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserCustomBadge"}}, {"activateable":
+            false, "associateEntityType": "Localization", "associateParentEntity":
+            "UserCustomBadge", "createable": true, "custom": false, "customSetting":
+            false, "deepCloneable": false, "deletable": true, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": null, "label": "Translation", "labelPlural":
+            "Translation", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "UserCustomBadgeLocalization", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserCustomBadgeLocalization/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserCustomBadgeLocalization/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserCustomBadgeLocalization"}},
+            {"activateable": false, "associateEntityType": null, "associateParentEntity":
+            null, "createable": true, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": "0UV", "label": "User Email Preferred Person", "labelPlural":
+            "User Email Preferred People", "layoutable": false, "mergeable": false,
+            "mruEnabled": false, "name": "UserEmailPreferredPerson", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": true,
+            "triggerable": false, "undeletable": false, "updateable": true, "urls":
+            {"rowTemplate": "/services/data/v52.0/sobjects/UserEmailPreferredPerson/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserEmailPreferredPerson/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserEmailPreferredPerson"}},
+            {"activateable": false, "associateEntityType": "Share", "associateParentEntity":
+            "UserEmailPreferredPerson", "createable": true, "custom": false, "customSetting":
+            false, "deepCloneable": false, "deletable": true, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": null, "label": "User Email Preferred
+            Person Share", "labelPlural": "User Email Preferred Person Share", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "UserEmailPreferredPersonShare",
+            "queryable": true, "replicateable": false, "retrieveable": true, "searchable":
+            false, "triggerable": false, "undeletable": false, "updateable": true,
+            "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserEmailPreferredPersonShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserEmailPreferredPersonShare/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserEmailPreferredPersonShare"}},
+            {"activateable": false, "associateEntityType": null, "associateParentEntity":
+            null, "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": "07u", "label": "User Entity Access", "labelPlural": "User
+            Entity Access", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "UserEntityAccess", "queryable": true, "replicateable":
+            false, "retrieveable": false, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserEntityAccess/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserEntityAccess/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserEntityAccess"}}, {"activateable":
+            false, "associateEntityType": "Feed", "associateParentEntity": "User",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "User Feed", "labelPlural": "User Feed", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "UserFeed", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": false,
+            "triggerable": false, "undeletable": false, "updateable": false, "urls":
+            {"rowTemplate": "/services/data/v52.0/sobjects/UserFeed/{ID}", "describe":
+            "/services/data/v52.0/sobjects/UserFeed/describe", "sobject": "/services/data/v52.0/sobjects/UserFeed"}},
+            {"activateable": false, "associateEntityType": null, "associateParentEntity":
+            null, "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": "4fp", "label": "User Field Access", "labelPlural": "User
+            Field Access", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "UserFieldAccess", "queryable": true, "replicateable":
+            false, "retrieveable": false, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserFieldAccess/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserFieldAccess/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserFieldAccess"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            false, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": false, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "100", "label": "User License", "labelPlural": "User Licenses", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "UserLicense",
+            "queryable": true, "replicateable": false, "retrieveable": true, "searchable":
+            false, "triggerable": false, "undeletable": false, "updateable": false,
+            "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserLicense/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserLicense/describe", "sobject":
+            "/services/data/v52.0/sobjects/UserLicense"}}, {"activateable": false,
+            "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0Na", "label": "User List View", "labelPlural": "User List View", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "UserListView",
+            "queryable": true, "replicateable": false, "retrieveable": true, "searchable":
+            false, "triggerable": false, "undeletable": false, "updateable": true,
+            "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserListView/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserListView/describe", "sobject":
+            "/services/data/v52.0/sobjects/UserListView"}}, {"activateable": false,
+            "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0JU", "label": "User List View Criteria", "labelPlural": "User List View
+            Criteria", "layoutable": false, "mergeable": false, "mruEnabled": false,
+            "name": "UserListViewCriterion", "queryable": true, "replicateable": false,
+            "retrieveable": true, "searchable": false, "triggerable": false, "undeletable":
+            false, "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserListViewCriterion/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserListViewCriterion/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserListViewCriterion"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            false, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": false, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0Yw", "label": "User Login", "labelPlural": "User Login", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "UserLogin", "queryable":
+            true, "replicateable": false, "retrieveable": true, "searchable": false,
+            "triggerable": false, "undeletable": false, "updateable": true, "urls":
+            {"rowTemplate": "/services/data/v52.0/sobjects/UserLogin/{ID}", "describe":
+            "/services/data/v52.0/sobjects/UserLogin/describe", "sobject": "/services/data/v52.0/sobjects/UserLogin"}},
+            {"activateable": false, "associateEntityType": null, "associateParentEntity":
+            null, "createable": true, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": "051", "label": "User Package License", "labelPlural": "User
+            Package License", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "UserPackageLicense", "queryable": true, "replicateable":
+            false, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserPackageLicense/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserPackageLicense/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserPackageLicense"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            false, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": false, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0up", "label": "User Permission Access", "labelPlural": "User Permission
+            Access", "layoutable": false, "mergeable": false, "mruEnabled": false,
+            "name": "UserPermissionAccess", "queryable": true, "replicateable": false,
+            "retrieveable": false, "searchable": false, "triggerable": false, "undeletable":
+            false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserPermissionAccess/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserPermissionAccess/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserPermissionAccess"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "03u", "label": "User Preference", "labelPlural": "User Preferences",
+            "layoutable": false, "mergeable": false, "mruEnabled": false, "name":
+            "UserPreference", "queryable": true, "replicateable": false, "retrieveable":
+            true, "searchable": false, "triggerable": false, "undeletable": false,
+            "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserPreference/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserPreference/describe", "sobject":
+            "/services/data/v52.0/sobjects/UserPreference"}}, {"activateable": false,
+            "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0Ni", "label": "User Provisioning Account", "labelPlural": "User Provisioning
+            Accounts", "layoutable": false, "mergeable": false, "mruEnabled": false,
+            "name": "UserProvAccount", "queryable": true, "replicateable": true, "retrieveable":
+            true, "searchable": false, "triggerable": true, "undeletable": true, "updateable":
+            true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserProvAccount/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserProvAccount/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserProvAccount"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0HY", "label": "User Provisioning Account Staging", "labelPlural": "User
+            Provisioning Account Stagings", "layoutable": false, "mergeable": false,
+            "mruEnabled": false, "name": "UserProvAccountStaging", "queryable": true,
+            "replicateable": true, "retrieveable": true, "searchable": false, "triggerable":
+            true, "undeletable": true, "updateable": true, "urls": {"rowTemplate":
+            "/services/data/v52.0/sobjects/UserProvAccountStaging/{ID}", "describe":
+            "/services/data/v52.0/sobjects/UserProvAccountStaging/describe", "sobject":
+            "/services/data/v52.0/sobjects/UserProvAccountStaging"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0HX", "label": "User Provisioning Mock Target", "labelPlural": "User
+            Provisioning Mock Targets", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "UserProvMockTarget", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": false, "triggerable": true,
+            "undeletable": true, "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserProvMockTarget/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserProvMockTarget/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserProvMockTarget"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0Je", "label": "User Provisioning Config", "labelPlural": "User Provisioning
+            Configs", "layoutable": false, "mergeable": false, "mruEnabled": false,
+            "name": "UserProvisioningConfig", "queryable": true, "replicateable":
+            false, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserProvisioningConfig/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserProvisioningConfig/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserProvisioningConfig"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0Hs", "label": "User Provisioning Log", "labelPlural": "User Provisioning
+            Logs", "layoutable": false, "mergeable": false, "mruEnabled": false, "name":
+            "UserProvisioningLog", "queryable": true, "replicateable": true, "retrieveable":
+            true, "searchable": false, "triggerable": true, "undeletable": true, "updateable":
+            true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserProvisioningLog/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserProvisioningLog/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserProvisioningLog"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0HP", "label": "User Provisioning Request", "labelPlural": "User Provisioning
+            Requests", "layoutable": true, "mergeable": false, "mruEnabled": false,
+            "name": "UserProvisioningRequest", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": false, "triggerable": true,
+            "undeletable": true, "updateable": true, "urls": {"compactLayouts": "/services/data/v52.0/sobjects/UserProvisioningRequest/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/UserProvisioningRequest/{ID}",
+            "approvalLayouts": "/services/data/v52.0/sobjects/UserProvisioningRequest/describe/approvalLayouts",
+            "describe": "/services/data/v52.0/sobjects/UserProvisioningRequest/describe",
+            "layouts": "/services/data/v52.0/sobjects/UserProvisioningRequest/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/UserProvisioningRequest"}},
+            {"activateable": false, "associateEntityType": "Share", "associateParentEntity":
+            "UserProvisioningRequest", "createable": true, "custom": false, "customSetting":
+            false, "deepCloneable": false, "deletable": true, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": null, "label": "User Provisioning Request
+            Share", "labelPlural": "User Provisioning Request Share", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "UserProvisioningRequestShare",
+            "queryable": true, "replicateable": false, "retrieveable": true, "searchable":
+            false, "triggerable": false, "undeletable": false, "updateable": true,
+            "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserProvisioningRequestShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserProvisioningRequestShare/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserProvisioningRequestShare"}},
+            {"activateable": false, "associateEntityType": null, "associateParentEntity":
+            null, "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "User Record Access", "labelPlural": "User
+            Record Access", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "UserRecordAccess", "queryable": true, "replicateable":
+            false, "retrieveable": false, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserRecordAccess/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserRecordAccess/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserRecordAccess"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "00E", "label": "Role", "labelPlural": "Role", "layoutable": false, "mergeable":
+            false, "mruEnabled": false, "name": "UserRole", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": true, "triggerable": false,
+            "undeletable": false, "updateable": true, "urls": {"compactLayouts": "/services/data/v52.0/sobjects/UserRole/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/UserRole/{ID}", "describe":
+            "/services/data/v52.0/sobjects/UserRole/describe", "sobject": "/services/data/v52.0/sobjects/UserRole"}},
+            {"activateable": false, "associateEntityType": null, "associateParentEntity":
+            null, "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": "0g2", "label": "User Setup Entity Access", "labelPlural":
+            "User Permission Access", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "UserSetupEntityAccess", "queryable": true, "replicateable":
+            false, "retrieveable": false, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserSetupEntityAccess/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserSetupEntityAccess/describe",
+            "sobject": "/services/data/v52.0/sobjects/UserSetupEntityAccess"}}, {"activateable":
+            false, "associateEntityType": "Share", "associateParentEntity": "User",
+            "createable": true, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": "0N2", "label": "User Share", "labelPlural": "User Share",
+            "layoutable": false, "mergeable": false, "mruEnabled": false, "name":
+            "UserShare", "queryable": true, "replicateable": false, "retrieveable":
+            true, "searchable": false, "triggerable": false, "undeletable": false,
+            "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/UserShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/UserShare/describe", "sobject":
+            "/services/data/v52.0/sobjects/UserShare"}}, {"activateable": false, "associateEntityType":
+            null, "associateParentEntity": null, "createable": false, "custom": false,
+            "customSetting": false, "deepCloneable": false, "deletable": false, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": "0Qt", "label": "Identity Verification
+            History", "labelPlural": "Identity Verification History", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "VerificationHistory",
+            "queryable": true, "replicateable": false, "retrieveable": true, "searchable":
+            false, "triggerable": false, "undeletable": false, "updateable": false,
+            "urls": {"rowTemplate": "/services/data/v52.0/sobjects/VerificationHistory/{ID}",
+            "describe": "/services/data/v52.0/sobjects/VerificationHistory/describe",
+            "sobject": "/services/data/v52.0/sobjects/VerificationHistory"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            false, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": false, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0OP", "label": "Visualforce Access Metric", "labelPlural": "Visualforce
+            Access Metrics", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "VisualforceAccessMetrics", "queryable": true, "replicateable":
+            false, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/VisualforceAccessMetrics/{ID}",
+            "describe": "/services/data/v52.0/sobjects/VisualforceAccessMetrics/describe",
+            "sobject": "/services/data/v52.0/sobjects/VisualforceAccessMetrics"}},
+            {"activateable": false, "associateEntityType": null, "associateParentEntity":
+            null, "createable": true, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": "083", "label": "Vote", "labelPlural": "Votes", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "Vote", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": false,
+            "triggerable": false, "undeletable": false, "updateable": true, "urls":
+            {"rowTemplate": "/services/data/v52.0/sobjects/Vote/{ID}", "describe":
+            "/services/data/v52.0/sobjects/Vote/describe", "sobject": "/services/data/v52.0/sobjects/Vote"}},
+            {"activateable": false, "associateEntityType": null, "associateParentEntity":
+            null, "createable": true, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": "4V3", "label": "Warranty Term", "labelPlural": "Warranty
+            Terms", "layoutable": true, "mergeable": false, "mruEnabled": true, "name":
+            "WarrantyTerm", "queryable": true, "replicateable": true, "retrieveable":
+            true, "searchable": true, "triggerable": true, "undeletable": true, "updateable":
+            true, "urls": {"compactLayouts": "/services/data/v52.0/sobjects/WarrantyTerm/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/WarrantyTerm/{ID}", "approvalLayouts":
+            "/services/data/v52.0/sobjects/WarrantyTerm/describe/approvalLayouts",
+            "describe": "/services/data/v52.0/sobjects/WarrantyTerm/describe", "quickActions":
+            "/services/data/v52.0/sobjects/WarrantyTerm/quickActions", "layouts":
+            "/services/data/v52.0/sobjects/WarrantyTerm/describe/layouts", "sobject":
+            "/services/data/v52.0/sobjects/WarrantyTerm"}}, {"activateable": false,
+            "associateEntityType": "ChangeEvent", "associateParentEntity": "WarrantyTerm",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Warranty Term Change Event", "labelPlural":
+            "Warranty Term Change Event", "layoutable": false, "mergeable": false,
+            "mruEnabled": false, "name": "WarrantyTermChangeEvent", "queryable": false,
+            "replicateable": false, "retrieveable": true, "searchable": false, "triggerable":
+            true, "undeletable": false, "updateable": false, "urls": {"rowTemplate":
+            "/services/data/v52.0/sobjects/WarrantyTermChangeEvent/{ID}", "eventSchema":
+            "/services/data/v52.0/sobjects/WarrantyTermChangeEvent/eventSchema", "describe":
+            "/services/data/v52.0/sobjects/WarrantyTermChangeEvent/describe", "sobject":
+            "/services/data/v52.0/sobjects/WarrantyTermChangeEvent"}}, {"activateable":
+            false, "associateEntityType": "Feed", "associateParentEntity": "WarrantyTerm",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Warranty Term Feed", "labelPlural": "Warranty
+            Term Feed", "layoutable": false, "mergeable": false, "mruEnabled": false,
+            "name": "WarrantyTermFeed", "queryable": true, "replicateable": true,
+            "retrieveable": true, "searchable": false, "triggerable": false, "undeletable":
+            false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WarrantyTermFeed/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WarrantyTermFeed/describe",
+            "sobject": "/services/data/v52.0/sobjects/WarrantyTermFeed"}}, {"activateable":
+            false, "associateEntityType": "History", "associateParentEntity": "WarrantyTerm",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Warranty Term History", "labelPlural": "Warranty
+            Term History", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WarrantyTermHistory", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WarrantyTermHistory/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WarrantyTermHistory/describe",
+            "sobject": "/services/data/v52.0/sobjects/WarrantyTermHistory"}}, {"activateable":
+            false, "associateEntityType": "Share", "associateParentEntity": "WarrantyTerm",
+            "createable": true, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Warranty Term Share", "labelPlural": "Warranty
+            Term Share", "layoutable": false, "mergeable": false, "mruEnabled": false,
+            "name": "WarrantyTermShare", "queryable": true, "replicateable": false,
+            "retrieveable": true, "searchable": false, "triggerable": false, "undeletable":
+            false, "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WarrantyTermShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WarrantyTermShare/describe",
+            "sobject": "/services/data/v52.0/sobjects/WarrantyTermShare"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "00b", "label": "Custom Button or Link", "labelPlural": "Custom Buttons
+            or Links", "layoutable": false, "mergeable": false, "mruEnabled": false,
+            "name": "WebLink", "queryable": true, "replicateable": true, "retrieveable":
+            true, "searchable": true, "triggerable": false, "undeletable": false,
+            "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WebLink/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WebLink/describe", "sobject":
+            "/services/data/v52.0/sobjects/WebLink"}}, {"activateable": false, "associateEntityType":
+            "Localization", "associateParentEntity": "WebLink", "createable": true,
+            "custom": false, "customSetting": false, "deepCloneable": false, "deletable":
+            true, "deprecatedAndHidden": false, "feedEnabled": false, "hasSubtypes":
+            false, "isInterface": false, "isSubtype": false, "keyPrefix": null, "label":
+            "Custom Link Localization", "labelPlural": "Custom Link Localization",
+            "layoutable": false, "mergeable": false, "mruEnabled": false, "name":
+            "WebLinkLocalization", "queryable": true, "replicateable": true, "retrieveable":
+            true, "searchable": false, "triggerable": false, "undeletable": false,
+            "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WebLinkLocalization/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WebLinkLocalization/describe",
+            "sobject": "/services/data/v52.0/sobjects/WebLinkLocalization"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0W5", "label": "Access", "labelPlural": "Access", "layoutable": false,
+            "mergeable": false, "mruEnabled": false, "name": "WorkAccess", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": false,
+            "triggerable": false, "undeletable": true, "updateable": true, "urls":
+            {"rowTemplate": "/services/data/v52.0/sobjects/WorkAccess/{ID}", "describe":
+            "/services/data/v52.0/sobjects/WorkAccess/describe", "sobject": "/services/data/v52.0/sobjects/WorkAccess"}},
+            {"activateable": false, "associateEntityType": "Share", "associateParentEntity":
+            "WorkAccess", "createable": true, "custom": false, "customSetting": false,
+            "deepCloneable": false, "deletable": true, "deprecatedAndHidden": false,
+            "feedEnabled": false, "hasSubtypes": false, "isInterface": false, "isSubtype":
+            false, "keyPrefix": null, "label": "Access Share", "labelPlural": "Access
+            Share", "layoutable": false, "mergeable": false, "mruEnabled": false,
+            "name": "WorkAccessShare", "queryable": true, "replicateable": false,
+            "retrieveable": true, "searchable": false, "triggerable": false, "undeletable":
+            false, "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkAccessShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkAccessShare/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkAccessShare"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0W2", "label": "Badge Received", "labelPlural": "Badges Received", "layoutable":
+            true, "mergeable": false, "mruEnabled": true, "name": "WorkBadge", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": true,
+            "triggerable": true, "undeletable": true, "updateable": true, "urls":
+            {"rowTemplate": "/services/data/v52.0/sobjects/WorkBadge/{ID}", "describe":
+            "/services/data/v52.0/sobjects/WorkBadge/describe", "layouts": "/services/data/v52.0/sobjects/WorkBadge/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/WorkBadge"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0W1", "label": "Badge", "labelPlural": "Badges", "layoutable": true,
+            "mergeable": false, "mruEnabled": true, "name": "WorkBadgeDefinition",
+            "queryable": true, "replicateable": true, "retrieveable": true, "searchable":
+            true, "triggerable": true, "undeletable": true, "updateable": true, "urls":
+            {"compactLayouts": "/services/data/v52.0/sobjects/WorkBadgeDefinition/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/WorkBadgeDefinition/{ID}",
+            "approvalLayouts": "/services/data/v52.0/sobjects/WorkBadgeDefinition/describe/approvalLayouts",
+            "describe": "/services/data/v52.0/sobjects/WorkBadgeDefinition/describe",
+            "quickActions": "/services/data/v52.0/sobjects/WorkBadgeDefinition/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/WorkBadgeDefinition/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/WorkBadgeDefinition"}}, {"activateable":
+            false, "associateEntityType": "Feed", "associateParentEntity": "WorkBadgeDefinition",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Badge Feed", "labelPlural": "Badge Feed",
+            "layoutable": false, "mergeable": false, "mruEnabled": false, "name":
+            "WorkBadgeDefinitionFeed", "queryable": true, "replicateable": true, "retrieveable":
+            true, "searchable": false, "triggerable": false, "undeletable": false,
+            "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkBadgeDefinitionFeed/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkBadgeDefinitionFeed/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkBadgeDefinitionFeed"}},
+            {"activateable": false, "associateEntityType": "History", "associateParentEntity":
+            "WorkBadgeDefinition", "createable": false, "custom": false, "customSetting":
+            false, "deepCloneable": false, "deletable": false, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": null, "label": "Badge History", "labelPlural":
+            "Badge History", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkBadgeDefinitionHistory", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkBadgeDefinitionHistory/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkBadgeDefinitionHistory/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkBadgeDefinitionHistory"}},
+            {"activateable": false, "associateEntityType": "Share", "associateParentEntity":
+            "WorkBadgeDefinition", "createable": true, "custom": false, "customSetting":
+            false, "deepCloneable": false, "deletable": true, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": null, "label": "Badge Share", "labelPlural":
+            "Badge Share", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkBadgeDefinitionShare", "queryable": true, "replicateable":
+            false, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkBadgeDefinitionShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkBadgeDefinitionShare/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkBadgeDefinitionShare"}},
+            {"activateable": false, "associateEntityType": null, "associateParentEntity":
+            null, "createable": true, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            true, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": "0WO", "label": "Work Order", "labelPlural": "Work Orders",
+            "layoutable": true, "mergeable": false, "mruEnabled": true, "name": "WorkOrder",
+            "queryable": true, "replicateable": true, "retrieveable": true, "searchable":
+            true, "triggerable": true, "undeletable": true, "updateable": true, "urls":
+            {"compactLayouts": "/services/data/v52.0/sobjects/WorkOrder/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/WorkOrder/{ID}", "approvalLayouts":
+            "/services/data/v52.0/sobjects/WorkOrder/describe/approvalLayouts", "workOrderRowArticleSuggestions":
+            "/services/data/v52.0/sobjects/WorkOrder/{ID}/suggestedArticles", "workOrderArticleSuggestions":
+            "/services/data/v52.0/sobjects/WorkOrder/suggestedArticles", "listviews":
+            "/services/data/v52.0/sobjects/WorkOrder/listviews", "describe": "/services/data/v52.0/sobjects/WorkOrder/describe",
+            "quickActions": "/services/data/v52.0/sobjects/WorkOrder/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/WorkOrder/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/WorkOrder"}}, {"activateable":
+            false, "associateEntityType": "ChangeEvent", "associateParentEntity":
+            "WorkOrder", "createable": false, "custom": false, "customSetting": false,
+            "deepCloneable": false, "deletable": false, "deprecatedAndHidden": false,
+            "feedEnabled": false, "hasSubtypes": false, "isInterface": false, "isSubtype":
+            false, "keyPrefix": null, "label": "Work Order Change Event", "labelPlural":
+            "Work Order Change Event", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkOrderChangeEvent", "queryable": false, "replicateable":
+            false, "retrieveable": true, "searchable": false, "triggerable": true,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkOrderChangeEvent/{ID}",
+            "eventSchema": "/services/data/v52.0/sobjects/WorkOrderChangeEvent/eventSchema",
+            "describe": "/services/data/v52.0/sobjects/WorkOrderChangeEvent/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkOrderChangeEvent"}}, {"activateable":
+            false, "associateEntityType": "Feed", "associateParentEntity": "WorkOrder",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Order Feed", "labelPlural": "Work Order
+            Feed", "layoutable": false, "mergeable": false, "mruEnabled": false, "name":
+            "WorkOrderFeed", "queryable": true, "replicateable": true, "retrieveable":
+            true, "searchable": false, "triggerable": false, "undeletable": false,
+            "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkOrderFeed/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkOrderFeed/describe", "sobject":
+            "/services/data/v52.0/sobjects/WorkOrderFeed"}}, {"activateable": false,
+            "associateEntityType": "History", "associateParentEntity": "WorkOrder",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Order History", "labelPlural": "Work
+            Order History", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkOrderHistory", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkOrderHistory/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkOrderHistory/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkOrderHistory"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": true,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "1WL", "label": "Work Order Line Item", "labelPlural": "Work Order Line
+            Items", "layoutable": true, "mergeable": false, "mruEnabled": true, "name":
+            "WorkOrderLineItem", "queryable": true, "replicateable": true, "retrieveable":
+            true, "searchable": true, "triggerable": true, "undeletable": true, "updateable":
+            true, "urls": {"compactLayouts": "/services/data/v52.0/sobjects/WorkOrderLineItem/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/WorkOrderLineItem/{ID}",
+            "approvalLayouts": "/services/data/v52.0/sobjects/WorkOrderLineItem/describe/approvalLayouts",
+            "workOrderLineItemRowArticleSuggestions": "/services/data/v52.0/sobjects/WorkOrderLineItem/{ID}/suggestedArticles",
+            "describe": "/services/data/v52.0/sobjects/WorkOrderLineItem/describe",
+            "quickActions": "/services/data/v52.0/sobjects/WorkOrderLineItem/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/WorkOrderLineItem/describe/layouts",
+            "workOrderLineItemArticleSuggestions": "/services/data/v52.0/sobjects/WorkOrderLineItem/suggestedArticles",
+            "sobject": "/services/data/v52.0/sobjects/WorkOrderLineItem"}}, {"activateable":
+            false, "associateEntityType": "ChangeEvent", "associateParentEntity":
+            "WorkOrderLineItem", "createable": false, "custom": false, "customSetting":
+            false, "deepCloneable": false, "deletable": false, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": null, "label": "Work Order Line Item
+            Change Event", "labelPlural": "Work Order Line Item Change Event", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "WorkOrderLineItemChangeEvent",
+            "queryable": false, "replicateable": false, "retrieveable": true, "searchable":
+            false, "triggerable": true, "undeletable": false, "updateable": false,
+            "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkOrderLineItemChangeEvent/{ID}",
+            "eventSchema": "/services/data/v52.0/sobjects/WorkOrderLineItemChangeEvent/eventSchema",
+            "describe": "/services/data/v52.0/sobjects/WorkOrderLineItemChangeEvent/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkOrderLineItemChangeEvent"}},
+            {"activateable": false, "associateEntityType": "Feed", "associateParentEntity":
+            "WorkOrderLineItem", "createable": false, "custom": false, "customSetting":
+            false, "deepCloneable": false, "deletable": true, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": null, "label": "Work Order Line Item
+            Feed", "labelPlural": "Work Order Line Item Feed", "layoutable": false,
+            "mergeable": false, "mruEnabled": false, "name": "WorkOrderLineItemFeed",
+            "queryable": true, "replicateable": true, "retrieveable": true, "searchable":
+            false, "triggerable": false, "undeletable": false, "updateable": false,
+            "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkOrderLineItemFeed/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkOrderLineItemFeed/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkOrderLineItemFeed"}}, {"activateable":
+            false, "associateEntityType": "History", "associateParentEntity": "WorkOrderLineItem",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Line Item History", "labelPlural": "Line
+            Item History", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkOrderLineItemHistory", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkOrderLineItemHistory/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkOrderLineItemHistory/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkOrderLineItemHistory"}},
+            {"activateable": false, "associateEntityType": null, "associateParentEntity":
+            null, "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Order Line Item Status Value", "labelPlural":
+            "Work Order Line Item Status Value", "layoutable": false, "mergeable":
+            false, "mruEnabled": false, "name": "WorkOrderLineItemStatus", "queryable":
+            true, "replicateable": false, "retrieveable": true, "searchable": false,
+            "triggerable": false, "undeletable": false, "updateable": false, "urls":
+            {"rowTemplate": "/services/data/v52.0/sobjects/WorkOrderLineItemStatus/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkOrderLineItemStatus/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkOrderLineItemStatus"}},
+            {"activateable": false, "associateEntityType": "Share", "associateParentEntity":
+            "WorkOrder", "createable": true, "custom": false, "customSetting": false,
+            "deepCloneable": false, "deletable": true, "deprecatedAndHidden": false,
+            "feedEnabled": false, "hasSubtypes": false, "isInterface": false, "isSubtype":
+            false, "keyPrefix": null, "label": "Work Order Share", "labelPlural":
+            "Work Order Share", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkOrderShare", "queryable": true, "replicateable": false,
+            "retrieveable": true, "searchable": false, "triggerable": false, "undeletable":
+            false, "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkOrderShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkOrderShare/describe", "sobject":
+            "/services/data/v52.0/sobjects/WorkOrderShare"}}, {"activateable": false,
+            "associateEntityType": null, "associateParentEntity": null, "createable":
+            false, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": false, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            null, "label": "Work Order Status Value", "labelPlural": "Work Order Status
+            Value", "layoutable": false, "mergeable": false, "mruEnabled": false,
+            "name": "WorkOrderStatus", "queryable": true, "replicateable": false,
+            "retrieveable": true, "searchable": false, "triggerable": false, "undeletable":
+            false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkOrderStatus/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkOrderStatus/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkOrderStatus"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0gq", "label": "Work Plan", "labelPlural": "Work Plans", "layoutable":
+            true, "mergeable": false, "mruEnabled": true, "name": "WorkPlan", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": true,
+            "triggerable": true, "undeletable": true, "updateable": true, "urls":
+            {"compactLayouts": "/services/data/v52.0/sobjects/WorkPlan/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/WorkPlan/{ID}", "approvalLayouts":
+            "/services/data/v52.0/sobjects/WorkPlan/describe/approvalLayouts", "describe":
+            "/services/data/v52.0/sobjects/WorkPlan/describe", "quickActions": "/services/data/v52.0/sobjects/WorkPlan/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/WorkPlan/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/WorkPlan"}}, {"activateable":
+            false, "associateEntityType": "Feed", "associateParentEntity": "WorkPlan",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Plan Feed", "labelPlural": "Work Plan
+            Feed", "layoutable": false, "mergeable": false, "mruEnabled": false, "name":
+            "WorkPlanFeed", "queryable": true, "replicateable": true, "retrieveable":
+            true, "searchable": false, "triggerable": false, "undeletable": false,
+            "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkPlanFeed/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkPlanFeed/describe", "sobject":
+            "/services/data/v52.0/sobjects/WorkPlanFeed"}}, {"activateable": false,
+            "associateEntityType": "History", "associateParentEntity": "WorkPlan",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Plan History", "labelPlural": "Work
+            Plan History", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkPlanHistory", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkPlanHistory/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkPlanHistory/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkPlanHistory"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0gr", "label": "Work Plan Selection Rule", "labelPlural": "Work Plan
+            Selection Rules", "layoutable": true, "mergeable": false, "mruEnabled":
+            true, "name": "WorkPlanSelectionRule", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": true, "triggerable": true, "undeletable":
+            true, "updateable": true, "urls": {"compactLayouts": "/services/data/v52.0/sobjects/WorkPlanSelectionRule/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/WorkPlanSelectionRule/{ID}",
+            "approvalLayouts": "/services/data/v52.0/sobjects/WorkPlanSelectionRule/describe/approvalLayouts",
+            "describe": "/services/data/v52.0/sobjects/WorkPlanSelectionRule/describe",
+            "quickActions": "/services/data/v52.0/sobjects/WorkPlanSelectionRule/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/WorkPlanSelectionRule/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/WorkPlanSelectionRule"}}, {"activateable":
+            false, "associateEntityType": "Feed", "associateParentEntity": "WorkPlanSelectionRule",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Plan Selection Rule Feed", "labelPlural":
+            "Work Plan Selection Rule Feed", "layoutable": false, "mergeable": false,
+            "mruEnabled": false, "name": "WorkPlanSelectionRuleFeed", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": false,
+            "triggerable": false, "undeletable": false, "updateable": false, "urls":
+            {"rowTemplate": "/services/data/v52.0/sobjects/WorkPlanSelectionRuleFeed/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkPlanSelectionRuleFeed/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkPlanSelectionRuleFeed"}},
+            {"activateable": false, "associateEntityType": "History", "associateParentEntity":
+            "WorkPlanSelectionRule", "createable": false, "custom": false, "customSetting":
+            false, "deepCloneable": false, "deletable": false, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": null, "label": "Work Plan Selection Rule
+            History", "labelPlural": "Work Plan Selection Rule History", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "WorkPlanSelectionRuleHistory",
+            "queryable": true, "replicateable": true, "retrieveable": true, "searchable":
+            false, "triggerable": false, "undeletable": false, "updateable": false,
+            "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkPlanSelectionRuleHistory/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkPlanSelectionRuleHistory/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkPlanSelectionRuleHistory"}},
+            {"activateable": false, "associateEntityType": "Share", "associateParentEntity":
+            "WorkPlanSelectionRule", "createable": true, "custom": false, "customSetting":
+            false, "deepCloneable": false, "deletable": true, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": null, "label": "Work Plan Selection Rule
+            Share", "labelPlural": "Work Plan Selection Rule Share", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "WorkPlanSelectionRuleShare",
+            "queryable": true, "replicateable": false, "retrieveable": true, "searchable":
+            false, "triggerable": false, "undeletable": false, "updateable": true,
+            "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkPlanSelectionRuleShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkPlanSelectionRuleShare/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkPlanSelectionRuleShare"}},
+            {"activateable": false, "associateEntityType": "Share", "associateParentEntity":
+            "WorkPlan", "createable": true, "custom": false, "customSetting": false,
+            "deepCloneable": false, "deletable": true, "deprecatedAndHidden": false,
+            "feedEnabled": false, "hasSubtypes": false, "isInterface": false, "isSubtype":
+            false, "keyPrefix": null, "label": "Work Plan Share", "labelPlural": "Work
+            Plan Share", "layoutable": false, "mergeable": false, "mruEnabled": false,
+            "name": "WorkPlanShare", "queryable": true, "replicateable": false, "retrieveable":
+            true, "searchable": false, "triggerable": false, "undeletable": false,
+            "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkPlanShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkPlanShare/describe", "sobject":
+            "/services/data/v52.0/sobjects/WorkPlanShare"}}, {"activateable": false,
+            "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": true,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "7Iy", "label": "Work Plan Template", "labelPlural": "Work Plan Templates",
+            "layoutable": true, "mergeable": false, "mruEnabled": true, "name": "WorkPlanTemplate",
+            "queryable": true, "replicateable": true, "retrieveable": true, "searchable":
+            true, "triggerable": true, "undeletable": true, "updateable": true, "urls":
+            {"compactLayouts": "/services/data/v52.0/sobjects/WorkPlanTemplate/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/WorkPlanTemplate/{ID}",
+            "approvalLayouts": "/services/data/v52.0/sobjects/WorkPlanTemplate/describe/approvalLayouts",
+            "describe": "/services/data/v52.0/sobjects/WorkPlanTemplate/describe",
+            "quickActions": "/services/data/v52.0/sobjects/WorkPlanTemplate/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/WorkPlanTemplate/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/WorkPlanTemplate"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "8xu", "label": "Work Plan Template Entry", "labelPlural": "Work Plan
+            Template Entries", "layoutable": true, "mergeable": false, "mruEnabled":
+            true, "name": "WorkPlanTemplateEntry", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": true, "triggerable": true, "undeletable":
+            true, "updateable": true, "urls": {"compactLayouts": "/services/data/v52.0/sobjects/WorkPlanTemplateEntry/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/WorkPlanTemplateEntry/{ID}",
+            "approvalLayouts": "/services/data/v52.0/sobjects/WorkPlanTemplateEntry/describe/approvalLayouts",
+            "describe": "/services/data/v52.0/sobjects/WorkPlanTemplateEntry/describe",
+            "quickActions": "/services/data/v52.0/sobjects/WorkPlanTemplateEntry/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/WorkPlanTemplateEntry/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/WorkPlanTemplateEntry"}}, {"activateable":
+            false, "associateEntityType": "Feed", "associateParentEntity": "WorkPlanTemplateEntry",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Plan Template Entry Feed", "labelPlural":
+            "Work Plan Template Entry Feed", "layoutable": false, "mergeable": false,
+            "mruEnabled": false, "name": "WorkPlanTemplateEntryFeed", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": false,
+            "triggerable": false, "undeletable": false, "updateable": false, "urls":
+            {"rowTemplate": "/services/data/v52.0/sobjects/WorkPlanTemplateEntryFeed/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkPlanTemplateEntryFeed/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkPlanTemplateEntryFeed"}},
+            {"activateable": false, "associateEntityType": "History", "associateParentEntity":
+            "WorkPlanTemplateEntry", "createable": false, "custom": false, "customSetting":
+            false, "deepCloneable": false, "deletable": false, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": null, "label": "Work Plan Template Entry
+            History", "labelPlural": "Work Plan Template Entry History", "layoutable":
+            false, "mergeable": false, "mruEnabled": false, "name": "WorkPlanTemplateEntryHistory",
+            "queryable": true, "replicateable": true, "retrieveable": true, "searchable":
+            false, "triggerable": false, "undeletable": false, "updateable": false,
+            "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkPlanTemplateEntryHistory/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkPlanTemplateEntryHistory/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkPlanTemplateEntryHistory"}},
+            {"activateable": false, "associateEntityType": "Feed", "associateParentEntity":
+            "WorkPlanTemplate", "createable": false, "custom": false, "customSetting":
+            false, "deepCloneable": false, "deletable": true, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": null, "label": "Work Plan Template Feed",
+            "labelPlural": "Work Plan Template Feed", "layoutable": false, "mergeable":
+            false, "mruEnabled": false, "name": "WorkPlanTemplateFeed", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": false,
+            "triggerable": false, "undeletable": false, "updateable": false, "urls":
+            {"rowTemplate": "/services/data/v52.0/sobjects/WorkPlanTemplateFeed/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkPlanTemplateFeed/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkPlanTemplateFeed"}}, {"activateable":
+            false, "associateEntityType": "History", "associateParentEntity": "WorkPlanTemplate",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Plan Template History", "labelPlural":
+            "Work Plan Template History", "layoutable": false, "mergeable": false,
+            "mruEnabled": false, "name": "WorkPlanTemplateHistory", "queryable": true,
+            "replicateable": true, "retrieveable": true, "searchable": false, "triggerable":
+            false, "undeletable": false, "updateable": false, "urls": {"rowTemplate":
+            "/services/data/v52.0/sobjects/WorkPlanTemplateHistory/{ID}", "describe":
+            "/services/data/v52.0/sobjects/WorkPlanTemplateHistory/describe", "sobject":
+            "/services/data/v52.0/sobjects/WorkPlanTemplateHistory"}}, {"activateable":
+            false, "associateEntityType": "Share", "associateParentEntity": "WorkPlanTemplate",
+            "createable": true, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Plan Template Share", "labelPlural":
+            "Work Plan Template Share", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkPlanTemplateShare", "queryable": true, "replicateable":
+            false, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkPlanTemplateShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkPlanTemplateShare/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkPlanTemplateShare"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0hF", "label": "Work Step", "labelPlural": "Work Steps", "layoutable":
+            true, "mergeable": false, "mruEnabled": true, "name": "WorkStep", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": true,
+            "triggerable": true, "undeletable": true, "updateable": true, "urls":
+            {"compactLayouts": "/services/data/v52.0/sobjects/WorkStep/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/WorkStep/{ID}", "approvalLayouts":
+            "/services/data/v52.0/sobjects/WorkStep/describe/approvalLayouts", "describe":
+            "/services/data/v52.0/sobjects/WorkStep/describe", "quickActions": "/services/data/v52.0/sobjects/WorkStep/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/WorkStep/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/WorkStep"}}, {"activateable":
+            false, "associateEntityType": "Feed", "associateParentEntity": "WorkStep",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Step Feed", "labelPlural": "Work Step
+            Feed", "layoutable": false, "mergeable": false, "mruEnabled": false, "name":
+            "WorkStepFeed", "queryable": true, "replicateable": true, "retrieveable":
+            true, "searchable": false, "triggerable": false, "undeletable": false,
+            "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkStepFeed/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkStepFeed/describe", "sobject":
+            "/services/data/v52.0/sobjects/WorkStepFeed"}}, {"activateable": false,
+            "associateEntityType": "History", "associateParentEntity": "WorkStep",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Step History", "labelPlural": "Work
+            Step History", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkStepHistory", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkStepHistory/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkStepHistory/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkStepHistory"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            false, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": false, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            null, "label": "Work Step Status Value", "labelPlural": "Work Step Status
+            Value", "layoutable": false, "mergeable": false, "mruEnabled": false,
+            "name": "WorkStepStatus", "queryable": true, "replicateable": false, "retrieveable":
+            true, "searchable": false, "triggerable": false, "undeletable": false,
+            "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkStepStatus/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkStepStatus/describe", "sobject":
+            "/services/data/v52.0/sobjects/WorkStepStatus"}}, {"activateable": false,
+            "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "4L0", "label": "Work Step Template", "labelPlural": "Work Step Templates",
+            "layoutable": true, "mergeable": false, "mruEnabled": true, "name": "WorkStepTemplate",
+            "queryable": true, "replicateable": true, "retrieveable": true, "searchable":
+            true, "triggerable": true, "undeletable": true, "updateable": true, "urls":
+            {"compactLayouts": "/services/data/v52.0/sobjects/WorkStepTemplate/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/WorkStepTemplate/{ID}",
+            "approvalLayouts": "/services/data/v52.0/sobjects/WorkStepTemplate/describe/approvalLayouts",
+            "describe": "/services/data/v52.0/sobjects/WorkStepTemplate/describe",
+            "quickActions": "/services/data/v52.0/sobjects/WorkStepTemplate/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/WorkStepTemplate/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/WorkStepTemplate"}}, {"activateable":
+            false, "associateEntityType": "Feed", "associateParentEntity": "WorkStepTemplate",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Step Template Feed", "labelPlural":
+            "Work Step Template Feed", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkStepTemplateFeed", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkStepTemplateFeed/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkStepTemplateFeed/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkStepTemplateFeed"}}, {"activateable":
+            false, "associateEntityType": "History", "associateParentEntity": "WorkStepTemplate",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Step Template History", "labelPlural":
+            "Work Step Template History", "layoutable": false, "mergeable": false,
+            "mruEnabled": false, "name": "WorkStepTemplateHistory", "queryable": true,
+            "replicateable": true, "retrieveable": true, "searchable": false, "triggerable":
+            false, "undeletable": false, "updateable": false, "urls": {"rowTemplate":
+            "/services/data/v52.0/sobjects/WorkStepTemplateHistory/{ID}", "describe":
+            "/services/data/v52.0/sobjects/WorkStepTemplateHistory/describe", "sobject":
+            "/services/data/v52.0/sobjects/WorkStepTemplateHistory"}}, {"activateable":
+            false, "associateEntityType": "Share", "associateParentEntity": "WorkStepTemplate",
+            "createable": true, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Step Template Share", "labelPlural":
+            "Work Step Template Share", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkStepTemplateShare", "queryable": true, "replicateable":
+            false, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkStepTemplateShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkStepTemplateShare/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkStepTemplateShare"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0W0", "label": "Thanks", "labelPlural": "Thanks", "layoutable": true,
+            "mergeable": false, "mruEnabled": false, "name": "WorkThanks", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": false,
+            "triggerable": true, "undeletable": true, "updateable": true, "urls":
+            {"rowTemplate": "/services/data/v52.0/sobjects/WorkThanks/{ID}", "describe":
+            "/services/data/v52.0/sobjects/WorkThanks/describe", "layouts": "/services/data/v52.0/sobjects/WorkThanks/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/WorkThanks"}}, {"activateable":
+            false, "associateEntityType": "Share", "associateParentEntity": "WorkThanks",
+            "createable": true, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Thanks Share", "labelPlural": "Thanks Share",
+            "layoutable": false, "mergeable": false, "mruEnabled": false, "name":
+            "WorkThanksShare", "queryable": true, "replicateable": false, "retrieveable":
+            true, "searchable": false, "triggerable": false, "undeletable": false,
+            "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkThanksShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkThanksShare/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkThanksShare"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "08q", "label": "Work Type", "labelPlural": "Work Types", "layoutable":
+            true, "mergeable": false, "mruEnabled": true, "name": "WorkType", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": true,
+            "triggerable": false, "undeletable": true, "updateable": true, "urls":
+            {"compactLayouts": "/services/data/v52.0/sobjects/WorkType/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/WorkType/{ID}", "approvalLayouts":
+            "/services/data/v52.0/sobjects/WorkType/describe/approvalLayouts", "describe":
+            "/services/data/v52.0/sobjects/WorkType/describe", "quickActions": "/services/data/v52.0/sobjects/WorkType/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/WorkType/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/WorkType"}}, {"activateable":
+            false, "associateEntityType": "ChangeEvent", "associateParentEntity":
+            "WorkType", "createable": false, "custom": false, "customSetting": false,
+            "deepCloneable": false, "deletable": false, "deprecatedAndHidden": false,
+            "feedEnabled": false, "hasSubtypes": false, "isInterface": false, "isSubtype":
+            false, "keyPrefix": null, "label": "Work Type Change Event", "labelPlural":
+            "Work Type Change Event", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkTypeChangeEvent", "queryable": false, "replicateable":
+            false, "retrieveable": true, "searchable": false, "triggerable": true,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkTypeChangeEvent/{ID}",
+            "eventSchema": "/services/data/v52.0/sobjects/WorkTypeChangeEvent/eventSchema",
+            "describe": "/services/data/v52.0/sobjects/WorkTypeChangeEvent/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkTypeChangeEvent"}}, {"activateable":
+            false, "associateEntityType": "Feed", "associateParentEntity": "WorkType",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Type Feed", "labelPlural": "Work Type
+            Feed", "layoutable": false, "mergeable": false, "mruEnabled": false, "name":
+            "WorkTypeFeed", "queryable": true, "replicateable": true, "retrieveable":
+            true, "searchable": false, "triggerable": false, "undeletable": false,
+            "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkTypeFeed/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkTypeFeed/describe", "sobject":
+            "/services/data/v52.0/sobjects/WorkTypeFeed"}}, {"activateable": false,
+            "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0VS", "label": "Work Type Group", "labelPlural": "Work Type Groups",
+            "layoutable": true, "mergeable": false, "mruEnabled": true, "name": "WorkTypeGroup",
+            "queryable": true, "replicateable": true, "retrieveable": true, "searchable":
+            true, "triggerable": true, "undeletable": true, "updateable": true, "urls":
+            {"compactLayouts": "/services/data/v52.0/sobjects/WorkTypeGroup/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/WorkTypeGroup/{ID}", "approvalLayouts":
+            "/services/data/v52.0/sobjects/WorkTypeGroup/describe/approvalLayouts",
+            "describe": "/services/data/v52.0/sobjects/WorkTypeGroup/describe", "quickActions":
+            "/services/data/v52.0/sobjects/WorkTypeGroup/quickActions", "layouts":
+            "/services/data/v52.0/sobjects/WorkTypeGroup/describe/layouts", "sobject":
+            "/services/data/v52.0/sobjects/WorkTypeGroup"}}, {"activateable": false,
+            "associateEntityType": "Feed", "associateParentEntity": "WorkTypeGroup",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Type Group Feed", "labelPlural": "Work
+            Type Group Feed", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkTypeGroupFeed", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkTypeGroupFeed/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkTypeGroupFeed/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkTypeGroupFeed"}}, {"activateable":
+            false, "associateEntityType": "History", "associateParentEntity": "WorkTypeGroup",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Type Group History", "labelPlural":
+            "Work Type Group History", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkTypeGroupHistory", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkTypeGroupHistory/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkTypeGroupHistory/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkTypeGroupHistory"}}, {"activateable":
+            false, "associateEntityType": null, "associateParentEntity": null, "createable":
+            true, "custom": false, "customSetting": false, "deepCloneable": false,
+            "deletable": true, "deprecatedAndHidden": false, "feedEnabled": false,
+            "hasSubtypes": false, "isInterface": false, "isSubtype": false, "keyPrefix":
+            "0Wz", "label": "Work Type Group Member", "labelPlural": "Work Type Group
+            Members", "layoutable": true, "mergeable": false, "mruEnabled": true,
+            "name": "WorkTypeGroupMember", "queryable": true, "replicateable": true,
+            "retrieveable": true, "searchable": true, "triggerable": false, "undeletable":
+            true, "updateable": true, "urls": {"compactLayouts": "/services/data/v52.0/sobjects/WorkTypeGroupMember/describe/compactLayouts",
+            "rowTemplate": "/services/data/v52.0/sobjects/WorkTypeGroupMember/{ID}",
+            "approvalLayouts": "/services/data/v52.0/sobjects/WorkTypeGroupMember/describe/approvalLayouts",
+            "describe": "/services/data/v52.0/sobjects/WorkTypeGroupMember/describe",
+            "quickActions": "/services/data/v52.0/sobjects/WorkTypeGroupMember/quickActions",
+            "layouts": "/services/data/v52.0/sobjects/WorkTypeGroupMember/describe/layouts",
+            "sobject": "/services/data/v52.0/sobjects/WorkTypeGroupMember"}}, {"activateable":
+            false, "associateEntityType": "Feed", "associateParentEntity": "WorkTypeGroupMember",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Type Group Member Feed", "labelPlural":
+            "Work Type Group Member Feed", "layoutable": false, "mergeable": false,
+            "mruEnabled": false, "name": "WorkTypeGroupMemberFeed", "queryable": true,
+            "replicateable": true, "retrieveable": true, "searchable": false, "triggerable":
+            false, "undeletable": false, "updateable": false, "urls": {"rowTemplate":
+            "/services/data/v52.0/sobjects/WorkTypeGroupMemberFeed/{ID}", "describe":
+            "/services/data/v52.0/sobjects/WorkTypeGroupMemberFeed/describe", "sobject":
+            "/services/data/v52.0/sobjects/WorkTypeGroupMemberFeed"}}, {"activateable":
+            false, "associateEntityType": "History", "associateParentEntity": "WorkTypeGroupMember",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Type Group Member History", "labelPlural":
+            "Work Type Group Member History", "layoutable": false, "mergeable": false,
+            "mruEnabled": false, "name": "WorkTypeGroupMemberHistory", "queryable":
+            true, "replicateable": true, "retrieveable": true, "searchable": false,
+            "triggerable": false, "undeletable": false, "updateable": false, "urls":
+            {"rowTemplate": "/services/data/v52.0/sobjects/WorkTypeGroupMemberHistory/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkTypeGroupMemberHistory/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkTypeGroupMemberHistory"}},
+            {"activateable": false, "associateEntityType": "Share", "associateParentEntity":
+            "WorkTypeGroup", "createable": true, "custom": false, "customSetting":
+            false, "deepCloneable": false, "deletable": true, "deprecatedAndHidden":
+            false, "feedEnabled": false, "hasSubtypes": false, "isInterface": false,
+            "isSubtype": false, "keyPrefix": null, "label": "Work Type Group Share",
+            "labelPlural": "Work Type Group Share", "layoutable": false, "mergeable":
+            false, "mruEnabled": false, "name": "WorkTypeGroupShare", "queryable":
+            true, "replicateable": false, "retrieveable": true, "searchable": false,
+            "triggerable": false, "undeletable": false, "updateable": true, "urls":
+            {"rowTemplate": "/services/data/v52.0/sobjects/WorkTypeGroupShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkTypeGroupShare/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkTypeGroupShare"}}, {"activateable":
+            false, "associateEntityType": "History", "associateParentEntity": "WorkType",
+            "createable": false, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": false, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Type History", "labelPlural": "Work
+            Type History", "layoutable": false, "mergeable": false, "mruEnabled":
+            false, "name": "WorkTypeHistory", "queryable": true, "replicateable":
+            true, "retrieveable": true, "searchable": false, "triggerable": false,
+            "undeletable": false, "updateable": false, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkTypeHistory/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkTypeHistory/describe",
+            "sobject": "/services/data/v52.0/sobjects/WorkTypeHistory"}}, {"activateable":
+            false, "associateEntityType": "Share", "associateParentEntity": "WorkType",
+            "createable": true, "custom": false, "customSetting": false, "deepCloneable":
+            false, "deletable": true, "deprecatedAndHidden": false, "feedEnabled":
+            false, "hasSubtypes": false, "isInterface": false, "isSubtype": false,
+            "keyPrefix": null, "label": "Work Type Share", "labelPlural": "Work Type
+            Share", "layoutable": false, "mergeable": false, "mruEnabled": false,
+            "name": "WorkTypeShare", "queryable": true, "replicateable": false, "retrieveable":
+            true, "searchable": false, "triggerable": false, "undeletable": false,
+            "updateable": true, "urls": {"rowTemplate": "/services/data/v52.0/sobjects/WorkTypeShare/{ID}",
+            "describe": "/services/data/v52.0/sobjects/WorkTypeShare/describe", "sobject":
+            "/services/data/v52.0/sobjects/WorkTypeShare"}}]}'
