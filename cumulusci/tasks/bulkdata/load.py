@@ -717,6 +717,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
 
 class StepResultInfo(T.NamedTuple):
+    """Represent a Step Result in a form easily convertible to JSON"""
+
     sobject: str
     result: DataOperationJobResult
     record_type: str = None

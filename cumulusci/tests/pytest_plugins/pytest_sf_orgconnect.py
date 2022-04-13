@@ -140,7 +140,9 @@ def create_task(request, project_config, org_config):
 
         task_config = TaskConfig({"options": options})
 
-        return task_class(project_config, task_config, org_config)
+        t = task_class(project_config, task_config, org_config)
+        t._update_credentials = mock.Mock()
+        return t
 
     return create_task
 

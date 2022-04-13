@@ -291,7 +291,7 @@ class TestDescribeOrg:
                 pass
 
 
-@pytest.mark.needs_org()  # too hard to make these VCR-compatible due to data volume
+@pytest.mark.vcr()  # too hard to make these VCR-compatible due to data volume
 @pytest.mark.slow()
 class TestOrgSchemaIntegration:
     def validate_real_schema_data(self, schema):
