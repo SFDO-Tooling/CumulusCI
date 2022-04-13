@@ -123,13 +123,13 @@ class Deploy(BaseSalesforceMetadataApiTask):
         }
         package_zip = None
         with convert_sfdx_source(path, None, self.logger) as src_path:
-            package_zip = MetadataPackageZipBuilder(
+            with MetadataPackageZipBuilder(
                 path=src_path, options=options, logger=self.logger
-            )
+            ) as package_zip:
 
-        if not package_zip.zf.namelist():
-            return
-        return package_zip.as_base64()
+                if not package_zip.zf.namelist():
+                    return
+                return package_zip.as_base64()
 
     def freeze(self, step):
         steps = super(Deploy, self).freeze(step)

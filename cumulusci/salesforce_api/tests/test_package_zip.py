@@ -19,19 +19,19 @@ from cumulusci.utils import temporary_dir, touch
 
 class TestBasePackageZipBuilder:
     def test_as_hash(self):
-        builder = BasePackageZipBuilder()
-        builder.zf.writestr("1", "1")
-        hash1 = builder.as_hash()
+        with BasePackageZipBuilder() as builder:
+            builder.zf.writestr("1", "1")
+            hash1 = builder.as_hash()
 
-        builder = BasePackageZipBuilder()
-        builder.zf.writestr("1", "1")
-        hash2 = builder.as_hash()
+        with BasePackageZipBuilder() as builder:
+            builder.zf.writestr("1", "1")
+            hash2 = builder.as_hash()
 
-        assert hash2 == hash1
+            assert hash2 == hash1
 
-        builder.zf.writestr("2", "2")
-        hash3 = builder.as_hash()
-        assert hash3 != hash2
+            builder.zf.writestr("2", "2")
+            hash3 = builder.as_hash()
+            assert hash3 != hash2
 
 
 class TestMetadataPackageZipBuilder:
@@ -136,7 +136,8 @@ class TestMetadataPackageZipBuilder:
             )
 
             # make sure result can be read as a zipfile
-            result = builder.as_base64()
+            with builder:
+                result = builder.as_base64()
             zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(result)), "r")
             assert set(zf.namelist()) == {
                 "package.xml",
@@ -253,8 +254,9 @@ class TestMetadataPackageZipBuilder:
             builder = MetadataPackageZipBuilder()
 
             expected_set = set(expected)
-            builder._add_files_to_package(path)
-            actual_set = set(builder.zf.namelist())
+            with builder:
+                builder._add_files_to_package(path)
+                actual_set = set(builder.zf.namelist())
             assert expected_set == actual_set
 
     def test_include_directory(self):
@@ -332,11 +334,12 @@ class TestMetadataPackageZipBuilder:
             builder = MetadataPackageZipBuilder(
                 path=path, options={"package_type": "Unlocked"}
             )
-            assert (
-                "featureParameters/test.featureParameterInteger"
-                not in builder.zf.namelist()
-            )
-            package_xml = builder.zf.read("package.xml")
+            with builder:
+                assert (
+                    "featureParameters/test.featureParameterInteger"
+                    not in builder.zf.namelist()
+                )
+                package_xml = builder.zf.read("package.xml")
             assert b"FeatureParameterInteger" not in package_xml
 
 
@@ -362,8 +365,8 @@ class TestInstallPackageZipBuilder:
 
 class TestDestructiveChangesZipBuilder:
     def test_call(self):
-        builder = DestructiveChangesZipBuilder("", "1.0")
-        names = builder.zf.namelist()
+        with DestructiveChangesZipBuilder("", "1.0") as builder:
+            names = builder.zf.namelist()
         assert "package.xml" in names
         assert "destructiveChanges.xml" in names
 
@@ -374,5 +377,5 @@ class TestUninstallPackageZipBuilder:
             UninstallPackageZipBuilder(None, "1.0")
 
     def test_call(self):
-        builder = UninstallPackageZipBuilder("testns", "1.0")
-        assert "destructiveChanges.xml" in builder.zf.namelist()
+        with UninstallPackageZipBuilder("testns", "1.0") as builder:
+            assert "destructiveChanges.xml" in builder.zf.namelist()

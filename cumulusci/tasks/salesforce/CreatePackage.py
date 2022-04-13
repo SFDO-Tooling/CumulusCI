@@ -24,6 +24,7 @@ class CreatePackage(Deploy):
             ] = self.project_config.project__package__api_version
 
     def _get_package_zip(self, path=None):
-        return CreatePackageZipBuilder(
+        with CreatePackageZipBuilder(
             self.options["package"], self.options["api_version"]
-        ).as_base64()
+        ) as builder:
+            return builder.as_base64()

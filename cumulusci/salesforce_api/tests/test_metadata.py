@@ -569,7 +569,8 @@ class TestApiDeploy(TestBaseTestMetadataApi):
 
     def setup_method(self):
         super().setup_method()
-        self.package_zip = DummyPackageZipBuilder().as_base64()
+        with DummyPackageZipBuilder() as builder:
+            self.package_zip = builder.as_base64()
 
     def _expected_envelope_start(self):
         return self.envelope_start.format(
@@ -857,9 +858,10 @@ class TestApiRetrieveUnpackaged(TestBaseTestMetadataApi):
         self.result_zip = DummyPackageZipBuilder()
 
     def _response_call_success_result(self, response_result):
-        return retrieve_result.format(
-            zip=self.result_zip.as_base64(), extra=""
-        ).encode()
+        with self.result_zip:
+            return retrieve_result.format(
+                zip=self.result_zip.as_base64(), extra=""
+            ).encode()
 
     def _expected_call_success_result(self, response_result):
         return self.result_zip.zf
@@ -925,9 +927,11 @@ class TestApiRetrieveInstalledPackages(TestBaseTestMetadataApi):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
+        with CreatePackageZipBuilder("testing", api.api_version) as builder:
+            zipdata = builder.as_base64()
         response.raw = io.BytesIO(
             retrieve_result.format(
-                zip=CreatePackageZipBuilder("testing", api.api_version).as_base64(),
+                zip=zipdata,
                 extra="",
             ).encode()
         )
@@ -939,11 +943,9 @@ class TestApiRetrieveInstalledPackages(TestBaseTestMetadataApi):
         api = self._create_instance(task)
         response = Response()
         response.status_code = 200
-        response.raw = io.BytesIO(
-            retrieve_result.format(
-                zip=InstallPackageZipBuilder("foo", "1.1").as_base64(), extra=""
-            ).encode()
-        )
+        with InstallPackageZipBuilder("foo", "1.1") as builder:
+            base64 = builder.as_base64()
+        response.raw = io.BytesIO(retrieve_result.format(zip=base64, extra="").encode())
         resp = api._process_response(response)
         assert resp == {"foo": "1.1"}
 

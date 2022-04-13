@@ -541,9 +541,10 @@ class TestCreatePackageVersion:
         )
 
         builder = BasePackageZipBuilder()
-        result = task._create_version_request(
-            "0Ho6g000000fy4ZCAQ", task.package_config, builder
-        )
+        with builder:
+            result = task._create_version_request(
+                "0Ho6g000000fy4ZCAQ", task.package_config, builder
+            )
         assert result == "08c000000000001AAA"
 
     def test_has_1gp_namespace_dependencies__no(self, task):

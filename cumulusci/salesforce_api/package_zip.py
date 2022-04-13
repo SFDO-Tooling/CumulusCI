@@ -52,8 +52,12 @@ DEFAULT_LOGGER = logging.getLogger(__name__)
 
 
 class BasePackageZipBuilder(object):
-    def __init__(self):
+    def __enter__(self):
         self._open_zip()
+        return self
+
+    def __exit__(self, *args):
+        self.zf.close()
 
     def _open_zip(self):
         """Start a new, empty zipfile"""
@@ -99,15 +103,18 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
     ):
         self.options = options or {}
         self.logger = logger or DEFAULT_LOGGER
+        self.path = path
 
         self.zf = zf
 
+    def __enter__(self):
         if self.zf is None:
             self._open_zip()
-        if path is not None:
-            self._add_files_to_package(path)
+        if self.path is not None:
+            self._add_files_to_package(self.path)
 
         self._process()
+        return self
 
     @classmethod
     def from_zipfile(cls, zf, *, path=None, options=None, logger=None):
@@ -329,8 +336,10 @@ class CreatePackageZipBuilder(BasePackageZipBuilder):
         self.name = name
         self.api_version = api_version
 
+    def __enter__(self):
         self._open_zip()
         self._populate_zip()
+        return self
 
     def _populate_zip(self):
         package_xml = FULL_NAME_PACKAGE_XML.format(escape(self.name), self.api_version)
@@ -353,8 +362,10 @@ class InstallPackageZipBuilder(BasePackageZipBuilder):
         self.password = password
         self.securityType = securityType
 
+    def __enter__(self):
         self._open_zip()
         self._populate_zip()
+        return self
 
     def _populate_zip(self):
         package_xml = INSTALLED_PACKAGE_PACKAGE_XML.format(
@@ -382,8 +393,10 @@ class DestructiveChangesZipBuilder(BasePackageZipBuilder):
         self.destructive_changes = destructive_changes
         self.version = version
 
+    def __enter__(self):
         self._open_zip()
         self._populate_zip()
+        return self
 
     def _populate_zip(self):
         self._write_package_xml(EMPTY_PACKAGE_XML.format(version=self.version))
@@ -400,5 +413,7 @@ class UninstallPackageZipBuilder(DestructiveChangesZipBuilder):
             namespace=self.namespace, version=self.version
         )
 
+    def __enter__(self):
         self._open_zip()
         self._populate_zip()
+        return self

@@ -32,10 +32,12 @@ class BaseUninstallMetadata(Deploy):
             self.logger.info(destructive_changes)
             return
 
-        package_zip = DestructiveChangesZipBuilder(
+        with DestructiveChangesZipBuilder(
             destructive_changes, self.project_config.project__package__api_version
-        )
-        api = self.api_class(
-            self, package_zip(), purge_on_delete=self.options["purge_on_delete"]
-        )
-        return api
+        ) as package_zip:
+            api = self.api_class(
+                self,
+                package_zip.as_base64(),
+                purge_on_delete=self.options["purge_on_delete"],
+            )
+            return api

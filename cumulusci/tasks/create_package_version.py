@@ -198,57 +198,61 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             self.package_config.package_name,
             self.logger,
         ) as path:
-            package_zip_builder = MetadataPackageZipBuilder(
+            with MetadataPackageZipBuilder(
                 path=path,
                 name=self.package_config.package_name,
                 options=options,
                 logger=self.logger,
-            )
+            ) as package_zip_builder:
 
-        ancestor_id = self._resolve_ancestor_id(self.options.get("ancestor_id"))
+                ancestor_id = self._resolve_ancestor_id(self.options.get("ancestor_id"))
 
-        self.request_id = self._create_version_request(
-            self.package_id,
-            self.package_config,
-            package_zip_builder,
-            ancestor_id,
-            self.options["skip_validation"],
-        )
-        self.return_values["request_id"] = self.request_id
+                self.request_id = self._create_version_request(
+                    self.package_id,
+                    self.package_config,
+                    package_zip_builder,
+                    ancestor_id,
+                    self.options["skip_validation"],
+                )
+                self.return_values["request_id"] = self.request_id
 
-        # wait for request to complete
-        self._poll()
-        self.return_values["package2_version_id"] = self.package_version_id
+                # wait for request to complete
+                self._poll()
+                self.return_values["package2_version_id"] = self.package_version_id
 
-        # get the new version number from Package2Version
-        res = self.tooling.query(
-            f"SELECT MajorVersion, MinorVersion, PatchVersion, BuildNumber, SubscriberPackageVersionId FROM Package2Version WHERE Id='{self.package_version_id}'"
-        )
-        package2_version = res["records"][0]
-        self.return_values["subscriber_package_version_id"] = package2_version[
-            "SubscriberPackageVersionId"
-        ]
-        self.return_values["version_number"] = PackageVersionNumber(
-            **package2_version
-        ).format()
+                # get the new version number from Package2Version
+                res = self.tooling.query(
+                    f"SELECT MajorVersion, MinorVersion, PatchVersion, BuildNumber, SubscriberPackageVersionId FROM Package2Version WHERE Id='{self.package_version_id}'"
+                )
+                package2_version = res["records"][0]
+                self.return_values["subscriber_package_version_id"] = package2_version[
+                    "SubscriberPackageVersionId"
+                ]
+                self.return_values["version_number"] = PackageVersionNumber(
+                    **package2_version
+                ).format()
 
-        # get the new version's dependencies from SubscriberPackageVersion
-        res = self.tooling.query(
-            "SELECT Dependencies FROM SubscriberPackageVersion "
-            f"WHERE Id='{package2_version['SubscriberPackageVersionId']}'"
-        )
-        self.return_values["dependencies"] = self._prepare_cci_dependencies(
-            res["records"][0]["Dependencies"]
-        )
+                # get the new version's dependencies from SubscriberPackageVersion
+                res = self.tooling.query(
+                    "SELECT Dependencies FROM SubscriberPackageVersion "
+                    f"WHERE Id='{package2_version['SubscriberPackageVersionId']}'"
+                )
+                self.return_values["dependencies"] = self._prepare_cci_dependencies(
+                    res["records"][0]["Dependencies"]
+                )
 
-        self.logger.info("Created package version:")
-        self.logger.info(f"  Package2 Id: {self.package_id}")
-        self.logger.info(f"  Package2Version Id: {self.package_version_id}")
-        self.logger.info(
-            f"  SubscriberPackageVersion Id: {self.return_values['subscriber_package_version_id']}"
-        )
-        self.logger.info(f"  Version Number: {self.return_values['version_number']}")
-        self.logger.info(f"  Dependencies: {self.return_values['dependencies']}")
+                self.logger.info("Created package version:")
+                self.logger.info(f"  Package2 Id: {self.package_id}")
+                self.logger.info(f"  Package2Version Id: {self.package_version_id}")
+                self.logger.info(
+                    f"  SubscriberPackageVersion Id: {self.return_values['subscriber_package_version_id']}"
+                )
+                self.logger.info(
+                    f"  Version Number: {self.return_values['version_number']}"
+                )
+                self.logger.info(
+                    f"  Dependencies: {self.return_values['dependencies']}"
+                )
 
     def _get_or_create_package(self, package_config: PackageConfig):
         """Find or create the Package2
@@ -382,10 +386,10 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     scratch_org_def.get("objectSettings"),
                     self.api_version,
                 ) as path:
-                    settings_zip_builder = MetadataPackageZipBuilder(path=path)
-                    version_info.writestr(
-                        "settings.zip", settings_zip_builder.as_bytes()
-                    )
+                    with MetadataPackageZipBuilder(path=path) as settings_zip_builder:
+                        version_info.writestr(
+                            "settings.zip", settings_zip_builder.as_bytes()
+                        )
 
             # Add the dependencies for the package
             is_dependency = package_config is not self.package_config
@@ -633,12 +637,13 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             namespace=self.package_config.namespace,
         )
         package_id = self._get_or_create_package(package_config)
-        self.request_id = self._create_version_request(
-            package_id,
-            package_config,
-            package_zip_builder,
-            dependencies=dependencies,
-        )
+        with package_zip_builder:
+            self.request_id = self._create_version_request(
+                package_id,
+                package_config,
+                package_zip_builder,
+                dependencies=dependencies,
+            )
 
         self._poll()
         self._reset_poll()
@@ -668,12 +673,13 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 namespace=self.package_config.namespace,
             )
             package_id = self._get_or_create_package(package_config)
-            self.request_id = self._create_version_request(
-                package_id,
-                package_config,
-                package_zip_builder,
-                dependencies=dependencies,
-            )
+            with package_zip_builder:
+                self.request_id = self._create_version_request(
+                    package_id,
+                    package_config,
+                    package_zip_builder,
+                    dependencies=dependencies,
+                )
         self._poll()
         self._reset_poll()
         res = self.tooling.query(
