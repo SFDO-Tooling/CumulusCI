@@ -68,7 +68,7 @@ class DataOperationJobResult(NamedTuple):
 
 
 @contextmanager
-def download_file(uri, bulk_api):
+def download_file(uri, bulk_api, *, chunk_size=8192):
     """Download the Bulk API result file for a single batch,
     and remove it when the context manager exits."""
     try:
@@ -76,7 +76,8 @@ def download_file(uri, bulk_api):
         resp = requests.get(uri, headers=bulk_api.headers(), stream=True)
         resp.raise_for_status()
         f = os.fdopen(handle, "wb")
-        for chunk in resp.iter_content(chunk_size=None):
+        for chunk in resp.iter_content(chunk_size=chunk_size):  # VCR needs a chunk_size
+            # specific chunk_size seems to make no measurable perf difference
             f.write(chunk)
 
         f.close()

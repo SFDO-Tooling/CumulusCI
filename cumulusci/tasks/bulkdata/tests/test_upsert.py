@@ -10,12 +10,24 @@ from cumulusci.tests.util import CURRENT_SF_API_VERSION, mock_describe_calls
 
 
 class TestUpsert:
-    # bulk API not supported by VCR yet
-    @pytest.mark.needs_org()
+    # Would be nice to slim down this VCR further. It's still 50kb.
+    # The next step of VCR compression would be to have some templates
+    # for XML that can be reused when matched.
+    # gzip would be another (albeit binary) answer.
+    @pytest.mark.vcr()
     def test_upsert_external_id_field(
-        self, create_task, cumulusci_test_repo_root, sf, delete_data_from_org
+        self,
+        create_task,
+        cumulusci_test_repo_root,
+        sf,
+        delete_data_from_org,
+        run_code_without_recording,
     ):
-        delete_data_from_org(["Entitlement", "Opportunity", "Contact", "Account"])
+        run_code_without_recording(
+            lambda: delete_data_from_org(
+                ["Entitlement", "Opportunity", "Contact", "Account"]
+            )
+        )
         self._test_two_upserts_and_check_results(
             "bulk", create_task, cumulusci_test_repo_root, sf
         )
@@ -105,7 +117,7 @@ class TestUpsert:
                 ["Espionage Opportunity", "Illusional Opportunity"]
             ), set(opportunity_names)
 
-    @pytest.mark.needs_org()
+    @pytest.mark.vcr()
     def test_upsert__rest(
         self,
         create_task,

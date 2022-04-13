@@ -1,0 +1,267 @@
+interactions:
+    - &id008
+      include_file: GET_sobjects_Organization.yaml
+    - &id001
+      include_file: GET_sobjects_Global_describe.yaml
+    - &id002
+      include_file: GET_sobjects_Account_describe.yaml
+    - *id001
+    - &id003
+      include_file: GET_sobjects_Contact_describe.yaml
+    - *id001
+    - &id007
+      include_file: GET_sobjects_Opportunity_describe.yaml
+    - *id002
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects
+          body: '{"allOrNone": false, "records": [{"Name": "Sitwell-Bluth", "attributes":
+              {"type": "Account"}}]}'
+          headers: &id004
+              Request-Headers:
+                  - Elided
+      response:
+          status: &id005
+              code: 200
+              message: OK
+          headers: &id006
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          body:
+              string:
+                  "[ {\n  \"id\" : \"0017e00001W4GYRAA3\",\n  \"success\" : true,\n  \"\
+                  errors\" : [ ]\n} ]"
+    - *id003
+    - request:
+          method: PATCH
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects/Contact/Email
+          body:
+              '{"allOrNone": false, "records": [{"FirstName": "Lindsay", "LastName": "Sitwell",
+              "Email": "lindsay.bluth@example.com", "attributes": {"type": "Contact"}}, {"FirstName":
+              "Audrey", "LastName": "Cain", "Email": "audrey.cain@example.com", "attributes":
+              {"type": "Contact"}}, {"FirstName": "Micheal", "LastName": "Bernard", "Email":
+              "michael.bernard@example.com", "attributes": {"type": "Contact"}}, {"FirstName":
+              "Chloe", "LastName": "Myers", "Email": "Chloe.Myers@example.com", "attributes":
+              {"type": "Contact"}}, {"FirstName": "Rose", "LastName": "Larson", "Email": "Rose.Larson@example.com",
+              "attributes": {"type": "Contact"}}, {"FirstName": "Brent", "LastName": "Ali",
+              "Email": "Brent.Ali@example.com", "attributes": {"type": "Contact"}}, {"FirstName":
+              "Julia", "LastName": "Townsend", "Email": "Julia.Townsend@example.com", "attributes":
+              {"type": "Contact"}}, {"FirstName": "Benjamin", "LastName": "Cunningham", "Email":
+              "Benjamin.Cunningham@example.com", "attributes": {"type": "Contact"}}, {"FirstName":
+              "Christy", "LastName": "Stanton", "Email": "Christy.Stanton@example.com", "attributes":
+              {"type": "Contact"}}, {"FirstName": "Sabrina", "LastName": "Roberson", "Email":
+              "Sabrina.Roberson@example.com", "attributes": {"type": "Contact"}}, {"FirstName":
+              "Michael", "LastName": "Bluth", "Email": "Michael.Bluth@example.com", "attributes":
+              {"type": "Contact"}}, {"FirstName": "Javier", "LastName": "Banks", "Email":
+              "Javier.Banks@example.com", "attributes": {"type": "Contact"}}, {"FirstName":
+              "GOB", "LastName": "Bluth", "Email": "GOB.Bluth@example.com", "attributes":
+              {"type": "Contact"}}, {"FirstName": "Kaitlyn", "LastName": "Rubio", "Email":
+              "Kaitlyn.Rubio@example.com", "attributes": {"type": "Contact"}}, {"FirstName":
+              "Jerry", "LastName": "Eaton", "Email": "Jerry.Eaton@example.com", "attributes":
+              {"type": "Contact"}}, {"FirstName": "Gabrielle", "LastName": "Vargas", "Email":
+              "Gabrielle.Vargas@example.com", "attributes": {"type": "Contact"}}]}'
+          headers: *id004
+      response:
+          status: *id005
+          headers: *id006
+          body:
+              string:
+                  "[ {\n  \"id\" : \"0037e00001WZ30qAAD\",\n  \"success\" : true,\n  \"\
+                  errors\" : [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0037e00001WZ30rAAD\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n\
+                  \  \"id\" : \"0037e00001WZ30sAAD\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0037e00001WZ30tAAD\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0037e00001WZ30uAAD\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0037e00001WZ30vAAD\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0037e00001WZ30wAAD\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0037e00001WZ30xAAD\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0037e00001WZ30yAAD\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0037e00001WZ30zAAD\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0037e00001WZ310AAD\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0037e00001WZ311AAD\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0037e00001WZ312AAD\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0037e00001WZ313AAD\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0037e00001WZ314AAD\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0037e00001WZ315AAD\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n} ]"
+    - *id007
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+Name+from+Account
+          body: null
+          headers: *id004
+      response:
+          status: *id005
+          headers: *id006
+          body:
+              string: "{\n  \"totalSize\" : 1,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Account/0017e00001W4GYRAA3\"\n    },\n    \"\
+                  Name\" : \"Sitwell-Bluth\"\n  } ]\n}"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+FirstName+from+Contact
+          body: null
+          headers: *id004
+      response:
+          status: *id005
+          headers: *id006
+          body:
+              string:
+                  "{\n  \"totalSize\" : 16,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Contact/0037e00001WZ30qAAD\"\n    },\n    \"\
+                  FirstName\" : \"Lindsay\"\n  }, {\n    \"attributes\" : {\n      \"type\"\
+                  \ : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30rAAD\"\
+                  \n    },\n    \"FirstName\" : \"Audrey\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30sAAD\"\
+                  \n    },\n    \"FirstName\" : \"Micheal\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30tAAD\"\
+                  \n    },\n    \"FirstName\" : \"Chloe\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30uAAD\"\
+                  \n    },\n    \"FirstName\" : \"Rose\"\n  }, {\n    \"attributes\" : {\n \
+                  \     \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30vAAD\"\
+                  \n    },\n    \"FirstName\" : \"Brent\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30wAAD\"\
+                  \n    },\n    \"FirstName\" : \"Julia\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30xAAD\"\
+                  \n    },\n    \"FirstName\" : \"Benjamin\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30yAAD\"\
+                  \n    },\n    \"FirstName\" : \"Christy\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30zAAD\"\
+                  \n    },\n    \"FirstName\" : \"Sabrina\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ310AAD\"\
+                  \n    },\n    \"FirstName\" : \"Michael\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ311AAD\"\
+                  \n    },\n    \"FirstName\" : \"Javier\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ312AAD\"\
+                  \n    },\n    \"FirstName\" : \"GOB\"\n  }, {\n    \"attributes\" : {\n  \
+                  \    \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ313AAD\"\
+                  \n    },\n    \"FirstName\" : \"Kaitlyn\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ314AAD\"\
+                  \n    },\n    \"FirstName\" : \"Jerry\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ315AAD\"\
+                  \n    },\n    \"FirstName\" : \"Gabrielle\"\n  } ]\n}"
+    - *id008
+    - *id001
+    - *id002
+    - *id001
+    - *id003
+    - *id001
+    - *id007
+    - *id002
+    - *id003
+    - request:
+          method: PATCH
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects/Contact/Email
+          body:
+              '{"allOrNone": false, "records": [{"FirstName": "Nichael", "LastName": "Bluth",
+              "Email": "Michael.Bluth@example.com", "attributes": {"type": "Contact"}}, {"FirstName":
+              "George Oscar", "LastName": "Bluth", "Email": "GOB.Bluth@example.com", "attributes":
+              {"type": "Contact"}}, {"FirstName": "Lindsay", "LastName": "Bluth", "Email":
+              "lindsay.bluth@example.com", "attributes": {"type": "Contact"}}, {"FirstName":
+              "Annyong", "LastName": "Bluth", "Email": "annyong.bluth@example.com", "attributes":
+              {"type": "Contact"}}]}'
+          headers: *id004
+      response:
+          status: *id005
+          headers: *id006
+          body:
+              string:
+                  "[ {\n  \"id\" : \"0037e00001WZ310AAD\",\n  \"success\" : true,\n  \"\
+                  errors\" : [ ],\n  \"created\" : false\n}, {\n  \"id\" : \"0037e00001WZ312AAD\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : false\n}, {\n\
+                  \  \"id\" : \"0037e00001WZ30qAAD\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : false\n}, {\n  \"id\" : \"0037e00001WZ316AAD\",\n\
+                  \  \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n} ]"
+    - *id007
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects
+          body:
+              '{"allOrNone": false, "records": [{"Name": "Illusional Opportunity", "StageName":
+              "In Progress", "CloseDate": "2021-10-03", "ContactId": "0037e00001WZ312AAD",
+              "attributes": {"type": "Opportunity"}}, {"Name": "Espionage Opportunity", "StageName":
+              "In Progress", "CloseDate": "2021-10-03", "ContactId": "0037e00001WZ316AAD",
+              "attributes": {"type": "Opportunity"}}]}'
+          headers: *id004
+      response:
+          status: *id005
+          headers: *id006
+          body:
+              string:
+                  "[ {\n  \"id\" : \"0067e00000K8i71AAB\",\n  \"success\" : true,\n  \"\
+                  errors\" : [ ]\n}, {\n  \"id\" : \"0067e00000K8i72AAB\",\n  \"success\" :\
+                  \ true,\n  \"errors\" : [ ]\n} ]"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+FirstName%2C%28select+Name+from+Opportunities%29+from+Contact
+          body: null
+          headers: *id004
+      response:
+          status: *id005
+          headers: *id006
+          body:
+              string:
+                  "{\n  \"totalSize\" : 17,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Contact/0037e00001WZ30qAAD\"\n    },\n    \"\
+                  FirstName\" : \"Lindsay\",\n    \"Opportunities\" : null\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30rAAD\"\
+                  \n    },\n    \"FirstName\" : \"Audrey\",\n    \"Opportunities\" : null\n\
+                  \  }, {\n    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30sAAD\"\n    },\n\
+                  \    \"FirstName\" : \"Micheal\",\n    \"Opportunities\" : null\n  }, {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Contact/0037e00001WZ30tAAD\"\n    },\n    \"\
+                  FirstName\" : \"Chloe\",\n    \"Opportunities\" : null\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30uAAD\"\
+                  \n    },\n    \"FirstName\" : \"Rose\",\n    \"Opportunities\" : null\n  },\
+                  \ {\n    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30vAAD\"\n    },\n\
+                  \    \"FirstName\" : \"Brent\",\n    \"Opportunities\" : null\n  }, {\n  \
+                  \  \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30wAAD\"\
+                  \n    },\n    \"FirstName\" : \"Julia\",\n    \"Opportunities\" : null\n \
+                  \ }, {\n    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30xAAD\"\n    },\n\
+                  \    \"FirstName\" : \"Benjamin\",\n    \"Opportunities\" : null\n  }, {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Contact/0037e00001WZ30yAAD\"\n    },\n    \"\
+                  FirstName\" : \"Christy\",\n    \"Opportunities\" : null\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ30zAAD\"\
+                  \n    },\n    \"FirstName\" : \"Sabrina\",\n    \"Opportunities\" : null\n\
+                  \  }, {\n    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ310AAD\"\n    },\n\
+                  \    \"FirstName\" : \"Nichael\",\n    \"Opportunities\" : null\n  }, {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Contact/0037e00001WZ311AAD\"\n    },\n    \"\
+                  FirstName\" : \"Javier\",\n    \"Opportunities\" : null\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ312AAD\"\
+                  \n    },\n    \"FirstName\" : \"George Oscar\",\n    \"Opportunities\" : {\n\
+                  \      \"totalSize\" : 1,\n      \"done\" : true,\n      \"records\" : [ {\n\
+                  \        \"attributes\" : {\n          \"type\" : \"Opportunity\",\n     \
+                  \     \"url\" : \"/services/data/vxx.0/sobjects/Opportunity/0067e00000K8i71AAB\"\
+                  \n        },\n        \"Name\" : \"Illusional Opportunity\"\n      } ]\n \
+                  \   }\n  }, {\n    \"attributes\" : {\n      \"type\" : \"Contact\",\n   \
+                  \   \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ313AAD\"\
+                  \n    },\n    \"FirstName\" : \"Kaitlyn\",\n    \"Opportunities\" : null\n\
+                  \  }, {\n    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ314AAD\"\n    },\n\
+                  \    \"FirstName\" : \"Jerry\",\n    \"Opportunities\" : null\n  }, {\n  \
+                  \  \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ315AAD\"\
+                  \n    },\n    \"FirstName\" : \"Gabrielle\",\n    \"Opportunities\" : null\n\
+                  \  }, {\n    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Contact/0037e00001WZ316AAD\"\n    },\n\
+                  \    \"FirstName\" : \"Annyong\",\n    \"Opportunities\" : {\n      \"totalSize\"\
+                  \ : 1,\n      \"done\" : true,\n      \"records\" : [ {\n        \"attributes\"\
+                  \ : {\n          \"type\" : \"Opportunity\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Opportunity/0067e00000K8i72AAB\"\
+                  \n        },\n        \"Name\" : \"Espionage Opportunity\"\n      } ]\n  \
+                  \  }\n  } ]\n}"
+version: 1
