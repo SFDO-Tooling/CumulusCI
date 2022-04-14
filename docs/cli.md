@@ -1,8 +1,6 @@
----
-title: The `cci` Command Line
----
+# The `cci` Command Line
 
-# Basic Operation
+## Basic Operation
 
 ::: tip
 ::: title
@@ -69,7 +67,7 @@ run   Runs a task
 We can see that the `cci task` command has many useful subcommands, such
 as `cci task info`.
 
-# List Tasks, Flows, and Plans
+## List Tasks, Flows, and Plans
 
 CumulusCI ships with many standard tasks and flows. In addition, your
 project might have one or more MetaDeploy plans. The following commands
@@ -91,7 +89,7 @@ The tasks and flows are listed by their `group` attribute as specified
 in the `cumulusci.yml` file. It\'s easy to edit these groups as you see
 fit. Any modifications will be reflected in the `list` commands.
 
-# Task Info and Options
+## Task Info and Options
 
 For additional information on task `<name>`, run either command:
 
@@ -135,7 +133,7 @@ Options
     Default: 5
 ```
 
-# Flow Info and Options
+## Flow Info and Options
 
 For additional information on flow `<name>`, run either command:
 
@@ -178,7 +176,7 @@ Description: Set up an org as a development environment for unmanaged metadata
 4) task: snapshot_changes
 ```
 
-# Plan Info and Options
+## Plan Info and Options
 
 Your project may have one or more defined MetaDeploy plans, though none
 come preconfigured with CumulusCI. If you have plans, for additional
@@ -260,7 +258,7 @@ $ cci plan info config
   7      Express Setup - Advisor Sharing Metadata       No         Yes
 ```
 
-# Run Tasks and Flows
+## Run Tasks and Flows
 
 Execute a specific task or flow with the `run` command.
 
@@ -283,7 +281,7 @@ For example, the `run_tests` task executes Apex unit tests in a given
 org. Assuming there exists an org named `dev`, you can run this task
 against it with the command `cci task run run_tests --org dev`.
 
-## Get Help Running Tasks
+### Get Help Running Tasks
 
 If you\'re not certain about what a specific command does, use the
 `--help` flag to get more information.
@@ -316,7 +314,7 @@ If you\'re just getting started with CumulusCI and aren\'t sure which of
 the many tasks and flows to use, don\'t worry. We show you specific
 tasks and flows in later sections of the documentation.
 
-## Specify Task Options When Running Flows
+### Specify Task Options When Running Flows
 
 When executing a flow with `cci flow run`, you can specify options on
 specific tasks in the flow with the following syntax:
@@ -351,7 +349,7 @@ If you want to configure specific task options on flows without
 explicitly listing them see
 `Configure Options on Tasks in Flows`{.interpreted-text role="ref"}.
 
-# Access and Manage Orgs
+## Access and Manage Orgs
 
 CumulusCI makes it easy to create, connect, and manage orgs. The
 `cci org` top-level command helps you work with orgs.
@@ -361,12 +359,12 @@ To learn about working with orgs in detail, read
 `Connect Persistent Orgs <connected_orgs>`{.interpreted-text
 role="doc"}.
 
-# Manage Services
+## Manage Services
 
 Services represent external resources used by CumulusCI automation, such
 as access to a GitHub account or a MetaDeploy instance.
 
-## List Services
+### List Services
 
 You can have CumulusCI show you a list of all possible services
 supported. Services that are not currently configured will be displayed
@@ -376,7 +374,7 @@ in a dimmed row.
 $ cci service list
 ```
 
-## Connect A Service
+### Connect A Service
 
 To connect a service to the global keychain (which we recommend for
 almost all situations) you can use:
@@ -402,7 +400,7 @@ pass the `--project` flag.
 $ cci service connect <service_type> <service_name> --project
 ```
 
-## Set a Default Service
+### Set a Default Service
 
 The first service connected for a given service type is automatically
 set as the default service for that type. If you have multiple services
@@ -412,7 +410,7 @@ connected for a given type and would like to set a new default use:
 $ cci service default <service_type> <service_name>
 ```
 
-## Rename a Service
+### Rename a Service
 
 To rename a service use:
 
@@ -420,7 +418,7 @@ To rename a service use:
 $ cci service rename <service_type> <old_name> <new_name>
 ```
 
-## Remove a Service
+### Remove a Service
 
 To remove a service use:
 
@@ -428,12 +426,12 @@ To remove a service use:
 $ cci service remove <service_type> <service_name>
 ```
 
-# Troubleshoot Errors
+## Troubleshoot Errors
 
 Errors happen! That\'s why `cci` provides tools to extract error details
 so that they can be reported and triaged.
 
-## Report Error Logs
+### Report Error Logs
 
 The `cci error gist` command sends the most recent log file to a [GitHub
 gist](https://docs.github.com/en/github/writing-on-github/creating-gists)
@@ -454,7 +452,7 @@ The gist includes:
 The URL for the gist is displayed in the terminal as output, and a web
 browser automatically opens a tab to the gist.
 
-## View Stack Traces
+### View Stack Traces
 
 If you encounter an error and want more information on what caused it,
 the `cci error info` command displays the stack trace (if present) from
@@ -469,7 +467,7 @@ The stack trace displayed is a _Python_ stacktrace. This is helpful for
 locating where CumulusCI encountered an error in the source code.
 :::
 
-## See Stack Traces Automatically
+### See Stack Traces Automatically
 
 If you\'d like to investigate bugs in CumulusCI, set the config option
 `show_stacktraces` to `True` under the `cli` section of
@@ -483,7 +481,7 @@ For help with troubleshooting errors or stack traces, reach out to the
 CumulusCI team on the [CumulusCI Trailblazer Community
 Group](https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9Z).
 
-## The `--debug` Flag
+### The `--debug` Flag
 
 All CumulusCI commands can be passed the `--debug` flag, so that:
 
@@ -502,7 +500,7 @@ Note
 To exit a debugging session, type the command `quit` or `exit`.
 :::
 
-## Log Files
+### Log Files
 
 CumulusCI creates a log file every time a cci command runs. There are
 six rotating log files (`cci.log, cci.log1...5`) with `cci.log` being

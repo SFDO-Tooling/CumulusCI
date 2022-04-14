@@ -1,5 +1,3 @@
----
-title: CLI Commands
----
+# CLI Commands
 
 Generated docs for CLI commands

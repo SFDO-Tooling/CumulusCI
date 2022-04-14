@@ -1,11 +1,9 @@
----
-title: Key Concepts
----
+# Key Concepts
 
 Let\'s review some important concepts when building and testing features
 using CumulusCI.
 
-# Packages
+## Packages
 
 CumulusCI works well with both managed package projects and org
 implementations. However, packages always play a role in how projects
@@ -33,7 +31,7 @@ destructive changes, such as deleting objects or fields.
 
 In CumulusCI, packages are built and deployed via projects.
 
-# Projects
+## Projects
 
 When you work with CumulusCI, you do so inside a _project_. A project is
 an individual Git repository that contains both Salesforce metadata and
@@ -61,7 +59,7 @@ product.
 To sum up, although a project doesn\'t require a package, a package
 requires a project to be built and deployed.
 
-# Tasks and Flows
+## Tasks and Flows
 
 CumulusCI uses a framework of _tasks_ and _flows_ to organize the
 automation that is available to each project.
@@ -128,9 +126,9 @@ flows to better suit the project\'s needs. We cover customization in
 depth in the `Configure CumulusCI <config>`{.interpreted-text
 role="doc"} section.
 
-# Project Structure
+## Project Structure
 
-## Project Directory
+### Project Directory
 
 The project directory is the root of your CumulusCI project. Because
 each project is linked to a single GitHub repository, CumulusCI knows
@@ -154,7 +152,7 @@ Git repository and contain a `cumulusci.yml` configuration file. We
 cover how to get set up with a new or existing CumulusCI project in the
 `Get Started <get_started>`{.interpreted-text role="doc"} section.
 
-## `cumulusci.yml`
+### `cumulusci.yml`
 
 The `cumulusci.yml` file defines a project\'s automation. It contains
 all the customizations and configurations that pertain to your
@@ -164,7 +162,7 @@ shapes of scratch orgs to configuring tasks and flows.
 Learn more about customizing CumulusCI automation in the
 `Configure CumulusCI <config>`{.interpreted-text role="doc"} section.
 
-## `force-app` (or `src`)
+### `force-app` (or `src`)
 
 The main body of the project\'s code and metadata lives in the default
 package directory, which is the `force-app` directory for Salesforce
@@ -175,14 +173,14 @@ unlocked package, or if you\'re not releasing a package at all but
 running the `deploy` task to get the metadata into an org in unmanaged
 form.)
 
-## `orgs` directory
+### `orgs` directory
 
 The `.json` files found in the `orgs` directory define the Salesforce DX
 org configurations that are available to the project. See
 `Manage Scratch Orgs<scratch_orgs>`{.interpreted-text role="doc"} for
 more information.
 
-## `datasets`
+### `datasets`
 
 Each project can have one or more datasets: on-disk representations of
 record data that can be inserted into Salesforce orgs, and that can also
@@ -190,7 +188,7 @@ be modified and re-captured during the evolution of the project.
 Datasets are stored in the `datasets` directory. Learn more about
 datasets in `Automate Data Operations`{.interpreted-text role="doc"}.
 
-## `robot`
+### `robot`
 
 Robot Framework provides browser automation for end-to-end testing. Each
 project contains a `robot` directory, which stores the project\'s Robot
@@ -204,7 +202,7 @@ and APIs are insufficient.
 See `Automation using Robot Framework <robot>`{.interpreted-text
 role="doc"} for more information.
 
-## `unpackaged` metadata
+### `unpackaged` metadata
 
 As we touched upon earlier, a project doesn\'t just encompass the
 contents of a managed package or a single deployment. It also includes
@@ -222,13 +220,13 @@ Learn more in the
 `Manage Unpackaged Configuration <unpackaged>`{.interpreted-text
 role="doc"} section.
 
-# Project Orgs & Services
+## Project Orgs & Services
 
 Orgs and services are external, authenticated resources that each
 project uses. CumulusCI makes it easy to connect orgs and services to a
 single project, or to use them across many projects.
 
-## Orgs
+### Orgs
 
 Each project has its own set of orgs, including active scratch orgs,
 persistent orgs like a production or packaging org, and predefined
@@ -243,7 +241,7 @@ complexity. For details, see
 `Connect Persistent Orgs <connected_orgs>`{.interpreted-text
 role="doc"}.
 
-## Services
+### Services
 
 Services represent external resources used by CumulusCI automation, such
 as access to a GitHub account or a MetaDeploy instance. Services are

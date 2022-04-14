@@ -1,13 +1,11 @@
----
-title: Release a Second-Generation Managed Package
----
+# Release a Second-Generation Managed Package
 
 This section outlines how to release second-generation (2GP) Salesforce
 managed package projects. Salesforce.org\'s Release Engineering team
 practices `CumulusCI Flow <cumulusci_flow>`{.interpreted-text
 role="doc"}, which incorporates all of these steps.
 
-# Prerequisites
+## Prerequisites
 
 This section assumes:
 
@@ -24,7 +22,7 @@ This section assumes:
 -   A namespace org has been [created and linked to the active Dev
     Hub](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_dev2gp_create_namespace.htm).
 
-# Create a Beta Version
+## Create a Beta Version
 
 CumulusCI uses the `dependencies` section of your `cumulusci.yml` file
 to define your 2GP project\'s dependencies. CumulusCI uses GitHub
@@ -92,7 +90,7 @@ To list each step in the `release_2gp_beta` flow, run
 `cci flow info release_2gp_beta`.
 :::
 
-## Customizing Package Uploads
+### Customizing Package Uploads
 
 2GP package uploads are performed by the `create_package_version` task.
 If the built-in configuration used by `release_2gp_beta` does not suit
@@ -107,7 +105,7 @@ To learn more about the available options, run
 $ cci task info create_package_version
 ```
 
-## Handling Unpackaged Metadata
+### Handling Unpackaged Metadata
 
 CumulusCI projects can include _unpackaged metadata_ in directories like
 `unpackaged/pre` and `unpackaged/post`. These directories are deployed
@@ -150,7 +148,7 @@ like to use it, configure your `cumulusci.yml` to set the option
 `create_unlocked_dependency_packages` on the `create_package_version`
 task.
 
-# Test a Beta Version
+## Test a Beta Version
 
 The `ci_beta` flow installs the latest beta version of the project in a
 scratch org, and runs Apex tests against it.
@@ -161,7 +159,7 @@ $ cci flow run ci_beta --org beta
 
 This flow is intended to be run whenever a beta release is created.
 
-# Promote a Production Version
+## Promote a Production Version
 
 To be installed in a production org, an 2GP package version must be
 [promoted](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_create_pkg_ver_promote.htm)
@@ -190,7 +188,7 @@ Alternatively, you can use the `sfdx force:package:version:promote`
 command to promote a 2GP package. Note that using this command will also
 not perform any release operations in GitHub.
 
-## Promote Dependencies
+### Promote Dependencies
 
 If additional unlocked packages were created to hold unpackaged
 dependencies, they must be promoted as well. To promote dependencies

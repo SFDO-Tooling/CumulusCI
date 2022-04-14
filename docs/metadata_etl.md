@@ -1,8 +1,6 @@
----
-title: Metadata ETL
----
+# Metadata ETL
 
-# Introduction to Metadata ETL
+## Introduction to Metadata ETL
 
 \"ETL\" refers to \"extract, transform, and load\" operations, usually
 applied to data. CumulusCI offers a suite of functionality we call
@@ -58,7 +56,7 @@ from the org, add the `New_Value` entry to it, and redeploy the modified
 metadata - ensuring that the application\'s needs are met with a safe,
 minimal intervention in the target org.
 
-# Standard Metadata ETL Tasks
+## Standard Metadata ETL Tasks
 
 CumulusCI includes several Metadata ETL tasks in its standard library.
 For information about all of the available tasks, see `cci task list`
@@ -80,7 +78,7 @@ The Metadata ETL framework makes it easy to add more tasks. For
 information about implementing Metadata ETL tasks, see TODO: link to
 section in Python customization.
 
-# Namespace Injection
+## Namespace Injection
 
 All out-of-the-box Metadata ETL tasks accept a Boolean `managed` option.
 If `True`, CumulusCI will replace the token `%%%NAMESPACE%%%` in API
@@ -89,7 +87,7 @@ namespace; if `False`, the token will simply be removed. See
 `Namespace Injection`{.interpreted-text role="ref"} for more
 information.
 
-# Implementation of Metadata ETL Tasks
+## Implementation of Metadata ETL Tasks
 
 This section covers internals of the Metadata ETL framework, and is
 intended for users who wish to build their own Metadata ETL tasks.
@@ -128,14 +126,14 @@ from cumulusci.core.utils import process_bool_arg
 
 
 class SetDuplicateRuleStatus(MetadataSingleEntityTransformTask):
-    # Subclasses *must* define `entity`
+    ## Subclasses *must* define `entity`
     entity = "DuplicateRule"
 
-    # Most subclasses include the base class's options via
-    # **MetadataSingleEntityTransformTask.task_options. Further
-    # options may be added for this specific task. The base class
-    # options include in particular the standard `api_names` option,
-    # which base class functionality requires.
+    ## Most subclasses include the base class's options via
+    ## **MetadataSingleEntityTransformTask.task_options. Further
+    ## options may be added for this specific task. The base class
+    ## options include in particular the standard `api_names` option,
+    ## which base class functionality requires.
     task_options = {
         "active": {
             "description": "Boolean value, set the Duplicate Rule to either active or inactive",
@@ -144,21 +142,21 @@ class SetDuplicateRuleStatus(MetadataSingleEntityTransformTask):
         **MetadataSingleEntityTransformTask.task_options,
     }
 
-    # The `_transform_entity()` method must be overriden.
+    ## The `_transform_entity()` method must be overriden.
     def _transform_entity(
         self, metadata: MetadataElement, api_name: str
     ) -> Optional[MetadataElement]:
-        # This method modifies the supplied `MetadataElement`, using methods
-        # from CumulusCI's metadata_tree module, to match the desired configuration.
+        ## This method modifies the supplied `MetadataElement`, using methods
+        ## from CumulusCI's metadata_tree module, to match the desired configuration.
         status = "true" if process_bool_arg(self.options["active"]) else "false"
         metadata.find("isActive").text = status
 
-        # Always return the modified `MetadataElement` if deployment is desired.
-        # To not deploy this element, return `None`.
+        ## Always return the modified `MetadataElement` if deployment is desired.
+        ## To not deploy this element, return `None`.
         return metadata
 ```
 
-## Advanced Metadata ETL Base Classes
+### Advanced Metadata ETL Base Classes
 
 Most Metadata ETL tasks subclass `MetadataSingleEntityTransformTask`.
 However, the framework also includes classes that provide more

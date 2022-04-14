@@ -1,6 +1,4 @@
----
-title: Extend NPSP and EDA with Second-Generation Packaging
----
+# Extend NPSP and EDA with Second-Generation Packaging
 
 Building packages that extend (depend on) NPSP and EDA using
 second-generation packaging involves some unique complications. Both

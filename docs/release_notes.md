@@ -1,6 +1,4 @@
----
-title: Generate Release Notes
----
+# Generate Release Notes
 
 The `github_release_notes` task fetches the text from Pull Requests that
 were merged between two given tags. The task then searches for specific

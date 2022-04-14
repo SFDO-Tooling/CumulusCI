@@ -1,6 +1,4 @@
----
-title: Automate Data Operations
----
+# Automate Data Operations
 
 CumulusCI offers a suite of tasks to help you to manage data as part of
 your project automation. Within your repository, you can define one or
@@ -10,7 +8,7 @@ persistent orgs, storing those snapshots within the repository, and
 automating the load of datasets into orgs. Data operations are executed
 via the Bulk and REST APIs.
 
-A dataset consists of
+A dataset consists of:
 
 -   a _definition file_, written in YAML, which specifies the sObjects
     and fields contained in the dataset and the order in which they are
@@ -23,7 +21,7 @@ Datasets are stored in the `datasets/` folder within a repository by
 default. Projects created with a recent version of CumulusCI ship with
 this directory in place.
 
-# The Lifecycle of a Dataset
+## The Lifecycle of a Dataset
 
 A dataset starts with a definition: which objects, and which fields, are
 to be captured, persisted, and loaded into orgs? (The details of
@@ -39,7 +37,7 @@ project metadata.
 Projects may define one or many datasets. Datasets can contain an
 arbitrary amount of data.
 
-# Defining Datasets
+## Defining Datasets
 
 A dataset is defined in YAML as a series of steps. Each step registers a
 specific sObject as part of the dataset, and defines the relevant fields
@@ -92,7 +90,7 @@ populating the lookup field until the referenced step has been
 completed. In the example above, an `after` definition is used to
 support the `ParentId` self-lookup on `Account`.
 
-## API Selection
+### API Selection
 
 By default, CumulusCI will determine the data volume of the specified
 object and select an API for you: for under 2,000 records, the REST
@@ -121,14 +119,14 @@ on total processing time. Bulk API batches are automatically chunked
 further into transactions by the platform, and the transaction size
 cannot be controlled.
 
-## Upserts
+### Upserts
 
 The definition of \"upsert\" is an operation which creates new records
 and updates existing records depending on a field (the update key) which
 determines whether the input row and the existing row are \"the same\".
 
 You can do ID-based,
-[idLookup-based](https://developer.salesforce.com/docs/atlas.en-us.204.0.object_reference.meta/object_reference/access_for_fields.htm#access_lookup)
+[idLookup-based](https://developer.salesforce.com/docs/atlas.en-us.204.0.object_reference.meta/object_reference/access_for_fields.htm##access_lookup)
 and [external
 ID](https://help.salesforce.com/s/articleView?id=sf.faq_import_general_what_is_an_external.htm&type=5)-based
 [upserts](https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/langCon_apex_dml_examples_upsert.htm)
@@ -147,7 +145,7 @@ Insert Accounts:
 Whenever `update_key` is supplied, the action must be `upsert` and vice
 versa.
 
-## Database Mapping
+### Database Mapping
 
 CumulusCI\'s definition format includes considerable flexibility for use
 cases where datasets are stored in SQL databases whose structure is not
@@ -199,7 +197,7 @@ fresh copy of the data. Note however that datasets which make use of
 older and deprecated CumulusCI features, such as the `record_type` key,
 may need to continue using explicit database mapping.
 
-## Record Types
+### Record Types
 
 CumulusCI supports automatic mapping of Record Types between orgs, keyed
 upon the Developer Name. To take advantage of this support, simply
@@ -222,7 +220,7 @@ It\'s recommended that new datasets use Record Type mapping by including
 the `RecordTypeId` field. Using `record_type` will result in CumulusCI
 issuing a warning.
 
-## Relative Dates
+### Relative Dates
 
 CumulusCI supports maintaining _relative dates_, helping to keep the
 dataset relevant by ensuring that date and date-time fields are updated
@@ -269,7 +267,7 @@ would adjust the `Birthdate` field on both load and extract around the
 anchor date of July 1, 1990. Note that date and datetime fields not
 mapped, as well as fields on other steps, are unaffected.
 
-## Person Accounts
+### Person Accounts
 
 CumulusCI supports extracting and loading person account data. In your
 dataset definition, map person account fields like `LastName`,
@@ -281,23 +279,23 @@ Account:
     sf_object: Account
     table: Account
     fields:
-        # Business Account Fields
+        ## Business Account Fields
         - Name
         - AccountNumber
         - BillingStreet
         - BillingCity
 
-        # Person Account Fields
+        ## Person Account Fields
         - FirstName
         - LastName
         - PersonEmail
         - CustomContactField__pc
 
-        # Optional (though recommended) Record Type
+        ## Optional (though recommended) Record Type
         - RecordTypeId
 ```
 
-### Record Types
+#### Record Types
 
 It\'s recommended, though not required, to extract Account Record Types
 to support datasets with person accounts so there is consistency in the
@@ -306,7 +304,7 @@ the default business account Record Type and default person account
 Record Type will be applied to business and person account records
 respectively.
 
-### Extract
+#### Extract
 
 During dataset extraction, if the org has person accounts enabled, the
 `IsPersonAccount` field is extracted for **Account** and **Contact**
@@ -315,7 +313,7 @@ Additionally, `Account.Name` is not createable for person account
 **Account** records, so `Account.Name` is not extracted for person
 account **Account** records.
 
-### Load
+#### Load
 
 Before loading, CumulusCI checks if the dataset contains any person
 account records (i.e. any **Account** or **Contact** records with
@@ -324,10 +322,10 @@ account records, CumulusCI validates the org has person accounts
 enabled.
 
 You can enable person accounts for scratch orgs by including the
-[PersonAccounts](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file_config_values.htm#so_personaccounts/)
+[PersonAccounts](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file_config_values.htm##so_personaccounts/)
 feature in your scratch org definition.
 
-## Advanced Features
+### Advanced Features
 
 CumulusCI supports two additional keys within each step
 
@@ -362,11 +360,11 @@ Note that trying to load data that is extracted using `soql_filter` may
 cause \"invalid cross reference id\" errors if related object records
 are filtered on extract. Use this feature only if you fully understand
 how [CumulusCI load data
-task](https://cumulusci.readthedocs.io/en/stable/data.html#load-dataset)
+task](https://cumulusci.readthedocs.io/en/stable/data.html##load-dataset)
 resolves references to related records when loading data to a Salesforce
 org.
 
-### Primary Keys
+#### Primary Keys
 
 CumulusCI offers two modes of managing Salesforce Ids and primary keys
 within the stored database.
@@ -388,7 +386,7 @@ penalty when extracting data. It\'s recommended that most mappings do
 not map the Id field and allow CumulusCI to utilize the automatic
 primary key.
 
-### Handling Namespaces
+#### Handling Namespaces
 
 All CumulusCI bulk data tasks support automatic namespace injection or
 removal. In other words, the same mapping file will work for namespaced
@@ -408,7 +406,7 @@ Namespace injection can be deactivated by setting the
 The `generate_dataset_mapping` generates mapping files with no namespace
 and this is the most common pattern in CumulusCI projects.
 
-### Namespace Handing with Multiple Mapping Files
+#### Namespace Handing with Multiple Mapping Files
 
 It\'s also possible, and common in older managed package products, to
 use multiple mapping files to achieve loading the same data set in both
@@ -462,7 +460,7 @@ It\'s recommended that all new mappings use flat list field
 specifications and allow CumulusCI to manage namespace injection. This
 capability typically results in significant simplication in automation.
 
-### Optional Data Elements
+#### Optional Data Elements
 
 Some projects need to build datasets that include optional data
 elements - fields and objects that are loaded into some of the
@@ -487,7 +485,7 @@ load it safely in orgs that both do and do not contain B. However, it\'s
 important to always capture from an org with B present, or B data will
 not be preserved in the dataset.
 
-# Custom Settings
+## Custom Settings
 
 Datasets don\'t support Custom Settings. However, a separate task is
 supplied to deploy Custom Settings (both list and hierarchy) into an
@@ -526,9 +524,9 @@ Hierarchy Custom Settings to a `SetupOwnerId`. Any Custom Settings
 existing in the target org with the specified name (List) or setup owner
 (Hierarchy) will be updated with the given data.
 
-# Dataset Tasks
+## Dataset Tasks
 
-## `create_bulk_data_permission_set`
+### `create_bulk_data_permission_set`
 
 Create and assign a Permission Set that enables key features used in
 Bulk Data tasks (Hard Delete and Set Audit Fields) for the current user.
@@ -552,11 +550,11 @@ After this task runs, you\'ll be able to run the `delete_data` task with
 the `hardDelete` option, and you\'ll be able to map audit fields like
 `CreatedDate`.
 
-## `extract_dataset`
+### `extract_dataset`
 
 Extract the data for a dataset from an org and persist it to disk.
 
-### Options
+#### Options
 
 -   `mapping`: the path to the YAML definition file for this dataset.
 -   `sql_path`: the path to a SQL script storage location for this
@@ -570,12 +568,12 @@ Example: :
 
     cci task run extract_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
 
-## `load_dataset`
+### `load_dataset`
 
 Load the data for a dataset into an org. If the storage is a database,
 persist new Salesforce Ids to storage.
 
-### Options
+#### Options
 
 -   `mapping`: the path to the YAML definition file for this dataset.
 -   `sql_path`: the path to a SQL script storage location for this
@@ -594,7 +592,7 @@ Example: :
 
     cci task run load_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
 
-## `generate_dataset_mapping`
+### `generate_dataset_mapping`
 
 Inspect an org and generate a dataset definition for the schema found
 there.
@@ -634,7 +632,7 @@ required to ensure the definition fully suits the project\'s use case.
 In particular, any fields required on standard objects that aren\'t
 automatically included must be added manually.
 
-### Reference Cycles
+#### Reference Cycles
 
 Dataset definition files must execute in a sequence, one sObject after
 another. However, Salesforce schemas often include _reference cycles_:
@@ -649,7 +647,7 @@ resolve reference cycles. CumulusCI will automatically tag affected
 relationship fields with `after` directives to ensure they\'re populated
 after their target records become available.
 
-### Options
+#### Options
 
 -   `path`: Location to write the mapping file. Default:
     datasets/mapping.yml
@@ -662,15 +660,15 @@ Example: :
 
     cci task run generate_dataset_mapping --org qa -o namespace_prefix my_ns
 
-## `load_custom_settings`
+### `load_custom_settings`
 
 Load custom settings stored in YAML into an org.
 
-### Options
+#### Options
 
 -   `settings_path`: Location of the YAML settings file.
 
-## `delete_data`
+### `delete_data`
 
 You can also delete records using CumulusCI. You can either delete every
 record of a particular object, certain records based on a `where` clause
@@ -678,10 +676,9 @@ or every record of multiple objects. Because `where` clauses seldom make
 logical sense when applied to multiple objects, you cannot use a `where`
 clause when specifying multiple objects.
 
-Details are available with `cci org info delete_data` and [in the task
-reference](./tasks.html#delete-data).
+Details are available with `cci org info delete_data` and [in the task reference] (delete-data).
 
-### Examples
+#### Examples
 
 ```
 cci task run delete_data -o objects Opportunity,Contact,Account --org qa
@@ -693,7 +690,7 @@ cci task run delete_data -o objects Account -o ignore_row_errors True
 cci task run delete_data -o objects Account -o hardDelete True
 ```
 
-## `update_data`
+### `update_data`
 
 To update records using CumulusCI, provide:
 
@@ -713,14 +710,16 @@ You can filter the rows that you\'re updating like this:
 
 The recipe for an update can be as simple as this:
 
-```- object: Account
+```
+object: Account
 fields:
 NumberOfEmployees: 10000
 ```
 
 You can use all of the power of `snowfakery` to add fake data:
 
-```- object: Account
+```
+object: Account
 fields:
 NumberOfEmployees: 10_000
 BillingStreet:
@@ -730,7 +729,8 @@ fake: Streetname
 Using Snowfakery formulas, you can also refer to specific input fields
 like this:
 
-```- object: Account
+```
+object: Account
 fields:
 Description: ${{input.Name}} is our favorite customer in ${{input.BillingCity}}
 ```
@@ -742,11 +742,11 @@ option:
 
 You can learn more about Snowfakery syntax in the next section.
 
-# Generate Fake Data
+## Generate Fake Data
 
 It is possible to use CumulusCI to generate arbitrary amounts of
 synthetic data using the `snowfakery`
-[task](https://cumulusci.readthedocs.io/en/latest/tasks.html#snowfakery).
+[task](https://cumulusci.readthedocs.io/en/latest/tasks.html##snowfakery).
 That task is built on the [Snowfakery
 language](https://snowfakery.readthedocs.io/en/docs/). CumulusCI ships
 with Snowfakery embedded, so you do not need to install it.
@@ -770,7 +770,7 @@ There are two other ways to control how many times the recipe is
 repeated: [\--run-until-records-loaded]{.title-ref} and
 [\--run-until-records-in-org]{.title-ref}.
 
-## Generated Record Counts
+### Generated Record Counts
 
 Consider this example:
 
@@ -808,7 +808,7 @@ Would be equivalent to [\--run-until-records-loaded
 700:Account]{.title-ref} because one needs to add 700 Accounts to the
 300 resdent ones to get to 1000.
 
-## Controlling the Loading Process
+### Controlling the Loading Process
 
 CumulusCI\'s data loader has many knobs and switches that you might want
 to adjust during your load. It supports a \".load.yml\" file format
@@ -858,7 +858,7 @@ default filename (`<recipename>.load.yml`). If you want both, or any
 combination of multiple files, you can do that by listing them with
 commas between the filenames.
 
-## Batch Sizes
+### Batch Sizes
 
 You can also control batch sizes with the `-o batch_size BATCHSIZE`
 parameter. This is not the Salesforce bulk API batch size. No matter
@@ -897,7 +897,7 @@ goal (800K Accounts) and finish the job.
 Another reason you might choose smaller batch sizes is to minimize the
 risk of row locking errors when you have triggers enabled. Turning off
 triggers is generally preferable, and CumulusCI [has a
-task](https://cumulusci.readthedocs.io/en/latest/tasks.html#disable-tdtm-trigger-handlers)
+task](https://cumulusci.readthedocs.io/en/latest/tasks.html##disable-tdtm-trigger-handlers)
 for doing for TDTM trigger handlers, but sometimes you cannot avoid
 them. Using smaller batch sizes may be preferable to switching to serial
 mode. If every SObject in a batch uploads less than 10,000 rows then you

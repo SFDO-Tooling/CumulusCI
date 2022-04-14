@@ -1,6 +1,4 @@
----
-title: Robot Tutorial
----
+# Robot Tutorial
 
 This tutorial will step you through writing your first test, then
 enhancing that test with a custom keyword implemented as a page object.
@@ -14,7 +12,7 @@ you\'ve read the `robotframework`{.interpreted-text role="doc"} section
 of this document, which gives an overview of CumulusCI / Robot Framework
 integration.
 
-# Part 1: Folder Structure
+## Part 1: Folder Structure
 
 We recommend that all Robot tests, keywords, data, and log and report
 files live under a folder named `robot`, at the root of your repository.
@@ -28,7 +26,7 @@ role="doc"} section, the following folders will have been created under
 -   `results` - a place for Robot to write its log and report files
 -   `tests` - a place for all of your tests.
 
-# Part 2: Creating a custom object
+## Part 2: Creating a custom object
 
 For this tutorial we\'re going to use a Custom Object named `MyObject`
 (e.g. `MyObject__c`). In addition, we need a Custom Tab that is
@@ -40,7 +38,7 @@ will need to go to Setup and create the following:
 1.  A Custom Object with the name `MyObject`.
 2.  A Custom Tab associated with this object.
 
-# Part 3: Creating and running your first Robot test
+## Part 3: Creating and running your first Robot test
 
 The first thing we want to do is create a test that verifies we can get
 to the listing page of the Custom Object. This will let us know that
@@ -106,7 +104,7 @@ Log:     /Users/boakley/dev/MyProject/robot/MyProject/results/log.html
 Report:  /Users/boakley/dev/MyProject/robot/MyProject/results/report.html
 ```
 
-# Part 4: Creating a page object
+## Part 4: Creating a page object
 
 Most projects are going to need to write custom keywords that are unique
 to that project. For example, NPSP has a keyword for filling in a batch
@@ -120,7 +118,7 @@ provided by CumulusCI. By using page objects, you can write keywords
 that are unique to a given page, making them easier to find and easier
 to manage.
 
-## Defining the class
+### Defining the class
 
 CumulusCI provides the base classes that are a good starting point for
 your page object (see `page-object-base-classes`{.interpreted-text
@@ -157,7 +155,7 @@ The first line registers this class as a page object for a listing page
 for the object `MyObject__c`. The second line begins the class
 definition.
 
-## Creating the keyword
+### Creating the keyword
 
 At this point, all we need to do to create the keyword is to create a
 method on this object. The method name should be all lowercase, with
@@ -187,7 +185,7 @@ Notice that the above code is able to use the built-in properties
 `self.selenium` and `self.salesforce` to directly call keywords in the
 `SeleniumLibrary` and `Salesforce` keyword libraries.
 
-## Putting it all together
+### Putting it all together
 
 After adding all of the above code, our file should now look like this:
 
@@ -237,7 +235,7 @@ argument is the page type (eg: [Listing]{.title-ref},
 Our test is already using `Go to page`, so our keyword should already be
 available to us once we\'ve gone to that page.
 
-# Part 5: Adding test data
+## Part 5: Adding test data
 
 We want to be able to test that when we click on one of our custom
 objects on the listing page that it will take us to the detail page for
@@ -266,12 +264,12 @@ Create test data
     ...  Creates a MyObject record named "Leeroy Jenkins"
     ...  if one doesn't exist
 
-    # Check to see if the record is already in the database,
-    # and return if it already exists
+    ## Check to see if the record is already in the database,
+    ## and return if it already exists
     ${status}  ${result}=  Run keyword and ignore error  Salesforce get  MyObject__c  Name=Leeroy Jenkins
     Return from keyword if  '${status}'=='PASS'
 
-    # The record didn't exist, so create it
+    ## The record didn't exist, so create it
     Log  creating MyObject object with name 'Leeroy Jenkins'  DEBUG
     Salesforce Insert  MyObject__c  Name=Leeroy Jenkins
 ```
@@ -312,7 +310,7 @@ step in `Create test data` to check for an existing record before adding
 it. If a previous test was interrupted and the record already exists,
 there\'s no reason to create a new record.
 
-# Part 6: Using the new keyword
+## Part 6: Using the new keyword
 
 We are now ready to modify our test to use our new keyword, since we now
 have some test data in our database, and the keyword definition in our
@@ -343,12 +341,12 @@ Suite Teardown  Delete records and close browser
 Create test data
     [Documentation]  Creates a MyObject record named "Leeroy Jenkins" if one doesn't exist
 
-    # Check to see if the record is already in the database,
-    # and do nothing if it already exists
+    ## Check to see if the record is already in the database,
+    ## and do nothing if it already exists
     ${status}  ${result}=  Run keyword and ignore error  Salesforce get  MyObject__c  Name=Leeroy Jenkins
     Return from keyword if  '${status}'=='PASS'
 
-    # The record didn't exist, so create it
+    ## The record didn't exist, so create it
     Log  creating MyObject object with name 'Leeroy Jenkins'  DEBUG
     Salesforce Insert  MyObject__c  Name=Leeroy Jenkins
 

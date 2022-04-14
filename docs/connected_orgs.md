@@ -1,6 +1,4 @@
----
-title: Connect Persistent Orgs
----
+# Connect Persistent Orgs
 
 In addition to creating `scratch orgs <scratch_orgs>`{.interpreted-text
 role="doc"} in CumulusCI, you can connect persistent orgs to your
@@ -19,7 +17,7 @@ automated build. See
 role="doc"} for more information.
 :::
 
-# The `org connect` Command
+## The `org connect` Command
 
 To connect to a persistent org:
 
@@ -47,7 +45,7 @@ the corresponding login url.
 cci org connect <org_name> --login-url https://example.my.domain.salesforce.com
 ```
 
-## Production and Developer Edition Orgs
+### Production and Developer Edition Orgs
 
 No options are needed for these org types. Just run the same command you
 normally would to connect to a persistent org.
@@ -56,7 +54,7 @@ normally would to connect to a persistent org.
 $ cci org connect <org_name>
 ```
 
-## Sandboxes
+### Sandboxes
 
 For sandboxes, pass the `--sandbox` flag along with the org name.
 
@@ -73,7 +71,7 @@ The `--sandbox` flag can also be used for connecting a scratch org
 created externally to CumulusCI.
 :::
 
-# Verify Your Connected Orgs
+## Verify Your Connected Orgs
 
 Run `cci org list` to see your org listed under the \"Connected Org\"
 table. This example output shows a single persistent org connected to
@@ -109,7 +107,7 @@ Verify a successful connection to the org by logging in.
 $ cci org browser <org_name>
 ```
 
-# Global Orgs
+## Global Orgs
 
 By default, `cci org connect` stores the OAuth credentials for connected
 orgs in a _project-specific_ keychain. Using a project-specific keychain
@@ -123,7 +121,7 @@ computer by passing the `--global-org` flag.
 $ cci org connect <org_name> --global-org
 ```
 
-# Use a Custom Connected App
+## Use a Custom Connected App
 
 CumulusCI uses a preconfigured Connected App to authenticate to
 Salesforce orgs that use OAuth2. In most cases this preconfigured app is
@@ -165,11 +163,11 @@ Default   Type              Name         Description
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 ✔         connected_app     built-in     A Connected App is required to connect to and run commands
                                          against persistent orgs. See https://cumulusci.readthedocs.io/
-                                         en/latest/connected_orgs.html#use-a-custom-connected-app for
+                                         en/latest/connected_orgs.html##use-a-custom-connected-app for
                                          more info.
           connected_app     custom       A Connected App is required to connect to and run commands
                                          against persistent orgs. See https://cumulusci.readthedocs.io/
-                                         en/latest/connected_orgs.html#use-a-custom-connected-app for
+                                         en/latest/connected_orgs.html##use-a-custom-connected-app for
                                          more info.
 ```
 

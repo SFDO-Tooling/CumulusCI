@@ -1,6 +1,4 @@
----
-title: Testing with Second-Generation Packaging
----
+# Testing with Second-Generation Packaging
 
 CumulusCI makes it easy to harness the power of second-generation
 managed packages to implement an advanced, comprehensive testing process
@@ -24,7 +22,7 @@ while preparing for the migration into second-generation packaging. This
 process is also applicable for testing products that started as
 second-generation packages.
 
-# Building 2GP Beta Packages in Continuous Integration
+## Building 2GP Beta Packages in Continuous Integration
 
 Any managed package product - first or second generation - can use
 CumulusCI automation to build and test 2GP beta packages. The
@@ -49,7 +47,7 @@ stored in the \"Build Feature Test Package\" commit status on GitHub.
 Testing and 2GP build flows can acquire the package version from this
 store.
 
-# 2GP Tests for Feature Branches
+## 2GP Tests for Feature Branches
 
 The `ci_feature_2gp` flow parallels `ci_feature`, which is used for
 unmanaged feature testing in continuous integration, but uses a 2GP
@@ -96,7 +94,7 @@ which operates just like `ci_feature_2gp` but which also executes
 may be executed against 2GP orgs by running `qa_org_2gp` instead of
 `qa_org` before invoking `robot`.
 
-# End-to-End Testing with Second-Generation Packages
+## End-to-End Testing with Second-Generation Packages
 
 The `qa_org_2gp` flow allows for performing manual and automated
 end-to-end tests of multi-package products sooner in the development

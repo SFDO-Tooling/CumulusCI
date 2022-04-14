@@ -1,7 +1,12 @@
+# Reference
+
+```{toctree}
 ---
-title: Reference
+maxdepth: 1
 ---
 
-::: {.toctree maxdepth="1"}
-cheat_sheet tasks flows env_var_reference
-:::
+cheat_sheet
+tasks
+flows
+env_var_reference
+```

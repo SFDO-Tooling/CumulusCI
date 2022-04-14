@@ -1,13 +1,11 @@
----
-title: Robot Debugger
----
+# Robot Debugger
 
 CumulusCI includes a rudimentary Robot debugger which can be enabled by
 setting the `robot_debug` option of the `robot` task to `true`. When the
 debugger is enabled you can use the
-[Breakpoint](Keywords.html#Salesforce.Breakpoint) keyword from the
+[Breakpoint](Keywords.html##Salesforce.Breakpoint) keyword from the
 [Salesforce
-Library](Keywords.html#file-cumulusci.robotframework.Salesforce) keyword
+Library](Keywords.html##file-cumulusci.robotframework.Salesforce) keyword
 library to pause execution.
 
 Once the `Breakpoint` keyword is encountered you will be given a prompt
@@ -30,7 +28,7 @@ Example test case
     log  this is step three
 ```
 
-# Enabling the debugger
+## Enabling the debugger
 
 To enable the debugger you must set the `robot_debug` option to `true`
 for the `robot` task. **You should never do this in the project\'s
@@ -48,7 +46,7 @@ like this:
 $ cci task run robot --robot_debug true --suites example.robot
 ```
 
-# Setting breakpoints
+## Setting breakpoints
 
 The Salesforce keyword library includes a keyword named
 [Breakpoint]{.title-ref}. Normally it does nothing. However, once the
@@ -83,7 +81,7 @@ Note: the `Breakpoint` keyword has no effect on a test if the
 to leave this keyword in your test cases, it\'s safe to do so as long as
 you only ever set the `robot_debug` option when running tests locally.
 
-# Getting Help
+## Getting Help
 
 Whenever you see the debugger prompt `rdb>`, you can request help by
 typing `help` or `?` and pressing return. You will be given a list of
@@ -103,7 +101,7 @@ Print the value of all known variables
 rdb>
 ```
 
-# Examining Variables
+## Examining Variables
 
 There are two ways you can examine the current value of a Robot
 variable. The simplest method is to enter the name of a variable at the
@@ -132,13 +130,13 @@ rdb> vars
 ... <more output> ...
 ```
 
-# Executing Robot keywords
+## Executing Robot keywords
 
 You can execute Robot keywords at the prompt by entering the command
 `shell` (or the shortcut `!`) followed by the keyword and arguments just
 as you would in a test. The following example runs the SeleniumLibrary
 keyword [Get
-Location](http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Get%20Location):
+Location](http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html##Get%20Location):
 
 ```console
 rdb> shell get location
@@ -152,7 +150,7 @@ status of the keyword and display the return value.
 Note: just like in a test, you must separate arguments from keywords by
 two or more spaces.
 
-# Setting Robot variables
+## Setting Robot variables
 
 To capture the output of a keyword into a variable, you do it the same
 way you would do it in a test: use a variable name, two or more spaces,
@@ -169,11 +167,11 @@ https://ability-enterprise-4887-dev-ed.lightning.force.com/lightning/setup/Setup
 In addition to setting variables from the results of keywords, you can
 also set variables with the `shell` command using the built-in keywords
 [Set Test
-Variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Set%20Test%20Variable),
+Variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html##Set%20Test%20Variable),
 [Set Suite
-Variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Set%20Suite%20Variable),
+Variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html##Set%20Suite%20Variable),
 or [Set Global
-Variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Set%20Global%20Variable).
+Variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html##Set%20Global%20Variable).
 
 ```console
 rdb> ! set test variable  ${message}  hello, world
@@ -183,7 +181,7 @@ rdb> ${message}
 hello, world
 ```
 
-# Locating elements on the web page
+## Locating elements on the web page
 
 One of the most powerful features of the debugger is the ability to
 locate elements on the screen. This makes it easy to experiment with
@@ -204,7 +202,7 @@ The elements will be highlighted with a yellow border:
 To remove the highlighting you can use the debugger command
 `reset_elements`
 
-# Step through the test
+## Step through the test
 
 The debugger allows you to step through a test one keyword at a time.
 From the rdb prompt, enter the command `step` to continue to the next
@@ -229,7 +227,7 @@ rdb> where
 2:     -> BuiltIn.Log
 ```
 
-# Continuing or quitting the test
+## Continuing or quitting the test
 
 To let the test continue to the end, or to the next `Breakpoint`
 keyword, issue the command `continue`. To stop execution gracefully (ie:

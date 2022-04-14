@@ -1,11 +1,9 @@
----
-title: Develop a Project
----
+# Develop a Project
 
 A general overview on how to develop a Salesforce project with
 CumulusCI.
 
-# Set Up a Dev Org
+## Set Up a Dev Org
 
 The `dev_org` flow creates an org to develop on by moving all metadata
 (managed and unmanaged) into the org, and configuring it to be ready for
@@ -40,7 +38,7 @@ Open the new `dev` org to begin development.
 $ cci org browser dev
 ```
 
-# List Changes
+## List Changes
 
 To see what components have changed in a target org use the
 `list_changes`{.interpreted-text role="ref"} task:
@@ -61,7 +59,7 @@ Sandboxes, and Developer Pro Sandboxes.
 For more information, see [List and Retrieve
 Options](#list-and-retrieve-options).
 
-# Retrieve Changes
+## Retrieve Changes
 
 The `retrieve_changes`{.interpreted-text role="ref"} task supports both
 Salesforce DX and Metadata API-format source code. It utilizes the
@@ -79,7 +77,7 @@ $ cci task run retrieve_changes --org dev
 For information on retrieving specific subsets of changes, see [List and
 Retrieve Options](#list-and-retrieve-options).
 
-## `--path`
+### `--path`
 
 Manual tracking of component versions offers the possibility of
 retrieving one set of changes into directory A, and retrieving a
@@ -95,7 +93,7 @@ option:
 $ cci task run retrieve_changes --org dev --path your/unique/path
 ```
 
-# List and Retrieve Options
+## List and Retrieve Options
 
 When developing in an org, the changes you\'re most interested in are
 sometimes mixed with other changes that aren\'t relevant to what you\'re
@@ -111,7 +109,7 @@ scope of changes in the org to the exact elements you desire to retrieve
 in your project. When the correct set of metadata is listed, run the
 `retrieve_changes` task to bring those changes into the repository.
 
-## `--include` & `--exclude`
+### `--include` & `--exclude`
 
 When retrieving metadata from an org, CumulusCI represents each
 component name as the combination of its type (such as a `Profile`,
@@ -144,7 +142,7 @@ The following will list all changes _except for_ those with a type of
 $ cci task run list_changes --exclude "^Profile: "
 ```
 
-## `--types`
+### `--types`
 
 To list or retrieve changed metadata of the same type, use the `--types`
 option along with the [metadata
@@ -158,7 +156,7 @@ entities in the default org.
 $ cci task run retrieve_changes --types ApexClass,ApexComponent
 ```
 
-# Push Changes
+## Push Changes
 
 Developers often use an editor or IDE like Visual Studio Code to modify
 code and metadata stored in the repository. After making changes in an
@@ -183,7 +181,7 @@ The `deploy` task has _many_ options for handling a number of different
 scenarios. For a comprehensive list of options, see the
 `deploy`{.interpreted-text role="ref"} task reference.
 
-# Run Apex Tests
+## Run Apex Tests
 
 CumulusCI can execute Apex tests in an org with the `run_tests` task,
 and optionally report on test outcomes and code coverage. Failed tests
@@ -197,7 +195,7 @@ The `run_tests` task has _many_ options for running tests. For a
 comprehensive list of options and examples, see the
 `run_tests`{.interpreted-text role="ref"} task reference.
 
-# Set Up a QA Org
+## Set Up a QA Org
 
 The `qa_org` flow sets up org environments where quality engineers test
 features quickly and easily. `qa_org` runs the specialized `config_qa`
@@ -209,7 +207,7 @@ The following runs the `qa_org` flow against the `qa` org.
 $ cci flow run qa_org --org qa
 ```
 
-## Create QA Configurations
+### Create QA Configurations
 
 Out of the box, and even in some active projects, the `config_dev` and
 `config_qa` flows are the same. Many teams have a requirement for
@@ -278,7 +276,7 @@ config_qa:
 Now `config_qa` (which is included in the `qa_org` flow) executes the
 `deploy_qa_config` task as the third step in the flow.
 
-# Manage Dependencies
+## Manage Dependencies
 
 CumulusCI is built to automate the complexities of dependency management
 for projects that extend and implement managed packages. CumulusCI
@@ -309,7 +307,7 @@ To run the `update_dependencies` task manually:
 $ cci task run update_dependencies
 ```
 
-## GitHub Repository Dependencies
+### GitHub Repository Dependencies
 
 GitHub repository dependencies create a dynamic dependency between the
 current project and another CumulusCI project on GitHub. This is an
@@ -352,7 +350,7 @@ referenced repository.
     replaced with `<namespace>__` if the project is being installed as a
     managed package, or an empty string otherwise.
 
-### Reference Unmanaged Projects
+#### Reference Unmanaged Projects
 
 If the referenced repository does not have a namespace configured, or if
 the dependency specifies the `unmanaged` option as `True`, the
@@ -375,7 +373,7 @@ specifies `unmanaged: True`, so EDA deploys as unmanaged metadata.
 CumulusCI only supports unmanaged repositories in Metadata API source
 format at present.
 
-### Reference a Specific Tag
+#### Reference a Specific Tag
 
 To reference a specific version of the product other than the most
 recent commit on the main branch (for unmanaged projects) or the most
@@ -395,7 +393,7 @@ project:
 The EDA repository\'s tag `rel/1.105` is used instead of the latest
 production release of EDA (1.111, for this example).
 
-### Skip `unpackaged/*` in Reference Repositories
+#### Skip `unpackaged/*` in Reference Repositories
 
 If the referenced repository has unpackaged metadata under
 `unpackaged/pre` or `unpackaged/post`, use the `skip` option to skip
@@ -408,7 +406,7 @@ project:
           skip: unpackaged/post/course_connection_record_types
 ```
 
-## Package Dependencies
+### Package Dependencies
 
 Managed package and unlocked package dependencies are rather simple.
 Under the `project__dependencies` section of the `cumulusci.yml` file,
@@ -428,7 +426,7 @@ as a CumulusCI project. Dependencies on managed packages may be
 specified using the namespace and version or the version id.
 Dependencies on unlocked packages should use the version id.
 
-## Package Install Keys (Passwords)
+### Package Install Keys (Passwords)
 
 Some packages are protected by an install key, which must be present in
 order to install the package. CumulusCI dependencies can use the
@@ -446,7 +444,7 @@ project:
           password_env_name: MY_REPO_KEY
 ```
 
-## Unmanaged Metadata Dependencies
+### Unmanaged Metadata Dependencies
 
 Specify unmanaged metadata to be deployed by specifying a `zip_url` or a
 `github` URL, and, optionally, `subfolder`, `namespace_inject`,
@@ -470,7 +468,7 @@ must contain valid metadata for use with a deploy, including a
 Unmanaged metadata dependencies from GitHub may optionally specify the
 `ref` to download. If they do not, unmanaged GitHub dependencies are
 resolved like other GitHub references. See [Controlling GitHub
-Dependency Resolution](#controlling-github-dependency-resolution) for
+Dependency Resolution](##controlling-github-dependency-resolution) for
 more details on resolution of dynamic dependencies.
 
 ::: note
@@ -482,7 +480,7 @@ In versions of CumulusCI prior to 3.33.0, unmanaged GitHub dependencies
 always deployed the most recent commit on the default branch.
 :::
 
-### Specify a Subfolder
+#### Specify a Subfolder
 
 Use the `subfolder` option to specify a subfolder of the zip file or
 GitHub repository to use for the deployment.
@@ -500,7 +498,7 @@ When `update_dependencies` runs, it still downloads the zip from
 `zip_url`, but then builds a new zip containing only the content of
 `subfolder`, starting inside `subfolder` as the zip\'s root.
 
-### Inject Namespace Prefixes
+#### Inject Namespace Prefixes
 
 CumulusCI has support for tokenizing references to a package\'s
 namespace prefix in code. When tokenized, all occurrences of the
@@ -512,7 +510,7 @@ before deploying the unpackaged dependency.
 For more on this topic see `namespace injection`{.interpreted-text
 role="ref"}.
 
-## Controlling GitHub Dependency Resolution {#dependency-resolution}
+### Controlling GitHub Dependency Resolution {##dependency-resolution}
 
 CumulusCI converts dynamic dependencies specified via GitHub
 repositories into specific package versions and commit references by
@@ -562,7 +560,7 @@ strategy:
 After this change, flows like `dev_org` will install beta releases of
 dependencies, if present.
 
-### Resolution Strategy Details
+#### Resolution Strategy Details
 
 The standard resolution strategies execute the following steps to
 resolve a dependency:
@@ -639,7 +637,7 @@ as `install_prod` or a MetaDeploy installer flow) for all products.
 -   Use the most recent commit on the repository\'s main branch as an
     unmanaged dependency. (Resolver: `unmanaged`)
 
-### Customizing Resolution Strategies
+#### Customizing Resolution Strategies
 
 Projects that require deep control of how dependencies are resolved can
 create custom resolution strategies.
@@ -665,7 +663,7 @@ out-of-the-box resolution strategies provided with CumulusCI will cover
 the needs of most projects. However, this capability is available for
 projects that need it.
 
-## Automatic Cleaning of `meta.xml` Files on Deploy
+### Automatic Cleaning of `meta.xml` Files on Deploy
 
 To let CumulusCI fully manage the project\'s dependencies, the `deploy`
 task (and other tasks based on `cumulusci.tasks.salesforce.Deploy`, or
@@ -700,7 +698,7 @@ Developers can also use the `meta_xml_dependencies` task to update the
 `meta.xml` files locally using the versions from CumulusCI\'s calculated
 project dependencies.
 
-# Use Tasks and Flows from a Different Project
+## Use Tasks and Flows from a Different Project
 
 Dependency handling is used in a very specific context: to install
 dependency packages or metadata bundles in a `dependencies` flow that is

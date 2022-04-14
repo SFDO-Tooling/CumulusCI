@@ -1,12 +1,10 @@
----
-title: Robot Advanced Topics
----
+# Robot Advanced Topics
 
 In the previous section we gave a broad overview of how Robot Framework
 is integrated with CumulsCI. In this section we\'ll take a deeper dive
 into some advanced topics.
 
-# Running CumulusCI Tasks
+## Running CumulusCI Tasks
 
 CumulusCI provides two keywords for running a task from within a robot
 test case: [Run Task](Keywords.html#CumulusCI.Run%20Task) and [Run Task
@@ -26,12 +24,12 @@ cumulusci.yml file. This is most useful in cases where a test needs to
 use task logic for logic unique to the test and thus not worth making
 into a named task for the project.
 
-# Performance Testing
+## Performance Testing
 
 The Salesforce keyword library somes with several keywords to aid in
 performance testing.
 
-## Setting the elapsed time
+### Setting the elapsed time
 
 Normally, the full execution time of a test is recorded in the robot
 framework log. This includes the time spent in both test setup and
@@ -58,7 +56,7 @@ When the test is run via MetaCI, the computed time will be retrieve and
 stored inside MetaCI instead of the total elapsed time as measured by
 Robot Framework.
 
-## Start and End Performance Time
+### Start and End Performance Time
 
 A time can be recorded for any group of keywords by calling Start
 Performance Timer and Stop Performance Timer. The latter will
@@ -72,7 +70,7 @@ Timer](Keywords.html#Salesforce.Stop%20Performance%20Timer) keyword
 stops the timer and stores the result with [Set Test Elapsed
 Time](Keywords.html#Set%20Test%20Elapsed%20Time).
 
-## Setting Test Metrics
+### Setting Test Metrics
 
 The [Set Test Metric](Keywords.html#Salesforce.Set%20Test%20Metric)
 keyword retrieves any metric for performance monitoring, such as number
@@ -96,7 +94,7 @@ Performance test metrics are output in the CCI logs, log.html and
 output.xml. MetaCI captures them but does not currently have a user
 interface for displaying them.
 
-## Elapsed Time for Last Record
+### Elapsed Time for Last Record
 
 The [Elapsed Time For Last
 Record](Keywords.html#Salesforce.Elapsed%20Time%20For%20Last%20Record)
@@ -113,13 +111,13 @@ ${time_in_seconds} =    Elapsed Time For Last Record
 ...             order_by=CompletedDate
 ```
 
-# Browser Testing
+## Browser Testing
 
 Testing salesforce from within a browser presents some unique
 challenges. This section covers some Salesforce-specific features of our
 keyword libraries.
 
-## Waiting for Lightning UI
+### Waiting for Lightning UI
 
 A common challenge when writing end-to-end UI tests is waiting for
 asynchronous actions to complete before proceeding to run the next
@@ -130,7 +128,7 @@ waiting using \"sleep\", or waiting for a particular element to appear,
 can still be necessary after specific interactions, and when interacting
 with pages that don\'t use the Lightning UI.)
 
-# API Keywords
+## API Keywords
 
 In addition to browser interactions, the Salesforce Library also
 provides keywords for interacting with the Salesforce REST API. Here are
@@ -171,7 +169,7 @@ page objects. Each class provides keywords that are unique to a page or
 a component. These classes can be imported on demand only for tests that
 use these pages or components.
 
-## The `pageobject` Decorator
+### The `pageobject` Decorator
 
 Page objects are normal Python classes that use the `pageobject`
 decorator provided by CumulusCI. Unlike traditional Robot Framework
@@ -196,7 +194,7 @@ class CustomObjectListingPage(ListingPage):
     ...
 ```
 
-### Using object aliases
+#### Using object aliases
 
 Within a test, if you want to refer to the page object with a more
 human-readable name such as `Custom Object` rather than
@@ -222,7 +220,7 @@ Go to page  Listing  My Object
 Go to page  Listing  MyObject__c
 ```
 
-## Page Object Base Classes
+### Page Object Base Classes
 
 CumulusCI provides the following base classes, which should be used for
 all classes that use the `pageobject` decorator. You can import these
@@ -251,7 +249,7 @@ base classes from `cumulusci.robotframework.pageobjects`.
 -   `cumulusci.robotframework.pageobject.ObjectManagerPage`: A class for
     interacting with the object manager.
 
-## Common page object attributes
+### Common page object attributes
 
 When using the decorator and inheriting from one of the page object base
 classes, your class inherits the following attributes and properties.
@@ -284,7 +282,7 @@ classes, your class inherits the following attributes and properties.
     replacing all spaces with underscores (such as
     `self.selenim.wait_until_page_contains_element`).
 
-## Example Page Object
+### Example Page Object
 
 This example shows the definition of a page object for the listing page
 of custom object `MyObject__c` wherein a new custom keyword,
@@ -301,7 +299,7 @@ class MyObjectListingPage(ListingPage):
         self.salesforce.wait_until_loading_is_complete()
 ```
 
-## Importing the Page Object Library Into a Test
+### Importing the Page Object Library Into a Test
 
 The `PageObjects` library is not only a keyword library, but also the
 mechanism to import files that contain page object classes. You can
@@ -323,7 +321,7 @@ Library         cumulusci.robotframework.PageObjects
 ...  robot/MyProject/resources/MorePageObjects.py
 ```
 
-## Using Page Objects
+### Using Page Objects
 
 As mentioned in the previous section, you must first import the
 `PageObjects` library and any custom page object files you wish to use.
@@ -341,7 +339,7 @@ For example, call the `Go To Page` keyword followed by a page object
 reference. If the keyword (or page object reference?) navigates you to
 the proper page, its keywords will automatically be loaded.
 
-## Page Object Keywords
+### Page Object Keywords
 
 The `PageObjects` library provides these keywords.
 
@@ -357,7 +355,7 @@ The `PageObjects` library provides these keywords.
 -   [Wait For Page
     Object](Keywords.html#PageObjects.Wait%20For%20Page%20Object)
 
-## Current Page Should Be
+### Current Page Should Be
 
 Example: `Current Page Should Be Listing Contact`
 
@@ -372,7 +370,7 @@ form of navigation because it lets you assert that you are on the page
 you think you should be on, and load the keywords for that page, with a
 single statement.
 
-### Get Page Object
+#### Get Page Object
 
 Example: `Get page object Listing Contact`
 
@@ -382,21 +380,21 @@ Library
 Instance](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Get%20Library%20Instance)
 keyword. It is rarely used in a test.
 
-### Go To Page
+#### Go To Page
 
 Example: `Go to page Listing Contact`
 
 This keyword attempts to go to the listing page for the Contact object,
 and then load the keywords for that page.
 
-### Log Page Object Keywords
+#### Log Page Object Keywords
 
 Example: `Log Page Object Keywords`
 
 This keyword is primarily used as a debugging tool. When called, it will
 log each of the keywords for the current page object.
 
-### Load Page Object
+#### Load Page Object
 
 Example: `Load page object Listing Contact`
 
@@ -405,7 +403,7 @@ This keyword loads the page object for the given `page_type` and
 object without first navigating to that page (for example, when you are
 already on the page and don\'t want to navigate away).
 
-### Wait for Modal
+#### Wait for Modal
 
 Example: `Wait for modal New Contact`
 
@@ -413,7 +411,7 @@ This keyword can be used to wait for a modal, such as the one that pops
 up when creating a new object. The keyword returns once a modal appears,
 and has a title of `New <object_name>` (such as \"New Contact\").
 
-### Wait for Page Object
+#### Wait for Page Object
 
 Example: `Wait for page object Popup ActivityManager`
 
@@ -421,7 +419,7 @@ Page objects don\'t have to represent entire pages. You can use the
 `Wait for page object` keyword to wait for a page object representing a
 single element on a page, such as a popup window.
 
-## Generic Page Objects
+### Generic Page Objects
 
 You don\'t need to create a page object in order to take advantage of
 page object keywords. If you use one of the page object keywords for a
@@ -441,38 +439,38 @@ objects:
 ```robotframework
 *** Test Cases ***
 Example test which uses generic page objects
-    # Go to the custom object home page, which should
-    # redirect to the listing page
+    ## Go to the custom object home page, which should
+    ## redirect to the listing page
     Go To Page  Home  Island__c
 
-    # Verify that the redirect happened
+    ## Verify that the redirect happened
     Current Page Should Be  Listing  Island__c
 ```
 
 CumulusCI provides these generic page objects.
 
-### Detail
+#### Detail
 
 Example: `Go to page Detail Contact ${contact id}`
 
 Detail pages refer to pages with a URL that matches the pattern
 `<host>/lightning/r/<object name>/<object id>/view`.
 
-### Home
+#### Home
 
 Example: `Go to page Home Contact`
 
 Home pages refer to pages with a URL that matches the pattern
 \"\<host\>/lightning/o/\<object name\>/home\"
 
-## `Listing`
+### `Listing`
 
 Example: `Go to page Listing Contact`
 
 Listing pages refer to pages with a URL that matches the pattern
 \"\<host\>b/lightning/o/\<object name\>/list\"
 
-### New
+#### New
 
 Example: `Wait for modal New Contact`
 
@@ -483,7 +481,7 @@ Of course, the real power comes when you create your own page object
 class that implements keywords that can be used with your custom
 objects.
 
-# Configuring the robot_libdoc Task
+## Configuring the robot_libdoc Task
 
 If you define a robot resource file named `MyProject.resource` and place
 it in the `resources` folder, you can add this configuration to the
@@ -536,7 +534,7 @@ tasks:
             output: robot/MyProject/doc/MyProject_Library.html
 ```
 
-# Using Keywords and Tests from a Different Project
+## Using Keywords and Tests from a Different Project
 
 Much like you can
 `use tasks and flows from a different project<sources>`{.interpreted-text
@@ -557,7 +555,7 @@ product is being built on top of another project and needs access to
 product-specific keywords.
 :::
 
-## Using Keywords
+### Using Keywords
 
 In order to use the resources from another project, you must first
 configure the `robot` task to use one of the sources that have been
@@ -612,7 +610,7 @@ not be usable. Be careful to avoid using files that have the exact same
 name in multiple repositories.
 :::
 
-## Running Tests
+### Running Tests
 
 Running a test from another project requires prefixing the path to the
 test with the source name. The path needs to be relative to the root of

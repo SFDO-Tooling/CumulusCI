@@ -1,13 +1,11 @@
----
-title: Release a First-Generation Managed Package
----
+# Release a First-Generation Managed Package
 
 This section outlines how to release first-generation (1GP) Salesforce
 managed package projects. Salesforce.org\'s Release Engineering team
 practices `CumulusCI Flow <cumulusci_flow>`{.interpreted-text
 role="doc"}, which incorporates all of these steps.
 
-# Prerequisites
+## Prerequisites
 
 This section assumes:
 
@@ -39,7 +37,7 @@ If your project has been configured for use with CumulusCI,
 `cci org info` lists the project\'s namespace under `package__namespace`
 in the output.
 
-## Create a Managed Package Project
+### Create a Managed Package Project
 
 If you haven\'t created a managed package project, follow these steps:
 
@@ -51,7 +49,7 @@ If you haven\'t created a managed package project, follow these steps:
     namespace](https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packagingGuide/isv2_3_quickstart.htm).
 -   Configure the namespace in CumulusCI.
 
-# Deploy to a Packaging Org
+## Deploy to a Packaging Org
 
 CumulusCI deploys metadata to a `packaging` org with the `ci_master`
 flow.
@@ -96,7 +94,7 @@ releasing a beta version of the package into the `ci_master` and
 run additional checks against the org, if necessary, between deploy and
 release steps.
 
-# Create a Beta Version
+## Create a Beta Version
 
 The `release_beta` flow groups the common tasks that must be executed
 for the release of a new beta version of a project.
@@ -134,7 +132,7 @@ whistles, use the `upload_beta` task:
 $ cci task run upload_beta --org packaging --name package_version
 ```
 
-# Test a Beta Version
+## Test a Beta Version
 
 The `ci_beta` flow installs the latest beta version of the project in a
 scratch org, and runs Apex tests against it.
@@ -145,7 +143,7 @@ $ cci flow run ci_beta --org beta
 
 This flow is intended to be run whenever a beta release is created.
 
-# Upload and Test a Final Version
+## Upload and Test a Final Version
 
 To upload a production release of your managed package project:
 

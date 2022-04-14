@@ -1,6 +1,4 @@
----
-title: Manage Push Upgrades
----
+# Manage Push Upgrades
 
 If your packaging org (for first-generation packages) or Dev Hub (for
 second-generation packages) is enabled to use push upgrades, CumulusCI

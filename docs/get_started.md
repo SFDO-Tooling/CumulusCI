@@ -1,8 +1,6 @@
----
-title: Get Started
----
+# Get Started
 
-# Install CumulusCI
+## Install CumulusCI
 
 ::: tip
 ::: title
@@ -16,13 +14,13 @@ Setup](https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup)
 module on Trailhead for a step-by-step walkthrough.
 :::
 
-## On macOS
+### On macOS
 
 [Homebrew](https://brew.sh/) is a prerequisite for installing CumulusCI
 on macOS. Follow the instructions on the Homebrew website to install
 Homebrew before continuing.
 
-### Install via `pipx`
+####4 Install via `pipx`
 
 `pipx` ensures that CumulusCI and its dependencies are installed into
 their own Python environment separate from other Python software on your
@@ -43,9 +41,9 @@ $ pipx install cumulusci
 
 When finished, [verify your installation](#verify-your-installation).
 
-## On Linux
+### On Linux
 
-### Install via `pipx`
+####4 Install via `pipx`
 
 `pipx` ensures that CumulusCI and its dependencies are installed into
 their own Python environment separate from other Python software on your
@@ -62,9 +60,9 @@ $ pipx install cumulusci
 
 When finished, [verify your installation](#verify-your-installation).
 
-## On Windows
+### On Windows
 
-### Install Python 3
+####4 Install Python 3
 
 1.  Go to the [Python downloads
     page](https://www.python.org/downloads/windows/).
@@ -85,7 +83,7 @@ When finished, [verify your installation](#verify-your-installation).
 
     ![image](images/windows_python_success.png)
 
-### Install via `pipx`
+####4 Install via `pipx`
 
 `pipx` ensures that CumulusCI and its dependencies are installed into
 their own Python environment separate from other Python software on your
@@ -146,7 +144,7 @@ pipx install cumulusci
 
 When finished, [verify your installation](#verify-your-installation).
 
-## Verify Your Installation
+### Verify Your Installation
 
 In a new terminal window, verify that CumulusCI installed correctly by
 running `cci version`.
@@ -166,7 +164,7 @@ Still need help? Feel free to submit a question on our [Trailblazer
 community
 group](https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9ZCAU).
 
-# Set Up SFDX
+## Set Up SFDX
 
 Scratch orgs created by Salesforce DX allow teams to work efficiently in
 individual, fully-configured environments that are easy to create and
@@ -211,7 +209,7 @@ module on Trailhead.
 Learn more about Salesforce DX at
 <https://developer.salesforce.com/platform/dx>.
 
-# Connect to GitHub
+## Connect to GitHub
 
 In order to allow CumulusCI to work with your repositories in GitHub,
 connect GitHub as a service in `cci`. Simply run:
@@ -256,7 +254,7 @@ $ cci service connect github mygithub --username $GITHUB_USERNAME --token $GITHU
 
 Services are stored in the global CumulusCI keychain by default.
 
-# Work On an Existing CumulusCI Project
+## Work On an Existing CumulusCI Project
 
 If you\'d like to work on an existing CumulusCI project on GitHub, these
 are the prerequisites.
@@ -320,7 +318,7 @@ test:
     name_match: %_TEST%
 ```
 
-# Start a New CumulusCI Project
+## Start a New CumulusCI Project
 
 If you\'d like to start a new CumulusCI project, these are the
 prerequisites.
@@ -342,7 +340,7 @@ $ git init
 
 Then, initialize the project as a CumulusCI project.
 
-## Project Initialization
+### Project Initialization
 
 Use the `cci project init` command within a Git repository to generate
 the initial version of a project\'s `cumulusci.yml` file. CumulusCI
@@ -418,7 +416,7 @@ about your project.
 | percentage | |
 +------------+---------------------------------------------------------+
 
-## Verify Project Initialization
+### Verify Project Initialization
 
 Verify successful project initialization by verifying that
 `cumulusci.yml` exists and has contents.
@@ -445,7 +443,7 @@ $ git add cumulusci.yml
 $ git commit -m "Initialized CumulusCI Configuration"
 ```
 
-## Add Your Repo to GitHub
+### Add Your Repo to GitHub
 
 With your `cumulusci.yml` file committed, create a repository on GitHub
 for your new project and push your changes there, using whichever method
@@ -458,7 +456,7 @@ you prefer.
     [git remote](https://github.com/git-guides/git-remote) and [git
     push](https://github.com/git-guides/git-push).
 
-# Convert an Existing Salesforce Project
+## Convert an Existing Salesforce Project
 
 Converting an existing Salesforce project to use CumulusCI can follow a
 number of different paths, depending on whether you\'re practicing the
@@ -476,7 +474,7 @@ You\'re welcome to discuss project conversion in the [CumulusCI (CCI)
 Trailblazer
 group](https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9Z).
 
-## Project Setup
+### Project Setup
 
 Before retrieving your project\'s metadata, set up the project\'s root
 directory.
@@ -487,7 +485,7 @@ directory.
 -   Initialize the directory as a CumulusCI project as outlined in
     [project initialization](#project-initialization).
 
-## Retrieve Metadata from the Persistent Org
+### Retrieve Metadata from the Persistent Org
 
 This documentation assumes that your project currently lives in a
 persistent org, such as a Developer Edition org or a Sandbox. We
@@ -508,7 +506,7 @@ format.
         :::
 
 2.  Run the
-    [retrieve](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_mdapi.htm#cli_reference_retrieve)
+    [retrieve](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_mdapi.htm##cli_reference_retrieve)
     command to extract your package metadata.
 
 ```console
@@ -520,13 +518,13 @@ Git repository configured for use with CumulusCI. At this point [add
 your repo to GitHub](#add-your-repo-to-github), or perhaps begin to
 `Configure CumulusCI <config>`{.interpreted-text role="doc"}.
 
-## Setup Scratch Orgs
+### Setup Scratch Orgs
 
 To see how to use scratch orgs with CumulusCI see the
 `Manage Scratch Orgs <scratch_orgs>`{.interpreted-text role="doc"}
 section.
 
-## Other Conversion Considerations
+### Other Conversion Considerations
 
 -   If you or your team have been working with [scratch org definition
     files](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file.htm)

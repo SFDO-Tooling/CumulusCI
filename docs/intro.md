@@ -1,11 +1,9 @@
----
-title: Introduction
----
+# Introduction
 
 CumulusCI helps development teams build great applications on the
 Salesforce platform by automating org setup, testing, and deployment.
 
-# Automation with CumulusCI
+## Automation with CumulusCI
 
 If your product development lifecycle and release process is anything
 like ours at Salesforce.org, it\'s complex. You\'re managing multiple
@@ -66,7 +64,7 @@ Model](https://trailhead.salesforce.com/en/content/learn/modules/sfdx_dev_model)
 Salesforce.org has implemented its own _Product Delivery Model_ using
 CumulusCI.
 
-# The Product Delivery Model
+## The Product Delivery Model
 
 The Product Delivery Model focuses on the customer experience, not on
 the technical artifacts you\'re delivering. When building a product,
@@ -85,7 +83,7 @@ multiple package repositories and include complex setup operations, best
 implements the Product Delivery Model, along with MetaDeploy and other
 applications in the CumulusCI suite.
 
-# Anyone Can Use CumulusCI
+## Anyone Can Use CumulusCI
 
 Salesforce.org uses CumulusCI to develop products for our nonprofit and
 education constituents --- both public, open source products such as
@@ -110,7 +108,7 @@ Automation defined using CumulusCI can support all roles on a project.
 -   _Customers_ can install the product and get set up using the same
     automation steps used during development and QA.
 
-# Where Does CumulusCI Fit in the Toolchain?
+## Where Does CumulusCI Fit in the Toolchain?
 
 Developers often ask whether CumulusCI competes with or replaces
 Salesforce DX, the Salesforce command line interface (CLI) for
@@ -135,7 +133,7 @@ in (in the same way that most Salesforce DX users don\'t need to know
 Node.js). If you\'re going to get fancy with CumulusCI customizations,
 only then does Python come in handy.
 
-# Why Is It Called CumulusCI?
+## Why Is It Called CumulusCI?
 
 Before there was the toolset known today as CumulusCI, there was a
 product that would go on to become Nonprofit Success Pack (NPSP). This
@@ -145,7 +143,7 @@ scope and scale to eventually become CumulusCI. Even though it\'s used
 for much more than CI, and for many more products than NPSP, the name
 has stuck.
 
-# Learn More Through Demos
+## Learn More Through Demos
 
 Love demos? These no-audio screencasts show how to use CumulusCI from a
 command line.

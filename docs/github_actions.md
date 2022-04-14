@@ -1,6 +1,4 @@
----
-title: Run CumulusCI from Github Actions
----
+# Run CumulusCI from Github Actions
 
 CumulusCI can be used to run continuous integration builds with GitHub
 Actions. In order to follow along, you should already have a repository
@@ -24,7 +22,7 @@ GitHub Actions are free for open source (public) repositories. Check
 with GitHub about pricing for private repositories.
 :::
 
-# Create a GitHub Action Workflow
+## Create a GitHub Action Workflow
 
 In GitHub Actions, you can define _workflows_ which run automatically in
 response to events in the repository. We\'re going to create an action
@@ -81,7 +79,7 @@ these steps in the CI environment after any commits are pushed:
     then delete the org. The `ci_feature` flow deploys the package and
     then runs its Apex tests.
 
-# Configure Secrets
+## Configure Secrets
 
 You may have noticed that the workflow refers to a couple of
 \"secrets\": `CUMULUSCI_SERVICE_github` and `SFDX_AUTH_URL`. You need to
@@ -91,7 +89,7 @@ workflow.
 To find the settings for Secrets, open your repository in GitHub. Click
 the Settings tab. Then click the Secrets link on the left.
 
-## `CUMULUSCI_SERVICE_github`
+### `CUMULUSCI_SERVICE_github`
 
 CumulusCI may need access to the GitHub API in order to do things like
 look up information about dependency packages. To set this up, we\'ll
@@ -126,7 +124,7 @@ see the `Register Services`{.interpreted-text role="ref"} section of the
 docs.
 :::
 
-## `SFDX_AUTH_URL`
+### `SFDX_AUTH_URL`
 
 CumulusCI needs to be able to access a Salesforce org with the Dev Hub
 feature enabled in order to create scratch orgs. The easiest way to do
@@ -168,7 +166,7 @@ Your Secrets should look like this:
 
 ![Screenshot showing the CUMULUSCI_SERVICE_github and SFDX_AUTH_URL secrets](images/github_secrets.png)
 
-# Test the Workflow
+## Test the Workflow
 
 Now you should be able to try out the workflow. Commit the new
 `.github/workflows/apex_tests.yml` file to the repository and push the
@@ -192,7 +190,7 @@ branches](https://help.github.com/en/github/administering-a-repository/configuri
 and [enable required status
 checks](https://help.github.com/en/github/administering-a-repository/enabling-required-status-checks).
 
-# Run Headless Browser Tests
+## Run Headless Browser Tests
 
 It is possible to run Robot Framework tests that control a real browser
 as long as the CI environment has the necessary software installed. For
@@ -250,7 +248,7 @@ jobs:
                   cci org scratch_delete dev
 ```
 
-# Deploy to a Persistent Org
+## Deploy to a Persistent Org
 
 ::: note
 ::: title
@@ -273,7 +271,7 @@ project to a production org.
 The following sections cover which tasks and flows you would want to
 consider based on your project\'s particular needs.
 
-## Deploy to a Packaging Org
+### Deploy to a Packaging Org
 
 When working on a managed package project, there are two standard
 library flows that are generally of interest when deploying to a
@@ -290,7 +288,7 @@ takes care of:
 3.  Sets up the `System Administrator` profile with full FLS permissions
     on all objects/fields.
 
-## Deploy to a Production Org
+### Deploy to a Production Org
 
 Deployments to a Production org environment will typically want to
 utilize either the `deploy_unmanaged` flow or the `deploy` task.
@@ -301,7 +299,7 @@ previously-deployed components that have been removed from the source
 repository. If you do not want incremental component removal or Apex
 unscheduling, use the `deploy` task.
 
-# Build Managed Package Versions
+## Build Managed Package Versions
 
 Once new metadata has been added to the packaging org, it is often
 desirable to create a new beta version for your managed package so that
@@ -372,9 +370,9 @@ Important
 CumulusCI is able to connect to the `packaging` org via
 `CUMULUSCI_ORG_packaging` environment variable defined at the [top of
 the
-workflow](https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml#L11).
+workflow](https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml##L11).
 :::
 
-# References
+## References
 
 -   [GitHub Actions Documentation](https://help.github.com/en/actions)

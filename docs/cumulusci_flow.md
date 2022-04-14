@@ -1,6 +1,4 @@
----
-title: CumulusCI Flow
----
+# CumulusCI Flow
 
 CumulusCI Flow is the process that Salesforce.org uses to develop, test,
 and release our products. This process encompasses both a development
@@ -23,7 +21,7 @@ require the use of CumulusCI.
 
 ![Salesforce.org Dev/Release Process Diagram](images/salesforce-org-process.png)
 
-# Project Considerations
+## Project Considerations
 
 CumulusCI Flow was designed for use with Salesforce development
 projects, which inject some unique considerations into finding the right
@@ -42,7 +40,7 @@ branching model:
     several larger releases a year, CumulusCI offers functionality to
     help cut releases for all products with any changes.
 
-# Main Builds
+## Main Builds
 
 The main goal of the CumulusCI Flow is to always have the main branch
 ready to release. This way, we can merge a fix and cut an emergency
@@ -59,7 +57,7 @@ feature branches. New betas are published on GitHub as a GitHub Release,
 along with automatically generated release notes drawn from the content
 of the Pull Requests merged since the last production release.
 
-## CumulusCI and Main Builds
+### CumulusCI and Main Builds
 
 There are three main flows that facilitate main builds:
 
@@ -74,7 +72,7 @@ There are three main flows that facilitate main builds:
 -   `ci_beta`: Installs the beta and all dependencies into a fresh
     scratch org and runs the Apex tests.
 
-## CumulusCI and Tag Naming
+### CumulusCI and Tag Naming
 
 CumulusCI Flow uses two different tag prefixes for differentiating
 between beta and production releases of a managed package. The default
@@ -89,7 +87,7 @@ the latest beta and the latest production release of each repository.
 To change the default prefix values see [branch
 configuration](#branch-configuration).
 
-# Feature Branches
+## Feature Branches
 
 Like GitHub Flow, CumulusCI Flow uses a simple main/feature branch
 model. The main branch is the only permanent branch in the repository.
@@ -119,7 +117,7 @@ Request can be merged to main.
 
 Once the Pull Request is merged, the feature branch is deleted.
 
-## Feature Branch Flows
+### Feature Branch Flows
 
 CumulusCI facilitates working with feature branches (mainly) through two
 default flows:
@@ -132,7 +130,7 @@ default flows:
     tests. This flow is run by a CI app on new commits to any feature
     branch.
 
-# Release Branches
+## Release Branches
 
 Some teams deliver large releases several times a year. For this type of
 release cadence, Salesforce.org uses a special type of branch referred
@@ -165,7 +163,7 @@ could look like this:
 -   `feature/001__feature1`
 -   `feature/001__feature2`
 
-# Branch Configuration
+## Branch Configuration
 
 The name of the main (default) branch, as well as the branch prefixes
 are configurable in your projects `cumulusci.yml` file. The following
@@ -183,7 +181,7 @@ project:
 These values can be changed to match naming conventions used by your own
 project.
 
-# Auto Merging
+## Auto Merging
 
 CumulusCI Flow helps to keep large diffs and merge conflicts from being
 the norm. CumulusCI\'s auto-merge functionality helps teams:
@@ -195,7 +193,7 @@ the norm. CumulusCI\'s auto-merge functionality helps teams:
 -   Manage large releases that occur several times a year (release to
     future release merges).
 
-## Main to Feature Merges
+### Main to Feature Merges
 
 One of the bigger differences between CumulusCI Flow and GitHub Flow or
 git-flow is that CumulusCI Flow automates the merging of commits to a
@@ -228,7 +226,7 @@ CumulusCI facilitates the auto-merge to feature branches via the
 `release_beta` flow. The `release_beta` flow is run, in CumulusCI Flow,
 on new commits to the `main` branch.
 
-## Parent to Child Merges
+### Parent to Child Merges
 
 There is sometimes a need for multiple developers to collaborate on
 different parts of a single larger feature. To enable this collaboration
@@ -294,7 +292,7 @@ child branches. This means that despite
 `feature/large-feature__section1` having two child branches, they would
 not receive automerges until the parent branch tests successfully.
 
-## Release to (Future) Release Merges
+### Release to (Future) Release Merges
 
 Because release branches are so long-lived, and so much work goes into
 them, their diffs can get quite large. This means headaches are
@@ -343,7 +341,7 @@ tasks:
         update_future_releases: True
 ```
 
-## Orphan Branches
+### Orphan Branches
 
 If you have both a parent and a child branch, and the parent is deleted,
 this creates an orphaned branch. Orphaned branches do not receive any
@@ -357,7 +355,7 @@ deleted, then `feature/myFeature__child` would be considered an orphan.
 Renaming `feature/myFeature__child` to `feature/child` will allow the
 orphan to begin receiving automerges from the main branch.
 
-# CumulusCI Flow vs. GitHub Flow
+## CumulusCI Flow vs. GitHub Flow
 
 Since CumulusCI Flow is largely an extension of GitHub Flow, the
 differences are mostly additional processes in CumulusCI Flow that help
@@ -375,7 +373,7 @@ make it more effective for large-scale Salesforce projects:
     performs auto-merging of commits between branches, where as GitHub
     flow does not.
 
-# CumulusCI Flow vs git-flow
+## CumulusCI Flow vs git-flow
 
 When our team first started figuring out our development/release
 process, we started where most people do in looking at git-flow. Unlike

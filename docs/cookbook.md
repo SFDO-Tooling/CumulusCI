@@ -1,8 +1,6 @@
----
-title: Cookbook
----
+# Cookbook
 
-# Create a Custom Retrieve Task
+## Create a Custom Retrieve Task
 
 If you will be retrieving changes into a directory repeatedly, consider
 creating a custom task with the correct options so that you don\'t need
@@ -28,9 +26,9 @@ retrieved metadata can be deployed on top of either managed
 installations or unmanaged deployments of the package. To set up an org
 with the latest managed beta release, use the `install_beta` flow.
 
-# Task Recipes
+## Task Recipes
 
-## Run a Shell Command
+### Run a Shell Command
 
 ```yaml
 run_custom_command:
@@ -40,7 +38,7 @@ run_custom_command:
         command: "echo 'Hello there!"
 ```
 
-## Run a `sfdx` Command
+### Run a `sfdx` Command
 
 The `dx` task lets you run an arbitrary `sfdx` command. You can perform
 this with `cci` on a terminal:
@@ -63,11 +61,11 @@ In this case, we actually utilize `SFDXBaseTask`, if you would like to
 run a `sfdx` command that references an org, utilize `SFDXOrgTask`
 instead.
 
-## Custom Deploy
+### Custom Deploy
 
 It is often useful to be able to define multiple custom deployment tasks
 that deployg a specific subset of your projects metadata. This is
-particularly true when working with [unpackaged Metadata](TODO).
+particularly true when working with [unpackaged Metadata](unpackaged).
 
 Here is a custom task that is defined to only deploy only the metadata
 contained in `unmanaged/config/reports`.
@@ -83,10 +81,10 @@ deploy_reports:
 Being able to give this task a new name makes it much more intuitive as
 to what the task is actually doing. Multiple custom deploy tasks like
 this allow NPSP to [create flows
-\<https://github.com/SalesforceFoundation/NPSP/blob/87daa94f9494d28ce3a5cc52bd5d5308cc804a2b/cumulusci.yml#L692\>]{.title-ref}
+\<https://github.com/SalesforceFoundation/NPSP/blob/87daa94f9494d28ce3a5cc52bd5d5308cc804a2b/cumulusci.yml##L692\>]{.title-ref}
 that make it easy to define the order that Metadata is deployed in.
 
-## Task to Execute Anonymous Apex
+### Task to Execute Anonymous Apex
 
 The following shows an example task named `project_default_settings`
 which runs the public static method `initializeProjectDefaults()`
@@ -100,10 +98,10 @@ located in file `scripts.initialize.cls`:
             path: scripts/initialize.cls
             apex: initializeProjectDefaults();
 
-# Flow Recipes
+## Flow Recipes
 
-# Robot Recipes
+## Robot Recipes
 
-# Metadata ETL Recipes
+## Metadata ETL Recipes
 
-# Python Recipes
+## Python Recipes

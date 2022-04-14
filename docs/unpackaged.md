@@ -1,6 +1,4 @@
----
-title: Manage Unpackaged Configuration
----
+# Manage Unpackaged Configuration
 
 Not everything that\'s part of an application can be part of a package.
 
@@ -27,9 +25,9 @@ often a superior alternative to unpackaged metadata.
 To learn more, see `Metadata ETL <metadata_etl>`{.interpreted-text
 role="doc"}.
 
-# Roles of Unpackaged Metadata
+## Roles of Unpackaged Metadata
 
-## `unpackaged/pre`: Prepare an Org
+### `unpackaged/pre`: Prepare an Org
 
 Some projects require that unpackaged metadata be deployed to finish the
 customization of an org _before_ the package\'s own code and metadata
@@ -59,7 +57,7 @@ Do not include metadata in `unpackaged/pre` unless it is intended to be
 delivered to _all_ installations of the product.
 :::
 
-## `unpackaged/post`: Configuration After Package Install
+### `unpackaged/post`: Configuration After Package Install
 
 Projects often include metadata that is genuinely part of the
 application, but cannot be delivered as part of a managed package for
@@ -103,7 +101,7 @@ that this metadata include namespace tokens (see [namespace
 injection](#namespace-injection)).
 :::
 
-## `unpackaged/config`: Tailor an Org
+### `unpackaged/config`: Tailor an Org
 
 Projects can come with more than one supported configuration in their
 CumulusCI automation. For example, projects often support distinct,
@@ -116,7 +114,7 @@ instance, a testing-oriented scratch org may need to deploy a customized
 set of Page Layouts to help testers easily visualize data under test.
 Such page layouts are stored in `unpackaged/config/qa`.
 
-# Unpackaged Metadata Folder Structure
+## Unpackaged Metadata Folder Structure
 
 All unpackaged metadata is stored in the `unpackaged` directory tree,
 which contains these top-level directories.
@@ -129,7 +127,7 @@ These trees contain metadata bundles in Metadata API or Salesforce DX
 format. CumulusCI automatically converts Salesforce DX-format unpackaged
 bundles to Metadata API format before deploying them.
 
-# Namespace Injection
+## Namespace Injection
 
 Projects that build managed packages often construct their unpackaged
 metadata to be deployable in multiple contexts, such as:
@@ -253,7 +251,7 @@ that is tokenized and deploys cleanly in a namespaced scratch org can
 still fail in a managed context.
 :::
 
-## Configuration
+### Configuration
 
 Most CumulusCI tasks can intelligently determine whether or not to
 inject the namespace based on the target org. For example, if tokenized
@@ -298,7 +296,7 @@ The namespace tokens are replaced with an empty string instead of the
 namespace, effectively stripping the tokens from the files and
 filenames.
 
-# Retrieve Unpackaged Metadata
+## Retrieve Unpackaged Metadata
 
 CumulusCI provides tasks to `retrieve changes`{.interpreted-text
 role="ref"} to unpackaged metadata, just as with packaged metadata.
@@ -353,7 +351,7 @@ The `retrieve_changes` task retrieves unpackaged metadata in a managed
 org, but in this case you must manually insert namespace tokens to
 deploy metadata in a managed or namespaced context.
 
-# Customize Config Flows
+## Customize Config Flows
 
 Projects often customize new tasks that deploy `unpackaged/config`
 bundles, and harness these tasks in flows.

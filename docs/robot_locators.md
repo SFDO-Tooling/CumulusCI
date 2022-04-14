@@ -1,6 +1,4 @@
----
-title: Managing Locators
----
+# Managing Locators
 
 The keywords that come with CumulusCI are based on the open source
 keyword library
@@ -24,7 +22,7 @@ Tip
 
 You can find the full list of supported locator strategies in the
 section titled [Explicit locator
-strategy](https://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Explicit%20locator%20strategy)
+strategy](https://robotframework.org/SeleniumLibrary/SeleniumLibrary.html##Explicit%20locator%20strategy)
 in the SeleniumLibrary documentation.
 :::
 
@@ -32,7 +30,7 @@ In this section, we'll show how to create a project-specific locator
 strategy by storing locators in a dictionary and then associating them
 with a custom prefix.
 
-# Storing locators in a dictionary
+## Storing locators in a dictionary
 
 The first step toward creating custom locator strategies with the
 locator manager is to define your project's locators in a dictionary. If
@@ -88,12 +86,12 @@ Dictionaries can be nested as deeply as you want, but it's rarely
 necessary to have locators more than a couple of levels deep.
 :::
 
-# Registering the locator dictionary
+## Registering the locator dictionary
 
 SeleniumLibrary provides a way to register [custom location
-strategies](http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Custom%20locators)
+strategies](http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html##Custom%20locators)
 via the [Add Location
-Strategy](http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Add%20Location%20Strategy)
+Strategy](http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html##Add%20Location%20Strategy)
 keyword. While it's possible to write your own strategies using
 keywords, the locator manager makes it easy to associate a locator
 prefix with a dictionary of locators.
@@ -109,7 +107,7 @@ keywords for the calendar tab.
 from robot.libraries.BuiltIn import BuiltIn
 from cumulusci.robotframework import locator_manager
 
-locators = {...}  # see previous example
+locators = {...}  ## see previous example
 
 class CalendarLibrary:
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
@@ -122,7 +120,7 @@ When this library is imported into a test case file, the prefix
 "calendar" is registered with SeleniumLibrary as a custom locator
 strategy.
 
-# Using custom locators
+## Using custom locators
 
 Once the dictionary has been defined and has been registered with a
 prefix, the locators work very similarly to any other locator. If the
@@ -151,7 +149,7 @@ The following table shows how the locator is parsed:
 
 ---
 
-# Parameterized Locators
+## Parameterized Locators
 
 Sometimes the only difference between multiple elements on a page is the
 text displayed in that element. For example, the html markup for a save,
