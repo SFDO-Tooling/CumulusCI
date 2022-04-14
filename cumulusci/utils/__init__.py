@@ -8,7 +8,6 @@ import shutil
 import sys
 import tempfile
 import textwrap
-import warnings
 import zipfile
 from datetime import datetime
 
@@ -540,7 +539,11 @@ def temporary_dir(chdir=True):
             try:
                 shutil.rmtree(d)
             except Exception as e:  # pragma: no cover
-                warnings.warn(f"Cannot remove temporary directory: {d}: {e}")
+                import logging  # needs to be local or cumulusci.utils.logging gets picked up
+
+                logging.getLogger(__file__).warn(
+                    f"Cannot remove temporary directory {d} because: {e}"
+                )
 
 
 def touch(path):
