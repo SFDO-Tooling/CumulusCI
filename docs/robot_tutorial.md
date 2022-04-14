@@ -6,9 +6,9 @@ It is not a comprehensive tutorial on using Robot Framework. For Robot
 Framework documentation see the [Robot Framework User
 Guide](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html)
 
-It is assumed you\'ve worked through the CumulusCI `Get Started <get_started>`{.interpreted-text role="doc"} section at least up to the
-point where you\'ve called `cci project init`. It is also assumed that
-you\'ve read the `robotframework`{.interpreted-text role="doc"} section
+It is assumed you've worked through the CumulusCI `Get Started <get_started>`{.interpreted-text role="doc"} section at least up to the
+point where you've called `cci project init`. It is also assumed that
+you've read the `robotframework`{.interpreted-text role="doc"} section
 of this document, which gives an overview of CumulusCI / Robot Framework
 integration.
 
@@ -28,7 +28,7 @@ role="doc"} section, the following folders will have been created under
 
 ## Part 2: Creating a custom object
 
-For this tutorial we\'re going to use a Custom Object named `MyObject`
+For this tutorial we're going to use a Custom Object named `MyObject`
 (e.g. `MyObject__c`). In addition, we need a Custom Tab that is
 associated with that object.
 
@@ -62,17 +62,13 @@ Test the MyObject listing page
     Current page should be  Listing  MyObject__c
 ```
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 The above code uses `Go to page` and `Current page should be`, which
 accept a page type (`Listing`) and object name (`MyObject__c`). Even
 though we have yet to create that page object, the keywords will work by
-using a generic implementation. Later, once we\'ve created the page
+using a generic implementation. Later, once we've created the page
 object, the test will start using our implementation.
-:::
+```
 
 To run just this test, run the following command at the prompt:
 
@@ -122,18 +118,14 @@ to manage.
 
 CumulusCI provides the base classes that are a good starting point for
 your page object (see `page-object-base-classes`{.interpreted-text
-role="ref"}). In this case we\'re writing a keyword that works on the
+role="ref"}). In this case we're writing a keyword that works on the
 listing page, so we want our class to inherit from the `ListingPage`
 class.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 Our class also needs to use the `pageobject` decorator, so we must
 import that along with the `ListingPage` class.
-:::
+```
 
 To get started, create a new file named `MyObjectPages.py` in the folder
 `robot/MyProject/resources`. At the top of the new keyword file, add the
@@ -211,7 +203,7 @@ object files into a test case.
 
 To import a file with one or more page objects you need to supply the
 path to the page object file as an argument when importing
-`PageObjects`. The easiest way is to use Robot\'s continuation
+`PageObjects`. The easiest way is to use Robot's continuation
 characters `...` on a separate line.
 
 Modify the import statements at the top of `MyObject.robot` to look like
@@ -225,7 +217,7 @@ Library   cumulusci.robotframework.PageObjects
 ```
 
 This will import the page object definitions into the test case, but the
-keywords won\'t be available until the page object is loaded. Page
+keywords won't be available until the page object is loaded. Page
 objects are loaded automatically when you call `Go to page`, or you can
 explicitly load them with `Load page object`. In both cases, the first
 argument is the page type (eg: [Listing]{.title-ref},
@@ -233,7 +225,7 @@ argument is the page type (eg: [Listing]{.title-ref},
 `MyObject__c`).
 
 Our test is already using `Go to page`, so our keyword should already be
-available to us once we\'ve gone to that page.
+available to us once we've gone to that page.
 
 ## Part 5: Adding test data
 
@@ -246,7 +238,7 @@ up.
 
 To create the data when the suite starts, we can add a `Suite Setup` in
 the settings section of the test. This takes as an argument the name of
-a keyword. In our case we\'re going to create a custom keyword right in
+a keyword. In our case we're going to create a custom keyword right in
 the test to add some test data for us.
 
 It is not necessary to do it in a setup. It could be a step in an
@@ -279,18 +271,14 @@ addition to calling the `Open Test Browser` keyword. Since `Suite Setup`
 only accepts a single keyword, we can use the built-in keyword
 `Run keywords` to run more than one keyword in the setup.
 
-Change the suite setup to look like the following, again using Robot\'s
+Change the suite setup to look like the following, again using Robot's
 continuation characters to spread the code across multiple rows for
 readability.
 
-::: note
-::: title
-Note
-:::
-
-It is critical that you use all caps for `AND`, as that\'s the way Robot
+```{note}
+It is critical that you use all caps for `AND`, as that's the way Robot
 knows where one keyword ends and the next begins.
-:::
+```
 
 ```robotframework
 Suite Setup     Run keywords
@@ -304,11 +292,11 @@ refers to any data records created by `Salesforce Insert`. This makes it
 possible to both create and later clean up temporary data used for a
 test.
 
-It is important to note that the suite teardown isn\'t guaranteed to run
+It is important to note that the suite teardown isn't guaranteed to run
 if you forcibly kill a running Robot test. For that reason, we added a
 step in `Create test data` to check for an existing record before adding
 it. If a previous test was interrupted and the record already exists,
-there\'s no reason to create a new record.
+there's no reason to create a new record.
 
 ## Part 6: Using the new keyword
 

@@ -1,7 +1,7 @@
 # Release a First-Generation Managed Package
 
 This section outlines how to release first-generation (1GP) Salesforce
-managed package projects. Salesforce.org\'s Release Engineering team
+managed package projects. Salesforce.org's Release Engineering team
 practices `CumulusCI Flow <cumulusci_flow>`{.interpreted-text
 role="doc"}, which incorporates all of these steps.
 
@@ -24,22 +24,18 @@ packaging org:
 $ cci org info packaging
 ```
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 The packaging org can be listed under an alias. For a complete list of
 orgs connected to CumulusCI, run `cci org list`.
-:::
+```
 
 If your project has been configured for use with CumulusCI,
-`cci org info` lists the project\'s namespace under `package__namespace`
+`cci org info` lists the project's namespace under `package__namespace`
 in the output.
 
 ### Create a Managed Package Project
 
-If you haven\'t created a managed package project, follow these steps:
+If you haven't created a managed package project, follow these steps:
 
 -   Create a Developer Edition Org. ([Sign up for one
     here.](https://developer.salesforce.com/signup))
@@ -54,16 +50,12 @@ If you haven\'t created a managed package project, follow these steps:
 CumulusCI deploys metadata to a `packaging` org with the `ci_master`
 flow.
 
-::: warning
-::: title
-Warning
-:::
-
+```{warning}
 The `ci_master` flow runs the
 `uninstall_packaged_incremental`{.interpreted-text role="ref"} task,
-which deletes any metadata from the package in the target org that\'s
+which deletes any metadata from the package in the target org that's
 not in the repository.
-:::
+```
 
 ```console
 $ cci flow run ci_master --org packaging
@@ -79,14 +71,10 @@ The `ci_master` flow executes these tasks in the target org.
 -   Runs the `config_packaging` flow, which by default consists only of
     the `update_admin_profile`{.interpreted-text role="ref"} task.
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 To list each step in the `ci_master` flow, run
 `cci flow info ci_master`.
-:::
+```
 
 CumulusCI separates uploading metadata to the packaging org and
 releasing a beta version of the package into the `ci_master` and
@@ -103,7 +91,7 @@ for the release of a new beta version of a project.
 $ cci flow run release_beta --org packaging
 ```
 
-This flow _always_ runs against the project\'s `packaging` org, where
+This flow _always_ runs against the project's `packaging` org, where
 it:
 
 -   Uploads a new beta version of the managed package.
@@ -116,14 +104,10 @@ it:
     integrates the latest changes from `main`. For more information see
     `auto merging`{.interpreted-text role="ref"}.
 
-::: important
-::: title
-Important
-:::
-
+```{important}
 This flow assumes that the package contents were already deployed using
 the `ci_master` flow. It does _not_ include a step to deploy them.
-:::
+```
 
 To create a new beta version for your project without the bells and
 whistles, use the `upload_beta` task:
@@ -155,14 +139,10 @@ Similar to `release_beta`, this task uploads a new production version of
 your package, creates a release tag in GitHub, and aggregates release
 notes for the new version.
 
-::: important
-::: title
-Important
-:::
-
+```{important}
 This flow assumes that the package contents have previously been
 deployed using the `ci_master` flow.
-:::
+```
 
 To upload the new production version without creating the GitHub tag and
 generating release notes:

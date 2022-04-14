@@ -9,15 +9,11 @@ The `dev_org` flow creates an org to develop on by moving all metadata
 (managed and unmanaged) into the org, and configuring it to be ready for
 development.
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 Run `cci flow info dev_org` for a full list of the `dev_org` flow steps.
-:::
+```
 
-To run the `dev_org` flow against the project\'s
+To run the `dev_org` flow against the project's
 `default org <Set a Default Org>`{.interpreted-text role="ref"}:
 
 ```console
@@ -47,14 +43,12 @@ To see what components have changed in a target org use the
 $ cci task run list_changes --org dev
 ```
 
-::: admonition
-Wizard Note
-
-This functionality relies on Salesforce\'s [source
+```{admonition} Wizard Note
+This functionality relies on Salesforce's [source
 tracking](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_source_tracking_sandboxes.htm)
 feature, which is currently available only in Scratch Orgs, Developer
 Sandboxes, and Developer Pro Sandboxes.
-:::
+```
 
 For more information, see [List and Retrieve
 Options](#list-and-retrieve-options).
@@ -95,15 +89,15 @@ $ cci task run retrieve_changes --org dev --path your/unique/path
 
 ## List and Retrieve Options
 
-When developing in an org, the changes you\'re most interested in are
-sometimes mixed with other changes that aren\'t relevant to what you\'re
+When developing in an org, the changes you're most interested in are
+sometimes mixed with other changes that aren't relevant to what you're
 doing.
 
 For example, changing metadata like Custom Objects and Custom Fields
-often results in changes to Page Layouts and Profiles that you don\'t
+often results in changes to Page Layouts and Profiles that you don't
 wish to review or retrieve.
 
-It\'s a common workflow in CumulusCI to use the `list_changes` task,
+It's a common workflow in CumulusCI to use the `list_changes` task,
 combined with the options featured in this subsection, to narrow the
 scope of changes in the org to the exact elements you desire to retrieve
 in your project. When the correct set of metadata is listed, run the
@@ -160,7 +154,7 @@ $ cci task run retrieve_changes --types ApexClass,ApexComponent
 
 Developers often use an editor or IDE like Visual Studio Code to modify
 code and metadata stored in the repository. After making changes in an
-editor, push these changes from your project\'s local repository to the
+editor, push these changes from your project's local repository to the
 target org.
 
 If your project uses the Salesforce DX source format, use the
@@ -199,7 +193,7 @@ comprehensive list of options and examples, see the
 
 The `qa_org` flow sets up org environments where quality engineers test
 features quickly and easily. `qa_org` runs the specialized `config_qa`
-flow after deploying the project\'s unmanaged metadata to the org.
+flow after deploying the project's unmanaged metadata to the org.
 
 The following runs the `qa_org` flow against the `qa` org.
 
@@ -216,7 +210,7 @@ when developing a new feature.
 
 At Salesforce.org, our product teams often modify the `config_qa` flow
 to deploy configurations that pertain to large optional features in a
-package. These configurations are subsequently tested by the product\'s
+package. These configurations are subsequently tested by the product's
 Robot Framework test suites.
 
 To retrieve your own QA configurations, spin up a new org:
@@ -234,14 +228,10 @@ $ cci task run retrieve_qa_config
 This task defaults to retrieving this metadata under
 `unpackaged/config/qa`.
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 The configuration metadata can also be stored in a different location by
 using the `--path` option.
-:::
+```
 
 To delete the org\...
 
@@ -311,7 +301,7 @@ $ cci task run update_dependencies
 
 GitHub repository dependencies create a dynamic dependency between the
 current project and another CumulusCI project on GitHub. This is an
-example of listing Salesforce.org\'s
+example of listing Salesforce.org's
 [EDA](https://github.com/SalesforceFoundation/EDA) product as a
 dependency.
 
@@ -356,7 +346,7 @@ If the referenced repository does not have a namespace configured, or if
 the dependency specifies the `unmanaged` option as `True`, the
 repository is treated as unmanaged.
 
-Here is a project with Salesforce.org\'s
+Here is a project with Salesforce.org's
 [EDA](https://github.com/SalesforceFoundation/EDA) package listed as an
 unmanaged dependency:
 
@@ -390,7 +380,7 @@ project:
           tag: rel/1.105
 ```
 
-The EDA repository\'s tag `rel/1.105` is used instead of the latest
+The EDA repository's tag `rel/1.105` is used instead of the latest
 production release of EDA (1.111, for this example).
 
 #### Skip `unpackaged/*` in Reference Repositories
@@ -471,36 +461,28 @@ resolved like other GitHub references. See [Controlling GitHub
 Dependency Resolution](##controlling-github-dependency-resolution) for
 more details on resolution of dynamic dependencies.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 In versions of CumulusCI prior to 3.33.0, unmanaged GitHub dependencies
 always deployed the most recent commit on the default branch.
-:::
+```
 
 #### Specify a Subfolder
 
 Use the `subfolder` option to specify a subfolder of the zip file or
 GitHub repository to use for the deployment.
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 This option is handy when referring to metadata stored in a GitHub
 repository.
-:::
+```
 
 When `update_dependencies` runs, it still downloads the zip from
 `zip_url`, but then builds a new zip containing only the content of
-`subfolder`, starting inside `subfolder` as the zip\'s root.
+`subfolder`, starting inside `subfolder` as the zip's root.
 
 #### Inject Namespace Prefixes
 
-CumulusCI has support for tokenizing references to a package\'s
+CumulusCI has support for tokenizing references to a package's
 namespace prefix in code. When tokenized, all occurrences of the
 namespace prefix, are replaced with `%%%NAMESPACE%%%` inside of files
 and `___NAMESPACE___` in file names. The `namespace_inject` option
@@ -602,7 +584,7 @@ utilize a release branch model and build second-generation package betas
 > -   Identify the most recent production package release via the GitHub
 >     Releases section. If located, use that package and commit.
 >     (Resolver: `latest_release`)
-> -   Use the most recent commit on the repository\'s main branch as an
+> -   Use the most recent commit on the repository's main branch as an
 >     unmanaged dependency. (Resolver: `unmanaged`)
 
 **include_beta**:
@@ -619,7 +601,7 @@ development and testing.
 -   Identify the most recent production package release via the GitHub
     Releases section. If located, use that package and commit.
     (Resolver: `latest_release`)
--   Use the most recent commit on the repository\'s main branch as an
+-   Use the most recent commit on the repository's main branch as an
     unmanaged dependency. (Resolver: `unmanaged`)
 
 **latest_release**:
@@ -634,7 +616,7 @@ as `install_prod` or a MetaDeploy installer flow) for all products.
 -   Identify the most recent production package release via the GitHub
     Releases section. If located, use that package and commit.
     (Resolver: `latest_release`)
--   Use the most recent commit on the repository\'s main branch as an
+-   Use the most recent commit on the repository's main branch as an
     unmanaged dependency. (Resolver: `unmanaged`)
 
 #### Customizing Resolution Strategies
@@ -665,37 +647,29 @@ projects that need it.
 
 ### Automatic Cleaning of `meta.xml` Files on Deploy
 
-To let CumulusCI fully manage the project\'s dependencies, the `deploy`
+To let CumulusCI fully manage the project's dependencies, the `deploy`
 task (and other tasks based on `cumulusci.tasks.salesforce.Deploy`, or
 subclasses of it) automatically removes the `<packageVersion>` element
 and its children from all `meta.xml` files in the deployed metadata.
 Removing these elements does not affect the files on the filesystem.
 
-This feature supports CumulusCI\'s automatic dependency resolution by
+This feature supports CumulusCI's automatic dependency resolution by
 avoiding a need for projects to manually update XML files to reflect
 current dependency package versions.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 If the metadata being deployed references namespaced metadata that does
 not exist in the currently installed package, the deployment throws an
 error as expected.
-:::
+```
 
-::: tip
-::: title
-Tip
-:::
-
+```{note}
 The automatic cleaning of `meta.xml` files can be disabled by setting
 the `clean_meta_xml` option to `False`.
-:::
+```
 
 Developers can also use the `meta_xml_dependencies` task to update the
-`meta.xml` files locally using the versions from CumulusCI\'s calculated
+`meta.xml` files locally using the versions from CumulusCI's calculated
 project dependencies.
 
 ## Use Tasks and Flows from a Different Project

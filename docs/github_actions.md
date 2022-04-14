@@ -3,7 +3,7 @@
 CumulusCI can be used to run continuous integration builds with GitHub
 Actions. In order to follow along, you should already have a repository
 that is hosted on GitHub and configured as a CumulusCI project. In other
-words, we\'re assuming your project already has a `cumulusci.yml` and
+words, we're assuming your project already has a `cumulusci.yml` and
 that you are successfully running CumulusCI flows locally.
 
 There is also a [template
@@ -13,19 +13,15 @@ actions. This repository can be used as a starting point for
 implementing your own project or as a reference for the following
 material.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 GitHub Actions are free for open source (public) repositories. Check
 with GitHub about pricing for private repositories.
-:::
+```
 
 ## Create a GitHub Action Workflow
 
 In GitHub Actions, you can define _workflows_ which run automatically in
-response to events in the repository. We\'re going to create an action
+response to events in the repository. We're going to create an action
 called `Apex Tests` which runs whenever commits are pushed to a target
 GitHub repository.
 
@@ -92,16 +88,16 @@ the Settings tab. Then click the Secrets link on the left.
 ### `CUMULUSCI_SERVICE_github`
 
 CumulusCI may need access to the GitHub API in order to do things like
-look up information about dependency packages. To set this up, we\'ll
+look up information about dependency packages. To set this up, we'll
 set a secret to configure the CumulusCI github service.
 
-First, follow GitHub\'s instructions to [create a Personal Access
+First, follow GitHub's instructions to [create a Personal Access
 Token](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line).
 Be sure to select repo and gist scope:
 
 ![Screenshot showing the Github Personal Access Token scopes with only repo and gist selected](images/github_personal_access_token_scopes.png)
 
-Now, in your repository\'s Secrets settings, click the \"Add a new
+Now, in your repository's Secrets settings, click the \"Add a new
 secret\" link. Enter `CUMULUSCI_SERVICE_github` as the Name of the
 secret. For the Value, enter the following JSON:
 
@@ -114,15 +110,11 @@ Click the \"Add secret\" button to save the secret.
 Replace `USERNAME` with your GitHub username, `TOKEN` with the Personal
 Access Token you just created, and `EMAIL` with your email address.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 For more information on registering services in a headless environment
 see the `Register Services`{.interpreted-text role="ref"} section of the
 docs.
-:::
+```
 
 ### `SFDX_AUTH_URL`
 
@@ -139,28 +131,22 @@ Now run `sfdx force:org:display --verbose -u [username]`, replacing
 `[username]` with your Dev Hub username. Look for the `Sfdx Auth Url`
 and copy it.
 
-::: attention
-::: title
-Attention
-:::
-
+```{attention}
 Treat this URL like a password. It provides access to log in as this
 user!
-:::
+```
 
-Now in your repository\'s Secrets settings, click the \'Add a new
-secret\' link. Enter `SFDX_AUTH_URL` as the Name of the secret, and the
-URL from above as the Value. Click the \'Add secret\' button to save the
+Now in your repository's Secrets settings, click the 'Add a new
+secret' link. Enter `SFDX_AUTH_URL` as the Name of the secret, and the
+URL from above as the Value. Click the 'Add secret' button to save the
 secret.
 
-::: admonition
-Advanced Note
-
+```{admonition} Advanced Note
 These instructions connect `sfdx` to your Dev Hub using the standard
 Salesforce CLI Connected App and a refresh token. It is also possible to
 authenticate `sfdx` using the `force:auth:jwt:grant` command with a
 custom Connected App client id and private key.
-:::
+```
 
 Your Secrets should look like this:
 
@@ -171,7 +157,7 @@ Your Secrets should look like this:
 Now you should be able to try out the workflow. Commit the new
 `.github/workflows/apex_tests.yml` file to the repository and push the
 commit to GitHub. You should be able to watch the status of this
-workflow in the repository\'s Actions tab:
+workflow in the repository's Actions tab:
 
 ![Screenshot showing a running GitHub Action workflow](images/github_workflow.png)
 
@@ -181,11 +167,11 @@ results of the checks that were performed by the workflow:
 
 ![Screenshot showing a successful check on a GitHub pull request](images/github_checks.png)
 
-It is possible to configure the repository\'s main branch as a
+It is possible to configure the repository's main branch as a
 _protected branch_ so that changes can only be merged to it if these
 checks are passing.
 
-See GitHub\'s documentation for instructions to [configure protected
+See GitHub's documentation for instructions to [configure protected
 branches](https://help.github.com/en/github/administering-a-repository/configuring-protected-branches)
 and [enable required status
 checks](https://help.github.com/en/github/administering-a-repository/enabling-required-status-checks).
@@ -199,7 +185,7 @@ Firefox and geckodriver.
 
 Fortunately GitHub Actions comes preconfigured with an image that
 includes these browsers. However it is necessary to run the browser in
-headless mode. When using CumulusCI\'s `robot` task, this can be done by
+headless mode. When using CumulusCI's `robot` task, this can be done by
 passing the `-o vars BROWSER:headlesschrome` option.
 
 Here is a complete workflow to run Robot Framework tests for any commit:
@@ -250,16 +236,12 @@ jobs:
 
 ## Deploy to a Persistent Org
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 For instructions on setting up a connection to a persistent org in a
 headless environment see the
 `Register Persistent Orgs`{.interpreted-text role="ref"} section of the
 docs.
-:::
+```
 
 The final step in a CI pipeline is often deploying newly-verified
 changes into a production environment. In the context of a Salesforce
@@ -269,7 +251,7 @@ packaging org. It could also mean that you want to deploy changes in a
 project to a production org.
 
 The following sections cover which tasks and flows you would want to
-consider based on your project\'s particular needs.
+consider based on your project's particular needs.
 
 ### Deploy to a Packaging Org
 
@@ -277,7 +259,7 @@ When working on a managed package project, there are two standard
 library flows that are generally of interest when deploying to a
 packaging org: `deploy_packaging` and `ci_master`.
 
-The `deploy_packaging` flow deploys the package\'s metadata to the
+The `deploy_packaging` flow deploys the package's metadata to the
 packaging org.
 
 The `ci_master` flow includes the `deploy_packaging` flow, but also
@@ -362,16 +344,12 @@ several things:
 -   Merges the latest commit on the main branch into all open feature
     branches
 
-::: important
-::: title
-Important
-:::
-
+```{important}
 CumulusCI is able to connect to the `packaging` org via
 `CUMULUSCI_ORG_packaging` environment variable defined at the [top of
 the
 workflow](https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml##L11).
-:::
+```
 
 ## References
 

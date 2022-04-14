@@ -11,7 +11,7 @@ browser session with Salesforce, but Robot can also be used to test new
 APIs created by your team.
 
 Later sections of this document will show you how to write tests, call
-APIs, create custom keywords, and so on. But first there\'s a bit of
+APIs, create custom keywords, and so on. But first there's a bit of
 manual configuration to do.
 
 ## Get Started
@@ -19,30 +19,28 @@ manual configuration to do.
 The test that comes with CumulusCI opens a browser and performs some
 automation. For that to work, you need to install
 [Chrome](https://www.google.com/chrome/), and a driver for your specific
-version of Chrome. We don\'t ship this driver by default because browser
+version of Chrome. We don't ship this driver by default because browser
 versions are continually updating, and different platforms require
 different drivers.
 
-If you don\'t already have Chrome on your machine, download and install
+If you don't already have Chrome on your machine, download and install
 it in the default location, and then download the appropriate driver
 from the [chromedriver download
 page](https://chromedriver.chromium.org/downloads). Download the latest
 stable version that corresponds to your Chrome version, and place it
 where Robot can find it. This usually means `/usr/local/bin` for Linux
-and OSX-based systems. (It can go anywhere as long as it\'s on your
+and OSX-based systems. (It can go anywhere as long as it's on your
 PATH.)
 
 For more information, see [Getting
 Started](https://sites.google.com/chromium.org/driver/getting-started?authuser=0)
 on the chromedriver website.
 
-::: admonition
-Fun Fact
-
+```{admonition} Fun Fact
 You can skip this step and still see Robot in action with CumulusCI. The
-tests will fail, but you can still see what it\'s like to run a test,
+tests will fail, but you can still see what it's like to run a test,
 and the output that it produces.
-:::
+```
 
 ### You Get a Test! And You Get a Test!
 
@@ -52,7 +50,7 @@ Project](https://cumulusci.readthedocs.io/en/stable/get_started.html?highlight=p
 you automatically get a preconfigured `robot` task to run all of your
 Robot tests at the same time. We also install one example test,
 `create_contact.robot`, that shows how to write both browser-based and
-API-based tests. In fact, we\'ve gone ahead and created a complete
+API-based tests. In fact, we've gone ahead and created a complete
 folder hierarchy for tests, test results, and everything else related to
 Robot, all starting in a folder named `robot` at the top of your
 repository.
@@ -67,20 +65,16 @@ repository.
 │           └── create_contact.robot
 ```
 
-::: tip
-::: title
-Tip
-:::
-
+```{note}
 The `create_contact.robot` file is in plain text, so you can open it
 with any text editor you have on your machine. One of the features we
 love about Robot is that the files are not in a proprietary format.
-:::
+```
 
 ## Run Your First Test
 
 You can run all tests for a project with a simple command line. In case
-you don\'t have a default org defined, we\'ll include instructions on
+you don't have a default org defined, we'll include instructions on
 which scratch org to use.
 
 ```console
@@ -140,8 +134,8 @@ $ open robot/<ProjectName>/results/log.html
 
 ![image](images/robot_log_screenshot.png)
 
-Feel free to open `output.xml` or `report.html` if you\'re curious. In
-our experience, `log.html` is the most useful for humans, and it\'s the
+Feel free to open `output.xml` or `report.html` if you're curious. In
+our experience, `log.html` is the most useful for humans, and it's the
 one we use when reporting test results.
 
 Want to learn more? The next section goes into more detail about why we
@@ -215,7 +209,7 @@ often in a single test suite.
 -   Streamlined test cases: Keywords allow implementation details to be
     handled by the test but not explicitly itemized in the test. In the
     previous example, a new `Contact` record is created with the
-    `Salesforce Insert` keyword, but we don\'t see all the steps
+    `Salesforce Insert` keyword, but we don't see all the steps
     required to make an API call to create the record, such as getting
     an access token, creating an API payload, making the API call, and
     parsing the results. We see only two keywords that communicate with
@@ -252,20 +246,16 @@ interact with Salesforce applications, call Salesforce APIs, and so on.
 For a list of all custom keywords provided by CumulusCI, see
 [Keywords.html](https://cumulusci.readthedocs.io/en/stable/Keywords.html).
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 In addition to the keywords that come with CumulusCI, you can write
 project-specific keywords that are either based on existing keywords, or
 implemented in Python.
-:::
+```
 
 ## Write a Sample Robot Test Case
 
 Now that you have a general understanding of why Robot is ideal for
-acceptance testing with CumulusCI, let\'s construct a test case file
+acceptance testing with CumulusCI, let's construct a test case file
 that creates a new `Contact` record.
 
 1.  Run `cci project init`, which creates the `create_contact.robot`
@@ -302,7 +292,7 @@ code samples.
 
 ### Syntax
 
-Here\'s a quick primer on the syntax in the `new_contact_record.robot`
+Here's a quick primer on the syntax in the `new_contact_record.robot`
 test case file.
 
 +-----+------------+--------------------------------------------------+
@@ -367,7 +357,7 @@ The `cumulusci/robotframework/Salesforce.robot` resource file comes with
 CumulusCI and automatically inherits useful configuration and keywords
 for Salesforce testing. The `Salesforce.robot` resource file is the
 primary method of importing all keywords and variables provided by
-CumulusCI, so it\'s best practice for the file to be the first item
+CumulusCI, so it's best practice for the file to be the first item
 imported as a `Resource` under `Settings`. It also imports the
 [CumulusCI
 Library](https://cumulusci.readthedocs.io/en/stable/Keywords.html##file-cumulusci.robotframework.CumulusCI),
@@ -421,21 +411,17 @@ Create a Contact using the API
 Notice these keywords used in the test case.
 
 -   `Salesforce Insert` creates a new `Contact` record with the
-    arguments it\'s given for the `FirstName` and `LastName` fields.
+    arguments it's given for the `FirstName` and `LastName` fields.
 -   `Salesforce Get` retrieves the requested `Contact` record based on
     its ID.
 -   `Should Be Equal` compares the arguments to the values of the
     `FirstName` and `LastName` fields of the newly created `Contact`
     record.
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 Keywords in the test cases are separated from arguments by two or more
 spaces.
-:::
+```
 
 ## Suite Setup and Teardown
 
@@ -454,7 +440,7 @@ the test can fail the second time you run it. To maintain the required
 record count, you can add a teardown that deletes any `Contact` records
 created by running the test.
 
-Let\'s modify the `new_contact_record.robot` test case file with a
+Let's modify the `new_contact_record.robot` test case file with a
 `Suite Teardown` that deletes the `Contact` records created by any tests
 in the suite.
 
@@ -478,14 +464,10 @@ Create a Contact using the API
    Should be equal  ${contact}[LastName]     Rigby
 ```
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 The `Salesforce Insert` keyword keeps track of the record IDs created.
 The `Delete session records` keyword deletes those records.
-:::
+```
 
 To run this test from the command line:
 
@@ -495,18 +477,18 @@ $ cci task run robot --suites robot/<ProjectName>/tests/new_contact_record.robot
 
 ## Generate Fake Data with Faker
 
-The `get fake data` keyword comes with the Faker library that\'s
+The `get fake data` keyword comes with the Faker library that's
 installed with CumulusCI, and saves you from hard-coding test data for
 Robot tests. `Get fake data` does much more than just return random
 strings; it generates strings in an appropriate format. You can ask it
 for a name, address, date, phone number, credit card number, and so on,
 and get back properly formatted data.
 
-For example, let\'s modify the `new_contact_record.robot` test case file
+For example, let's modify the `new_contact_record.robot` test case file
 to generate a fake name. Because the new `Contact` name is randomly
-generated in this updated example, you can\'t hard-code an assertion on
+generated in this updated example, you can't hard-code an assertion on
 the name of the created `Contact` to verify the name. Instead, for
-illustrative purposes, this test logs the `Contact` name in the test\'s
+illustrative purposes, this test logs the `Contact` name in the test's
 `log.html` file.
 
 ```robotframework
@@ -545,10 +527,10 @@ We mentioned earlier that Robot makes use of a domain-specific language.
 By creating a collection of reusable custom keywords, we can create this
 DSL for testing Salesforce apps.
 
-Let\'s create a new Robot test that includes a custom keyword called
+Let's create a new Robot test that includes a custom keyword called
 `Create a test Contact`, which creates a `Contact` record and then saves
 the data for this record in a test variable. Save this code in a file
-named `custom_keyword.robot` in the `tests` folder of your project\'s
+named `custom_keyword.robot` in the `tests` folder of your project's
 repository.
 
 ```robotframework
@@ -586,7 +568,7 @@ Create a test Contact
 Because the `Contact` record was created inside the
 `Create a test Contact` keyword, the `&{new contact}` variable is not
 going to be visible to any test case or keyword that calls the
-`Create a test Contact` keyword. It\'s only when we use the built-in
+`Create a test Contact` keyword. It's only when we use the built-in
 keyword [Set test
 variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html##Set%20Test%20Variable)
 that the newly created `&{new contact}` variable becomes visible in the
@@ -618,19 +600,19 @@ Now that you know how to create a reusable custom keyword in a test case
 file, you can build a library of custom keywords to be shared
 project-wide with a resource file.
 
-A resource file is similar to a test case file, except it can\'t contain
+A resource file is similar to a test case file, except it can't contain
 test cases. Typically, a resource file stores settings that are used by
 every test in the project, such as defining project-specific variables,
 or importing project-specific keyword libraries and resource files.
 
-Let\'s create a resource file that stores the `Create a test Contact`
+Let's create a resource file that stores the `Create a test Contact`
 custom keyword, which is currently in the `custom_keyword.robot` test
 case file defined in [Create Custom Keywords](#create-custom-keywords).
-There aren\'t any requirements for naming resource files. However, most
+There aren't any requirements for naming resource files. However, most
 teams have standardized creating a resource file named after the
 project, such as `NPSP.robot` for NPSP.
 
-For this example, we\'ll stick to this convention and create a file
+For this example, we'll stick to this convention and create a file
 named after your project. Save this code in a file named
 `robot/<ProjectName>/resources/<ProjectName>.robot`.
 
@@ -656,17 +638,13 @@ Create a test Contact
    Set test variable  &{new contact}
 ```
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 Along with moving the `Keywords` section in the `custom_keyword.robot`
 test case file to this file, you must also import `Salesforce.robot` as
-a `Resource` because that\'s where the Faker library is defined.
-:::
+a `Resource` because that's where the Faker library is defined.
+```
 
-Next, let\'s modify the `custom_keyword.robot` test case file. Remove
+Next, let's modify the `custom_keyword.robot` test case file. Remove
 the `Keywords` section, and then under `Settings`, add as many
 `Resource` statements as needed to import keywords from their specific
 `.robot` resource files.
@@ -687,23 +665,19 @@ Example of using a custom keyword in a setup step
    Log  New Contact: ${new contact}[Name]
 ```
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 Keywords defined in resource files are accessible to all tests in a
 suite that imports the resource files.
-:::
+```
 
 ## Create a Simple Browser Test
 
 Now that you know how to create records using the API, you can use those
 records in a browser test.
 
-Let\'s create a Robot test that uses `Suite Setup` to call the
+Let's create a Robot test that uses `Suite Setup` to call the
 `Open test browser` keyword. Save this code in a file named `ui.robot`
-in the `tests` folder of your project\'s repository.
+in the `tests` folder of your project's repository.
 
 ```robotframework
 *** Settings ***
@@ -725,16 +699,12 @@ screenshots can take up a lot of disk space). `Suite Teardown` then
 calls the `Delete records and close browser` keyword to complete the
 test.
 
-::: note
-::: title
-Note
-:::
-
-`Open test browser` doesn\'t always wait long enough for Salesforce to
-render. That\'s why the `Wait until page contains` keyword comes in
+```{note}
+`Open test browser` doesn't always wait long enough for Salesforce to
+render. That's why the `Wait until page contains` keyword comes in
 handy. It waits until the \"Most Recently Used\" section of the web page
 appears, which is a good indication that the site has loaded.
-:::
+```
 
 To run this test from the command line:
 
@@ -786,34 +756,30 @@ $ cci task run robot --vars BROWSER:firefox
 The `robot` task supports both Chrome and Firefox browsers, and the
 headless variations of these browsers, `headlesschrome` and
 `headlessfirefox`. With the headless version, browser tests run without
-opening a browser window. The tests still use a browser, but you can\'t
+opening a browser window. The tests still use a browser, but you can't
 see it while the test runs. This variation is most useful when you run a
 test on a continuous integration server like MetaCI, where a physical
-display isn\'t connected to the server.
+display isn't connected to the server.
 
 To specify the headless version of a browser, prepend `headless` to the
 browser name. For example, the command line option to specify headless
 Chrome is `--var BROWSER:headlesschrome`.
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 When you run a test in headless mode, you can still capture screenshots
 of the browser window. The `Capture Page Screenshot` keyword is
 indispensable for debugging tests that failed in headless mode.
-:::
+```
 
 ## Combine API Keywords and Browser Tests
 
 In Robot, API and browser keywords can be used together to build more
 elaborate acceptance tests.
 
-Let\'s build on the original `new_contact_record.robot` test to
+Let's build on the original `new_contact_record.robot` test to
 integrate the previous configurations covered so far. Replace the
 entirety of the `new_contact_record.robot` test case file in the `tests`
-folder of your project\'s repository with this code.
+folder of your project's repository with this code.
 
 ```robotframework
 *** Settings ***
@@ -884,7 +850,7 @@ like this.
 
 While a single `.robot` file is considered to be a test suite, Robot
 also considers folders to be suites. You can pass a folder to Robot to
-run all tests stored in that folder. So if you\'ve saved the
+run all tests stored in that folder. So if you've saved the
 `new_contact_record.robot`, `custom_keyword.robot`, and `ui.robot` test
 case files in the `tests` folder, you can run all of the tests in the
 command line.
@@ -945,19 +911,15 @@ Log:     /projects/<ProjectName>/robot/<ProjectName>/results/log.html
 Report:  /projects/<ProjectName>/robot/<ProjectName>/results/report.html
 ```
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 Test suite folders can also contain nested folders of tests, which makes
 it easy to organize tests into functional groups. For example, you can
 store all API tests in a `tests/api` folder, and store all UI tests in a
 `tests/ui` folder.
-:::
+```
 
 Because running everything in the `tests` folder is such common
-practice, it\'s the default behavior for the `robot` task.
+practice, it's the default behavior for the `robot` task.
 
 To run an entire suite of tests with the `robot` task:
 

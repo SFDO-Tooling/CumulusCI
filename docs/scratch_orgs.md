@@ -6,7 +6,7 @@ several reasons why scratch orgs are encouraged for development and
 testing over sandboxes or Developer Edition orgs. Scratch orgs:
 
 -   Provide a repeatable starting point without the challenge of
-    managing persistent orgs\' state over time.
+    managing persistent orgs' state over time.
 -   Are scalable and ensure that individual, customized environments are
     available to everyone in the development lifecycle.
 -   Facilitate a fully source-driven development process built around
@@ -26,12 +26,12 @@ section.
 
 ## What Is an Org in CumulusCI?
 
-An org in CumulusCI\'s keychain starts out as a named configuration,
+An org in CumulusCI's keychain starts out as a named configuration,
 tailored for a specific purpose within the lifecycle of the project
 (such as development, QA, beta testing, and so on). CumulusCI creates
 and uses scratch orgs based on these configurations on demand. In fact,
 a scratch org is only generated the first time you use the scratch org.
-When it\'s expired or been deleted, a new one can be created again with
+When it's expired or been deleted, a new one can be created again with
 the same configuration.
 
 CumulusCI offers tools that make it easy to discover predefined org
@@ -50,7 +50,7 @@ instructions.
 
 ## Predefined Orgs
 
-CumulusCI comes with predefined org configurations. Every project\'s
+CumulusCI comes with predefined org configurations. Every project's
 keychain starts with these configurations ready and available to be
 turned into a live scratch org.
 
@@ -70,13 +70,13 @@ $ cci org list
 
 If your project has customized org configurations, your listing can
 include more configurations than shown in the previous table, and your
-project\'s versions of the standard configurations can be different.
+project's versions of the standard configurations can be different.
 
 ## Create a Scratch Org
 
 To create a scratch org from a configuration, use it as the target of a
 command, task, or flow. CumulusCI automatically initializes orgs when
-they\'re first used.
+they're first used.
 
 You can create a scratch org from the `dev` configuration and review
 information about the created org with:
@@ -85,12 +85,12 @@ information about the created org with:
 $ cci org info dev
 ```
 
-When the org is created, it\'s associated with the name `dev` in the
+When the org is created, it's associated with the name `dev` in the
 CumulusCI keychain and can be used with other commands until it expires.
 When an org expires or is removed, its associated configuration is left
 in place, and can be recreated whenever needed.
 
-It\'s possible to create new orgs in the keychain that inherit their
+It's possible to create new orgs in the keychain that inherit their
 configuration from a built-in org.
 
 Here we create a new org that uses the same configuration as the
@@ -113,7 +113,7 @@ Scratch orgs count against an _active_ scratch org limit, which controls
 how many orgs can exist at the same time, and a _daily_ scratch org
 limit, which controls how many total orgs can be created per day.
 
-Scratch org limits are based on your Dev Hub\'s edition and your
+Scratch org limits are based on your Dev Hub's edition and your
 Salesforce contract. To review limits and consumption, run the command:
 
 ```console
@@ -172,7 +172,7 @@ reuse it later.
 $ cci org scratch_delete <org_name>
 ```
 
-Using `scratch_delete` doesn\'t remove the org `<org_name>` from your
+Using `scratch_delete` doesn't remove the org `<org_name>` from your
 org list. This default behavior lets you easily recreate scratch orgs
 from a stored, standardized configuration.
 
@@ -183,7 +183,7 @@ associated scratch org:
 $ cci org remove <org_name>
 ```
 
-It\'s not necessary to explicitly remove or delete expired orgs.
+It's not necessary to explicitly remove or delete expired orgs.
 CumulusCI recreates an expired org the first time you attempt to use it.
 To clean up expired orgs from the keychain:
 
@@ -222,7 +222,7 @@ This org uses the same scratch org definition file as the `dev` org, but
 has a different configuration in the `cumulusci.yml` file, resulting in
 a different org shape and a different use case. The key facets of the
 org shape that are defined in the `cumulusci.yml` file are whether or
-not the org has a namespace, and the length of the org\'s lifespan.
+not the org has a namespace, and the length of the org's lifespan.
 
 Org definition files stored in the `orgs` directory are configured as
 specified in the [Salesforce DX Developer
@@ -244,16 +244,12 @@ $ cci org import <sfdx_alias> <cci_alias>
 
 For `sfdx_alias`, specify the alias or username of the org in the
 Salesforce CLI keychain. For `cci_alias`, provide the name to use in
-CumulusCI\'s keychain.
+CumulusCI's keychain.
 
-::: important
-::: title
-Important
-:::
-
+```{important}
 CumulusCI cannot automatically refresh orgs imported from Salesforce CLI
 when they expire.
-:::
+```
 
 ## Use a Non-Default Dev Hub
 

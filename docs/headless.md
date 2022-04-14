@@ -69,9 +69,9 @@ tag in the CumulusCI standard
 library](https://github.com/SFDO-Tooling/CumulusCI/blob/34533b4a1caa3f1850c64e223ece26069c83b60e/cumulusci/cumulusci.yml##L1164)
 and provide values for all \"attributes\" listed under the desired
 service. You can also use `cci service info` to get the values from a
-service you\'ve configured locally.
+service you've configured locally.
 
-For example, if you\'re looking to register a `connected_app` service,
+For example, if you're looking to register a `connected_app` service,
 then the attributes: `callback_url`, `client_id`, and `client_secret`
 would need to be provided in the following format:
 
@@ -110,16 +110,12 @@ following environment variables.
 
 See the below entries for the values to use with each.
 
-::: important
-::: title
-Important
-:::
-
+```{important}
 Setting the above environment variables negates the need to use the
 `cci org connect` command. You can simply run a `cci` command and pass
 the `--org orgName` option, where `orgName` corresponds to the name used
 in the `CUMULUSCI_ORG_*` environment variable.
-:::
+```
 
 In the context of GitHub Actions, all of these environment variables
 would be declared under the `env` section of a workflow. Below is an
@@ -169,20 +165,18 @@ You can see an example of setting this environment variable in a GitHub
 actions workflow in our [demo
 repository](https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml##L11).
 
-::: admonition
-Wizard Note
-
-If the target org\'s instance URL is instanceless (i.e. does not contain
+```{admonition} Wizard Note
+If the target org's instance URL is instanceless (i.e. does not contain
 a segment like cs46 identifying the instance), then for sandboxes it is
 also necessary to set `SFDX_AUDIENCE_URL` to
 `https://test.salesforce.com"`. This instructs CumulusCI to set the
 correct `aud` value in the JWT (which is normally determined from the
 instance URL).
-:::
+```
 
 #### `SFDX_CLIENT_ID`
 
-Set this to your Connected App\'s client id. This, combined with the
+Set this to your Connected App's client id. This, combined with the
 `SFDX_HUB_KEY` variable instructs CumulusCI to authenticate to the org
 using the [JWT Bearer
 Flow](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_jwt_flow.htm##sfdx_dev_auth_jwt_flow)

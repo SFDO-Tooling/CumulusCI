@@ -11,12 +11,12 @@ CumulusCI supplies a collection of named org configurations by default.
 To see what org configurations are available, run `cci org list`. You
 can provide those names to any of the commands in this guide. Common
 examples include `dev`, `qa`, `beta`, and `release`. Org names are
-associated with a scratch org definition file stored in the project\'s
+associated with a scratch org definition file stored in the project's
 `orgs` directory. The definition file determines how the scratch org is
 set up.
 
-It\'s not necessary to name your own orgs, but you may choose to do so
-if, for example, you\'d like to maintain multiple orgs of the same type.
+It's not necessary to name your own orgs, but you may choose to do so
+if, for example, you'd like to maintain multiple orgs of the same type.
 
 ### Name a new scratch org
 
@@ -33,7 +33,7 @@ configuration name provided.
 $ cci org info <org_name>
 ```
 
-This includes information like the org\'s domain, username, and password
+This includes information like the org's domain, username, and password
 
 ### Open a scratch org in your web browser
 
@@ -48,7 +48,7 @@ $ cci org default <org_name>
 ```
 
 This asks CumulusCI to run all flows and tasks against the named org
-unless otherwise specified. You don\'t have to specify a default org.
+unless otherwise specified. You don't have to specify a default org.
 You can always direct CumulusCI to use a specific org with the `--org`
 option when you run a flow or a task.
 
@@ -87,24 +87,16 @@ project, or may be unique to the project. Below are a collection of the
 standard org building flows that you should expect to find in any
 CumulusCI project.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 This section relies on concepts introduced in the
 `key concepts`{.interpreted-text role="ref"} section of the
 documentation.
-:::
+```
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 Each flow should be run against a named org configuration using the
 `--org` option, or allowed to run against a configured default org.
-:::
+```
 
 ### Flows for Building Orgs
 
@@ -137,31 +129,23 @@ subscriber upgrade. Should be used with an org whose configuration is
 `release`
 
 Your project may provide additional org-building flows. Consult the
-project\'s automation documentation for more details.
+project's automation documentation for more details.
 
-::: caution
-::: title
-Caution
-:::
-
+```{caution}
 We do not recommend running an org-building flow against the same
 scratch org multiple times. While this may work in some situations, in
 many cases it will fail and/or leave the org in an inconsistent state.
 If you need to rebuild an org, delete it first. If you need to redeploy
 updated code into an org, see below.
-:::
+```
 
 ## Common Tasks
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 Note that each task should be run against a named org configuration
 using the `--org` option. If not specified, the task will run against a
 configured default org.
-:::
+```
 
 ### Deploy updated code into an org
 

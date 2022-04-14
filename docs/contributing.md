@@ -86,15 +86,11 @@ development.
     changes (contact us to create the branch). This allows us to test
     the changes using our build system before merging to main.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 We enable typeguard with pytest so if you add type declarations to your
 code, those declarations will be treated as runtime assertions in your
 Python tests.
-:::
+```
 
 ## Pull Request Guidelines
 

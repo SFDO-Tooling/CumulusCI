@@ -2,17 +2,13 @@
 
 ## Basic Operation
 
-::: tip
-::: title
-Tip
-:::
-
-If you\'re new to working with command line interfaces, the [Install
+```{tip}
+If you're new to working with command line interfaces, the [Install
 Visual Studio
 Code](https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup/review-base-requirements-install-visual-studio-code?trail_id=build-applications-with-cumulusci)
 Trailhead module covers installing and opening a terminal window in
 Visual Studio Code.
-:::
+```
 
 After `installing CumulusCI <get_started>`{.interpreted-text
 role="doc"}, use the `cci` command in your terminal or command prompt to
@@ -46,7 +42,7 @@ version  Print the current version of CumulusCI
 
 To retrieve information on a specific command, type `cci <command>`.
 
-Let\'s examine the `cci task` command:
+Let's examine the `cci task` command:
 
 ```console
 $ cci task
@@ -80,13 +76,13 @@ $ cci plan list
 ```
 
 The tasks, flows, and plans listed are specific to the project directory
-that you\'re in when you run the command. For example, if you have a
+that you're in when you run the command. For example, if you have a
 custom flow defined in your `cumulusci.yml` file for Project A, it will
-only be listed if you run `cci flow list` in Project A\'s root
+only be listed if you run `cci flow list` in Project A's root
 directory.
 
 The tasks and flows are listed by their `group` attribute as specified
-in the `cumulusci.yml` file. It\'s easy to edit these groups as you see
+in the `cumulusci.yml` file. It's easy to edit these groups as you see
 fit. Any modifications will be reflected in the `list` commands.
 
 ## Task Info and Options
@@ -111,7 +107,7 @@ Each option available for a given task also lists:
 -   Whether the option is required or optional.
 -   A description of the option.
 
-Let\'s examine the `util_sleep` task:
+Let's examine the `util_sleep` task:
 
 ```console
 $ cci task info util_sleep
@@ -147,7 +143,7 @@ Information about specific flows includes:
 -   A description of the flow.
 -   The ordered steps (and substeps) of a flow.
 
-For example, listing the info for the `dev_org` flow shows that it\'s
+For example, listing the info for the `dev_org` flow shows that it's
 composed of three subflows: `dependencies`, `deploy_unmanaged`, and
 `config_dev`, and one task: `snapshot_changes`. The tasks and flows
 making up the three subflows are also listed.
@@ -198,7 +194,7 @@ By default all of the above information is displayed. You can display
 only the list of messages by using the command line option `--messages`
 
 The following example shows the output of a typical plan, in this case a
-plan named \'config\'.
+plan named 'config'.
 
 ```console
 $ cci plan info config
@@ -269,13 +265,9 @@ $ cci flow run <name> --org <org> [options]
 
 This command runs the task or flow `<name>` against the org `<org>`.
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 You can see a list of available orgs by running `cci org list`.
-:::
+```
 
 For example, the `run_tests` task executes Apex unit tests in a given
 org. Assuming there exists an org named `dev`, you can run this task
@@ -283,7 +275,7 @@ against it with the command `cci task run run_tests --org dev`.
 
 ### Get Help Running Tasks
 
-If you\'re not certain about what a specific command does, use the
+If you're not certain about what a specific command does, use the
 `--help` flag to get more information.
 
 ```
@@ -310,8 +302,8 @@ list  List available tasks for the current context
 run   Runs a task
 ```
 
-If you\'re just getting started with CumulusCI and aren\'t sure which of
-the many tasks and flows to use, don\'t worry. We show you specific
+If you're just getting started with CumulusCI and aren't sure which of
+the many tasks and flows to use, don't worry. We show you specific
 tasks and flows in later sections of the documentation.
 
 ### Specify Task Options When Running Flows
@@ -336,14 +328,10 @@ wanted to set the `allow_newer` option on the `update_dependencies` to
 $ cci flow run dev_org --org dev -o update_dependencies__allow_newer True
 ```
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 If the specified task executes more than once in the flow, it uses the
 given option value _each time it executes_.
-:::
+```
 
 If you want to configure specific task options on flows without
 explicitly listing them see
@@ -428,7 +416,7 @@ $ cci service remove <service_type> <service_name>
 
 ## Troubleshoot Errors
 
-Errors happen! That\'s why `cci` provides tools to extract error details
+Errors happen! That's why `cci` provides tools to extract error details
 so that they can be reported and triaged.
 
 ### Report Error Logs
@@ -458,23 +446,19 @@ If you encounter an error and want more information on what caused it,
 the `cci error info` command displays the stack trace (if present) from
 the last command executed in CumulusCI.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 The stack trace displayed is a _Python_ stacktrace. This is helpful for
 locating where CumulusCI encountered an error in the source code.
-:::
+```
 
 ### See Stack Traces Automatically
 
-If you\'d like to investigate bugs in CumulusCI, set the config option
+If you'd like to investigate bugs in CumulusCI, set the config option
 `show_stacktraces` to `True` under the `cli` section of
 `~/.cumulusci/cumulusci.yml`. It turns off suppression of stack traces.
 
 Usage errors (such as incorrect command line arguments, missing files,
-and so on) don\'t show exception tracebacks because they are seldom
+and so on) don't show exception tracebacks because they are seldom
 helpful in that case.
 
 For help with troubleshooting errors or stack traces, reach out to the
@@ -485,20 +469,16 @@ Group](https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfileP
 
 All CumulusCI commands can be passed the `--debug` flag, so that:
 
--   Any calls to CumulusCI\'s logger at the debug level are shown.
+-   Any calls to CumulusCI's logger at the debug level are shown.
 -   Outgoing HTTP requests are logged.
 -   If an error is present, the corresponding stack trace is shown, and
     the user is dropped into a [post-mortem
     debugging](https://docs.python.org/3/library/pdb.html#pdb.post_mortem)
     session.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 To exit a debugging session, type the command `quit` or `exit`.
-:::
+```
 
 ### Log Files
 

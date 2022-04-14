@@ -15,16 +15,12 @@ example:
     an xpath expression
 -   `css:div.slds-spinner` defines an object by its css path
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 You can find the full list of supported locator strategies in the
 section titled [Explicit locator
 strategy](https://robotframework.org/SeleniumLibrary/SeleniumLibrary.html##Explicit%20locator%20strategy)
 in the SeleniumLibrary documentation.
-:::
+```
 
 In this section, we'll show how to create a project-specific locator
 strategy by storing locators in a dictionary and then associating them
@@ -42,14 +38,10 @@ want to store your locators in two files: one for the current release
 and one for the prerelease. You can then import the appropriate version
 at runtime.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 In order to keep the examples short we're only going to focus on
 supporting one release at a time in this documentation.
-:::
+```
 
 The locator dictionary can include nested dictionaries, so you can
 organize locators into logical groups. Each leaf node can be any locator
@@ -77,14 +69,10 @@ elements on the sidebar, and one related to elements of a modal window.
 Notice also that three of the locators are CSS selectors and one is an
 XPath.
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 Dictionaries can be nested as deeply as you want, but it's rarely
 necessary to have locators more than a couple of levels deep.
-:::
+```
 
 ## Registering the locator dictionary
 
@@ -156,12 +144,12 @@ text displayed in that element. For example, the html markup for a save,
 edit, and cancel button may be identical except for the word \"Save\",
 \"Edit\", or \"Cancel\".
 
-While you can create a separate locator for each button, it\'s better to
+While you can create a separate locator for each button, it's better to
 use a single parameterized locator for multiple buttons, which gives you
 more flexibility.
 
 Notice in our calendar locators we have one locator for a `menuitem`
-with the title of \'New Calendar\':
+with the title of 'New Calendar':
 
 ```
 locators = {
@@ -197,15 +185,11 @@ The [{}]{.title-ref} placeholders are replaced with the parameter
 values, in order. For example, the title in the above example becomes
 [New Calendar]{.title-ref}.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 If your locator has more than one parameter (ie: more than one instance
 of [{}]{.title-ref} within the locator definition), parameters will be
 replaced in the order in which they are supplied. The first parameter
 after the [:]{.title-ref} and before a comma will be used in place of
 the first [{}]{.title-ref}, the next parameter will be used in place of
 the next [{}]{.title-ref}, and so on.
-:::
+```

@@ -1,7 +1,7 @@
 # Release a Second-Generation Managed Package
 
 This section outlines how to release second-generation (2GP) Salesforce
-managed package projects. Salesforce.org\'s Release Engineering team
+managed package projects. Salesforce.org's Release Engineering team
 practices `CumulusCI Flow <cumulusci_flow>`{.interpreted-text
 role="doc"}, which incorporates all of these steps.
 
@@ -25,7 +25,7 @@ This section assumes:
 ## Create a Beta Version
 
 CumulusCI uses the `dependencies` section of your `cumulusci.yml` file
-to define your 2GP project\'s dependencies. CumulusCI uses GitHub
+to define your 2GP project's dependencies. CumulusCI uses GitHub
 releases to identify the ancestor id and new version number for the beta
 package version. By default, the new beta version will increment the
 minor version number from the most recent GitHub release.
@@ -46,18 +46,14 @@ you do not need to execute this step. Current versions of CumulusCI
 automatically store and consume the package version Id in GitHub
 releases.
 
-When you\'re ready, and your org is prepared, to upload a package
+When you're ready, and your org is prepared, to upload a package
 version, run the command
 
 ```console
 $ cci flow run release_2gp_beta --org dev
 ```
 
-::: important
-::: title
-Important
-:::
-
+```{important}
 The org supplied to `release_2gp_beta` has two purposes. One is to look
 up the Ids of dependency packages (see above). The other is to provide
 the configuration for the _build org_ used to upload the 2GP package
@@ -67,7 +63,7 @@ defines the features and settings available during package upload.
 
 You may wish to define a separate scratch org configuration just for
 package uploads to ensure only your required features are present.
-:::
+```
 
 The `release_2gp_beta` flow executes these tasks:
 
@@ -81,14 +77,10 @@ The `release_2gp_beta` flow executes these tasks:
     integrates the latest changes from `main`. For more information see
     `auto merging`{.interpreted-text role="ref"}.
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 To list each step in the `release_2gp_beta` flow, run
 `cci flow info release_2gp_beta`.
-:::
+```
 
 ### Customizing Package Uploads
 
@@ -140,7 +132,7 @@ of those unpackaged directories.
 
 The unlocked package route is generally suitable for testing only, where
 it may be convenient when working with complex legacy projects that
-include lots of unpackaged metadata. However, it\'s generally _not_
+include lots of unpackaged metadata. However, it's generally _not_
 suitable for use when building production packages, because your
 packages would have to be distributed along with those unlocked
 packages. For this reason, this behavior is off by default. If you would
@@ -172,8 +164,8 @@ $ cci flow run release_2gp_production --org packaging
 ```
 
 Unlike first-generation packages, promoting a second-generation package
-doesn\'t upload a new version. Instead, it promotes the most recent beta
-version (found in the project\'s GitHub releases) to production status.
+doesn't upload a new version. Instead, it promotes the most recent beta
+version (found in the project's GitHub releases) to production status.
 Then, CumulusCI creates a new, production GitHub release, and aggregates
 release notes for that release.
 

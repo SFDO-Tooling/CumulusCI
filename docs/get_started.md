@@ -2,17 +2,13 @@
 
 ## Install CumulusCI
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 These installation instructions assume some familiarity with entering
-commands into a terminal. If that\'s completely new to you, we recommend
+commands into a terminal. If that's completely new to you, we recommend
 visiting the [CumulusCI
 Setup](https://trailhead.salesforce.com/content/learn/modules/cumulusci-setup)
 module on Trailhead for a step-by-step walkthrough.
-:::
+```
 
 ### On macOS
 
@@ -79,7 +75,7 @@ When finished, [verify your installation](#verify-your-installation).
     ![image](images/windows_python.png)
 
 4.  On the screen entitled \"Setup was successful,\" click the \"Disable
-    path length limit\" button (if it\'s present).
+    path length limit\" button (if it's present).
 
     ![image](images/windows_python_success.png)
 
@@ -113,15 +109,11 @@ To permanently modify the default environment variables:
 
 ![image](images/env-var2.png)
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 Be precise when entering these paths. Add them at the very end of the
 Variable Value already in place. Separate each path by a semicolon (;)
 with no space between path names.
-:::
+```
 
 Open a new command prompt and verify that `pipx` is available:
 
@@ -183,28 +175,20 @@ To set up Salesforce DX:
 
 If you have the `sfdx` command installed, are connected to your Dev Hub,
 and set the `defaultdevhubusername` config setting (use
-`sfdx force:config:list` to verify), you\'re now ready to use `cci` with
+`sfdx force:config:list` to verify), you're now ready to use `cci` with
 `sfdx` to build scratch orgs.
 
-::: important
-::: title
-Important
-:::
-
+```{important}
 SFDX supports multiple Dev Hubs, so CumulusCI uses the one set as
 `defaultdevhubusername` when creating scratch orgs.
-:::
+```
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 For a detailed introduction on how to set up Salesforce CLI and Visual
 Studio Code to work with CumulusCI, review the [Build Applications with
 CumulusCI](https://trailhead.salesforce.com/en/content/learn/trails/build-applications-with-cumulusci)
 module on Trailhead.
-:::
+```
 
 Learn more about Salesforce DX at
 <https://developer.salesforce.com/platform/dx>.
@@ -224,20 +208,16 @@ by running `cci service list`:
 
 ![image](images/service-list.png)
 
-After you\'ve configured the `github` service, it\'s available to _all_
+After you've configured the `github` service, it's available to _all_
 CumulusCI projects.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 If your GitHub organization has enabled OAuth App access restrictions,
 CumulusCI will not be able to access organization repositories until it
 has been [approved by an
 owner](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-user-account/managing-your-membership-in-organizations/requesting-organization-approval-for-oauth-apps).
 You can use a personal access token instead.
-:::
+```
 
 Alternatively, you may [create a new personal access
 token](https://github.com/settings/tokens/new) with both **repo** and
@@ -256,25 +236,21 @@ Services are stored in the global CumulusCI keychain by default.
 
 ## Work On an Existing CumulusCI Project
 
-If you\'d like to work on an existing CumulusCI project on GitHub, these
+If you'd like to work on an existing CumulusCI project on GitHub, these
 are the prerequisites.
 
 1.  [Install CumulusCI](#install-cumulusci)
 2.  [Install
     Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-3.  [Clone the Project\'s GitHub
+3.  [Clone the Project's GitHub
     Repository](https://docs.github.com/en/free-pro-team@latest/desktop/contributing-and-collaborating-using-github-desktop/adding-and-cloning-repositories)
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 CumulusCI does not support projects stored on other Git hosts such as
 BitBucket or GitLab at this time.
-:::
+```
 
-You can change directories into the project\'s root directory and begin
+You can change directories into the project's root directory and begin
 executing `cci` commands.
 
 For example, `cci project info` shows information about the project:
@@ -320,7 +296,7 @@ test:
 
 ## Start a New CumulusCI Project
 
-If you\'d like to start a new CumulusCI project, these are the
+If you'd like to start a new CumulusCI project, these are the
 prerequisites.
 
 1.  [Install CumulusCI](#install-cumulusci)
@@ -329,7 +305,7 @@ prerequisites.
 3.  [Install the Salesforce
     CLI](https://developer.salesforce.com/tools/sfdxcli)
 
-Run the following commands to create a directory with your project\'s
+Run the following commands to create a directory with your project's
 name, navigate to said directory, and initialize it as a Git repository:
 
 ```console
@@ -343,18 +319,18 @@ Then, initialize the project as a CumulusCI project.
 ### Project Initialization
 
 Use the `cci project init` command within a Git repository to generate
-the initial version of a project\'s `cumulusci.yml` file. CumulusCI
+the initial version of a project's `cumulusci.yml` file. CumulusCI
 creates a customized `cumulusci.yml` file by first asking questions
 about your project.
 
 +------------+---------------------------------------------------------+
-| > Prompt | > What\'s it for? |
+| > Prompt | > What's it for? |
 +------------+---------------------------------------------------------+
 | Project | The name is usually the same as your repository name. |
 | Info | NOTE: Do **not** use spaces in the project name. |
 +------------+---------------------------------------------------------+
 | Package | CumulusCI uses an unmanaged package as a container for |
-| Name | your project\'s metadata. Enter the name of the package |
+| Name | your project's metadata. Enter the name of the package |
 | | you want to use. |
 +------------+---------------------------------------------------------+
 | Is this a | Yes, if this project is a managed package. |
@@ -376,25 +352,25 @@ about your project.
 +------------+---------------------------------------------------------+
 | Are you | CumulusCI makes it easy to build extensions of other |
 | extending | projects configured for CumulusCI like |
-| another | Salesforce.org\'s NPSP and EDA. If you are building an |
+| another | Salesforce.org's NPSP and EDA. If you are building an |
 | CumulusCI | extension of another project using CumulusCI and have |
 | project | access to its GitHub repository, use this section to |
 | such as | configure this project as an extension. |
 | NPSP or | |
 | EDA? | |
 +------------+---------------------------------------------------------+
-| Default | Your project\'s main/master branch in GitHub. Defaults |
+| Default | Your project's main/master branch in GitHub. Defaults |
 | Branch | to the branch that is currently checked out in your |
 | | local repository. |
 +------------+---------------------------------------------------------+
-| Feature | Your project\'s feature branch prefix (if any). |
+| Feature | Your project's feature branch prefix (if any). |
 | Branch | Defaults to `feature/`. |
 | Prefix | |
 +------------+---------------------------------------------------------+
-| Beta Tag | Your project\'s beta branch prefix (if any). Defaults |
+| Beta Tag | Your project's beta branch prefix (if any). Defaults |
 | Prefix | to `beta/`. |
 +------------+---------------------------------------------------------+
-| Release | Your project\'s release branch prefix (if any). |
+| Release | Your project's release branch prefix (if any). |
 | Tag Prefix | Defaults to `release/`. |
 +------------+---------------------------------------------------------+
 | Test Name | The CumulusCI Apex test runner uses a SOQL `WHERE` |
@@ -436,7 +412,7 @@ project:
 The `cumulusci.yml` file configures your project-specific tasks, flows,
 and customizations.
 
-Once you\'re satisfied, add and commit it to your Git repository.
+Once you're satisfied, add and commit it to your Git repository.
 
 ```console
 $ git add cumulusci.yml
@@ -459,24 +435,24 @@ you prefer.
 ## Convert an Existing Salesforce Project
 
 Converting an existing Salesforce project to use CumulusCI can follow a
-number of different paths, depending on whether you\'re practicing the
+number of different paths, depending on whether you're practicing the
 Org Development Model or the Package Development Model; whether or not
-you\'re already developing in scratch orgs; and the complexity of your
-project\'s dependencies on the org environment.
+you're already developing in scratch orgs; and the complexity of your
+project's dependencies on the org environment.
 
-If you\'re developing in persistent orgs and not already using source
-control, you\'ll also need to retrieve the existing metadata from the
+If you're developing in persistent orgs and not already using source
+control, you'll also need to retrieve the existing metadata from the
 org. Note that the processes of adopting source control and moving from
 persistent orgs to scratch orgs tend to look different for everyone, and
 these transitions sometimes require additional work.
 
-You\'re welcome to discuss project conversion in the [CumulusCI (CCI)
+You're welcome to discuss project conversion in the [CumulusCI (CCI)
 Trailblazer
 group](https://trailblazers.salesforce.com/_ui/core/chatter/groups/GroupProfilePage?g=0F9300000009M9Z).
 
 ### Project Setup
 
-Before retrieving your project\'s metadata, set up the project\'s root
+Before retrieving your project's metadata, set up the project's root
 directory.
 
 -   Create a project directory and initialize it as a Git repository as
@@ -493,17 +469,13 @@ recommend retrieving metadata via the Metadata API (using the Salesforce
 CLI), followed by converting the source from Metadata API to SFDX
 format.
 
-1.  If the metadata you want to retrieve isn\'t already in a package, create one. See [creating packages](https://help.salesforce.com/articleView?id=creating_packages.htm) for more info.
+1.  If the metadata you want to retrieve isn't already in a package, create one. See [creating packages](https://help.salesforce.com/articleView?id=creating_packages.htm) for more info.
 
-    : ::: note
-    ::: title
-    Note
-    :::
-
-        If your project contains a managed package, ensure that the
-        package namespace matches the namespace you entered when running
-        `cci project init`.
-        :::
+```{note}
+If your project contains a managed package, ensure that the
+package namespace matches the namespace you entered when running
+`cci project init`.
+```
 
 2.  Run the
     [retrieve](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference_force_mdapi.htm##cli_reference_retrieve)
@@ -513,7 +485,7 @@ format.
 $ sfdx force:source:retrieve -n package_name /path/to/project/
 ```
 
-That\'s it! You now have all of the metadata you care about in a single
+That's it! You now have all of the metadata you care about in a single
 Git repository configured for use with CumulusCI. At this point [add
 your repo to GitHub](#add-your-repo-to-github), or perhaps begin to
 `Configure CumulusCI <config>`{.interpreted-text role="doc"}.

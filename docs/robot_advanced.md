@@ -1,7 +1,7 @@
 # Robot Advanced Topics
 
 In the previous section we gave a broad overview of how Robot Framework
-is integrated with CumulsCI. In this section we\'ll take a deeper dive
+is integrated with CumulsCI. In this section we'll take a deeper dive
 into some advanced topics.
 
 ## Running CumulusCI Tasks
@@ -12,14 +12,14 @@ Class](Keywords.html#CumulusCI.Run%20Task%20Class).
 
 [Run Task](Keywords.html#CumulusCI.Run%20Task) can be used to run any
 CumulusCI tasks configured for the project. Tasks run can be any of
-CumulusCI\'s standard tasks as well as project-specific custom tasks
-from the project\'s `cumulusci.yml` file. `Run Task` accepts a single
+CumulusCI's standard tasks as well as project-specific custom tasks
+from the project's `cumulusci.yml` file. `Run Task` accepts a single
 argument, the task name, along with any arguments required by the task.
 
 [Run Task Class](Keywords.html#CumulusCI.Run%20Task%20Class) works in a
 similar fashion, but the task can be specified as a python class rather
 than a task name. For example, you can use this keyword to run logic
-from CumulusCI tasks which have not been configured in the project\'s
+from CumulusCI tasks which have not been configured in the project's
 cumulusci.yml file. This is most useful in cases where a test needs to
 use task logic for logic unique to the test and thus not worth making
 into a named task for the project.
@@ -80,10 +80,10 @@ The keyword takes a metric name, which can be any string, and a value,
 which can be any number.
 
 Using this keyword will automatically add the tag `cci_metric` to the
-test case and `${cci_metric_<metric_name>}` to the test\'s variables.
+test case and `${cci_metric_<metric_name>}` to the test's variables.
 These permit downstream processing in tools like CCI and MetaCI.
 
-Note: `cci_metric` is not included in Robot\'s html statistical
+Note: `cci_metric` is not included in Robot's html statistical
 roll-ups.
 
 ```robot
@@ -126,7 +126,7 @@ handle waiting automatically. After each click, the Salesforce Library
 waits for any pending requests to the server to complete. (Manually
 waiting using \"sleep\", or waiting for a particular element to appear,
 can still be necessary after specific interactions, and when interacting
-with pages that don\'t use the Lightning UI.)
+with pages that don't use the Lightning UI.)
 
 ## API Keywords
 
@@ -161,7 +161,7 @@ Using Page Objects \-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\--
 The
 [PageObjects](Keywords.html#file-cumulusci.robotframework.PageObjects)
 library provides support for page objects, Robot Framework-style. Even
-though Robot is a keyword-driven framework, it\'s also possible to
+though Robot is a keyword-driven framework, it's also possible to
 dynamically load in keywords unique to a page or an object on the page.
 
 With the `PageObjects` library, you can define classes that represent
@@ -375,7 +375,7 @@ single statement.
 Example: `Get page object Listing Contact`
 
 This keyword is most often used to get the reference to a keyword from
-another keyword. It is similar in function to robot\'s built-in [Get
+another keyword. It is similar in function to robot's built-in [Get
 Library
 Instance](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Get%20Library%20Instance)
 keyword. It is rarely used in a test.
@@ -401,7 +401,7 @@ Example: `Load page object Listing Contact`
 This keyword loads the page object for the given `page_type` and
 `object_name`. It is useful when you want to use keywords from a page
 object without first navigating to that page (for example, when you are
-already on the page and don\'t want to navigate away).
+already on the page and don't want to navigate away).
 
 #### Wait for Modal
 
@@ -415,13 +415,13 @@ and has a title of `New <object_name>` (such as \"New Contact\").
 
 Example: `Wait for page object Popup ActivityManager`
 
-Page objects don\'t have to represent entire pages. You can use the
+Page objects don't have to represent entire pages. You can use the
 `Wait for page object` keyword to wait for a page object representing a
 single element on a page, such as a popup window.
 
 ### Generic Page Objects
 
-You don\'t need to create a page object in order to take advantage of
+You don't need to create a page object in order to take advantage of
 page object keywords. If you use one of the page object keywords for a
 page that does not have its own page object, the `PageObjects` library
 attempts to find a generic page.
@@ -430,8 +430,8 @@ For example, if you use `Current page should be Home Event` and there
 is no page object by that name, a generic `Home` page object will be
 loaded, and its object name will be set to `Event`.
 
-Or let\'s say your project has created a custom object named
-`Island__c`. You don\'t have a home page, but the object does have a
+Or let's say your project has created a custom object named
+`Island__c`. You don't have a home page, but the object does have a
 standard listing page. Without creating any page objects, this test
 works by using generic implementations of the `Home` and `Listing` page
 objects:
@@ -544,16 +544,12 @@ with tasks and flows, via the `sources` configuration option in the
 `cumulusci.yml` file. However, keywords and tests require extra
 configuration before they can be used.
 
-::: note
-::: title
-Note
-:::
-
-This feature isn\'t for general purpose sharing of keywords between
+```{note}
+This feature isn't for general purpose sharing of keywords between
 multiple projects. It was designed specifically for the case where a
 product is being built on top of another project and needs access to
 product-specific keywords.
-:::
+```
 
 ### Using Keywords
 
@@ -564,7 +560,7 @@ defined for the project. To do this, add a `sources` option under the
 
 For exmple, if your project is built on top of NPSP, and you want to use
 keywords from the NPSP project, first add the NPSP repository as a
-source in the project\'s `cumulusci.yml` file:
+source in the project's `cumulusci.yml` file:
 
 ```yaml
 sources:
@@ -600,15 +596,11 @@ source, the `NPSP.robot` file can be imported into a test suite.
 Resource   robot/Cumulus/resources/NPSP.robot
 ```
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 Even with proper configuration, some keywords or keyword libraries might
 not be usable. Be careful to avoid using files that have the exact same
 name in multiple repositories.
-:::
+```
 
 ### Running Tests
 

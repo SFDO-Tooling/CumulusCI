@@ -6,16 +6,12 @@ project to run tasks and flows on them. This feature supports use cases
 such as deploying to a Developer Edition org to release a package
 version, or installing to a sandbox for user acceptance testing.
 
-::: attention
-::: title
-Attention
-:::
-
+```{attention}
 A different setup is required to connect to orgs in the context of an
 automated build. See
 `continuous integration <continuous_integration>`{.interpreted-text
 role="doc"} for more information.
-:::
+```
 
 ## The `org connect` Command
 
@@ -29,14 +25,10 @@ This command automatically opens a browser window pointed to a
 Salesforce login page. The provided `<org_name>` is the alias that
 CumulusCI will assign to the persistent org.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 Connecting an org via `cci org connect` does _not_ expose that org to
 the Salesforce CLI.
-:::
+```
 
 If your org has a custom domain, use the `--login-url` option along with
 the corresponding login url.
@@ -62,14 +54,10 @@ For sandboxes, pass the `--sandbox` flag along with the org name.
 $ cci org connect <org_name> --sandbox
 ```
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 The `--sandbox` flag can also be used for connecting a scratch org
 created externally to CumulusCI.
-:::
+```
 
 ## Verify Your Connected Orgs
 
@@ -111,8 +99,8 @@ $ cci org browser <org_name>
 
 By default, `cci org connect` stores the OAuth credentials for connected
 orgs in a _project-specific_ keychain. Using a project-specific keychain
-means that an org connected in Project A\'s directory isn\'t available
-when you\'re working in Project B\'s directory.
+means that an org connected in Project A's directory isn't available
+when you're working in Project B's directory.
 
 Connect an org and make it available to _all_ CumulusCI projects on your
 computer by passing the `--global-org` flag.
@@ -136,13 +124,9 @@ manually [edit its
 configuration](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_connected_app.htm)
 to suit your requirements.
 
-::: important
-::: title
-Important
-:::
-
+```{important}
 Make sure to create the Connected App in a production org!
-:::
+```
 
 This command will create a Connected App in the Dev Hub org connected to
 `sfdx`, and connect it to CumulusCI as a `connected_app` service named
@@ -178,7 +162,7 @@ connected app:
 $ cci org connect <org_name> --connected-app custom
 ```
 
-To edit the Connected App\'s OAuth scopes:
+To edit the Connected App's OAuth scopes:
 
 1.  In Lightning Experience, go to Setup \--\> Apps \--\> Apps Manager.
 2.  Click the arrow on the far right side of the row that pertains to
