@@ -551,7 +551,7 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
         with contextlib.ExitStack() as stack:
             if source_format is SourceFormat.SFDX:
                 # Convert source first.
-                stack.enter_context(temporary_dir(chdir=True))
+                stack.enter_context(temporary_dir(chdir=False))
                 zip_src.extractall()
                 real_path = stack.enter_context(
                     convert_sfdx_source(self.subfolder, None, context.logger)
