@@ -1,14 +1,12 @@
----
-title: Contribute to CumulusCI
----
+# Contribute to CumulusCI
 
 Contributions are welcome, and they are greatly appreciated!
 
-# Types of Contributions
+## Types of Contributions
 
 You can contribute in many ways:
 
-## Report Bugs
+### Report Bugs
 
 Report bugs at <https://github.com/SFDO-Tooling/CumulusCI/issues>.
 
@@ -19,24 +17,24 @@ When reporting a bug, please include:
     troubleshooting.
 -   Detailed steps to reproduce the bug.
 
-## Fix Bugs
+### Fix Bugs
 
 Look through the GitHub issues for bugs. Anything tagged with \"bug\"
 and \"help wanted\" is open to whomever wants to implement it.
 
-## Implement Features
+### Implement Features
 
 Look through the GitHub issues for features. Anything tagged with
 \"enhancement\" and \"help wanted\" is open to whomever wants to
 implement it.
 
-## Write Documentation
+### Write Documentation
 
 CumulusCI could always use more documentation, whether as part of the
 official CumulusCI docs, in docstrings, or even on the web in blog
 posts, articles, and such.
 
-## Submit Feedback
+### Submit Feedback
 
 The best way to send feedback is to file an
 [issue](https://github.com/SFDO-Tooling/CumulusCI/issues).
@@ -49,7 +47,7 @@ If you are proposing a feature:
 -   Remember that this is a volunteer-driven project, and that
     contributions are welcome :)
 
-# Install for Development
+## Install for Development
 
 Ready to contribute? Here\'s how to set up CumulusCI for local
 development.
@@ -88,17 +86,13 @@ development.
     changes (contact us to create the branch). This allows us to test
     the changes using our build system before merging to main.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 We enable typeguard with pytest so if you add type declarations to your
 code, those declarations will be treated as runtime assertions in your
 Python tests.
-:::
+```
 
-# Pull Request Guidelines
+## Pull Request Guidelines
 
 Before you submit a pull request, check that it meets these guidelines:
 
@@ -111,9 +105,9 @@ Before you submit a pull request, check that it meets these guidelines:
     `AUTHORS.rst` file in your pull request (either GitHub username, or
     first/last name).
 
-# Testing CumulusCI
+## Testing CumulusCI
 
-## Org-reliant Automated Tests
+### Org-reliant Automated Tests
 
 Some tests are marked `@pytest.mark.vcr()` which means that they can
 either call into a real (configured) Salesforce org or use a cached YAML
@@ -135,7 +129,7 @@ This will configure an org named \"qa\" and regenerate them.
 That will run all VCR-backed tests against the org, including all of the
 slow integration tests.
 
-## Running Integration Tests
+### Running Integration Tests
 
 Some tests generate so much data that we do not want to store the VCR
 cassettes in our repo. You can mark tests like that with
@@ -154,7 +148,7 @@ basis. Mark these tests with `@pytest.mark.slow()` and run them with
 `pytest --run-slow-tests` or
 `pytest --run-slow-tests --orgname <orgname>`.
 
-## Writing Integration Tests
+### Writing Integration Tests
 
 All features should have integration tests which work against real orgs
 or APIs.
@@ -179,7 +173,7 @@ examples where they are used in context, or to see their definitions:
     directory
 -   org_config - Get the project config for the current working
     directory
--   create_task - Get a task \_[factory]() which can be used to
+-   create*task - Get a task \_factory* which can be used to
     construct task instances.
 -   global_describe - Get a function that will generate the JSON that
     Salesforce would generate if you do a GET on the /sobjects endpoint
@@ -201,7 +195,7 @@ Decorators for tests:
 >     \"qa_org\". As with all tests, clean up any changes you make,
 >     because this org may be reused by other tests.
 
-## Randomized tests
+### Randomized tests
 
 Tests should be executable in any order. You can run this command a few
 times to verify if they are:
@@ -217,4 +211,4 @@ particular run later.
 
 In extremely rare cases where it\'s not possible to make tests
 independent, you can [enforce an
-order](https://pythonhosted.org/pytest-random-order/#disable-shuffling-in-module-or-class)
+order](https://pythonhosted.org/pytest-random-order/##disable-shuffling-in-module-or-class)

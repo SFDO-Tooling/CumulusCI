@@ -1,8 +1,6 @@
----
-title: Metadata ETL
----
+# Metadata ETL
 
-# Introduction to Metadata ETL
+## Introduction to Metadata ETL
 
 \"ETL\" refers to \"extract, transform, and load\" operations, usually
 applied to data. CumulusCI offers a suite of functionality we call
@@ -23,20 +21,20 @@ dependencies, or entail more destructive deployment operations.
 A primary example use case for Metadata ETL is deployment of Standard
 Value Sets. Standard Value Sets, which define the picklist values
 available on standard fields like `Opportunity.StageName`, are not
-packageable, and as such must be part of an application\'s unpackaged
-metadata. They\'re critical to many applications: a Business Process,
+packageable, and as such must be part of an application's unpackaged
+metadata. They're critical to many applications: a Business Process,
 for example, will fail to deploy if the Stage values it includes are not
 available. And lastly, they come with a serious danger for deployment
 into subscriber orgs: deploying Standard Value Sets is an overwrite
-operation, so all existing values in the target org that aren\'t part of
-the deployment are deactivated. This means that it\'s neither safe nor
+operation, so all existing values in the target org that aren't part of
+the deployment are deactivated. This means that it's neither safe nor
 maintainable to store static Standard Value Set metadata in a project
 and deploy it.
 
 These three facets - non-packageability, application requirements, and
 deployment safety -all support a Metadata ETL approach. Rather than
 attempting to deploy static metadata stored in the repository, the
-product\'s automation should _extract_ the Standard Value Set metadata
+product's automation should _extract_ the Standard Value Set metadata
 from the org, _transform_ it to include the desired values (as well as
 all existing customization), and _load_ the transformed metadata back
 into the org. CumulusCI now ships with a task,
@@ -55,10 +53,10 @@ add_standard_value_set_entries:
 
 This task would retrieve the existing `Case.Status` picklist value set
 from the org, add the `New_Value` entry to it, and redeploy the modified
-metadata - ensuring that the application\'s needs are met with a safe,
+metadata - ensuring that the application's needs are met with a safe,
 minimal intervention in the target org.
 
-# Standard Metadata ETL Tasks
+## Standard Metadata ETL Tasks
 
 CumulusCI includes several Metadata ETL tasks in its standard library.
 For information about all of the available tasks, see `cci task list`
@@ -80,16 +78,14 @@ The Metadata ETL framework makes it easy to add more tasks. For
 information about implementing Metadata ETL tasks, see TODO: link to
 section in Python customization.
 
-# Namespace Injection
+## Namespace Injection
 
 All out-of-the-box Metadata ETL tasks accept a Boolean `managed` option.
 If `True`, CumulusCI will replace the token `%%%NAMESPACE%%%` in API
-names and in values used for transforming metadata with the project\'s
-namespace; if `False`, the token will simply be removed. See
-`Namespace Injection`{.interpreted-text role="ref"} for more
-information.
+names and in values used for transforming metadata with the project's
+namespace; if `False`, the token will simply be removed. See [](namespace-injection) for more information.
 
-# Implementation of Metadata ETL Tasks
+## Implementation of Metadata ETL Tasks
 
 This section covers internals of the Metadata ETL framework, and is
 intended for users who wish to build their own Metadata ETL tasks.
@@ -111,8 +107,8 @@ be overridden. This method should make any desired changes to the
 supplied `MetadataElement`, and either return a `MetadataElement` for
 deployment, or `None` to suppress deployment of this entity. Classes may
 also opt to include their own options in `task_options`, but generally
-should also incorporate the base class\'s options, and override
-`_init_options()` (`super`\'s implementation should also be called to
+should also incorporate the base class's options, and override
+`_init_options()` (`super`'s implementation should also be called to
 ensure that supplied API names are processed appropriately).
 
 The `SetDuplicateRuleStatus` class is a simple example of implementing a
@@ -128,14 +124,14 @@ from cumulusci.core.utils import process_bool_arg
 
 
 class SetDuplicateRuleStatus(MetadataSingleEntityTransformTask):
-    # Subclasses *must* define `entity`
+    ## Subclasses *must* define `entity`
     entity = "DuplicateRule"
 
-    # Most subclasses include the base class's options via
-    # **MetadataSingleEntityTransformTask.task_options. Further
-    # options may be added for this specific task. The base class
-    # options include in particular the standard `api_names` option,
-    # which base class functionality requires.
+    ## Most subclasses include the base class's options via
+    ## **MetadataSingleEntityTransformTask.task_options. Further
+    ## options may be added for this specific task. The base class
+    ## options include in particular the standard `api_names` option,
+    ## which base class functionality requires.
     task_options = {
         "active": {
             "description": "Boolean value, set the Duplicate Rule to either active or inactive",
@@ -144,21 +140,21 @@ class SetDuplicateRuleStatus(MetadataSingleEntityTransformTask):
         **MetadataSingleEntityTransformTask.task_options,
     }
 
-    # The `_transform_entity()` method must be overriden.
+    ## The `_transform_entity()` method must be overriden.
     def _transform_entity(
         self, metadata: MetadataElement, api_name: str
     ) -> Optional[MetadataElement]:
-        # This method modifies the supplied `MetadataElement`, using methods
-        # from CumulusCI's metadata_tree module, to match the desired configuration.
+        ## This method modifies the supplied `MetadataElement`, using methods
+        ## from CumulusCI's metadata_tree module, to match the desired configuration.
         status = "true" if process_bool_arg(self.options["active"]) else "false"
         metadata.find("isActive").text = status
 
-        # Always return the modified `MetadataElement` if deployment is desired.
-        # To not deploy this element, return `None`.
+        ## Always return the modified `MetadataElement` if deployment is desired.
+        ## To not deploy this element, return `None`.
         return metadata
 ```
 
-## Advanced Metadata ETL Base Classes
+### Advanced Metadata ETL Base Classes
 
 Most Metadata ETL tasks subclass `MetadataSingleEntityTransformTask`.
 However, the framework also includes classes that provide more

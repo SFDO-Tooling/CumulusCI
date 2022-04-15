@@ -1,7 +1,8 @@
----
-title: About CumulusCI
----
+# About CumulusCI
 
-::: {.toctree maxdepth="1"}
-history contributing
-:::
+```{toctree}
+:maxdepth: 1
+
+history
+contributing
+```

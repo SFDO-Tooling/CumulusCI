@@ -1,33 +1,27 @@
----
-title: Release a Second-Generation Managed Package
----
+# Release a Second-Generation Managed Package
 
 This section outlines how to release second-generation (2GP) Salesforce
-managed package projects. Salesforce.org\'s Release Engineering team
-practices `CumulusCI Flow <cumulusci_flow>`{.interpreted-text
-role="doc"}, which incorporates all of these steps.
+managed package projects. Salesforce.org's Release Engineering team
+practices [CumulusCI Flow](cumulusci_flow), which incorporates all of these steps.
 
-# Prerequisites
+## Prerequisites
 
 This section assumes:
 
--   `CumulusCI is installed <get_started>`{.interpreted-text role="doc"}
-    on your computer.
--   A Salesforce managed package project has been
-    `configured <project initialization>`{.interpreted-text role="ref"}
+-   [CumulusCI is installed](get_started) on your computer.
+-   A Salesforce managed package project has been [configured](project-initialization)
     for use with CumulusCI.
 -   Your Dev Hub has the required features enabled: [Enable DevHub
     Features in Your
     Org](https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packagingGuide/sfdx_setup_enable_devhub.htm)
-    and [Enable Unlocked and Second-Generation Managed
-    Packaging](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_secondgen_pkg.htm).
+    and [Enable Unlocked and Second-Generation Managed Packaging](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_secondgen_pkg.htm).
 -   A namespace org has been [created and linked to the active Dev
     Hub](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_dev2gp_create_namespace.htm).
 
-# Create a Beta Version
+## Create a Beta Version
 
 CumulusCI uses the `dependencies` section of your `cumulusci.yml` file
-to define your 2GP project\'s dependencies. CumulusCI uses GitHub
+to define your 2GP project's dependencies. CumulusCI uses GitHub
 releases to identify the ancestor id and new version number for the beta
 package version. By default, the new beta version will increment the
 minor version number from the most recent GitHub release.
@@ -48,18 +42,14 @@ you do not need to execute this step. Current versions of CumulusCI
 automatically store and consume the package version Id in GitHub
 releases.
 
-When you\'re ready, and your org is prepared, to upload a package
+When you're ready, and your org is prepared, to upload a package
 version, run the command
 
 ```console
 $ cci flow run release_2gp_beta --org dev
 ```
 
-::: important
-::: title
-Important
-:::
-
+```{important}
 The org supplied to `release_2gp_beta` has two purposes. One is to look
 up the Ids of dependency packages (see above). The other is to provide
 the configuration for the _build org_ used to upload the 2GP package
@@ -69,7 +59,7 @@ defines the features and settings available during package upload.
 
 You may wish to define a separate scratch org configuration just for
 package uploads to ensure only your required features are present.
-:::
+```
 
 The `release_2gp_beta` flow executes these tasks:
 
@@ -81,18 +71,14 @@ The `release_2gp_beta` flow executes these tasks:
     role="ref"}.
 -   Syncs feature branches with the `main` branch, which automatically
     integrates the latest changes from `main`. For more information see
-    `auto merging`{.interpreted-text role="ref"}.
+    [](auto-merging).
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 To list each step in the `release_2gp_beta` flow, run
 `cci flow info release_2gp_beta`.
-:::
+```
 
-## Customizing Package Uploads
+### Customizing Package Uploads
 
 2GP package uploads are performed by the `create_package_version` task.
 If the built-in configuration used by `release_2gp_beta` does not suit
@@ -107,7 +93,7 @@ To learn more about the available options, run
 $ cci task info create_package_version
 ```
 
-## Handling Unpackaged Metadata
+### Handling Unpackaged Metadata
 
 CumulusCI projects can include _unpackaged metadata_ in directories like
 `unpackaged/pre` and `unpackaged/post`. These directories are deployed
@@ -125,8 +111,7 @@ this requires that those dependencies be met in other ways, such as by
 configuring the scratch org definition. For examples of how to satisfy
 the install-time dependencies for NPSP and EDA without using unpackaged
 metadata, see
-`Extending NPSP and EDA with Second-Generation Packaging <npsp_eda_2gp>`{.interpreted-text
-role="doc"}.
+[Extending NPSP and EDA with Second-Generation Packaging](npsp_eda_2gp).
 
 The other option is to have CumulusCI automatically create unlocked
 packages containing unpackaged metadata from dependency projects. For
@@ -142,7 +127,7 @@ of those unpackaged directories.
 
 The unlocked package route is generally suitable for testing only, where
 it may be convenient when working with complex legacy projects that
-include lots of unpackaged metadata. However, it\'s generally _not_
+include lots of unpackaged metadata. However, it's generally _not_
 suitable for use when building production packages, because your
 packages would have to be distributed along with those unlocked
 packages. For this reason, this behavior is off by default. If you would
@@ -150,7 +135,7 @@ like to use it, configure your `cumulusci.yml` to set the option
 `create_unlocked_dependency_packages` on the `create_package_version`
 task.
 
-# Test a Beta Version
+## Test a Beta Version
 
 The `ci_beta` flow installs the latest beta version of the project in a
 scratch org, and runs Apex tests against it.
@@ -161,7 +146,7 @@ $ cci flow run ci_beta --org beta
 
 This flow is intended to be run whenever a beta release is created.
 
-# Promote a Production Version
+## Promote a Production Version
 
 To be installed in a production org, an 2GP package version must be
 [promoted](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_create_pkg_ver_promote.htm)
@@ -174,8 +159,8 @@ $ cci flow run release_2gp_production --org packaging
 ```
 
 Unlike first-generation packages, promoting a second-generation package
-doesn\'t upload a new version. Instead, it promotes the most recent beta
-version (found in the project\'s GitHub releases) to production status.
+doesn't upload a new version. Instead, it promotes the most recent beta
+version (found in the project's GitHub releases) to production status.
 Then, CumulusCI creates a new, production GitHub release, and aggregates
 release notes for that release.
 
@@ -190,7 +175,7 @@ Alternatively, you can use the `sfdx force:package:version:promote`
 command to promote a 2GP package. Note that using this command will also
 not perform any release operations in GitHub.
 
-## Promote Dependencies
+### Promote Dependencies
 
 If additional unlocked packages were created to hold unpackaged
 dependencies, they must be promoted as well. To promote dependencies

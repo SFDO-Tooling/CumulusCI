@@ -1,3 +1,1 @@
----
-title: CumulusCI Internal API
----
+# CumulusCI Internal API

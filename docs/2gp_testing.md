@@ -1,6 +1,4 @@
----
-title: Testing with Second-Generation Packaging
----
+# Testing with Second-Generation Packaging
 
 CumulusCI makes it easy to harness the power of second-generation
 managed packages to implement an advanced, comprehensive testing process
@@ -24,7 +22,7 @@ while preparing for the migration into second-generation packaging. This
 process is also applicable for testing products that started as
 second-generation packages.
 
-# Building 2GP Beta Packages in Continuous Integration
+## Building 2GP Beta Packages in Continuous Integration
 
 Any managed package product - first or second generation - can use
 CumulusCI automation to build and test 2GP beta packages. The
@@ -49,7 +47,7 @@ stored in the \"Build Feature Test Package\" commit status on GitHub.
 Testing and 2GP build flows can acquire the package version from this
 store.
 
-# 2GP Tests for Feature Branches
+## 2GP Tests for Feature Branches
 
 The `ci_feature_2gp` flow parallels `ci_feature`, which is used for
 unmanaged feature testing in continuous integration, but uses a 2GP
@@ -59,17 +57,13 @@ When executed on a specific commit, the flow acquires a 2GP feature test
 package id from the \"Build Feature Test Package\" commit status on that
 commit. It installs that package, then executes Apex unit tests.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 The `ci_feature_2gp` flow is intended for use after the
 `build_feature_test_package` flow. On MetaCI, this is implemented by
 using a Commit Status trigger to run `ci_feature_2gp`; on other CI
 systems, a `ci_feature_2gp` build may be made dependent on a
 `build_feature_test_package` build.
-:::
+```
 
 Running 2GP tests in CI can replace the use of namespaced scratch orgs
 for most automated testing objectives. 2GP testing orgs provide a more
@@ -78,17 +72,13 @@ will behave once packaged, making it possible to catch packaging-related
 issues _before_ code is merged to the main branch or deployed to a 1GP
 packaging org.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 Component coverage for first- and second-generation packages is very
 similar, but some projects may use components with differing behaviors.
 Consult the [Metadata Coverage
 Report](https://developer.salesforce.com/docs/metadata-coverage) with
 any questions.
-:::
+```
 
 Manual QA can be executed on feature branches via the flow `qa_org_2gp`,
 which operates just like `ci_feature_2gp` but which also executes
@@ -96,7 +86,7 @@ which operates just like `ci_feature_2gp` but which also executes
 may be executed against 2GP orgs by running `qa_org_2gp` instead of
 `qa_org` before invoking `robot`.
 
-# End-to-End Testing with Second-Generation Packages
+## End-to-End Testing with Second-Generation Packages
 
 The `qa_org_2gp` flow allows for performing manual and automated
 end-to-end tests of multi-package products sooner in the development
@@ -107,7 +97,7 @@ lifecycle then was previously possible. Take the following example:
     feature being developed for Product A.
 
 Without the ability to test with 2GP packages, end-to-end testing on
-Product A and B\'s linked features could only occur once both products
+Product A and B's linked features could only occur once both products
 have moved significantly forward in the development lifecycle:
 
 -   Both A and B merge their feature work into their main branch in a
@@ -116,7 +106,7 @@ have moved significantly forward in the development lifecycle:
     products are 1GPs.
 -   New beta versions for both Product A and B are created
 -   In many cases, a production release for Product A must also be
-    created to satisfy B\'s dependency, if the packages are 1GPs.
+    created to satisfy B's dependency, if the packages are 1GPs.
 
 Once all of the steps above have occurred, end-to-end testing with new
 managed package versions can take place. However, if _any_ errors are
@@ -127,12 +117,11 @@ With 2GP testing, this is no longer the case.
 Instead, a tester may execute the `qa_org_2gp` flow from a feature
 branch in the repository of Product B. The following will occur:
 
-1.  CumulusCI resolves dependencies as they are defined Product B\'s
+1.  CumulusCI resolves dependencies as they are defined Product B's
     `cumulusci.yml` file, using the `commit_status` resolution strategy.
     CumulusCI matches the current branch and release against branches in
     the upstream dependencies to locate the most relevant 2GP packages
-    for this testing process. See
-    `dependency-resolution`{.interpreted-text role="ref"} for more
+    for this testing process. See [](dependency-resolution) for more
     details.
 2.  CumulusCI installs suitable 2GP feature test packages for Product A
     and any other dependencies, if found, or falls back to 1GP packages

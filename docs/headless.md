@@ -1,6 +1,4 @@
----
-title: Run CumulusCI Headlessly
----
+# Run CumulusCI Headlessly
 
 CumulusCI can be used to run continuous integration builds in your CI
 system.
@@ -9,7 +7,9 @@ This section outlines how to setup services and orgs that can be defined
 in a particular environment such that they will be recognized by
 CumulusCI.
 
-# Register Environment Services
+(register-environment-services)=
+
+## Register Environment Services
 
 It is often the case that services you use for local development will
 differ from the services that you want to use in your build system. For
@@ -19,7 +19,7 @@ to run as an integration user when interacting with GitHub. By providing
 environment variables with specific prefixes, CumulusCI can detect and
 register those services for use when running tasks and flows.
 
-## Name Environment Services
+### Name Environment Services
 
 Environment variables that define CumulusCI services adhere to the
 following format:
@@ -53,7 +53,7 @@ By always prepending [env]{.title-ref} to the names of services
 specified by environment variables, it is easy to see which services are
 currently set by environment variables and which are not.
 
-## Environment Service Config Values
+### Environment Service Config Values
 
 The value of the environment variables (i.e. everything that comes after
 the `=` character) are provided in the form of a JSON string. The
@@ -71,9 +71,9 @@ tag in the CumulusCI standard
 library](https://github.com/SFDO-Tooling/CumulusCI/blob/34533b4a1caa3f1850c64e223ece26069c83b60e/cumulusci/cumulusci.yml#L1164)
 and provide values for all \"attributes\" listed under the desired
 service. You can also use `cci service info` to get the values from a
-service you\'ve configured locally.
+service you've configured locally.
 
-For example, if you\'re looking to register a `connected_app` service,
+For example, if you're looking to register a `connected_app` service,
 then the attributes: `callback_url`, `client_id`, and `client_secret`
 would need to be provided in the following format:
 
@@ -84,7 +84,9 @@ would need to be provided in the following format:
 > The values `<callback_url>`, `<client_id>`, and `<client_secret>`
 > should all be replaced with actual values.
 
-# Register Persistent Orgs
+(register-persistent-orgs)=
+
+## Register Persistent Orgs
 
 Certain builds may require working with one or more persistent orgs.
 Using the JWT flow for authentication is the recommended approach when
@@ -112,16 +114,12 @@ following environment variables.
 
 See the below entries for the values to use with each.
 
-::: important
-::: title
-Important
-:::
-
+```{important}
 Setting the above environment variables negates the need to use the
 `cci org connect` command. You can simply run a `cci` command and pass
 the `--org orgName` option, where `orgName` corresponds to the name used
 in the `CUMULUSCI_ORG_*` environment variable.
-:::
+```
 
 In the context of GitHub Actions, all of these environment variables
 would be declared under the `env` section of a workflow. Below is an
@@ -146,7 +144,7 @@ Note that the value of the `server_key` environment variable is the
 content of the file `server.key`, which was created as part of your
 Connected App setup. The key is in PEM format.
 
-### `CUMULUSCI_ORG_orgName`
+#### `CUMULUSCI_ORG_orgName`
 
 The name of this environment variable defines what name to use for the
 value of the `--org` option. For example, a value of
@@ -171,37 +169,35 @@ You can see an example of setting this environment variable in a GitHub
 actions workflow in our [demo
 repository](https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml#L11).
 
-::: admonition
-Wizard Note
-
-If the target org\'s instance URL is instanceless (i.e. does not contain
+```{admonition} Wizard Note
+If the target org's instance URL is instanceless (i.e. does not contain
 a segment like cs46 identifying the instance), then for sandboxes it is
 also necessary to set `SFDX_AUDIENCE_URL` to
 `https://test.salesforce.com"`. This instructs CumulusCI to set the
 correct `aud` value in the JWT (which is normally determined from the
 instance URL).
-:::
+```
 
-### `SFDX_CLIENT_ID`
+#### `SFDX_CLIENT_ID`
 
-Set this to your Connected App\'s client id. This, combined with the
+Set this to your Connected App's client id. This, combined with the
 `SFDX_HUB_KEY` variable instructs CumulusCI to authenticate to the org
 using the [JWT Bearer
-Flow](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_jwt_flow.htm#sfdx_dev_auth_jwt_flow)
+Flow](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_jwt_flow.htm##sfdx_dev_auth_jwt_flow)
 instead of the [Web Server
-Flow](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm#!).
+Flow](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm##!).
 
-### `SFDX_HUB_KEY`
+#### `SFDX_HUB_KEY`
 
 Set this to the private key associated with your Connected App (this is
 the contents of your `server.key` file). This combined with the
 `SFDX_CLIENT_ID` variable instructs CumulusCI to authenticate to the org
 using the [JWT Bearer
-Flow](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_jwt_flow.htm#sfdx_dev_auth_jwt_flow)
+Flow](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_jwt_flow.htm##sfdx_dev_auth_jwt_flow)
 instead of the [Web Server
-Flow](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm#!).
+Flow](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_auth_web_flow.htm##!).
 
-# Multiple Services of the Same Type
+## Multiple Services of the Same Type
 
 In rare cases a build may need to utilize multiple services of the same
 type. To set a specific service as the default for subsequent

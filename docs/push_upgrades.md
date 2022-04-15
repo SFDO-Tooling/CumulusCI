@@ -1,20 +1,14 @@
----
-title: Manage Push Upgrades
----
+# Manage Push Upgrades
 
 If your packaging org (for first-generation packages) or Dev Hub (for
 second-generation packages) is enabled to use push upgrades, CumulusCI
 can schedule push upgrades with the `push_sandbox` and `push_all` tasks.
 
-::: warning
-::: title
-Warning
-:::
-
-`push_all` schedules push upgrades to _all_ customers\' production and
+```{warning}
+`push_all` schedules push upgrades to _all_ customers' production and
 sandbox orgs. Please confirm that this action is desired before
 executing the task.
-:::
+```
 
 ```console
 $ cci task run push_all --version <version> --org packaging
@@ -43,7 +37,7 @@ standard library.
     upgrade of a package version to all orgs listed in
     `push/orgs_qa.txt`.
 -   `**push_sandbox**`{.interpreted-text role="ref"}: Schedules a push
-    upgrade of a package version to all subscribers\' sandboxes.
+    upgrade of a package version to all subscribers' sandboxes.
 -   `**push_trial**`{.interpreted-text role="ref"}: Schedules a push
     upgrade of a package version to Trialforce Template orgs listed in
     `push/orgs_trial.txt`.

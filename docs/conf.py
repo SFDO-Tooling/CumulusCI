@@ -13,8 +13,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
 import os
+import sys
 
 # If extensions (or modules to document with autodoc) are in another
 # directory, add these directories to sys.path here. If the directory is
@@ -45,13 +45,23 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
+    "myst_parser"#,
+#    "recommonmark"
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = ".rst"
+# source_suffix = ".md" #".rst"
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
+
+# Auto-generate anchors for headings
+myst_heading_anchors = 3
+
 
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
@@ -68,7 +78,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "CumulusCI"
-copyright = "2021, Salesforce.org"
+copyright = "2022, Salesforce.org"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -301,6 +311,7 @@ texinfo_documents = [
 def generate_task_and_flow_docs(_):
     """Run cci commands to generate tasks.rst and flows.rst"""
     import subprocess
+
     from sphinx.util.logging import getLogger
 
     logger = getLogger("cci")
