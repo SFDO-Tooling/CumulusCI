@@ -9,6 +9,7 @@ jinja2<3
 keyring<=23.0.1
 lxml
 MarkupSafe
+myst-parser
 psutil
 pydantic
 PyJWT
