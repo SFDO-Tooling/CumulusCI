@@ -345,7 +345,7 @@ several things:
 CumulusCI is able to connect to the `packaging` org via
 `CUMULUSCI_ORG_packaging` environment variable defined at the [top of
 the
-workflow](https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml##L11).
+workflow](https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml#L11).
 ```
 
 ## References

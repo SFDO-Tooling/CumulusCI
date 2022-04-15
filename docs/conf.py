@@ -62,6 +62,7 @@ source_suffix = {
 # Auto-generate anchors for headings
 myst_heading_anchors = 3
 
+
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
 

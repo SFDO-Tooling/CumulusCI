@@ -44,10 +44,15 @@ specific sObject as part of the dataset, and defines the relevant fields
 on that sObject as well as its relationships to other sObjects that are
 included in the data set.
 
-> Note: this section discusses how to define a dataset and the format of
-> the definition file. In many cases, it's easier to use the
-> `generate_dataset_mapping` task than to create this definition by
-> hand. See below for more details.
+
+```{note}
+This section discusses how to define a dataset and the format of
+the definition file. In many cases, it's easier to use the
+`generate_dataset_mapping` task than to create this definition by
+hand. See below for more details.
+```
+
+```
 
 A simple dataset definition looks like this:
 
@@ -359,8 +364,7 @@ used when extracting data from your Salesforce org:
 Note that trying to load data that is extracted using `soql_filter` may
 cause \"invalid cross reference id\" errors if related object records
 are filtered on extract. Use this feature only if you fully understand
-how [CumulusCI load data
-task](https://cumulusci.readthedocs.io/en/stable/data.html##load-dataset)
+how [CumulusCI load data task](data-load-dataset)
 resolves references to related records when loading data to a Salesforce
 org.
 
@@ -568,6 +572,7 @@ Example: :
 
     cci task run extract_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
 
+(data-load-dataset)=
 ### `load_dataset`
 
 Load the data for a dataset into an org. If the storage is a database,
@@ -746,7 +751,7 @@ You can learn more about Snowfakery syntax in the next section.
 
 It is possible to use CumulusCI to generate arbitrary amounts of
 synthetic data using the `snowfakery`
-[task](https://cumulusci.readthedocs.io/en/latest/tasks.html##snowfakery).
+[task](https://cumulusci.readthedocs.io/en/latest/tasks.html#snowfakery).
 That task is built on the [Snowfakery
 language](https://snowfakery.readthedocs.io/en/docs/). CumulusCI ships
 with Snowfakery embedded, so you do not need to install it.
@@ -897,7 +902,7 @@ goal (800K Accounts) and finish the job.
 Another reason you might choose smaller batch sizes is to minimize the
 risk of row locking errors when you have triggers enabled. Turning off
 triggers is generally preferable, and CumulusCI [has a
-task](https://cumulusci.readthedocs.io/en/latest/tasks.html##disable-tdtm-trigger-handlers)
+task](https://cumulusci.readthedocs.io/en/latest/tasks.html#disable-tdtm-trigger-handlers)
 for doing for TDTM trigger handlers, but sometimes you cannot avoid
 them. Using smaller batch sizes may be preferable to switching to serial
 mode. If every SObject in a batch uploads less than 10,000 rows then you

@@ -106,7 +106,7 @@ computer by passing the `--global-org` flag.
 ```console
 $ cci org connect <org_name> --global-org
 ```
-
+(use-a-custom-connected-app)=
 ## Use a Custom Connected App
 
 CumulusCI uses a preconfigured Connected App to authenticate to
@@ -145,11 +145,11 @@ Default   Type              Name         Description
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 ✔         connected_app     built-in     A Connected App is required to connect to and run commands
                                          against persistent orgs. See https://cumulusci.readthedocs.io/
-                                         en/latest/connected_orgs.html##use-a-custom-connected-app for
+                                         en/latest/connected_orgs.html#use-a-custom-connected-app for
                                          more info.
           connected_app     custom       A Connected App is required to connect to and run commands
                                          against persistent orgs. See https://cumulusci.readthedocs.io/
-                                         en/latest/connected_orgs.html##use-a-custom-connected-app for
+                                         en/latest/connected_orgs.html#use-a-custom-connected-app for
                                          more info.
 ```
 

@@ -18,7 +18,7 @@ example:
 ```{tip}
 You can find the full list of supported locator strategies in the
 section titled [Explicit locator
-strategy](https://robotframework.org/SeleniumLibrary/SeleniumLibrary.html##Explicit%20locator%20strategy)
+strategy](https://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Explicit%20locator%20strategy)
 in the SeleniumLibrary documentation.
 ```
 
@@ -77,9 +77,9 @@ necessary to have locators more than a couple of levels deep.
 ## Registering the locator dictionary
 
 SeleniumLibrary provides a way to register [custom location
-strategies](http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html##Custom%20locators)
+strategies](http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Custom%20locators)
 via the [Add Location
-Strategy](http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html##Add%20Location%20Strategy)
+Strategy](http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Add%20Location%20Strategy)
 keyword. While it's possible to write your own strategies using
 keywords, the locator manager makes it easy to associate a locator
 prefix with a dictionary of locators.

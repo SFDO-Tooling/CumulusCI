@@ -16,7 +16,7 @@ module on Trailhead for a step-by-step walkthrough.
 on macOS. Follow the instructions on the Homebrew website to install
 Homebrew before continuing.
 
-####4 Install via `pipx`
+#### Install via `pipx`
 
 `pipx` ensures that CumulusCI and its dependencies are installed into
 their own Python environment separate from other Python software on your
@@ -39,7 +39,7 @@ When finished, [verify your installation](#verify-your-installation).
 
 ### On Linux
 
-####4 Install via `pipx`
+#### Install via `pipx`
 
 `pipx` ensures that CumulusCI and its dependencies are installed into
 their own Python environment separate from other Python software on your
@@ -58,7 +58,7 @@ When finished, [verify your installation](#verify-your-installation).
 
 ### On Windows
 
-####4 Install Python 3
+#### Install Python 3
 
 1.  Go to the [Python downloads
     page](https://www.python.org/downloads/windows/).
@@ -79,7 +79,7 @@ When finished, [verify your installation](#verify-your-installation).
 
     ![image](images/windows_python_success.png)
 
-####4 Install via `pipx`
+#### Install via `pipx`
 
 `pipx` ensures that CumulusCI and its dependencies are installed into
 their own Python environment separate from other Python software on your

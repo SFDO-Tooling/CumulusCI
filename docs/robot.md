@@ -223,11 +223,11 @@ CumulusCI integrates with Robot via custom tasks, such as:
 
 -   `robot`: Runs one or more Robot tests. This task is the most common.
 -   `robot_libdoc`: Runs the
-    [libdoc](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html##library-documentation-tool-libdoc)
+    [libdoc](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#library-documentation-tool-libdoc)
     command, which creates an HTML file defining all the keywords in a
     library or resource file.
 -   `robot_testdoc`: Runs the
-    [testdoc](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html##test-data-documentation-tool-testdoc)
+    [testdoc](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#test-data-documentation-tool-testdoc)
     command, which creates an HTML file documenting all the tests in a
     test suite.
 -   `robot_lint`: Runs the static analysis tool
@@ -294,42 +294,19 @@ code samples.
 
 Here's a quick primer on the syntax in the `new_contact_record.robot`
 test case file.
+| Symbol | Name              | Description and Usage                                                                                                                                                                                                                                                                 |
+| ------ | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `***`  | Section Heading   | A line that begins with one or more asterisks is a section heading. By<br>convention, we use three asterisks on both sides of a heading to designate<br>a section heading. Section headings include `Settings`, `Test Cases`, `Keywords`, `Variables`, `Comments`, and `Tasks`.       |
+| #      | Hash              | Designates code comments.                                                                                                                                                                                                                                                             |
+| ${}    | Variable          | Curly braces surrounding a name designate a variable. The lead `$` character refers to a single value. Variable names are case-insensitive. Spaces and underscores are allowed<br>and are treated the same.                                                                           |
+| &{}    | Dictionary or Map | A lead `&` character refers to a variable that contains a dictionary or<br>map for key-value pairs, such as `&{contact}`, which in this test has<br>defined values for the keys `FirstName` and `LastName`.                                                                           |
+| =      | Assignment        | Equals sign is optional yet convenient for showing that a variable is<br>assigned a value. Before the equals sign, up to one space is allowed but *not* required. After the equals sign, two spaces are required, but more<br>are allowed to format test cases into readable columns. |
+| …      | Ellipses          | Ellipses designate the continuation of a single-line row of code split<br>over multiple lines for easier readability.                                                                                                                                                                 |
+|        | Space             | Two or more spaces separate arguments from the keywords, and arguments<br>from each other. Multiple spaces can be used to align data and to aid in<br>readability.                                                                                                                    |
 
-+-----+------------+--------------------------------------------------+
-| Sym | Name | Description and Usage |
-| bol | | |
-+=====+============+==================================================+
-| `* | Section | A line that begins with one or more asterisks is | | **` | Heading | a section heading. By convention, we use three |
-| | | asterisks on both sides of a heading to |
-| | | designate a section heading. Section headings |
-| | | include `Settings`, `Test Cases`, `Keywords`, |
-| | | `Variables`, `Comments`, and `Tasks`. |
-+-----+------------+--------------------------------------------------+
-| \## | Hash | Designates code comments. |
-+-----+------------+--------------------------------------------------+
-| \ | Variable | Curly braces surrounding a name designate a |
-| ${} |            | variable. The lead `$`character refers to a | | | | single value. | | | | | | | | Variable names are case-insensitive. Spaces and | | | | underscores are allowed and are treated the | | | | same. | +-----+------------+--------------------------------------------------+ | &{} | Dictionary | A lead`&`character refers to a variable that | | | or Map | contains a dictionary or map for key-value | | | | pairs, such as`&{contact}`, which in this test | | | | has defined values for the keys `FirstName`and | | | |`LastName`. |
-+-----+------------+--------------------------------------------------+
-| = | Assignment | Equals sign is optional yet convenient for |
-| | | showing that a variable is assigned a value. |
-| | | Before the equals sign, up to one space is |
-| | | allowed but _not_ required. After the equals |
-| | | sign, two spaces are required, but more are |
-| | | allowed to format test cases into readable |
-| | | columns. |
-+-----+------------+--------------------------------------------------+
-| \ | Ellipses | Ellipses designate the continuation of a |
-| ... | | single-line row of code split over multiple |
-| | | lines for easier readability. |
-+-----+------------+--------------------------------------------------+
-| | Space | Two or more spaces separate arguments from the |
-| | | keywords, and arguments from each other. |
-| | | Multiple spaces can be used to align data and to |
-| | | aid in readability. |
-+-----+------------+--------------------------------------------------+
 
 For more details on Robot syntax, visit the official [Robot syntax
-documentation](http://robotframework.org/robotframework/2.9.2/RobotFrameworkUserGuide.html##test-data-syntax).
+documentation](http://robotframework.org/robotframework/2.9.2/RobotFrameworkUserGuide.html#test-data-syntax).
 
 ### Settings
 
@@ -360,9 +337,9 @@ primary method of importing all keywords and variables provided by
 CumulusCI, so it's best practice for the file to be the first item
 imported as a `Resource` under `Settings`. It also imports the
 [CumulusCI
-Library](https://cumulusci.readthedocs.io/en/stable/Keywords.html##file-cumulusci.robotframework.CumulusCI),
+Library](https://cumulusci.readthedocs.io/en/stable/Keywords.html#file-cumulusci.robotframework.CumulusCI),
 the [Salesforce
-Library](https://cumulusci.readthedocs.io/en/stable/Keywords.html##file-cumulusci.robotframework.Salesforce),
+Library](https://cumulusci.readthedocs.io/en/stable/Keywords.html#file-cumulusci.robotframework.Salesforce),
 the third-party
 [SeleniumLibrary](http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html)
 for browser testing via Selenium, and these most commonly used Robot
@@ -570,7 +547,7 @@ Because the `Contact` record was created inside the
 going to be visible to any test case or keyword that calls the
 `Create a test Contact` keyword. It's only when we use the built-in
 keyword [Set test
-variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html##Set%20Test%20Variable)
+variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Set%20Test%20Variable)
 that the newly created `&{new contact}` variable becomes visible in the
 `Example of using a custom keyword in a setup step` test case.
 
@@ -585,7 +562,7 @@ In the previous example:
     keyword.
 
 For details, see the [Settings in the Test Case
-section](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html##settings-in-the-test-case-section)
+section](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#settings-in-the-test-case-section)
 in the official Robot Framework documentation.
 
 To run this test from the command line:
@@ -726,7 +703,7 @@ keyword to examine the screenshot taken of the landing page.
 
 The Selenium library comes with a keyword for opening the browser.
 However, CumulusCI comes with its own keyword, [Open Test
-Browser](https://cumulusci.readthedocs.io/en/stable/Keywords.html##Salesforce.robot.Open%20Test%20Browser),
+Browser](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.robot.Open%20Test%20Browser),
 which not only opens the browser but also takes care of the details of
 logging into the org. This keyword uses a variable named `${BROWSER}`,
 which can be set from the command line or in the `cumulusci.yml` file to

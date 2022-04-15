@@ -68,7 +68,7 @@ These values provide CumulusCI with the required attributes for a
 particular service. The easiest way to find what attributes are needed
 for a particular service is to look for your service under the [services
 tag in the CumulusCI standard
-library](https://github.com/SFDO-Tooling/CumulusCI/blob/34533b4a1caa3f1850c64e223ece26069c83b60e/cumulusci/cumulusci.yml##L1164)
+library](https://github.com/SFDO-Tooling/CumulusCI/blob/34533b4a1caa3f1850c64e223ece26069c83b60e/cumulusci/cumulusci.yml#L1164)
 and provide values for all \"attributes\" listed under the desired
 service. You can also use `cci service info` to get the values from a
 service you've configured locally.
@@ -167,7 +167,7 @@ Set this variable equal to the following json string:
 
 You can see an example of setting this environment variable in a GitHub
 actions workflow in our [demo
-repository](https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml##L11).
+repository](https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/404c5114dac8afd3747963d5abf63be774e61757/.github/workflows/main.yml#L11).
 
 ```{admonition} Wizard Note
 If the target org's instance URL is instanceless (i.e. does not contain

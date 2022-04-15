@@ -3,9 +3,9 @@
 CumulusCI includes a rudimentary Robot debugger which can be enabled by
 setting the `robot_debug` option of the `robot` task to `true`. When the
 debugger is enabled you can use the
-[Breakpoint](Keywords.html##Salesforce.Breakpoint) keyword from the
+[Breakpoint](Keywords.html#Salesforce.Breakpoint) keyword from the
 [Salesforce
-Library](Keywords.html##file-cumulusci.robotframework.Salesforce) keyword
+Library](Keywords.html#file-cumulusci.robotframework.Salesforce) keyword
 library to pause execution.
 
 Once the `Breakpoint` keyword is encountered you will be given a prompt
@@ -136,7 +136,7 @@ You can execute Robot keywords at the prompt by entering the command
 `shell` (or the shortcut `!`) followed by the keyword and arguments just
 as you would in a test. The following example runs the SeleniumLibrary
 keyword [Get
-Location](http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html##Get%20Location):
+Location](http://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Get%20Location):
 
 ```console
 rdb> shell get location
@@ -167,11 +167,11 @@ https://ability-enterprise-4887-dev-ed.lightning.force.com/lightning/setup/Setup
 In addition to setting variables from the results of keywords, you can
 also set variables with the `shell` command using the built-in keywords
 [Set Test
-Variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html##Set%20Test%20Variable),
+Variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Set%20Test%20Variable),
 [Set Suite
-Variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html##Set%20Suite%20Variable),
+Variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Set%20Suite%20Variable),
 or [Set Global
-Variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html##Set%20Global%20Variable).
+Variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html#Set%20Global%20Variable).
 
 ```console
 rdb> ! set test variable  ${message}  hello, world

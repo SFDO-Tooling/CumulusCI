@@ -43,7 +43,7 @@ Changes
 -   The `update_package_xml` task now supports new Slack metadata types
     (##3103)
 -   We added the ability to do Upserts during Data Loading
-    ([documentation](https://cumulusci.readthedocs.io/en/stable/data.html##upserts)).
+    ([documentation](https://cumulusci.readthedocs.io/en/stable/data.html#upserts)).
     (##3099)
 -   Robot Framework tests can now pass a locator when calling
     `Go To Page` for one of our bulit-in page objects (Listing, Detail,
@@ -599,7 +599,7 @@ Changes:
 -   A new [snowfakery]{.title-ref} task with better usability and
     multi-processor support. Look at the CumulusCI docs to learn the new
     syntax:
-    <https://cumulusci.readthedocs.io/en/stable/data.html##generate-fake-data>
+    <https://cumulusci.readthedocs.io/en/stable/data.html#generate-fake-data>
     (##2705)
 -   CumulusCI now uses Snowfakery 2.0, with various new features,
     especially the ability to query into orgs. More information:
@@ -2451,7 +2451,7 @@ Changes:
     uses a users GitHub access token for creation of gists. If your
     access token does not have the 'gist (Create gists)' scope this
     command will result in a 404 error. For more info see:
-    <https://cumulusci.readthedocs.io/en/latest/features.html##reporting-error-logs>
+    <https://cumulusci.readthedocs.io/en/latest/features.html#reporting-error-logs>
 -   Changed `UpdateAdminProfile` so that it only deploys the modified
     Admin profile. While it is necessary to retrieve profiles along
     their associated metadata objects, we don't need to do that for
@@ -2544,7 +2544,7 @@ Changes:
         including namespace tokens.)
 -   Added a task, `load_custom_settings`, to upload Custom Settings
     defined in YAML into a target org. See
-    <https://cumulusci.readthedocs.io/en/latest/bulk_data.html##custom-settings>
+    <https://cumulusci.readthedocs.io/en/latest/bulk_data.html#custom-settings>
     for more info.
 
 Issues closed:
@@ -3736,7 +3736,7 @@ Issues Closed:
 -   Added support for waiting on Aura HTTP Requests to complete after a
     browser action is performed in selenium from the Robot Salesforce
     Library:
-    <http://cumulusci.readthedocs.io/en/latest/robotframework.html##waiting-for-lightning-ui>
+    <http://cumulusci.readthedocs.io/en/latest/robotframework.html#waiting-for-lightning-ui>
 -   Github API client will now automatically retry on 502 errors
 -   Better error messages from parsing errors during package.xml
     generation which show the file causing the error
@@ -4863,7 +4863,7 @@ Resolving a few issues from beta77:
 
 -   See the new flow customization examples in the cookbook for examples
     of why this change was made and how to use it:
-    <http://cumulusci.readthedocs.io/en/latest/cookbook.html##custom-flows-via-yaml>
+    <http://cumulusci.readthedocs.io/en/latest/cookbook.html#custom-flows-via-yaml>
 
 ## 2.0.0-alpha30 (2016-12-12)
 
