@@ -8,7 +8,7 @@ that you are successfully running CumulusCI flows locally.
 
 There is also a [template
 repository](https://github.com/SFDO-Tooling/CumulusCI-CI-Demo) that is
-setup to run `CumulusCI Flow`{.interpreted-text role="ref"} with GitHub
+setup to run [](cumulusci_flow)] with GitHub
 actions. This repository can be used as a starting point for
 implementing your own project or as a reference for the following
 material.
@@ -112,8 +112,7 @@ Access Token you just created, and `EMAIL` with your email address.
 
 ```{note}
 For more information on registering services in a headless environment
-see the `Register Services`{.interpreted-text role="ref"} section of the
-docs.
+see [](register-environment-services).
 ```
 
 ### `SFDX_AUTH_URL`
@@ -238,9 +237,7 @@ jobs:
 
 ```{note}
 For instructions on setting up a connection to a persistent org in a
-headless environment see the
-`Register Persistent Orgs`{.interpreted-text role="ref"} section of the
-docs.
+headless environment see [](register-persistent-orgs).
 ```
 
 The final step in a CI pipeline is often deploying newly-verified

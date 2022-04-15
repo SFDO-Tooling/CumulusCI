@@ -30,7 +30,7 @@ definition file format are covered below).
 With a definition available, the dataset may be captured from an org
 into the repository. A captured dataset may be stored under version
 control and incorporated into project automation, loaded as part of
-flows during org builds or at need. As the project\'s needs evolve,
+flows during org builds or at need. As the project's needs evolve,
 datasets may be re-captured from orgs and versioned alongside the
 project metadata.
 
@@ -45,7 +45,7 @@ on that sObject as well as its relationships to other sObjects that are
 included in the data set.
 
 > Note: this section discusses how to define a dataset and the format of
-> the definition file. In many cases, it\'s easier to use the
+> the definition file. In many cases, it's easier to use the
 > `generate_dataset_mapping` task than to create this definition by
 > hand. See below for more details.
 
@@ -147,13 +147,13 @@ versa.
 
 ### Database Mapping
 
-CumulusCI\'s definition format includes considerable flexibility for use
+CumulusCI's definition format includes considerable flexibility for use
 cases where datasets are stored in SQL databases whose structure is not
 identical to the Salesforce database. Salesforce objects may be assigned
 to arbitrary database tables, and Salesforce field names mapped to
 arbitrary columns.
 
-For new mappings, it\'s recommended to allow CumulusCI to use sensible
+For new mappings, it's recommended to allow CumulusCI to use sensible
 defaults by specifying only the Salesforce entities. Legacy datasets are
 likely to include explicit database mappings, which would look like this
 for the same data model as above:
@@ -216,7 +216,7 @@ Older dataset definitions may also use a `record_type` key:
 This feature limits extraction to records possessing that specific
 Record Type, and assigns the same Record Type upon load.
 
-It\'s recommended that new datasets use Record Type mapping by including
+It's recommended that new datasets use Record Type mapping by including
 the `RecordTypeId` field. Using `record_type` will result in CumulusCI
 issuing a warning.
 
@@ -235,7 +235,7 @@ date-time fields on the object such that when loaded, they have the same
 relationship to today as they did to the anchor date. Hence, given a
 stored date of 2020-07-10 and an anchor date of 2020-07-01, if you
 perform a load on 2020-09-10, the date field will be rendered as
-2020-09-19 -nine days ahead of today\'s date, as it was nine days ahead
+2020-09-19 -nine days ahead of today's date, as it was nine days ahead
 of the anchor date.
 
 Relative dates are also adjusted upon extract so that they remain
@@ -297,7 +297,7 @@ Account:
 
 #### Record Types
 
-It\'s recommended, though not required, to extract Account Record Types
+It's recommended, though not required, to extract Account Record Types
 to support datasets with person accounts so there is consistency in the
 Account record types loaded. If Account `RecordTypeId` is not extracted,
 the default business account Record Type and default person account
@@ -353,8 +353,8 @@ used when extracting data from your Salesforce org:
 > Account:
 >
 > : sf_object: Account table: Account fields: - Name - Industry - Type
-> soql_filter: \"Industry = \'Higher Education\' OR Type = \'Higher
-> Education\'\"
+> soql_filter: \"Industry = 'Higher Education' OR Type = 'Higher
+> Education'\"
 
 Note that trying to load data that is extracted using `soql_filter` may
 cause \"invalid cross reference id\" errors if related object records
@@ -382,7 +382,7 @@ primary key.
 
 Use of integer primary keys may help yield more readable text diffs when
 storing data in SQL script format. However, it comes at some performance
-penalty when extracting data. It\'s recommended that most mappings do
+penalty when extracting data. It's recommended that most mappings do
 not map the Id field and allow CumulusCI to utilize the automatic
 primary key.
 
@@ -392,7 +392,7 @@ All CumulusCI bulk data tasks support automatic namespace injection or
 removal. In other words, the same mapping file will work for namespaced
 and unnamespaced orgs, as well as orgs with the package installed
 managed or unmanaged. If a mapping element has no namespace prefix and
-adding the project\'s namespace prefix is required to match a name in
+adding the project's namespace prefix is required to match a name in
 the org, CumulusCI will add one. Similarly, if removing a namespace is
 necessary, CumulusCI will do so.
 
@@ -408,7 +408,7 @@ and this is the most common pattern in CumulusCI projects.
 
 #### Namespace Handing with Multiple Mapping Files
 
-It\'s also possible, and common in older managed package products, to
+It's also possible, and common in older managed package products, to
 use multiple mapping files to achieve loading the same data set in both
 namespaced and non-namespaced contexts. This is no longer recommended
 practice.
@@ -446,7 +446,7 @@ schema acquire the namespace prefix.
 
 For each lookup, an additional `key_field` declaration is required,
 whose value is the original storage location in local storage for that
-field\'s data. In most cases, this is simply the version of the field
+field's data. In most cases, this is simply the version of the field
 name in the original definition file.
 
 Adapting an originally-namespaced definition to load into a
@@ -456,7 +456,7 @@ Note that mappings which use the flat list style of field specification
 must use mapping style to convert between namespaced and non-namespaced
 deployment.
 
-It\'s recommended that all new mappings use flat list field
+It's recommended that all new mappings use flat list field
 specifications and allow CumulusCI to manage namespace injection. This
 capability typically results in significant simplication in automation.
 
@@ -464,7 +464,7 @@ capability typically results in significant simplication in automation.
 
 Some projects need to build datasets that include optional data
 elements - fields and objects that are loaded into some of the
-project\'s orgs, but not others. This can cover both optional managed
+project's orgs, but not others. This can cover both optional managed
 packages and features that are included in some, but not all, orgs. For
 example, a managed package A that does not require another managed
 package B but is designed to work with it may wish to include data for
@@ -481,13 +481,13 @@ correspond to schema that is not present in the org.
 
 Projects that require this type of conditional behavior can build their
 datasets in an org that contains managed package B, capture it, and then
-load it safely in orgs that both do and do not contain B. However, it\'s
+load it safely in orgs that both do and do not contain B. However, it's
 important to always capture from an org with B present, or B data will
 not be preserved in the dataset.
 
 ## Custom Settings
 
-Datasets don\'t support Custom Settings. However, a separate task is
+Datasets don't support Custom Settings. However, a separate task is
 supplied to deploy Custom Settings (both list and hierarchy) into an
 org: `load_custom_settings`. The data for this task is defined in a YAML
 text file
@@ -546,8 +546,8 @@ For more information about the Set Audit Fields feature, review [this
 Knowledge
 article](https://help.salesforce.com/articleView?id=000213290&type=1).
 
-After this task runs, you\'ll be able to run the `delete_data` task with
-the `hardDelete` option, and you\'ll be able to map audit fields like
+After this task runs, you'll be able to run the `delete_data` task with
+the `hardDelete` option, and you'll be able to map audit fields like
 `CreatedDate`.
 
 ### `extract_dataset`
@@ -602,14 +602,14 @@ definition. To use it, first build an org (scratch or persistent)
 containing all of the schema needed for the dataset.
 
 Then, execute `generate_dataset_mapping`. The task inspects the target
-org and creates a dataset definition encompassing the project\'s schema,
+org and creates a dataset definition encompassing the project's schema,
 attempting to be minimal in its inclusion outside that schema.
 Specifically, the definition will include:
 
 -   Any custom object without a namespace
--   Any custom object with the project\'s namespace
+-   Any custom object with the project's namespace
 -   Any object with a custom field matching the same namespace criteria
--   Any object that\'s the target of a master-detail relationship, or a
+-   Any object that's the target of a master-detail relationship, or a
     custom lookup relationship, from another included object.
 
 On those sObjects, the definition will include
@@ -627,9 +627,9 @@ Certain fields will always be omitted, including
 -   Non-createable fields
 
 The resulting definition file is intended to be a viable starting point
-for a project\'s dataset. However, some additional editing is typically
-required to ensure the definition fully suits the project\'s use case.
-In particular, any fields required on standard objects that aren\'t
+for a project's dataset. However, some additional editing is typically
+required to ensure the definition fully suits the project's use case.
+In particular, any fields required on standard objects that aren't
 automatically included must be added manually.
 
 #### Reference Cycles
@@ -641,10 +641,10 @@ Object A, or in which Object A refers to itself.
 
 CumulusCI will detect these reference cycles during mapping generation
 and ask the user for assistance resolving them into a linear sequence of
-load and extract operations. In most cases, selecting the schema\'s most
+load and extract operations. In most cases, selecting the schema's most
 core object (often a standard object like Account) will successfully
 resolve reference cycles. CumulusCI will automatically tag affected
-relationship fields with `after` directives to ensure they\'re populated
+relationship fields with `after` directives to ensure they're populated
 after their target records become available.
 
 #### Options
@@ -704,7 +704,7 @@ On the command line, you can run an update like this:
 This command downloads every Account in the org and applies the fields
 from the specified update recipe file.
 
-You can filter the rows that you\'re updating like this:
+You can filter the rows that you're updating like this:
 
 `$ cci task run update_data --recipe datasets/update.recipe.yml --object Account --where "name like 'AAA%'"`
 
@@ -810,11 +810,11 @@ Would be equivalent to [\--run-until-records-loaded
 
 ### Controlling the Loading Process
 
-CumulusCI\'s data loader has many knobs and switches that you might want
+CumulusCI's data loader has many knobs and switches that you might want
 to adjust during your load. It supports a \".load.yml\" file format
 which allows you to manipulate these load settings. The simplest way to
 use this file format is to make a file in the same directory as your
-recipe with a filename that is derived from the recipe\'s by replacing
+recipe with a filename that is derived from the recipe's by replacing
 everything after the first \".\" with \".load.yml\". For example, if
 your recipe is called \"babka.recipe.yml\" then your load file would be
 \"babka.load.yml\".
@@ -828,7 +828,7 @@ format:
   bulk_mode: parallel
 ```
 
-Which would specifically load accounts using the bulk API\'s parallel
+Which would specifically load accounts using the bulk API's parallel
 mode.
 
 The specific keys that you can associate with an object are:
@@ -868,14 +868,14 @@ batches for the bulk API.
 You need to understand the loading process to understand why you might
 want to set the `batch_size`.
 
-If you haven\'t set the `batch_size` then Snowfakery generates all of
+If you haven't set the `batch_size` then Snowfakery generates all of
 the records for your load job at once.
 
 So the first reason why you might want to set the batch_size is because
-you don\'t have enough local disk space for the number of records you
+you don't have enough local disk space for the number of records you
 are generating (across all tables).
 
-This isn\'t usually a problem though.
+This isn't usually a problem though.
 
 The more common problem arises from the fact that Salesforce bulk
 uploads are always done in batches of records a particular SObject. So

@@ -21,20 +21,20 @@ dependencies, or entail more destructive deployment operations.
 A primary example use case for Metadata ETL is deployment of Standard
 Value Sets. Standard Value Sets, which define the picklist values
 available on standard fields like `Opportunity.StageName`, are not
-packageable, and as such must be part of an application\'s unpackaged
-metadata. They\'re critical to many applications: a Business Process,
+packageable, and as such must be part of an application's unpackaged
+metadata. They're critical to many applications: a Business Process,
 for example, will fail to deploy if the Stage values it includes are not
 available. And lastly, they come with a serious danger for deployment
 into subscriber orgs: deploying Standard Value Sets is an overwrite
-operation, so all existing values in the target org that aren\'t part of
-the deployment are deactivated. This means that it\'s neither safe nor
+operation, so all existing values in the target org that aren't part of
+the deployment are deactivated. This means that it's neither safe nor
 maintainable to store static Standard Value Set metadata in a project
 and deploy it.
 
 These three facets - non-packageability, application requirements, and
 deployment safety -all support a Metadata ETL approach. Rather than
 attempting to deploy static metadata stored in the repository, the
-product\'s automation should _extract_ the Standard Value Set metadata
+product's automation should _extract_ the Standard Value Set metadata
 from the org, _transform_ it to include the desired values (as well as
 all existing customization), and _load_ the transformed metadata back
 into the org. CumulusCI now ships with a task,
@@ -53,7 +53,7 @@ add_standard_value_set_entries:
 
 This task would retrieve the existing `Case.Status` picklist value set
 from the org, add the `New_Value` entry to it, and redeploy the modified
-metadata - ensuring that the application\'s needs are met with a safe,
+metadata - ensuring that the application's needs are met with a safe,
 minimal intervention in the target org.
 
 ## Standard Metadata ETL Tasks
@@ -82,10 +82,8 @@ section in Python customization.
 
 All out-of-the-box Metadata ETL tasks accept a Boolean `managed` option.
 If `True`, CumulusCI will replace the token `%%%NAMESPACE%%%` in API
-names and in values used for transforming metadata with the project\'s
-namespace; if `False`, the token will simply be removed. See
-`Namespace Injection`{.interpreted-text role="ref"} for more
-information.
+names and in values used for transforming metadata with the project's
+namespace; if `False`, the token will simply be removed. See [](namespace-injection) for more information.
 
 ## Implementation of Metadata ETL Tasks
 
@@ -109,8 +107,8 @@ be overridden. This method should make any desired changes to the
 supplied `MetadataElement`, and either return a `MetadataElement` for
 deployment, or `None` to suppress deployment of this entity. Classes may
 also opt to include their own options in `task_options`, but generally
-should also incorporate the base class\'s options, and override
-`_init_options()` (`super`\'s implementation should also be called to
+should also incorporate the base class's options, and override
+`_init_options()` (`super`'s implementation should also be called to
 ensure that supplied API names are processed appropriately).
 
 The `SetDuplicateRuleStatus` class is a simple example of implementing a

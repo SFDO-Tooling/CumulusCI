@@ -11,7 +11,7 @@ There are several key reasons we like using CumulusCI Flow:
 -   Changes to branches that are being actively developed are thoroughly
     tested on each commit.
 -   For managed package projects, a new beta version of the package is
-    created and tested for each commit on a project\'s `main` branch.
+    created and tested for each commit on a project's `main` branch.
 -   Auto-merging functionality keeps branches up-to-date with the `main`
     branch.
 
@@ -35,7 +35,7 @@ branching model:
 -   Releasing managed packages has some overhead involved including
     manual checks by release managers to ensure nothing gets permanently
     locked into the package in a release. As a result, true continuous
-    delivery isn\'t an option. Whether you\'re on a team that wants to
+    delivery isn't an option. Whether you're on a team that wants to
     deliver quickly (e.g. a two week sprint cycle) or at team that makes
     several larger releases a year, CumulusCI offers functionality to
     help cut releases for all products with any changes.
@@ -52,7 +52,7 @@ Salesforce org environments concurrently. A passing build is proof we
 can package main at any point in time.
 
 When the upload of the beta release is completed, the main branch is
-`auto-merged <Auto Merging>`{.interpreted-text role="ref"} into all open
+[auto-merged](auto-merging) into all open
 feature branches. New betas are published on GitHub as a GitHub Release,
 along with automatically generated release notes drawn from the content
 of the Pull Requests merged since the last production release.
@@ -100,18 +100,18 @@ Once a developer is done with a feature branch, they create a Pull
 Request to merge their branch into the main branch. The Pull Review
 serves as the container for the following:
 
--   **Code Review**: We use GitHub\'s built in review functionality for
+-   **Code Review**: We use GitHub's built in review functionality for
     Pull Requests to conduct line by line code reviews
 -   **Release Notes**: We use the Pull Request body to create release
     notes content relevant to the PR. This content is automatically
-    parsed by CumulusCI\'s release notes generation task to
+    parsed by CumulusCI's release notes generation task to
     automatically build cumulative release notes on each release.
 -   **QA**: The goal of the Pull Request is to serve as a gate blocking
-    a change from going into main until it\'s ready to release. As a
+    a change from going into main until it's ready to release. As a
     result, we do QA on the feature before merging the Pull Request.
 
 When a Pull Request is approved and passing build, it is merged using
-the Merge button in GitHub\'s web interface. We use GitHub Protected
+the Merge button in GitHub's web interface. We use GitHub Protected
 Branches to enforce both code reviews and passing builds before a Pull
 Request can be merged to main.
 
@@ -150,7 +150,7 @@ criteria:
 
 Using the `feature/` branch prefix for the release branch names allow
 those branches to stay in sync with the `main` branch. Like any other
-feature branch, they participate in CumulusCI\'s parent-to-child merge
+feature branch, they participate in CumulusCI's parent-to-child merge
 operations. The release number immediately after the `feature/` prefix
 allows CumulusCI to detect and merge changes from one release branch to
 other future release branches. See [Release to (Future) Release
@@ -181,10 +181,12 @@ project:
 These values can be changed to match naming conventions used by your own
 project.
 
+(auto-merging)=
+
 ## Auto Merging
 
 CumulusCI Flow helps to keep large diffs and merge conflicts from being
-the norm. CumulusCI\'s auto-merge functionality helps teams:
+the norm. CumulusCI's auto-merge functionality helps teams:
 
 -   Keep feature branches up-to-date with the `main` branch (main to
     feature merges)
@@ -197,7 +199,7 @@ the norm. CumulusCI\'s auto-merge functionality helps teams:
 
 One of the bigger differences between CumulusCI Flow and GitHub Flow or
 git-flow is that CumulusCI Flow automates the merging of commits to a
-project\'s `main` branch into all open feature branches. This auto-merge
+project's `main` branch into all open feature branches. This auto-merge
 does a lot for us:
 
 -   Ensures feature branches are in sync with the main branch.
@@ -238,7 +240,7 @@ Parent/Child feature branches are created using a simple naming format:
 -   **Parent**: feature/parent-branch-name
 -   **Child**: feature/parent-branch-name\_\_child-branch-name
 
-A child branch extends the parent\'s name with two additional
+A child branch extends the parent's name with two additional
 underscores (`__`) and an additional description.
 
 Auto-merging from parent to child branches works as follows:
@@ -251,7 +253,7 @@ Auto-merging from parent to child branches works as follows:
     the parent branch is auto-merged into all child branches
 
 This allows us to support multiple developers working on a single large
-feature while keeping that feature isolated from main until we\'re ready
+feature while keeping that feature isolated from main until we're ready
 to release it. The parent branch is the branch representing the overall
 feature. Each developer can create child branches for individual
 components of the larger feature. Their child branch still gets CI
@@ -322,7 +324,7 @@ Consider the following branches in a GitHub repository:
 In this scenario, CumulusCI ensures that when `feature/002` receives a
 commit, that that commit is also merged into `feature/003`. This kicks
 off tests in our CI system and ensures that functionality going into
-`feature/002` doesn\'t break work being done for future releases. Once
+`feature/002` doesn't break work being done for future releases. Once
 those tests pass, the commit on `feature/003` is merged to
 `feature/003__feature1` because they adhere to the parent/child naming
 convention described above. Commits **never** propagate in the opposite
@@ -347,7 +349,7 @@ If you have both a parent and a child branch, and the parent is deleted,
 this creates an orphaned branch. Orphaned branches do not receive any
 auto-merges from any branches. You can rename an orphaned branch to
 include the `feature/` prefix and contain no double underscores
-(\'\_\_\') to begin receiving merges from the main branch again.
+('\_\_') to begin receiving merges from the main branch again.
 
 If we have a parent and child branch: `feature/myFeature` and
 `feature/myFeature__child`, and `feature/myFeature` (the parent) is
@@ -361,9 +363,9 @@ Since CumulusCI Flow is largely an extension of GitHub Flow, the
 differences are mostly additional processes in CumulusCI Flow that help
 make it more effective for large-scale Salesforce projects:
 
--   Feature branches must be prefixed feature/ or they don\'t get built
+-   Feature branches must be prefixed feature/ or they don't get built
     or receive auto-merges. This allows developers to have experimental
-    branches that don\'t get built or merged.
+    branches that don't get built or merged.
 -   CumulusCI Flow is focused on an agile release process that works
     well with the technical constraints of Salesforce packaging..
 -   CumulusCI Flow requires the beta and release tag naming convention
@@ -393,7 +395,7 @@ reasons:
 -   Feature branches provide better isolation necessary for a rapid,
     agile release cycle by keeping all features not ready for release
     out of the release. Doing testing in the development branch means
-    you\'ve already integrated your features together. If one feature is
+    you've already integrated your features together. If one feature is
     bad, it is harder to unwind that feature from the development branch
     than if it were still isolated in its feature branch, tested there,
     and only merged when truly ready. Plus, with the auto-merge of main,

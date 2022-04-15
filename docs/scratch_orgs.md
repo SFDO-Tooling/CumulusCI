@@ -21,8 +21,7 @@ lifecycle.
 This section focuses on managing scratch orgs in a CumulusCI project. To
 learn about managing persistent orgs, such as sandboxes, production
 orgs, and packaging orgs, visit the
-`connect persistent orgs<connected_orgs>`{.interpreted-text role="doc"}
-section.
+[](connected_orgs) section.
 
 ## What Is an Org in CumulusCI?
 
@@ -45,8 +44,7 @@ develop and test in are as close to their production environments as
 possible. We recommend working with scratch orgs created by Salesforce
 DX.
 
-See the `Set Up SFDX`{.interpreted-text role="ref"} section for
-instructions.
+See the [](set-up-sfdx) section for instructions.
 
 ## Predefined Orgs
 
@@ -127,6 +125,8 @@ $ sfdx force:limits:api:display -u <username>
 
 When inside a project repository, run `cci org list` to see all the orgs
 you have configured or connected.
+
+(set-a-default-org)=
 
 ## Set a Default Org
 

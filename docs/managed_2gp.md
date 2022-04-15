@@ -2,23 +2,19 @@
 
 This section outlines how to release second-generation (2GP) Salesforce
 managed package projects. Salesforce.org's Release Engineering team
-practices `CumulusCI Flow <cumulusci_flow>`{.interpreted-text
-role="doc"}, which incorporates all of these steps.
+practices [CumulusCI Flow](cumulusci_flow), which incorporates all of these steps.
 
 ## Prerequisites
 
 This section assumes:
 
--   `CumulusCI is installed <get_started>`{.interpreted-text role="doc"}
-    on your computer.
--   A Salesforce managed package project has been
-    `configured <project initialization>`{.interpreted-text role="ref"}
+-   [CumulusCI is installed](get_started) on your computer.
+-   A Salesforce managed package project has been [configured](project-initialization)
     for use with CumulusCI.
 -   Your Dev Hub has the required features enabled: [Enable DevHub
     Features in Your
     Org](https://developer.salesforce.com/docs/atlas.en-us.packagingGuide.meta/packagingGuide/sfdx_setup_enable_devhub.htm)
-    and [Enable Unlocked and Second-Generation Managed
-    Packaging](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_secondgen_pkg.htm).
+    and [Enable Unlocked and Second-Generation Managed Packaging](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_setup_enable_secondgen_pkg.htm).
 -   A namespace org has been [created and linked to the active Dev
     Hub](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_dev2gp_create_namespace.htm).
 
@@ -75,7 +71,7 @@ The `release_2gp_beta` flow executes these tasks:
     role="ref"}.
 -   Syncs feature branches with the `main` branch, which automatically
     integrates the latest changes from `main`. For more information see
-    `auto merging`{.interpreted-text role="ref"}.
+    [](auto-merging).
 
 ```{tip}
 To list each step in the `release_2gp_beta` flow, run
@@ -115,8 +111,7 @@ this requires that those dependencies be met in other ways, such as by
 configuring the scratch org definition. For examples of how to satisfy
 the install-time dependencies for NPSP and EDA without using unpackaged
 metadata, see
-`Extending NPSP and EDA with Second-Generation Packaging <npsp_eda_2gp>`{.interpreted-text
-role="doc"}.
+[Extending NPSP and EDA with Second-Generation Packaging](npsp_eda_2gp).
 
 The other option is to have CumulusCI automatically create unlocked
 packages containing unpackaged metadata from dependency projects. For

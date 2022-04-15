@@ -2,20 +2,16 @@
 
 This section outlines how to release first-generation (1GP) Salesforce
 managed package projects. Salesforce.org's Release Engineering team
-practices `CumulusCI Flow <cumulusci_flow>`{.interpreted-text
-role="doc"}, which incorporates all of these steps.
+practices [CumulusCI Flow](cumulusci_flow), which incorporates all of these steps.
 
 ## Prerequisites
 
 This section assumes:
 
--   `CumulusCI is installed <get_started>`{.interpreted-text role="doc"}
-    on your computer.
--   A Salesforce managed package
-    `project has been configured <Work On an Existing CumulusCI Project>`{.interpreted-text
-    role="ref"} for use with CumulusCI.
--   A packaging org `is connected <connected_orgs>`{.interpreted-text
-    role="doc"} to CumulusCI under the name of `packaging`.
+-   [CumulusCI is installed](get_started) on your computer.
+-   A Salesforce managed package project has been [configured](project-initialization)
+    for use with CumulusCI.
+-   A packaging org [is connected](connected_orgs) to CumulusCI under the name of `packaging`.
 
 To verify this setup and display information about the connected
 packaging org:
@@ -102,7 +98,7 @@ it:
     role="ref"}.
 -   Syncs feature branches with the `main` branch, which automatically
     integrates the latest changes from `main`. For more information see
-    `auto merging`{.interpreted-text role="ref"}.
+    [](auto-merging).
 
 ```{important}
 This flow assumes that the package contents were already deployed using

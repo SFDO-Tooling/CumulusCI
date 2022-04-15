@@ -1,7 +1,6 @@
 # Connect Persistent Orgs
 
-In addition to creating `scratch orgs <scratch_orgs>`{.interpreted-text
-role="doc"} in CumulusCI, you can connect persistent orgs to your
+In addition to creating [](scratch_orgs) in CumulusCI, you can connect persistent orgs to your
 project to run tasks and flows on them. This feature supports use cases
 such as deploying to a Developer Edition org to release a package
 version, or installing to a sandbox for user acceptance testing.
@@ -9,8 +8,7 @@ version, or installing to a sandbox for user acceptance testing.
 ```{attention}
 A different setup is required to connect to orgs in the context of an
 automated build. See
-`continuous integration <continuous_integration>`{.interpreted-text
-role="doc"} for more information.
+`continuous integration [](continuous_integration) for more information.
 ```
 
 ## The `org connect` Command
@@ -171,5 +169,4 @@ To edit the Connected App's OAuth scopes:
 4.  Add or remove OAuth scopes as desired. CumulusCI requires the `api`,
     `full`, and `refresh_token` scopes.
 
-For a full list of options, run the `connected_app`{.interpreted-text
-role="ref"} task reference documentation.
+For a full list of options, run the [](connected_app) task reference documentation.

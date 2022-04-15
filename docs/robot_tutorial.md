@@ -6,18 +6,14 @@ It is not a comprehensive tutorial on using Robot Framework. For Robot
 Framework documentation see the [Robot Framework User
 Guide](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html)
 
-It is assumed you've worked through the CumulusCI `Get Started <get_started>`{.interpreted-text role="doc"} section at least up to the
-point where you've called `cci project init`. It is also assumed that
-you've read the `robotframework`{.interpreted-text role="doc"} section
-of this document, which gives an overview of CumulusCI / Robot Framework
-integration.
+It is assumed you've worked through the CumulusCI [](get_started) section at least up to the point where you've called `cci project init`. It is also assumed that
+you've read the [](robot) section of this document, which gives an overview of CumulusCI and Robot Framework integration.
 
 ## Part 1: Folder Structure
 
 We recommend that all Robot tests, keywords, data, and log and report
 files live under a folder named `robot`, at the root of your repository.
-If you worked through the `Get Started <get_started>`{.interpreted-text
-role="doc"} section, the following folders will have been created under
+If you worked through the [](get_started) section, the following folders will have been created under
 `MyProject/robot/MyProject`:
 
 -   `doc` - a place to put documentation for your tests
@@ -117,8 +113,7 @@ to manage.
 ### Defining the class
 
 CumulusCI provides the base classes that are a good starting point for
-your page object (see `page-object-base-classes`{.interpreted-text
-role="ref"}). In this case we're writing a keyword that works on the
+your page object (see [](page-object-base-classes)). In this case we're writing a keyword that works on the
 listing page, so we want our class to inherit from the `ListingPage`
 class.
 

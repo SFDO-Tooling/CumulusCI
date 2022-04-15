@@ -14,7 +14,7 @@ Run `cci flow info dev_org` for a full list of the `dev_org` flow steps.
 ```
 
 To run the `dev_org` flow against the project's
-`default org <Set a Default Org>`{.interpreted-text role="ref"}:
+[default org](set-a-default-org):
 
 ```console
 $ cci flow run dev_org
@@ -52,6 +52,8 @@ Sandboxes, and Developer Pro Sandboxes.
 
 For more information, see [List and Retrieve
 Options](#list-and-retrieve-options).
+
+(retrieve-changes)=
 
 ## Retrieve Changes
 
@@ -489,10 +491,11 @@ and `___NAMESPACE___` in file names. The `namespace_inject` option
 instructs CumulusCI to replace these tokens with the specified namespace
 before deploying the unpackaged dependency.
 
-For more on this topic see `namespace injection`{.interpreted-text
-role="ref"}.
+For more on this topic see [](namespace-injection).
 
-### Controlling GitHub Dependency Resolution {##dependency-resolution}
+(dependency-resolution)=
+
+### Controlling GitHub Dependency Resolution
 
 CumulusCI converts dynamic dependencies specified via GitHub
 repositories into specific package versions and commit references by
@@ -686,6 +689,4 @@ including:
     installing the package.
 -   Running Robot Framework tests that are defined in a dependency.
 
-For more information, see how to
-`tasks and flows from a different project`{.interpreted-text
-role="ref"}.
+For more information, see [](tasks-and-flows-from-a-different-project).

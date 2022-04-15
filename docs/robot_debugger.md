@@ -11,7 +11,7 @@ library to pause execution.
 Once the `Breakpoint` keyword is encountered you will be given a prompt
 from which you can interactively issue commands.
 
-For the following examples we\'ll be using this simple test:
+For the following examples we'll be using this simple test:
 
 ```robotframework
 *** Settings ***
@@ -31,7 +31,7 @@ Example test case
 ## Enabling the debugger
 
 To enable the debugger you must set the `robot_debug` option to `true`
-for the `robot` task. **You should never do this in the project\'s
+for the `robot` task. **You should never do this in the project's
 cumulusci.yml file.** Doing so could cause tests to block when run on a
 CI server such as MetaCI.
 
@@ -77,8 +77,8 @@ rdb>
 ```
 
 Note: the `Breakpoint` keyword has no effect on a test if the
-`robot_debug` option is not set to `true`. While we don\'t encourage you
-to leave this keyword in your test cases, it\'s safe to do so as long as
+`robot_debug` option is not set to `true`. While we don't encourage you
+to leave this keyword in your test cases, it's safe to do so as long as
 you only ever set the `robot_debug` option when running tests locally.
 
 ## Getting Help

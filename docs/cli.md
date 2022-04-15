@@ -10,8 +10,7 @@ Trailhead module covers installing and opening a terminal window in
 Visual Studio Code.
 ```
 
-After `installing CumulusCI <get_started>`{.interpreted-text
-role="doc"}, use the `cci` command in your terminal or command prompt to
+After [installing CumulusCI](get_started), use the `cci` command in your terminal or command prompt to
 interact with it.
 
 On any platform, you can use the integrated terminal in Visual Studio
@@ -335,7 +334,7 @@ given option value _each time it executes_.
 
 If you want to configure specific task options on flows without
 explicitly listing them see
-`Configure Options on Tasks in Flows`{.interpreted-text role="ref"}.
+[](configure-options-on-tasks-in-flows).
 
 ## Access and Manage Orgs
 
@@ -343,9 +342,10 @@ CumulusCI makes it easy to create, connect, and manage orgs. The
 `cci org` top-level command helps you work with orgs.
 
 To learn about working with orgs in detail, read
-`Manage Scratch Orgs <scratch_orgs>`{.interpreted-text role="doc"} and
-`Connect Persistent Orgs <connected_orgs>`{.interpreted-text
-role="doc"}.
+(scratch_orgs) and
+(connected_orgs).
+
+(manage-services)=
 
 ## Manage Services
 

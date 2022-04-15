@@ -7,6 +7,8 @@ This section outlines how to setup services and orgs that can be defined
 in a particular environment such that they will be recognized by
 CumulusCI.
 
+(register-environment-services)=
+
 ## Register Environment Services
 
 It is often the case that services you use for local development will
@@ -81,6 +83,8 @@ would need to be provided in the following format:
 
 > The values `<callback_url>`, `<client_id>`, and `<client_secret>`
 > should all be replaced with actual values.
+
+(register-persistent-orgs)=
 
 ## Register Persistent Orgs
 

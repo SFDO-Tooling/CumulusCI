@@ -8,10 +8,8 @@ packages](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_d
 
 This section assumes:
 
--   `CumulusCI is installed <get_started>`{.interpreted-text role="doc"}
-    on your computer.
--   A Salesforce project has been
-    `configured <project initialization>`{.interpreted-text role="ref"}
+-   [CumulusCI is installed](get_started) on your computer.
+-   A Salesforce managed package project has been [configured](project-initialization)
     for use with CumulusCI.
 -   Your Dev Hub has the required features enabled: [Enable DevHub
     Features in Your
@@ -69,7 +67,7 @@ The `release_unlocked_beta` flow executes these tasks:
     role="ref"}.
 -   Syncs feature branches with the `main` branch, which automatically
     integrates the latest changes from `main`. For more information see
-    `auto merging`{.interpreted-text role="ref"}.
+    [](auto-merging).
 
 ```{tip}
 To list each step in the `release_unlocked_beta` flow, run
@@ -111,9 +109,7 @@ metadata is intended to satisfy install-time dependencies of packages,
 this requires that those dependencies be met in other ways, such as by
 configuring the scratch org definition. For examples of how to satisfy
 the install-time dependencies for NPSP and EDA without using unpackaged
-metadata, see
-`Extending NPSP and EDA with Second-Generation Packaging <npsp_eda_2gp>`{.interpreted-text
-role="doc"}.
+metadata, see [](npsp_eda_2gp).
 
 The other option is to have CumulusCI automatically create unlocked
 packages containing unpackaged metadata from dependency projects. For

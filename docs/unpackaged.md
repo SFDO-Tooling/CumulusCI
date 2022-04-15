@@ -22,8 +22,9 @@ customizations by overwriting them with incoming metadata. Metadata ETL
 is relevant for delivering applications to customers safely, and is
 often a superior alternative to unpackaged metadata.
 
-To learn more, see `Metadata ETL <metadata_etl>`{.interpreted-text
-role="doc"}.
+To learn more, see [](metadata_etl).
+
+(roles-of-unpackaged-metadata)=
 
 ## Roles of Unpackaged Metadata
 
@@ -114,6 +115,8 @@ which contains these top-level directories.
 These trees contain metadata bundles in Metadata API or Salesforce DX
 format. CumulusCI automatically converts Salesforce DX-format unpackaged
 bundles to Metadata API format before deploying them.
+
+(namespace-injection)=
 
 ## Namespace Injection
 
@@ -270,8 +273,7 @@ filenames.
 
 ## Retrieve Unpackaged Metadata
 
-CumulusCI provides tasks to `retrieve changes`{.interpreted-text
-role="ref"} to unpackaged metadata, just as with packaged metadata.
+CumulusCI provides tasks to [retrieve changes](retrieve-changes) to unpackaged metadata, just as with packaged metadata.
 
 When working with unpackaged metadata, it's important to maintain
 awareness of key considerations related to retrieving metadata that is
@@ -362,4 +364,4 @@ config_regression:
 ```
 
 For more details on customizing tasks and flows, see the
-`configure CumulusCI`{.interpreted-text role="doc"} section.
+[](config) section.

@@ -119,8 +119,7 @@ project by combining its internal standard library with your
 customizations in `cumulusci.yml`. Customizations can add new tasks and
 flows, customize the way tasks behave, and extend, combine, and modify
 flows to better suit the project's needs. We cover customization in
-depth in the `Configure CumulusCI <config>`{.interpreted-text
-role="doc"} section.
+depth in the [](config) section.
 
 ## Project Structure
 
@@ -142,7 +141,7 @@ to this guide.)
 In order to be used as a CumulusCI project, a directory must both be a
 Git repository and contain a `cumulusci.yml` configuration file. We
 cover how to get set up with a new or existing CumulusCI project in the
-`Get Started <get_started>`{.interpreted-text role="doc"} section.
+[](get_started) section.
 
 ### `cumulusci.yml`
 
@@ -152,7 +151,7 @@ project's lifecycle. It can encompass everything from customizing the
 shapes of scratch orgs to configuring tasks and flows.
 
 Learn more about customizing CumulusCI automation in the
-`Configure CumulusCI <config>`{.interpreted-text role="doc"} section.
+[](config) section.
 
 ### `force-app` (or `src`)
 
@@ -169,7 +168,7 @@ form.)
 
 The `.json` files found in the `orgs` directory define the Salesforce DX
 org configurations that are available to the project. See
-`Manage Scratch Orgs<scratch_orgs>`{.interpreted-text role="doc"} for
+[](scratch_orgs) for
 more information.
 
 ### `datasets`
@@ -178,7 +177,7 @@ Each project can have one or more datasets: on-disk representations of
 record data that can be inserted into Salesforce orgs, and that can also
 be modified and re-captured during the evolution of the project.
 Datasets are stored in the `datasets` directory. Learn more about
-datasets in `Automate Data Operations`{.interpreted-text role="doc"}.
+datasets in [](data).
 
 ### `robot`
 
@@ -191,8 +190,7 @@ While Robot Framework is used primarily for automated browser testing,
 it can also be harnessed to help configure orgs where other strategies
 and APIs are insufficient.
 
-See `Automation using Robot Framework <robot>`{.interpreted-text
-role="doc"} for more information.
+See [](robot) for more information.
 
 ### `unpackaged` metadata
 
@@ -209,8 +207,7 @@ deployed, and customizing specific orgs that are used in the product's
 development process.
 
 Learn more in the
-`Manage Unpackaged Configuration <unpackaged>`{.interpreted-text
-role="doc"} section.
+[](unpackaged) section.
 
 ## Project Orgs & Services
 
@@ -228,10 +225,8 @@ any time. The `cci org list` command shows all of the orgs connected to
 a project. Orgs can also be shared across multiple projects.
 
 Configuring orgs in CumulusCI is powerful, but comes with some
-complexity. For details, see
-`Manage Scratch Orgs <scratch_orgs>`{.interpreted-text role="doc"} and
-`Connect Persistent Orgs <connected_orgs>`{.interpreted-text
-role="doc"}.
+complexity. For details, see [](scratch_orgs) and
+[](connected_orgs).
 
 ### Services
 
@@ -247,5 +242,4 @@ project level, which means that they're scoped to a single project and
 cannot be shared.
 
 For more information on configuring services via the `cci` command line
-see the `managing services <Manage Services>`{.interpreted-text
-role="ref"} section.
+see the [](manage-services) section.

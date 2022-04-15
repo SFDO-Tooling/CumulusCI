@@ -3,10 +3,10 @@
 ## Create a Custom Retrieve Task
 
 If you will be retrieving changes into a directory repeatedly, consider
-creating a custom task with the correct options so that you don\'t need
+creating a custom task with the correct options so that you don't need
 to specify them on the command line each time.
 
-To do this, add YAML like this to your project\'s `cumulusci.yml`:
+To do this, add YAML like this to your project's `cumulusci.yml`:
 
 ```yaml
 tasks:
@@ -18,10 +18,10 @@ tasks:
             namespace_tokenize: $project_config.project__package__namespace
 ```
 
-If you\'re capturing post-install metadata that will remain unpackaged,
+If you're capturing post-install metadata that will remain unpackaged,
 it is best to do so starting with a managed installation of your
 package. This makes it possible to convert references to the package
-namespace into CumulusCI\'s namespace token strings, so that the
+namespace into CumulusCI's namespace token strings, so that the
 retrieved metadata can be deployed on top of either managed
 installations or unmanaged deployments of the package. To set up an org
 with the latest managed beta release, use the `install_beta` flow.

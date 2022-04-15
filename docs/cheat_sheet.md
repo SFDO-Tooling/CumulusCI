@@ -88,8 +88,7 @@ standard org building flows that you should expect to find in any
 CumulusCI project.
 
 ```{note}
-This section relies on concepts introduced in the
-`key concepts`{.interpreted-text role="ref"} section of the
+This section relies on concepts introduced in the [](concepts) section of the
 documentation.
 ```
 

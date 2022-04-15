@@ -29,13 +29,13 @@ running in a CI environment.
 ## `CUMULUSCI_SYSTEM_CERTS`
 
 If set to `True`, CumulusCI will configure the Python `requests` library
-to validate server TLS certificates using the system\'s certificate
+to validate server TLS certificates using the system's certificate
 authorities, instead of the set of CA certs that is bundled with
 `requests`.
 
 ## `GITHUB_APP_ID`
 
-Your GitHub App\'s identifier.
+Your GitHub App's identifier.
 
 ## `GITHUB_APP_KEY`
 

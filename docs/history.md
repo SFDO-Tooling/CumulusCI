@@ -76,7 +76,7 @@ Changes
 -   Orgs connected using `cci org connect` now keep track of which
     `connected_app` service was used to connect them, and will use the
     same `connected_app` service when getting a fresh access token, even
-    if it isn\'t currently the default `connected_app` service. This
+    if it isn't currently the default `connected_app` service. This
     makes it easier to use CumulusCI with multiple `connected_app`
     services. (Orgs that were connected before this update will continue
     to use the default `connected_app` service.)
@@ -101,7 +101,7 @@ Issues Closed
 Changes
 
 -   Flow steps can now be replaced with the same syntax for all step
-    types! (Current step types are: \'task\' or \'flow\'). See the
+    types! (Current step types are: 'task' or 'flow'). See the
     \[replacing a flow
     step\](<https://cumulusci.readthedocs.io/en/latest/config.html?highlight=override##replace-a-flow-step>)
     docs for more details. CumulusCI is still compatible with the old
@@ -113,13 +113,13 @@ Changes
     to `true` it automatically opens a browser window to the generated
     documentation. (##3057)
 -   The robot keyword `Locate element by label` has been removed from
-    the Salesforce.py library. This wasn\'t designed to be a keyword but
+    the Salesforce.py library. This wasn't designed to be a keyword but
     was accidentally exported as one. If you want to find an input or
     textarea element by its label you can use a locator of the form
     `label:<text>` (eg: `label:First Name`) (##3048)
 -   Updated to [Snowfakery
     2.5.0](https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v2.5.0)
--   If you have Python code that is importing CumulusCI\'s config
+-   If you have Python code that is importing CumulusCI's config
     classes, some of them have been reorganized into modules with a
     snake_case name. The old CamelCase imports should still work, but
     the new names are preferred for consistency with other parts of the
@@ -148,7 +148,7 @@ Issues Closed
 
 Changes
 
--   The `cci flow doc` command now only includes CumulusCI\'s standard
+-   The `cci flow doc` command now only includes CumulusCI's standard
     flows unless the `--project` option is specified. (##3033)
 -   The `run_tests` task now has a
     `required_per_class_code_coverage_percent` which ensures that every
@@ -182,7 +182,7 @@ Issues Closed
 
 Changes
 
--   Robot keywords have been updated to support the Spring 22\' release.
+-   Robot keywords have been updated to support the Spring 22' release.
     (##3021)
 -   Using channel declarations in `load.yml`, users can now do synthetic
     data loads across multiple user accounts at once. This is faster for
@@ -248,7 +248,7 @@ Issues Closed
 Critical Changes
 
 -   CumulusCI will be dropping support for Python 3.6 and 3.7 within the
-    next few releases. Please ensure you\'re running Python 3.8 or
+    next few releases. Please ensure you're running Python 3.8 or
     above.
 
 Changes
@@ -292,7 +292,7 @@ Changes
     used to create a new profile from scratch without any permissions
     enabled. (This new task requires a Winter 22 Org or API 53.0)
     (##2908)
--   We\'ve added a user-friendly error message when installing a package
+-   We've added a user-friendly error message when installing a package
     using [security_type]{.title-ref} \"PUSH\" with a 04t Package
     Version ID. (##2935)
 
@@ -315,7 +315,7 @@ Changes
     enabled. (##2908)
 -   Manually creating a Personal Access Token and pasting it into the
     CLI is no longer required to connect a GitHub service. Instead,
-    CumulusCI now supports GitHub\'s device authentication flow,
+    CumulusCI now supports GitHub's device authentication flow,
     allowing you to authenticate via browser using a temporary device
     code. (##2911)
 -   [cci service info]{.title-ref} for a github service now displays
@@ -450,7 +450,7 @@ Issues Fixed
     the dry run. (##2836)
 -   Improved the error message shown by the `load_dataset` task if a
     table is missing from the dataset. (##2813)
--   Improved the warning message shown when CumulusCI can\'t encrypt org
+-   Improved the warning message shown when CumulusCI can't encrypt org
     and service config files. (##2839)
 
 Internal Changes
@@ -467,15 +467,15 @@ Internal Changes
 Critical Changes
 
 -   The `github_release` task now requires the `tag_prefix` option to be
-    passed, because for 2nd-generation packages we can\'t tell from the
-    version number whether it is a beta or not. We\'ve updated the
+    passed, because for 2nd-generation packages we can't tell from the
+    version number whether it is a beta or not. We've updated the
     standard release flows to set the `tag_prefix` appropriately, but if
     you have custom flows using this task you will need to update them.
     (##2792)
 -   In order to run the `github_copy_subtree` task for a specific
     package version, you must now use the `tag_name` option instead of
     the `version` option. Using the `version` option set to `latest` or
-    `latest_beta` is deprecated; it\'s preferred to pass these values in
+    `latest_beta` is deprecated; it's preferred to pass these values in
     the `tag_name` option instead. (##2792)
 
 Changes
@@ -523,7 +523,7 @@ Changes
     via environment variables. See the
     [docs](https://cumulusci.readthedocs.io/en/stable/headless.html) for
     more details. (##2676 and ##2776)
--   We\'ve updated the Push Upgrade tasks ([push_list]{.title-ref},
+-   We've updated the Push Upgrade tasks ([push_list]{.title-ref},
     [push_sandbox]{.title-ref}, etc) task option
     [start_time]{.title-ref} to accept ISO-8601 formatted datetimes.
     (##2769)
@@ -537,7 +537,7 @@ Issues Closed
 -   Fixed an issue where scratch orgs failed to be deleted in CI
     environments. (##2676)
 -   Fixed an issue where deleting an org failed to mark the org as
-    deleted on CumulusCI\'s keychain. (##2676)
+    deleted on CumulusCI's keychain. (##2676)
 -   Fixed an issue where CumulusCI would fail on Linux distributions
     that were incompatible with the [keyring]{.title-ref} package.
     (##2676)
@@ -605,7 +605,7 @@ Changes:
     especially the ability to query into orgs. More information:
     <https://github.com/SFDO-Tooling/Snowfakery/releases/tag/2.0>
     (##2705)
--   We improved our Robot documentation so that it\'s possible to link
+-   We improved our Robot documentation so that it's possible to link
     to keyword documentation instead of having to download it locally
     (##2696)
 -   CumulusCI uses a new port (7788) for the built-in connected app to
@@ -641,7 +641,7 @@ Issues closed:
     `update_admin_profile` should update their manifest to include a
     `CustomTab` wildcard for the same outcome. (##2699)
 -   Fixed an issue where the `dx`, `dx_push`, and `dx_pull` tasks did
-    not refresh the org\'s access token. (##2703)
+    not refresh the org's access token. (##2703)
 -   Fixed issues in the `generate_data_dictionary` task that resulted in
     failures when processing fields with blank Help Text or processing
     standard fields. (##2706)
@@ -702,8 +702,8 @@ Robot Framework
 -   We upgraded SeleniumLibrary to 5.x (##2660).
 -   We added a new keyword \"select window\" to Salesforce library, to
     replace the keyword of the same name which was renamed in
-    SeleniumLibrary 5.x to \'switch window\'. We will be removing this
-    keyword in a future release; tests should use \'switch window\'
+    SeleniumLibrary 5.x to 'switch window'. We will be removing this
+    keyword in a future release; tests should use 'switch window'
     instead.
 
 Issues Closed
@@ -756,7 +756,7 @@ Issues Closed
     longer be specified as a single string instead of a list. (##2629)
 -   Fixed a regression in freezing the `deploy_pre`/`deploy_post` tasks
     for MetaDeploy install plans. (##2626)
--   Fixed bugs in the `deploy_marketing_cloud_package` task\'s payload
+-   Fixed bugs in the `deploy_marketing_cloud_package` task's payload
     construction. (##2620, ##2621)
 
 ## 3.35.0 (2021-05-13)
@@ -788,7 +788,7 @@ Changes
     `marketing_cloud`. These are considered experimental. (##2602)
 -   The `marketing_cloud` service allows users to connect to a Marketing
     Cloud tenant via OAuth so that tasks that work with Marketing Cloud
-    can make API calls on the user\'s behalf. (##2602)
+    can make API calls on the user's behalf. (##2602)
 -   The `oauth2_client` service takes information for an individual
     OAuth2 client which can then be used in place of the default client.
     This currently applies only to the `marketing_cloud` service. To
@@ -860,7 +860,7 @@ Changes:
     (##2578)
 
 -   The `update_dependencies` task can now consume 2GP releases in
-    upstream repositories, provided they\'re stored in release tags as
+    upstream repositories, provided they're stored in release tags as
     generated by CumulusCI. (##2557)
 
 -   The `extract_dataset` and `load_datast` tasks now support adding or
@@ -877,7 +877,7 @@ Changes:
 Issues Closed
 
 -   Fixed an error in the `github_automerge_main` task when using a
-    branch prefix that doesn\'t contain a slash. (##2582)
+    branch prefix that doesn't contain a slash. (##2582)
 -   Fixed logic in the `push_sandbox` and `push_all` tasks which was
     selecting the wrong package versions. (##2577)
 -   Improved logging of errors from sfdx while converting sfdx format
@@ -893,7 +893,7 @@ Changes:
     option to specify the 04t Id of the package version that should be
     considered the ancestor of a new managed package version. The option
     can also be set to `latest_github_release` to look up the 04t Id of
-    the project\'s most recent release on GitHub. (##2540)
+    the project's most recent release on GitHub. (##2540)
 
 Issues closed:
 
@@ -913,7 +913,7 @@ Issues closed:
 
 Critical Changes:
 
--   CumulusCI\'s dependency management modules have been rewritten. This
+-   CumulusCI's dependency management modules have been rewritten. This
     grants new capabilities and removes some existing features. (##2456)
 
     -   All package installations now perform retries if the package is
@@ -923,7 +923,7 @@ Critical Changes:
         errors.
 
     -   You can now obtain fine-grained control over how your projects
-        resolve dependencies. It\'s much easier to control where your
+        resolve dependencies. It's much easier to control where your
         application uses beta managed packages and second-generation
         packages to satisfy dependencies.
 
@@ -940,10 +940,10 @@ Critical Changes:
 
     -   The install order of `update_dependencies` changes slightly
         where multiple levels of upstream dependency have
-        `unpackaged/pre` metadata. Where previously one package\'s
+        `unpackaged/pre` metadata. Where previously one package's
         `unpackaged/pre` might be installed prior to its own upstream
         dependency, `unpackaged/pre` will now always be installed
-        immediately prior to the repo\'s package.
+        immediately prior to the repo's package.
 
     -   Projects using unmanaged dependencies that reference GitHub
         subfolders will see a change in resolution behavior. Previously,
@@ -1037,7 +1037,7 @@ Issues Closed:
 
 ## 3.32.1 (2021-04-01)
 
-April Fool\'s! This is the real new release, because there was a
+April Fool's! This is the real new release, because there was a
 packaging problem with 3.32.0.
 
 ## 3.32.0 (2021-04-01)
@@ -1051,10 +1051,10 @@ Changes:
 -   A new preflight check task, `get_existing_sites`, returns a list of
     existing Experience Cloud site names in the org. (##2493)
 -   It is now possible to create a flow which runs the same sub-flow
-    multiple times, as long as they don\'t create a self-referential
+    multiple times, as long as they don't create a self-referential
     cycle. (##2494)
 -   Improvements to support for releasing 2nd-generation (2GP) packages:
-    -   The `github_release` task now includes the package version\'s
+    -   The `github_release` task now includes the package version's
         04t id in the message of the tag that is created. (##2485)
     -   The `promote_package_version` task now defaults to promoting the
         package version corresponding to the most recent beta tag in the
@@ -1123,7 +1123,7 @@ Issues Closed:
 
 Critical changes:
 
--   We are planning to remove functionality in CumulusCI\'s dependency
+-   We are planning to remove functionality in CumulusCI's dependency
     management in a future release.
 
     -   The `update_dependencies` task will no longer support
@@ -1172,7 +1172,7 @@ Changes:
 -   Added new preflight check tasks:
     -   `get_existing_record_types` checks for existing Record Types.
         ##2371, thanks \@ClayTomerlin
-    -   `get_assigned_permission_sets` checks the current user\'s
+    -   `get_assigned_permission_sets` checks the current user's
         Permission Set Assignments. ##2386
 -   The `generate_package_xml` task now supports the Muting Permission
     Set metadata type. ##2382
@@ -1191,7 +1191,7 @@ Issues closed:
 -   Fixed very slow `cci org connect` on Safari. ##2373
 -   Added a workaround for decode errors that sometimes happen while
     processing cci logs on Windows. ##2392
--   If there\'s an error while doing JWT authentication to an org, we
+-   If there's an error while doing JWT authentication to an org, we
     now log the full response from the server. ##2384
 -   Robot Framework: Improved stability of the
     `ObjectManagerPageObject`. ##2391
@@ -1289,7 +1289,7 @@ Changes:
     `github_automerge_feature` task if the branch begins with the
     configured feature branch prefix.
 -   Running the `deploy` task with the `path` option set to a path that
-    doesn\'t exist will log a warning instead of raising an error.
+    doesn't exist will log a warning instead of raising an error.
 -   When the `ci_feature_2gp` and `qa_org_2gp` flows install
     dependencies, the latest beta version will be used when available.
 -   CumulusCI can now resolve dependencies using second-generation
@@ -1345,9 +1345,9 @@ Changes:
 -   Robot Framework:
     -   New keyword `Field value should be`
     -   New keyword `Modal should show edit error for fields` to check
-        form field error notifications in Spring \'21
+        form field error notifications in Spring '21
     -   Adjusted `Get field value` and `Select dropdown value` fields to
-        work in Spring \'21
+        work in Spring '21
 -   Command line improvements:
     -   The various `cci org` commands now accept an org name with the
         `--org` option, for better consistency with other commands.
@@ -1540,7 +1540,7 @@ Issues closed:
 -   We fixed an issue with relative imports within parallel Robot test
     runs by adding the repo root to PYTHONPATH.
 -   We fixed an issue with generating `package.xml` manifests for
-    directories that contain reports in folders that aren\'t owned by
+    directories that contain reports in folders that aren't owned by
     the project.
 -   We now handle an exception that may occur while creating merge
     conflict PRs during parent-child automerges.
@@ -1548,7 +1548,7 @@ Issues closed:
 ## 3.21.1 (2020-10-19)
 
 Issues closed: - Added a workaround for a slow query error while looking
-up installed packages in Winter \'21 orgs.
+up installed packages in Winter '21 orgs.
 
 ## 3.21.0 (2020-10-15)
 
@@ -1588,7 +1588,7 @@ Issues closed:
 
 Critical Changes:
 
--   We\'ve removed the standard flow: `retrieve_scratch`. The
+-   We've removed the standard flow: `retrieve_scratch`. The
     recommended way for retrieving source-tracked changes is to use the
     `retrieve_changes` task.
 -   Changes to automatic merging:
@@ -1677,7 +1677,7 @@ Changes:
         configured via the mapping file.
     -   Removed the namespace_tokenize option from tasks that deploy
         metadata, and removed the namespace_inject option from tasks
-        that retrieve metadata, because it\'s unclear when they would be
+        that retrieve metadata, because it's unclear when they would be
         useful.
     -   The task create_permission_set allows for creating and assigning
         a Permission Set that enables specific User Permissions. (Note:
@@ -1686,13 +1686,13 @@ Changes:
         Set with the Hard Delete and Set Audit Fields permissions for
         use with data load operations. The org permission to allow Set
         Audit Fields must be turned on.
-    -   CumulusCI\'s load_dataset and extract_dataset tasks now support
+    -   CumulusCI's load_dataset and extract_dataset tasks now support
         relative dates. To take advantage of relative dates, include the
         anchor_date key (with a date in YYYY-MM-DD format) in each
         mapping step you wish to relativize. On extract, dates will be
         modified to be the same interval from the anchor date as they
         are from the current date; on load, dates will be modified to be
-        the same interval from today\'s date as they are from their
+        the same interval from today's date as they are from their
         anchor. Both date and date-time fields are supported.
 -   Other:
     -   The oid_as_pk key is no longer supported in bulk data mappings.
@@ -1708,7 +1708,7 @@ Issues closed:
 > -   Fixed a bug in the metadeploy_publish task where labels starting
 >     with \"Install \" were not extracted for localization.
 > -   Fixed a bug that prevented using JWT auth with sandboxes if the
->     sandbox\'s instance_url did not include an instance name.
+>     sandbox's instance_url did not include an instance name.
 > -   Fixed a bug where `cci project init` generated an invalid mapping
 >     for bulk data tasks.
 
@@ -1731,7 +1731,7 @@ Changes:
         traceback when it is more than 30 lines.
 -   Robot Framework:
     -   The following robot keywords have been updated to work with
-        Winter \'21:
+        Winter '21:
         -   `Load related list`
         -   `Click related list button`
         -   `Click related item link`
@@ -1766,16 +1766,16 @@ Changes:
 -   Tasks and automation:
     -   We added the `upload_user_profile_photo` and
         `upload_default_user_profile_photo` tasks, which allow for
-        setting Users\' profile photos from images stored in the
+        setting Users' profile photos from images stored in the
         repository. (Thanks to \@spelak-salesforce).
     -   We added the property `is_person_accounts_enabled` to the
         `org_config` object, which is available in `when` clauses.
         (Thanks to \@spelak-salesforce).
 -   Policies and inclusive language:
-    -   We added information about Salesforce\'s Open Source Community
+    -   We added information about Salesforce's Open Source Community
         Code of Conduct and Security policies.
     -   We updated documentation to more consistently refer to the
-        \"main\" branch, reflecting CumulusCI\'s support for per-project
+        \"main\" branch, reflecting CumulusCI's support for per-project
         specification of main branches other than `master`.
 -   User experience:
     -   We modified how we handle situations where the default org is
@@ -1784,7 +1784,7 @@ Changes:
         (`-org` instead of `--org`, as well as incorrectly-formatted
         flow options) and show a clearer error.
     -   We now capture and display the `InstanceName` of orgs in
-        `cci org list`\'s output.
+        `cci org list`'s output.
 -   Robot Framework:
     -   We now cleanly fall back to the latest available API version for
         Robot locators if the newest API version does not have an
@@ -1815,7 +1815,7 @@ Changes:
 -   Project initialization:
 
     -   When starting a new CumulusCI project, the `cci project init`
-        command now uses the current git branch as the project\'s
+        command now uses the current git branch as the project's
         default branch.
     -   API version 49.0 is now set as the default for new projects.
 
@@ -1865,8 +1865,8 @@ Changes:
 
     -   The `robot` task has a new option, `processes`. If the value is
         \> 1, tests will be run in parallel in the given number of
-        processes, using [pabot](https://pabot.org/). Note: It\'s still
-        up to the test author to make sure the tests won\'t conflict
+        processes, using [pabot](https://pabot.org/). Note: It's still
+        up to the test author to make sure the tests won't conflict
         with each other when running in parallel. This feature is
         considered experimental.
     -   Added an `ObjectManager` page object for interacting with the
@@ -1887,7 +1887,7 @@ Changes:
 
 -   Added a new task, `github_copy_subtree`, to allow publishing
     selected files or folders to another repository after a release.
-    This allows publishing a subset of your project\'s code from a
+    This allows publishing a subset of your project's code from a
     private repository to a public one, for example.
 
 -   The `create_community` task has a new option, `skip_existing`. When
@@ -1921,7 +1921,7 @@ Issues closed:
     change note under a wrong subheading from a different section.
 -   Fixed freezing of command tasks for MetaDeploy.
 
-Internal changes (these should not affect you unless you\'re interacting
+Internal changes (these should not affect you unless you're interacting
 with CumulusCI at the Python level):
 
 > -   Standardized naming of different levels of configuration:
@@ -1970,7 +1970,7 @@ Changes:
     -   Mappings can now include junction objects with no additional
         fields.
 -   The `generate_dataset_mapping` task now has an `include` option to
-    specify additional objects to include in the mapping if they aren\'t
+    specify additional objects to include in the mapping if they aren't
     found by the default heuristics.
 -   Added additional tasks intended for use as preflight checks for
     MetaDeploy install plans:
@@ -2009,7 +2009,7 @@ Issues closed:
 Changes:
 
 -   Added a generic `dx` task which makes it easy to run Salesforce CLI
-    commands against orgs in CumulusCI\'s keychain. Use the `command`
+    commands against orgs in CumulusCI's keychain. Use the `command`
     option to specify the sfdx command.
 -   Tasks which do namespace injection now support the
     `%%%NAMESPACE_DOT%%%` injection token, which can be used to support
@@ -2094,7 +2094,7 @@ Issues closed:
 > -   Limited the variables available in global scope for the
 >     `cci shell` command.
 > -   Tasks based on `BaseSalesforceApiTask` which use the Bulk API now
->     default to using the project\'s API version rather than 40.0.
+>     default to using the project's API version rather than 40.0.
 > -   Bulk data tasks:
 >     -   The `extract_dataset` task no longer converts to snake_case
 >         when picking a name for lookup columns.
@@ -2108,7 +2108,7 @@ Changes:
 
 -   Added a task, `set_duplicate_rule_status`, which allows selective
     activation and deactivation of Duplicate Rules.
--   The `create_community` task now retries multiple times if there\'s
+-   The `create_community` task now retries multiple times if there's
     an error.
 -   The `generate_data_dictionary` task now supports multi-select
     picklist fields and will indicate the related object for lookup
@@ -2119,8 +2119,8 @@ Changes:
 Issues closed:
 
 -   In the Salesforce library for Robot Framework, fixed locators for
-    the actions ribbon and app launcher button in Summer \'20.
--   Fixed the `load_dataset` task so that steps which don\'t explicitly
+    the actions ribbon and app launcher button in Summer '20.
+-   Fixed the `load_dataset` task so that steps which don't explicitly
     specify a `bulk_mode` will inherit the option specified at the task
     level.
 -   Fixed error handling if an exception occurs within one of the [cci
@@ -2137,7 +2137,7 @@ Fixed a problem building the Homebrew formula for installing CumulusCI
 
 Changes:
 
--   We\'ve removed the prompt that users see when trying to use a
+-   We've removed the prompt that users see when trying to use a
     scratch org that has expired, and now automatically recreate the
     scratch org.
 -   The `load_dataset` task now automatically avoids creating Bulk API
@@ -2147,7 +2147,7 @@ Changes:
         attempts to detect if the org was created using the Classic UI
         and automatically switch to Lightning Experience.
     -   The Salesforce library now has preliminary support for Summer
-        \'20 preview orgs.
+        '20 preview orgs.
 -   CumulusCI now directs `simple-salesforce` to return results as
     normal Python dicts instead of OrderedDicts. This should have
     minimal impact since normal dicts are ordered in the versions of
@@ -2170,7 +2170,7 @@ Changes:
 -   Added two new preflight check tasks for use in MetaDeploy:
     `get_available_licenses` and
     `get_available_permission_set_licenses`. These tasks make available
-    lists of the License Definition Keys for the org\'s licenses or
+    lists of the License Definition Keys for the org's licenses or
     PSLs.
 -   The `get_installed_packages` task now logs its result.
 -   Robot Framework: Added two new keywords (`Get Fake Data` and
@@ -2184,7 +2184,7 @@ Issues closed:
     contains non-breaking spaces.
 -   Fixed a PermissionError when running multiple concurrent CumulusCI
     commands in Windows. (##1477)
--   Show a more helpful error message if a keychain entry can\'t be
+-   Show a more helpful error message if a keychain entry can't be
     loaded due to a change in the encryption key.
 -   Fixed the `org_settings` task to use the API version of the org
     rather than the API version of the package.
@@ -2221,8 +2221,8 @@ Issues closed:
     metadata ETL tasks.
 -   Fixed bugs in how the `set_organization_wide_defaults` and
     `update_admin_profile` tasks operated in namespaced scratch orgs.
--   Show a more helpful error message if CumulusCI can\'t find a
-    project\'s repository or release on GitHub. (##1281)
+-   Show a more helpful error message if CumulusCI can't find a
+    project's repository or release on GitHub. (##1281)
 -   Fixed the message shown for skipped steps in `cci flow info`.
 -   Fixed a regression which accidentally removed support for the
     `bulk_mode` option in bulk data mappings.
@@ -2244,7 +2244,7 @@ Critical changes:
 
 -   Refactored how CumulusCI uses the Bulk API to load, extract, and
     delete data sets. These changes should have no functional impact,
-    but projects that subclass CumulusCI\'s bulk data tasks should
+    but projects that subclass CumulusCI's bulk data tasks should
     carefully review the changes.
 
 Changes:
@@ -2286,7 +2286,7 @@ Issues closed:
 
 -   Adjusted the `run_tests` task to avoid an error due to not being
     able to access the symbol table for managed Apex classes in Spring
-    \'20. Due to this limitation, CumulusCI now will not attempt to
+    '20. Due to this limitation, CumulusCI now will not attempt to
     retry class-level concurrency failures when running Apex unit tests
     in a managed package. Such failures will be logged but will not
     cause a build failure.
@@ -2342,7 +2342,7 @@ Changes:
     improved formatting of option information.
 -   CumulusCI now displays a more helpful error message when it detects
     a network connection issue. (##1460)
--   We\'ve added the option [ignore_types]{.title-ref} to the
+-   We've added the option [ignore_types]{.title-ref} to the
     [uninstall_packaged_incremental]{.title-ref} task to allow all
     components of the specified metadata type to be ignored without
     having to explicitly list each one.
@@ -2361,7 +2361,7 @@ Issues Closed:
     used in Windows.
 -   Fixed a regression where [flow info]{.title-ref} and [task
     info]{.title-ref} commands could show an error [AttributeError:
-    \'NoneType\' object has no attribute \'get_service\']{.title-ref}
+    'NoneType' object has no attribute 'get_service']{.title-ref}
     when trying to load tasks or flows from a cross-project source.
     (##1529)
 -   Fixed an issue where certain HTTP errors while running the bulk data
@@ -2384,7 +2384,7 @@ Issues Closed:
 
 -   Robot Framework: Reverted a change to the
     [select_record_type]{.title-ref} keyword in the Salesforce library
-    to work in both Winter \'20 and Spring \'20
+    to work in both Winter '20 and Spring '20
 
 ## 3.5.3 (2020-01-23)
 
@@ -2401,7 +2401,7 @@ Issues Closed:
 -   Fixed a bug where the github_parent_pr_notes was attempting to post
     comments on issues related to child pull request change notes.
 -   Fixed various Robot keyword issues that have been reported for
-    Spring \'20.
+    Spring '20.
 
 ## 3.5.2 (2020-01-21)
 
@@ -2419,18 +2419,18 @@ Issues closed:
 Issues closed:
 
 -   Fixed an issue that was preventing newlines in output.
--   Don\'t show the prompt to create a gist if the user aborts the
+-   Don't show the prompt to create a gist if the user aborts the
     process.
 -   Avoid errors that can happen when trying to store the CumulusCI
-    encryption key in the system keychain using Python\'s keyring
+    encryption key in the system keychain using Python's keyring
     library, which can fail on some systems such as CI systems:
     -   We fixed a regression that caused CumulusCI to try to load the
-        keychain even for commands where it\'s not used.
+        keychain even for commands where it's not used.
     -   We fixed a bug that caused CumulusCI to try to load the keychain
         key even when using an unencrypted keychain such as the
         EnvironmentProjectKeychain.
 -   Adjusted some keywords in the Salesforce library for Robot Framework
-    to handle changes in the Spring \'20 release.
+    to handle changes in the Spring '20 release.
 
 ## 3.5.0 (2020-01-15)
 
@@ -2441,7 +2441,7 @@ Changes:
 -   CumulusCI now stores the logs from the last five executions under
     `~/.cumulusci/logs`
 -   CumulusCI has a new top-level command: `cci gist`. This command
-    creates a secret GitHub gist which includes: The user\'s current
+    creates a secret GitHub gist which includes: The user's current
     CumulusCI version, current Python version, path to python binary,
     sysname (e.g. Darwin), machine (e.g. x86_64), and the most recent
     CumulusCI logfile (`~/.cumulusci/logs/cci.log`). The command outputs
@@ -2449,12 +2449,12 @@ Changes:
     GitHub gist. This can be helpful for sharing information regarding
     errors and issues encountered when working with cci. This feature
     uses a users GitHub access token for creation of gists. If your
-    access token does not have the \'gist (Create gists)\' scope this
+    access token does not have the 'gist (Create gists)' scope this
     command will result in a 404 error. For more info see:
     <https://cumulusci.readthedocs.io/en/latest/features.html##reporting-error-logs>
 -   Changed `UpdateAdminProfile` so that it only deploys the modified
     Admin profile. While it is necessary to retrieve profiles along
-    their associated metadata objects, we don\'t need to do that for
+    their associated metadata objects, we don't need to do that for
     deployments.
 -   Added options to the [deploy]{.title-ref} task: `check_only`,
     `test_level`, and `specified_tests`. Run `cci task info deploy` for
@@ -2498,7 +2498,7 @@ Breaking changes:
 Changes:
 
 -   Updated Robot Framework Salesforce library to support the Spring
-    \'20 release.
+    '20 release.
 -   Added `remove_metadata_xml_elements` task which can be used to
     remove specified XML elements from metadata files.
 -   Updated references to the NPSP repository to use its new name
@@ -2529,7 +2529,7 @@ Changes:
 -   The `Persistent Orgs` table shown by `cci org list` has been renamed
     to `Connected Orgs` since scratch orgs will be shown here if they
     were connected using `cci org connect` instead of created via the
-    Salesforce CLI. This table now shows the org\'s expiration date, if
+    Salesforce CLI. This table now shows the org's expiration date, if
     known.
 -   Improvements to the `retrieve_changes` task:
     -   The task now retrieves only the components that actually
@@ -2540,7 +2540,7 @@ Changes:
         `mdapi` format or the default entry in `packageDirectories` in
         `sfdx-project.json` if the project is using `sfdx` format.
         (Namespace tokenization is not supported in DX format, since
-        there isn\'t currently a way to deploy DX format source
+        there isn't currently a way to deploy DX format source
         including namespace tokens.)
 -   Added a task, `load_custom_settings`, to upload Custom Settings
     defined in YAML into a target org. See
@@ -2614,12 +2614,12 @@ New features:
 Issues closed:
 
 -   When importing a scratch org from sfdx using `cci org import`, the
-    org\'s `days` is now set correctly from the org\'s actual expiration
+    org's `days` is now set correctly from the org's actual expiration
     date. (##1101)
 -   The package API version from `cumulusci.yml` is now validated to
-    make sure it\'s in the \"XX.0\" format expected by the API. (##1134)
+    make sure it's in the \"XX.0\" format expected by the API. (##1134)
 -   Fixed an error deploying new setting objects using the
-    `org_settings` task in Winter \'20.
+    `org_settings` task in Winter '20.
 -   Fixed a bug in processing preflight check tasks for MetaDeploy.
 -   Fixed path handling in the `update_admin_profile` task when run in a
     cross-project flow.
@@ -2629,7 +2629,7 @@ Issues closed:
 Breaking changes:
 
 -   The `metadeploy_publish` task now requires setting `-o publish True`
-    in order to automatically set the Version\'s is_listed flag to True.
+    in order to automatically set the Version's is_listed flag to True.
     (This is backwards incompatible in order to provide a safer
     default.)
 
@@ -2702,7 +2702,7 @@ New features:
 -   Added support for new metadata types when generating `package.xml`
     from a directory of metadata using the `update_package_xml` task.
 -   The `ci_feature` flow now supports generating change notes for a
-    parent feature branch\'s pull request from the notes on child pull
+    parent feature branch's pull request from the notes on child pull
     requests. The parent pull request description will be overwritten
     with the new notes after a child branch is merged to the parent if
     the parent pull request has a special label, `Build Change Notes`.
@@ -2718,7 +2718,7 @@ New features:
 Issues closed:
 
 -   Added a workaround for an issue where refreshing the access token
-    for a sandbox or scratch org could fail if the user\'s credentials
+    for a sandbox or scratch org could fail if the user's credentials
     were new and not fully propagated.
 
 ## 3.0.0 (2019-09-30)
@@ -2726,7 +2726,7 @@ Issues closed:
 Breaking change:
 
 -   CumulusCI 3.0.0 removes support for Python 2 (which will reach end
-    of life at the end of 2019). If you\'re still running Python 2 you
+    of life at the end of 2019). If you're still running Python 2 you
     can use an older version of CumulusCI, but we recommend upgrading to
     Python 3. See our [installation
     instructions](https://cumulusci.readthedocs.io/en/latest/install.html)
@@ -2817,12 +2817,12 @@ New features:
 
 -   The `run_tests` task now supports a `retry_failures` parameter. This
     is a list of regular expressions to match against each unit test
-    failure\'s message and stack trace; if all failing tests match, the
+    failure's message and stack trace; if all failing tests match, the
     failing tests will be retried serially. Set `retry_always` to True
     to trigger this behavior when any failure matches.
 -   There is now a default CumulusCI global connected app that can be
     used to connect to persistent orgs (assuming you know the
-    credentials) without creating a new connected app. It\'s still
+    credentials) without creating a new connected app. It's still
     possible to configure a custom connected app using
     `cci service connect connected_app` if more control over the
     connected app settings is needed.
@@ -2831,7 +2831,7 @@ New features:
     refresh token. This approach is used if the SFDX_CLIENT_ID and
     SFDX_HUB_KEY environment variables are set. This makes it easier to
     manage persistent org connections in the context of a hosted service
-    because it\'s possible to replace the connected app\'s certificate
+    because it's possible to replace the connected app's certificate
     without needing to obtain new refresh tokens for each org.
 
 Issues closed:
@@ -2844,8 +2844,8 @@ Issues closed:
 
 New features:
 
--   We\'ve changed how the output of some commands are displayed in
-    tables. For users that prefer simpler style tables we\'ve added a
+-   We've changed how the output of some commands are displayed in
+    tables. For users that prefer simpler style tables we've added a
     `--plain` option to approximate the previous behavior. To
     permanently set this option, add this in
     `~/.cumulusci/cumulusci.yml`:
@@ -2866,7 +2866,7 @@ New features:
 
 -   Robot Framework:
 
-    -   Added locators file to support the Winter \'20 release of
+    -   Added locators file to support the Winter '20 release of
         Salesforce.
     -   New `robot_lint` task to check for common problems in Robot
         Framework test suites.
@@ -2880,7 +2880,7 @@ Issues closed:
 
 -   Added workarounds for some intermittent 401 errors when
     authenticating to the GitHub API as a GitHub App.
--   `cci org info` shouldn\'t show traceback if the org isn\'t found
+-   `cci org info` shouldn't show traceback if the org isn't found
     (##1023)
 
 ## 2.5.5 (2019-07-31)
@@ -2947,7 +2947,7 @@ New features:
     -   Added an option to store metadata in DX source format
     -   Added a sample `mapping.yml` for the bulk data tasks
     -   Specify the currently installed CumulusCI version as the
-        project\'s `minimum_cumulusci_version`
+        project's `minimum_cumulusci_version`
     -   Check to make sure the project name only contains supported
         characters
 -   The `robot_libdoc` task can now generate documentation for Robot
@@ -2961,13 +2961,13 @@ Issues fixed:
     Additionally, it will suggest a name if a close enough match can be
     found. (##960)
 -   Fixed UnicodeDecodeError when reading output from subprocesses if
-    the console encoding is different from Python\'s preferred file
+    the console encoding is different from Python's preferred file
     encoding.
 -   Fixes related to source tracking:
     -   Track the max revision retrieved for each component instead of
         the overall max revision. This way components can be retrieved
         in stages into different paths.
-    -   If `snapshot_changes` doesn\'t find any changes, wait 5 seconds
+    -   If `snapshot_changes` doesn't find any changes, wait 5 seconds
         and try again. There can be a delay after a deployment before
         source tracking is updated.
 
@@ -3071,7 +3071,7 @@ Issues fixed:
 -   The GitHub release notes parser now recognizes Issues Closed if they
     are linked in Markdown format.
 -   Robot Framework: Fixed a locator used by the
-    `Select App Launcher App` keyword to work in Summer \'19.
+    `Select App Launcher App` keyword to work in Summer '19.
 -   The `cci project init` command now uses an updated repository URL
     when extending EDA.
 
@@ -3093,8 +3093,8 @@ Issues fixed:
     names when processing lookups.
 -   Robot Framework: The Salesforce library now has the ability to
     switch between different sets of locators based on the Salesforce
-    version, and thanks to it we\'ve fixed the robot so it can click on
-    modal buttons in the Summer \'19 release.
+    version, and thanks to it we've fixed the robot so it can click on
+    modal buttons in the Summer '19 release.
 -   The `cci project init` command now generates projects with a
     different preferred structure for Robot Framework tests and
     resources, with everything inside the `robot` directory. Existing
@@ -3108,7 +3108,7 @@ Issues fixed:
     orgs (previously deployment would fail on production orgs if this
     flag was true).
 -   The installation documentation now recommends using `pipx` to
-    install CumulusCI on Windows, so that you don\'t have to set up a
+    install CumulusCI on Windows, so that you don't have to set up a
     virtualenv manually.
 
 ## 2.4.1 (2019-04-09)
@@ -3126,13 +3126,13 @@ Issues Fixed:
 
 -   Fixed a couple problems with generating passwords for new scratch
     orgs:
-    -   A project\'s predefined scratch org configs now default to
+    -   A project's predefined scratch org configs now default to
         `set_password: True` (which was already the case for orgs
         created explicitly using cci org scratch).
-    -   A scratch org config\'s `set_password` flag is now retained when
+    -   A scratch org config's `set_password` flag is now retained when
         recreating an expired org. (Fixes ##670)
 -   Fixed the logic for finding the most recent GitHub release so that
-    it now only considers tags that start with the project\'s git
+    it now only considers tags that start with the project's git
     `prefix_release`.
 -   Fixed the `install_prod_no_config` flow. The `deploy_post` task was
     not injecting namespace tokens correctly.
@@ -3183,9 +3183,9 @@ Changes:
 -   Fixed the bulk data load task to handle null values in a datetime
     column.
 -   The [ci_master]{.title-ref} flow now explicitly avoids trying to
-    install beta releases of dependencies (since it\'s meant for use
+    install beta releases of dependencies (since it's meant for use
     with non-scratch orgs and we block installing betas there since they
-    can\'t be upgraded).
+    can't be upgraded).
 
 ## 2.3.4 (2019-03-06)
 
@@ -3199,7 +3199,7 @@ Changes:
 -   Fixed a bug where flow options specified on the command line were
     not passed to tasks correctly.
 -   `cci service connect` now shows a more helpful error message if you
-    call it with a service name that CumulusCI doesn\'t know about.
+    call it with a service name that CumulusCI doesn't know about.
     Fixes ##752.
 -   Deleted scratch orgs will no longer show the number of days since
     they were created in `cci org list`. Thanks to \@21aslade for the
@@ -3228,7 +3228,7 @@ Changes:
         lookup relationships. Previous mappings which specify the
         `Id: sf_id` mapping will continue to work as before using the
         Salesforce OID as the mapping value.
-    -   The mapping yaml file\'s `lookups:` section now handles defaults
+    -   The mapping yaml file's `lookups:` section now handles defaults
         to allow simpler lookup mappings. The only key required is now
         `table`. If the `key_field` is provided it will be used.
 -   The `sql_path` option on `QueryData` can be used to provide the file
@@ -3257,7 +3257,7 @@ Changes:
     (However, the environment variable will still be preferred if it is
     there, and it will be migrated to the system keychain.)
 -   New task `connected_app` makes it easier to deploy and configure the
-    Connected App needed for CumulusCI\'s keychain to work with
+    Connected App needed for CumulusCI's keychain to work with
     persistent orgs. The connected app is deployed using `sfdx` to an
     org in the `sfdx` keychain and defaults to the
     `defaultdevhubusername`.
@@ -3280,7 +3280,7 @@ Changes:
     bundles are now fetched from the git commit corresponding to the
     most recent release of the managed package, instead of master.
 -   Improvements to the task for publishing a release to MetaDeploy:
-    -   It can now publish a tag even if it\'s a different commit than
+    -   It can now publish a tag even if it's a different commit than
         what is currently checked out in the working directory.
     -   It now pins managed deployments of metadata bundles to the git
         commit corresponding to the most recent release of the managed
@@ -3300,13 +3300,13 @@ Breaking Changes:
 -   We refactored the code for running flows. The full list of steps to
     run is now calculated from nested flow configuration when the flow
     is initialized instead of during runtime. Your existing flows should
-    continue to run as before, but if you\'re interacting with CumulusCI
-    at the Python API level, you\'ll need to use the `FlowCoordinator`
+    continue to run as before, but if you're interacting with CumulusCI
+    at the Python API level, you'll need to use the `FlowCoordinator`
     instead of `BaseFlow`.
 -   Tasks are now expected to have no side effects when they are
     instantiated. If tasks need to set up resources, do that in
     `_init_task` instead of `__init__` or `_init_options` to make sure
-    it doesn\'t happen until the task is actually being run.
+    it doesn't happen until the task is actually being run.
 
 Changes:
 
@@ -3314,7 +3314,7 @@ Changes:
     same way as `dev_org`, but installs the latest beta versions of
     managed package dependencies.
 -   The `github_release` task now records the release dependencies as
-    JSON in the release\'s tag message.
+    JSON in the release's tag message.
 -   Looking up the latest release from GitHub is now done using a single
     HTTP request rather than listing all releases.
 -   We added S-Controls to the list of metadata types that the
@@ -3398,7 +3398,7 @@ Changes:
 
 -   Improved error handling during scratch org creation:
     -   Capture and display stderr output from SFDX (issue ##413).
-    -   Avoid infinite recursion if username wasn\'t found in output
+    -   Avoid infinite recursion if username wasn't found in output
         from SFDX.
 -   Robot Framework: Increased the timeout for initial loading of the
     browser.
@@ -3431,7 +3431,7 @@ Changes:
         from python.org instead of Homebrew. (Homebrew should still work
         fine, but is no longer necessary.) We also now suggest creating
         a virtualenv using venv rather than pyenv since the former is
-        included with Python. It\'s fine to continue using pyenv if you
+        included with Python. It's fine to continue using pyenv if you
         want.
     -   Give more useful links for how to set up SFDX.
     -   Updated robot library docs.
@@ -3444,7 +3444,7 @@ Changes:
         versions.
     -   Simplified the Python API for setting up a CumulusCI runtime.
         Begone, YamlGlobalConfig and YamlProjectConfig. Our Python API
-        is not yet documented, but we\'re working on it. In the
+        is not yet documented, but we're working on it. In the
         meantime, if you were relying on running CCI from within Python,
         you can now just use BaseGlobalConfig (and its
         get_project_config member) to bootstrap CCI.
@@ -3504,7 +3504,7 @@ Changes:
         a `Scroll Element Into View` keyword.
     -   `Wait Until Loading Is Complete` now waits for the main body of
         the page to render
-    -   `Populate Lookup Field` now tries several times in case there\'s
+    -   `Populate Lookup Field` now tries several times in case there's
         an indexing delay
     -   Added a `-o verbose True` option to the robot task which logs
         each keyword as it runs.
@@ -3532,7 +3532,7 @@ Issues Closed:
     wanted the project to already exist! Fixes ##816. In addition, other
     commands will now function without an active project or keychain
     when it possible to do so. (For example, try `cci version` which now
-    works when you\'re not in a project directory.)
+    works when you're not in a project directory.)
 
 -   `update_dependencies` task:
 
@@ -3553,7 +3553,7 @@ Issues Closed:
     `cumulusci.robotframework.utils.selenium_retry` decorator
     which can be applied to a robot library class for increased
     stability. - There is now an option to pause and enter the Python
-    debugger after a keyword fails. Run with `-o pdb True`. - Revised keywords and locators to support the Winter \'19
+    debugger after a keyword fails. Run with `-o pdb True`. - Revised keywords and locators to support the Winter '19
     release of Salesforce and improve stability. - The `Salesforce.robot` file now includes the
     `OperatingSystem` and `XML` libraries from Robot Framework
     by default. These libraries are helpful in building
@@ -3569,12 +3569,12 @@ Issues Closed:
 
 ## 2.1.0b1 (2018-10-05)
 
--   It\'s happening! Hot on the heels of the last release, CumulusCI is
+-   It's happening! Hot on the heels of the last release, CumulusCI is
     making the jump to the modern era by adding **support for Python
-    3**! (Specifically, Python 3.6 and 3.7.) Don\'t worry, we\'ll also
+    3**! (Specifically, Python 3.6 and 3.7.) Don't worry, we'll also
     continue to support Python 2 for the time being. Because this is a
-    bit more wide-reaching change than normal, we\'re releasing a beta
-    first. To install the beta you\'ll need to explicitly request its
+    bit more wide-reaching change than normal, we're releasing a beta
+    first. To install the beta you'll need to explicitly request its
     version: `pip install cumulusci==2.1.0b1`. If you already have
     CumulusCI, after the update it will continue to run under your
     Python 2 interpreter. If you want to switch to the Python 3
@@ -3586,7 +3586,7 @@ Issues Closed:
     `cci-py3` instead of `cci`.
 -   There are also some big changes to the **bulk data** tasks. Did you
     know CumulusCI has bulk data tasks? They are not configured by
-    default, because we need to finish documenting them. But we\'ll list
+    default, because we need to finish documenting them. But we'll list
     the changes in case someone is already relying on them:
     -   Fixed connection resets by downloading an entire result file
         before processing.
@@ -3594,8 +3594,8 @@ Issues Closed:
         the SQLAlchemy ORM, storing inserted Ids in separate tables, and
         doing lookups using SQL joins rather than a separate query for
         each row.
-    -   If you\'re using a postgres database for local storage,
-        performance gets even better by taking advantage of postgres\'
+    -   If you're using a postgres database for local storage,
+        performance gets even better by taking advantage of postgres'
         `COPY` command to load CSV directly.
     -   Added a `hardDelete` option for bulk deletes.
     -   Added a `start_step` option for bulk loads which can be used to
@@ -3605,14 +3605,14 @@ Issues Closed:
     Subscription Expired\" errors, which are generally benign.
 -   Fixed the check for newer CumulusCI versions to work around an issue
     with old `setuptools`.
--   Contributor change: We switched CumulusCI\'s own tests to run using
+-   Contributor change: We switched CumulusCI's own tests to run using
     `pytest`.
 -   Internal change: We switched to the `cryptography` library for
     handling keychain encryption.
 
 ## 2.0.13 (2018-10-02)
 
--   Happy Spooky October! It\'s unlucky release 2.0.13, with some
+-   Happy Spooky October! It's unlucky release 2.0.13, with some
     scary-cool improvements. Just to show you how ramped up our RelEng
     team is now, this release had TWENTY THREE pull requests in 12 days!
     From all four of your friendly SFDO Release Engineering committers.
@@ -3638,7 +3638,7 @@ Issues Closed:
 -   When using the strip_namespace option on deployments, we now log
     which files had changes made before deploying.
 -   Going Out: the SFDXDeploy and SFDXJsonPollingTasks have been
-    removed, as they didn\'t work.
+    removed, as they didn't work.
 -   Going Out: Use the safe_load() method when loading YAML instead of
     the naive load(). If you relied on executing code in your CCI YAML
     file parsing, that will no longer work.
@@ -3755,7 +3755,7 @@ Issues Closed:
 
 After over 19 months of development as alpha (40 version over 3 months)
 and beta (98 releases over 16 months) releases and over a year running
-production builds using CumulusCI, it\'s time to remove the \"beta\"
+production builds using CumulusCI, it's time to remove the \"beta\"
 label.
 
 This marks the first production release of CumulusCI 2.x!
@@ -3774,7 +3774,7 @@ need to modify your cumulusci.yml file to work with this release.**
 
 Changes default flows shipped with CumulusCI to a new syntax and
 structure taking advantage of the ability for flows to call other flows.
-This allows flows to be modularized in ways that weren\'t possible when
+This allows flows to be modularized in ways that weren't possible when
 the original set of flows was designed.
 
 -   The **tasks:** section in cumulusci.yml for a flow is now renamed to
@@ -3960,12 +3960,12 @@ the original set of flows was designed.
 
 ## 2.0.0-beta84 (2018-02-12)
 
--   Add new Status \'Queued\' to PackageUploadRequest check
+-   Add new Status 'Queued' to PackageUploadRequest check
 
 ## 2.0.0-beta83 (2018-02-08)
 
 -   Add a sleep in between successful PackageUploadRequest and querying
-    for MetadataPackageVersion to address issue in Spring \'18 packaging
+    for MetadataPackageVersion to address issue in Spring '18 packaging
     orgs.
 
 ## 2.0.0-beta82 (2018-02-02)
@@ -4002,7 +4002,7 @@ the original set of flows was designed.
 Resolving a few issues from beta77:
 
 -   A bug in BaseKeychain.create_scratch_org was causing the creation of
-    ScratchOrgConfig\'s with a days value of None. This caused issues
+    ScratchOrgConfig's with a days value of None. This caused issues
     with subsequent calls against the org.
 -   Fixed output from new logging in namespace injection
 -   Switch to using org_config.date_created to check if an org has been
@@ -4035,10 +4035,10 @@ Resolving a few issues from beta77:
 -   New namespace inject token strings are supported for injecting
     namespaces into Lightning Component references:
     -   **%%%NAMESPACE_OR_C%%%**\*: Replaced with either
-        \'your_namespace\' (unmanaged = False) or \'c\' (unmanaged =
+        'your_namespace' (unmanaged = False) or 'c' (unmanaged =
         True)
     -   **%%%NAMESPACED_ORG_OR_C%%%**\*: Replaced with either
-        \'your_namespace\' (namespaced_org = True) or \'c\'
+        'your_namespace' (namespaced_org = True) or 'c'
         (namespaced_org = False)
 -   Deleted all tasks and code related to [apextestsdb]{.title-ref}
     since its functionality is now integrated into MetaCI and no longer
@@ -4087,9 +4087,9 @@ Resolving a few issues from beta77:
     -   Better prompt driven user experience with explanations of each
         prompt
     -   [\--extend \<repo_url\>]{.title-ref} option to set up a
-        recursive dependency on another CumulusCI project\'s Github
+        recursive dependency on another CumulusCI project's Github
         repository
-    -   Creates [sfdx-project.json]{.title-ref} if it doesn\'t already
+    -   Creates [sfdx-project.json]{.title-ref} if it doesn't already
         exist
     -   Creates and populates the [orgs/]{.title-ref} directory if it
         does not already exist. The directory is populated with starter
@@ -4099,7 +4099,7 @@ Resolving a few issues from beta77:
 -   Fix issue with namespace injection
 -   [push\_\*]{.title-ref} tasks now accept [now]{.title-ref} for the
     [start_time]{.title-ref} option which will start the push upgrade
-    now (technically 5 seconds from now but that\'s better than 5
+    now (technically 5 seconds from now but that's better than 5
     minutes).
 
 ## 2.0.0-beta68 (2017-10-20)
@@ -4109,7 +4109,7 @@ Resolving a few issues from beta77:
 
 ## 2.0.0-beta67 (2017-10-20)
 
--   Fix bug where auto-created scratch orgs weren\'t getting the
+-   Fix bug where auto-created scratch orgs weren't getting the
     [scratch]{.title-ref} attribute set properly on their
     [ScratchOrgConfig]{.title-ref} instance.
 
@@ -4150,7 +4150,7 @@ Resolving a few issues from beta77:
     with 4 org configs: [dev]{.title-ref}, [feature]{.title-ref},
     [beta]{.title-ref}, and [release]{.title-ref}. You can add
     additional org configs per project using the [orgs]{.title-ref} -\>
-    [scratch]{.title-ref} section of the project\'s
+    [scratch]{.title-ref} section of the project's
     [cumulusci.yml]{.title-ref}. With this change, [cci org
     list]{.title-ref} will always show at least 4 orgs for any project.
     If an org already exists in the keychain, it is not touched and no
@@ -4208,7 +4208,7 @@ Resolving a few issues from beta77:
     scratch orgs created via [cci org scratch]{.title-ref} would get the
     namespace. With the new functionality, all orgs would by default not
     have the namespace. You can configure individual org configs in your
-    project\'s [cumulusci.yml]{.title-ref} file by setting [namespace:
+    project's [cumulusci.yml]{.title-ref} file by setting [namespace:
     True]{.title-ref} under [orgs -\> scratch -\>
     \<org_name\>]{.title-ref}
 
@@ -4318,9 +4318,9 @@ Resolving a few issues from beta77:
         [force:org:display]{.title-ref}
     -   Changed json response parsing to match beta format
 -   New SFDX wrapper tasks
-    -   \`SFDXBaseTask\`: Use for tasks that don\'t need org access
+    -   \`SFDXBaseTask\`: Use for tasks that don't need org access
     -   \`SFDXOrgTask\`: Use for sfdx tasks that need org access. The
-        task will refresh the cci keychain org\'s token and pass it to
+        task will refresh the cci keychain org's token and pass it to
         sfdx as the target org for the command
     -   \`SFDXJsonTask\`: Use for building tasks that interact with sfdx
         via json responses
@@ -4346,7 +4346,7 @@ Resolving a few issues from beta77:
     [BaseSalesforceApiTask]{.title-ref},
     [BaseSalesforceBulkApiTask]{.title-ref}, and
     [BaseSalesforceToolingApiTask]{.title-ref} by combining them into a
-    single task class with access to all 3 API\'s via
+    single task class with access to all 3 API's via
     [self.sf]{.title-ref}, [self.tooling]{.title-ref}, and
     [self.bulk]{.title-ref} from inside a task instance.
 -   Added integration with sentry.io
@@ -4367,11 +4367,11 @@ Resolving a few issues from beta77:
 -   New task [unschedule_apex]{.title-ref} was added to unschedule
     background jobs and added to the start of the [dev_org]{.title-ref}
     flow
--   [update_meta_xml]{.title-ref} task now uses the project\'s
+-   [update_meta_xml]{.title-ref} task now uses the project's
     dependencies as the namespace/version to update in the meta.xml
     files
 -   The bulkdata mapping now properly supports Record Types
--   Fixed a bug with BulkDataQuery where local references weren\'t
+-   Fixed a bug with BulkDataQuery where local references weren't
     getting properly set
 -   New CumulusCI Branch & Release Overview diagram presention is
     available at
@@ -4389,7 +4389,7 @@ Resolving a few issues from beta77:
 ## 2.0.0-beta43 (2017-06-09)
 
 -   Fix issue in [mrbelvedere_publish]{.title-ref} where the new zip_url
-    dependencies weren\'t being skipped
+    dependencies weren't being skipped
 
 ## 2.0.0-beta42 (2017-06-09)
 
@@ -4448,7 +4448,7 @@ Resolving a few issues from beta77:
 
 -   [update_dependencies]{.title-ref} now supports dynamically
     referencing other Github repositories configured with a
-    cumulusci.yml file. The referenced repository\'s cumulusci.yml is
+    cumulusci.yml file. The referenced repository's cumulusci.yml is
     parsed and the dependencies are included. Also, the Github API is
     used to find the latest release of the referenced repo if the
     cumulusci.yml has a namespace configured. Welcome to dynamic package
@@ -4467,7 +4467,7 @@ Resolving a few issues from beta77:
         deploy_post]{.title-ref}
 -   Anonymous apex failures will now throw an exception and fail the
     build in [execute_anon]{.title-ref}
--   Fixes ##322: local variable \'message\' referenced before assignment
+-   Fixes ##322: local variable 'message' referenced before assignment
 
 ## 2.0.0-beta35 (2017-05-19)
 
@@ -4605,7 +4605,7 @@ Resolving a few issues from beta77:
 -   Fixes ##240 - CumulusCI should now properly handle escaping special
     characters in xml where appropriate
 -   Fixes ##245 - Show config values in task info
--   Fixes ##251 - ApiRetrieveUnpackaged \_clean_package_xml() can\'t
+-   Fixes ##251 - ApiRetrieveUnpackaged \_clean_package_xml() can't
     handle metadata with spaces in names
 -   Fixes ##255 - ApiListMetadata does not list certain metadata types
     with default folder value
@@ -4751,7 +4751,7 @@ Resolving a few issues from beta77:
 ## 2.0.0-beta2 (2017-01-12)
 
 -   Fix a bug in project_config.get_latest_version() with tags that
-    don\'t match either the beta or release prefix.
+    don't match either the beta or release prefix.
 
 ## 2.0.0-beta1 (2017-01-12)
 
@@ -4788,7 +4788,7 @@ Resolving a few issues from beta77:
 -   Two new task classes exist for loading and deleting data via Bulk
     API. Note that there are no default task mappings for these classes
     as the mappings should be project specific. Define your own mappings
-    in your project\'s cumulusci.yml file to use them.
+    in your project's cumulusci.yml file to use them.
     -   **cumulusci.tasks.bulkdata.LoadData**: Loads relational data
         from a sqlite database into Salesforce objects using a yaml file
         for mapping
@@ -4812,8 +4812,8 @@ Resolving a few issues from beta77:
 ## 2.0.0-alpha37 (2016-12-20)
 
 -   [github_release_notes]{.title-ref} now correctly handles the
-    situation where a merge commit\'s date can be different than the
-    PR\'s merged_at date in Github by comparing commit sha\'s
+    situation where a merge commit's date can be different than the
+    PR's merged_at date in Github by comparing commit sha's
 
 ## 2.0.0-alpha36 (2016-12-20)
 
@@ -4824,7 +4824,7 @@ Resolving a few issues from beta77:
 ## 2.0.0-alpha35 (2016-12-20)
 
 -   Remove [draft]{.title-ref} option from [github_release]{.title-ref}
-    since the Github API doesn\'t support querying draft releases
+    since the Github API doesn't support querying draft releases
 
 ## 2.0.0-alpha34 (2016-12-20)
 
@@ -4834,7 +4834,7 @@ Resolving a few issues from beta77:
 ## 2.0.0-alpha33 (2016-12-20)
 
 -   [github_release_notes]{.title-ref} now raises an exception in
-    [publish]{.title-ref} mode if the release doesn\'t exist instead of
+    [publish]{.title-ref} mode if the release doesn't exist instead of
     attempting to create it. Use [github_release]{.title-ref} to create
     the release first before calling [github_release_notes]{.title-ref}
 -   Fix a bug with dynamic task option lookup in flows
@@ -4901,7 +4901,7 @@ Resolving a few issues from beta77:
     exception on test failure
 -   run_tests_debug now stores debug logs in a tempdir
 -   Have the CLI handle ApexTestException events with a nicer error
-    rather than a full traceback which isn\'t helpful to determining the
+    rather than a full traceback which isn't helpful to determining the
     apex failure
 -   BaseMetadataApi will now throw MetadataApiError after a Failed
     status is set
@@ -4917,8 +4917,8 @@ Resolving a few issues from beta77:
 
 -   [cci org browser]{.title-ref} now saves the org back to the
     keychain. This fixes an issue with scratch orgs where a call to org
-    browser on a scratch org that hasn\'t been created yet gets created
-    but doesn\'t persist after the command
+    browser on a scratch org that hasn't been created yet gets created
+    but doesn't persist after the command
 -   [task run]{.title-ref} and [flow run]{.title-ref} now support the
     [\--debug]{.title-ref} flag which will drop you into the Python
     interactive debugger (pdb) at the point of the exception.
@@ -4949,11 +4949,11 @@ Resolving a few issues from beta77:
         [\--global]{.title-ref} flag can be used in the CLI to create an
         org
     -   [config_connected_app]{.title-ref} command now sets the
-        connected app as global by default. Use the \'\--project\' flag
+        connected app as global by default. Use the '\--project' flag
         to set as a project override
     -   [connect_github]{.title-ref}, [connect_mrbelvedere]{.title-ref},
         and [connect_apextestsdb]{.title-ref} commands now set the
-        service as global by default. Use the \'\--project\' flag to set
+        service as global by default. Use the '\--project' flag to set
         as a project override
 
 ## 2.0.0-alpha20 (2016-11-29)
@@ -4975,7 +4975,7 @@ Resolving a few issues from beta77:
 
 -   New task [apextestsdb_upload]{.title-ref} uploads json test data to
     an instance of ApexTestsDB
--   Fixed bug in CLI when running tasks that don\'t require an org
+-   Fixed bug in CLI when running tasks that don't require an org
 -   Include mappings for Community Template metadata types in
     package.xml generator
 
@@ -5061,8 +5061,8 @@ Resolving a few issues from beta77:
     Releases
     -   project_config.get_latest_release() added to query Github
         Releases to find the latest production or beta release version
-    -   InstallPackage now accepts the virtual versions \'latest\' and
-        \'latest_beta\' as well as specific versions for the version
+    -   InstallPackage now accepts the virtual versions 'latest' and
+        'latest_beta' as well as specific versions for the version
         option
 -   New flows:
     -   ci_feature: Runs a full deployment of the unmanaged code for
@@ -5076,11 +5076,11 @@ Resolving a few issues from beta77:
         notes
 -   Removed the hard coded slots in the keychain for github,
     mrbelvedere, and apextestsdb and replaced with a more generic
-    concept of named keychain services. keychain.get_service(\'name\')
+    concept of named keychain services. keychain.get_service('name')
     retrieves a named service. The CLI commands for setting github,
     mrbelvedere, and apextestsdb were modified to write the service
     configs to the new structure.
--   Flow tasks can now access previous tasks\' attributes in their
+-   Flow tasks can now access previous tasks' attributes in their
     options definitions. The syntax is \^\^task_name.attr1.attr2
 -   Flow output is now nicer showing the flow configuration and the
     active configuration for each task before execution
@@ -5094,7 +5094,7 @@ Resolving a few issues from beta77:
         JUnit report, captures debug logs, and parses debug logs for
         limits usage outputing results to test_results.json
     -   run_tests_managed: Runs matching apex tests in parallel from the
-        package\'s namespace and generate a JUnit report
+        package's namespace and generate a JUnit report
 
 ## 2.0.0-alpha11 (2016-10-31)
 

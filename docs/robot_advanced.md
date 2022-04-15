@@ -220,6 +220,8 @@ Go to page  Listing  My Object
 Go to page  Listing  MyObject__c
 ```
 
+(page-object-base-classes)=
+
 ### Page Object Base Classes
 
 CumulusCI provides the following base classes, which should be used for
@@ -536,9 +538,7 @@ tasks:
 
 ## Using Keywords and Tests from a Different Project
 
-Much like you can
-`use tasks and flows from a different project<sources>`{.interpreted-text
-role="ref"}\<TODO\>, you can also use keywords and tests from other
+Much like you can [use tasks and flows from a different project](tasks-and-flows-from-a-different-project), you can also use keywords and tests from other
 projects. The keywords are brought into your repository the same way as
 with tasks and flows, via the `sources` configuration option in the
 `cumulusci.yml` file. However, keywords and tests require extra
