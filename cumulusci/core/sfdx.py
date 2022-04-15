@@ -46,12 +46,13 @@ def sfdx(
     # Avoid logging access token
     if access_token:
         command += f" -u {shell_quote(access_token)}"
+    env = env or {}
     p = sarge.Command(
         command,
         stdout=sarge.Capture(buffer_size=-1) if capture_output else None,
         stderr=sarge.Capture(buffer_size=-1) if capture_output else None,
         shell=True,
-        env=env,
+        env={**env, "SFDX_DISABLE_TELEMETRY": "true"},
     )
     p.run()
     if capture_output:
