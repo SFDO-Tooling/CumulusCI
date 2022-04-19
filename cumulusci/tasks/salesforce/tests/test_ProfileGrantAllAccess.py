@@ -287,6 +287,30 @@ def test_expand_package_xml():
     assert "fb__Foo_Bar__c" in {elem.text for elem in types.findall("members")}
 
 
+def test_expand_package_xml_objects():
+    task = create_task(
+        ProfileGrantAllAccess,
+        {"api_names": ["Admin"], "record_types": [{"record_type": "Case.Case"}]},
+    )
+    task.tooling = mock.Mock()
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+    task._expand_package_xml_objects(package_xml)
+    types = package_xml.find("types", name="CustomObject")
+    assert "Case" in {elem.text for elem in types.findall("members")}
+
+
+def test_expand_package_xml_objects_no_record_types():
+    task = create_task(
+        ProfileGrantAllAccess,
+        {"api_names": ["Admin"]},
+    )
+    task.tooling = mock.Mock()
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+    task._expand_package_xml_objects(package_xml)
+    types = package_xml.find("types", name="CustomObject")
+    assert "Case" not in {elem.text for elem in types.findall("members")}
+
+
 def test_expand_package_xml__broken_package():
     task = create_task(ProfileGrantAllAccess, {"api_names": ["Admin"]})
     task.tooling = mock.Mock()

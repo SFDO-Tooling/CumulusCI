@@ -178,6 +178,27 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
                 text=f"{record['NamespacePrefix']}__{record['DeveloperName']}__c",
             )
 
+        self._expand_package_xml_objects(package_xml)
+
+    def _expand_package_xml_objects(self, package_xml):
+        # Check for any record types specified in the options, but missing from the package.xml
+        # Add these entities to the package.xml
+
+        custom_objects = package_xml.find("types", name="CustomObject")
+
+        # Append custom objects if record types are present but missing from package.xml
+        record_types = self.options.get("record_types") or []
+        rt_objects = {rt["record_type"].split(".")[0] for rt in record_types}
+        listed_custom_objects = {c.text for c in custom_objects.findall("members")}
+
+        for rt in rt_objects:
+            if rt not in listed_custom_objects:
+                self.logger.info('Adding "{}" to package.xml'.format(rt))
+                custom_objects.append(
+                    "members",
+                    text=rt,
+                )
+
     def _transform_entity(self, tree, api_name):
         # Custom applications
         self._set_elements_visible(tree, "applicationVisibilities", "visible")
