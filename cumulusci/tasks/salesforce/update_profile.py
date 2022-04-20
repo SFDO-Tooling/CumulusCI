@@ -28,7 +28,10 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
             "the record type in format <object>.<developer_name>.  Record type names can use the token strings {managed} "
             "and {namespaced_org} for namespace prefix injection as needed.  By default, all listed record types will be set "
             "to visible and not default.  Use the additional keys `visible`, `default`, and `person_account_default` set to "
-            "true/false to override.  NOTE: Setting record_types is only supported in cumulusci.yml, command line override is not supported."
+            "true/false to override.  "
+            "Page Layout Support: If you are using the Page Layouts feature, you can specify the `page_layout` key with the "
+            "layout name to use for the record type.  If not specified, the default page layout will be used.  "
+            "NOTE: Setting record_types is only supported in cumulusci.yml, command line override is not supported."
         },
         "managed": {
             "description": "If True, uses the namespace prefix where appropriate.  Use if running against an org with the managed package "
@@ -274,6 +277,27 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
             pa_default = elem.find("personAccountDefault")
             if pa_default is not None:
                 pa_default.text = str(rt.get("person_account_default", "false")).lower()
+
+        # Set page layout defaults for record types
+        for rt in record_types:
+            # We need it to look like this:
+            # <layoutAssignments>
+            #   <layout>{page_layout}</layout>
+            #   <recordType>{record_type}</recordType>
+            # </layoutAssignments>
+            layout_option = rt.get("page_layout", None)
+            if layout_option:
+                # Look for page layout definitions in the record type
+                found_layout = False
+                for elem in tree.findall("layoutAssignments"):
+                    if elem.find("recordType").text == rt["record_type"]:
+                        elem.layout.text = layout_option
+                        found_layout = True
+
+                if not found_layout:
+                    assignment = tree.append(tag="layoutAssignments")
+                    assignment.append(tag="recordType", text=rt["record_type"])
+                    assignment.append(tag="layout", text=layout_option)
 
 
 UpdateAdminProfile = UpdateProfile = ProfileGrantAllAccess
