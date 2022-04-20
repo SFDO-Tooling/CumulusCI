@@ -110,6 +110,10 @@ class CumulusCI(object):
         for the given user will be used. If not provided, the access token
         for the org's default user will be used.
 
+        The userfields argument is largely useful for scratch orgs, but can
+        also work with connected persistent orgs if you've connected the org
+        with the given username.
+
         Example:
 
         | ${login url}=  Login URL  alias=dadvisor
