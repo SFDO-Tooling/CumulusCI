@@ -9,6 +9,7 @@ from cumulusci.core.config import BaseProjectConfig, UniversalConfig
 from cumulusci.core.exceptions import TaskNotFoundError
 from cumulusci.core.tests.utils import MockLoggerMixin
 from cumulusci.robotframework.CumulusCI import CumulusCI
+from cumulusci.tests.util import DummyKeychain, DummyOrgConfig
 from cumulusci.utils import temporary_dir
 
 
@@ -33,9 +34,12 @@ class TestCumulusCILibrary(MockLoggerMixin):
             },
             repo_info={"root": Path(__file__).parent.absolute()},
         )
+        self.project_config.set_keychain(DummyKeychain())
+
         self.cumulusci = CumulusCI()
         self.cumulusci._project_config = self.project_config
         self.cumulusci._org = mock.Mock()
+        self.cumulusci._org.name = "mock org"
 
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages
@@ -159,3 +163,93 @@ class TestCumulusCILibrary(MockLoggerMixin):
                 task = args[0]
                 assert task.project_config != self.cumulusci.project_config
                 assert tmpdir == Path(task.project_config.repo_root)
+
+    def test_find_access_token_alias_connected_orgs_multiple_users(self):
+        """Verify exception when more than one username matches the criteria"""
+
+        self.cumulusci.org.salesforce_client.query_all.side_effect = lambda query: {
+            "records": [
+                {"Username": "tester1@example.com"},
+                {"Username": "tester2@example.com"},
+            ]
+        }
+        with pytest.raises(
+            Exception,
+            match=(
+                "More than one user matched the search critiera "
+                "for org mock org "
+                r"\(tester1@example.com, tester2@example.com\)."
+            ),
+        ):
+            self.cumulusci._find_access_token(
+                base_org=self.cumulusci.org, alias="tester1"
+            )
+            expected_query = "SELECT Username FROM User WHERE alias='tester1'"
+            self.cumulusci.org.salesforce_client.query_all.assert_called_once_with(
+                expected_query
+            )
+
+    def test_find_access_token_alias_connected_orgs_no_users(self):
+        """Verify exception when no username matches the criteria"""
+
+        self.cumulusci.org.salesforce_client.query_all.side_effect = lambda query: {
+            "records": []
+        }
+        with pytest.raises(
+            Exception,
+            match=r"Couldn't find a username in org mock org for the specified user \(alias='tester1'\).",
+        ):
+            self.cumulusci._find_access_token(
+                base_org=self.cumulusci.org, alias="tester1"
+            )
+            expected_query = "SELECT Username FROM User WHERE alias='tester1'"
+            self.cumulusci.org.salesforce_client.query_all.assert_called_once_with(
+                expected_query
+            )
+
+    def test_find_access_token_alias_connected_orgs_no_matching_org(self):
+        self.cumulusci.org.salesforce_client.query_all.side_effect = lambda query: {
+            "records": [
+                {"Username": "tester1@example.com"},
+            ]
+        }
+
+        token = self.cumulusci._find_access_token(
+            base_org=self.cumulusci.org, alias="tester1"
+        )
+        assert token is None
+
+    def test_find_access_token_happy_path(self):
+        self.cumulusci.org.salesforce_client.query_all.side_effect = lambda query: {
+            "records": [
+                {"Username": "tester1@example.com"},
+            ]
+        }
+
+        def get_org(org_name):
+            configs = {
+                "org1": DummyOrgConfig(
+                    config={
+                        "access_token": "super-secret-token-1",
+                        "userinfo": {"preferred_username": "tester1@example.com"},
+                    }
+                ),
+                "org2": DummyOrgConfig(
+                    config={
+                        "access_token": "super-secret-token-2",
+                        "userinfo": {"preferred_username": "tester2@example.com"},
+                    }
+                ),
+            }
+            return configs.get(org_name, None)
+
+        def list_orgs():
+            return ["org1", "org2"]
+
+        self.cumulusci.keychain.get_org = mock.Mock(wraps=get_org)
+        self.cumulusci.keychain.list_orgs = mock.Mock(wraps=list_orgs)
+
+        token = self.cumulusci._find_access_token(
+            base_org=self.cumulusci.org, alias="tester1"
+        )
+        assert token == "super-secret-token-1"
