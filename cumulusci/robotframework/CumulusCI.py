@@ -125,12 +125,10 @@ class CumulusCI(object):
             if org.get_access_token is not None:
                 # connected persistent org configs won't have the get_access_token method
                 access_token = org.get_access_token(**userfields)
-                login_url = f"{org.instance_url}/secur/frontdoor.jsp?sid={access_token}"
-                return login_url
             else:
                 access_token = self._find_access_token(org, **userfields)
-                login_url = f"{org.instance_url}/secur/frontdoor.jsp?sid={access_token}"
-                return login_url
+            login_url = f"{org.instance_url}/secur/frontdoor.jsp?sid={access_token}"
+            return login_url
         else:
             return org.start_url
 
@@ -296,7 +294,7 @@ class CumulusCI(object):
         if username is None:
             where = [f"{key}='{value}'" for key, value in userfields.items()]
             query = f"SELECT Username FROM User WHERE {' AND '.join(where)}"
-            result = base_org.salesforce_client.query_all(query).get("records", [])
+            result = base_org.salesforce_client.query(query).get("records", [])
             if len(result) == 0:
                 query = ", ".join(where)
                 raise Exception(

@@ -167,7 +167,7 @@ class TestCumulusCILibrary(MockLoggerMixin):
     def test_find_access_token_alias_connected_orgs_multiple_users(self):
         """Verify exception when more than one username matches the criteria"""
 
-        self.cumulusci.org.salesforce_client.query_all.side_effect = lambda query: {
+        self.cumulusci.org.salesforce_client.query.side_effect = lambda query: {
             "records": [
                 {"Username": "tester1@example.com"},
                 {"Username": "tester2@example.com"},
@@ -185,14 +185,14 @@ class TestCumulusCILibrary(MockLoggerMixin):
                 base_org=self.cumulusci.org, alias="tester1"
             )
             expected_query = "SELECT Username FROM User WHERE alias='tester1'"
-            self.cumulusci.org.salesforce_client.query_all.assert_called_once_with(
+            self.cumulusci.org.salesforce_client.query.assert_called_once_with(
                 expected_query
             )
 
     def test_find_access_token_alias_connected_orgs_no_users(self):
         """Verify exception when no username matches the criteria"""
 
-        self.cumulusci.org.salesforce_client.query_all.side_effect = lambda query: {
+        self.cumulusci.org.salesforce_client.query.side_effect = lambda query: {
             "records": []
         }
         with pytest.raises(
@@ -203,12 +203,12 @@ class TestCumulusCILibrary(MockLoggerMixin):
                 base_org=self.cumulusci.org, alias="tester1"
             )
             expected_query = "SELECT Username FROM User WHERE alias='tester1'"
-            self.cumulusci.org.salesforce_client.query_all.assert_called_once_with(
+            self.cumulusci.org.salesforce_client.query.assert_called_once_with(
                 expected_query
             )
 
     def test_find_access_token_alias_connected_orgs_no_matching_org(self):
-        self.cumulusci.org.salesforce_client.query_all.side_effect = lambda query: {
+        self.cumulusci.org.salesforce_client.query.side_effect = lambda query: {
             "records": [
                 {"Username": "tester1@example.com"},
             ]
@@ -220,7 +220,7 @@ class TestCumulusCILibrary(MockLoggerMixin):
         assert token is None
 
     def test_find_access_token_happy_path(self):
-        self.cumulusci.org.salesforce_client.query_all.side_effect = lambda query: {
+        self.cumulusci.org.salesforce_client.query.side_effect = lambda query: {
             "records": [
                 {"Username": "tester1@example.com"},
             ]
