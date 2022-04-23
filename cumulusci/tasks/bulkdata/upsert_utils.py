@@ -1,3 +1,4 @@
+import logging
 import typing as T
 
 from simple_salesforce import Salesforce
@@ -7,7 +8,9 @@ from sqlalchemy.exc import IntegrityError
 
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.mapping_parser import MappingStep
-from cumulusci.tasks.bulkdata.utils import sf_query_to_table
+from cumulusci.tasks.bulkdata.utils import create_table_if_needed, sf_query_to_table
+
+logger = logging.getLogger(__name__)
 
 
 def select_for_upsert(
@@ -23,7 +26,7 @@ def select_for_upsert(
     2.  Make a query that joins the temp table to the
         user-provided table by the update_key
     """
-    upsert_key_table = _create_upsert_key_table(
+    upsert_key_table = _extract_upsert_key_data(
         mapping.sf_object, mapping.update_key, context, metadata, connection
     )
     upsert_query = _create_upsert_join_query(mapping, upsert_key_table, metadata)
@@ -62,18 +65,17 @@ def _create_empty_upsert_key_table(
     tablename, metadata, fieldnames: T.List[str]
 ) -> Table:
     """Create an empty table matching the upsert semantics"""
-    if tablename not in metadata.tables:
-        fields = [Column(fieldname, Unicode(255)) for fieldname in fieldnames]
-        non_id_fields = [
-            fieldname for fieldname in fieldnames if fieldname.lower() != "id"
-        ]
-        assert len(fields) == len(non_id_fields) + 1
-        t = Table(tablename, metadata, *fields, UniqueConstraint(*non_id_fields))
-        t.create(metadata.bind)
-        return t
+    fields = [Column(fieldname, Unicode(255)) for fieldname in fieldnames]
+
+    # the data fields must be unique
+    non_id_fields = [fieldname for fieldname in fieldnames if fieldname.lower() != "id"]
+    assert len(fields) == len(non_id_fields) + 1
+    fields.append(UniqueConstraint(*non_id_fields))
+
+    return create_table_if_needed(tablename, metadata, fields)
 
 
-def _create_upsert_key_table(
+def _extract_upsert_key_data(
     sf_object: str,
     keys: tuple,
     context,
@@ -89,6 +91,7 @@ def _create_upsert_key_table(
 
     soql_query = f"select {','.join(keys)} from {sf_object}"
     try:
+        logger.info("Extracting records for upsert.")
         table = sf_query_to_table(
             table=table,
             sobject=sf_object,
@@ -109,7 +112,7 @@ def _create_upsert_key_table(
 
 
 def needs_etl_upsert(mapping: MappingStep, sf: Salesforce):
-    """Is this an upsert that Salesforce cannot do nativvly?"""
+    """Is this an upsert that Salesforce cannot do natively?"""
     # is this an upsert and one that Salesforce cannot do by itself?
     keys = mapping.update_key
 

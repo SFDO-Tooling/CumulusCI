@@ -218,14 +218,17 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         return step, query
 
     def configure_etl_upsert(self, mapping):
-        """Create ETL temp table and query, actions, fields based oon it."""
+        """Create ETL temp table and query, actions, fields based on it."""
         select_statement = select_for_upsert(
             mapping=mapping,
             metadata=self.metadata,
             connection=self.session.connection(),
             context=self,
         )
-
+        # Need .subquery() to pass this to session.query()
+        # https://docs.sqlalchemy.org/en/14/errors.html#error-89ve
+        # this allows the parent code to do a .count() on the
+        # result
         query = self.session.query(select_statement.subquery())
 
         # We've retrieved IDs from the org, so include them.

@@ -117,16 +117,6 @@ class TestUpsert:
         assert "Nichael" not in firstnames
         assert "George Oscar" not in firstnames
 
-    @pytest.mark.vcr()
-    def test_upsert__rest(
-        self,
-        create_task,
-        cumulusci_test_repo_root,
-        run_code_without_recording,
-        delete_data_from_org,
-        sf,
-    ):
-
         # Upsert against the data we already created
         task = create_task(
             LoadData,
@@ -134,14 +124,14 @@ class TestUpsert:
                 "sql_path": cumulusci_test_repo_root
                 / "datasets/upsert/upsert_example_2.sql",
                 "mapping": cumulusci_test_repo_root
-                / "datasets/upsert/upsert_mapping_rest.yml",
+                / "datasets/upsert/upsert_mapping_{api}.yml",
                 "ignore_row_errors": True,
                 "set_recently_viewed": False,
             },
         )
         task()
 
-        # check that the right data was laoded
+        # check that the right data was loaded
         contacts = sf.query(
             "select FirstName,(select Name from Opportunities) from Contact"
         )["records"]

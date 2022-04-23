@@ -200,7 +200,7 @@ def sf_query_to_table(
     fields: T.List[str],
     **queryargs,
 ) -> Table:
-    """Cache data from Salesforce in a table. Creates the table if necessary"""
+    """Cache data from Salesforce in a SQL Alchemy Table."""
     from cumulusci.tasks.bulkdata.step import DataOperationStatus, get_query_operation
 
     qs = get_query_operation(sobject=sobject, fields=fields, **queryargs)

@@ -100,7 +100,7 @@ class MappingStep(CCIDictModel):
     ] = None  # default should come from task options
     anchor_date: Optional[Union[str, date]] = None
     soql_filter: Optional[str] = None  # soql_filter property
-    update_key: T.Tuple[str, ...] = ()  # only for upserts
+    update_key: T.Union[str, T.Tuple[str, ...]] = ()  # only for upserts
 
     @validator("bulk_mode", "api", "action", pre=True)
     def case_normalize(cls, val):
@@ -312,7 +312,7 @@ class MappingStep(CCIDictModel):
         if operation in (
             DataOperationType.UPSERT,
             DataOperationType.ETL_UPSERT,
-        ) or self.action is (DataOperationType.UPSERT, DataOperationType.ETL_UPSERT):
+        ) or self.action in (DataOperationType.UPSERT, DataOperationType.ETL_UPSERT):
             return ("updateable", "createable")
 
         return ("createable",)
