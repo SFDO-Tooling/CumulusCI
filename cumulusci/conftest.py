@@ -130,10 +130,11 @@ def cumulusci_test_repo_root():
 @pytest.fixture(scope="session")
 def global_describe(cumulusci_test_repo_root):
     global_describe_file = (
-        cumulusci_test_repo_root / "cumulusci/tasks/bulkdata/tests/global_describe.json"
+        cumulusci_test_repo_root
+        / "cumulusci/tests/shared_cassettes/GET_sobjects_Global_describe.yaml"
     )
     with global_describe_file.open() as f:
-        data = yaml.safe_load(f)
+        data = yaml.safe_load(yaml.safe_load(f)["response"]["body"]["string"])
 
     def global_describe_specific_sobjects(sobjects: int = None):
         if sobjects is None:  # pragma: no cover
@@ -148,3 +149,8 @@ def global_describe(cumulusci_test_repo_root):
         return subset
 
     return global_describe_specific_sobjects
+
+
+@pytest.fixture(scope="session")
+def shared_vcr_cassettes(cumulusci_test_repo_root):
+    return Path(cumulusci_test_repo_root / "cumulusci/tests/shared_cassettes")

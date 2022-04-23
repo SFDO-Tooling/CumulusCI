@@ -225,6 +225,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             connection=self.session.connection(),
             context=self,
         )
+
         query = self.session.query(select_statement.subquery())
 
         # We've retrieved IDs from the org, so include them.
@@ -760,6 +761,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
 
 class StepResultInfo(T.NamedTuple):
+    """Represent a Step Result in a form easily convertible to JSON"""
+
     sobject: str
     result: DataOperationJobResult
     record_type: str = None

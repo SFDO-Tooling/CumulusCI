@@ -1,0 +1,6 @@
+version: 1
+interactions:
+    - &id001
+      include_file: GET_sobjects_Global_describe.yaml
+    - include_file: GET_sobjects_Account_describe.yaml
+    - *id001

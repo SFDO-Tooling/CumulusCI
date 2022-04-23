@@ -213,9 +213,8 @@ def sf_query_to_table(
 
     sql_bulk_insert_from_records(
         connection=connection,
-        table=table.name,
+        table=table,
         columns=tuple(fields),
         record_iterable=results,
-        metadata=metadata,
     )
     return table

@@ -11,27 +11,29 @@ from cumulusci.tests.util import CURRENT_SF_API_VERSION, mock_describe_calls
 
 
 class TestUpsert:
-
-    # bulk API not supported by VCR yet
-    # And output is 6.3 MB without compression
-    # @pytest.mark.vcr()
-    @pytest.mark.needs_org()
-    def test_simple_upsert__bulk(
+    # Would be nice to slim down this VCR further. It's still 50kb.
+    # The next step of VCR compression would be to have some templates
+    # for XML that can be reused when matched.
+    # gzip would be another (albeit binary) answer.
+    @pytest.mark.vcr()
+    def test_upsert_external_id_field(
         self,
         create_task,
         cumulusci_test_repo_root,
         sf,
         delete_data_from_org,
-        # mock_bulk_download_for_vcr,
+        run_code_without_recording,
     ):
-        delete_data_from_org(["Entitlement", "Opportunity", "Contact", "Account"])
+        run_code_without_recording(
+            lambda: delete_data_from_org(
+                ["Entitlement", "Opportunity", "Contact", "Account"]
+            )
+        )
         self._test_two_upserts_and_check_results(
             "bulk", create_task, cumulusci_test_repo_root, sf
         )
 
-    # VCR output is 10MB without compression
-    # @pytest.mark.vcr()
-    @pytest.mark.needs_org()
+    @pytest.mark.vcr()
     def test_simple_upsert__rest(
         self,
         create_task,
@@ -115,6 +117,16 @@ class TestUpsert:
         assert "Nichael" not in firstnames
         assert "George Oscar" not in firstnames
 
+    @pytest.mark.vcr()
+    def test_upsert__rest(
+        self,
+        create_task,
+        cumulusci_test_repo_root,
+        run_code_without_recording,
+        delete_data_from_org,
+        sf,
+    ):
+
         # Upsert against the data we already created
         task = create_task(
             LoadData,
@@ -122,7 +134,7 @@ class TestUpsert:
                 "sql_path": cumulusci_test_repo_root
                 / "datasets/upsert/upsert_example_2.sql",
                 "mapping": cumulusci_test_repo_root
-                / f"datasets/upsert/upsert_mapping_{api}.yml",
+                / "datasets/upsert/upsert_mapping_rest.yml",
                 "ignore_row_errors": True,
                 "set_recently_viewed": False,
             },
@@ -462,9 +474,7 @@ class TestUpsert:
         assert "michael.bluth@example.com" not in emails
         assert "nichael.bluth@example.com" in emails
 
-    # VCR output is 10MB without compression
-    # @pytest.mark.vcr()
-    @pytest.mark.needs_org()
+    @pytest.mark.vcr()
     def test_upsert_complex_fields__bulk(
         self,
         create_task,
@@ -483,9 +493,7 @@ class TestUpsert:
             "bulk", create_task, cumulusci_test_repo_root, sf
         )
 
-    # VCR output is 10MB without compression
-    # @pytest.mark.vcr()
-    @pytest.mark.needs_org()
+    @pytest.mark.vcr()
     def test_upsert_complex_external_id_field__rest(
         self,
         create_task,
@@ -503,9 +511,7 @@ class TestUpsert:
             "rest", create_task, cumulusci_test_repo_root, sf
         )
 
-    # VCR output is large without compression
-    # @pytest.mark.vcr()
-    @pytest.mark.needs_org()
+    @pytest.mark.vcr()
     def test_upsert_complex_external_id_field_rest__duplicate_error(
         self,
         create_task,
