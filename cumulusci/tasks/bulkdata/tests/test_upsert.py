@@ -124,7 +124,7 @@ class TestUpsert:
                 "sql_path": cumulusci_test_repo_root
                 / "datasets/upsert/upsert_example_2.sql",
                 "mapping": cumulusci_test_repo_root
-                / "datasets/upsert/upsert_mapping_{api}.yml",
+                / f"datasets/upsert/upsert_mapping_{api}.yml",
                 "ignore_row_errors": True,
                 "set_recently_viewed": False,
             },
