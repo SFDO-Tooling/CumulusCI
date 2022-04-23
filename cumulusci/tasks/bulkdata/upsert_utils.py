@@ -91,7 +91,7 @@ def _extract_upsert_key_data(
 
     soql_query = f"select {','.join(keys)} from {sf_object}"
     try:
-        logger.info("Extracting records for upsert.")
+        logger.info(f"Extracting records for upsert: `{soql_query}`")
         table = sf_query_to_table(
             table=table,
             sobject=sf_object,
