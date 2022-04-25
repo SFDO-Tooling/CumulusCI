@@ -40,6 +40,7 @@ class TestCumulusCILibrary(MockLoggerMixin):
         self.cumulusci._project_config = self.project_config
         self.cumulusci._org = mock.Mock()
         self.cumulusci._org.name = "mock org"
+        self.cumulusci._org.instance_url = "https://test.example.com"
 
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages
@@ -253,3 +254,51 @@ class TestCumulusCILibrary(MockLoggerMixin):
             base_org=self.cumulusci.org, alias="tester1"
         )
         assert token == "super-secret-token-1"
+
+    def test_login_url(self):
+        """Verify that login_url by default returns the `start_url` of the org"""
+        url = self.cumulusci.login_url()
+        assert url == self.cumulusci.org.start_url
+
+    def test_login_url_user_org_with_get_access_token(self):
+        """Verify login_url branch when org has a get_access_token method
+
+        This tests a specific branch were we're getting a url for a specific
+        user and the org has a `get_access_token` method.
+        """
+        with mock.patch.object(
+            self.cumulusci.org, "get_access_token", return_value="super-secret-token"
+        ):
+
+            url = self.cumulusci.login_url(username="test@example.com")
+            self.cumulusci.org.get_access_token.assert_called_once_with(
+                username="test@example.com"
+            )
+            assert (
+                url
+                == "https://test.example.com/secur/frontdoor.jsp?sid=super-secret-token"
+            )
+
+    def test_login_url_user_org_without_get_access_token(self):
+        """Verify login_url branch when org DOES NOT have a get_access_token method
+
+        This tests a specific branch were we're getting a url for a specific
+        user and the org is missing the `get_access_token` method.
+        """
+
+        with mock.patch.object(self.cumulusci.org, "get_access_token"):
+            self.cumulusci.org.get_access_token = None
+
+            with mock.patch.object(
+                self.cumulusci, "_find_access_token", return_value="super-secret-token"
+            ):
+                self.cumulusci._find_access_token.return_value = "super-secret-token"
+
+                url = self.cumulusci.login_url(username="test@example.com")
+                self.cumulusci._find_access_token.assert_called_with(
+                    self.cumulusci.org, username="test@example.com"
+                )
+                assert (
+                    url
+                    == "https://test.example.com/secur/frontdoor.jsp?sid=super-secret-token"
+                )
