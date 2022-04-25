@@ -1,0 +1,198 @@
+version: 1
+interactions:
+    - &id001
+      include_file: GET_sobjects_Global_describe.yaml
+    - &id005
+      include_file: GET_sobjects_Account_describe.yaml
+    - *id001
+    - &id007
+      include_file: GET_sobjects_Contact_describe.yaml
+    - *id001
+    - &id008
+      include_file: GET_sobjects_Opportunity_describe.yaml
+    - &id009
+      request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/limits/recordCount?sObjects=Account
+          body: null
+          headers: &id002
+              Request-Headers:
+                  - Elided
+      response:
+          status: &id003
+              code: 200
+              message: OK
+          headers: &id004
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          body:
+              string:
+                  "{\n  \"sObjects\" : [ {\n    \"count\" : 1,\n    \"name\" : \"Account\"\
+                  \n  } ]\n}"
+    - request: &id010
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+Id%2CAccountNumber+from+Account
+          body: null
+          headers: *id002
+      response: &id006
+          status: *id003
+          headers: *id004
+          body:
+              string: "{\n  \"totalSize\" : 0,\n  \"done\" : true,\n  \"records\" : [ ]\n}"
+    - *id005
+    - request:
+          method: PATCH
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects/Account/Id
+          body:
+              '{"allOrNone": false, "records": [{"Name": "Sitwell-Bluth", "AccountNumber":
+              "420", "Id": null, "attributes": {"type": "Account"}}]}'
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  "[ {\n  \"id\" : \"0015500001QdQWaAAN\",\n  \"success\" : true,\n  \"\
+                  errors\" : [ ],\n  \"created\" : true\n} ]"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/limits/recordCount?sObjects=Contact
+          body: null
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  "{\n  \"sObjects\" : [ {\n    \"count\" : 2,\n    \"name\" : \"Contact\"\
+                  \n  } ]\n}"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+Id%2CFirstName%2CLastName+from+Contact
+          body: null
+          headers: *id002
+      response: *id006
+    - *id007
+    - request:
+          method: PATCH
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects/Contact/Id
+          body:
+              '{"allOrNone": false, "records": [{"FirstName": "Lindsay", "LastName": "Sitwell",
+              "Email": "lindsay.bluth@example.com", "Id": null, "attributes": {"type": "Contact"}},
+              {"FirstName": "Audrey", "LastName": "Cain", "Email": "audrey.cain@example.com",
+              "Id": null, "attributes": {"type": "Contact"}}, {"FirstName": "Micheal", "LastName":
+              "Bernard", "Email": "michael.bernard@example.com", "Id": null, "attributes":
+              {"type": "Contact"}}, {"FirstName": "Chloe", "LastName": "Myers", "Email": "Chloe.Myers@example.com",
+              "Id": null, "attributes": {"type": "Contact"}}, {"FirstName": "Rose", "LastName":
+              "Larson", "Email": "Rose.Larson@example.com", "Id": null, "attributes": {"type":
+              "Contact"}}, {"FirstName": "Brent", "LastName": "Ali", "Email": "Brent.Ali@example.com",
+              "Id": null, "attributes": {"type": "Contact"}}, {"FirstName": "Julia", "LastName":
+              "Townsend", "Email": "Julia.Townsend@example.com", "Id": null, "attributes":
+              {"type": "Contact"}}, {"FirstName": "Benjamin", "LastName": "Cunningham", "Email":
+              "Benjamin.Cunningham@example.com", "Id": null, "attributes": {"type": "Contact"}},
+              {"FirstName": "Christy", "LastName": "Stanton", "Email": "Christy.Stanton@example.com",
+              "Id": null, "attributes": {"type": "Contact"}}, {"FirstName": "Sabrina", "LastName":
+              "Roberson", "Email": "Sabrina.Roberson@example.com", "Id": null, "attributes":
+              {"type": "Contact"}}, {"FirstName": "Michael", "LastName": "Bluth", "Email":
+              "Michael.Bluth@example.com", "Id": null, "attributes": {"type": "Contact"}},
+              {"FirstName": "Javier", "LastName": "Banks", "Email": "Javier.Banks@example.com",
+              "Id": null, "attributes": {"type": "Contact"}}, {"FirstName": "GOB", "LastName":
+              "Bluth", "Email": "GOB.Bluth@example.com", "Id": null, "attributes": {"type":
+              "Contact"}}, {"FirstName": "Kaitlyn", "LastName": "Rubio", "Email": "Kaitlyn.Rubio@example.com",
+              "Id": null, "attributes": {"type": "Contact"}}, {"FirstName": "Jerry", "LastName":
+              "Eaton", "Email": "Jerry.Eaton@example.com", "Id": null, "attributes": {"type":
+              "Contact"}}, {"FirstName": "Gabrielle", "LastName": "Vargas", "Email": "Gabrielle.Vargas@example.com",
+              "Id": null, "attributes": {"type": "Contact"}}]}'
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  "[ {\n  \"id\" : \"0035500001H9cakAAB\",\n  \"success\" : true,\n  \"\
+                  errors\" : [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9calAAB\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n\
+                  \  \"id\" : \"0035500001H9camAAB\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9canAAB\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0035500001H9caoAAB\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9capAAB\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0035500001H9caqAAB\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9carAAB\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0035500001H9casAAB\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9catAAB\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0035500001H9cauAAB\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9cavAAB\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0035500001H9cawAAB\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9caxAAB\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0035500001H9cayAAB\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9cazAAB\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n} ]"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/limits/recordCount?sObjects=Opportunity
+          body: null
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string: "{\n  \"sObjects\" : [ ]\n}"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+Id%2CName+from+Opportunity
+          body: null
+          headers: *id002
+      response: *id006
+    - *id008
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+Name+from+Account+where+AccountNumber%3D%27420%27
+          body: null
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string: "{\n  \"totalSize\" : 1,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Account/0015500001QdQWaAAN\"\n    },\n    \"\
+                  Name\" : \"Sitwell-Bluth\"\n  } ]\n}"
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects/Account/
+          body: '{"Name": "xyzzy", "AccountNumber": "420"}'
+          headers: *id002
+      response:
+          status:
+              code: 201
+              message: Created
+          headers: *id004
+          body:
+              string: "{\n  \"id\" : \"0015500001QdQWfAAN\",\n  \"success\" : true,\n  \"\
+                  errors\" : [ ]\n}"
+    - *id001
+    - *id005
+    - *id001
+    - *id007
+    - *id001
+    - *id008
+    - *id009
+    - request: *id010
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string: "{\n  \"totalSize\" : 2,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Account/0015500001QdQWaAAN\"\n    },\n    \"\
+                  Id\" : \"0015500001QdQWaAAN\",\n    \"AccountNumber\" : \"420\"\n  }, {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Account/0015500001QdQWfAAN\"\n    },\n    \"\
+                  Id\" : \"0015500001QdQWfAAN\",\n    \"AccountNumber\" : \"420\"\n  } ]\n}"

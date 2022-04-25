@@ -117,16 +117,19 @@ The definition of "upsert" is an operation which creates new records and updates
 existing records depending on a field (the update key) which determines whether
 the input row and the existing row are "the same".
 
+There are two kinds of upsert: simple upserts and ETL Upserts. A simple upsert
+is an upsert on fields that Salesforce itself can handle natively, fields of
+type:
 
-You can do ID-based, 
-`idLookup-based <https://developer.salesforce.com/docs/atlas.en-us.204.0.object_reference.meta/object_reference/access_for_fields.htm#access_lookup>`_ 
-and `external ID <https://help.salesforce.com/s/articleView?id=sf.faq_import_general_what_is_an_external.htm&type=5>`_-based
-`upserts <https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/langCon_apex_dml_examples_upsert.htm>`_ 
-and updates by specifying additional settings in a mapping step.
+* `ID` <https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/field_types.htm#i1435616>
+* `idLookup <https://developer.salesforce.com/docs/atlas.en-us.204.0.object_reference.meta/object_reference/access_for_fields.htm#access_lookup>`_ 
+* `external ID <https://help.salesforce.com/s/articleView?id=sf.faq_import_general_what_is_an_external.htm&type=5>`_
+
+You can do simple upserts and updates by specifying additional settings in a mapping step:
 
 .. code-block:: yaml
 
-    Insert Accounts:
+    Upsert Accounts:
         sf_object: Account
         action: upsert
         update_key: Extid__c
@@ -134,10 +137,32 @@ and updates by specifying additional settings in a mapping step.
             - Name
             - Extid__c
 
-Whenever ``update_key`` is supplied, the action must be ``upsert`` and
-vice versa.
+If you need to upsert on multiple fields, or a single field that Salesforce
+does not support natively, you should use `action: etl_upsert` instead. 
 
+In this case, the upsert will be done within CumulusCI 
+and will involve pulling data from the org first. This is slower, especially
+for large datasets.
 
+.. code-block:: yaml
+
+    Upsert Contacts:
+        sf_object: Contact
+        action: upsert
+        update_key: FirstName, LastName
+        fields:
+            - FirstName
+            - LastName
+            - BillingCountry
+
+This will allow the update of BillingCountry on every record
+that matches the FirstName and LastName in the dataset.
+
+Whenever ``update_key`` is supplied, the action must be ``upsert`` 
+or ``etl_upsert`` and vice versa.
+
+If every row in the dataset matches a row in the database, the upsert features
+behave as an update.
 
 Database Mapping
 ----------------
