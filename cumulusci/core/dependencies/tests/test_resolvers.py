@@ -6,6 +6,7 @@ from github3.exceptions import NotFoundError
 
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
+from cumulusci.core.config.tests.test_config import DummyRelease
 from cumulusci.core.dependencies.dependencies import (
     DynamicDependency,
     GitHubDynamicDependency,
@@ -270,14 +271,17 @@ version_id: 04t000000000000"""
             ),
         )
 
-    def test_beta_release_tag(self, project_config):
+    @mock.patch("cumulusci.core.dependencies.resolvers.find_latest_release")
+    def test_beta_release_tag(self, get_latest, project_config):
+        get_latest.return_value = DummyRelease("beta/2.1_Beta_1", "2.1 Beta 1")
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/ReleasesRepo"
         )
         resolver = GitHubBetaReleaseTagResolver()
-
         assert resolver.can_resolve(dep, project_config)
-        assert resolver.resolve(dep, project_config) == (
+        resolved = resolver.resolve(dep, project_config)
+
+        assert resolved == (
             "tag_sha",
             PackageNamespaceVersionDependency(
                 namespace="ccitestdep",
