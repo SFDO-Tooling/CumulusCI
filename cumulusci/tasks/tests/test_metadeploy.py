@@ -114,7 +114,6 @@ class TestPublish(GithubApiTestMixin):
     @responses.activate
     def test_run_task(self):
         project_config = create_project_config()
-        project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
         project_config.config["plans"] = {
             "install": {
                 "title": "Test Install",
@@ -145,7 +144,7 @@ class TestPublish(GithubApiTestMixin):
 
         responses.add(
             "GET",
-            "https://metadeploy/products?repo_url=EXISTING_REPO",
+            "https://metadeploy/products?repo_url=https%3A%2F%2Fgithub.com%2FTestOwner%2FTestRepo",
             json={
                 "data": [
                     {
