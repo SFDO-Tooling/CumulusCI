@@ -34,6 +34,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     get_dml_operation,
 )
+from cumulusci.tasks.bulkdata.upsert_utils import needs_etl_upsert, select_for_upsert
 from cumulusci.tasks.bulkdata.utils import (
     RowErrorChecker,
     SqlAlchemyMixin,
@@ -175,20 +176,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self._load_record_types([mapping.sf_object], conn)
             self.session.commit()
 
-        query = self._query_db(mapping)
-        bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
-        api_options = {"batch_size": mapping.batch_size, "bulk_mode": bulk_mode}
-        if mapping.update_key:
-            api_options["update_key"] = mapping.update_key
-        step = get_dml_operation(
-            sobject=mapping.sf_object,
-            operation=mapping.action,
-            api_options=api_options,
-            context=self,
-            fields=mapping.get_load_field_list(),
-            api=mapping.api,
-            volume=query.count(),
-        )
+        step, query = self.configure_step(mapping)
 
         with tempfile.TemporaryFile(mode="w+t") as local_ids:
             step.start()
@@ -200,6 +188,64 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 self._process_job_results(mapping, step, local_ids)
 
             return step.job_result
+
+    def configure_step(self, mapping):
+        """Create a step appropriate to the action"""
+        bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
+        api_options = {"batch_size": mapping.batch_size, "bulk_mode": bulk_mode}
+
+        if mapping.action == DataOperationType.ETL_UPSERT:
+            query, action, fields = self.configure_etl_upsert(mapping)
+            api_options["update_key"] = "Id"
+        else:
+            query = self._query_db(mapping)
+            fields = mapping.get_load_field_list()
+            action = mapping.action
+
+        if mapping.action == DataOperationType.UPSERT:
+            self.check_simple_upsert(mapping)
+            api_options["update_key"] = mapping.update_key[0]
+
+        step = get_dml_operation(
+            sobject=mapping.sf_object,
+            operation=action,
+            api_options=api_options,
+            context=self,
+            fields=fields,
+            api=mapping.api,
+            volume=query.count(),
+        )
+        return step, query
+
+    def configure_etl_upsert(self, mapping):
+        """Create ETL temp table and query, actions, fields based on it."""
+        select_statement = select_for_upsert(
+            mapping=mapping,
+            metadata=self.metadata,
+            connection=self.session.connection(),
+            context=self,
+        )
+        # Need .subquery() to pass this to session.query()
+        # https://docs.sqlalchemy.org/en/14/errors.html#error-89ve
+        # this allows the parent code to do a .count() on the
+        # result
+        query = self.session.query(select_statement.subquery())
+
+        # We've retrieved IDs from the org, so include them.
+        fields = mapping.get_load_field_list() + ["Id"]
+
+        # If we treat "Id" as an "external_id_name" then it's
+        # allowed to be sparse.
+        action = DataOperationType.UPSERT
+        return query, action, fields
+
+    def check_simple_upsert(self, mapping):
+        """Check that this upsert is correct."""
+        if needs_etl_upsert(mapping, self.sf):
+            raise BulkDataException(
+                f"This update key is not compatible with a simple upsert: `{','.join(mapping.update_key)}`. "
+                "Use `action: ETL_UPSERT` instead."
+            )
 
     def _stream_queried_data(self, mapping, local_ids, query):
         """Get data from the local db"""
@@ -356,6 +402,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         is_insert_or_upsert = mapping.action in (
             DataOperationType.INSERT,
             DataOperationType.UPSERT,
+            DataOperationType.ETL_UPSERT,
         )
         if is_insert_or_upsert:
             id_table_name = self._initialize_id_table(mapping, self.reset_oids)
