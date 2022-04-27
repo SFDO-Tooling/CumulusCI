@@ -1,0 +1,80 @@
+version: 1
+interactions:
+    - include_file: GET_sobjects_Global_describe.yaml
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/limits/recordCount?sObjects=Account
+          body: null
+          headers: &id001
+              Request-Headers:
+                  - Elided
+      response:
+          status: &id002
+              code: 200
+              message: OK
+          headers: &id003
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          body:
+              string:
+                  "{\n  \"sObjects\" : [ {\n    \"count\" : 0,\n    \"name\" : \"Account\"\
+                  \n  } ]\n}"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=SELECT+Id%2CName+FROM+Account
+          body: null
+          headers: *id001
+      response:
+          status: *id002
+          headers: *id003
+          body:
+              string: "{\n  \"totalSize\" : 6,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Account/0012300000bVTq1AAG\"\n    },\n    \"\
+                  Id\" : \"0012300000bVTq1AAG\",\n    \"Name\" : \"Account 4\"\n  }, {\n   \
+                  \ \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Account/0012300000bVTphAAG\"\
+                  \n    },\n    \"Id\" : \"0012300000bVTphAAG\",\n    \"Name\" : \"Account 0\"\
+                  \n  }, {\n    \"attributes\" : {\n      \"type\" : \"Account\",\n      \"\
+                  url\" : \"/services/data/vxx.0/sobjects/Account/0012300000bVTq6AAG\"\n   \
+                  \ },\n    \"Id\" : \"0012300000bVTq6AAG\",\n    \"Name\" : \"Account 5\"\n\
+                  \  }, {\n    \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Account/0012300000bVTpmAAG\"\n    },\n\
+                  \    \"Id\" : \"0012300000bVTpmAAG\",\n    \"Name\" : \"Account 1\"\n  },\
+                  \ {\n    \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Account/0012300000bVTpwAAG\"\n    },\n\
+                  \    \"Id\" : \"0012300000bVTpwAAG\",\n    \"Name\" : \"Account 3\"\n  },\
+                  \ {\n    \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Account/0012300000bVTprAAG\"\n    },\n\
+                  \    \"Id\" : \"0012300000bVTprAAG\",\n    \"Name\" : \"Account 2\"\n  } ]\n\
+                  }"
+    - include_file: GET_sobjects_Account_describe.yaml
+    - request:
+          method: PATCH
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects
+          body: '{"allOrNone": false, "records": [{"BillingStreet": "Account 4 Street",
+              "Description": "Account 4 is our favorite customer", "NumberOfEmployees": "10000",
+              "Id": "0012300000bVTq1AAG", "attributes": {"type": "Account"}}, {"BillingStreet":
+              "Account 0 Street", "Description": "Account 0 is our favorite customer", "NumberOfEmployees":
+              "10000", "Id": "0012300000bVTphAAG", "attributes": {"type": "Account"}}, {"BillingStreet":
+              "Account 5 Street", "Description": "Account 5 is our favorite customer", "NumberOfEmployees":
+              "10000", "Id": "0012300000bVTq6AAG", "attributes": {"type": "Account"}}, {"BillingStreet":
+              "Account 1 Street", "Description": "Account 1 is our favorite customer", "NumberOfEmployees":
+              "10000", "Id": "0012300000bVTpmAAG", "attributes": {"type": "Account"}}, {"BillingStreet":
+              "Account 3 Street", "Description": "Account 3 is our favorite customer", "NumberOfEmployees":
+              "10000", "Id": "0012300000bVTpwAAG", "attributes": {"type": "Account"}}, {"BillingStreet":
+              "Account 2 Street", "Description": "Account 2 is our favorite customer", "NumberOfEmployees":
+              "10000", "Id": "0012300000bVTprAAG", "attributes": {"type": "Account"}}]}'
+          headers: *id001
+      response:
+          status: *id002
+          headers: *id003
+          body:
+              string:
+                  "[ {\n  \"id\" : \"0012300000bVTq1AAG\",\n  \"success\" : true,\n  \"\
+                  errors\" : [ ]\n}, {\n  \"id\" : \"0012300000bVTphAAG\",\n  \"success\" :\
+                  \ true,\n  \"errors\" : [ ]\n}, {\n  \"id\" : \"0012300000bVTq6AAG\",\n  \"\
+                  success\" : true,\n  \"errors\" : [ ]\n}, {\n  \"id\" : \"0012300000bVTpmAAG\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ]\n}, {\n  \"id\" : \"0012300000bVTpwAAG\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ]\n}, {\n  \"id\" : \"0012300000bVTprAAG\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ]\n} ]"

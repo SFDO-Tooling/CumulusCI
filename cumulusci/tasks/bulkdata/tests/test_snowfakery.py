@@ -893,6 +893,35 @@ class TestSnowfakery:
                 mock_load_data.reset(fake_exception_on_request=3)
                 task()
 
+    @pytest.mark.vcr()
+    @pytest.mark.skip()
+    def test_snowfakery_upsert(self, create_task, sf, run_code_without_recording):
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": Path(__file__).parent / "snowfakery/upsert.recipe.yml",
+            },
+        )
+
+        def assert_bluth_name(name):
+            data = sf.query(
+                "select FirstName from Contact where email='michael@bluth.com'"
+            )
+            assert data["records"][0]["FirstName"] == name
+
+        task()
+        run_code_without_recording(lambda: assert_bluth_name("Michael"))
+
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": Path(__file__).parent / "snowfakery/upsert_2.recipe.yml",
+            },
+        )
+
+        task()
+        run_code_without_recording(lambda: assert_bluth_name("Nichael"))
+
     # def test_generate_mapping_file(self):
     #     with temporary_file_path("mapping.yml") as temp_mapping:
     #         with temp_sqlite_database_url() as database_url:

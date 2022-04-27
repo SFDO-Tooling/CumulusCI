@@ -3,9 +3,10 @@ BEGIN TRANSACTION;
 CREATE TABLE "Account" (
 	id INTEGER NOT NULL, 
 	"Name" VARCHAR(255), 
+	"AccountNumber" VARCHAR(255),
 	PRIMARY KEY (id)
 );
-INSERT INTO "Account" VALUES(1,'Sitwell-Bluth');
+INSERT INTO "Account" VALUES(1,'Sitwell-Bluth', "420");
 CREATE TABLE "Contact" (
 	id INTEGER NOT NULL, 
 	"FirstName" VARCHAR(255), 
