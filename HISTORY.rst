@@ -1,7 +1,7 @@
 =======
 History
 =======
-3.57.0 (2022-04-07)
+3.57.0 (2022-04-28)
 -------------------
 
 Changes:
@@ -10,7 +10,7 @@ Changes:
 
 Issues fixed:
 
-- More reliable way to find latest chronological release in github (#3164)
+- More reliable way to find latest chronological release in GitHub (#3164)
 
 - Add IP Ranges Metadata ETL task (#3146)
 
