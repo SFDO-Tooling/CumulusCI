@@ -7,6 +7,7 @@ import string
 import tempfile
 from contextlib import nullcontext
 from datetime import date, timedelta
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -487,48 +488,34 @@ class TestLoadData:
             ),
         assert "RecordType" in str(e.value)
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
-    def test_query_db__joins_self_lookups(self, aliased):
+    @mock.patch("cumulusci.tasks.bulkdata.load.validate_and_inject_mapping")
+    def test_query_db__joins_self_lookups(self, vim):
+        sql_path = Path(__file__).parent / "test_query_db__joins_self_lookups.sql"
+        mapping_file = Path(__file__).parent / "test_query_db__joins_self_lookups.yml"
         task = _make_task(
-            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
+            LoadData, {"options": {"sql_path": sql_path, "mapping": mapping_file}}
         )
-        model = mock.Mock()
-        task.models = {"accounts": model}
-        task.metadata = mock.Mock()
-        task.metadata.tables = {"accounts_sf_ids": mock.Mock()}
-        task.session = mock.Mock()
-
-        model.__table__ = mock.Mock()
-        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
-        columns = {"sf_id": mock.Mock(), "name": mock.Mock()}
-        model.__table__.columns = columns
-
-        mapping = MappingStep(
-            sf_object="Account",
-            table="accounts",
-            action=DataOperationType.UPDATE,
-            fields={"Id": "sf_id", "Name": "name"},
-            lookups={
-                "ParentId": MappingLookup(
-                    table="accounts", key_field="parent_id", name="ParentId"
-                )
-            },
+        task._validate_org_has_person_accounts_enabled_if_person_account_data_exists = (
+            mock.Mock()
         )
+        task.validate_and_inject_mapping = mock.Mock()
+        task.sf = mock.Mock()
+        task._init_mapping()
+        with task._init_db():
+            query = task._query_db(tuple(task.mapping.values())[0])
 
-        task._query_db(mapping)
+        def normalize(query):
+            return (
+                str(query).replace(" ", "").replace("\n", "").replace("\t", "").lower()
+            )
 
-        # Validate that the column set is accurate
-        task.session.query.assert_called_once_with(
-            model.sf_id,
-            model.__table__.columns["name"],
-            aliased.return_value.columns.sf_id,
+        expected = normalize(
+            """SELECT accounts.sf_id AS accounts_sf_id, accounts."Name" AS "accounts_Name", accounts_sf_ids_1.sf_id AS accounts_sf_ids_1_sf_id
+            FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_sf_ids_1.id = accounts.parent_id ORDER BY accounts.parent_id
+        """
         )
-
-        # Validate that we asked for an outer join on the self-lookup
-        aliased.assert_called_once_with(task.metadata.tables["accounts_sf_ids"])
-        task.session.query.return_value.outerjoin.assert_called_once_with(
-            aliased.return_value, False
-        )
+        actual = normalize(query)
+        assert actual == expected
 
     @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
     def test_query_db__person_accounts_enabled__account_mapping(self, aliased):
@@ -1587,7 +1574,7 @@ class TestLoadData:
                 ["TestHousehold", "1"],
                 ["Test", "User", "test@example.com", "001000000000000"],
                 ["Error", "User", "error@example.com", "001000000000000"],
-            ]
+            ], step.records
 
             with create_engine(task.options["database_url"]).connect() as c:
                 hh_ids = next(c.execute("SELECT * from households_sf_ids"))

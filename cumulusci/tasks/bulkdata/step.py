@@ -32,6 +32,7 @@ class DataOperationType(Enum):
     QUERY = "query"
     UPSERT = "upsert"
     ETL_UPSERT = "etl_upsert"
+    SMART_UPSERT = "smart_upsert"  # currently undocumented
 
 
 class DataApi(Enum):
@@ -464,6 +465,9 @@ class RestApiDmlOperation(BaseDmlOperation):
             self.api_options["batch_size"], MAX_REST_BATCH_SIZE
         )
 
+    from pysnooper import snoop
+
+    @snoop()
     def load_records(self, records):
         def _convert(rec):
             result = dict(zip(self.fields, rec))
@@ -498,6 +502,8 @@ class RestApiDmlOperation(BaseDmlOperation):
 
         update_key = self.api_options.get("update_key")
         for chunk in iterate_in_chunks(self.api_options.get("batch_size"), records):
+            chunk = list(chunk)
+            print("CHUNK", chunk)
             if self.operation is DataOperationType.DELETE:
                 url_string = "?ids=" + ",".join(_convert(rec)["Id"] for rec in chunk)
                 json = None
