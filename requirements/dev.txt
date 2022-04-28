@@ -10,13 +10,13 @@ attrs==21.4.0
     # via
     #   jsonschema
     #   pytest
-babel==2.9.1
+babel==2.10.1
     # via sphinx
-beautifulsoup4==4.10.0
+beautifulsoup4==4.11.1
     # via furo
 black==22.3.0
     # via -r requirements/dev.in
-bleach==4.1.0
+bleach==5.0.0
     # via readme-renderer
 certifi==2021.10.8
     # via
@@ -64,9 +64,9 @@ filelock==3.6.0
     #   virtualenv
 flake8==3.9.2
     # via -r requirements/dev.in
-furo==2022.3.4
+furo==2022.4.7
     # via -r requirements/dev.in
-identify==2.4.12
+identify==2.5.0
     # via pre-commit
 idna==3.3
     # via
@@ -81,7 +81,7 @@ importlib-metadata==4.11.3
     #   keyring
     #   sphinx
     #   twine
-importlib-resources==5.6.0
+importlib-resources==5.7.1
     # via jsonschema
 iniconfig==1.1.1
     # via pytest
@@ -111,7 +111,6 @@ nodeenv==1.6.0
     # via pre-commit
 packaging==21.3
     # via
-    #   bleach
     #   pytest
     #   sphinx
     #   tox
@@ -119,7 +118,7 @@ pathspec==0.9.0
     # via black
 pkginfo==1.8.2
     # via twine
-platformdirs==2.5.1
+platformdirs==2.5.2
     # via
     #   black
     #   virtualenv
@@ -137,14 +136,14 @@ pycodestyle==2.7.0
     # via flake8
 pyflakes==2.3.1
     # via flake8
-pygments==2.11.2
+pygments==2.12.0
     # via
     #   -c requirements/prod.txt
     #   furo
     #   readme-renderer
     #   rich
     #   sphinx
-pyparsing==3.0.7
+pyparsing==3.0.8
     # via packaging
 pyrsistent==0.18.1
     # via jsonschema
@@ -173,7 +172,7 @@ pyyaml==6.0
     #   -c requirements/prod.txt
     #   pre-commit
     #   vcrpy
-readme-renderer==34.0
+readme-renderer==35.0
     # via twine
 requests==2.27.1
     # via
@@ -189,7 +188,7 @@ responses==0.14.0
     # via -r requirements/dev.in
 rfc3986==2.0.0
     # via twine
-rich==12.2.0
+rich==12.3.0
     # via
     #   -c requirements/prod.txt
     #   twine
@@ -204,7 +203,7 @@ six==1.16.0
     #   virtualenv
 snowballstemmer==2.2.0
     # via sphinx
-soupsieve==2.3.1
+soupsieve==2.3.2.post1
     # via beautifulsoup4
 sphinx==4.5.0
     # via
@@ -233,7 +232,7 @@ tomli==2.0.1
     #   black
     #   coverage
     #   pytest
-tox==3.24.5
+tox==3.25.0
     # via -r requirements/dev.in
 twine==4.0.0
     # via -r requirements/dev.in
@@ -254,7 +253,7 @@ vcrpy==4.1.1
     # via
     #   -r requirements/dev.in
     #   pytest-vcr
-virtualenv==20.14.0
+virtualenv==20.14.1
     # via
     #   pre-commit
     #   tox
