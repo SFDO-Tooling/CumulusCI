@@ -88,6 +88,16 @@ class TestRobot:
         for option in ("test", "include", "exclude", "vars", "suites", "skip"):
             assert isinstance(task.options[option], list)
 
+    def test_options_converted_to_dict(self):
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "options": "outputdir:/tmp/example,loglevel:DEBUG",
+            },
+        )
+        assert isinstance(task.options["options"], dict)
+
     def test_process_arg_requires_int(self):
         """Verify we throw a useful error for non-int "processes" option"""
 
