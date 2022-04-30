@@ -261,7 +261,7 @@ def _change_org_shape(request, current_org_shape, org_shapes):
 
 @contextmanager
 def change_org_shape(
-    current_org_shape, config_name: str, flow_name: T.Optional[str], org_shapes: dict
+    current_org_shape, config_name: str, flow_name: str, org_shapes: dict
 ):
 
     # I don't love that we're using the user's real keychain
