@@ -162,10 +162,7 @@ class MappingStep(CCIDictModel):
         return fields
 
     def get_fields_by_type(self, field_type: str, sf: Salesforce):
-        describe = getattr(sf, self.sf_object).describe()
-        describe = CaseInsensitiveDict(
-            {entry["name"]: entry for entry in describe["fields"]}
-        )
+        describe = describe_fields(self.sf_object, sf)
 
         return [f for f in describe if describe[f]["type"] == field_type]
 
@@ -499,17 +496,13 @@ class MappingStep(CCIDictModel):
         else:
             inject = strip = None
 
-        global_describe = CaseInsensitiveDict(
-            {entry["name"]: entry for entry in sf.describe()["sobjects"]}
-        )
-
-        if not self._validate_sobject(global_describe, inject, strip, operation):
+        if not self._validate_sobject(describe_sobjects(sf), inject, strip, operation):
             # Don't attempt to validate field permissions if the object doesn't exist.
             return False
 
         # Validate, inject, and drop (if configured) fields.
         # By this point, we know the attribute is valid.
-        describe = self.describe_data(sf)
+        describe = self.describe_fields(sf)
 
         fields_correct = self._validate_field_dict(
             describe, self.fields, inject, strip, drop_missing, operation
@@ -539,8 +532,8 @@ class MappingStep(CCIDictModel):
 
         return True
 
-    def describe_data(self, sf: Salesforce):
-        return describe_data(self.sf_object, sf)
+    def describe_fields(self, sf: Salesforce):
+        return describe_fields(self.sf_object, sf)
 
     def dict(self, by_alias=True, exclude_defaults=True, **kwargs):
         out = super().dict(
@@ -559,7 +552,7 @@ class MappingSteps(CCIDictModel):
 
     @root_validator(pre=False)
     @classmethod
-    def validate_and_inject_mapping(cls, values):
+    def validate_id_handling_is_consistent(cls, values):
         if values:
             oids = ["Id" in s.fields_ for s in values["__root__"].values()]
             assert all(oids) or not any(
@@ -609,8 +602,7 @@ def validate_and_inject_mapping(
 
         # Remove any remaining lookups to dropped objects.
         for m in mapping.values():
-            describe = getattr(sf, m.sf_object).describe()
-            describe = {entry["name"]: entry for entry in describe["fields"]}
+            describe = m.describe_fields(sf)
 
             for field in list(m.lookups.keys()):
                 lookup = m.lookups[field]
@@ -655,6 +647,13 @@ def _inject_or_strip_name(name, transform, global_describe):
 
 
 @lru_cache(maxsize=50)
-def describe_data(obj: str, sf: Salesforce):
+def describe_fields(obj: str, sf: Salesforce) -> CaseInsensitiveDict:
     describe = getattr(sf, obj).describe()
     return CaseInsensitiveDict({entry["name"]: entry for entry in describe["fields"]})
+
+
+@lru_cache(maxsize=5)
+def describe_sobjects(sf: Salesforce) -> CaseInsensitiveDict:
+    return CaseInsensitiveDict(
+        {entry["name"]: entry for entry in sf.describe()["sobjects"]}
+    )

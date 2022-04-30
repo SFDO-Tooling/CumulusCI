@@ -77,7 +77,7 @@ def needs_etl_upsert(mapping: MappingStep, sf: Salesforce):
     if len(keys) > 1:
         return True
 
-    describe_data = mapping.describe_data(sf)
+    describe_data = mapping.describe_fields(sf)
 
     key = keys[0]
     is_sf_builtin_key = (
