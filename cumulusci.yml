@@ -56,6 +56,11 @@ tasks:
             mapping: cumulusci/tasks/bulkdata/tests/person_accounts.yml
 
 flows:
+    qa_org:
+        steps:
+            2:
+                flow: None
+
     robot_docs:
         description: Generates documentation for robot framework libraries
         steps:
