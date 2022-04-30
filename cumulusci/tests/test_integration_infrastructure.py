@@ -99,11 +99,12 @@ class TestIntegrationInfrastructure:
     @pytest.mark.needs_org()
     @pytest.mark.slow()
     @pytest.mark.org_shape("qa", "do_nothing")
-    def test_org_shape(self, capture_orgid_using_task, current_org_shape):
+    def test_org_shape(self, capture_orgid_using_task, current_org_shape, org_config):
         assert (
             current_org_shape.org_config.sfdx_alias
             == "CumulusCI__pytest__qa__do_nothing"
         )
+        assert org_config._sfdx_info  # ensure org was initialized
         assert self.__class__.remembered_cli_specified_org_id
         generated_org_id = capture_orgid_using_task()
         assert self.__class__.remembered_cli_specified_org_id != generated_org_id, (
