@@ -144,7 +144,10 @@ flows:
                     object: Contact
                     query: "select Id,Email,Name from Contact where LastName='Bluth'"
                     result_file: /tmp/contacts_after.csv
-
+    do_nothing:
+        steps:
+            1:
+                task: None
 orgs:
     scratch:
         prerelease:
