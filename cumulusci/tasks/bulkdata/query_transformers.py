@@ -92,7 +92,7 @@ class RecordTypeTransformer(QueryTransformer):
 
     @cached_property
     def columns_to_add(self):
-        if self.rt_dest_table:
+        if self.rt_dest_table is not None:
             return [self.rt_dest_table.columns.record_type_id]
 
     @cached_property
@@ -140,9 +140,9 @@ class PersonAccountTransformer(QueryTransformer):
 
     # Filter out non-person account Contact records.
     # Contact records for person accounts were already created by the system.
-
     @cached_property
     def filters_to_add(self):
+        assert self.mapping.sf_object == "Contact"
         return [
             func.lower(self.model.__table__.columns.get("IsPersonAccount")) == "false"
         ]

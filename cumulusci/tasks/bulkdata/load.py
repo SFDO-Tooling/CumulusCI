@@ -182,9 +182,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         with tempfile.TemporaryFile(mode="w+t") as local_ids:
             step.start()
-            data = list(self._stream_queried_data(mapping, local_ids, query))
-            print("DDD", data)
-            step.load_records(data)
+            step.load_records(self._stream_queried_data(mapping, local_ids, query))
             step.end()
 
             if step.job_result.status is not DataOperationStatus.JOB_FAILURE:
@@ -229,8 +227,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             action = mapping.action
 
         query = self._query_db(mapping)
-
-        print("FFF", fields, mapping.action)
 
         step = get_dml_operation(
             sobject=mapping.sf_object,

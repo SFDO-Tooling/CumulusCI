@@ -465,9 +465,6 @@ class RestApiDmlOperation(BaseDmlOperation):
             self.api_options["batch_size"], MAX_REST_BATCH_SIZE
         )
 
-    from pysnooper import snoop
-
-    @snoop()
     def load_records(self, records):
         def _convert(rec):
             result = dict(zip(self.fields, rec))
