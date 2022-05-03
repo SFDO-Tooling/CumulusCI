@@ -106,6 +106,10 @@ class CliRuntime(BaseCumulusCI):
     def check_org_expired(self, org_name, org_config):
         if org_config.scratch and org_config.date_created and org_config.expired:
             click.echo(click.style("The scratch org is expired", fg="yellow"))
+            if not org_config.config_name:
+                raise OrgNotFound(
+                    f"Cannot find the config that created org `{org_name}`"
+                )
             self.keychain.create_scratch_org(
                 org_name,
                 org_config.config_name,

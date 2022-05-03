@@ -59,6 +59,10 @@ class BaseProjectKeychain(BaseConfig):
     def create_scratch_org(self, org_name, config_name, days=None, set_password=True):
         """Adds/Updates a scratch org config to the keychain from a named config"""
         scratch_config = getattr(self.project_config, f"orgs__scratch__{config_name}")
+        if not scratch_config:
+            raise CumulusCIException(
+                f"Cannot find a scratch org config for `{config_name}`"
+            )
         if days is not None:
             # Allow override of scratch config's default days
             scratch_config["days"] = days
