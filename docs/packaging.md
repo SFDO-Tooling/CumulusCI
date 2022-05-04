@@ -16,10 +16,10 @@ Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/
 maxdepth: 1
 ---
 
-managed_package
-managed_2gp
-unlocked_package
-npsp_eda_2gp
-release_notes
-push_upgrades
+managed-package
+managed-2gp
+unlocked-package
+npsp-eda-2gp
+release-notes
+push-upgrades
 ```

@@ -22,7 +22,7 @@ customizations by overwriting them with incoming metadata. Metadata ETL
 is relevant for delivering applications to customers safely, and is
 often a superior alternative to unpackaged metadata.
 
-To learn more, see [](metadata_etl).
+To learn more, see [](metadata-etl).
 
 (roles-of-unpackaged-metadata)=
 

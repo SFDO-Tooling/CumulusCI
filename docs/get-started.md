@@ -444,13 +444,13 @@ your repo to GitHub](#add-your-repo-to-github), or perhaps begin to
 ### Setup Scratch Orgs
 
 To see how to use scratch orgs with CumulusCI see the
-[](scratch_orgs) section.
+[](scratch-orgs) section.
 
 ### Other Conversion Considerations
 
 -   If you or your team have been working with [scratch org definition
-    files](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file.htm)
-    for use with `sfdx`, see [](scratch_orgs)
+    files](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch-orgs_def_file.htm)
+    for use with `sfdx`, see [](scratch-orgs)
     for details on using them with CumulusCI.
 -   If you have metadata that you would like deployed pre- or
     post-deployment, see [](roles-of-unpackaged-metadata).

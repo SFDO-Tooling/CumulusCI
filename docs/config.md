@@ -25,7 +25,7 @@ A `cumulusci.yml` file contains these top-level sections.
     configurations](#scratch-org-configurations) for configuration
     options in this section.
 -   `plans`: Contains any custom plans defined to install your project
-    into a customer org. See the [](metadeploy_publish) task for more
+    into a customer org. See the [](metadeploy-publish) task for more
     information.
 
 The `cumulusci.yml reference <cci_yml_reference>`{.interpreted-text
@@ -476,7 +476,7 @@ package, and then run this project's own `dev_org` flow.
 This section defines the scratch org configurations that are available
 without explicitly running `cci org scratch` to create a new
 configuration. For more information on using scratch orgs with
-CumulusCI, see [](scratch_orgs).
+CumulusCI, see [](scratch-orgs).
 
 ### Override Default Values
 

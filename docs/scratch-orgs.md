@@ -21,7 +21,7 @@ lifecycle.
 This section focuses on managing scratch orgs in a CumulusCI project. To
 learn about managing persistent orgs, such as sandboxes, production
 orgs, and packaging orgs, visit the
-[](connected_orgs) section.
+[](connected-orgs) section.
 
 ## What Is an Org in CumulusCI?
 
@@ -226,7 +226,7 @@ not the org has a namespace, and the length of the org's lifespan.
 
 Org definition files stored in the `orgs` directory are configured as
 specified in the [Salesforce DX Developer
-Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file.htm).
+Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch-orgs_def_file.htm).
 
 Many projects never add a new org definition `.json` file, and instead
 add specific features and settings to the files shipped with CumulusCI.

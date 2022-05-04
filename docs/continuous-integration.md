@@ -26,7 +26,7 @@ with a few tweaks and additions.
 
 To learn which CumulusCI flows are best designed for creating scratch
 orgs, running CI builds, managing the development process, and more, see
-[](cumulusci_flow).
+[](cumulusci-flow).
 
 ## CumulusCI in GitHub Actions
 
@@ -40,7 +40,7 @@ Framework test passes leveraging the custom automation defined in
 
 To learn more about these custom workflows, see our [template
 repository](https://github.com/SFDO-Tooling/CumulusCI-CI-Demo) which is
-configured to run [CumulusCI Flow](cumulusci_flow) using [GitHub Actions(github_actions).
+configured to run [CumulusCI Flow](cumulusci-flow) using [GitHub Actions(github_actions).
 
 ## MetaCI
 
@@ -71,7 +71,7 @@ MetaCI) by running [headlessly](headless).
 CumulusCI makes it easy to harness the power of second-generation
 managed packages to implement an advanced, comprehensive testing process
 for both first- and second-generation managed package products. This is
-described in [](2gp_testing).
+described in [](2gp-testing).
 
 ## Further Reading
 
@@ -80,8 +80,8 @@ described in [](2gp_testing).
 maxdepth: 1
 ---
 
-cumulusci_flow
-2gp_testing
+cumulusci-flow
+2gp-testing
 headless
-github_actions
+github-actions
 ```

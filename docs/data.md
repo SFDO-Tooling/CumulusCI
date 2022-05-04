@@ -44,7 +44,6 @@ specific sObject as part of the dataset, and defines the relevant fields
 on that sObject as well as its relationships to other sObjects that are
 included in the data set.
 
-
 ```{note}
 This section discusses how to define a dataset and the format of
 the definition file. In many cases, it's easier to use the
@@ -52,7 +51,7 @@ the definition file. In many cases, it's easier to use the
 hand. See below for more details.
 ```
 
-```
+````
 
 A simple dataset definition looks like this:
 
@@ -76,7 +75,7 @@ Contacts:
     lookups:
         AccountId:
             table: Account
-```
+````
 
 This example defines two steps: `Accounts` and `Contacts`. (The names of
 steps are arbitrary). Each step governs the extraction or load of
@@ -327,7 +326,7 @@ account records, CumulusCI validates the org has person accounts
 enabled.
 
 You can enable person accounts for scratch orgs by including the
-[PersonAccounts](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file_config_values.htm##so_personaccounts/)
+[PersonAccounts](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch-orgs_def_file_config_values.htm##so_personaccounts/)
 feature in your scratch org definition.
 
 ### Advanced Features
@@ -573,6 +572,7 @@ Example: :
     cci task run extract_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
 
 (data-load-dataset)=
+
 ### `load_dataset`
 
 Load the data for a dataset into an org. If the storage is a database,

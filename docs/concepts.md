@@ -141,7 +141,7 @@ to this guide.)
 In order to be used as a CumulusCI project, a directory must both be a
 Git repository and contain a `cumulusci.yml` configuration file. We
 cover how to get set up with a new or existing CumulusCI project in the
-[](get_started) section.
+[](get-started) section.
 
 ### `cumulusci.yml`
 
@@ -168,7 +168,7 @@ form.)
 
 The `.json` files found in the `orgs` directory define the Salesforce DX
 org configurations that are available to the project. See
-[](scratch_orgs) for
+[](scratch-orgs) for
 more information.
 
 ### `datasets`
@@ -225,8 +225,8 @@ any time. The `cci org list` command shows all of the orgs connected to
 a project. Orgs can also be shared across multiple projects.
 
 Configuring orgs in CumulusCI is powerful, but comes with some
-complexity. For details, see [](scratch_orgs) and
-[](connected_orgs).
+complexity. For details, see [](scratch-orgs) and
+[](connected-orgs).
 
 ### Services
 

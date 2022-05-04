@@ -46,7 +46,7 @@ and the output that it produces.
 
 When you initialize a repository to work with CumulusCI (see [Start a
 new CumulusCI
-Project](https://cumulusci.readthedocs.io/en/stable/get_started.html?highlight=project%20init##start-a-new-cumulusci-project)),
+Project](https://cumulusci.readthedocs.io/en/stable/get-started.html?highlight=project%20init##start-a-new-cumulusci-project)),
 you automatically get a preconfigured `robot` task to run all of your
 Robot tests at the same time. We also install one example test,
 `create_contact.robot`, that shows how to write both browser-based and
@@ -294,16 +294,14 @@ code samples.
 
 Here's a quick primer on the syntax in the `new_contact_record.robot`
 test case file.
-| Symbol | Name              | Description and Usage                                                                                                                                                                                                                                                                 |
+| Symbol | Name | Description and Usage |
 | ------ | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `***`  | Section Heading   | A line that begins with one or more asterisks is a section heading. By<br>convention, we use three asterisks on both sides of a heading to designate<br>a section heading. Section headings include `Settings`, `Test Cases`, `Keywords`, `Variables`, `Comments`, and `Tasks`.       |
-| #      | Hash              | Designates code comments.                                                                                                                                                                                                                                                             |
-| ${}    | Variable          | Curly braces surrounding a name designate a variable. The lead `$` character refers to a single value. Variable names are case-insensitive. Spaces and underscores are allowed<br>and are treated the same.                                                                           |
-| &{}    | Dictionary or Map | A lead `&` character refers to a variable that contains a dictionary or<br>map for key-value pairs, such as `&{contact}`, which in this test has<br>defined values for the keys `FirstName` and `LastName`.                                                                           |
-| =      | Assignment        | Equals sign is optional yet convenient for showing that a variable is<br>assigned a value. Before the equals sign, up to one space is allowed but *not* required. After the equals sign, two spaces are required, but more<br>are allowed to format test cases into readable columns. |
-| …      | Ellipses          | Ellipses designate the continuation of a single-line row of code split<br>over multiple lines for easier readability.                                                                                                                                                                 |
-|        | Space             | Two or more spaces separate arguments from the keywords, and arguments<br>from each other. Multiple spaces can be used to align data and to aid in<br>readability.                                                                                                                    |
-
+| `***` | Section Heading | A line that begins with one or more asterisks is a section heading. By<br>convention, we use three asterisks on both sides of a heading to designate<br>a section heading. Section headings include `Settings`, `Test Cases`, `Keywords`, `Variables`, `Comments`, and `Tasks`. |
+| # | Hash | Designates code comments. |
+| ${}    | Variable          | Curly braces surrounding a name designate a variable. The lead `$`character refers to a single value. Variable names are case-insensitive. Spaces and underscores are allowed<br>and are treated the same. | | &{} | Dictionary or Map | A lead`&`character refers to a variable that contains a dictionary or<br>map for key-value pairs, such as`&{contact}`, which in this test has<br>defined values for the keys `FirstName`and`LastName`. |
+| = | Assignment | Equals sign is optional yet convenient for showing that a variable is<br>assigned a value. Before the equals sign, up to one space is allowed but _not_ required. After the equals sign, two spaces are required, but more<br>are allowed to format test cases into readable columns. |
+| … | Ellipses | Ellipses designate the continuation of a single-line row of code split<br>over multiple lines for easier readability. |
+| | Space | Two or more spaces separate arguments from the keywords, and arguments<br>from each other. Multiple spaces can be used to align data and to aid in<br>readability. |
 
 For more details on Robot syntax, visit the official [Robot syntax
 documentation](http://robotframework.org/robotframework/2.9.2/RobotFrameworkUserGuide.html#test-data-syntax).
@@ -915,8 +913,8 @@ We also have these resources in the CumulusCI documentation.
 maxdepth: 1
 ---
 
-robot_locators
-robot_advanced
-robot_tutorial
-robot_debugger
+robot-locators
+robot-advanced
+robot-tutorial
+robot-debugger
 ```

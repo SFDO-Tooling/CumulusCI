@@ -2,13 +2,13 @@
 
 This section outlines how to release second-generation (2GP) Salesforce
 managed package projects. Salesforce.org's Release Engineering team
-practices [CumulusCI Flow](cumulusci_flow), which incorporates all of these steps.
+practices [CumulusCI Flow](cumulusci-flow), which incorporates all of these steps.
 
 ## Prerequisites
 
 This section assumes:
 
--   [CumulusCI is installed](get_started) on your computer.
+-   [CumulusCI is installed](get-started) on your computer.
 -   A Salesforce managed package project has been [configured](project-initialization)
     for use with CumulusCI.
 -   Your Dev Hub has the required features enabled: [Enable DevHub
@@ -111,7 +111,7 @@ this requires that those dependencies be met in other ways, such as by
 configuring the scratch org definition. For examples of how to satisfy
 the install-time dependencies for NPSP and EDA without using unpackaged
 metadata, see
-[Extending NPSP and EDA with Second-Generation Packaging](npsp_eda_2gp).
+[Extending NPSP and EDA with Second-Generation Packaging](npsp-eda-2gp).
 
 The other option is to have CumulusCI automatically create unlocked
 packages containing unpackaged metadata from dependency projects. For

@@ -7,18 +7,18 @@ maxdepth: 2
 
 intro
 concepts
-get_started
+get-started
 cli
 config
-scratch_orgs
-connected_orgs
+scratch-orgs
+connected-orgs
 dev
 data
 robot
-continuous_integration
+continuous-integration
 packaging
 unpackaged
-metadata_et
+metadata-et
 reference
 about
 ```

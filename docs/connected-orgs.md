@@ -1,6 +1,6 @@
 # Connect Persistent Orgs
 
-In addition to creating [](scratch_orgs) in CumulusCI, you can connect persistent orgs to your
+In addition to creating [](scratch-orgs) in CumulusCI, you can connect persistent orgs to your
 project to run tasks and flows on them. This feature supports use cases
 such as deploying to a Developer Edition org to release a package
 version, or installing to a sandbox for user acceptance testing.
@@ -8,7 +8,7 @@ version, or installing to a sandbox for user acceptance testing.
 ```{attention}
 A different setup is required to connect to orgs in the context of an
 automated build. See
-`continuous integration [](continuous_integration) for more information.
+`continuous integration [](continuous-integration) for more information.
 ```
 
 ## The `org connect` Command
@@ -106,7 +106,9 @@ computer by passing the `--global-org` flag.
 ```console
 $ cci org connect <org_name> --global-org
 ```
+
 (use-a-custom-connected-app)=
+
 ## Use a Custom Connected App
 
 CumulusCI uses a preconfigured Connected App to authenticate to
@@ -145,19 +147,19 @@ Default   Type              Name         Description
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 ✔         connected_app     built-in     A Connected App is required to connect to and run commands
                                          against persistent orgs. See https://cumulusci.readthedocs.io/
-                                         en/latest/connected_orgs.html#use-a-custom-connected-app for
+                                         en/latest/connected-orgs.html#use-a-custom-connected-app for
                                          more info.
           connected_app     custom       A Connected App is required to connect to and run commands
                                          against persistent orgs. See https://cumulusci.readthedocs.io/
-                                         en/latest/connected_orgs.html#use-a-custom-connected-app for
+                                         en/latest/connected-orgs.html#use-a-custom-connected-app for
                                          more info.
 ```
 
-Use the `--connected-app` option to connect an org using the custom
+Use the `--connected_app` option to connect an org using the custom
 connected app:
 
 ```console
-$ cci org connect <org_name> --connected-app custom
+$ cci org connect <org_name> --connected_app custom
 ```
 
 To edit the Connected App's OAuth scopes:
@@ -169,4 +171,4 @@ To edit the Connected App's OAuth scopes:
 4.  Add or remove OAuth scopes as desired. CumulusCI requires the `api`,
     `full`, and `refresh_token` scopes.
 
-For a full list of options, run the [](connected_app) task reference documentation.
+For a full list of options, run the [](connected-app) task reference documentation.

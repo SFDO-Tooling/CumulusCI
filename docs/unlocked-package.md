@@ -8,7 +8,7 @@ packages](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_d
 
 This section assumes:
 
--   [CumulusCI is installed](get_started) on your computer.
+-   [CumulusCI is installed](get-started) on your computer.
 -   A Salesforce managed package project has been [configured](project-initialization)
     for use with CumulusCI.
 -   Your Dev Hub has the required features enabled: [Enable DevHub
@@ -109,7 +109,7 @@ metadata is intended to satisfy install-time dependencies of packages,
 this requires that those dependencies be met in other ways, such as by
 configuring the scratch org definition. For examples of how to satisfy
 the install-time dependencies for NPSP and EDA without using unpackaged
-metadata, see [](npsp_eda_2gp).
+metadata, see [](npsp-eda-2gp).
 
 The other option is to have CumulusCI automatically create unlocked
 packages containing unpackaged metadata from dependency projects. For

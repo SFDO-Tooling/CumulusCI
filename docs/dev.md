@@ -460,7 +460,7 @@ must contain valid metadata for use with a deploy, including a
 Unmanaged metadata dependencies from GitHub may optionally specify the
 `ref` to download. If they do not, unmanaged GitHub dependencies are
 resolved like other GitHub references. See [Controlling GitHub
-Dependency Resolution](##controlling-github-dependency-resolution) for
+Dependency Resolution](#controlling-github-dependency-resolution) for
 more details on resolution of dynamic dependencies.
 
 ```{note}

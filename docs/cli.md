@@ -10,7 +10,7 @@ Trailhead module covers installing and opening a terminal window in
 Visual Studio Code.
 ```
 
-After [installing CumulusCI](get_started), use the `cci` command in your terminal or command prompt to
+After [installing CumulusCI](get-started), use the `cci` command in your terminal or command prompt to
 interact with it.
 
 On any platform, you can use the integrated terminal in Visual Studio
@@ -342,8 +342,8 @@ CumulusCI makes it easy to create, connect, and manage orgs. The
 `cci org` top-level command helps you work with orgs.
 
 To learn about working with orgs in detail, read
-(scratch_orgs) and
-(connected_orgs).
+(scratch-orgs) and
+(connected-orgs).
 
 (manage-services)=
 

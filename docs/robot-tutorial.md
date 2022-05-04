@@ -6,14 +6,14 @@ It is not a comprehensive tutorial on using Robot Framework. For Robot
 Framework documentation see the [Robot Framework User
 Guide](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html)
 
-It is assumed you've worked through the CumulusCI [](get_started) section at least up to the point where you've called `cci project init`. It is also assumed that
+It is assumed you've worked through the CumulusCI [](get-started) section at least up to the point where you've called `cci project init`. It is also assumed that
 you've read the [](robot) section of this document, which gives an overview of CumulusCI and Robot Framework integration.
 
 ## Part 1: Folder Structure
 
 We recommend that all Robot tests, keywords, data, and log and report
 files live under a folder named `robot`, at the root of your repository.
-If you worked through the [](get_started) section, the following folders will have been created under
+If you worked through the [](get-started) section, the following folders will have been created under
 `MyProject/robot/MyProject`:
 
 -   `doc` - a place to put documentation for your tests
