@@ -76,7 +76,7 @@
             <tbody>
               <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
               {% for keyword in library.keywords %}
-              <tr class="kwrow" id="{{kwfile.filename}}.{{keyword.name}}">
+              <tr class="kwrow" id="{{kwfile.filename}}.{{keyword.name.replace(" ", "-")}}">
                 <td class="kwname">
                   {{keyword.name}}
                 </td>
