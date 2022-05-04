@@ -1450,6 +1450,61 @@ Input form data
                                 </td>
                             </tr>
 
+                            <tr class="kwrow" id="Salesforce.Locate Element By Label">
+                                <td class="kwname">Locate Element By Label</td>
+                                <td class="kwargs">
+                                    <i>browser</i>,
+
+                                    <i>locator</i>,
+
+                                    <i>tag</i>,
+
+                                    <i>constraints</i>
+                                </td>
+                                <td class="kwdoc">
+                                    <p>
+                                        Find a lightning component, input, or textarea
+                                        based on a label
+                                    </p>
+                                    <p>
+                                        If the component is inside a fieldset, the
+                                        fieldset label can be prefixed to the label with a
+                                        double colon in order to disambiguate the label.
+                                        (eg: Other address::First Name)
+                                    </p>
+                                    <p>
+                                        If the label is inside nested ligntning components
+                                        (eg:
+                                        <code
+                                            >&lt;lightning-input&gt;...&lt;lightning-combobox&gt;...&lt;label&gt;</code
+                                        >), the lightning component closest to the label
+                                        will be returned (in this case,
+                                        <code>lightning-combobox</code>).
+                                    </p>
+                                    <p>
+                                        If a lightning component cannot be found for the
+                                        label, an attempt will be made to find an input or
+                                        textarea associated with the label.
+                                    </p>
+                                    <p>
+                                        This is registered as a custom locator strategy
+                                        named "label"
+                                    </p>
+                                    <p>Example:</p>
+                                    <p>
+                                        The following example is for a form with a formset
+                                        named "Expected Delivery Date", and inside of that
+                                        a date input field with a label of "Date".
+                                    </p>
+                                    <p>These examples produce identical results:</p>
+                                    <pre>
+${element}=  Locate element by label    Expected Delivery Date::Date
+${element}=  Get webelement             label:Expected Delivery Date::Date
+</pre
+                                    >
+                                </td>
+                            </tr>
+
                             <tr class="kwrow" id="Salesforce.Log Browser Capabilities">
                                 <td class="kwname">Log Browser Capabilities</td>
                                 <td class="kwargs">
@@ -2034,46 +2089,35 @@ Set Test Metric    Max_CPU_Percent    30
                             <tr class="kwrow" id="Salesforce.Soql Query">
                                 <td class="kwname">Soql Query</td>
                                 <td class="kwargs">
-                                    <i>query</i>,
-
-                                    <i>*args</i>
+                                    <i>query</i>
                                 </td>
                                 <td class="kwdoc">
                                     <p>
-                                        Runs a SOQL query and returns the result as a
-                                        dictionary.
+                                        Runs a simple SOQL query and returns the dict
+                                        results
                                     </p>
                                     <p>
                                         The <i>query</i> parameter must be a properly
-                                        quoted SOQL query statement or statement fragment.
-                                        Additional arguments will be joined to the query
-                                        with spaces, allowing for a query to span multiple
-                                        lines.
+                                        quoted SOQL query statement. The return value is a
+                                        dictionary. The dictionary contains the keys as
+                                        documented for the raw API call. The most useful
+                                        key is <code>records</code>, which contains a list
+                                        of records which were matched by the query.
                                     </p>
-                                    <p>
-                                        This keyword will return a dictionary. The
-                                        dictionary contains the keys as documented for the
-                                        raw API call. The most useful keys are
-                                        <code>records</code> and <code>totalSize</code>,
-                                        which contains a list of records that were matched
-                                        by the query and the number of records that were
-                                        returned.
-                                    </p>
-                                    <p>Example:</p>
+                                    <p>Example</p>
                                     <p>
                                         The following example searches for all Contacts
                                         with a first name of "Eleanor" and a last name of
-                                        "Rigby", and then logs the Id of the first record
-                                        found.
+                                        "Rigby", and then prints the name of the first
+                                        record found.
                                     </p>
                                     <pre>
 ${result}=  SOQL Query
-...  SELECT Name, Id
-...  FROM   Contact
-...  WHERE  FirstName='Eleanor' AND LastName='Rigby'
+...  SELECT Name, Id FROM Contact WHERE FirstName='Eleanor' AND LastName='Rigby'
+Run keyword if  len($result['records']) == 0  Fail  No records found
 
 ${contact}=  Get from list  ${result['records']}  0
-log  Contact Id: ${contact['Id']}
+Should be equal  ${contact['Name']}  Eleanor Rigby
 </pre
                                     >
                                 </td>
@@ -3169,7 +3213,7 @@ Populate form
             </div>
         </div>
         <div class="footer">
-            Generated on Tuesday January 25, 03:39 PM - cumulusci v3.51.1
+            Generated on Wednesday May 04, 03:12 PM - cumulusci v3.47.0
         </div>
     </body>
 </html>
