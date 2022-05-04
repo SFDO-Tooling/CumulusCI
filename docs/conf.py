@@ -56,8 +56,8 @@ templates_path = ["_templates"]
 # source_suffix = ".md" #".rst"
 source_suffix = {
     '.rst': 'restructuredtext',
-    '.md': 'markdown',
-}
+    '.md': 'markdown'
+    }
 
 # Auto-generate anchors for headings
 myst_heading_anchors = 3
