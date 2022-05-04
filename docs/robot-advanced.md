@@ -6,13 +6,11 @@ into some advanced topics.
 
 ## Running CumulusCI Tasks
 
-[TEST](Keywords.html)
-
 CumulusCI provides two keywords for running a task from within a robot
 test case: [Run Task](Keywords.html#CumulusCI.Run%20Task) and [Run Task
 Class](Keywords.html#CumulusCI.Run%20Task%20Class).
 
-[Run Task](Keywords.html#CumulusCI.Run-Task) can be used to run any
+[Run Task](robot-keywords#CumulusCI.Run-Task) can be used to run any
 CumulusCI tasks configured for the project. Tasks run can be any of
 CumulusCI's standard tasks as well as project-specific custom tasks
 from the project's `cumulusci.yml` file. `Run Task` accepts a single
