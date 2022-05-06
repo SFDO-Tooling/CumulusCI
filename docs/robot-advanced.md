@@ -7,8 +7,8 @@ into some advanced topics.
 ## Running CumulusCI Tasks
 
 CumulusCI provides two keywords for running a task from within a robot
-test case: [Run Task](Keywords.html#CumulusCI.Run%20Task) and [Run Task
-Class](Keywords.html#CumulusCI.Run%20Task%20Class).
+test case: [Run Task](https://cumulusci.readthedocs.io/en/stable/Keywords.html#CumulusCI.Run%20Task) and [Run Task
+Class](https://cumulusci.readthedocs.io/en/stable/Keywords.html#CumulusCI.Run%20Task%20Class).
 
 [Run Task](robot-keywords#CumulusCI.Run-Task) can be used to run any
 CumulusCI tasks configured for the project. Tasks run can be any of
@@ -16,7 +16,7 @@ CumulusCI's standard tasks as well as project-specific custom tasks
 from the project's `cumulusci.yml` file. `Run Task` accepts a single
 argument, the task name, along with any arguments required by the task.
 
-[Run Task Class](Keywords.html#CumulusCI.Run-Task-Class) works in a
+[Run Task Class](https://cumulusci.readthedocs.io/en/stable/Keywords.html#CumulusCI.Run-Task-Class) works in a
 similar fashion, but the task can be specified as a python class rather
 than a task name. For example, you can use this keyword to run logic
 from CumulusCI tasks which have not been configured in the project's
@@ -37,14 +37,14 @@ teardown. Sometimes it is preferable to report only the time spent in
 the test case itself.
 
 The [Set Test Elapsed
-Time](Keywords.html#Salesforce.Set-Test-Elapsed-Time) keyword
+Time](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Set-Test-Elapsed-Time) keyword
 allows you to record a computed elapsed time. For example, when
 performance testing a Salesforce batch process, you have the option to
 store the Salesforce-measured elapsed time of the batch process instead
 of the time measured in the CumulusCI client process.
 
 The [Set Test Elapsed
-Time](Keywords.html#Salesforce.Set-Test-Elapsed-Time) keyword
+Time](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Set-Test-Elapsed-Time) keyword
 takes a single optional argument, either a number of seconds or a [Robot
 time
 string](https://robotframework.org/robotframework/latest/libraries/DateTime.html#Time%20formats).
@@ -61,18 +61,18 @@ Robot Framework.
 A time can be recorded for any group of keywords by calling Start
 Performance Timer and Stop Performance Timer. The latter will
 automatically call the [Set Test Elapsed
-Time](Keywords.html#Salesforce.Set-Test-Elapsed-Time) keyword.
+Time](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Set-Test-Elapsed-Time) keyword.
 
 The [Start Performance
-Timer](Keywords.html#Salesforce.Start-Performance-Timer) keyword
+Timer](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Start-Performance-Timer) keyword
 starts a timer. The [Stop Performance
-Timer](Keywords.html#Salesforce.Stop-Performance-Timer) keyword
+Timer](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Stop-Performance-Timer) keyword
 stops the timer and stores the result with [Set Test Elapsed
-Time](Keywords.html#Set-Test-Elapsed-Time).
+Time](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Set-Test-Elapsed-Time).
 
 ### Setting Test Metrics
 
-The [Set Test Metric](Keywords.html#Salesforce.Set-Test-Metric)
+The [Set Test Metric](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Set-Test-Metric)
 keyword retrieves any metric for performance monitoring, such as number
 of queries, rows processed, CPU usage, and more.
 
@@ -97,7 +97,7 @@ interface for displaying them.
 ### Elapsed Time for Last Record
 
 The [Elapsed Time For Last
-Record](Keywords.html#Salesforce.Elapsed-Time-For-Last-Record)
+Record](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Elapsed-Time-For-Last-Record)
 keyword queries Salesforce for its recorded log of a job.
 
 For example, to query an Apex bulk job:
@@ -136,30 +136,30 @@ the keywords we provide which talk directly to Salesforce via an API
 rather than through the UI:
 
 -   [Salesforce Collection
-    Insert](Keywords.html#Salesforce.Salesforce-Collection-Insert):
+    Insert](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Salesforce-Collection-Insert):
     Creates a collection of objects based on a template.
 -   [Salesforce Collection
-    Update](Keywords.html#Salesforce.Salesforce-Collection-Update):
+    Update](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Salesforce-Collection-Update):
     Updates a collection of objects.
--   [Salesforce Delete](Keywords.html#Salesforce.Salesforce-Delete):
+-   [Salesforce Delete](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Salesforce-Delete):
     Deletes a record using its type and ID.
--   [Salesforce Get](Keywords.html#Salesforce.Salesforce-Get): Gets a
+-   [Salesforce Get](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Salesforce-Get): Gets a
     dictionary of a record from its ID.
--   [Salesforce Insert](Keywords.html#Salesforce.Salesforce-Insert):
+-   [Salesforce Insert](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Salesforce-Insert):
     Inserts a record using its type and field values. Returns the ID.
--   [Salesforce Query](Keywords.html#Salesforce.Salesforce-Query):
+-   [Salesforce Query](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Salesforce-Query):
     Runs a simple query using the `object type` and `<field_name=value>`
     syntax. Returns a list of matching record dictionaries.
--   [Salesforce Update](Keywords.html#Salesforce.Salesforce-Update):
+-   [Salesforce Update](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.Salesforce-Update):
     Updates a record using its type, ID, and `<field_name=value>`
     syntax.
--   [SOQL Query](Keywords.html#Salesforce.SOQL-Query): Runs a SOQL
+-   [SOQL Query](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.SOQL-Query): Runs a SOQL
     query and returns a REST API result dictionary.
 
 Using Page Objects \-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\--
 
 The
-[PageObjects](Keywords.html#file-cumulusci.robotframework.PageObjects)
+[PageObjects](https://cumulusci.readthedocs.io/en/stable/Keywords.html#file-cumulusci.robotframework.PageObjects)
 library provides support for page objects, Robot Framework-style. Even
 though Robot is a keyword-driven framework, it's also possible to
 dynamically load in keywords unique to a page or an object on the page.
@@ -228,7 +228,7 @@ CumulusCI provides the following base classes, which should be used for
 all classes that use the `pageobject` decorator. You can import these
 base classes from `cumulusci.robotframework.pageobjects`.
 
--   [cumulusci.robotframework.pageobjects.BasePage](Keywords.html#file-cumulusci/robotframework/pageobjects/BasePageObjects.py) A generic base class used by the other pageobject classes. Use the `BasePage` class for creating custom page objects when none of the other base classes make sense.
+-   [cumulusci.robotframework.pageobjects.BasePage](https://cumulusci.readthedocs.io/en/stable/Keywords.html#file-cumulusci/robotframework/pageobjects/BasePageObjects.py) A generic base class used by the other pageobject classes. Use the `BasePage` class for creating custom page objects when none of the other base classes make sense.
 
     : - The `BasePage` adds the `Log current page object` keyword to
     every page object. This keyword is most useful when
@@ -346,16 +346,16 @@ the proper page, its keywords will automatically be loaded.
 The `PageObjects` library provides these keywords.
 
 -   [Current Page Should
-    Be](Keywords.html#PageObjects.Current-Page-Should-Be)
--   [Get Page Object](Keywords.html#PageObjects.Get-Page-Object)
+    Be](https://cumulusci.readthedocs.io/en/stable/Keywords.html#PageObjects.Current-Page-Should-Be)
+-   [Get Page Object](https://cumulusci.readthedocs.io/en/stable/Keywords.html#PageObjects.Get-Page-Object)
 -   [Go To Page
-    Object](Keywords.html#PageObjects.Go-To-Page-Object)
--   [Load Page Object](Keywords.html#PageObjects.Load-Page-Object)
+    Object](https://cumulusci.readthedocs.io/en/stable/Keywords.html#PageObjects.Go-To-Page-Object)
+-   [Load Page Object](https://cumulusci.readthedocs.io/en/stable/Keywords.html#PageObjects.Load-Page-Object)
 -   [Log Page Object
-    Keywords](Keywords.html#PageObjects.Log-Page-Object)
--   [Wait For Modal](Keywords.html#PageObjects.Wait-For-Modal)
+    Keywords](https://cumulusci.readthedocs.io/en/stable/Keywords.html#PageObjects.Log-Page-Object)
+-   [Wait For Modal](https://cumulusci.readthedocs.io/en/stable/Keywords.html#PageObjects.Wait-For-Modal)
 -   [Wait For Page
-    Object](Keywords.html#PageObjects.Wait-For-Page-Object)
+    Object](https://cumulusci.readthedocs.io/en/stable/Keywords.html#PageObjects.Wait-For-Page-Object)
 
 ### Current Page Should Be
 
