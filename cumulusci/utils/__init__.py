@@ -341,6 +341,7 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
     from cumulusci.core.utils import import_global
 
     doc = []
+    doc.append(f".. _{task_name.replace('_', '-')}:\n")
     doc.append(f"**{task_name}**\n==========================================\n")
     doc.append(f"**Description:** {task_config.description}\n")
     doc.append(f"**Class:** {task_config.class_path}\n")
@@ -458,6 +459,7 @@ def document_flow(flow_name, description, flow_coordinator, additional_info=None
     """Document (project specific) flow configurations in RST format"""
     doc = []
 
+    doc.append(f".. _{flow_name.replace('_', '-')}:\n")
     doc.append(f"{flow_name}\n{'^' * len(flow_name)}\n")
     doc.append(f"**Description:** {description}\n")
 
