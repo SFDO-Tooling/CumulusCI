@@ -555,7 +555,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
 
         assert "Person Account" in str(e.value)
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
+    @mock.patch("cumulusci.tasks.bulkdata.query_transformers.aliased")
     def test_query_db__person_accounts_enabled__contact_mapping(self, aliased):
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
@@ -620,7 +620,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             == columns["IsPersonAccount"]
         )
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
+    @mock.patch("cumulusci.tasks.bulkdata.query_transformers.aliased")
     def test_query_db__person_accounts_disabled__contact_mapping(self, aliased):
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
@@ -678,7 +678,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task._can_load_person_accounts.assert_called_once_with(mapping)
         assert tuple(added_filters) == ()
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
+    @mock.patch("cumulusci.tasks.bulkdata.query_transformers.aliased")
     def test_query_db__person_accounts_enabled__neither_account_nor_contact_mapping(
         self, aliased
     ):
@@ -1880,33 +1880,12 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
 
             assert expected == actual, f"columns: {columns}"
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.func.lower")
-    def test_filter_out_person_account_records(self, lower):
-        task = _make_task(
-            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
-        )
-        model = mock.Mock()
-        model.__table__ = mock.Mock()
-        IsPersonAccount_column = mock.MagicMock()
-        lower.return_value.__eq__ = mock.Mock()
-        columns = {
-            "sf_id": mock.Mock(),
-            "name": mock.Mock(),
-            "IsPersonAccount": IsPersonAccount_column,
-        }
-        model.__table__.columns = columns
+    # def test_filter_out_person_account_records(self, lower):
 
-        query = mock.Mock()
-
-        expected = query.filter.return_value
-
-        actual = task._filter_out_person_account_records(query, model)
-
-        assert expected == actual
-
-        lower.return_value.__eq__.assert_called_once_with("false")
-
-        query.filter.assert_called_once_with(lower.return_value.__eq__.return_value)
+    # This method was deleted after bb2a7aa13 because it was way too much
+    # code to test too little code. We'll test Person accounts in context
+    # instead.
+    # Delete this comment whenever it is convenient.
 
     def test_generate_contact_id_map_for_person_accounts(self):
         mapping_file = "mapping-oid.yml"
