@@ -555,6 +555,8 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
 
         assert "Person Account" in str(e.value)
 
+    # This test should be rewritten into a light-mocking style but creating the
+    # sample data is non-trivial work that might require some collaboration
     @mock.patch("cumulusci.tasks.bulkdata.query_transformers.aliased")
     def test_query_db__person_accounts_enabled__contact_mapping(self, aliased):
         task = _make_task(
@@ -620,6 +622,8 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             == columns["IsPersonAccount"]
         )
 
+    # This test should be rewritten into a light-mocking style but creating the
+    # sample data is non-trivial work that might require some collaboration
     @mock.patch("cumulusci.tasks.bulkdata.query_transformers.aliased")
     def test_query_db__person_accounts_disabled__contact_mapping(self, aliased):
         task = _make_task(
@@ -678,6 +682,8 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         task._can_load_person_accounts.assert_called_once_with(mapping)
         assert tuple(added_filters) == ()
 
+    # This test should be rewritten into a light-mocking style but creating the
+    # sample data is non-trivial work that might require some collaboration
     @mock.patch("cumulusci.tasks.bulkdata.query_transformers.aliased")
     def test_query_db__person_accounts_enabled__neither_account_nor_contact_mapping(
         self, aliased
