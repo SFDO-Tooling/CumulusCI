@@ -120,9 +120,9 @@ jobs:
                     - browser: "BROWSER:headlessfirefox"
                       job-name: "Firefox"
                       org-shape: "dev"
-                    # - browser: "BROWSER:headlesschrome"
-                    #   job-name: "Pre-release"
-                    #   org-shape: "prerelease"
+                    - browser: "BROWSER:headlesschrome"
+                      job-name: "Pre-release"
+                      org-shape: "prerelease"
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python 3.8
