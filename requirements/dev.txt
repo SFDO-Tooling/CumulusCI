@@ -91,7 +91,7 @@ jinja2==2.11.3
     # via
     #   -c requirements/prod.txt
     #   sphinx
-jsonschema==4.4.0
+jsonschema==4.5.1
     # via -r requirements/dev.in
 keyring==23.0.1
     # via
@@ -126,7 +126,7 @@ pluggy==1.0.0
     # via
     #   pytest
     #   tox
-pre-commit==2.18.1
+pre-commit==2.19.0
     # via -r requirements/dev.in
 py==1.11.0
     # via
@@ -188,7 +188,7 @@ responses==0.14.0
     # via -r requirements/dev.in
 rfc3986==2.0.0
     # via twine
-rich==12.3.0
+rich==12.4.1
     # via
     #   -c requirements/prod.txt
     #   twine
@@ -261,7 +261,7 @@ webencodings==0.5.1
     # via bleach
 wheel==0.37.1
     # via -r requirements/dev.in
-wrapt==1.14.0
+wrapt==1.14.1
     # via vcrpy
 yarl==1.7.2
     # via vcrpy
