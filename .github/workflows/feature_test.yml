@@ -34,7 +34,7 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Install dependencies
-              run: make dev-install
+              run: pip install -r requirements_dev.txt
             - name: Build Docs
               run: make docs
 
@@ -55,7 +55,7 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Install dependencies
-              run: make dev-install
+              run: pip install -r requirements_dev.txt
             - name: Run Pytest
               run: pytest --cov-report= --cov=cumulusci
             - name: Run coveralls
@@ -73,7 +73,7 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Install Python dependencies
-              run: make dev-install
+              run: pip install -r requirements_dev.txt
             - name: Install sfdx
               run: |
                   mkdir sfdx
@@ -132,7 +132,7 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Install Python dependencies
-              run: make dev-install
+              run: pip install -r requirements_dev.txt
             - name: Install sfdx
               run: |
                   mkdir sfdx
