@@ -355,11 +355,13 @@ class MappingStep(CCIDictModel):
                 return name
 
         orig_fields = field_dict.copy()
+        special_names = {"id": "Id", "ispersonaccount": "IsPersonAccount"}
         for f, entry in orig_fields.items():
             # Do we need to inject this field?
-            if f.lower() == "id":
+            if f.lower() in special_names:
                 del field_dict[f]
-                field_dict["Id"] = entry
+                canonical_name = special_names[f.lower()]
+                field_dict[canonical_name] = entry
                 continue
 
             if inject and self._is_injectable(f) and inject(f) not in orig_fields:
