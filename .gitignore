@@ -22,6 +22,7 @@ tags
 .vscode/
 .cache/
 .coverage
+.coverage.*
 .python-version
 *selenium-screenshot-*
 log.html
