@@ -9,6 +9,7 @@ import click
 import requests
 import rich
 from rich.console import Console
+from rich.markup import escape
 
 import cumulusci
 from cumulusci.core.debug import set_debug_mode
@@ -118,9 +119,10 @@ def handle_exception(
     if isinstance(error, requests.exceptions.ConnectionError):
         connection_error_message(error_console)
     elif isinstance(error, click.ClickException):
-        error_console.print(f"[red bold]Error: {error.format_message()}")
+        error_console.print(f"[red bold]Error: {escape(error.format_message())}")
     else:
-        error_console.print(f"[red bold]Error: {error}")
+        # We call str ourselves to make Typeguard shut up.
+        error_console.print(f"[red bold]Error: {escape(str(error))}")
     # Only suggest gist command if it wasn't run
     if not is_error_cmd:
         error_console.print(f"[yellow]{SUGGEST_ERROR_COMMAND}")
