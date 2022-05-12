@@ -373,10 +373,10 @@ def test_handle_click_exception(traceback, cci_open):
     cci_open.__enter__.return_value = mock.Mock()
 
     with contextlib.redirect_stderr(io.StringIO()) as stderr:
-        cci.handle_exception(click.ClickException("oops"), False, "file.path")
+        cci.handle_exception(click.ClickException("[oops]"), False, "file.path")
 
     stderr = stderr.getvalue()
-    assert "Error: oops" in stderr
+    assert "Error: [oops]" in stderr
     traceback.assert_not_called()
 
 
