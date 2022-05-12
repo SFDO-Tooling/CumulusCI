@@ -151,7 +151,7 @@ sqlalchemy==1.4.36
     # via
     #   -r requirements/prod.in
     #   snowfakery
-typing-extensions==4.0.1
+typing-extensions==4.2.0
     # via
     #   pydantic
     #   rich

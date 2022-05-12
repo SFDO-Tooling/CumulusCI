@@ -238,7 +238,7 @@ twine==4.0.0
     # via -r requirements/dev.in
 typeguard==2.13.3
     # via -r requirements/dev.in
-typing-extensions==4.0.1
+typing-extensions==4.2.0
     # via
     #   -c requirements/prod.txt
     #   black
