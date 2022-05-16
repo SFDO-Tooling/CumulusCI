@@ -1,0 +1,363 @@
+version: 1
+interactions:
+    - &id001
+      include_file: GET_sobjects_Global_describe.yaml
+    - &id005
+      include_file: GET_sobjects_Account_describe.yaml
+    - *id001
+    - &id007
+      include_file: GET_sobjects_Contact_describe.yaml
+    - *id001
+    - &id008
+      include_file: GET_sobjects_Opportunity_describe.yaml
+    - &id009
+      request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/limits/recordCount?sObjects=Account
+          body: null
+          headers: &id002
+              Request-Headers:
+                  - Elided
+      response:
+          status: &id003
+              code: 200
+              message: OK
+          headers: &id004
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          body:
+              string:
+                  "{\n  \"sObjects\" : [ {\n    \"count\" : 1,\n    \"name\" : \"Account\"\
+                  \n  } ]\n}"
+    - request: &id010
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+Id%2CAccountNumber+from+Account
+          body: null
+          headers: *id002
+      response: &id006
+          status: *id003
+          headers: *id004
+          body:
+              string: "{\n  \"totalSize\" : 0,\n  \"done\" : true,\n  \"records\" : [ ]\n}"
+    - *id005
+    - request:
+          method: PATCH
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects/Account/Id
+          body:
+              '{"allOrNone": false, "records": [{"Name": "Sitwell-Bluth", "AccountNumber":
+              "420", "Id": null, "attributes": {"type": "Account"}}]}'
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  "[ {\n  \"id\" : \"0015500001QdRaYAAV\",\n  \"success\" : true,\n  \"\
+                  errors\" : [ ],\n  \"created\" : true\n} ]"
+    - &id011
+      request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/limits/recordCount?sObjects=Contact
+          body: null
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  "{\n  \"sObjects\" : [ {\n    \"count\" : 2,\n    \"name\" : \"Contact\"\
+                  \n  } ]\n}"
+    - request: &id012
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+Id%2CFirstName%2CLastName+from+Contact
+          body: null
+          headers: *id002
+      response: *id006
+    - *id007
+    - request:
+          method: PATCH
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects/Contact/Id
+          body:
+              '{"allOrNone": false, "records": [{"FirstName": "Lindsay", "LastName": "Sitwell",
+              "Email": "lindsay.bluth@example.com", "Id": null, "attributes": {"type": "Contact"}},
+              {"FirstName": "Audrey", "LastName": "Cain", "Email": "audrey.cain@example.com",
+              "Id": null, "attributes": {"type": "Contact"}}, {"FirstName": "Micheal", "LastName":
+              "Bernard", "Email": "michael.bernard@example.com", "Id": null, "attributes":
+              {"type": "Contact"}}, {"FirstName": "Chloe", "LastName": "Myers", "Email": "Chloe.Myers@example.com",
+              "Id": null, "attributes": {"type": "Contact"}}, {"FirstName": "Rose", "LastName":
+              "Larson", "Email": "Rose.Larson@example.com", "Id": null, "attributes": {"type":
+              "Contact"}}, {"FirstName": "Brent", "LastName": "Ali", "Email": "Brent.Ali@example.com",
+              "Id": null, "attributes": {"type": "Contact"}}, {"FirstName": "Julia", "LastName":
+              "Townsend", "Email": "Julia.Townsend@example.com", "Id": null, "attributes":
+              {"type": "Contact"}}, {"FirstName": "Benjamin", "LastName": "Cunningham", "Email":
+              "Benjamin.Cunningham@example.com", "Id": null, "attributes": {"type": "Contact"}},
+              {"FirstName": "Christy", "LastName": "Stanton", "Email": "Christy.Stanton@example.com",
+              "Id": null, "attributes": {"type": "Contact"}}, {"FirstName": "Sabrina", "LastName":
+              "Roberson", "Email": "Sabrina.Roberson@example.com", "Id": null, "attributes":
+              {"type": "Contact"}}, {"FirstName": "Michael", "LastName": "Bluth", "Email":
+              "Michael.Bluth@example.com", "Id": null, "attributes": {"type": "Contact"}},
+              {"FirstName": "Javier", "LastName": "Banks", "Email": "Javier.Banks@example.com",
+              "Id": null, "attributes": {"type": "Contact"}}, {"FirstName": "GOB", "LastName":
+              "Bluth", "Email": "GOB.Bluth@example.com", "Id": null, "attributes": {"type":
+              "Contact"}}, {"FirstName": "Kaitlyn", "LastName": "Rubio", "Email": "Kaitlyn.Rubio@example.com",
+              "Id": null, "attributes": {"type": "Contact"}}, {"FirstName": "Jerry", "LastName":
+              "Eaton", "Email": "Jerry.Eaton@example.com", "Id": null, "attributes": {"type":
+              "Contact"}}, {"FirstName": "Gabrielle", "LastName": "Vargas", "Email": "Gabrielle.Vargas@example.com",
+              "Id": null, "attributes": {"type": "Contact"}}]}'
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  "[ {\n  \"id\" : \"0035500001H9dBLAAZ\",\n  \"success\" : true,\n  \"\
+                  errors\" : [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9dBMAAZ\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n\
+                  \  \"id\" : \"0035500001H9dBNAAZ\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9dBOAAZ\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0035500001H9dBPAAZ\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9dBQAAZ\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0035500001H9dBRAAZ\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9dBSAAZ\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0035500001H9dBTAAZ\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9dBUAAZ\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0035500001H9dBVAAZ\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9dBWAAZ\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0035500001H9dBXAAZ\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9dBYAAZ\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n}, {\n \
+                  \ \"id\" : \"0035500001H9dBZAAZ\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9dBaAAJ\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n} ]"
+    - &id013
+      request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/limits/recordCount?sObjects=Opportunity
+          body: null
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string: "{\n  \"sObjects\" : [ ]\n}"
+    - &id014
+      request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+Id%2CName+from+Opportunity
+          body: null
+          headers: *id002
+      response: *id006
+    - *id008
+    - request: &id015
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+Email+from+Contact
+          body: null
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  "{\n  \"totalSize\" : 16,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Contact/0035500001H9dBLAAZ\"\n    },\n    \"\
+                  Email\" : \"lindsay.bluth@example.com\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBMAAZ\"\
+                  \n    },\n    \"Email\" : \"audrey.cain@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBNAAZ\"\
+                  \n    },\n    \"Email\" : \"michael.bernard@example.com\"\n  }, {\n    \"\
+                  attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBOAAZ\"\
+                  \n    },\n    \"Email\" : \"chloe.myers@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBPAAZ\"\
+                  \n    },\n    \"Email\" : \"rose.larson@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBQAAZ\"\
+                  \n    },\n    \"Email\" : \"brent.ali@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBRAAZ\"\
+                  \n    },\n    \"Email\" : \"julia.townsend@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBSAAZ\"\
+                  \n    },\n    \"Email\" : \"benjamin.cunningham@example.com\"\n  }, {\n  \
+                  \  \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBTAAZ\"\
+                  \n    },\n    \"Email\" : \"christy.stanton@example.com\"\n  }, {\n    \"\
+                  attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBUAAZ\"\
+                  \n    },\n    \"Email\" : \"sabrina.roberson@example.com\"\n  }, {\n    \"\
+                  attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBVAAZ\"\
+                  \n    },\n    \"Email\" : \"michael.bluth@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBWAAZ\"\
+                  \n    },\n    \"Email\" : \"javier.banks@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBXAAZ\"\
+                  \n    },\n    \"Email\" : \"gob.bluth@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBYAAZ\"\
+                  \n    },\n    \"Email\" : \"kaitlyn.rubio@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBZAAZ\"\
+                  \n    },\n    \"Email\" : \"jerry.eaton@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBaAAJ\"\
+                  \n    },\n    \"Email\" : \"gabrielle.vargas@example.com\"\n  } ]\n}"
+    - *id001
+    - *id005
+    - *id001
+    - *id007
+    - *id001
+    - *id008
+    - *id009
+    - request: *id010
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string: "{\n  \"totalSize\" : 1,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Account/0015500001QdRaYAAV\"\n    },\n    \"\
+                  Id\" : \"0015500001QdRaYAAV\",\n    \"AccountNumber\" : \"420\"\n  } ]\n}"
+    - *id005
+    - *id011
+    - request: *id012
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  "{\n  \"totalSize\" : 16,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Contact/0035500001H9dBLAAZ\"\n    },\n    \"\
+                  Id\" : \"0035500001H9dBLAAZ\",\n    \"FirstName\" : \"Lindsay\",\n    \"LastName\"\
+                  \ : \"Sitwell\"\n  }, {\n    \"attributes\" : {\n      \"type\" : \"Contact\"\
+                  ,\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBMAAZ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBMAAZ\",\n    \"FirstName\" : \"Audrey\"\
+                  ,\n    \"LastName\" : \"Cain\"\n  }, {\n    \"attributes\" : {\n      \"type\"\
+                  \ : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBNAAZ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBNAAZ\",\n    \"FirstName\" : \"Micheal\"\
+                  ,\n    \"LastName\" : \"Bernard\"\n  }, {\n    \"attributes\" : {\n      \"\
+                  type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBOAAZ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBOAAZ\",\n    \"FirstName\" : \"Chloe\"\
+                  ,\n    \"LastName\" : \"Myers\"\n  }, {\n    \"attributes\" : {\n      \"\
+                  type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBPAAZ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBPAAZ\",\n    \"FirstName\" : \"Rose\"\
+                  ,\n    \"LastName\" : \"Larson\"\n  }, {\n    \"attributes\" : {\n      \"\
+                  type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBQAAZ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBQAAZ\",\n    \"FirstName\" : \"Brent\"\
+                  ,\n    \"LastName\" : \"Ali\"\n  }, {\n    \"attributes\" : {\n      \"type\"\
+                  \ : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBRAAZ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBRAAZ\",\n    \"FirstName\" : \"Julia\"\
+                  ,\n    \"LastName\" : \"Townsend\"\n  }, {\n    \"attributes\" : {\n     \
+                  \ \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBSAAZ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBSAAZ\",\n    \"FirstName\" : \"Benjamin\"\
+                  ,\n    \"LastName\" : \"Cunningham\"\n  }, {\n    \"attributes\" : {\n   \
+                  \   \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBTAAZ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBTAAZ\",\n    \"FirstName\" : \"Christy\"\
+                  ,\n    \"LastName\" : \"Stanton\"\n  }, {\n    \"attributes\" : {\n      \"\
+                  type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBUAAZ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBUAAZ\",\n    \"FirstName\" : \"Sabrina\"\
+                  ,\n    \"LastName\" : \"Roberson\"\n  }, {\n    \"attributes\" : {\n     \
+                  \ \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBVAAZ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBVAAZ\",\n    \"FirstName\" : \"Michael\"\
+                  ,\n    \"LastName\" : \"Bluth\"\n  }, {\n    \"attributes\" : {\n      \"\
+                  type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBWAAZ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBWAAZ\",\n    \"FirstName\" : \"Javier\"\
+                  ,\n    \"LastName\" : \"Banks\"\n  }, {\n    \"attributes\" : {\n      \"\
+                  type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBXAAZ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBXAAZ\",\n    \"FirstName\" : \"GOB\"\
+                  ,\n    \"LastName\" : \"Bluth\"\n  }, {\n    \"attributes\" : {\n      \"\
+                  type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBYAAZ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBYAAZ\",\n    \"FirstName\" : \"Kaitlyn\"\
+                  ,\n    \"LastName\" : \"Rubio\"\n  }, {\n    \"attributes\" : {\n      \"\
+                  type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBZAAZ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBZAAZ\",\n    \"FirstName\" : \"Jerry\"\
+                  ,\n    \"LastName\" : \"Eaton\"\n  }, {\n    \"attributes\" : {\n      \"\
+                  type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBaAAJ\"\
+                  \n    },\n    \"Id\" : \"0035500001H9dBaAAJ\",\n    \"FirstName\" : \"Gabrielle\"\
+                  ,\n    \"LastName\" : \"Vargas\"\n  } ]\n}"
+    - *id007
+    - request:
+          method: PATCH
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects/Contact/Id
+          body:
+              '{"allOrNone": false, "records": [{"FirstName": "Michael", "LastName": "Bluth",
+              "Email": "Nichael.Bluth@example.com", "Id": "0035500001H9dBVAAZ", "attributes":
+              {"type": "Contact"}}, {"FirstName": "GOB", "LastName": "Bluth", "Email": "GeorgeOscar.Bluth@example.com",
+              "Id": "0035500001H9dBXAAZ", "attributes": {"type": "Contact"}}, {"FirstName":
+              "Lindsay", "LastName": "Bluth", "Email": "lindsay.bluth@example.com", "Id":
+              null, "attributes": {"type": "Contact"}}, {"FirstName": "Annyong", "LastName":
+              "Bluth", "Email": "annyong.bluth@example.com", "Id": null, "attributes": {"type":
+              "Contact"}}]}'
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  "[ {\n  \"id\" : \"0035500001H9dBVAAZ\",\n  \"success\" : true,\n  \"\
+                  errors\" : [ ],\n  \"created\" : false\n}, {\n  \"id\" : \"0035500001H9dBXAAZ\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : false\n}, {\n\
+                  \  \"id\" : \"0035500001H9dAeAAJ\",\n  \"success\" : true,\n  \"errors\" :\
+                  \ [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0035500001H9dAfAAJ\",\n \
+                  \ \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n} ]"
+    - *id013
+    - *id014
+    - *id008
+    - request:
+          method: PATCH
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects/Opportunity/Id
+          body:
+              '{"allOrNone": false, "records": [{"Name": "Illusional Opportunity", "CloseDate":
+              "2021-10-03", "StageName": "In Progress", "Id": null, "attributes": {"type":
+              "Opportunity"}}, {"Name": "Espionage Opportunity", "CloseDate": "2021-10-03",
+              "StageName": "In Progress", "Id": null, "attributes": {"type": "Opportunity"}}]}'
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  "[ {\n  \"id\" : \"0065500000KPywjAAD\",\n  \"success\" : true,\n  \"\
+                  errors\" : [ ],\n  \"created\" : true\n}, {\n  \"id\" : \"0065500000KPywkAAD\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ],\n  \"created\" : true\n} ]"
+    - request: *id015
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  "{\n  \"totalSize\" : 18,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Contact/0035500001H9dAeAAJ\"\n    },\n    \"\
+                  Email\" : \"lindsay.bluth@example.com\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dAfAAJ\"\
+                  \n    },\n    \"Email\" : \"annyong.bluth@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBLAAZ\"\
+                  \n    },\n    \"Email\" : \"lindsay.bluth@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBMAAZ\"\
+                  \n    },\n    \"Email\" : \"audrey.cain@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBNAAZ\"\
+                  \n    },\n    \"Email\" : \"michael.bernard@example.com\"\n  }, {\n    \"\
+                  attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBOAAZ\"\
+                  \n    },\n    \"Email\" : \"chloe.myers@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBPAAZ\"\
+                  \n    },\n    \"Email\" : \"rose.larson@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBQAAZ\"\
+                  \n    },\n    \"Email\" : \"brent.ali@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBRAAZ\"\
+                  \n    },\n    \"Email\" : \"julia.townsend@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBSAAZ\"\
+                  \n    },\n    \"Email\" : \"benjamin.cunningham@example.com\"\n  }, {\n  \
+                  \  \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBTAAZ\"\
+                  \n    },\n    \"Email\" : \"christy.stanton@example.com\"\n  }, {\n    \"\
+                  attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBUAAZ\"\
+                  \n    },\n    \"Email\" : \"sabrina.roberson@example.com\"\n  }, {\n    \"\
+                  attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBVAAZ\"\
+                  \n    },\n    \"Email\" : \"nichael.bluth@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBWAAZ\"\
+                  \n    },\n    \"Email\" : \"javier.banks@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBXAAZ\"\
+                  \n    },\n    \"Email\" : \"georgeoscar.bluth@example.com\"\n  }, {\n    \"\
+                  attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBYAAZ\"\
+                  \n    },\n    \"Email\" : \"kaitlyn.rubio@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBZAAZ\"\
+                  \n    },\n    \"Email\" : \"jerry.eaton@example.com\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/0035500001H9dBaAAJ\"\
+                  \n    },\n    \"Email\" : \"gabrielle.vargas@example.com\"\n  } ]\n}"

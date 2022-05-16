@@ -144,12 +144,14 @@ class DummyRepository(mock.Mock):
     default_branch = "main"
     _api = "http://"
 
-    def __init__(self, owner, name, contents, releases=None, commits=None):
+    def __init__(self, owner, name, contents, releases=None, commits=None, **kwargs):
+        """Passing kwargs to workaround python/cpython#83759"""
         super().__init__()
         self.owner = owner
         self.name = name
         self.html_url = f"https://github.com/{owner}/{name}"
         self.clone_url = self.html_url
+        self.session = mock.MagicMock()
         self._contents = contents
         self._releases = releases or []
         self._commits = commits or []

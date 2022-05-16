@@ -1,0 +1,20 @@
+{
+    "orgName": "Person Accounts and Communities Scratch Org",
+    "edition": "Enterprise",
+    "features": ["Communities", "PersonAccounts", "ContactsToMultipleAccounts"],
+    "settings": {
+        "lightningExperienceSettings": {
+            "enableS1DesktopEnabled": true
+        },
+        "chatterSettings": {
+            "enableChatter": true
+        },
+        "languageSettings": {
+            "enableTranslationWorkbench": true
+        },
+        "communitiesSettings": {
+            "enableNetworksEnabled": true,
+            "enableOotbProfExtUserOpsEnable": true
+        }
+    }
+}

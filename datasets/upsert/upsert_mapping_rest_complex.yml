@@ -1,0 +1,26 @@
+Insert Accounts:
+    api: rest
+    sf_object: Account
+    action: etl_upsert
+    update_key: AccountNumber
+    fields:
+        - Name
+        - AccountNumber
+Insert Contacts:
+    api: rest
+    sf_object: Contact
+    action: etl_upsert
+    update_key: FirstName,LastName
+    fields:
+        - FirstName
+        - LastName
+        - email
+Insert Opportunities:
+    sf_object: Opportunity
+    api: rest
+    action: etl_upsert
+    update_key: Name
+    fields:
+        - Name
+        - CloseDate
+        - StageName
