@@ -4,15 +4,13 @@ from unittest import mock
 import click.exceptions
 import pytest
 
-from cumulusci.cli import cci
-
 from .utils import run_cli_command
 
 
 @mock.patch("sys.exit")
 def test_bogus_subcommand(sys_exit):
-    cci.main(["cci", "robot", "bogus"])
-    sys_exit.assert_called_once_with(1)
+    with pytest.raises(click.exceptions.UsageError, match="No such command 'bogus'"):
+        run_cli_command("robot", "bogus")
 
 
 @mock.patch("cumulusci.cli.robot.sarge")
