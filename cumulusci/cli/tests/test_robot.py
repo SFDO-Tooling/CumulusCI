@@ -109,8 +109,8 @@ def test_playwright_dry_run(sarge):
         expected_output = "\n".join(
             [
                 "installing robotframework-browser ...",
-                "would run /Users/boakley/.venv/cci/bin/python -m pip install robotframework-browser",
-                "would run /Users/boakley/.venv/cci/bin/python -m Browser.entry init\n",
+                f"would run {sys.executable} -m pip install robotframework-browser",
+                f"would run {sys.executable} -m Browser.entry init\n",
             ]
         )
         msg = f"\n-- expected --\n{expected_output}\n\n-- actual --\n{result.output}"
