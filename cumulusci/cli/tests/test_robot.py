@@ -113,7 +113,8 @@ def test_playwright_dry_run(sarge):
                 "would run /Users/boakley/.venv/cci/bin/python -m Browser.entry init\n",
             ]
         )
-        assert result.output == expected_output
+        msg = f"\n-- expected --\n{expected_output}\n\n-- actual --\n{result.output}"
+        assert result.output == expected_output, msg
 
 
 @mock.patch("cumulusci.cli.robot.sarge")
