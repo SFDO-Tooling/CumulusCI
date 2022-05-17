@@ -2303,6 +2303,24 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         with pytest.raises(BulkDataException):
             task()
 
+    @responses.activate
+    def test_mapping_file_with_explicit_IsPersonAccount(self, caplog):
+        mock_describe_calls()
+        base_path = Path(__file__).parent
+        mapping_path = base_path / "person_accounts_minimal.yml"
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "mapping": mapping_path,
+                    "database_url": "sqlite://",
+                }
+            },
+        )
+
+        task._init_task()
+        task._init_mapping()
+
 
 class TestLoadDataIntegrationTests:
     # bulk API not supported by VCR yet
