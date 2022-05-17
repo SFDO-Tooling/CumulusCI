@@ -21,7 +21,6 @@ def robot():
 )
 @pass_runtime(require_project=False, require_keychain=False)  # maybe not needed...
 @click.option("-n", "--dry_run", is_flag=True)
-# should we support --verbose? what about --force?
 def robot_install_playwright(runtime, dry_run):
     _require_npm()
     if _is_package_installed("robotframework-browser"):
@@ -59,8 +58,6 @@ def _install_browser_library(dry_run=False):
         click.echo(f"running '{' '.join(pip_cmd)}' ...")
         p = sarge.Command(
             pip_cmd,
-            # stdout=sarge.Capture(buffer_size=-1),
-            # stderr=sarge.Capture(buffer_size=-1),
             shell=False,
         )
         p.run()
