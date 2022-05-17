@@ -24,129 +24,6 @@ class MockWorkingSet(list):
             self.append(pkg)
 
 
-@mock.patch("cumulusci.cli.robot.pkg_resources")
-def test_is_package_installed(pkg_resources):
-    """Verify that the helper _is_package_installed returns the correct result"""
-    pkg_resources.working_set = MockWorkingSet(
-        "robotframework", "robotframework-browser", "snowfakery"
-    )
-    result = _is_package_installed("robotframework-browser")
-    assert result is True
-
-    pkg_resources.working_set = MockWorkingSet("robotframework", "snowfakery")
-    result = _is_package_installed("robotframework-browser")
-    assert result is False
-
-
-@mock.patch("sys.exit")
-def test_bogus_subcommand(sys_exit):
-    with pytest.raises(click.exceptions.UsageError, match="No such command 'bogus'"):
-        run_cli_command("robot", "bogus")
-
-
-@mock.patch("cumulusci.cli.robot.sarge")
-def test_no_npm(sarge):
-    """Verify the error message we emit when npm --version throws an error"""
-
-    sarge.Command.side_effect = mock_Command(returncodes={"npm --version": 1})
-    with pytest.raises(
-        click.exceptions.ClickException, match="Unable to find a usable npm.*"
-    ):
-        run_cli_command("robot", "install_playwright", "--dry_run")
-    sarge.Command.assert_called_once_with("npm --version", shell=True)
-
-
-@mock.patch("cumulusci.cli.robot.sarge")
-def test_playwright_dry_run(sarge):
-    sarge.Command.side_effect = mock_Command(returncodes={"npm --version": 0})
-    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
-        result = run_cli_command("robot", "install_playwright", "--dry_run")
-        expected_output = "\n".join(
-            [
-                "installing robotframework-browser ...",
-                "would run /Users/boakley/.venv/cci/bin/python -m pip install robotframework-browser",
-                "would run /Users/boakley/.venv/cci/bin/python -m Browser.entry init\n",
-            ]
-        )
-        assert result.output == expected_output
-
-
-@mock.patch("cumulusci.cli.robot.sarge")
-def test_playwright_failure_to_initialize_browser_library(sarge):
-    cmd = str([sys.executable, "-m", "Browser.entry", "init"])
-    sarge.Command.side_effect = mock_Command(returncodes={cmd: 1})
-    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
-        with pytest.raises(
-            click.exceptions.ClickException,
-            match="unable to initialize browser library",
-        ):
-            run_cli_command("robot", "install_playwright")
-
-
-@mock.patch("cumulusci.cli.robot.sarge")
-def test_playwright_failure_to_install_browser_library(sarge):
-    cmd = str([sys.executable, "-m", "pip", "install", "robotframework-browser"])
-    sarge.Command.side_effect = mock_Command(returncodes={cmd: 1})
-    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
-        with pytest.raises(
-            click.exceptions.ClickException,
-            match="robotframework-browser was not installed",
-        ):
-            run_cli_command("robot", "install_playwright")
-
-
-@mock.patch("cumulusci.cli.robot.sarge")
-def test_playwright_already_installed(sarge):
-
-    sarge.Command.side_effect = mock_Command()
-    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=True):
-        result = run_cli_command("robot", "install_playwright", "--dry_run")
-        assert (
-            result.output == "Playwright support seems to already have been installed\n"
-        )
-
-
-@mock.patch("cumulusci.cli.robot.sarge")
-def test_happy_path(sarge):
-
-    sarge.Command.side_effect = mock_Command()
-    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
-        run_cli_command("robot", "install_playwright")
-        sarge.Command.assert_has_calls(
-            [
-                mock.call("npm --version", shell=True),
-                mock.call(
-                    [sys.executable, "-m", "pip", "install", "robotframework-browser"],
-                    shell=False,
-                ),
-                mock.call([sys.executable, "-m", "Browser.entry", "init"], shell=False),
-            ]
-        )
-
-
-@mock.patch("cumulusci.cli.robot.sarge")
-def test_uninstall_playwright(sarge):
-
-    sarge.Command.side_effect = mock_Command()
-    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
-        run_cli_command("robot", "uninstall_playwright")
-        sarge.Command.assert_has_calls(
-            [
-                mock.call([sys.executable, "-m", "Browser.entry", "clean-node"]),
-                mock.call(
-                    [
-                        sys.executable,
-                        "-m",
-                        "pip",
-                        "uninstall",
-                        "robotframework-browser",
-                        "--yes",
-                    ],
-                ),
-            ]
-        )
-
-
 def mock_Command(returncodes={}):
     """Create a mock for sarge.Command
 
@@ -170,3 +47,130 @@ def mock_Command(returncodes={}):
         return the_mock
 
     return the_real_mock
+
+
+@mock.patch("cumulusci.cli.robot.pkg_resources")
+def test_is_package_installed(pkg_resources):
+    """Verify that the helper _is_package_installed returns the correct result"""
+    pkg_resources.working_set = MockWorkingSet(
+        "robotframework", "robotframework-browser", "snowfakery"
+    )
+    result = _is_package_installed("robotframework-browser")
+    assert result is True
+
+    pkg_resources.working_set = MockWorkingSet("robotframework", "snowfakery")
+    result = _is_package_installed("robotframework-browser")
+    assert result is False
+
+
+@mock.patch("cumulusci.cli.robot.sarge")
+def test_happy_path(sarge):
+    """Verify the happy path is indeed happy"""
+    sarge.Command.side_effect = mock_Command()
+    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
+        run_cli_command("robot", "install_playwright")
+        sarge.Command.assert_has_calls(
+            [
+                mock.call("npm --version", shell=True),
+                mock.call(
+                    [sys.executable, "-m", "pip", "install", "robotframework-browser"],
+                    shell=False,
+                ),
+                mock.call([sys.executable, "-m", "Browser.entry", "init"], shell=False),
+            ]
+        )
+
+
+@mock.patch("sys.exit")
+def test_bogus_subcommand(sys_exit):
+    """Verify a bogus subcommand returns a UsageError"""
+    with pytest.raises(click.exceptions.UsageError, match="No such command 'bogus'"):
+        run_cli_command("robot", "bogus")
+
+
+@mock.patch("cumulusci.cli.robot.sarge")
+def test_no_npm(sarge):
+    """Verify the error message we emit when npm --version throws an error"""
+
+    sarge.Command.side_effect = mock_Command(returncodes={"npm --version": 1})
+    with pytest.raises(
+        click.exceptions.ClickException, match="Unable to find a usable npm.*"
+    ):
+        run_cli_command("robot", "install_playwright", "--dry_run")
+    sarge.Command.assert_called_once_with("npm --version", shell=True)
+
+
+@mock.patch("cumulusci.cli.robot.sarge")
+def test_playwright_dry_run(sarge):
+    """Verify the output of a dry run"""
+    sarge.Command.side_effect = mock_Command(returncodes={"npm --version": 0})
+    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
+        result = run_cli_command("robot", "install_playwright", "--dry_run")
+        expected_output = "\n".join(
+            [
+                "installing robotframework-browser ...",
+                "would run /Users/boakley/.venv/cci/bin/python -m pip install robotframework-browser",
+                "would run /Users/boakley/.venv/cci/bin/python -m Browser.entry init\n",
+            ]
+        )
+        assert result.output == expected_output
+
+
+@mock.patch("cumulusci.cli.robot.sarge")
+def test_playwright_failure_to_initialize_browser_library(sarge):
+    """Verify we raise an exception if we can't initialize the browser library"""
+    cmd = str([sys.executable, "-m", "Browser.entry", "init"])
+    sarge.Command.side_effect = mock_Command(returncodes={cmd: 1})
+    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
+        with pytest.raises(
+            click.exceptions.ClickException,
+            match="unable to initialize browser library",
+        ):
+            run_cli_command("robot", "install_playwright")
+
+
+@mock.patch("cumulusci.cli.robot.sarge")
+def test_playwright_failure_to_install_browser_library(sarge):
+    """Verify we raise an exception if we can't install playwright"""
+    cmd = str([sys.executable, "-m", "pip", "install", "robotframework-browser"])
+    sarge.Command.side_effect = mock_Command(returncodes={cmd: 1})
+    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
+        with pytest.raises(
+            click.exceptions.ClickException,
+            match="robotframework-browser was not installed",
+        ):
+            run_cli_command("robot", "install_playwright")
+
+
+@mock.patch("cumulusci.cli.robot.sarge")
+def test_playwright_already_installed(sarge):
+    """Verify we exit early if the package is already installed"""
+    sarge.Command.side_effect = mock_Command()
+    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=True):
+        result = run_cli_command("robot", "install_playwright", "--dry_run")
+        assert (
+            result.output == "Playwright support seems to already have been installed\n"
+        )
+
+
+@mock.patch("cumulusci.cli.robot.sarge")
+def test_uninstall_playwright(sarge):
+    """Verify calling 'robot uninstall_playwright' calls the right utilities"""
+    sarge.Command.side_effect = mock_Command()
+    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
+        run_cli_command("robot", "uninstall_playwright")
+        sarge.Command.assert_has_calls(
+            [
+                mock.call([sys.executable, "-m", "Browser.entry", "clean-node"]),
+                mock.call(
+                    [
+                        sys.executable,
+                        "-m",
+                        "pip",
+                        "uninstall",
+                        "robotframework-browser",
+                        "--yes",
+                    ],
+                ),
+            ]
+        )
