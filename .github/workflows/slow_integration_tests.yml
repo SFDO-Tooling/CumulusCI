@@ -24,7 +24,7 @@ jobs:
             - name: Install Python dependencies
               run: |
                   python -m pip install -U pip
-                  make dev-install
+                  pip install -r requirements_dev.txt
             - name: Install sfdx
               run: |
                   mkdir sfdx

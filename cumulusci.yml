@@ -40,6 +40,13 @@ tasks:
                 - cumulusci/robotframework/Salesforce.robot
                 - cumulusci/robotframework/pageobjects/BasePageObjects.py
 
+    # to be used with the person_accounts org definition
+    test_load_person_accounts:
+        class_path: cumulusci.tasks.bulkdata.load.LoadData
+        options:
+            sql_path: cumulusci/tasks/bulkdata/tests/person_accounts.sql
+            mapping: cumulusci/tasks/bulkdata/tests/person_accounts.yml
+
 flows:
     robot_docs:
         description: Generates documentation for robot framework libraries
@@ -150,3 +157,6 @@ orgs:
 
         pytest:
             config_file: orgs/dev.json
+
+        person_accounts:
+            config_file: orgs/person_accounts.json
