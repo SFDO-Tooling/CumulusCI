@@ -4,7 +4,38 @@ from unittest import mock
 import click.exceptions
 import pytest
 
+from cumulusci.cli.robot import _is_package_installed
+
 from .utils import run_cli_command
+
+
+class MockWorkingSet(list):
+    """Mocks a pkg_resources.workingset object
+
+    Basically, a list of mock packages representing all of the packages
+    installed in the current environment
+    """
+
+    def __init__(self, *package_names):
+        super().__init__()
+        for package_name in package_names:
+            pkg = mock.Mock()
+            pkg.key = package_name
+            self.append(pkg)
+
+
+@mock.patch("cumulusci.cli.robot.pkg_resources")
+def test_is_package_installed(pkg_resources):
+    """Verify that the helper _is_package_installed returns the correct result"""
+    pkg_resources.working_set = MockWorkingSet(
+        "robotframework", "robotframework-browser", "snowfakery"
+    )
+    result = _is_package_installed("robotframework-browser")
+    assert result is True
+
+    pkg_resources.working_set = MockWorkingSet("robotframework", "snowfakery")
+    result = _is_package_installed("robotframework-browser")
+    assert result is False
 
 
 @mock.patch("sys.exit")
@@ -21,8 +52,47 @@ def test_no_npm(sarge):
     with pytest.raises(
         click.exceptions.ClickException, match="Unable to find a usable npm.*"
     ):
-        run_cli_command("robot", "install_playwright", "-n")
+        run_cli_command("robot", "install_playwright", "--dry_run")
     sarge.Command.assert_called_once_with("npm --version", shell=True)
+
+
+@mock.patch("cumulusci.cli.robot.sarge")
+def test_playwright_dry_run(sarge):
+    sarge.Command.side_effect = mock_Command(returncodes={"npm --version": 0})
+    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
+        result = run_cli_command("robot", "install_playwright", "--dry_run")
+        expected_output = "\n".join(
+            [
+                "installing robotframework-browser ...",
+                "would run /Users/boakley/.venv/cci/bin/python -m pip install robotframework-browser",
+                "would run /Users/boakley/.venv/cci/bin/python -m Browser.entry init\n",
+            ]
+        )
+        assert result.output == expected_output
+
+
+@mock.patch("cumulusci.cli.robot.sarge")
+def test_playwright_failure_to_initialize_browser_library(sarge):
+    cmd = str([sys.executable, "-m", "Browser.entry", "init"])
+    sarge.Command.side_effect = mock_Command(returncodes={cmd: 1})
+    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
+        with pytest.raises(
+            click.exceptions.ClickException,
+            match="unable to initialize browser library",
+        ):
+            run_cli_command("robot", "install_playwright")
+
+
+@mock.patch("cumulusci.cli.robot.sarge")
+def test_playwright_failure_to_install_browser_library(sarge):
+    cmd = str([sys.executable, "-m", "pip", "install", "robotframework-browser"])
+    sarge.Command.side_effect = mock_Command(returncodes={cmd: 1})
+    with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
+        with pytest.raises(
+            click.exceptions.ClickException,
+            match="robotframework-browser was not installed",
+        ):
+            run_cli_command("robot", "install_playwright")
 
 
 @mock.patch("cumulusci.cli.robot.sarge")
