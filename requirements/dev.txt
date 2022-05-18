@@ -36,7 +36,7 @@ commonmark==0.9.1
     # via
     #   -c requirements/prod.txt
     #   rich
-coverage[toml]==6.3.2
+coverage[toml]==6.3.3
     # via
     #   -r requirements/dev.in
     #   coveralls
@@ -58,7 +58,7 @@ faker==12.3.3
     # via
     #   -c requirements/prod.txt
     #   factory-boy
-filelock==3.6.0
+filelock==3.7.0
     # via
     #   tox
     #   virtualenv
@@ -182,7 +182,7 @@ requests==2.27.1
     #   twine
 requests-toolbelt==0.9.1
     # via twine
-responses==0.14.0
+responses==0.20.0
     # via -r requirements/dev.in
 rfc3986==2.0.0
     # via twine
@@ -195,7 +195,6 @@ six==1.16.0
     #   -c requirements/prod.txt
     #   bleach
     #   python-dateutil
-    #   responses
     #   tox
     #   vcrpy
     #   virtualenv
