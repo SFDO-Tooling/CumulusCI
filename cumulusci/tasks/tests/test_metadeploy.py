@@ -70,7 +70,7 @@ class TestPublish(GithubApiTestMixin):
     def test_error__base_instead_of_admin_api(self):
         responses.add(
             "GET",
-            "https://metadeploy/api/products?repo_url=EXISTING_REPO",
+            "https://metadeploy/api/products?repo_url=https%3A%2F%2Fgithub.com%2FTestOwner%2FTestRepo",
             status=200,
             body=b'{"results":[]}',
         )
@@ -81,7 +81,6 @@ class TestPublish(GithubApiTestMixin):
             "test_alias",
             ServiceConfig({"url": "https://metadeploy/api", "token": "TOKEN"}),
         )
-        project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
         project_config.config["plans"] = {
             "install": {
                 "title": "Test Install",
