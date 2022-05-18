@@ -602,7 +602,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
 
         query = task._query_db(mapping)
         assert (
-            task.session.query == task.session.query
+            task.session.query == query
         )  # check that query chaining from above worked.
 
         query_columns, added_filters = _inspect_query(query)
