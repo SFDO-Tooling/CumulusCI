@@ -12,7 +12,7 @@ pytest<7.1 # https://github.com/pytest-dev/pytest/issues/9765
 pytest-cov
 pytest-random-order
 pytest-vcr
-responses==0.14.0
+responses
 Sphinx
 testfixtures
 tox
