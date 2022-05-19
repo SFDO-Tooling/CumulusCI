@@ -495,7 +495,7 @@ class MappingStep(CCIDictModel):
         ):
             return False
 
-        # inject namespaces intoo the update_key
+        # inject namespaces into the update_key
         if self.update_key:
             assert isinstance(self.update_key, Tuple)
             update_keys = {k: k for k in self.update_key}
