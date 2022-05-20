@@ -1,5 +1,5 @@
 =============================================
-Experimental Playwright Support
+Playwright Technology Preview
 =============================================
 
 Since its inception, CumulusCI has relied on Selenium to provide the
@@ -9,15 +9,15 @@ In 2020, Microsoft introduced a new browser automation tool named
 `Playwright <https://playwright.dev/>`_.
 Playwright is a ground-up reinvention of a browser automation
 library that aims to address several shortcomings of Selenium.  For
-example, playwright has built-in support for waiting for elements to
+example, Playwright has built-in support for waiting for elements to
 appear, for working with the shadow DOM, video capture of a testing
 session, and so on.
 
 In 2021 the Robot Framework project introduced the
 `Browser <https://robotframework-browser.org/>`_ library which adds
-keywords based on top of Playwright.
+keywords that use the Playwright API.
 
-Starting with CumulusCI version 3.58.0, we are providing experimental
+Starting with CumulusCI version 3.59.0, we are providing experimental
 support for Playwright and the Browser library in CumulusCI.
 
 Installation
@@ -31,7 +31,7 @@ on fully supporting it.
 Step 1: Install Node.js
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Playwright is based on Node.js. If you don't 
+Playwright is based on Node.js. If you don't
 already have Node.js installed, you can find
 a Node.js installer for your platform on the
 `Node.js downloads page <https://nodejs.org/en/download/>`_.
@@ -133,9 +133,11 @@ to open the browser.
 This test also uses the Browser keyword
 `Wait until network is idle
 <https://marketsquare.github.io/robotframework-browser/Browser.html#Wait%20Until%20Network%20Is%20Idle>`_
-before taking a screenshot. This is a convenient keyword that usually
-waits until the page is fully rendered before returning, saving
-the need to wait for some specific element to show up.
+before taking a screenshot. This is a keyword that
+waits for there to be at least one instance of 500ms of no network
+traffic on the page after it starts to load. This seems to be more reliable
+and easier to use method than waiting for a page-specific element to
+appear.
 
 This test has no explicit waits for the buttons and links that it
 clicks on. The underlying Playwright engine automatically waits for
@@ -152,7 +154,7 @@ Summary
 -------
 
 This is just a preview of things to come. The CumulusCI team will be
-spending more time evaluating playwright, with an eye toward making it
+spending more time evaluating Playwright, with an eye toward making it
 a viable and more robust replacement for Selenium.
 
 
