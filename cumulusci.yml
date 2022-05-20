@@ -40,12 +40,14 @@ tasks:
                 - cumulusci/robotframework/Salesforce.robot
                 - cumulusci/robotframework/pageobjects/BasePageObjects.py
 
-flows:
-    qa_org:
-        steps:
-            2:
-                flow: None
+    # to be used with the person_accounts org definition
+    test_load_person_accounts:
+        class_path: cumulusci.tasks.bulkdata.load.LoadData
+        options:
+            sql_path: cumulusci/tasks/bulkdata/tests/person_accounts.sql
+            mapping: cumulusci/tasks/bulkdata/tests/person_accounts.yml
 
+flows:
     robot_docs:
         description: Generates documentation for robot framework libraries
         steps:
@@ -144,7 +146,10 @@ flows:
                     object: Contact
                     query: "select Id,Email,Name from Contact where LastName='Bluth'"
                     result_file: /tmp/contacts_after.csv
-
+    do_nothing:
+        steps:
+            1:
+                task: None
 orgs:
     scratch:
         prerelease:
@@ -152,3 +157,6 @@ orgs:
 
         pytest:
             config_file: orgs/dev.json
+
+        person_accounts:
+            config_file: orgs/person_accounts.json
