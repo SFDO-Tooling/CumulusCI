@@ -4,7 +4,7 @@ import robot.api.logger
 from robot.libraries.BuiltIn import BuiltIn
 
 from cumulusci.cli.runtime import CliRuntime
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import ScratchOrgConfig, TaskConfig
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import CURRENT_TASK
 from cumulusci.core.utils import import_global
@@ -110,14 +110,23 @@ class CumulusCI(object):
         for the given user will be used. If not provided, the access token
         for the org's default user will be used.
 
+        The userfields argument is largely useful for scratch orgs, but can
+        also work with connected persistent orgs if you've connected the org
+        with the given username.
+
         Example:
 
         | ${login url}=  Login URL  alias=dadvisor
 
         """
         org = self.org if org is None else self.keychain.get_org(org)
+
         if userfields:
-            access_token = org.get_access_token(**userfields)
+            if org.get_access_token is not None:
+                # connected persistent org configs won't have the get_access_token method
+                access_token = org.get_access_token(**userfields)
+            else:
+                access_token = self._find_access_token(org, **userfields)
             login_url = f"{org.instance_url}/secur/frontdoor.jsp?sid={access_token}"
             return login_url
         else:
@@ -264,6 +273,48 @@ class CumulusCI(object):
     def _run_task(self, task):
         task()
         return task.return_values
+
+    def _find_access_token(self, base_org, **userfields):
+        """Search connected orgs for a user and return the access token
+
+        The org config for connected orgs doesn't have an access token
+        for each user. Instead, we have an access token for the org as
+        a whole. This searches all connected org configs for an org
+        with the given user (either by username or alias) and returns
+        the access token for the org.
+
+        It is expected that userfields contains either a 'username'
+        or 'alias' field. If a username is provided, that's what will
+        be used. If not, this function will do a query to find a username
+        that matches the given parameters.
+
+        """
+
+        username = userfields.get("username", None)
+        if username is None:
+            where = [f"{key}='{value}'" for key, value in userfields.items()]
+            query = f"SELECT Username FROM User WHERE {' AND '.join(where)}"
+            result = base_org.salesforce_client.query(query).get("records", [])
+            if len(result) == 0:
+                query = ", ".join(where)
+                raise Exception(
+                    f"Couldn't find a username in org {base_org.name} for the specified user ({query})."
+                )
+            elif len(result) > 1:
+                results = ", ".join([user["Username"] for user in result])
+                raise Exception(
+                    f"More than one user matched the search critiera for org {base_org.name} ({results})."
+                )
+            else:
+                username = result[0]["Username"]
+
+        for org_name in self.keychain.list_orgs():
+            org = self.keychain.get_org(org_name)
+            if not isinstance(org, ScratchOrgConfig):
+                if "userinfo" in org.config:
+                    if org.config["userinfo"]["preferred_username"] == username:
+                        return org.access_token
+        return None
 
     def debug(self):
         """Pauses execution and enters the Python debugger."""

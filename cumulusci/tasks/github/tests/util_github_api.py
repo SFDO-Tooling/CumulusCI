@@ -547,6 +547,11 @@ class GithubApiTestMixin:
         release.update(kw)
         return release
 
+    def _get_expected_prerelease_tag_gql(self, tag_name):
+        return {
+            "data": {"repository": {"releases": {"nodes": [{"tagName": tag_name}]}}}
+        }
+
     def _random_sha(self):
         return random_sha()
 

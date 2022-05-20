@@ -14,7 +14,11 @@ from cumulusci.core.exceptions import (
     TaskOptionsError,
 )
 from cumulusci.core.tasks import BaseTask
-from cumulusci.core.utils import process_bool_arg, process_list_arg
+from cumulusci.core.utils import (
+    process_bool_arg,
+    process_list_arg,
+    process_list_of_pairs_dict_arg,
+)
 from cumulusci.robotframework.utils import set_pdb_trace
 from cumulusci.tasks.robotframework.debugger import DebugListener
 from cumulusci.tasks.salesforce import BaseSalesforceTask
@@ -113,7 +117,11 @@ class Robot(BaseSalesforceTask):
             self.options["vars"] = []
 
         # Initialize options as a dict
-        if "options" not in self.options:
+        if "options" in self.options:
+            self.options["options"] = process_list_of_pairs_dict_arg(
+                self.options["options"]
+            )
+        else:
             self.options["options"] = {}
 
         # processes needs to be an integer.

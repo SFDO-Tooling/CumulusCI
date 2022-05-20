@@ -15,6 +15,10 @@ tasks:
         group: Metadata Transformations
         description: Adds specified Fields or Visualforce Pages to a Page Layout.
         class_path: cumulusci.tasks.metadata_etl.layouts.AddFieldsToPageLayout
+    add_profile_ip_ranges:
+        group: Metadata Transformations
+        description: Adds (or optionally replaces) IP Login Ranges to the specified Profiles.
+        class_path: cumulusci.tasks.metadata_etl.permissions.AddIPRanges
     add_standard_value_set_entries:
         group: Metadata Transformations
         description: Adds specified picklist entries to a Standard Value Set.
