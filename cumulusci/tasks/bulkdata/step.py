@@ -32,6 +32,7 @@ class DataOperationType(Enum):
     QUERY = "query"
     UPSERT = "upsert"
     ETL_UPSERT = "etl_upsert"
+    SMART_UPSERT = "smart_upsert"  # currently undocumented
 
 
 class DataApi(Enum):

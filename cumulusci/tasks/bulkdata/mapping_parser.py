@@ -4,7 +4,7 @@ from enum import Enum
 from functools import lru_cache
 from logging import getLogger
 from pathlib import Path
-from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Union
+from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 from pydantic import Field, ValidationError, root_validator, validator
 from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
@@ -248,9 +248,9 @@ class MappingStep(CCIDictModel):
         if values is None:
             values = {}
         if type(values) is list:
-            return {elem: elem for elem in values}
+            values = {elem: elem for elem in values}
 
-        return values
+        return CaseInsensitiveDict(values)
 
     @root_validator
     @classmethod
@@ -281,15 +281,15 @@ class MappingStep(CCIDictModel):
             assert (
                 len(update_key) == 1
             ), "simple upserts can only support one field at a time."
-        elif action == DataOperationType.ETL_UPSERT:
+        elif action in (DataOperationType.ETL_UPSERT, DataOperationType.SMART_UPSERT):
             assert update_key, "'update_key' must always be supplied for upsert."
         else:
             assert not update_key, "Update key should only be specified for upserts"
 
         if update_key:
             for key in update_key:
-                assert (
-                    key in v["fields_"]
+                assert key.lower() in (
+                    f.lower() for f in v["fields_"]
                 ), f"`update_key`: {key} not found in `fields``"
 
         return v
@@ -402,7 +402,6 @@ class MappingStep(CCIDictModel):
                     del field_dict[f]
                 else:
                     ret = False
-
         return ret
 
     def _validate_sobject(
@@ -495,6 +494,21 @@ class MappingStep(CCIDictModel):
             describe, self.lookups, inject, strip, drop_missing, operation
         ):
             return False
+
+        # inject namespaces into the update_key
+        if self.update_key:
+            assert isinstance(self.update_key, Tuple)
+            update_keys = {k: k for k in self.update_key}
+            if not self._validate_field_dict(
+                describe,
+                update_keys,
+                inject,
+                strip,
+                drop_missing=False,
+                data_operation_type=operation,
+            ):
+                return False
+            self.update_key = tuple(update_keys.keys())
 
         return True
 
