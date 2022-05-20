@@ -6,7 +6,7 @@ from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 from simple_salesforce import Salesforce
-from sqlalchemy import Column, Integer, MetaData, Table, Unicode
+from sqlalchemy import Column, Integer, MetaData, Table, Unicode, inspect
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session, mapper
 
@@ -80,7 +80,7 @@ def _handle_primary_key(mapping, fields):
         fields.append(Column("id", Integer(), primary_key=True, autoincrement=True))
 
 
-def create_table(mapping, metadata):
+def create_table(mapping, metadata) -> Table:
     """Given a mapping data structure (from mapping.yml) and SQLAlchemy
     metadata, create a table matching the mapping.
 
@@ -98,9 +98,15 @@ def create_table(mapping, metadata):
 
     if mapping.record_type:
         fields.append(Column("record_type", Unicode(255)))
-    t = Table(mapping.table, metadata, *fields)
-    if t.exists():
-        raise BulkDataException(f"Table already exists: {mapping.table}")
+    return create_table_if_needed(mapping.table, metadata, fields)
+
+
+def create_table_if_needed(tablename, metadata, fields: T.List[Column]) -> Table:
+    t = Table(tablename, metadata, *fields)
+    inspector = inspect(metadata.bind)
+    if inspector.has_table(tablename):
+        raise BulkDataException(f"Table already exists: {tablename}")
+    t.create(metadata.bind)
     return t
 
 
@@ -183,3 +189,32 @@ def sql_bulk_insert_from_records_incremental(
             connection.execute(table.insert(), group)
         # self.session.flush()  -- Did this line do anything?
         yield
+
+
+def sf_query_to_table(
+    *,
+    table: Table,
+    metadata: MetaData,
+    connection: Connection,
+    sobject: str,
+    fields: T.List[str],
+    **queryargs,
+) -> Table:
+    """Cache data from Salesforce in a SQL Alchemy Table."""
+    from cumulusci.tasks.bulkdata.step import DataOperationStatus, get_query_operation
+
+    qs = get_query_operation(sobject=sobject, fields=fields, **queryargs)
+    qs.query()
+    if qs.job_result.status is not DataOperationStatus.SUCCESS:  # pragma: no cover
+        raise BulkDataException(
+            f"Unable to query records for {sobject}: {','.join(qs.job_result.job_errors)}"
+        )
+    results = qs.get_results()
+
+    sql_bulk_insert_from_records(
+        connection=connection,
+        table=table,
+        columns=tuple(fields),
+        record_iterable=results,
+    )
+    return table

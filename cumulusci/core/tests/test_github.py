@@ -4,6 +4,7 @@ from datetime import datetime
 from unittest import mock
 
 import pytest
+import requests
 import responses
 from github3.exceptions import (
     AuthenticationFailed,
@@ -37,6 +38,7 @@ from cumulusci.core.github import (
     get_commit,
     get_github_api,
     get_github_api_for_repo,
+    get_latest_prerelease,
     get_oauth_device_flow_token,
     get_oauth_scopes,
     get_pull_requests_by_commit,
@@ -662,3 +664,24 @@ class TestGithub(GithubApiTestMixin):
         get_token.assert_called_once()
         get_code.assert_called_once()
         browser_open.assert_called_with("https://github.com/login/device")
+
+    @responses.activate
+    def test_get_latest_prerelease(self):
+        expected_tag = "beta/1.0-Beta_1"
+        query_result = self._get_expected_prerelease_tag_gql(expected_tag)
+        endpoint = "https://api.github.com/graphql"
+
+        responses.add(
+            "POST",
+            endpoint,
+            json=query_result,
+        )
+
+        repo: Repository = mock.MagicMock()
+        repo.session = mock.MagicMock()
+        repo.session.build_url.return_value = endpoint
+        repo.session.request = requests.request
+
+        get_latest_prerelease(repo=repo)
+        assert responses.assert_call_count(endpoint, 1)
+        repo.release_from_tag.assert_called_once_with(expected_tag)
