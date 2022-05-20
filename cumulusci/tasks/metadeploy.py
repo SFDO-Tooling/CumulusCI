@@ -95,17 +95,18 @@ class Publish(BaseMetaDeployTask):
         self._load_labels()
 
     def _run_task(self):
+        repo_owner = self.project_config.repo_owner
+        repo_name = self.project_config.repo_name
+        repo_url = f"https://github.com/{repo_owner}/{repo_name}"
+
         # Find or create Version
-        product = self._find_product()
+        product = self._find_product(repo_url)
         if not self.dry_run:
             version = self._find_or_create_version(product)
             if self.labels_path and "slug" in product:
                 self._publish_labels(product["slug"])
 
         # Check out the specified tag
-        repo_owner = self.project_config.repo_owner
-        repo_name = self.project_config.repo_name
-        repo_url = f"https://github.com/{repo_owner}/{repo_name}"
         gh = self.project_config.get_github_api()
         repo = gh.repository(repo_owner, repo_name)
         if self.tag:
@@ -236,8 +237,7 @@ class Publish(BaseMetaDeployTask):
                 steps.extend(task.freeze(step))
         return steps
 
-    def _find_product(self):
-        repo_url = self.project_config.project__git__repo_url
+    def _find_product(self, repo_url):
         try:
             result = self._call_api("GET", "/products", params={"repo_url": repo_url})
             if len(result["data"]) != 1:

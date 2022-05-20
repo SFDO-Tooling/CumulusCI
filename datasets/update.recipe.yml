@@ -1,8 +1,9 @@
 # cci task run update_data --recipe datasets/update.recipe.yml
 #                          --object Account --fields Name --org qa
+
+# doesn't use randomized data because we want to use VCR.
 - object: Account
   fields:
-      BillingStreet:
-          fake: Streetname
+      BillingStreet: ${{input.Name}} Street
       Description: ${{input.Name}} is our favorite customer
       NumberOfEmployees: 10_000

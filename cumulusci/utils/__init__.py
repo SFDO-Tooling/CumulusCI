@@ -536,7 +536,14 @@ def temporary_dir(chdir=True):
             yield d
     finally:
         if os.path.exists(d):
-            shutil.rmtree(d)
+            try:
+                shutil.rmtree(d)
+            except Exception as e:  # pragma: no cover
+                import logging  # needs to be local or cumulusci.utils.logging gets picked up
+
+                logging.getLogger(__file__).warn(
+                    f"Cannot remove temporary directory {d} because: {e}"
+                )
 
 
 def touch(path):
