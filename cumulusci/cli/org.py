@@ -446,7 +446,7 @@ def _format_scratch_org_data(org_config):
 @pass_runtime(require_project=True, require_keychain=True)
 def org_prune(runtime, include_active=False):
 
-    predefined_scratch_configs = getattr(runtime.project_config, "orgs__scratch", {})
+    predefined_scratch_configs = runtime.project_config.lookup("orgs__scratch", {})
 
     expired_orgs_removed = []
     active_orgs_removed = []
@@ -546,7 +546,7 @@ def org_remove(runtime, org_name, global_org):
 def org_scratch(runtime, config_name, org_name, default, devhub, days, no_password):
     runtime.check_org_overwrite(org_name)
 
-    scratch_configs = getattr(runtime.project_config, "orgs__scratch")
+    scratch_configs = runtime.project_config.lookup("orgs__scratch")
     if not scratch_configs:
         raise click.UsageError("No scratch org configs found in cumulusci.yml")
     scratch_config = scratch_configs.get(config_name)
