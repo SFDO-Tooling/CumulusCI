@@ -642,7 +642,7 @@ While a single ``.robot`` file is considered to be a test suite, Robot also cons
 
    $ cci task run robot --suites robot/<ProjectName>/tests --org dev
 
-In the output, you can see that all of the test case files in the ``tests`` folder have been run, including the ``create_contact.robot`` test case file that comes with CumulusCI.
+In the output, you can see that all of the test case files in the ``tests`` folder have run, including the ``create_contact.robot`` test case file that comes with CumulusCI.
 
 .. code-block:: console
 

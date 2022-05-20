@@ -25,20 +25,20 @@ Installation
 
 We have not yet bundled Playwright and the Browser library with
 CumulusCI. However, we have provided a script to make it easy to
-install or uninstall support for Playwright while we continue to work
-on fully supporting them.
+install or uninstall Playwright and the Browser library while we continue to work
+on fully supporting it.
 
 Step 1: Install Node.js
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Playwright is based on Node.js, and requires node to be installed. You
-may already have Node.js installed, but if not you can find
+Playwright is based on Node.js. If you don't 
+already have Node.js installed, you can find
 a Node.js installer for your platform on the
 `Node.js downloads page <https://nodejs.org/en/download/>`_.
 
 .. warning:: You must have Node.js installed before continuing with these instructions.
 
-Step 2: Run the playwright installation command
+Step 2: Run the Playwright installation command
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Installing the browser library requires a couple of manual steps, which we've
@@ -51,12 +51,12 @@ automated in a single script. This script does three things:
 
 .. note::
 
-   The installation of playwright contains drivers for all supported
+   The installation of Playwright contains drivers for all supported
    browsers, so there's no need to manually install drivers such as
-   chromedriver. It works right out of the box!
+   ChromeDriver. It works right out of the box!
 
-To run the script you need to make sure your working directory is at
-the root of your repository. Then, run the following command:
+Before you run the script, make sure your working directory is at
+the root of your repository. You can then run the script with the following command:
 
 .. code-block:: console
 
@@ -71,10 +71,10 @@ the root of your repository. Then, run the following command:
 Running an example test
 -----------------------
 
-As mentioned earlier, this is an experimental release of playwright
-integration, so any CumulusCI keywords that rely on selenium won't
-work. However, the following example shows off how easy it can be to
-write playwright-based test with off-the-shelf `keywords provided by
+As mentioned earlier, this is an experimental release of Playwright
+integration, so any CumulusCI keywords that rely on Selenium won't
+work. However, the following example shows how easy it can be to
+write Playwright-based tests with off-the-shelf `keywords provided by
 the Browser library
 <https://marketsquare.github.io/robotframework-browser/Browser.html>`_
 
@@ -110,19 +110,19 @@ the Browser library
         Wait until network is idle
         Take screenshot
 
-To run the test, save the above code in a .robot file (eg:
-example.robot) and then run it with the standard robot task:
+To run the test, save the above code in a ``.robot file`` (e.g.
+``example.robot``) and then run it with the standard robot task:
 
 .. code-block:: console
 
     $ cci task run robot --suites example.robot
 
 
-Things to notice
+Things to Notice
 ^^^^^^^^^^^^^^^^
 
-This example test is not able to use any of the existing
-selenium-based keywords. For that reason, this test creates
+This example test is unable to use any of the existing
+Selenium-based keywords. For that reason, this test creates
 a new ``Open Test Browser`` that uses the Browser keywords
 `New Browser
 <https://marketsquare.github.io/robotframework-browser/Browser.html#New%20Browser>`_
@@ -134,12 +134,12 @@ This test also uses the Browser keyword
 `Wait until network is idle
 <https://marketsquare.github.io/robotframework-browser/Browser.html#Wait%20Until%20Network%20Is%20Idle>`_
 before taking a screenshot. This is a convenient keyword that usually
-will wait until the page is fully rendered before returning, saving
+waits until the page is fully rendered before returning, saving
 the need to wait for some specific element to show up.
 
 This test has no explicit waits for the buttons and links that it
 clicks on. The underlying Playwright engine automatically waits for
-elements so there should almost never be a need for keywords such as
+elements, so there should almost never be a need for keywords such as
 ``Wait until page contains element`` or ``Wait until element is
 enabled``.
 
