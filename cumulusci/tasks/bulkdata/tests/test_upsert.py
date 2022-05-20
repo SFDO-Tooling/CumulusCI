@@ -659,6 +659,18 @@ class TestUpsert:
         )
         task._update_credentials = mock.Mock()
         task()
+        assert task.return_values == {
+            "step_results": {
+                "Upsert Contacts": {
+                    "sobject": "Contact",
+                    "record_type": None,
+                    "status": DataOperationStatus.SUCCESS,
+                    "job_errors": [],
+                    "records_processed": 3,
+                    "total_row_errors": 0,
+                }
+            }
+        }
 
     @responses.activate
     def test_simple_upsert_smart__native_field(
@@ -713,6 +725,18 @@ class TestUpsert:
         )
         task._update_credentials = mock.Mock()
         task()
+        assert task.return_values == {
+            "step_results": {
+                "Upsert Contacts": {
+                    "sobject": "Contact",
+                    "record_type": None,
+                    "status": DataOperationStatus.SUCCESS,
+                    "job_errors": [],
+                    "records_processed": 3,
+                    "total_row_errors": 0,
+                }
+            }
+        }
 
     @responses.activate
     def test_simple_upsert_smart__non_native_field(
@@ -767,6 +791,18 @@ class TestUpsert:
         )
         task._update_credentials = mock.Mock()
         task()
+        assert task.return_values == {
+            "step_results": {
+                "Upsert Contacts": {
+                    "sobject": "Contact",
+                    "record_type": None,
+                    "status": DataOperationStatus.SUCCESS,
+                    "job_errors": [],
+                    "records_processed": 3,
+                    "total_row_errors": 0,
+                }
+            }
+        }
 
 
 def look_for_operation_creation_debug_statement(mock_calls):
