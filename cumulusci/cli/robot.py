@@ -7,7 +7,7 @@ import sarge
 from .runtime import pass_runtime
 
 
-@click.group("robot", help="Commands for working with robot framework")
+@click.group("robot", help="Commands for working with Robot Framework")
 def robot():
     pass
 
@@ -32,7 +32,7 @@ def robot_install_playwright(runtime, dry_run):
 
 @robot.command(
     name="uninstall_playwright",
-    help="uninstalls the robotframework-browser package and node modules",
+    help="Uninstalls the robotframework-browser package and node modules",
 )
 def robot_uninstall_playwright():
     """Attempt to uninstall playwright"""
