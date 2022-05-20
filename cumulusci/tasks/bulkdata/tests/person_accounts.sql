@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS "PersonContact" (
         PRIMARY KEY (id)
 );
 INSERT INTO PersonContact VALUES(1,'true','1');
+INSERT INTO PersonContact VALUES(2,'false','0');
 CREATE TABLE IF NOT EXISTS "Account" (
         id INTEGER NOT NULL, 
         "FirstName" VARCHAR(255), 
