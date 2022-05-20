@@ -377,17 +377,19 @@ By default, CumulusCI uses the resolution strategy ``production``, which will fe
     This feature requires that the referenced repository be readable (for example,
     it's public, or CumulusCI's GitHub service is configured with the token of a user who has read access to it).
 
-
-It's also possible to fetch a specific ``tag``...
+It's also possible to fetch a specific ``tag`` or ``release``...
 
 .. code-block:: yaml
 
     sources:
+        eda:
+            github: https://github.com/SalesforceFoundation/EDA
+            release: latest
         npsp:
             github: https://github.com/SalesforceFoundation/NPSP
             tag: rel/3.163
 
-or a specific ``commit`` or ``branch``. We recommend that most projects, however, use a resolution strategy.
+where ``release`` is one of ``latest``, ``previous``, or ``latest_beta``. You can also select a specific ``commit`` or ``branch``. We recommend that most projects, however, use a resolution strategy.
 
 When the repo is listed under ``sources``, it's possible to run a task from NPSP...
 
