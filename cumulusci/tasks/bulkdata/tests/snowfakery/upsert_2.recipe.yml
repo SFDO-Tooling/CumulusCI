@@ -1,0 +1,29 @@
+- object: Contact
+  update_key: firstname,lastname # synthetic
+  fields:
+      firstname: Nichael
+      lastname: Bluth
+      email: nichael@bluth.com # change email address to match name
+- object: Contact
+  update_key: email # natural
+  fields:
+      firstname: Lindsay
+      lastname: Bluth Fünke # change last name again (pending divorce)
+      email: lindsay.bluth@example.com
+- object: Contact
+  update_key: email # natural
+  fields:
+      firstname: Annyong # change to match undercover name
+      lastname: Bluth
+      email: annyong@example.com
+- object: Contact
+  update_key: firstname # synthetic
+  fields:
+      firstname: GOB
+      lastname: Bluth
+      email: George.Oscar.bluth@example.com # change email
+- object: Contact # normal insert
+  fields:
+      firstname: Buster
+      lastname: Bluth
+      email: buster.bluth@example.com
