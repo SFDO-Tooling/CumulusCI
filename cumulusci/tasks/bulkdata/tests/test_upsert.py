@@ -798,7 +798,7 @@ class TestUpsert:
                     "record_type": None,
                     "status": DataOperationStatus.SUCCESS,
                     "job_errors": [],
-                    "records_processed": 3,
+                    "records_processed": 1,
                     "total_row_errors": 0,
                 }
             }
