@@ -73,15 +73,17 @@ def test_happy_path(sarge):
         expected_calls = [
             "npm --version",
             [
-                "/Users/boakley/.venv/cci/bin/python",
+                sys.executable,
                 "-m",
                 "pip",
                 "install",
                 "robotframework-browser",
             ],
-            ["/Users/boakley/.venv/cci/bin/python", "-m", "Browser.entry", "init"],
+            [sys.executable, "-m", "Browser.entry", "init"],
         ]
-        assert actual_calls == expected_calls
+        msg = f"\n-- expected --\n{expected_calls}\n\n-- actual --\n{actual_calls}"
+
+        assert actual_calls == expected_calls, msg
 
 
 @mock.patch("sys.exit")

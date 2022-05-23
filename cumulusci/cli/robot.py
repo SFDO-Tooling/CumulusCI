@@ -47,6 +47,9 @@ def robot_uninstall_playwright():
     click.echo("removing python module robotframework-browser...")
     click.echo(f"running {' '.join(p2.args)}")
     p2.run()
+    if p1.returncode or p2.returncode:
+        raise click.ClickException("Some files might not have been uninstalled")
+    click.echo("uninstallation is complete")
 
 
 def _install_browser_library(dry_run=False):
