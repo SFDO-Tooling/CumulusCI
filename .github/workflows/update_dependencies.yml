@@ -23,16 +23,14 @@ jobs:
                   cache-dependency-path: "requirements/*.txt"
             - name: Update dependencies
               run: make update-deps
-            - name: Install dependencies
-              run: make dev-install
             - name: Commit changes and open PR
               run: |
                   git config user.name github-actions
                   git config user.email github-actions@github.com
                   git switch -c "dependency-updates-week-${date +%u}"
-                  git add cumulusci/cumulusci.yml
-                  git commit -m "Automated update to Python dependencies"
-                  git push origin "update-sfdc-api-v$VERSION"
+                  git add requirements/*.txt 
+                  git commit -m "update dependencies (automated)"
+                  git push origin "dependency-updates-week${date +%u}"
             - env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
