@@ -69,16 +69,19 @@ def test_happy_path(sarge):
     sarge.Command.side_effect = mock_Command()
     with mock.patch("cumulusci.cli.robot._is_package_installed", return_value=False):
         run_cli_command("robot", "install_playwright")
-        sarge.Command.assert_has_calls(
+        actual_calls = [call.args[0] for call in sarge.Command.mock_calls]
+        expected_calls = [
+            "npm --version",
             [
-                mock.call("npm --version", shell=True),
-                mock.call(
-                    [sys.executable, "-m", "pip", "install", "robotframework-browser"],
-                    shell=False,
-                ),
-                mock.call([sys.executable, "-m", "Browser.entry", "init"], shell=False),
-            ]
-        )
+                "/Users/boakley/.venv/cci/bin/python",
+                "-m",
+                "pip",
+                "install",
+                "robotframework-browser",
+            ],
+            ["/Users/boakley/.venv/cci/bin/python", "-m", "Browser.entry", "init"],
+        ]
+        assert actual_calls == expected_calls
 
 
 @mock.patch("sys.exit")
@@ -97,7 +100,8 @@ def test_no_npm(sarge):
         click.exceptions.ClickException, match="Unable to find a usable npm.*"
     ):
         run_cli_command("robot", "install_playwright", "--dry_run")
-    sarge.Command.assert_called_once_with("npm --version", shell=True)
+    sarge.Command.assert_called_once()
+    assert sarge.Command.mock_calls[0].args[0] == "npm --version"
 
 
 @mock.patch("cumulusci.cli.robot.sarge")

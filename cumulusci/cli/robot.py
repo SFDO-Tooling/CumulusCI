@@ -56,12 +56,11 @@ def _install_browser_library(dry_run=False):
         click.echo(f"would run {' '.join(pip_cmd)}")
     else:
         click.echo(f"running '{' '.join(pip_cmd)}' ...")
-        p = sarge.Command(
-            pip_cmd,
-            shell=False,
-        )
+        c = sarge.Capture()
+        p = sarge.Command(pip_cmd, shell=False, stdout=c, stderr=c)
         p.run()
         if p.returncode:
+            click.echo(c.text)
             raise click.ClickException("robotframework-browser was not installed")
         click.echo("robotframework-browser has been installed")
 
@@ -80,22 +79,26 @@ def _initialize_browser_library(dry_run=False):
         click.echo(f"would run {' '.join(browser_cmd)}")
     else:
         click.echo(f"running {' '.join(browser_cmd)}")
-        p = sarge.Command(
-            browser_cmd,
-            shell=False,
-        )
+        c = sarge.Capture()
+        p = sarge.Command(browser_cmd, shell=False, stdout=c, stderr=c)
         p.run()
         if p.returncode:
+            click.echo(c.text)
             raise click.ClickException("unable to initialize browser library")
+        click.echo("Browser library has been initialized.")
 
 
 def _require_npm():
     """Raises an exception if npm can't be run"""
 
-    # can I use a list here, or did I have to use a string to work on windows?
-    p = sarge.Command("npm --version", shell=True)
+    c = sarge.Capture()
+    # Note: the string version of the command is used here because
+    # on windows it can't find "npm" if we use the list form of
+    # the command. Silly Windows.
+    p = sarge.Command("npm --version", shell=True, stdout=c, stderr=c)
     p.run()
     if p.returncode:
+        click.echo(c.text)
         raise click.ClickException(
             "Unable to find a usable npm. Have you installed Node.js?"
         )
