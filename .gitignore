@@ -23,7 +23,9 @@ tags
 .cache/
 .coverage
 .python-version
-*selenium-screenshot-*
+*-screenshot-*.png
+*.webm
+playwright-log.txt
 log.html
 report.html
 output.xml
