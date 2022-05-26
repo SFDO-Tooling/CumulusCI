@@ -8,10 +8,21 @@ class SalesforcePlaywright(BaseLibrary):
 
     def __init__(self):
         super().__init__()
+        self._browser = None
 
     @property
     def browser(self):
-        return self.builtin.get_library_instance("Browser")
+        if self._browser is None:
+            self._browser = self.builtin.get_library_instance("Browser")
+        return self._browser
+
+    def delete_records_and_close_browser(self):
+        """This will close all open browser windows and then delete
+        all records that were created with the Salesforce API during
+        this testing session.
+        """
+        self.browser.close_browser("ALL")
+        self.salesforce_api.delete_session_records()
 
     def open_test_browser(self, size=None, useralias=None, recordVideo=None):
         """Open a new playwright browser, context, and page to the default org

@@ -2,7 +2,8 @@
 Resource         cumulusci/robotframework/SalesforcePlaywright.robot
 
 Suite Setup      Open test browser
-Suite Teardown   Close browser  ALL
+Suite Teardown   Delete records and close browser
+
 Force Tags       playwright
 
 *** Test Cases ***
