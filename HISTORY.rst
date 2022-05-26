@@ -7,7 +7,7 @@ History
 Changes:
 
 - Setting ``repo_url`` in your project config is no longer required to run ``metadeploy_publish``. (#3200)
-- Adds new commands ``cci robot install_playwright`` and ``cci robot uninstall_playwright`` for installing and uninstalling experimental support for the Robot Framework ``Browser`` library, which is based on Playwright. (#3194)
+- Adds new commands ``cci robot install_playwright`` and ``cci robot uninstall_playwright`` for installing and uninstalling experimental support for the Robot Framework ``Browser`` library, which is based on Playwright. For more information see the section "Playwright Technology Preview" in the public documentation. (#3194)
 - Programs using CumulusCI as a library may generate warnings when getting values from config objects. A new method ``config.lookup`` is the preferred way to look up these values. (#3026)
 
 3.58.0 (2022-05-16)
