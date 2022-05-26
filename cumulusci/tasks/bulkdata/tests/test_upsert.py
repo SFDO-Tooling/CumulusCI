@@ -67,7 +67,7 @@ class TestUpsert:
                 / "datasets/upsert/upsert_before_data.sql",
                 "mapping": cumulusci_test_repo_root
                 / f"datasets/upsert/upsert_mapping_{api}.yml",
-                "ignore_row_errors": True,
+                # "ignore_row_errors": True,
                 "set_recently_viewed": False,
             },
         )
@@ -125,7 +125,7 @@ class TestUpsert:
                 / "datasets/upsert/upsert_example_2.sql",
                 "mapping": cumulusci_test_repo_root
                 / f"datasets/upsert/upsert_mapping_{api}.yml",
-                "ignore_row_errors": True,
+                # "ignore_row_errors": True,
                 "set_recently_viewed": False,
             },
         )
@@ -607,6 +607,202 @@ class TestUpsert:
             task()
         assert "FirstName" in str(e.value)
         assert "update key" in str(e.value)
+
+    @responses.activate
+    def test_simple_upsert__smart(
+        self, create_task, cumulusci_test_repo_root, org_config
+    ):
+        domain = org_config.get_domain()
+        ver = CURRENT_SF_API_VERSION
+        responses.add(
+            method="PATCH",
+            url=f"https://{domain}/services/data/v{ver}/composite/sobjects/Contact/Email",
+            status=200,
+            json=[
+                {
+                    "id": "003P000001Y5exdIAB",
+                    "success": True,
+                    "errors": [],
+                    "created": True,
+                },
+                {
+                    "id": "003P000001Y5exXIAR",
+                    "success": True,
+                    "errors": [],
+                    "created": False,
+                },
+                {
+                    "id": "003P000001Y5exYIAR",
+                    "success": True,
+                    "errors": [],
+                    "created": False,
+                },
+            ],
+        )
+        responses.add(
+            method="POST",
+            url=f"https://{domain}/services/data/v{ver}/composite/sobjects",
+            status=200,
+            json=[{"id": "001J000002jcjvnIAA", "success": True, "errors": []}],
+        )
+        mock_describe_calls(domain=domain, version=CURRENT_SF_API_VERSION)
+        task = create_task(
+            LoadData,
+            {
+                "sql_path": cumulusci_test_repo_root
+                / "datasets/upsert/upsert_example_2.sql",
+                "mapping": cumulusci_test_repo_root
+                / "datasets/upsert/upsert_smart__native_field.yml",
+                "ignore_row_errors": True,
+                "set_recently_viewed": False,
+            },
+        )
+        task._update_credentials = mock.Mock()
+        task()
+        assert task.return_values == {
+            "step_results": {
+                "Upsert Contacts": {
+                    "sobject": "Contact",
+                    "record_type": None,
+                    "status": DataOperationStatus.SUCCESS,
+                    "job_errors": [],
+                    "records_processed": 3,
+                    "total_row_errors": 0,
+                }
+            }
+        }
+
+    @responses.activate
+    def test_simple_upsert_smart__native_field(
+        self, create_task, cumulusci_test_repo_root, org_config
+    ):
+        domain = org_config.get_domain()
+        ver = CURRENT_SF_API_VERSION
+
+        # do a native UPSERT
+        responses.add(
+            method="PATCH",
+            url=f"https://{domain}/services/data/v{ver}/composite/sobjects/Contact/Email",
+            status=200,
+            json=[
+                {
+                    "id": "003P000001Y5exdIAB",
+                    "success": True,
+                    "errors": [],
+                    "created": True,
+                },
+                {
+                    "id": "003P000001Y5exXIAR",
+                    "success": True,
+                    "errors": [],
+                    "created": False,
+                },
+                {
+                    "id": "003P000001Y5exYIAR",
+                    "success": True,
+                    "errors": [],
+                    "created": False,
+                },
+            ],
+        )
+        responses.add(
+            method="POST",
+            url=f"https://{domain}/services/data/v{ver}/composite/sobjects",
+            status=200,
+            json=[{"id": "001J000002jcjvnIAA", "success": True, "errors": []}],
+        )
+        mock_describe_calls(domain=domain, version=CURRENT_SF_API_VERSION)
+        task = create_task(
+            LoadData,
+            {
+                "sql_path": cumulusci_test_repo_root
+                / "datasets/upsert/upsert_example_2.sql",
+                "mapping": cumulusci_test_repo_root
+                / "datasets/upsert/upsert_smart__native_field.yml",
+                "ignore_row_errors": True,
+                "set_recently_viewed": False,
+            },
+        )
+        task._update_credentials = mock.Mock()
+        task()
+        assert task.return_values == {
+            "step_results": {
+                "Upsert Contacts": {
+                    "sobject": "Contact",
+                    "record_type": None,
+                    "status": DataOperationStatus.SUCCESS,
+                    "job_errors": [],
+                    "records_processed": 3,
+                    "total_row_errors": 0,
+                }
+            }
+        }
+
+    @responses.activate
+    def test_simple_upsert_smart__non_native_field(
+        self, create_task, cumulusci_test_repo_root, org_config
+    ):
+        domain = org_config.get_domain()
+        ver = CURRENT_SF_API_VERSION
+        responses.add(
+            method="GET",
+            url=f"https://{domain}/services/data/v54.0/limits/recordCount?sObjects=Contact",
+            status=200,
+            json={"sObjects": []},
+        )
+        # It needs to do ETL, so this should be hit
+        responses.add(
+            method="GET",
+            url=f"https://{domain}/services/data/v54.0/query/?q=select+Id%2CFirstName+from+Contact",
+            status=200,
+            json={"totalSize": 0, "done": True, "records": []},
+        )
+        responses.add(
+            method="PATCH",
+            url=f"https://{domain}/services/data/v{ver}/composite/sobjects/Contact/Id",
+            status=200,
+            json=[
+                {
+                    "id": "0035500001GzhXkAAJ",
+                    "success": True,
+                    "errors": [],
+                    "created": False,
+                }
+            ],
+        )
+
+        responses.add(
+            method="POST",
+            url=f"https://{domain}/services/data/v{ver}/composite/sobjects",
+            status=200,
+            json=[{"id": "001J000002jcjvnIAA", "success": True, "errors": []}],
+        )
+        mock_describe_calls(domain=domain, version=CURRENT_SF_API_VERSION)
+        task = create_task(
+            LoadData,
+            {
+                "sql_path": cumulusci_test_repo_root
+                / "datasets/upsert/upsert_example_2.sql",
+                "mapping": cumulusci_test_repo_root
+                / "datasets/upsert/upsert_smart__non_native_field.yml",
+                "ignore_row_errors": True,
+                "set_recently_viewed": False,
+            },
+        )
+        task._update_credentials = mock.Mock()
+        task()
+        assert task.return_values == {
+            "step_results": {
+                "Upsert Contacts": {
+                    "sobject": "Contact",
+                    "record_type": None,
+                    "status": DataOperationStatus.SUCCESS,
+                    "job_errors": [],
+                    "records_processed": 1,
+                    "total_row_errors": 0,
+                }
+            }
+        }
 
 
 def look_for_operation_creation_debug_statement(mock_calls):

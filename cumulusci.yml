@@ -48,11 +48,6 @@ tasks:
             mapping: cumulusci/tasks/bulkdata/tests/person_accounts.yml
 
 flows:
-    qa_org:
-        steps:
-            2:
-                flow: None
-
     robot_docs:
         description: Generates documentation for robot framework libraries
         steps:
@@ -124,6 +119,10 @@ flows:
 
     test_upserts_bulk_complex:
         steps:
+            0.5:
+                task: delete_data
+                options:
+                    objects: Contact,Account,Opportunity
             1:
                 task: load_dataset
                 options:
@@ -151,6 +150,57 @@ flows:
                     object: Contact
                     query: "select Id,Email,Name from Contact where LastName='Bluth'"
                     result_file: /tmp/contacts_after.csv
+
+    do_nothing:
+        steps:
+            1:
+                task: None
+
+    test_upserts_snowfakery:
+        steps:
+            1:
+                task: command
+                options:
+                    command: mkdir -p tmp
+            2:
+                task: delete_data
+                options:
+                    objects: Contact
+                    # where: lastname='Bluth' or lastname='Sitwell' or lastname='Bluth Fünke'
+            3:
+                task: snowfakery
+                options:
+                    recipe: cumulusci/tasks/bulkdata/tests/snowfakery/upsert_before.yml
+
+            4:
+                task: query
+                options:
+                    object: Contact
+                    query: "select Id,Email,Name from Contact where LastName='Bluth'"
+                    result_file: tmp/contacts_before.csv
+
+            5:
+                task: snowfakery
+                options:
+                    recipe: cumulusci/tasks/bulkdata/tests/snowfakery/upsert.recipe.yml
+
+            6:
+                task: query
+                options:
+                    object: Contact
+                    query: "select Id,Email,Name from Contact where LastName='Bluth'"
+                    result_file: tmp/contacts_after.csv
+            7:
+                task: snowfakery
+                options:
+                    recipe: cumulusci/tasks/bulkdata/tests/snowfakery/upsert_2.recipe.yml
+
+            8:
+                task: query
+                options:
+                    object: Contact
+                    query: "select Id,Email,Name from Contact where LastName='Bluth'"
+                    result_file: tmp/contacts_after_2.csv
 
 orgs:
     scratch:

@@ -655,11 +655,12 @@ update recipe file.
 
 You can filter the rows that you're updating like this:
 
-``$ cci task run update_data --recipe datasets/update.recipe.yml --object Account --where "name like 'AAA%'" ``
+``$ cci task run update_data --recipe datasets/update.recipe.yml --object Account --where "name like 'AAA%'"``
 
 The recipe for an update can be as simple as this:
 
 .. code-block::
+
     - object: Account
       fields:
         NumberOfEmployees: 10000
@@ -667,6 +668,7 @@ The recipe for an update can be as simple as this:
 You can use all of the power of ``snowfakery`` to add fake data:
 
 .. code-block::
+
     - object: Account
       fields:
         NumberOfEmployees: 10_000
@@ -677,6 +679,7 @@ Using Snowfakery formulas, you can also refer to specific input fields
 like this:
 
 .. code-block::
+
     - object: Account
       fields:
         Description: ${{input.Name}} is our favorite customer in ${{input.BillingCity}}
@@ -684,7 +687,7 @@ like this:
 To tell CumulusCI to extract those fields and make them
 use the ``fields`` option:
 
-``$ cci task run update_data --recipe datasets/update.recipe.yml --object Account --Fields Name,BillingCity ``
+``$ cci task run update_data --recipe datasets/update.recipe.yml --object Account --Fields Name,BillingCity``
 
 You can learn more about Snowfakery syntax in the next section.
 

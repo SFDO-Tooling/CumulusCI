@@ -1,14 +1,35 @@
 =======
 History
 =======
+3.59.0 (2022-05-26)
+-------------------
+
+Changes:
+
+- Setting ``repo_url`` in your project config is no longer required to run ``metadeploy_publish``. (#3200)
+- Adds new commands ``cci robot install_playwright`` and ``cci robot uninstall_playwright`` for installing and uninstalling experimental support for the Robot Framework ``Browser`` library, which is based on Playwright. For more information see the section "Playwright Technology Preview" in the public documentation. (#3194)
+- Programs using CumulusCI as a library may generate warnings when getting values from config objects. A new method ``config.lookup`` is the preferred way to look up these values. (#3026)
+
+3.58.0 (2022-05-16)
+-------------------
+
+Changes:
+
+- CumulusCI Robot Framework support has been tested on prerelease orgs (#3187)
+- Upgraded the Snowfakery dependency to version 3.1.0. When embedded in CumulusCI, Snowfakery can now do SObject Upserts. (#3195)
+
+Issues Closed:
+
+- Fix bug when setting the 'options' option in the robot task from the command line (#3173)
+
 3.57.0 (2022-04-28)
 -------------------
 
 Changes:
 
-- Support `useralias` in `Open Test Browser` for connected orgs (#3169)
+- Support ``useralias`` in ``Open Test Browser`` for connected orgs (#3169)
 
-Issues fixed:
+Issues Closed:
 
 - More reliable way to find latest chronological release in GitHub (#3164)
 
@@ -149,7 +170,7 @@ Critical Changes
 
 - **Python versions 3.6 and 3.7 are no longer supported.** Please ensure you have Python version 3.8, 3.9, or 3.10. (#2959)
 - The ``dx_convert_from`` task now uses a custom Python task class instead of ``cumulusci.tasks.sfdx.SFDXBaseTask``. In most cases this will have no visible impact, but if you have customized this task config to change the command option, make sure you have also explicitly set its ``class_path`` to ``cumulusci.tasks.sfdx.SFDXBaseTask``. (#2981)
- 
+
 Changes
 
 - You can now get the CumulusCI version with ``cci --version``. The output is the same as the ``cci version`` command. (#2974)
@@ -268,7 +289,7 @@ Issues Fixed
 - We fixed an issue causing CumulusCI to fail to install releases that contain an Unlocked Package without a namespace. (#2851)
 - We added handling for issues that occur when running the ``generate_dataset_mapping`` task for very large orgs (#2860).
 - We fixed a regression in using cross-project sources in MetaDeploy installers (#2875).
-  
+
 
 
 3.43.0 (2021-09-02)
@@ -284,7 +305,7 @@ Critical Changes
 
 Changes
 
-* The ``sources`` feature, which allows CumulusCI projects to consume automation from other projects, now supports specifying a ``resolution_strategy``, just like dependencies. Sources can now resolve to the same GitHub refs as corresponding dependencies, including branch matching. The default behavior is to use the ``production`` resolution strategy. (#2807) 
+* The ``sources`` feature, which allows CumulusCI projects to consume automation from other projects, now supports specifying a ``resolution_strategy``, just like dependencies. Sources can now resolve to the same GitHub refs as corresponding dependencies, including branch matching. The default behavior is to use the ``production`` resolution strategy. (#2807)
 
 * Added several new tasks for configuring Marketing Cloud: ``marketing_cloud_create_subscriber_attribute``, ``marketing_cloud_create_user``, and ``marketing_cloud_update_user_role``. (#2838)
 
@@ -309,7 +330,7 @@ Issues Fixed
 * Fixed a bug in the ``dry_run`` option for the ``metadeploy_publish`` task where explicitly setting the option to ``False`` did not disable the dry run. (#2836)
 
 * Improved the error message shown by the ``load_dataset`` task if a table is missing from the dataset. (#2813)
-  
+
 * Improved the warning message shown when CumulusCI can't encrypt org and service config files. (#2839)
 
 Internal Changes
@@ -325,7 +346,7 @@ Internal Changes
 Critical Changes
 
 * The ``github_release`` task now requires the ``tag_prefix`` option to be passed, because for 2nd-generation packages we can't tell from the version number whether it is a beta or not. We've updated the standard release flows to set the ``tag_prefix`` appropriately, but if you have custom flows using this task you will need to update them. (#2792)
- 
+
 * In order to run the ``github_copy_subtree`` task for a specific package version, you must now use the ``tag_name`` option instead of the ``version`` option. Using the ``version`` option set to ``latest`` or ``latest_beta`` is deprecated; it's preferred to pass these values in the ``tag_name`` option instead. (#2792)
 
 Changes
@@ -349,12 +370,12 @@ Changes
 * We added a task to enable an Einstein prediction: `enable_einstein_prediction` (thanks, @erikperkins!) (#2778)
 
 * We added standard flows for releasing unlocked packages: `release_unlocked_beta` and `release_unlocked_production` (#2768)
- 
-* We added `documentation <https://cumulusci.readthedocs.io/en/stable/packaging.html>`_ for using CumulusCI to build managed 2GP packages, 
+
+* We added `documentation <https://cumulusci.readthedocs.io/en/stable/packaging.html>`_ for using CumulusCI to build managed 2GP packages,
   unlocked packages, and extending NPSP and EDA with 2GP packages. (#2768)
 
 * Contributions to CCI now require verification by isort, which ensures consistency in the order that imports are used. (#2770)
- 
+
 * CumulusCI now supports deploying unmanaged dependencies in SFDX source format. (#2735)
 
 * The `create_package_version` task now handles dependencies that use a `zip_url`. (#2735)
@@ -466,7 +487,7 @@ Changes
 - The ``install_managed`` task now supports 2GP releases (#2655).
 - We changed the behavior of the ``release_2gp_beta`` flow to always
   upload a package version, even if metadata has not changed (#2651).
-- We now support sourcing install keys for packages from 
+- We now support sourcing install keys for packages from
   environment variables via the ``password_env_name`` dependency key (#2622).
 
 Robot Framework
@@ -545,9 +566,9 @@ Changes
 - The CumulusCI documentation has a new section: `Testing with Second-Generation Packaging <https://cumulusci.readthedocs.io/en/latest/2gp_testing.html>`_ (#2597)
 
 - CumulusCI has two new service types: ``oauth2_client`` & ``marketing_cloud``. These are considered experimental. (#2602)
- 
+
 - The ``marketing_cloud`` service allows users to connect to a Marketing Cloud tenant via OAuth so that tasks that work with Marketing Cloud can make API calls on the user's behalf. (#2602)
- 
+
 - The ``oauth2_client`` service takes information for an individual OAuth2 client which can then be used in place of the default client. This currently applies only to the ``marketing_cloud`` service. To setup a Marketing Cloud service with a specific OAuth2 client use: ``cci service connect marketing-cloud <name-of-service> --oauth_client <name-of-oauth-client>``. (#2602)
 
 - CumulusCI has a new task: ``deploy_marketing_cloud_package``. This task allows a user to pass the path to a .zip file to a Marketing Cloud package (downloaded from the Marketing Cloud Package Manager) and deploy the package via a ``marketing_cloud`` service (see above). Note that successfully deploying a package using this task may require permissions that are not generally available. (#2602)
@@ -587,7 +608,7 @@ Changes:
 - The ``github_release`` task now has a ``package_type`` option which is included in the information written to GitHub release tags. The following standard library "release" flows have been updated with hardcoded values (either ``1GP`` or ``2GP``) for this option:
     - ``release_beta`` (1GP)
     - ``release_production`` (1GP)
-    - ``release_2gp_beta`` (2GP) 
+    - ``release_2gp_beta`` (2GP)
     - ``release_2gp_production`` (2GP)
 
   (#2546)
@@ -672,7 +693,7 @@ Critical Changes:
 Changes:
 
 * CumulusCI now supports named services! This means you can configure multiple services of the same *type* under different names. If you run ``cci service list`` you will note that your existing global services will have the name ``global``, and any project-specific services will have the name ``project_name``. (#2499)
-  
+
   * You must now specify both a service type and a service name when connecting a new service using ``cci service connect``.
   * CumulusCI has a new command: ``cci service default``. This command sets the default service for a given type.
   * CumulusCI has a new command: ``cci service rename``. This command renames a given service.
@@ -788,12 +809,12 @@ Issues Closed:
 
 Critical changes:
 
-- We are planning to remove functionality in CumulusCI's dependency management in a future release. 
+- We are planning to remove functionality in CumulusCI's dependency management in a future release.
 
-  - The ``update_dependencies`` task will no longer support uninstalling managed packages in a persistent org as part of the dependency installation process. 
+  - The ``update_dependencies`` task will no longer support uninstalling managed packages in a persistent org as part of the dependency installation process.
   - The ``allow_newer`` option on ``update_dependencies`` will be removed and always be True.
   - The ``project__dependencies`` section in ``cumulusci.yml`` will no longer support nested dependencies specified like this ::
-  
+
       dependencies:
         - namespace: "test"
           version: "1.0"
@@ -801,10 +822,10 @@ Critical changes:
             - namespace: "parent"
               version: "2.2"
 
-  
-  All dependencies should be listed in install order. 
-  
-  We recommend reformatting nested dependencies and discontinuing use of ``allow_newer`` and package uninstalls now to prepare for these future changes. 
+
+  All dependencies should be listed in install order.
+
+  We recommend reformatting nested dependencies and discontinuing use of ``allow_newer`` and package uninstalls now to prepare for these future changes.
 
 Changes:
 
@@ -1348,7 +1369,7 @@ Changes:
 
   - Added a new task, ``assign_compact_layout``, which can update a compact layout assignment in existing object metadata. Thanks @spelak-salesforce
 
-- Added a new task, ``github_copy_subtree``, to allow publishing selected files or folders to another repository after a release. This allows publishing a subset of your project's code from a private repository to a public one, for example. 
+- Added a new task, ``github_copy_subtree``, to allow publishing selected files or folders to another repository after a release. This allows publishing a subset of your project's code from a private repository to a public one, for example.
 
 - The ``create_community`` task has a new option, ``skip_existing``. When True, the task will not error if a community with the specified name already exists.
 
@@ -1778,11 +1799,11 @@ Changes:
 
 * We've added the option `ignore_types` to the `uninstall_packaged_incremental` task to allow all components of the specified metadata type to be ignored without having to explicitly list each one.
 
-* The `FindReplace` task now accepts a list of strings for the `file_pattern` option. 
+* The `FindReplace` task now accepts a list of strings for the `file_pattern` option.
 
 * If the `DeleteData` task fails to delete some rows, this is now reported as an error.
 
-* Robot Framework: Added a new variable `${SELENIUM_SPEED}` that is used to control the speed at which selenium runs when the `Open Test Browser` keyword is called. 
+* Robot Framework: Added a new variable `${SELENIUM_SPEED}` that is used to control the speed at which selenium runs when the `Open Test Browser` keyword is called.
 
 Issues Closed:
 
@@ -2150,7 +2171,7 @@ New features:
 
 * ``LoadData`` now supports the key ``action: update`` to perform a Bulk API update job
 * ``LoadData`` now supports an ``after: <step name>`` on a lookup entry to defer updating that lookup until a dependent sObject step is completed.
-* ``GenerateMapping`` now handles self-lookups and reference cycles by generating ``after:`` markers wherever needed. 
+* ``GenerateMapping`` now handles self-lookups and reference cycles by generating ``after:`` markers wherever needed.
 
 Issues closed:
 
@@ -2434,12 +2455,12 @@ Changes:
 ------------------
 
 * Mapping enhancements for bulk ``QueryData`` and ``LoadData`` tasks
-  
+
   * The mapping yaml file no longer requires using ``Id: sf_id`` as a field mapping.  If not provided, ``QueryData`` and ``LoadData`` will use local database ids instead of Saleforce OIDs for storing lookup relationships.  Previous mappings which specify the ``Id: sf_id`` mapping will continue to work as before using the Salesforce OID as the mapping value.
   * The mapping yaml file's ``lookups:`` section now handles defaults to allow simpler lookup mappings.  The only key required is now ``table``.  If the ``key_field`` is provided it will be used.
 
 * The ``sql_path`` option on ``QueryData`` can be used to provide the file path where a SQL script should be written.  If this option is used, a sqlite in-memory database is used and discarded.  This is useful for storing data sets in a Github repository and allowing diffs of the dataset to be visible when reviewing Pull Requests
-  
+
   * When using this option, it is best to make sure your mapping yaml file does not provide a field mapping for the ``Id`` field.  This will help avoid merge conflicts if querying data from different orgs such as scratch orgs.
 
 * The `sql_path` option on ``LoadData`` can be used to provide the file path where a SQL script file should be read and used to load an in-memory sqlite database for the load operation.
