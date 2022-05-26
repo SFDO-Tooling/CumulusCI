@@ -2,9 +2,8 @@ name: Update dependencies
 
 on:
     workflow_dispatch:
-    schedule:
-        # at 00:00 on Monday (UTC)
-        - cron: "0 0 * * MON"
+    pull_request:
+        types: [opened, synchronize, reopened]
 
 jobs:
     update_dependencies:
@@ -25,13 +24,14 @@ jobs:
               run: make update-deps
             - name: Commit changes and open PR
               run: |
+                  export: WEEK="W$(date +%V)"
                   git config user.name github-actions
                   git config user.email github-actions@github.com
-                  git switch -c "dependency-updates-week-${date +%u}"
+                  git switch -c "dependency-updates-$WEEK"
                   git add requirements/*.txt 
-                  git commit -m "update dependencies (automated)"
-                  git push origin "dependency-updates-week${date +%u}"
+                  git commit -m "$WEEK dependency updates (automated)"
+                  git push origin "dependency-updates-$WEEK"
             - env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  gh pr create --fill --label 'auto-pr'
+                  gh pr create --fill --label 'auto-pr,dependencies'
