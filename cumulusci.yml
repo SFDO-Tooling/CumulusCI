@@ -36,8 +36,12 @@ tasks:
             path:
                 - cumulusci.robotframework.CumulusCI
                 - cumulusci.robotframework.PageObjects
+                - cumulusci.robotframework.Performance
                 - cumulusci.robotframework.Salesforce
                 - cumulusci/robotframework/Salesforce.robot
+                - cumulusci.robotframework.SalesforceAPI
+                - cumulusci/robotframework/SalesforcePlaywright.robot
+                - cumulusci.robotframework.SalesforcePlaywright
                 - cumulusci/robotframework/pageobjects/BasePageObjects.py
 
     # to be used with the person_accounts org definition
