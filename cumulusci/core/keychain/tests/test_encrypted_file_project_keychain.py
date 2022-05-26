@@ -93,7 +93,7 @@ class TestEncryptedFileProjectKeychain:
         }
         org = keychain.get_org("test")
 
-        # we want to ensure what is configured in cumulusci.yml is what is loaded into the config
+        # ensure what is configured in cumulusci.yml is what is loaded into the config
         assert org.config["days"] == days
         assert org.config["config_file"] == config_file
 
