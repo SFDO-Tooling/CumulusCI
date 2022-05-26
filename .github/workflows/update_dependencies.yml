@@ -1,0 +1,38 @@
+name: Update dependencies
+
+on:
+    workflow_dispatch:
+
+jobs:
+    update_dependencies:
+        runs-on: ubuntu-latest
+        steps:
+            - name: "Checkout"
+              uses: actions/checkout@v3
+              with:
+                  ref: main
+                  fetch-depth: 0
+            - name: Set up Python 3.8
+              id: py
+              uses: actions/setup-python@v2
+              with:
+                  python-version: 3.8
+                  cache: pip
+                  cache-dependency-path: "requirements/*.txt"
+            - name: Update dependencies
+              run: |
+                  pip install pip-tools
+                  make update-deps
+            - name: Commit changes and open PR
+              run: |
+                  export WEEK="W$(date +%V)"
+                  git config user.name github-actions
+                  git config user.email github-actions@github.com
+                  git switch -c "dependency-updates-$WEEK"
+                  git add requirements/*.txt 
+                  git commit -m "$WEEK dependency updates (automated)"
+                  git push origin "dependency-updates-$WEEK"
+            - env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  gh pr create --fill --label 'auto-pr,dependencies'
