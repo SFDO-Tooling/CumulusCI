@@ -2,17 +2,16 @@ name: Update dependencies
 
 on:
     workflow_dispatch:
-    pull_request:
-        types: [opened, synchronize, reopened]
 
 jobs:
     update_dependencies:
         runs-on: ubuntu-latest
         steps:
             - name: "Checkout"
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
               with:
-                  fetch-depth: 1
+                  ref: main
+                  fetch-depth: 0
             - name: Set up Python 3.8
               id: py
               uses: actions/setup-python@v2
@@ -21,10 +20,12 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Update dependencies
-              run: make update-deps
+              run: |
+                  pip install pip-tools
+                  make update-deps
             - name: Commit changes and open PR
               run: |
-                  export: WEEK="W$(date +%V)"
+                  export WEEK="w$(date +%V)"
                   git config user.name github-actions
                   git config user.email github-actions@github.com
                   git switch -c "dependency-updates-$WEEK"
