@@ -1,7 +1,16 @@
 =======
 History
 =======
-3.58.0 (2022-04-16)
+3.59.0 (2022-05-26)
+-------------------
+
+Changes:
+
+- Setting ``repo_url`` in your project config is no longer required to run ``metadeploy_publish``. (#3200)
+- Adds new commands ``cci robot install_playwright`` and ``cci robot uninstall_playwright`` for installing and uninstalling experimental support for the Robot Framework ``Browser`` library, which is based on Playwright. For more information see the section "Playwright Technology Preview" in the public documentation. (#3194)
+- Programs using CumulusCI as a library may generate warnings when getting values from config objects. A new method ``config.lookup`` is the preferred way to look up these values. (#3026)
+
+3.58.0 (2022-05-16)
 -------------------
 
 Changes:
@@ -9,7 +18,7 @@ Changes:
 - CumulusCI Robot Framework support has been tested on prerelease orgs (#3187)
 - Upgraded the Snowfakery dependency to version 3.1.0. When embedded in CumulusCI, Snowfakery can now do SObject Upserts. (#3195)
 
-Issues Closed
+Issues Closed:
 
 - Fix bug when setting the 'options' option in the robot task from the command line (#3173)
 
@@ -18,7 +27,7 @@ Issues Closed
 
 Changes:
 
-- Support `useralias` in `Open Test Browser` for connected orgs (#3169)
+- Support ``useralias`` in ``Open Test Browser`` for connected orgs (#3169)
 
 Issues Closed:
 
