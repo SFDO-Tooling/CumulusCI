@@ -26,13 +26,14 @@ jobs:
                   make update-deps
             - name: Commit changes and open PR
               run: |
-                  export WEEK="W$(date +%V)"
+                  export WEEK="w$(date +%V)"
                   git config user.name github-actions
                   git config user.email github-actions@github.com
                   git switch -c "dependency-updates-$WEEK"
                   git add requirements/*.txt 
                   git commit -m "$WEEK dependency updates (automated)"
                   git push origin "dependency-updates-$WEEK"
+                  git pull
             - env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
