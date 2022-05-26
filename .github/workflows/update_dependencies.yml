@@ -21,7 +21,9 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Update dependencies
-              run: make update-deps
+              run: |
+                  pip install pip-tools
+                  make update-deps
             - name: Commit changes and open PR
               run: |
                   export: WEEK="W$(date +%V)"
