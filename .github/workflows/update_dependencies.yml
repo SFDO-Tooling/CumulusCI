@@ -25,7 +25,7 @@ jobs:
                   make update-deps
             - name: Commit changes and open PR
               run: |
-                  export WEEK="w$(date +%V)"
+                  export WEEK="W$(date +%V)"
                   git config user.name github-actions
                   git config user.email github-actions@github.com
                   git switch -c "dependency-updates-$WEEK"
