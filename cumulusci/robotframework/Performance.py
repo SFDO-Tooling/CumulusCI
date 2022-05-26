@@ -9,6 +9,13 @@ from cumulusci.robotframework.BaseLibrary import BaseLibrary
 
 
 class Performance(BaseLibrary):
+    """
+    Keywords for performance testing.
+
+    For more information on how to use these keywords, see
+    the "Performance Testing" section of the CumulusCI documentation.
+    """
+
     def elapsed_time_for_last_record(
         self, obj_name, start_field, end_field, order_by, **kwargs
     ):
@@ -25,12 +32,13 @@ class Performance(BaseLibrary):
         The last matching record queried and summarized.
 
         Example:
-            ${time_in_seconds} =    Elapsed Time For Last Record
-            ...             obj_name=AsyncApexJob
-            ...             where=ApexClass.Name='BlahBlah'
-            ...             start_field=CreatedDate
-            ...             end_field=CompletedDate
-            ...             order_by=CompletedDate
+
+            | ${time_in_seconds} =    Elapsed Time For Last Record
+            | ...             obj_name=AsyncApexJob
+            | ...             where=ApexClass.Name='BlahBlah'
+            | ...             start_field=CreatedDate
+            | ...             end_field=CompletedDate
+            | ...             order_by=CompletedDate
         """
         if len(order_by.split()) != 1:
             raise Exception("order_by should be a simple field name")
@@ -58,9 +66,9 @@ class Performance(BaseLibrary):
 
         Example:
 
-            Start Performance Timer
-            Do Something
-            Stop Performance Timer
+        | Start Performance Timer
+        | Do Something
+        | Stop Performance Timer
         """
         BuiltIn().set_test_variable("${__start_time}", datetime.now())
 
@@ -72,9 +80,9 @@ class Performance(BaseLibrary):
 
         Example:
 
-            Start Performance Timer
-            Do Something
-            Stop Performance Timer
+        | Start Performance Timer
+        | Do Something
+        | Stop Performance Timer
 
         """
         start_time = self.builtin.get_variable_value("${__start_time}")
@@ -104,7 +112,7 @@ class Performance(BaseLibrary):
 
         Example:
 
-            Set Test Elapsed Time       11655.9
+        | Set Test Elapsed Time       11655.9
 
         Performance test times are output in the CCI logs and are captured in MetaCI instead of the
         "total elapsed time" measured by Robot Framework. The Robot "test message" is also updated."""
