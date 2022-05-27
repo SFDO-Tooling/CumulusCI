@@ -6,3 +6,5 @@ on:
 jobs:
     update_python_dependencies:
         uses: SFDO-Tooling/.github/.github/workflows/update_python_dependencies.yml
+        with:
+                python-version: 3.8
