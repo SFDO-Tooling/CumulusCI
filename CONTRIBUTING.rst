@@ -1,1 +1,1 @@
-See https://cumulusci.readthedocs.io/en/stable/contributing.html
+See docs/contributing.rst
