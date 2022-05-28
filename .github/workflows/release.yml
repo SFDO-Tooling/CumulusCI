@@ -6,10 +6,15 @@ on:
             - main
         paths:
             - cumulusci/version.txt
+    pull_request:
+        types: [opened]
+        paths:
+            - cumulusci/version.txt
 
 jobs:
     publish-to-pypi:
         name: Publish new release to PyPI
+        if: github.event_name == 'push'
         runs-on: ubuntu-18.04
         steps:
             - uses: actions/checkout@main
@@ -31,6 +36,63 @@ jobs:
                   curl -s -X POST https://api.github.com/repos/$GITHUB_REPOSITORY/git/refs -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d @- << EOF
                   {"ref": "refs/tags/v$(python setup.py --version)", "sha": "$GITHUB_SHA"}
                   EOF
-
-# to do:
-# - add release notes in github
+    generate-changelog:
+        name: Generate release notes
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+        outputs:
+            rst: ${{ steps.changelog.outputs.rst }}
+            markdown: ${{ steps.changelog.outputs.markdown }}
+        steps:
+            - uses: actions/checkout@v3
+            - name: Install Pandoc
+              run: sudo apt-get install pandoc
+            - name: Generate release notes
+              id: changelog
+              run: |
+                  PREVIOUS_VERSION=$(gh release view --json tagName --jq .tagName)
+                  NEXT_VERSION="v$(cat cumulusci/version.txt)"
+                  MARKDOWN=$(gh api \
+                    --method POST \
+                    -H "Accept: application/vnd.github.v3+json" \
+                    /repos/SFDO-Tooling/CumulusCI/releases/generate-notes \
+                    -f previous_tag_name=$PREVIOUS_VERSION \
+                    -f target_commitish='main' \
+                    -f tag_name=$NEXT_VERSION \
+                    --jq '.body')
+                  RST=$(echo $MARKDOWN |
+                    sed 's/\(https.*\/\)\([0-9]\{4\}\)$/[#\2](\1\2)/' |
+                    pandoc -f gfm -t rst --wrap none)
+                  echo "::set-output name=markdown::$MARKDOWN"
+                  echo "::set-output name=rst::$RST"
+    post-comment:
+        name: Post release notes
+        needs: generate-changelog
+        runs-on: ubuntu-latest
+        env:
+            CHANGELOG: ${{ needs.generate-changelog.outputs.markdown }}
+        steps:
+            - env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  PR_NUM: ${{ github.event.number }}
+              run: |
+                  echo $CHANGELOG | gh pr comment $PR_NUM --body-file -
+    add-to-history:
+        name: Update HISTORY.rst
+        needs: generate-changelog
+        runs-on: ubuntu-latest
+        env:
+            CHANGELOG: ${{ needs.generate-changelog.outputs.rst }}
+        steps:
+            - name: "Checkout"
+              uses: actions/checkout@v3
+              with:
+                  ref: ${{ github.event.pull_request.head.sha }}
+            - name: Commit changes and open PR
+              run: |
+                  sed -i "s/\(    release-notes-go-here\)/\1\n\n$CHANGELOG/" HISTORY.rst
+                  git config user.name github-actions
+                  git config user.email github-actions@github.com
+                  git add HISTORY.rst
+                  git commit -m "Update changelog (automated)"
+                  git push origin
