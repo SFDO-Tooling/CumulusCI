@@ -113,6 +113,104 @@ def test_check_settings__exception():
     assert task.return_values is False
 
 
+@responses.activate
+@pytest.mark.parametrize(
+    "settings_field,value,outcome",
+    [
+        ("IntVal", 3, True),
+        ("FloatVal", 3.0, True),
+        ("BoolVal", "true", True),
+        ("StringVal", "foo", True),
+        ("StringVal", "bad", False),
+    ],
+)
+def test_check_custom_settings(settings_field, value, outcome):
+    responses.add(
+        "GET",
+        f"https://test.salesforce.com/services/data/v52.0/query/?q=SELECT+{settings_field}+FROM+namespace__Settings__c",
+        json=JSON_RESPONSE,
+    )
+    task = create_task(
+        CheckSettingsValue,
+        {
+            "settings_type": "namespace__Settings__c",
+            "settings_field": settings_field,
+            "value": value,
+        },
+    )
+    
+    task()
+    
+    assert task.return_values is outcome
+
+
+@responses.activate
+def test_check_custom_settings__no_settings():
+    responses.add(
+        "GET",
+        "https://test.salesforce.com/services/data/v52.0/query/?q=SELECT+namespace__Foo__c+FROM+namespace__Settings__c",
+        json={"records": []},
+    )
+    task = create_task(
+        CheckSettingsValue,
+        {
+            "settings_type": "namespace__Settings__c",
+            "settings_field": "namespace__Foo__c",
+            "value": True,
+        },
+    )
+    
+    task()
+    
+    assert task.return_values is False
+
+
+@responses.activate
+def test_check_custom_settings__failure():
+    responses.add(
+        "GET",
+        status=400,
+        url="https://test.salesforce.com/services/data/v52.0/query/?q=SELECT+namespace__Test__c+FROM+namespace__NoSettings__c",
+        json={},
+    )
+    task = create_task(
+        CheckSettingsValue,
+        {
+            "settings_type": "namespace__NoSettings__c",
+            "settings_field": "namespace__Test__c",
+            "value": True,
+            "treat_missing_as_failure": True,
+        },
+    )
+    
+    task()
+    
+    assert task.return_values is False
+
+
+@responses.activate
+def test_check_custom_settings__exception():
+    responses.add(
+        "GET",
+        status=400,
+        url="https://test.salesforce.com/services/data/v52.0/query/?q=SELECT+namespace__Test__c+FROM+namespace__NoSettings__c",
+        json={},
+    )
+    task = create_task(
+        CheckSettingsValue,
+        {
+            "settings_type": "namespace__NoSettings__c",
+            "settings_field": "namespace__Test__c",
+            "value": True,
+        },
+    )
+    
+    with pytest.raises(SalesforceMalformedRequest):
+        task()
+    
+    assert task.return_values is False
+
+
 @pytest.mark.parametrize(
     "my_domain,outcome",
     [
