@@ -1,6 +1,13 @@
 =======
 History
 =======
+3.59.1 (2022-05-31)
+-------------------
+
+Issues Closed:
+
+- Fixed a regression relating to lookup of variables like `$project__repo_branch`. Identified as a problem in the `github_automerge_main` task, but potentially there might be other tasks with that property. (#3220)
+
 3.59.0 (2022-05-26)
 -------------------
 
