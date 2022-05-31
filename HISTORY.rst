@@ -6,7 +6,7 @@ History
 
 Issues Closed:
 
-- Fixed a regression relating to lookup of variables like `$project__repo_branch`. Identified as a problem in the `github_automerge_main` task, but potentially there might be other tasks with that property. (#3220)
+- Fixed a regression relating to lookup of variables like `$project_config.repo_branch`. Identified as a problem in the `github_automerge_main` task, but potentially there might be other tasks that were broken and are fixed by this branch. (#3220)
 
 3.59.0 (2022-05-26)
 -------------------
