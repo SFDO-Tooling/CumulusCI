@@ -4,8 +4,8 @@ Upsert Contacts:
     action: etl_upsert
     update_key: FirstName,LastName
     fields:
-        - FirstName
-        - LastName
+        - firstName
+        - Lastname
         - email
 Upsert Opportunities:
     sf_object: Opportunity
@@ -14,5 +14,5 @@ Upsert Opportunities:
     update_key: Name
     fields:
         - Name
-        - CloseDate
-        - StageName
+        - ClosedAte
+        - StageNamE

@@ -9,16 +9,16 @@ Upsert Contacts:
     action: upsert
     update_key: Email
     fields:
-        - FirstName
-        - LastName
-        - Email
+        - firstName
+        - Lastname
+        - email
 Insert Opportunities:
     api: bulk
     sf_object: Opportunity
     fields:
         - Name
-        - StageName
-        - CloseDate
+        - StageNamE
+        - ClosedAte
     lookups:
         AccountId:
             table: Account

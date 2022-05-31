@@ -10,6 +10,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Union
 
+from cumulusci.core.config.base_config import BaseConfig
 from cumulusci.core.versions import PackageVersionNumber
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
@@ -42,7 +43,23 @@ from cumulusci.utils.yaml.cumulusci_yml import (
 )
 
 
-class BaseProjectConfig(BaseTaskFlowConfig):
+class ProjectConfigPropertiesMixin(BaseConfig):
+    """Mixin for shared properties used by ProjectConfigs and UniversalConfigs"""
+
+    cli: dict
+    services: dict
+    project: dict
+    cumulusci: dict
+    orgs: dict
+    minimum_cumulusci_version: str
+    sources: dict
+    flows: dict
+    plans: dict
+    tasks: dict
+    dev_config: dict  # this is not documented and should be deprecated
+
+
+class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     """Base class for a project's configuration which extends the global config"""
 
     config_filename = "cumulusci.yml"
@@ -289,7 +306,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         url_line = self.git_config_remote_origin_url()
-        return split_repo_url(url_line)[1]
+        if url_line:
+            return split_repo_url(url_line)[1]
 
     @property
     def repo_url(self):
@@ -313,7 +331,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         url_line = self.git_config_remote_origin_url()
-        return split_repo_url(url_line)[0]
+        if url_line:
+            return split_repo_url(url_line)[0]
 
     @property
     def repo_branch(self):
@@ -528,7 +547,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         Also makes sure the project has been fetched, if it's from an external source.
         """
-        spec = getattr(self, f"sources__{ns}")
+        spec = self.lookup(f"sources__{ns}")
         if spec is None:
             raise NamespaceNotFoundError(f"Namespace not found: {ns}")
 
@@ -605,3 +624,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         with open_fs_resource(self.cache_dir / cache_name) as cache_dir:
             cache_dir.mkdir(exist_ok=True, parents=True)
             yield cache_dir
+
+
+class RemoteProjectConfig(ProjectConfigPropertiesMixin):
+    pass

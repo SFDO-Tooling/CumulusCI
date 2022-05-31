@@ -33,9 +33,9 @@ Run a Shell Command
 
     run_custom_command:
         description: Greets the user
-        class_path: cumulusci.cli
+        class_path: cumulusci.tasks.command.Command
         options: 
-            command: "echo 'Hello there!"
+            command: "echo 'Hello there!'"
 
         
 

@@ -32,7 +32,11 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     get_dml_operation,
 )
-from cumulusci.tasks.bulkdata.upsert_utils import needs_etl_upsert, select_for_upsert
+from cumulusci.tasks.bulkdata.upsert_utils import (
+    AddUpsertsToQuery,
+    extract_upsert_key_data,
+    needs_etl_upsert,
+)
 from cumulusci.tasks.bulkdata.utils import (
     RowErrorChecker,
     SqlAlchemyMixin,
@@ -192,17 +196,37 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
         api_options = {"batch_size": mapping.batch_size, "bulk_mode": bulk_mode}
 
-        if mapping.action == DataOperationType.ETL_UPSERT:
-            query, action, fields = self.configure_etl_upsert(mapping)
-            api_options["update_key"] = "Id"
-        else:
-            query = self._query_db(mapping)
-            fields = mapping.get_load_field_list()
-            action = mapping.action
+        fields = mapping.get_load_field_list()
 
-        if mapping.action == DataOperationType.UPSERT:
+        # implement "smart" upsert
+        if mapping.action == DataOperationType.SMART_UPSERT:
+            if needs_etl_upsert(mapping, self.sf):
+                mapping.action = DataOperationType.ETL_UPSERT
+            else:
+                mapping.action = DataOperationType.UPSERT
+
+        if mapping.action == DataOperationType.ETL_UPSERT:
+            extract_upsert_key_data(
+                mapping.sf_object,
+                mapping.update_key,
+                self,
+                self.metadata,
+                self.session.connection(),
+            )
+
+            # If we treat "Id" as an "external_id_name" then it's
+            # allowed to be sparse.
+            api_options["update_key"] = "Id"
+            action = DataOperationType.UPSERT
+            fields.append("Id")
+        elif mapping.action == DataOperationType.UPSERT:
             self.check_simple_upsert(mapping)
             api_options["update_key"] = mapping.update_key[0]
+            action = DataOperationType.UPSERT
+        else:
+            action = mapping.action
+
+        query = self._query_db(mapping)
 
         step = get_dml_operation(
             sobject=mapping.sf_object,
@@ -214,28 +238,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             volume=query.count(),
         )
         return step, query
-
-    def configure_etl_upsert(self, mapping):
-        """Create ETL temp table and query, actions, fields based on it."""
-        select_statement = select_for_upsert(
-            mapping=mapping,
-            metadata=self.metadata,
-            connection=self.session.connection(),
-            context=self,
-        )
-        # Need .subquery() to pass this to session.query()
-        # https://docs.sqlalchemy.org/en/14/errors.html#error-89ve
-        # this allows the parent code to do a .count() on the
-        # result
-        query = self.session.query(select_statement.subquery())
-
-        # We've retrieved IDs from the org, so include them.
-        fields = mapping.get_load_field_list() + ["Id"]
-
-        # If we treat "Id" as an "external_id_name" then it's
-        # allowed to be sparse.
-        action = DataOperationType.UPSERT
-        return query, action, fields
 
     def check_simple_upsert(self, mapping):
         """Check that this upsert is correct."""
@@ -329,6 +331,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             AddLookupsToQuery,
             AddRecordTypesToQuery,
             AddMappingFiltersToQuery,
+            AddUpsertsToQuery,
         ]
         transformers = [cls(mapping, self.metadata, model) for cls in classes]
 

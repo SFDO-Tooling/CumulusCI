@@ -47,64 +47,83 @@ from cumulusci.utils import temporary_dir, touch
 from cumulusci.utils.yaml.cumulusci_yml import GitHubSourceModel, LocalFolderSourceModel
 
 
+class FakeConfig(BaseConfig):
+    foo: dict
+
+
 class TestBaseConfig:
     def test_getattr_toplevel_key(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {"foo": "bar"}
         assert config.foo == "bar"
 
     def test_getattr_toplevel_key_missing(self):
         config = BaseConfig()
         config.config = {}
-        assert config.foo is None
+        with mock.patch(
+            "cumulusci.core.config.base_config.STRICT_GETATTR", False
+        ), pytest.warns(DeprecationWarning, match="foo"):
+            assert config.foo is None
+        with mock.patch(
+            "cumulusci.core.config.base_config.STRICT_GETATTR", True
+        ), pytest.raises(AssertionError):
+            assert config.foo is None
 
     def test_getattr_child_key(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {"foo": {"bar": "baz"}}
         assert config.foo__bar == "baz"
 
+    def test_strict_getattr(self):
+        config = FakeConfig()
+        config.config = {"foo": {"bar": "baz"}}
+        with mock.patch(
+            "cumulusci.core.config.base_config.STRICT_GETATTR", "True"
+        ), mock.patch("warnings.warn"), pytest.raises(AssertionError):
+            print(config.jfiesojfieoj)
+
     def test_getattr_child_parent_key_missing(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {}
         assert config.foo__bar is None
 
     def test_getattr_child_key_missing(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {"foo": {}}
         assert config.foo__bar is None
 
     def test_getattr_default_toplevel(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {"foo": "bar"}
         config.defaults = {"foo": "default"}
         assert config.foo == "bar"
 
     def test_getattr_default_toplevel_missing_default(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {"foo": "bar"}
         config.defaults = {}
         assert config.foo == "bar"
 
     def test_getattr_default_toplevel_missing_config(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {}
         config.defaults = {"foo": "default"}
         assert config.foo == "default"
 
     def test_getattr_default_child(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {"foo": {"bar": "baz"}}
         config.defaults = {"foo__bar": "default"}
         assert config.foo__bar == "baz"
 
     def test_getattr_default_child_missing_default(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {"foo": {"bar": "baz"}}
         config.defaults = {}
         assert config.foo__bar == "baz"
 
     def test_getattr_default_child_missing_config(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {}
         config.defaults = {"foo__bar": "default"}
         assert config.foo__bar == "default"
@@ -352,6 +371,11 @@ class TestBaseProjectConfig:
         config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"url": "https://github.com/SFDO-Tooling/CumulusCI"}
         assert config.repo_url == "https://github.com/SFDO-Tooling/CumulusCI"
+
+    def test_lookup_repo_branch(self):
+        config = BaseProjectConfig(UniversalConfig())
+        config._repo_info = {"branch": "foo-bar-baz"}
+        assert config.lookup("repo_branch") == "foo-bar-baz"
 
     def test_repo_url_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())

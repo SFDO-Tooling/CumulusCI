@@ -85,9 +85,10 @@ class Publish(BaseMetaDeployTask):
         plan_name = self.options.get("plan")
         if plan_name:
             plan_configs = {}
-            plan_configs[plan_name] = getattr(
-                self.project_config, "plans__{}".format(plan_name)
+            plan_configs[plan_name] = self.project_config.lookup(
+                "plans__{}".format(plan_name)
             )
+
             self.plan_configs = plan_configs
         else:
             self.plan_configs = self.project_config.plans
