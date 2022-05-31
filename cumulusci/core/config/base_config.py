@@ -66,7 +66,7 @@ class BaseConfig(object):
                 )
 
                 assert not STRICT_GETATTR, message
-        return self.lookup(name)
+        return self.lookup(name, already_called_getattr=True)
 
     @classmethod
     @lru_cache
@@ -82,7 +82,7 @@ class BaseConfig(object):
             ret.update(d)
         return ret
 
-    def lookup(self, name, default=None):
+    def lookup(self, name, default=None, already_called_getattr=False):
         tree = name.split("__")
         if name.startswith("_"):
             raise AttributeError(f"Attribute {name} not found")
@@ -102,4 +102,7 @@ class BaseConfig(object):
         if value_found:
             return value
         else:
-            return self.defaults.get(name, default)
+            if not already_called_getattr and hasattr(self, name):
+                return getattr(self, name)
+            else:
+                return self.defaults.get(name, default)
