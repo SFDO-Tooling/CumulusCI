@@ -14,6 +14,8 @@ class MockLoggingHandler(logging.Handler):
 
     Messages are available from an instance's ``messages`` dict, in order,
     indexed by a lowercase log level string (e.g., 'debug', 'info', etc.).
+
+    TODO: Should be replaced by caplog at some point.
     """
 
     def __init__(self, *args, **kwargs):
@@ -24,7 +26,7 @@ class MockLoggingHandler(logging.Handler):
             "error": [],
             "critical": [],
         }
-        super(MockLoggingHandler, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def emit(self, record):
         "Store a message from ``record`` in the instance's ``messages`` dict."
@@ -35,7 +37,7 @@ class MockLoggingHandler(logging.Handler):
             self.release()
 
     def reset(self):
-        """Reset the handler in TestCase.setUp() to clear the msg list"""
+        """Reset the handler in TestCase.setup_method() to clear the msg list"""
         self.acquire()
         try:
             for message_list in list(self.messages.values()):
@@ -99,9 +101,16 @@ class EnvironmentVarGuard(collections.abc.MutableMapping):
 
 class MockLoggerMixin(object):
     @classmethod
-    def setUpClass(cls):
-        super(MockLoggerMixin, cls).setUpClass()
+    def setup_class(cls):
         logger = logging.getLogger(cumulusci.core.tasks.__name__)
         logger.setLevel(logging.DEBUG)
         cls._task_log_handler = MockLoggingHandler(logging.DEBUG)
         logger.addHandler(cls._task_log_handler)
+
+
+class MockLookup:
+    def __init__(self, **kwargs):
+        self.dict = kwargs
+
+    def __call__(self, name, default=None):
+        return self.dict[name]

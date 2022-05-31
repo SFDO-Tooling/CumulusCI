@@ -17,7 +17,13 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     get_query_operation,
 )
-from cumulusci.tasks.bulkdata.utils import SqlAlchemyMixin, consume, create_table
+from cumulusci.tasks.bulkdata.utils import (
+    SqlAlchemyMixin,
+    consume,
+    create_table,
+    sql_bulk_insert_from_records,
+    sql_bulk_insert_from_records_incremental,
+)
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import log_progress
 
@@ -110,7 +116,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         validate_and_inject_mapping(
             mapping=self.mapping,
-            org_config=self.org_config,
+            sf=self.sf,
             namespace=self.project_config.project__package__namespace,
             data_operation=DataOperationType.QUERY,
             inject_namespaces=self.options["inject_namespaces"],
@@ -180,7 +186,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # Convert relative dates to stable dates.
         if mapping.anchor_date:
             date_context = mapping.get_relative_date_context(
-                list(field_map.keys()), self.org_config
+                list(field_map.keys()), self.sf
             )
             if date_context[0] or date_context[1]:
                 record_iterator = (
@@ -209,9 +215,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             record_iterator = (strip_name_field(record) for record in record_iterator)
 
         if mapping.get_oid_as_pk():
-            self._sql_bulk_insert_from_records(
+            sql_bulk_insert_from_records(
                 connection=conn,
-                table=mapping.table,
+                table=self.metadata.tables[mapping.table],
                 columns=columns,
                 record_iterable=record_iterator,
             )
@@ -222,15 +228,15 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             f_values = (row[1:] for row in values)
             f_ids = (row[:1] for row in ids)
 
-            values_chunks = self._sql_bulk_insert_from_records_incremental(
+            values_chunks = sql_bulk_insert_from_records_incremental(
                 connection=conn,
-                table=mapping.table,
+                table=self.metadata.tables[mapping.table],
                 columns=columns[1:],  # Strip off the Id column
                 record_iterable=f_values,
             )
-            ids_chunks = self._sql_bulk_insert_from_records_incremental(
+            ids_chunks = sql_bulk_insert_from_records_incremental(
                 connection=conn,
-                table=mapping.get_sf_id_table(),
+                table=self.metadata.tables[mapping.get_sf_id_table()],
                 columns=["sf_id"],
                 record_iterable=f_ids,
             )

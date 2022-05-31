@@ -15,7 +15,6 @@ BarTestPage has two.
 
 import os.path
 import sys
-import unittest
 from contextlib import contextmanager
 from unittest import mock
 
@@ -25,16 +24,26 @@ from robot.libraries.BuiltIn import BuiltIn
 
 from cumulusci.robotframework import PageObjects
 from cumulusci.robotframework.CumulusCI import CumulusCI
+from cumulusci.robotframework.pageobjects.BasePageObjects import (
+    DetailPage,
+    HomePage,
+    ListingPage,
+)
 from cumulusci.robotframework.pageobjects.PageObjectLibrary import _PageObjectLibrary
 from cumulusci.utils import temporary_dir
 
 HERE = os.path.dirname(__file__)
 FOO_PATH = os.path.join(HERE, "FooTestPage.py")
-BAR_PATH = os.path.join(HERE, "BarTestPage.py")
+CUSTOM_PATH = os.path.join(HERE, "CustomObjectTestPage.py")
 
 # this is the importer used by the page objects, which makes it easy
 # peasy to import by file path
 importer = robot.utils.Importer()
+
+# These tests don't need an org, so mocking it out will prevent some
+# keywords from trying to create the org.
+cci_lib = CumulusCI()
+cci_lib._org = mock.Mock()
 
 
 class MockGetLibraryInstance:
@@ -45,8 +54,14 @@ class MockGetLibraryInstance:
 
     libs = {
         "SeleniumLibrary": mock.Mock(),
-        "cumulusci.robotframework.CumulusCI": CumulusCI(),
+        "cumulusci.robotframework.CumulusCI": cci_lib,
         "cumulusci.robotframework.Salesforce": mock.Mock(),
+        # Note: the fact that we're using "Contact" here is largely
+        # irrelevant. The important thing is that we create a page
+        # object for the base types of Home, Listing,and Detail
+        "ContactHomePage": _PageObjectLibrary(HomePage("Contact")),
+        "ContactListingPage": _PageObjectLibrary(ListingPage("Contact")),
+        "ContactDetailPage": _PageObjectLibrary(DetailPage("Contact")),
     }
 
     def __call__(self, libname):
@@ -77,7 +92,7 @@ def reload_PageObjects(*args):
 # We have to mock out _get_context or the robot libraries will
 # throw an exception saying it cannot access the execution context.
 @mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
-class TestPageObjects(unittest.TestCase):
+class TestPageObjects:
     def test_PageObject(self, get_context_mock, get_library_instance_mock):
         """Smoke test to make sure the default registry is set up and keywords exist"""
 
@@ -92,7 +107,7 @@ class TestPageObjects(unittest.TestCase):
                 "wait_for_page_object",
             ]
             actual_keywords = po.get_keyword_names()
-            self.assertEqual(actual_keywords, expected_keywords)
+            assert actual_keywords == expected_keywords
 
             # fmt: off
             # This is much easier to read than if black were to reformat it.
@@ -106,7 +121,7 @@ class TestPageObjects(unittest.TestCase):
             }
             # fmt: on
             actual_registry = {key: repr(value) for key, value in po.registry.items()}
-            self.assertEqual(actual_registry, expected_registry)
+            assert actual_registry == expected_registry
 
     def test_file_in_pythonpath(self, get_context_mock, get_library_instance_mock):
         """Verify we can find a page object via PYTHONPATH"""
@@ -141,7 +156,7 @@ class TestPageObjects(unittest.TestCase):
         self, get_context_mock, get_library_instance_mock
     ):
         """Verify that custom page objects get added to the registry"""
-        with reload_PageObjects(FOO_PATH, BAR_PATH) as po:
+        with reload_PageObjects(FOO_PATH, CUSTOM_PATH) as po:
             # fmt: off
             # This is much easier to read than if black were to reformat it.
             expected_registry = {
@@ -151,12 +166,14 @@ class TestPageObjects(unittest.TestCase):
                 ("Listing", ""): "<class 'cumulusci.robotframework.pageobjects.BasePageObjects.ListingPage'>",
                 ("New", ""): "<class 'cumulusci.robotframework.pageobjects.BasePageObjects.NewModal'>",
                 ("ObjectManager", ""): "<class 'cumulusci.robotframework.pageobjects.ObjectManagerPageObject.ObjectManagerPage'>",
-                ("Test", "Bar__c"): "<class 'BarTestPage.BarTestPage'>",
+                # the custom page object uses an alias for the object name so it will be in the registry twice
+                ("Listing", "CustomObject__c"): "<class 'CustomObjectTestPage.CustomObjectListingPage'>",
+                ("Listing", "Custom Object"): "<class 'CustomObjectTestPage.CustomObjectListingPage'>",
                 ("Test", "Foo__c"): "<class 'FooTestPage.FooTestPage'>",
             }
             # fmt: on
             actual_registry = {key: repr(value) for key, value in po.registry.items()}
-            self.assertEqual(actual_registry, expected_registry)
+            assert actual_registry == expected_registry
 
     def test_namespaced_object_name(self, get_context_mock, get_library_instance_mock):
         """Verify that the object name is prefixed by the namespace when there's a namespace"""
@@ -171,7 +188,7 @@ class TestPageObjects(unittest.TestCase):
                 )
 
                 pobj = po.get_page_object("Test", "Foo__c")
-                self.assertEqual(pobj.object_name, "foobar__Foo__c")
+                assert pobj.object_name == "foobar__Foo__c"
 
     def test_non_namespaced_object_name(
         self, get_context_mock, get_library_instance_mock
@@ -186,14 +203,45 @@ class TestPageObjects(unittest.TestCase):
                 )
 
                 pobj = po.get_page_object("Test", "Foo__c")
-                self.assertEqual(pobj.object_name, "Foo__c")
+                assert pobj.object_name == "Foo__c"
+
+    def test_go_to_page_with_locator(self, get_context_mock, get_library_instance_mock):
+        """Verify 'Go to page' accepts and uses a locator argument
+
+        See W-8580487 for more details
+        """
+
+        with reload_PageObjects() as po:
+            for page_type in ("Home", "Listing", "Detail"):
+                # the exact locator isn't important for the test, we
+                # just need to make sure it is passed on to
+                # wait_until_loading_is_complete
+                locator = f"//div[@class='{page_type}']"
+                po.go_to_page(page_type, "Contact", locator=locator)
+                sflib = BuiltIn().get_library_instance(
+                    "cumulusci.robotframework.Salesforce"
+                )
+                sflib.wait_until_loading_is_complete.assert_called_with(locator=locator)
+
+    def test_go_to_page_without_locator(
+        self, get_context_mock, get_library_instance_mock
+    ):
+        """Verify 'Go to page' doesn't require a locator"""
+
+        with reload_PageObjects() as po:
+            for page_type in ("Home", "Listing", "Detail"):
+                po.go_to_page(page_type, "Contact")
+                sflib = BuiltIn().get_library_instance(
+                    "cumulusci.robotframework.Salesforce"
+                )
+                sflib.wait_until_loading_is_complete.assert_called_with(locator=None)
 
 
 @mock.patch(
     "robot.libraries.BuiltIn.BuiltIn.get_library_instance",
     side_effect=MockGetLibraryInstance(),
 )
-class TestBasePage(unittest.TestCase):
+class TestBasePage:
     """Some low-level tests of page object classes"""
 
     def test_no_implicit_wait(self, mock_get_library_instance):

@@ -1,8 +1,10 @@
+import queue
 import random
 import shutil
 import time
 import typing as T
 from collections import defaultdict
+from multiprocessing import Lock
 from pathlib import Path
 
 import cumulusci.core.exceptions as exc
@@ -44,7 +46,19 @@ class SnowfakeryChannelManager:
         project_config,
         logger,
     ):
-        self.results_reporter = WorkerQueue.context.Queue()
+        # Look at the docstring on get_results_report to understand
+        # what this queue is for.
+        #
+        # Be careful to use a Queue class appropriate to
+        # the spawn type (thread, process) you're using.
+        #
+        # Snowfakery runs its loader in threads, so queue.Queue()
+        # works.
+        #
+        # multiprocessing.Manager().Queue() also seems to work,
+        # and work across processes, (PR #3080) but it's dramatically
+        # slower. See attachment to PR #3076
+        self.results_reporter = queue.Queue()
         self.channels = []
         self.project_config = project_config
         self.logger = logger
@@ -160,6 +174,15 @@ class SnowfakeryChannelManager:
         return all([channel.check_finished() for channel in self.channels])
 
     def get_results_report(self, block=False):
+        """
+        This is a realtime reporting channel which could, in theory, be updated
+        before sub-tasks finish. Currently no sub-tasks are coded to do that.
+
+        The logical next step is to allow LoadData to monitor steps one by
+        one or even batches one by one.
+
+        Note that until we implement that, we are paying the complexity
+        cost of a real-time channel but not getting the benefits of it."""
         return self.results_reporter.get(block=block)
 
 
@@ -186,6 +209,7 @@ class Channel:
         self.run_until = subtask_configurator.run_until
         self.logger = logger
         self.results_reporter = results_reporter
+        self.filesystem_lock = Lock()
         self.job_counter = 0
         recipe_options = recipe_options or {}
         self._configure_queues(recipe_options)
@@ -193,8 +217,9 @@ class Channel:
     def _configure_queues(self, recipe_options):
         """Configure two ParallelWorkerQueues for datagen and dataload"""
         try:
-            # in the future, the connected_app should come from the org
-            connected_app = self.project_config.keychain.get_service("connected_app")
+            connected_app = self.project_config.keychain.get_service(
+                "connected_app", self.org_config.connected_app
+            )
         except exc.ServiceNotConfigured:  # pragma: no cover
             # to discuss...when can this happen? What are the consequences?
             connected_app = None
@@ -218,7 +243,13 @@ class Channel:
             queue_size=0,
             num_workers=self.num_generator_workers,
         )
-        self.data_gen_q = WorkerQueue(data_gen_q_config)
+        # datagen queues do not get a result reporter because
+        # a) we are less curious about how many records have
+        #    been generated than we aare about how many are loaded
+        # b) finding a queue type which is not prone to race conditions
+        #    or perf slowdowns with "Process" task types (sub-processes)
+        # is a challenge.
+        self.data_gen_q = WorkerQueue(data_gen_q_config, self.filesystem_lock)
 
         load_data_q_config = WorkerQueueConfig(
             project_config=self.project_config,
@@ -234,7 +265,9 @@ class Channel:
             num_workers=self.num_loader_workers,
             rename_directory=self.data_loader_new_directory_name,
         )
-        self.load_data_q = WorkerQueue(load_data_q_config, self.results_reporter)
+        self.load_data_q = WorkerQueue(
+            load_data_q_config, self.filesystem_lock, self.results_reporter
+        )
 
         self.data_gen_q.feeds_data_to(self.load_data_q)
         return self.data_gen_q, self.load_data_q
@@ -290,31 +323,35 @@ class Channel:
         return data_dir
 
     def get_upload_status_for_channel(self):
-        def set_count_from_names(names):
-            return sum(int(name.split("_")[1]) for name in names)
+        with self.filesystem_lock:
 
-        return {
-            "sets_queued_to_be_generated": set_count_from_names(
-                self.data_gen_q.queued_jobs
-            ),
-            "sets_being_generated": set_count_from_names(
-                self.data_gen_q.inprogress_jobs
-            ),
-            "sets_queued_for_loading": set_count_from_names(
-                self.load_data_q.queued_jobs
-            ),
-            # note that these may count as already imported in the org
-            "sets_being_loaded": set_count_from_names(self.load_data_q.inprogress_jobs),
-            "max_num_loader_workers": self.num_loader_workers,
-            "max_num_generator_workers": self.num_generator_workers,
-            # todo: use row-level result from org load for better accuracy
-            "sets_finished": set_count_from_names(self.load_data_q.outbox_jobs),
-            "sets_failed": len(self.load_data_q.failed_jobs),
-            # TODO: are these two redundant?
-            "inprogress_generator_jobs": len(self.data_gen_q.inprogress_jobs),
-            "inprogress_loader_jobs": len(self.load_data_q.inprogress_jobs),
-            "data_gen_free_workers": self.data_gen_q.num_free_workers,
-        }
+            def set_count_from_names(names):
+                return sum(int(name.split("_")[1]) for name in names)
+
+            return {
+                "sets_queued_to_be_generated": set_count_from_names(
+                    self.data_gen_q.queued_jobs
+                ),
+                "sets_being_generated": set_count_from_names(
+                    self.data_gen_q.inprogress_jobs
+                ),
+                "sets_queued_for_loading": set_count_from_names(
+                    self.load_data_q.queued_jobs
+                ),
+                # note that these may count as already imported in the org
+                "sets_being_loaded": set_count_from_names(
+                    self.load_data_q.inprogress_jobs
+                ),
+                "max_num_loader_workers": self.num_loader_workers,
+                "max_num_generator_workers": self.num_generator_workers,
+                # todo: use row-level result from org load for better accuracy
+                "sets_finished": set_count_from_names(self.load_data_q.outbox_jobs),
+                "sets_failed": len(self.load_data_q.failed_jobs),
+                # TODO: are these two redundant?
+                "inprogress_generator_jobs": len(self.data_gen_q.inprogress_jobs),
+                "inprogress_loader_jobs": len(self.load_data_q.inprogress_jobs),
+                "data_gen_free_workers": self.data_gen_q.num_free_workers,
+            }
 
     def failure_descriptions(self) -> T.List[str]:
         """Log failures from sub-processes to main process"""
@@ -333,7 +370,18 @@ class Channel:
 
     def check_finished(self) -> bool:
         self.data_gen_q.tick()
-        still_running = len(self.data_gen_q.workers + self.load_data_q.workers) > 0
+        with self.filesystem_lock:
+            still_running = (
+                len(
+                    self.data_gen_q.workers
+                    + self.data_gen_q.queued_job_dirs
+                    + self.data_gen_q.inprogress_jobs
+                    + self.load_data_q.workers
+                    + self.load_data_q.inprogress_jobs
+                    + self.load_data_q.queued_job_dirs
+                )
+                > 0
+            )
         return not still_running
 
 

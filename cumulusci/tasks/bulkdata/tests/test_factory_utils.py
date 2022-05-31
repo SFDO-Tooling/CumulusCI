@@ -1,7 +1,7 @@
 import os
-import unittest
 
 import factory
+import pytest
 
 from cumulusci.tasks.bulkdata import factory_utils
 from cumulusci.tasks.bulkdata.tests.dummy_data_factory import (
@@ -12,7 +12,7 @@ from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.utils import temporary_dir
 
 
-class TestFactoryUtils(unittest.TestCase):
+class TestFactoryUtils:
     def test_factory(self):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_vanilla_sf.yml")
 
@@ -32,7 +32,7 @@ class TestFactoryUtils(unittest.TestCase):
             task()
 
 
-class TestAdder(unittest.TestCase):
+class TestAdder:
     def test_adder(self):
         a = factory_utils.Adder(10)
         b = a(20)
@@ -45,11 +45,11 @@ class TestAdder(unittest.TestCase):
         assert a(0) == 3
 
 
-class TestFactories(unittest.TestCase):
+class TestFactories:
     def test_factories(self):
         class Broken(factory.alchemy.SQLAlchemyModelFactory):
             class Meta:
                 model = "xyzzy"
 
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             factory_utils.Factories(None, {}, {"A": ContactFactory, "B": Broken})

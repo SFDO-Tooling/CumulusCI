@@ -1,4 +1,3 @@
-import unittest
 from pathlib import Path
 from unittest import mock
 
@@ -9,11 +8,11 @@ from cumulusci.robotframework.Salesforce import Salesforce
 
 # FIXME: we shouldn't have to tweak these tests for every
 # version. The tests should be smarter.
-class TestLocators(unittest.TestCase):
+class TestLocators:
     @mock.patch("cumulusci.robotframework.Salesforce.Salesforce.get_latest_api_version")
     def test_locators_in_robot_context(self, get_latest_api_version):
         """Verify we can get locators for the current org api version"""
-        get_latest_api_version.return_value = 53.0
+        get_latest_api_version.return_value = 54.0
 
         # This instantiates the robot library, mimicking a robot library import.
         # We've mocked out the code that would otherwise throw an error since
@@ -21,10 +20,10 @@ class TestLocators(unittest.TestCase):
         # return the latest version of the locators.
         sf = Salesforce()
 
-        expected = "cumulusci.robotframework.locators_53"
+        expected = "cumulusci.robotframework.locators_54"
         actual = sf.locators_module.__name__
         message = "expected to load '{}', actually loaded '{}'".format(expected, actual)
-        self.assertEqual(expected, actual, message)
+        assert expected == actual, message
 
     @mock.patch(
         "robot.libraries.BuiltIn.BuiltIn.get_library_instance",
@@ -46,29 +45,27 @@ class TestLocators(unittest.TestCase):
 
         actual = sf.locators_module.__name__
         message = "expected to load '{}', actually loaded '{}'".format(expected, actual)
-        self.assertEqual(expected, actual, message)
+        assert expected == actual, message
 
-    def test_locators_53(self):
-        """Verify that locators_53 is a superset of the locators_52
+    def test_locators_55(self):
+        """Verify that locators_55 is a superset of the locators_54
 
         This test is far from perfect, but it should at least flag a
         catastrophic error in how locators for a version that augments
         the locators from previous versions.
 
-        Note: this test assumes that locators_51 doesn't delete any of the
-        keys from 50.
+        Note: this test assumes that locators_55 doesn't delete any of the
+        keys from 54.
 
         """
-        import cumulusci.robotframework.locators_52 as locators_52
-        import cumulusci.robotframework.locators_53 as locators_53
+        import cumulusci.robotframework.locators_54 as locators_54
+        import cumulusci.robotframework.locators_55 as locators_55
 
-        keys_50 = set(locators_52.lex_locators)
-        keys_51 = set(locators_53.lex_locators)
+        keys_54 = set(locators_54.lex_locators)
+        keys_55 = set(locators_55.lex_locators)
 
-        self.assertNotEqual(
-            id(locators_52.lex_locators),
-            id(locators_53.lex_locators),
-            "locators_52.lex_locators and locators_53.lex_locators are the same object",
-        )
-        self.assertTrue(len(keys_50) > 0)
-        self.assertTrue(keys_50.issubset(keys_51))
+        assert id(locators_54.lex_locators) != id(
+            locators_55.lex_locators
+        ), "locators_54.lex_locators and locators_55.lex_locators are the same object"
+        assert len(keys_54) > 0
+        assert keys_55.issubset(keys_54)

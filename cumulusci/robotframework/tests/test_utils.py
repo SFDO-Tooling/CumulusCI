@@ -1,6 +1,5 @@
 import shutil
 import tempfile
-import unittest
 from pathlib import Path
 from unittest import mock
 
@@ -8,8 +7,8 @@ import cumulusci.robotframework.utils as robot_utils
 from cumulusci.utils import touch
 
 
-class TestRobotframeworkUtils(unittest.TestCase):
-    def setUp(self):
+class TestRobotframeworkUtils:
+    def setup_method(self):
         robot_utils.BuiltIn = mock.Mock(name="BuiltIn")
         self.mock_selib = robot_utils.BuiltIn().get_library_instance("SeleniumLibrary")
 
@@ -37,9 +36,9 @@ class TestRobotframeworkUtils(unittest.TestCase):
         self.mock_selib.failure_occurred.assert_not_called()
 
 
-class TestGetLocatorModule(unittest.TestCase):
+class TestGetLocatorModule:
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         # get_locator_module uses __file__ to locate the locator
         # module. We'll point it to a temporary directory so that
         # we can control what files we test against.
@@ -57,7 +56,7 @@ class TestGetLocatorModule(unittest.TestCase):
         cls.patched_utils.start()
 
     @classmethod
-    def tearDownClass(cls):
+    def teardown_class(cls):
         shutil.rmtree(cls.tempdir)
         cls.patched_utils.stop()
 

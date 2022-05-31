@@ -1,10 +1,10 @@
-from unittest.mock import Mock
 import base64
 import io
 import json
 import os
 import pathlib
 import zipfile
+from unittest.mock import Mock
 
 import pytest
 
@@ -13,6 +13,7 @@ from cumulusci.tasks.salesforce.org_settings import (
     build_settings_package,
 )
 from cumulusci.utils import temporary_dir
+
 from .util import create_task
 
 
@@ -274,8 +275,13 @@ class TestBuildSettingsPackage:
     </nested>
 </OtherSettings>"""
             )
+
+            rm_ws = "".maketrans("", "", " \t \n")
+
             assert (
-                (pathlib.Path(path) / "objects" / "Account.object").read_text()
+                (pathlib.Path(path) / "objects" / "Account.object")
+                .read_text()
+                .translate(rm_ws)
                 == """<?xml version="1.0" encoding="UTF-8"?>
 <Object xmlns="http://soap.sforce.com/2006/04/metadata">
     <sharingModel>Public</sharingModel>
@@ -283,15 +289,15 @@ class TestBuildSettingsPackage:
         <fullName>Default</fullName>
         <label>Default</label>
         <active>true</active>
-        
     </recordTypes>
-        
-
-</Object>"""
+</Object>""".translate(
+                    rm_ws
+                )
             )
-            print((pathlib.Path(path) / "objects" / "Solution.object").read_text())
             assert (
-                (pathlib.Path(path) / "objects" / "Solution.object").read_text()
+                (pathlib.Path(path) / "objects" / "Solution.object")
+                .read_text()
+                .translate(rm_ws)
                 == """<?xml version="1.0" encoding="UTF-8"?>
 <Object xmlns="http://soap.sforce.com/2006/04/metadata">
 
@@ -301,14 +307,15 @@ class TestBuildSettingsPackage:
         <active>true</active>
         <businessProcess>DefaultSolution</businessProcess>
     </recordTypes>
-        
+
     <businessProcesses>
         <fullName>DefaultSolution</fullName>
         <isActive>true</isActive>
         <values>
             <fullName>Draft</fullName>
-            
         </values>
     </businessProcesses>
-</Object>"""
+</Object>""".translate(
+                    rm_ws
+                )
             )

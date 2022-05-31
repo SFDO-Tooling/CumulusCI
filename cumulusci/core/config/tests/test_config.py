@@ -2,7 +2,6 @@
 import json
 import os
 import pathlib
-import unittest
 from distutils.version import StrictVersion
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -48,67 +47,86 @@ from cumulusci.utils import temporary_dir, touch
 from cumulusci.utils.yaml.cumulusci_yml import GitHubSourceModel, LocalFolderSourceModel
 
 
-class TestBaseConfig(unittest.TestCase):
+class FakeConfig(BaseConfig):
+    foo: dict
+
+
+class TestBaseConfig:
     def test_getattr_toplevel_key(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {"foo": "bar"}
-        self.assertEqual(config.foo, "bar")
+        assert config.foo == "bar"
 
     def test_getattr_toplevel_key_missing(self):
         config = BaseConfig()
         config.config = {}
-        self.assertEqual(config.foo, None)
+        with mock.patch(
+            "cumulusci.core.config.base_config.STRICT_GETATTR", False
+        ), pytest.warns(DeprecationWarning, match="foo"):
+            assert config.foo is None
+        with mock.patch(
+            "cumulusci.core.config.base_config.STRICT_GETATTR", True
+        ), pytest.raises(AssertionError):
+            assert config.foo is None
 
     def test_getattr_child_key(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {"foo": {"bar": "baz"}}
-        self.assertEqual(config.foo__bar, "baz")
+        assert config.foo__bar == "baz"
+
+    def test_strict_getattr(self):
+        config = FakeConfig()
+        config.config = {"foo": {"bar": "baz"}}
+        with mock.patch(
+            "cumulusci.core.config.base_config.STRICT_GETATTR", "True"
+        ), mock.patch("warnings.warn"), pytest.raises(AssertionError):
+            print(config.jfiesojfieoj)
 
     def test_getattr_child_parent_key_missing(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {}
-        self.assertEqual(config.foo__bar, None)
+        assert config.foo__bar is None
 
     def test_getattr_child_key_missing(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {"foo": {}}
-        self.assertEqual(config.foo__bar, None)
+        assert config.foo__bar is None
 
     def test_getattr_default_toplevel(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {"foo": "bar"}
         config.defaults = {"foo": "default"}
-        self.assertEqual(config.foo, "bar")
+        assert config.foo == "bar"
 
     def test_getattr_default_toplevel_missing_default(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {"foo": "bar"}
         config.defaults = {}
-        self.assertEqual(config.foo, "bar")
+        assert config.foo == "bar"
 
     def test_getattr_default_toplevel_missing_config(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {}
         config.defaults = {"foo": "default"}
-        self.assertEqual(config.foo, "default")
+        assert config.foo == "default"
 
     def test_getattr_default_child(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {"foo": {"bar": "baz"}}
         config.defaults = {"foo__bar": "default"}
-        self.assertEqual(config.foo__bar, "baz")
+        assert config.foo__bar == "baz"
 
     def test_getattr_default_child_missing_default(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {"foo": {"bar": "baz"}}
         config.defaults = {}
-        self.assertEqual(config.foo__bar, "baz")
+        assert config.foo__bar == "baz"
 
     def test_getattr_default_child_missing_config(self):
-        config = BaseConfig()
+        config = FakeConfig()
         config.config = {}
         config.defaults = {"foo__bar": "default"}
-        self.assertEqual(config.foo__bar, "default")
+        assert config.foo__bar == "default"
 
 
 class DummyContents(object):
@@ -126,12 +144,14 @@ class DummyRepository(mock.Mock):
     default_branch = "main"
     _api = "http://"
 
-    def __init__(self, owner, name, contents, releases=None, commits=None):
+    def __init__(self, owner, name, contents, releases=None, commits=None, **kwargs):
+        """Passing kwargs to workaround python/cpython#83759"""
         super().__init__()
         self.owner = owner
         self.name = name
         self.html_url = f"https://github.com/{owner}/{name}"
         self.clone_url = self.html_url
+        self.session = mock.MagicMock()
         self._contents = contents
         self._releases = releases or []
         self._commits = commits or []
@@ -208,7 +228,7 @@ class DummyGithub(object):
             raise AssertionError(f"Unexpected repository: {name}")
 
 
-class TestBaseProjectConfig(unittest.TestCase):
+class TestBaseProjectConfig:
     maxDiff = None
 
     def _make_github(self):
@@ -282,12 +302,12 @@ class TestBaseProjectConfig(unittest.TestCase):
         universal_config = UniversalConfig()
         universal_config.config_global = {}
         config = BaseProjectConfig(universal_config)
-        self.assertIs(universal_config.config_global, config.config_global)
+        assert universal_config.config_global is config.config_global
 
     def test_config_universal(self):
         universal_config = UniversalConfig()
         config = BaseProjectConfig(universal_config)
-        self.assertIs(universal_config.config_universal, config.config_universal)
+        assert universal_config.config_universal is config.config_universal
 
     def test_repo_info(self):
         env = {
@@ -303,18 +323,15 @@ class TestBaseProjectConfig(unittest.TestCase):
         with mock.patch.dict(os.environ, env):
             config = BaseProjectConfig(UniversalConfig())
             result = config.repo_info
-        self.assertEqual(
-            {
-                "ci": "heroku",
-                "name": "CumulusCI-Test",
-                "owner": "SFDO-Tooling",
-                "branch": "feature/test",
-                "commit": "HEAD~1",
-                "root": ".",
-                "url": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
-            },
-            result,
-        )
+        assert {
+            "ci": "heroku",
+            "name": "CumulusCI-Test",
+            "owner": "SFDO-Tooling",
+            "branch": "feature/test",
+            "commit": "HEAD~1",
+            "root": ".",
+            "url": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
+        } == result
 
     def test_repo_info_missing_env(self):
         env = {
@@ -327,38 +344,43 @@ class TestBaseProjectConfig(unittest.TestCase):
             "CUMULUSCI_REPO_ROOT": ".",
         }
         with mock.patch.dict(os.environ, env):
-            with self.assertRaises(ConfigError):
+            with pytest.raises(ConfigError):
                 config = BaseProjectConfig(UniversalConfig())
                 config.repo_info
 
     def test_repo_root_from_env(self):
         config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"root": "."}
-        self.assertEqual(".", config.repo_root)
+        assert config.repo_root == "."
 
     def test_repo_name_from_repo_info(self):
         config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"name": "CumulusCI"}
-        self.assertEqual("CumulusCI", config.repo_name)
+        assert config.repo_name == "CumulusCI"
 
     def test_repo_name_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
-            self.assertIsNone(config.repo_name)
+            assert config.repo_name is None
 
     def test_repo_name_from_git(self):
         config = BaseProjectConfig(UniversalConfig())
-        self.assertEqual("CumulusCI", config.repo_name)
+        assert config.repo_name == "CumulusCI"
 
     def test_repo_url_from_repo_info(self):
         config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"url": "https://github.com/SFDO-Tooling/CumulusCI"}
-        self.assertEqual("https://github.com/SFDO-Tooling/CumulusCI", config.repo_url)
+        assert config.repo_url == "https://github.com/SFDO-Tooling/CumulusCI"
+
+    def test_lookup_repo_branch(self):
+        config = BaseProjectConfig(UniversalConfig())
+        config._repo_info = {"branch": "foo-bar-baz"}
+        assert config.lookup("repo_branch") == "foo-bar-baz"
 
     def test_repo_url_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
-            self.assertIsNone(config.repo_url)
+            assert config.repo_url is None
 
     @mock.patch("cumulusci.core.config.project_config.git_path")
     def test_repo_url_from_git(self, git_path):
@@ -376,32 +398,32 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_repo_owner_from_repo_info(self):
         config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"owner": "SFDO-Tooling"}
-        self.assertEqual("SFDO-Tooling", config.repo_owner)
+        assert config.repo_owner == "SFDO-Tooling"
 
     def test_repo_owner_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
-            self.assertIsNone(config.repo_owner)
+            assert config.repo_owner is None
 
     def test_repo_branch_from_repo_info(self):
         config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"branch": "main"}
-        self.assertEqual("main", config.repo_branch)
+        assert config.repo_branch == "main"
 
     def test_repo_branch_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
-            self.assertIsNone(config.repo_branch)
+            assert config.repo_branch is None
 
     def test_repo_commit_from_repo_info(self):
         config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"commit": "abcdef"}
-        self.assertEqual("abcdef", config.repo_commit)
+        assert config.repo_commit == "abcdef"
 
     def test_repo_commit_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
-            self.assertIsNone(config.repo_commit)
+            assert config.repo_commit is None
 
     def test_repo_commit_no_repo_branch(self):
         config = BaseProjectConfig(UniversalConfig())
@@ -425,7 +447,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                     "8ce67f4519190cd1ec9785105168e21b9599bc27 refs/remotes/origin/main\n"
                 )
 
-            self.assertIsNotNone(config.repo_commit)
+            assert config.repo_commit is not None
 
     def test_get_repo_from_url(self):
         config = BaseProjectConfig(
@@ -454,7 +476,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_latest_tag()
-        self.assertEqual("release/1.1", result)
+        assert result == "release/1.1"
 
     def test_get_latest_tag_matching_prefix(self):
         config = BaseProjectConfig(
@@ -467,7 +489,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
         config.get_github_api = mock.Mock(return_value=github)
         result = config.get_latest_tag()
-        self.assertEqual("rel/0.9", result)
+        assert result == "rel/0.9"
 
     def test_get_latest_tag_beta(self):
         config = BaseProjectConfig(
@@ -480,7 +502,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_latest_tag(beta=True)
-        self.assertEqual("beta/1.0-Beta_2", result)
+        assert result == "beta/1.0-Beta_2"
 
     def test_get_latest_tag__beta_not_found(self):
         config = BaseProjectConfig(UniversalConfig())
@@ -517,7 +539,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_latest_version()
-        self.assertEqual("1.1", result)
+        assert result == "1.1"
 
     def test_get_latest_version_beta(self):
         config = BaseProjectConfig(
@@ -530,7 +552,7 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_latest_version(beta=True)
-        self.assertEqual("1.0 (Beta 2)", result)
+        assert result == "1.0 (Beta 2)"
 
     def test_get_previous_version(self):
         config = BaseProjectConfig(
@@ -543,33 +565,28 @@ class TestBaseProjectConfig(unittest.TestCase):
         )
         config.get_github_api = mock.Mock(return_value=self._make_github())
         result = config.get_previous_version()
-        self.assertEqual("1.0", result)
+        assert result == "1.0"
 
     def test_config_project_path_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
-            self.assertIsNone(config.config_project_path)
+            assert config.config_project_path is None
 
     def test_get_tag_for_version(self):
         config = BaseProjectConfig(
             UniversalConfig(), {"project": {"git": {"prefix_release": "release/"}}}
         )
-        self.assertEqual("beta/1.0", config.get_tag_for_version("beta/", "1.0"))
+        assert config.get_tag_for_version("beta/", "1.0") == "beta/1.0"
 
     def test_get_tag_for_version__1gp_beta(self):
         config = BaseProjectConfig(
             UniversalConfig(), {"project": {"git": {"prefix_beta": "beta/"}}}
         )
-        self.assertEqual(
-            "beta/1.0-Beta_1", config.get_tag_for_version("beta/", "1.0 (Beta 1)")
-        )
+        assert config.get_tag_for_version("beta/", "1.0 (Beta 1)") == "beta/1.0-Beta_1"
 
     def test_get_tag_for_version__with_tag_prefix_option(self):
         config = BaseProjectConfig(UniversalConfig(), {})
-        self.assertEqual(
-            "custom/1.0",
-            config.get_tag_for_version("custom/", "1.0"),
-        )
+        assert config.get_tag_for_version("custom/", "1.0") == "custom/1.0"
 
     def test_get_version_for_tag(self):
         config = BaseProjectConfig(
@@ -580,7 +597,7 @@ class TestBaseProjectConfig(unittest.TestCase):
                 }
             },
         )
-        self.assertEqual("1.0", config.get_version_for_tag("release/1.0"))
+        assert config.get_version_for_tag("release/1.0") == "1.0"
 
     def test_get_version_for_tag_invalid_beta(self):
         config = BaseProjectConfig(
@@ -591,11 +608,11 @@ class TestBaseProjectConfig(unittest.TestCase):
                 }
             },
         )
-        self.assertEqual(None, config.get_version_for_tag("beta/invalid-format"))
+        assert config.get_version_for_tag("beta/invalid-format") is None
 
     def test_check_keychain(self):
         config = BaseProjectConfig(UniversalConfig())
-        with self.assertRaises(KeychainNotFound):
+        with pytest.raises(KeychainNotFound):
             config._check_keychain()
 
     def test_get_task__included_source(self):
@@ -603,7 +620,9 @@ class TestBaseProjectConfig(unittest.TestCase):
         with temporary_dir() as d:
             touch("cumulusci.yml")
             project_config = BaseProjectConfig(
-                universal_config, {"sources": {"test": {"path": d}}}
+                universal_config,
+                {"sources": {"test": {"path": d}}},
+                repo_info={"root": Path(__file__).parent.absolute()},
             )
             task_config = project_config.get_task("test:log")
         assert task_config.project_config is not project_config
@@ -614,7 +633,9 @@ class TestBaseProjectConfig(unittest.TestCase):
         with temporary_dir() as d:
             touch("cumulusci.yml")
             project_config = BaseProjectConfig(
-                universal_config, {"sources": {"test": {"path": d}}}
+                universal_config,
+                {"sources": {"test": {"path": d}}},
+                repo_info={"root": Path(__file__).parent.absolute()},
             )
             flow_config = project_config.get_flow("test:dev_org")
         assert flow_config.project_config is not project_config
@@ -623,7 +644,7 @@ class TestBaseProjectConfig(unittest.TestCase):
     def test_get_namespace__not_found(self):
         universal_config = UniversalConfig()
         project_config = BaseProjectConfig(universal_config)
-        with self.assertRaises(NamespaceNotFoundError):
+        with pytest.raises(NamespaceNotFoundError):
             project_config.get_namespace("test")
 
     def test_include_source__bad_spec(self):
@@ -636,7 +657,10 @@ class TestBaseProjectConfig(unittest.TestCase):
 
     def test_include_source__cached(self):
         universal_config = UniversalConfig()
-        project_config = BaseProjectConfig(universal_config)
+        project_config = BaseProjectConfig(
+            universal_config,
+            repo_info={"root": os.getcwd()},
+        )
         with temporary_dir() as d:
             touch("cumulusci.yml")
             other1 = project_config.include_source(LocalFolderSourceModel(path=d))
@@ -743,8 +767,8 @@ class TestBaseProjectConfig(unittest.TestCase):
             )
 
 
-class TestBaseTaskFlowConfig(unittest.TestCase):
-    def setUp(self):
+class TestBaseTaskFlowConfig:
+    def setup_method(self):
         self.task_flow_config = BaseTaskFlowConfig(
             {
                 "tasks": {
@@ -762,14 +786,14 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
 
     def test_list_tasks(self):
         tasks = self.task_flow_config.list_tasks()
-        self.assertEqual(len(tasks), 4)
+        assert len(tasks) == 4
         deploy = [task for task in tasks if task["name"] == "deploy"][0]
-        self.assertEqual(deploy["description"], "Deploy Task")
+        assert deploy["description"] == "Deploy Task"
 
     def test_get_task(self):
         task = self.task_flow_config.get_task("deploy")
-        self.assertIsInstance(task, BaseConfig)
-        self.assertIn(("description", "Deploy Task"), task.config.items())
+        assert isinstance(task, BaseConfig)
+        assert ("description", "Deploy Task") in task.config.items()
 
     def test_get_task__no_class_path(self):
         with pytest.raises(
@@ -797,27 +821,27 @@ class TestBaseTaskFlowConfig(unittest.TestCase):
 
     def test_get_flow(self):
         flow = self.task_flow_config.get_flow("coffee")
-        self.assertIsInstance(flow, BaseConfig)
-        self.assertIn(("description", "Coffee Flow"), flow.config.items())
+        assert isinstance(flow, BaseConfig)
+        assert ("description", "Coffee Flow") in flow.config.items()
 
     def test_no_flow(self):
-        with self.assertRaises(FlowNotFoundError):
+        with pytest.raises(FlowNotFoundError):
             self.task_flow_config.get_flow("water")
 
     def test_list_flows(self):
         flows = self.task_flow_config.list_flows()
-        self.assertEqual(len(flows), 2)
+        assert len(flows) == 2
         coffee = [flow for flow in flows if flow["name"] == "coffee"][0]
-        self.assertEqual(coffee["description"], "Coffee Flow")
+        assert coffee["description"] == "Coffee Flow"
 
     def test_suggested_name(self):
         flows = self.task_flow_config.flows
-        self.assertEqual(len(flows), 2)
+        assert len(flows) == 2
         error_msg = self.task_flow_config.get_suggested_name("bofee", flows)
-        self.assertIn("coffee", error_msg)
+        assert "coffee" in error_msg
 
 
-class TestOrgConfig(unittest.TestCase):
+class TestOrgConfig:
     @mock.patch("cumulusci.core.config.OrgConfig.OAuth2Client")
     def test_refresh_oauth_token(self, OAuth2Client):
         config = OrgConfig(
@@ -900,7 +924,7 @@ class TestOrgConfig(unittest.TestCase):
 
     def test_refresh_oauth_token_no_connected_app(self):
         config = OrgConfig({}, "test")
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             config.refresh_oauth_token(None)
 
     def test_refresh_oauth_token__bad_connected_app(self):
@@ -986,17 +1010,17 @@ class TestOrgConfig(unittest.TestCase):
 
     def test_lightning_base_url__instance(self):
         config = OrgConfig({"instance_url": "https://na01.salesforce.com"}, "test")
-        self.assertEqual("https://na01.lightning.force.com", config.lightning_base_url)
+        assert config.lightning_base_url == "https://na01.lightning.force.com"
 
     def test_lightning_base_url__scratch_org(self):
         config = OrgConfig(
             {"instance_url": "https://foo.cs42.my.salesforce.com"}, "test"
         )
-        self.assertEqual("https://foo.lightning.force.com", config.lightning_base_url)
+        assert config.lightning_base_url == "https://foo.lightning.force.com"
 
     def test_lightning_base_url__mydomain(self):
         config = OrgConfig({"instance_url": "https://foo.my.salesforce.com"}, "test")
-        self.assertEqual("https://foo.lightning.force.com", config.lightning_base_url)
+        assert config.lightning_base_url == "https://foo.lightning.force.com"
 
     @responses.activate
     def test_get_salesforce_version(self):
@@ -1032,18 +1056,18 @@ class TestOrgConfig(unittest.TestCase):
             {"instance_url": "https://na01.salesforce.com", "access_token": "TOKEN"},
             "test",
         )
-        self.assertEqual(
-            "https://na01.salesforce.com/secur/frontdoor.jsp?sid=TOKEN",
-            config.start_url,
+        assert (
+            "https://na01.salesforce.com/secur/frontdoor.jsp?sid=TOKEN"
+            == config.start_url
         )
 
     def test_user_id(self):
         config = OrgConfig({"id": "org/user"}, "test")
-        self.assertEqual("user", config.user_id)
+        assert config.user_id == "user"
 
     def test_can_delete(self):
         config = OrgConfig({}, "test")
-        self.assertFalse(config.can_delete())
+        assert not config.can_delete()
 
     @responses.activate
     def test_load_orginfo(self):
@@ -1072,9 +1096,9 @@ class TestOrgConfig(unittest.TestCase):
 
         config._load_orginfo()
 
-        self.assertEqual("Enterprise Edition", config.org_type)
-        self.assertEqual(False, config.is_sandbox)
-        self.assertIsNotNone(config.organization_sobject)
+        assert config.org_type == "Enterprise Edition"
+        assert config.is_sandbox is False
+        assert config.organization_sobject is not None
         assert config.namespace == "ns"
 
     @responses.activate
@@ -1083,7 +1107,7 @@ class TestOrgConfig(unittest.TestCase):
         config = OrgConfig({}, "test")
         config._community_info_cache = {"Kōkua": {"name": "Kōkua"}}
         info = config.get_community_info("Kōkua")
-        self.assertEqual(info["name"], "Kōkua")
+        assert info["name"] == "Kōkua"
 
     @responses.activate
     def test_get_community_info__fetch_if_not_in_cache(self):
@@ -1105,7 +1129,7 @@ class TestOrgConfig(unittest.TestCase):
         )
         config._community_info_cache = {}
         info = config.get_community_info("Kōkua")
-        self.assertEqual(info["name"], "Kōkua")
+        assert info["name"] == "Kōkua"
 
     @mock.patch("cumulusci.core.config.OrgConfig._fetch_community_info")
     def test_community_info_force_refresh(self, mock_fetch):
@@ -1128,7 +1152,7 @@ class TestOrgConfig(unittest.TestCase):
         """Verify an exception is thrown when the community doesn't exist"""
         config = OrgConfig({}, "test")
         expected_exception = "Unable to find community information for 'bogus'"
-        with self.assertRaisesRegex(Exception, expected_exception):
+        with pytest.raises(Exception, match=expected_exception):
             config.get_community_info("bogus")
 
     MOCK_TOOLING_PACKAGE_RESULTS = [
@@ -1277,7 +1301,7 @@ class TestOrgConfig(unittest.TestCase):
 
         assert config.has_minimum_package_version("03350000000DEz4AAG", "3.119")
 
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             config.has_minimum_package_version("GW_Volunteers", "1.0")
 
     def test_orginfo_cache_dir_global(self):
@@ -1345,10 +1369,9 @@ class TestOrgConfig(unittest.TestCase):
             },
             "test",
         )
-        self.assertIsNone(
-            config._is_person_accounts_enabled,
-            "_is_person_accounts_enabled should be initialized as None",
-        )
+        assert (
+            config._is_person_accounts_enabled is None
+        ), "_is_person_accounts_enabled should be initialized as None"
 
         responses.add(
             "GET", "https://example.com/services/data", json=[{"version": 48.0}]
@@ -1363,15 +1386,13 @@ class TestOrgConfig(unittest.TestCase):
         # Verify checks describe if _is_person_accounts_enabled is None.
         actual = config.is_person_accounts_enabled
 
-        self.assertEqual(False, actual, "")
-        self.assertEqual(actual, config._is_person_accounts_enabled)
+        assert actual is False, ""
+        assert actual == config._is_person_accounts_enabled
 
         # Verify subsequent calls return cached value.
         config._is_person_accounts_enabled = True
 
-        self.assertEqual(
-            config._is_person_accounts_enabled, config.is_person_accounts_enabled
-        )
+        assert config._is_person_accounts_enabled == config.is_person_accounts_enabled
 
     @responses.activate
     def test_is_person_accounts_enabled__is_enabled(self):
@@ -1383,10 +1404,9 @@ class TestOrgConfig(unittest.TestCase):
             },
             "test",
         )
-        self.assertIsNone(
-            config._is_person_accounts_enabled,
-            "_is_person_accounts_enabled should be initialized as None",
-        )
+        assert (
+            config._is_person_accounts_enabled is None
+        ), "_is_person_accounts_enabled should be initialized as None"
 
         responses.add(
             "GET", "https://example.com/services/data", json=[{"version": 48.0}]
@@ -1401,15 +1421,13 @@ class TestOrgConfig(unittest.TestCase):
         # Verify checks describe if _is_person_accounts_enabled is None.
         actual = config.is_person_accounts_enabled
 
-        self.assertEqual(True, actual, "")
-        self.assertEqual(actual, config._is_person_accounts_enabled)
+        assert actual is True, ""
+        assert actual == config._is_person_accounts_enabled
 
         # Verify subsequent calls return cached value.
         config._is_person_accounts_enabled = False
 
-        self.assertEqual(
-            config._is_person_accounts_enabled, config.is_person_accounts_enabled
-        )
+        assert config._is_person_accounts_enabled == config.is_person_accounts_enabled
 
     @responses.activate
     def test_is_multi_currency_enabled__not_enabled(self):

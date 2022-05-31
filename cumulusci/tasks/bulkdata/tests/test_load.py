@@ -5,9 +5,9 @@ import random
 import shutil
 import string
 import tempfile
-import unittest
 from contextlib import nullcontext
 from datetime import date, timedelta
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -30,11 +30,15 @@ from cumulusci.tasks.bulkdata.tests.utils import (
     FakeBulkAPIDmlOperation,
     _make_task,
 )
-from cumulusci.tests.util import assert_max_memory_usage, mock_describe_calls
+from cumulusci.tests.util import (
+    CURRENT_SF_API_VERSION,
+    assert_max_memory_usage,
+    mock_describe_calls,
+)
 from cumulusci.utils import temporary_dir
 
 
-class TestLoadData(unittest.TestCase):
+class TestLoadData:
     mapping_file = "mapping_v1.yml"
 
     @responses.activate
@@ -42,7 +46,7 @@ class TestLoadData(unittest.TestCase):
     def test_run(self, dml_mock):
         responses.add(
             method="GET",
-            url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )
@@ -178,7 +182,7 @@ class TestLoadData(unittest.TestCase):
                 DataOperationJobResult(DataOperationStatus.JOB_FAILURE, [], 0, 0),
             ]
         )
-        with self.assertRaises(BulkDataException):
+        with pytest.raises(BulkDataException):
             task()
 
     @responses.activate
@@ -186,7 +190,7 @@ class TestLoadData(unittest.TestCase):
     def test_run__sql(self, dml_mock):
         responses.add(
             method="GET",
-            url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )
@@ -230,7 +234,7 @@ class TestLoadData(unittest.TestCase):
         ]
 
     def test_init_options__missing_input(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             _make_task(LoadData, {"options": {}})
 
     def test_init_options__bulk_mode(self):
@@ -255,7 +259,7 @@ class TestLoadData(unittest.TestCase):
         assert t.bulk_mode is None
 
     def test_init_options__bulk_mode_wrong(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             _make_task(LoadData, {"options": {"bulk_mode": "Test"}})
 
     def test_init_options__database_url(self):
@@ -291,11 +295,12 @@ class TestLoadData(unittest.TestCase):
             },
         )
 
+        t._init_task()
         t._init_mapping()
 
         validate_and_inject_mapping.assert_called_once_with(
             mapping=t.mapping,
-            org_config=t.org_config,
+            sf=t.sf,
             namespace=t.project_config.project__package__namespace,
             data_operation=DataOperationType.INSERT,
             inject_namespaces=True,
@@ -312,6 +317,7 @@ class TestLoadData(unittest.TestCase):
         )
 
         mock_describe_calls()
+        task._init_task()
         task._init_mapping()
 
         model = mock.Mock()
@@ -321,20 +327,17 @@ class TestLoadData(unittest.TestCase):
 
         task._expand_mapping()
 
-        self.assertEqual({}, task.after_steps["Insert Opportunities"])
-        self.assertEqual(
-            [
-                "Update Account Dependencies After Insert Contacts",
-                "Update Contact Dependencies After Insert Contacts",
-            ],
-            list(task.after_steps["Insert Contacts"].keys()),
-        )
+        assert {} == task.after_steps["Insert Opportunities"]
+        assert [
+            "Update Account Dependencies After Insert Contacts",
+            "Update Contact Dependencies After Insert Contacts",
+        ] == list(task.after_steps["Insert Contacts"].keys())
         lookups = {}
         lookups["Id"] = MappingLookup(name="Id", table="accounts", key_field="sf_id")
         lookups["Primary_Contact__c"] = MappingLookup(
             table="contacts", name="Primary_Contact__c"
         )
-        self.assertEqual(
+        assert (
             MappingStep(
                 sf_object="Account",
                 api=DataApi.BULK,
@@ -342,15 +345,15 @@ class TestLoadData(unittest.TestCase):
                 table="accounts",
                 lookups=lookups,
                 fields={},
-            ),
-            task.after_steps["Insert Contacts"][
+            )
+            == task.after_steps["Insert Contacts"][
                 "Update Account Dependencies After Insert Contacts"
-            ],
+            ]
         )
         lookups = {}
         lookups["Id"] = MappingLookup(name="Id", table="contacts", key_field="sf_id")
         lookups["ReportsToId"] = MappingLookup(table="contacts", name="ReportsToId")
-        self.assertEqual(
+        assert (
             MappingStep(
                 sf_object="Contact",
                 api=DataApi.BULK,
@@ -358,19 +361,18 @@ class TestLoadData(unittest.TestCase):
                 table="contacts",
                 fields={},
                 lookups=lookups,
-            ),
-            task.after_steps["Insert Contacts"][
+            )
+            == task.after_steps["Insert Contacts"][
                 "Update Contact Dependencies After Insert Contacts"
-            ],
+            ]
         )
-        self.assertEqual(
-            ["Update Account Dependencies After Insert Accounts"],
-            list(task.after_steps["Insert Accounts"].keys()),
+        assert ["Update Account Dependencies After Insert Accounts"] == list(
+            task.after_steps["Insert Accounts"].keys()
         )
         lookups = {}
         lookups["Id"] = MappingLookup(name="Id", table="accounts", key_field="sf_id")
         lookups["ParentId"] = MappingLookup(table="accounts", name="ParentId")
-        self.assertEqual(
+        assert (
             MappingStep(
                 sf_object="Account",
                 api=DataApi.BULK,
@@ -378,10 +380,10 @@ class TestLoadData(unittest.TestCase):
                 table="accounts",
                 fields={},
                 lookups=lookups,
-            ),
-            task.after_steps["Insert Accounts"][
+            )
+            == task.after_steps["Insert Accounts"][
                 "Update Account Dependencies After Insert Accounts"
-            ],
+            ]
         )
 
     def test_stream_queried_data__skips_empty_rows(self):
@@ -418,10 +420,10 @@ class TestLoadData(unittest.TestCase):
             records = list(
                 task._stream_queried_data(mapping, local_ids, task._query_db(mapping))
             )
-            self.assertEqual(
-                [["001000000005", "001000000007"], ["001000000006", "001000000008"]],
-                records,
-            )
+            assert [
+                ["001000000005", "001000000007"],
+                ["001000000006", "001000000008"],
+            ] == records
 
     @responses.activate
     def test_stream_queried_data__adjusts_relative_dates(self):
@@ -429,8 +431,7 @@ class TestLoadData(unittest.TestCase):
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
         )
-        task.sf = mock.Mock()
-
+        task._init_task()
         mapping = MappingStep(
             sf_object="Contact",
             action="insert",
@@ -451,10 +452,7 @@ class TestLoadData(unittest.TestCase):
         records = list(
             task._stream_queried_data(mapping, local_ids, task._query_db(mapping))
         )
-        self.assertEqual(
-            [[(date.today() + timedelta(days=9)).isoformat()], [None]],
-            records,
-        )
+        assert [[(date.today() + timedelta(days=9)).isoformat()], [None]] == records
 
     def test_get_statics(self):
         task = _make_task(
@@ -463,16 +461,13 @@ class TestLoadData(unittest.TestCase):
         task.sf = mock.Mock()
         task.sf.query.return_value = {"records": [{"Id": "012000000000000"}]}
 
-        self.assertEqual(
-            ["Technology", "012000000000000"],
-            task._get_statics(
-                MappingStep(
-                    sf_object="Account",
-                    fields={"Id": "sf_id", "Name": "Name"},
-                    static={"Industry": "Technology"},
-                    record_type="Organization",
-                )
-            ),
+        assert ["Technology", "012000000000000"] == task._get_statics(
+            MappingStep(
+                sf_object="Account",
+                fields={"Id": "sf_id", "Name": "Name"},
+                static={"Industry": "Technology"},
+                record_type="Organization",
+            )
         )
 
     def test_get_statics_record_type_not_matched(self):
@@ -481,7 +476,7 @@ class TestLoadData(unittest.TestCase):
         )
         task.sf = mock.Mock()
         task.sf.query.return_value = {"records": []}
-        with self.assertRaises(BulkDataException) as e:
+        with pytest.raises(BulkDataException) as e:
             task._get_statics(
                 MappingStep(
                     sf_object="Account",
@@ -491,146 +486,78 @@ class TestLoadData(unittest.TestCase):
                     record_type="Organization",
                 )
             ),
-        assert "RecordType" in str(e.exception)
+        assert "RecordType" in str(e.value)
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
-    def test_query_db__joins_self_lookups(self, aliased):
-        task = _make_task(
-            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
-        )
-        model = mock.Mock()
-        task.models = {"accounts": model}
-        task.metadata = mock.Mock()
-        task.metadata.tables = {"accounts_sf_ids": mock.Mock()}
-        task.session = mock.Mock()
-
-        model.__table__ = mock.Mock()
-        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
-        columns = {"sf_id": mock.Mock(), "name": mock.Mock()}
-        model.__table__.columns = columns
-
-        mapping = MappingStep(
-            sf_object="Account",
-            table="accounts",
-            action=DataOperationType.UPDATE,
-            fields={"Id": "sf_id", "Name": "name"},
-            lookups={
-                "ParentId": MappingLookup(
-                    table="accounts", key_field="parent_id", name="ParentId"
-                )
-            },
+    def test_query_db__joins_self_lookups(self):
+        _validate_query_for_mapping_step(
+            sql_path=Path(__file__).parent / "test_query_db__joins_self_lookups.sql",
+            mapping=Path(__file__).parent / "test_query_db__joins_self_lookups.yml",
+            mapping_step_name="Update Accounts",
+            expected="""SELECT accounts.sf_id AS accounts_sf_id, accounts."Name" AS "accounts_Name", accounts_sf_ids_1.sf_id AS accounts_sf_ids_1_sf_id
+FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_sf_ids_1.id = accounts.parent_id ORDER BY accounts.parent_id
+        """,
         )
 
-        task._query_db(mapping)
-
-        # Validate that the column set is accurate
-        task.session.query.assert_called_once_with(
-            model.sf_id,
-            model.__table__.columns["name"],
-            aliased.return_value.columns.sf_id,
+    @responses.activate
+    def test_query_db__person_accounts_enabled__account_mapping(self):
+        responses.add(
+            method="GET",
+            url="https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
+            status=200,
+        )
+        responses.add(
+            method="GET",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Account/describe",
+            json={"fields": [{"name": "Id"}, {"name": "IsPersonAccount"}]},
         )
 
-        # Validate that we asked for an outer join on the self-lookup
-        aliased.assert_called_once_with(task.metadata.tables["accounts_sf_ids"])
-        task.session.query.return_value.outerjoin.assert_called_once_with(
-            aliased.return_value, False
+        _validate_query_for_mapping_step(
+            sql_path=Path(__file__).parent / "person_accounts.sql",
+            mapping=Path(__file__).parent / "update_person_accounts.yml",
+            mapping_step_name="Update Account",
+            expected="""SELECT
+                "Account".id AS "Account_id",
+                "Account"."FirstName" AS "Account_FirstName",
+                "Account"."LastName" AS "Account_LastName",
+                "Account"."PersonMailingStreet" AS "Account_PersonMailingStreet",
+                "Account"."PersonMailingCity" AS "Account_PersonMailingCity",
+                "Account"."PersonMailingState" AS "Account_PersonMailingState",
+                "Account"."PersonMailingCountry" AS "Account_PersonMailingCountry",
+                "Account"."PersonMailingPostalCode" AS "Account_PersonMailingPostalCode",
+                "Account"."PersonEmail" AS "Account_PersonEmail",
+                "Account"."Phone" AS "Account_Phone",
+                "Account"."PersonMobilePhone" AS "Account_PersonMobilePhone"
+                FROM "Account"
+        """,
         )
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
-    def test_query_db__person_accounts_enabled__account_mapping(self, aliased):
-        task = _make_task(
-            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
+    @responses.activate
+    def test_query_db__person_accounts_disabled__account_mapping(self):
+        responses.add(
+            method="GET",
+            url="https://example.com/services/data",
+            json=[{"version": CURRENT_SF_API_VERSION}],
+            status=200,
         )
-        model = mock.Mock()
-        task.models = {"accounts": model}
-        task.metadata = mock.Mock()
-        task.metadata.tables = {"accounts_sf_ids": mock.Mock()}
-        task.session = mock.Mock()
-        task._can_load_person_accounts = mock.Mock(return_value=True)
-        task._filter_out_person_account_records = mock.Mock()
-
-        model.__table__ = mock.Mock()
-        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
-        columns = {
-            "sf_id": mock.Mock(),
-            "name": mock.Mock(),
-            "IsPersonAccount": mock.Mock(),
-        }
-        model.__table__.columns = columns
-
-        mapping = MappingStep(
-            sf_object="Account",
-            table="accounts",
-            action=DataOperationType.UPDATE,
-            fields={"Id": "sf_id", "Name": "name"},
-            lookups={
-                "ParentId": MappingLookup(
-                    table="accounts", key_field="parent_id", name="ParentId"
-                )
-            },
+        responses.add(
+            method="GET",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Account/describe",
+            json={"fields": [{"name": "Id"}]},
         )
+        with pytest.raises(BulkDataException) as e:
+            _validate_query_for_mapping_step(
+                sql_path=Path(__file__).parent / "person_accounts.sql",
+                mapping=Path(__file__).parent / "update_person_accounts.yml",
+                mapping_step_name="Update Account",
+                expected="",
+            )
 
-        task._query_db(mapping)
+        assert "Person Account" in str(e.value)
 
-        # Validate that the column set is accurate
-        task.session.query.assert_called_once_with(
-            model.sf_id,
-            model.__table__.columns["name"],
-            aliased.return_value.columns.sf_id,
-        )
-
-        # Validate person account records were not filtered out
-        task._can_load_person_accounts.assert_not_called()
-        task._filter_out_person_account_records.assert_not_called()
-
-    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
-    def test_query_db__person_accounts_disabled__account_mapping(self, aliased):
-        task = _make_task(
-            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
-        )
-        model = mock.Mock()
-        task.models = {"accounts": model}
-        task.metadata = mock.Mock()
-        task.metadata.tables = {"accounts_sf_ids": mock.Mock()}
-        task.session = mock.Mock()
-        task._can_load_person_accounts = mock.Mock(return_value=False)
-        task._filter_out_person_account_records = mock.Mock()
-
-        model.__table__ = mock.Mock()
-        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
-        columns = {
-            "sf_id": mock.Mock(),
-            "name": mock.Mock(),
-            "IsPersonAccount": mock.Mock(),
-        }
-        model.__table__.columns = columns
-
-        mapping = MappingStep(
-            sf_object="Account",
-            table="accounts",
-            action=DataOperationType.UPDATE,
-            fields={"Id": "sf_id", "Name": "name"},
-            lookups={
-                "ParentId": MappingLookup(
-                    table="accounts", key_field="parent_id", name="ParentId"
-                )
-            },
-        )
-
-        task._query_db(mapping)
-
-        # Validate that the column set is accurate
-        task.session.query.assert_called_once_with(
-            model.sf_id,
-            model.__table__.columns["name"],
-            aliased.return_value.columns.sf_id,
-        )
-
-        # Validate person account records were not filtered out
-        task._can_load_person_accounts.assert_not_called()
-        task._filter_out_person_account_records.assert_not_called()
-
-    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
+    # This test should be rewritten into a light-mocking style but creating the
+    # sample data is non-trivial work that might require some collaboration
+    @mock.patch("cumulusci.tasks.bulkdata.query_transformers.aliased")
     def test_query_db__person_accounts_enabled__contact_mapping(self, aliased):
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
@@ -644,13 +571,14 @@ class TestLoadData(unittest.TestCase):
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
-        task._filter_out_person_account_records = mock.Mock()
+        # task._filter_out_person_account_records = mock.Mock() # TODO: Replace this with a better test
 
         # Make mock query chainable
         task.session.query.return_value = task.session.query
         task.session.query.filter.return_value = task.session.query
         task.session.query.outerjoin.return_value = task.session.query
         task.session.query.order_by.return_value = task.session.query
+        task.session.query.add_columns.return_value = task.session.query
 
         model.__table__ = mock.Mock()
         model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
@@ -673,22 +601,31 @@ class TestLoadData(unittest.TestCase):
             },
         )
 
-        task._query_db(mapping)
+        query = task._query_db(mapping)
+        assert (
+            task.session.query == query
+        )  # check that query chaining from above worked.
 
+        query_columns, added_filters = _inspect_query(query)
         # Validate that the column set is accurate
-        task.session.query.assert_called_once_with(
+        assert query_columns == (
             model.sf_id,
             model.__table__.columns["name"],
             aliased.return_value.columns.sf_id,
         )
 
-        # Validate person contact records were not filtered out
-        task._can_load_person_accounts.assert_called_once_with(mapping)
-        task._filter_out_person_account_records.assert_called_once_with(
-            task.session.query.return_value, model
+        # Validate person contact records WERE filtered out
+        filter_out_contacts, *rest = added_filters
+        assert not rest
+        assert filter_out_contacts.right.value == "false"
+        assert (
+            added_filters[0].left.clause_expr.element.clauses[0].value
+            == columns["IsPersonAccount"]
         )
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
+    # This test should be rewritten into a light-mocking style but creating the
+    # sample data is non-trivial work that might require some collaboration
+    @mock.patch("cumulusci.tasks.bulkdata.query_transformers.aliased")
     def test_query_db__person_accounts_disabled__contact_mapping(self, aliased):
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
@@ -702,20 +639,21 @@ class TestLoadData(unittest.TestCase):
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=False)
-        task._filter_out_person_account_records = mock.Mock()
+        # task._filter_out_person_account_records = mock.Mock() # TODO: Replace this with a better test
 
         # Make mock query chainable
         task.session.query.return_value = task.session.query
         task.session.query.filter.return_value = task.session.query
         task.session.query.outerjoin.return_value = task.session.query
         task.session.query.order_by.return_value = task.session.query
+        task.session.query.add_columns.return_value = task.session.query
 
         model.__table__ = mock.Mock()
         model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
         columns = {
-            "sf_id": mock.Mock(),
-            "name": mock.Mock(),
-            "IsPersonAccount": mock.Mock(),
+            "sf_id": mock.Mock(name="contacts.sf_id"),
+            "name": mock.Mock(name="contacts.name"),
+            "IsPersonAccount": mock.Mock(name="contacts.IsPersonAccount"),
         }
         model.__table__.columns = columns
 
@@ -731,10 +669,20 @@ class TestLoadData(unittest.TestCase):
             },
         )
 
-        task._query_db(mapping)
+        query = task._query_db(mapping)
+
+        query_columns, added_filters = _inspect_query(query)
+
+        initialization_columns = task.session.query.mock_calls[0].args
+        added_columns = []
+        for call in task.session.query.mock_calls:
+            name, args, kwargs = call
+            if name == "add_columns":
+                added_columns.extend(args)
+        all_columns = initialization_columns + tuple(added_columns)
 
         # Validate that the column set is accurate
-        task.session.query.assert_called_once_with(
+        assert all_columns == (
             model.sf_id,
             model.__table__.columns["name"],
             aliased.return_value.columns.sf_id,
@@ -742,9 +690,12 @@ class TestLoadData(unittest.TestCase):
 
         # Validate person contact records were not filtered out
         task._can_load_person_accounts.assert_called_once_with(mapping)
-        task._filter_out_person_account_records.assert_not_called()
+        assert tuple(added_filters) == ()
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.aliased")
+    # This test should be rewritten into a light-mocking style but creating the
+    # sample data is non-trivial work that might require some collaboration
+
+    @mock.patch("cumulusci.tasks.bulkdata.query_transformers.aliased")
     def test_query_db__person_accounts_enabled__neither_account_nor_contact_mapping(
         self, aliased
     ):
@@ -760,13 +711,14 @@ class TestLoadData(unittest.TestCase):
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
-        task._filter_out_person_account_records = mock.Mock()
+        # task._filter_out_person_account_records = mock.Mock() # TODO: Replace this with a better test
 
         # Make mock query chainable
         task.session.query.return_value = task.session.query
         task.session.query.filter.return_value = task.session.query
         task.session.query.outerjoin.return_value = task.session.query
         task.session.query.order_by.return_value = task.session.query
+        task.session.query.add_columns.return_value = task.session.query
 
         model.__table__ = mock.Mock()
         model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
@@ -785,10 +737,11 @@ class TestLoadData(unittest.TestCase):
             },
         )
 
-        task._query_db(mapping)
+        query = task._query_db(mapping)
+        query_columns, added_filters = _inspect_query(query)
 
         # Validate that the column set is accurate
-        task.session.query.assert_called_once_with(
+        assert query_columns == (
             model.sf_id,
             model.__table__.columns["name"],
             aliased.return_value.columns.sf_id,
@@ -798,7 +751,7 @@ class TestLoadData(unittest.TestCase):
         task._can_load_person_accounts.assert_not_called()
 
         # Validate person contact records were not filtered out
-        task._filter_out_person_account_records.assert_not_called()
+        assert tuple(added_filters) == ()
 
     def test_initialize_id_table__already_exists(self):
         task = _make_task(
@@ -815,7 +768,7 @@ class TestLoadData(unittest.TestCase):
             id_table.create()
             task._initialize_id_table({"table": "test"}, True)
             new_id_table = task.metadata.tables["test_sf_ids"]
-            self.assertFalse(new_id_table is id_table)
+            assert not (new_id_table is id_table)
 
     def test_initialize_id_table__already_exists_and_should_not_reset_table(self):
         task = _make_task(
@@ -849,7 +802,7 @@ class TestLoadData(unittest.TestCase):
         )
         task.mapping = {"Test": MappingStep(sf_object="Account")}
 
-        with self.assertRaises(BulkDataException):
+        with pytest.raises(BulkDataException):
             task()
 
     def test_process_job_results__insert_success(self):
@@ -858,9 +811,9 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
 
-        task.session = mock.Mock()
+        task.session = mock.MagicMock()
+        task.metadata = mock.MagicMock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
 
@@ -876,11 +829,14 @@ class TestLoadData(unittest.TestCase):
         step.results = [DataOperationResult("001111111111111", True, None)]
 
         mapping = MappingStep(sf_object="Account")
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
         task._initialize_id_table.assert_called_once_with(mapping, True)
-        task._sql_bulk_insert_from_records.assert_called_once()
+        sql_bulk_insert_from_records.assert_called_once()
         task.session.commit.assert_called_once()
 
     def test_process_job_results__insert_rows_fail(self):
@@ -897,7 +853,6 @@ class TestLoadData(unittest.TestCase):
 
         task.session = mock.Mock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
         task.logger = mock.Mock()
@@ -923,11 +878,14 @@ class TestLoadData(unittest.TestCase):
         ]
 
         mapping = MappingStep(sf_object="Account", table="Account")
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_called_once()
         task._initialize_id_table.assert_called_once_with(mapping, True)
-        task._sql_bulk_insert_from_records.assert_not_called()
+        sql_bulk_insert_from_records.assert_not_called()
         task.session.commit.assert_called_once()
         assert len(task.logger.mock_calls) == 4
 
@@ -939,7 +897,6 @@ class TestLoadData(unittest.TestCase):
 
         task.session = mock.Mock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
 
@@ -955,11 +912,14 @@ class TestLoadData(unittest.TestCase):
         step.results = [DataOperationResult("001111111111111", True, None)]
 
         mapping = MappingStep(sf_object="Account", action=DataOperationType.UPDATE)
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._process_job_results(mapping, step, local_ids)
 
         task.session.connection.assert_not_called()
         task._initialize_id_table.assert_not_called()
-        task._sql_bulk_insert_from_records.assert_not_called()
+        sql_bulk_insert_from_records.assert_not_called()
         task.session.commit.assert_not_called()
 
     def test_process_job_results__exception_failure(self):
@@ -970,7 +930,6 @@ class TestLoadData(unittest.TestCase):
 
         task.session = mock.Mock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
 
@@ -988,11 +947,13 @@ class TestLoadData(unittest.TestCase):
 
         mapping = MappingStep(sf_object="Account", action=DataOperationType.UPDATE)
 
-        with self.assertRaises(BulkDataException) as ex:
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
+        ), pytest.raises(BulkDataException) as e:
             task._process_job_results(mapping, step, local_ids)
 
-        self.assertIn("Error on record with id", str(ex.exception))
-        self.assertIn("message", str(ex.exception))
+        assert "Error on record with id" in str(e.value)
+        assert "message" in str(e.value)
 
     def test_process_job_results__person_account_contact_ids__not_updated__mapping_action_not_insert(
         self,
@@ -1025,7 +986,6 @@ class TestLoadData(unittest.TestCase):
 
         task.session = mock.Mock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
         task._can_load_person_accounts = mock.Mock(
@@ -1052,7 +1012,8 @@ class TestLoadData(unittest.TestCase):
         )
         if account_id_lookup:
             mapping.lookups["AccountId"] = account_id_lookup
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch("cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"):
+            task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
 
@@ -1086,8 +1047,8 @@ class TestLoadData(unittest.TestCase):
         )
 
         task.session = mock.Mock()
+        task.metadata = mock.MagicMock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
         task._can_load_person_accounts = mock.Mock(
@@ -1114,7 +1075,8 @@ class TestLoadData(unittest.TestCase):
         )
         if account_id_lookup:
             mapping.lookups["AccountId"] = account_id_lookup
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch("cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"):
+            task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
 
@@ -1147,9 +1109,9 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": "mapping.yml"}},
         )
 
-        task.session = mock.Mock()
+        task.session = mock.MagicMock()
+        task.metadata = mock.MagicMock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
         task._can_load_person_accounts = mock.Mock(
@@ -1176,7 +1138,8 @@ class TestLoadData(unittest.TestCase):
         )
         if account_id_lookup:
             mapping.lookups["AccountId"] = account_id_lookup
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch("cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"):
+            task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
 
@@ -1210,8 +1173,8 @@ class TestLoadData(unittest.TestCase):
         )
 
         task.session = mock.Mock()
+        task.metadata = mock.MagicMock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
         task._can_load_person_accounts = mock.Mock(
@@ -1238,7 +1201,8 @@ class TestLoadData(unittest.TestCase):
         )
         if account_id_lookup:
             mapping.lookups["AccountId"] = account_id_lookup
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch("cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"):
+            task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_not_called()
 
@@ -1270,8 +1234,8 @@ class TestLoadData(unittest.TestCase):
         )
 
         task.session = mock.Mock()
+        task.metadata = mock.MagicMock()
         task._initialize_id_table = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.bulk = mock.Mock()
         task.sf = mock.Mock()
         task._can_load_person_accounts = mock.Mock(
@@ -1296,16 +1260,18 @@ class TestLoadData(unittest.TestCase):
             action=action,
             lookups={"AccountId": account_id_lookup},
         )
-
-        task._process_job_results(mapping, step, local_ids)
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.load.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._process_job_results(mapping, step, local_ids)
 
         task._generate_contact_id_map_for_person_accounts.assert_called_once_with(
             mapping, mapping.lookups["AccountId"], task.session.connection.return_value
         )
 
-        task._sql_bulk_insert_from_records.assert_called_with(
+        sql_bulk_insert_from_records.assert_called_with(
             connection=task.session.connection.return_value,
-            table=task._initialize_id_table.return_value,
+            table=task.metadata.tables[task._initialize_id_table.return_value],
             columns=("id", "sf_id"),
             record_iterable=task._generate_contact_id_map_for_person_accounts.return_value,
         )
@@ -1350,15 +1316,15 @@ class TestLoadData(unittest.TestCase):
             ]
         )
 
-        with self.assertRaises(BulkDataException) as ex:
+        with pytest.raises(BulkDataException) as e:
             list(
                 task._generate_results_id_map(
                     step, ["001000000000009", "001000000000010", "001000000000011"]
                 )
             )
 
-        self.assertIn("Error on record", str(ex.exception))
-        self.assertIn("001000000000010", str(ex.exception))
+        assert "Error on record" in str(e.value)
+        assert "001000000000010" in str(e.value)
 
     def test_generate_results_id_map__respects_silent_error_flag(self):
         task = _make_task(
@@ -1442,44 +1408,15 @@ class TestLoadData(unittest.TestCase):
         )
 
     def test_query_db__record_type_mapping(self):
-        task = _make_task(
-            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
-        )
-        model = mock.Mock()
-        task.models = {"accounts": model}
-        task.metadata = mock.Mock()
-        task.metadata.tables = {
-            "Account_rt_target_mapping": mock.Mock(),
-            "Account_rt_mapping": mock.Mock(),
-        }
-        task.session = mock.Mock()
-
-        model.__table__ = mock.Mock()
-        model.__table__.primary_key.columns.keys.return_value = ["sf_id"]
-        columns = {"sf_id": mock.Mock(), "name": mock.Mock()}
-        model.__table__.columns = columns
-
-        mapping = MappingStep(
-            sf_object="Account",
-            table="accounts",
-            fields={"Id": "sf_id", "Name": "name", "RecordTypeId": "RecordTypeId"},
-        )
-
-        task._query_db(mapping)
-
-        # Validate that the column set is accurate
-        task.session.query.assert_called_once_with(
-            model.sf_id,
-            model.__table__.columns["name"],
-            task.metadata.tables["Account_rt_target_mapping"].columns.record_type_id,
-        )
-
-        # Validate that we asked for the right joins on the record type tables
-        task.session.query.return_value.outerjoin.assert_called_once_with(
-            task.metadata.tables["Account_rt_mapping"], False
-        )
-        task.session.query.return_value.outerjoin.return_value.outerjoin.assert_called_once_with(
-            task.metadata.tables["Account_rt_target_mapping"], False
+        _validate_query_for_mapping_step(
+            sql_path="cumulusci/tasks/bulkdata/tests/recordtypes.sql",
+            mapping="cumulusci/tasks/bulkdata/tests/recordtypes.yml",
+            mapping_step_name="Insert Accounts",
+            expected="""SELECT accounts.sf_id AS accounts_sf_id, accounts."Name" AS "accounts_Name", "Account_rt_target_mapping".record_type_id AS "Account_rt_target_mapping_record_type_id"
+                FROM accounts
+                LEFT OUTER JOIN "Account_rt_mapping" ON "Account_rt_mapping".record_type_id = accounts."RecordTypeId"
+                LEFT OUTER JOIN "Account_rt_target_mapping" ON "Account_rt_target_mapping".developer_name = "Account_rt_mapping".developer_name
+        """,
         )
 
     @mock.patch("cumulusci.tasks.bulkdata.load.automap_base")
@@ -1503,6 +1440,7 @@ class TestLoadData(unittest.TestCase):
         )
         mock_describe_calls()
 
+        task._init_task()
         task._init_mapping()
         task.mapping["Insert Households"]["fields"]["RecordTypeId"] = "RecordTypeId"
         with task._init_db():
@@ -1522,8 +1460,8 @@ class TestLoadData(unittest.TestCase):
         task._load_record_types(["Account", "Contact"], conn)
         task._extract_record_types.assert_has_calls(
             [
-                unittest.mock.call("Account", "Account_rt_target_mapping", conn),
-                unittest.mock.call("Contact", "Contact_rt_target_mapping", conn),
+                mock.call("Account", "Account_rt_target_mapping", conn),
+                mock.call("Contact", "Contact_rt_target_mapping", conn),
             ]
         )
 
@@ -1532,7 +1470,7 @@ class TestLoadData(unittest.TestCase):
     def test_run__autopk(self, dml_mock):
         responses.add(
             method="GET",
-            url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )
@@ -1579,7 +1517,7 @@ class TestLoadData(unittest.TestCase):
                 ["TestHousehold", "1"],
                 ["Test", "User", "test@example.com", "001000000000000"],
                 ["Error", "User", "error@example.com", "001000000000000"],
-            ]
+            ], step.records
 
             with create_engine(task.options["database_url"]).connect() as c:
                 hh_ids = next(c.execute("SELECT * from households_sf_ids"))
@@ -1595,6 +1533,7 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
         mock_describe_calls()
+        task._init_task()
         task._init_mapping()
         assert (
             task.mapping["Insert Accounts"]["lookups"]["ParentId"]["after"]
@@ -1623,6 +1562,7 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
         mock_describe_calls()
+        task._init_task()
         task._init_mapping()
 
         class FakeModel:
@@ -1645,6 +1585,7 @@ class TestLoadData(unittest.TestCase):
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
         mock_describe_calls()
+        task._init_task()
         task._init_mapping()
 
         class FakeModel:
@@ -1700,7 +1641,7 @@ class TestLoadData(unittest.TestCase):
         # ✅ The org does not have person accounts enabled
         task.org_config._is_person_accounts_enabled = False
 
-        with self.assertRaises(BulkDataException):
+        with pytest.raises(BulkDataException):
             task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
 
     def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__raises_exception__contact(
@@ -1746,7 +1687,7 @@ class TestLoadData(unittest.TestCase):
         # ✅ The org does not have person accounts enabled
         task.org_config._is_person_accounts_enabled = False
 
-        with self.assertRaises(BulkDataException):
+        with pytest.raises(BulkDataException):
             task._validate_org_has_person_accounts_enabled_if_person_account_data_exists()
 
     def test_validate_org_has_person_accounts_enabled_if_person_account_data_exists__success_if_org_has_person_accounts_enabled(
@@ -1955,35 +1896,14 @@ class TestLoadData(unittest.TestCase):
 
             actual = task._db_has_person_accounts_column(mapping)
 
-            self.assertEqual(expected, actual, f"columns: {columns}")
+            assert expected == actual, f"columns: {columns}"
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.func.lower")
-    def test_filter_out_person_account_records(self, lower):
-        task = _make_task(
-            LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}
-        )
-        model = mock.Mock()
-        model.__table__ = mock.Mock()
-        IsPersonAccount_column = mock.MagicMock()
-        lower.return_value.__eq__ = mock.Mock()
-        columns = {
-            "sf_id": mock.Mock(),
-            "name": mock.Mock(),
-            "IsPersonAccount": IsPersonAccount_column,
-        }
-        model.__table__.columns = columns
+    # def test_filter_out_person_account_records(self, lower):
 
-        query = mock.Mock()
-
-        expected = query.filter.return_value
-
-        actual = task._filter_out_person_account_records(query, model)
-
-        self.assertEqual(expected, actual)
-
-        lower.return_value.__eq__.assert_called_once_with("false")
-
-        query.filter.assert_called_once_with(lower.return_value.__eq__.return_value)
+    # This method was deleted after bb2a7aa13 because it was way too much
+    # code to test too little code. We'll test Person accounts in context
+    # instead.
+    # Delete this comment whenever it is convenient.
 
     def test_generate_contact_id_map_for_person_accounts(self):
         mapping_file = "mapping-oid.yml"
@@ -2185,7 +2105,7 @@ class TestLoadData(unittest.TestCase):
     def test_load_memory_usage(self):
         responses.add(
             method="GET",
-            url="https://example.com/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
+            url=f"https://example.com/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SObjectType%3D%27Account%27AND+DeveloperName+%3D+%27HH_Account%27+LIMIT+1",
             body=json.dumps({"records": [{"Id": "1"}]}),
             status=200,
         )
@@ -2258,7 +2178,7 @@ class TestLoadData(unittest.TestCase):
                     0,
                 )
 
-            MEGABYTE = 2 ** 20
+            MEGABYTE = 2**20
 
             # FIXME: more anlysis about the number below
             with mock.patch(
@@ -2395,6 +2315,24 @@ class TestLoadData(unittest.TestCase):
         with pytest.raises(BulkDataException):
             task()
 
+    @responses.activate
+    def test_mapping_file_with_explicit_IsPersonAccount(self, caplog):
+        mock_describe_calls()
+        base_path = Path(__file__).parent
+        mapping_path = base_path / "person_accounts_minimal.yml"
+        task = _make_task(
+            LoadData,
+            {
+                "options": {
+                    "mapping": mapping_path,
+                    "database_url": "sqlite://",
+                }
+            },
+        )
+
+        task._init_task()
+        task._init_mapping()
+
 
 class TestLoadDataIntegrationTests:
     # bulk API not supported by VCR yet
@@ -2479,3 +2417,48 @@ class TestLoadDataIntegrationTests:
             )
             task()
             assert counts == {"Account": [10000], "Contact": [1]}
+
+
+def _validate_query_for_mapping_step(sql_path, mapping, mapping_step_name, expected):
+    """Validate the text of a SQL query"""
+    task = _make_task(
+        LoadData,
+        {
+            "options": {
+                "sql_path": sql_path,
+                "mapping": mapping,
+            }
+        },
+    )
+    with mock.patch(
+        "cumulusci.tasks.bulkdata.load.validate_and_inject_mapping"
+    ), mock.patch.object(task, "sf", create=True):
+        task._init_mapping()
+    with task._init_db():
+        query = task._query_db(task.mapping[mapping_step_name])
+
+    def normalize(query):
+        return str(query).replace(" ", "").replace("\n", "").replace("\t", "").lower()
+
+    actual = normalize(query)
+    expected = normalize(expected)
+    if actual != expected:
+        print("ACTUAL", actual)
+        print("EXPECT", expected)
+        print("QUERY", query)
+    assert actual == expected
+
+
+def _inspect_query(query_mock: mock.Mock):
+    """Figure out what was done to a mocked query"""
+    initialization_columns = query_mock.mock_calls[0].args
+    added_columns = []
+    added_filters = []
+    for call in query_mock.mock_calls:
+        name, args, kwargs = call
+        if name == "add_columns":
+            added_columns.extend(args)
+        elif name == "filter":
+            added_filters.extend(args)
+    query_columns = initialization_columns + tuple(added_columns)
+    return query_columns, added_filters

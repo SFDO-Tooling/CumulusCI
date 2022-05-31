@@ -19,17 +19,12 @@ jobs:
               uses: actions/setup-python@v2
               with:
                   python-version: 3.8
-            - name: pip cache
-              uses: actions/cache@v1
-              with:
-                  path: ~/.cache/pip
-                  key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
-                  restore-keys: |
-                      ${{ runner.os }}-pip-
+                  cache: pip
+                  cache-dependency-path: "requirements/*.txt"
             - name: Install Python dependencies
               run: |
                   python -m pip install -U pip
-                  make dev-install
+                  pip install -r requirements_dev.txt
             - name: Install sfdx
               run: |
                   mkdir sfdx

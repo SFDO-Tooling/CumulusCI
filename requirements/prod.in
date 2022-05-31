@@ -17,7 +17,8 @@ pyyaml
 requests
 requests-futures
 rich
-robotframework
+# check with Bryan about upgrading to v5
+robotframework<5
 robotframework-lint
 robotframework-pabot
 robotframework-requests
@@ -27,6 +28,6 @@ salesforce-bulk
 sarge
 selenium<4
 simple-salesforce==1.11.4
-snowfakery==2.5.1.dev0
+snowfakery
 SQLAlchemy
 xmltodict

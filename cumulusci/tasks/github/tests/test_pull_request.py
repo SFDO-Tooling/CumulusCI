@@ -1,4 +1,3 @@
-import unittest
 from unittest import mock
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
@@ -6,7 +5,7 @@ from cumulusci.tasks.github import PullRequests
 from cumulusci.tests.util import create_project_config
 
 
-class TestPullRequests(unittest.TestCase):
+class TestPullRequests:
     def test_run_task(self):
         project_config = create_project_config()
         project_config.keychain.set_service(

@@ -373,10 +373,10 @@ def test_handle_click_exception(traceback, cci_open):
     cci_open.__enter__.return_value = mock.Mock()
 
     with contextlib.redirect_stderr(io.StringIO()) as stderr:
-        cci.handle_exception(click.ClickException("oops"), False, "file.path")
+        cci.handle_exception(click.ClickException("[oops]"), False, "file.path")
 
     stderr = stderr.getvalue()
-    assert "Error: oops" in stderr
+    assert "Error: [oops]" in stderr
     traceback.assert_not_called()
 
 
@@ -414,6 +414,12 @@ def test_version__latest(capsys):
     run_click_command(cci.version)
     console_output = capsys.readouterr().out
     assert "You have the latest version of CumulusCI" in console_output
+
+
+@mock.patch("cumulusci.cli.cci.warn_if_no_long_paths")
+def test_version__win_path_warning(warn_if):
+    run_click_command(cci.version)
+    warn_if.assert_called_once()
 
 
 @mock.patch("code.interact")

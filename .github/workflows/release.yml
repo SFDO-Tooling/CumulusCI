@@ -8,9 +8,20 @@ on:
             - cumulusci/version.txt
 
 jobs:
+    run-release-test:
+        uses: ./.github/workflows/release_test.yml
+        secrets:
+            CUMULUSCI_ORG_packaging: ${{ secrets.CUMULUSCI_ORG_packaging }}
+            CUMULUSCI_SERVICE_github: ${{ secrets.CUMULUSCI_SERVICE_github }}
+            CCITEST_APP_KEY: ${{ secrets.CCITEST_APP_KEY }}
+            SFDX_CLIENT_ID: ${{ secrets.SFDX_CLIENT_ID }}
+            SFDX_HUB_KEY: ${{ secrets.SFDX_HUB_KEY }}
+            SFDX_HUB_KEY_BASE64: ${{ secrets.SFDX_HUB_KEY_BASE64 }}
+            SFDX_HUB_USERNAME: ${{ secrets.SFDX_HUB_USERNAME }}
     publish-to-pypi:
         name: Publish new release to PyPI
         runs-on: ubuntu-18.04
+        needs: run-release-test
         steps:
             - uses: actions/checkout@main
             - name: Set up Python 3.8

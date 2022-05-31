@@ -111,6 +111,34 @@ which is subject to its own limits, including restrictions on total processing t
 Bulk API batches are automatically chunked further into transactions by the platform,
 and the transaction size cannot be controlled.
 
+Upserts
+-------
+The definition of "upsert" is an operation which creates new records and updates 
+existing records depending on a field (the update key) which determines whether
+the input row and the existing row are "the same".
+
+
+You can do ID-based, 
+`idLookup-based <https://developer.salesforce.com/docs/atlas.en-us.204.0.object_reference.meta/object_reference/access_for_fields.htm#access_lookup>`_ 
+and `external ID <https://help.salesforce.com/s/articleView?id=sf.faq_import_general_what_is_an_external.htm&type=5>`_-based
+`upserts <https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/langCon_apex_dml_examples_upsert.htm>`_ 
+and updates by specifying additional settings in a mapping step.
+
+.. code-block:: yaml
+
+    Insert Accounts:
+        sf_object: Account
+        action: upsert
+        update_key: Extid__c
+        fields:
+            - Name
+            - Extid__c
+
+Whenever ``update_key`` is supplied, the action must be ``upsert`` and
+vice versa.
+
+
+
 Database Mapping
 ----------------
 
@@ -286,7 +314,7 @@ The ``static`` key allows individual fields to be populated with a fixed, static
             CustomCheckbox__c: True
             CustomDateField__c: 2019-01-01
 
-The ``soql_filter`` key allows to specify a WHERE clause that should be used when extracting data from your Salesforce org:
+The ``soql_filter`` key allows to specify a WHERE clause that should be used when extracting data from your Salesforce org: ::
 
         Account:
           sf_object: Account
@@ -627,11 +655,12 @@ update recipe file.
 
 You can filter the rows that you're updating like this:
 
-``$ cci task run update_data --recipe datasets/update.recipe.yml --object Account --where "name like 'AAA%'" ``
+``$ cci task run update_data --recipe datasets/update.recipe.yml --object Account --where "name like 'AAA%'"``
 
 The recipe for an update can be as simple as this:
 
 .. code-block::
+
     - object: Account
       fields:
         NumberOfEmployees: 10000
@@ -639,6 +668,7 @@ The recipe for an update can be as simple as this:
 You can use all of the power of ``snowfakery`` to add fake data:
 
 .. code-block::
+
     - object: Account
       fields:
         NumberOfEmployees: 10_000
@@ -649,6 +679,7 @@ Using Snowfakery formulas, you can also refer to specific input fields
 like this:
 
 .. code-block::
+
     - object: Account
       fields:
         Description: ${{input.Name}} is our favorite customer in ${{input.BillingCity}}
@@ -656,7 +687,7 @@ like this:
 To tell CumulusCI to extract those fields and make them
 use the ``fields`` option:
 
-``$ cci task run update_data --recipe datasets/update.recipe.yml --object Account --Fields Name,BillingCity ``
+``$ cci task run update_data --recipe datasets/update.recipe.yml --object Account --Fields Name,BillingCity``
 
 You can learn more about Snowfakery syntax in the next section.
 
@@ -686,7 +717,7 @@ more data, you do so like this:
 Which will repeat the recipe 400 times.
 
 There are two other ways to control how many times the recipe is repeated:
-`--run-until-records-loaded` and `--run-until-records-in-org`.
+``--run-until-records-loaded`` and ``--run-until-records-in-org``.
 
 
 Generated Record Counts
@@ -702,28 +733,28 @@ But it finishes when it has loaded 400 Accounts.
 
 The counting works like this:
 
-  * Snowfakery always executes a *complete* recipe. It never stops halfway through.
-    If your recipe creates more records than you need, you might overshoot. Usually
-    the amount of overshoot is just a few records, but it depends on the details of
-    your recipe.
+* Snowfakery always executes a *complete* recipe. It never stops halfway through.
+  If your recipe creates more records than you need, you might overshoot. Usually
+  the amount of overshoot is just a few records, but it depends on the details of
+  your recipe.
   
-  * At the end of executing a recipe, it checks whether it has
-    created enough of the object type mentioned by the `--run-until-records-loaded` parameter.
+* At the end of executing a recipe, it checks whether it has
+  created enough of the object type mentioned by the `--run-until-records-loaded` parameter.
   
-  * If so, it finishes. If not, it runs the recipe again.
+* If so, it finishes. If not, it runs the recipe again.
 
 So if your recipe creates 10 Accounts, 5 Contacts and 15 Opportunities,
 then when you run the command above it will run the recipe
 100 times (100*10=1000) which will generate 1000 Accounts, 500 Contacts
 and 1500 Opportunities.
 
-`--run-until-records-in-org` works similarly, but it determines how many
+``--run-until-records-in-org`` works similarly, but it determines how many
 times to run the recipe based on how many records are in the org at the
 start. For example, if the org already has 300 Accounts in it then:
 
 ``$ cci task run snowfakery --run-until-records-in-org 1000:Account``
 
-Would be equivalent to `--run-until-records-loaded 700:Account` because
+Would be equivalent to ``--run-until-records-loaded 700:Account`` because
 one needs to add 700 Accounts to the 300 resdent ones to get to 1000.
 
 Controlling the Loading Process

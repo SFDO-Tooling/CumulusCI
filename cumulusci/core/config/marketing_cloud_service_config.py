@@ -1,12 +1,24 @@
 from typing import Dict
 from urllib.parse import urlparse
 
+import requests
+
 from cumulusci.core.config.oauth2_service_config import OAuth2ServiceConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.oauth.client import OAuth2Client
+from cumulusci.tasks.marketing_cloud.mc_constants import AUTH_URI
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 class MarketingCloudServiceConfig(OAuth2ServiceConfig):
+
+    refresh_token: str
+    oauth2_client: str
+    soap_instance_url: str
+    rest_instance_url: str
+    redirect_uri: str
+    access_token: str
+
     def __init__(self, config, name, keychain):
         super().__init__(config, name, keychain)
         self._name = name
@@ -56,3 +68,18 @@ class MarketingCloudServiceConfig(OAuth2ServiceConfig):
     def save(self):
         assert self._keychain, "Keychain not set on MarketingCloudServiceConfig"
         self._keychain.set_service("marketing_cloud", self._name, self)
+
+    def get_user_info(self) -> dict:
+        """Make a call to the Marketing Cloud REST API UserInfo endpoint.
+        Raises HTTPError for bad response status, otherwise returns the payload
+        in full."""
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "Content-Type": "application/json",
+        }
+        response = requests.get(
+            f"{AUTH_URI.format(self.tssd)}/v2/userinfo", headers=headers
+        )
+        response.raise_for_status()
+
+        return safe_json_from_response(response)

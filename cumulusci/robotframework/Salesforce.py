@@ -78,6 +78,7 @@ class Salesforce(object):
         """
         try:
             version = int(float(self.get_latest_api_version()))
+
         except RobotNotRunningError:
             # Likely this means we are running in the context of
             # documentation generation. Setting the version to
@@ -1440,7 +1441,8 @@ class Salesforce(object):
         For most input form fields the actual value string will be
         used.  For a checkbox, passing the value "checked" will check
         the checkbox and any other value will uncheck it. Using
-        "unchecked" is recommended for clarity.
+        "unchecked" is recommended for clarity. For radiobuttons, you
+        must pass the string "selected" for the value.
 
         Example:
 
@@ -1452,6 +1454,15 @@ class Salesforce(object):
         | ...  Type                     New Customer      # combobox
         | ...  Primary Campaign Source  The Big Campaign  # picklist
 
+        Example setting a radio button:
+
+        In this example, the radiobutton group has the label
+        "Who sees this list view?", and one of the radiobuttons
+        has the label "All users can see this list view"
+
+        | Input form data
+        | ...  Who sees this list view?::All users can see this list view    selected
+
         This keyword will eventually replace the "populate form"
         keyword once it has been more thoroughly tested in production.
 
@@ -1462,9 +1473,6 @@ class Salesforce(object):
         for label, value in list(zip(it, it)):
             # this uses our custom "label" locator strategy
             locator = f"label:{label}"
-            # FIXME: we should probably only wait for the first label;
-            # after that we can assume the fields have been rendered
-            # so that we fail quickly if we can't find the element
             element = self.selenium.get_webelement(locator)
             self.scroll_element_into_view(locator)
             handler = get_form_handler(element, locator)
@@ -1473,7 +1481,7 @@ class Salesforce(object):
                     handler.set(value)
                 else:
                     raise Exception(
-                        f"No form handler found for tag '{element.tag_name}'"
+                        f"No form handler found for '{label}' (tag: '{element.tag_name}')"
                     )
             except Exception as e:
                 errors.append(f"{label}: {str(e)}")
@@ -1522,26 +1530,40 @@ class Salesforce(object):
             fieldset, label = [x.strip() for x in locator.split("::", 1)]
             fieldset_prefix = f'//fieldset[.//*[.="{fieldset}"]]'
         else:
-            label = locator
+            label = locator.strip()
             fieldset_prefix = ""
 
-        xpath = fieldset_prefix + (
-            # a label with the given text, optionally with a leading
-            # or trailing "*" (ie: required field)
-            f'//label[.="{label}" or .="*{label}" or .="{label}*"]'
-            # then find the nearest ancestor lightning component
-            '/ancestor::*[starts-with(local-name(), "lightning-")][1]'
+        label_xpath = (
+            fieldset_prefix
+            + f'//label[descendant-or-self::*[text()[normalize-space() = "{label}"]]]'
         )
-        elements = browser.find_elements_by_xpath(xpath)
+        labels = browser.find_elements_by_xpath(label_xpath)
+        if not labels:
+            return []
 
-        if not elements:
-            # fall back to finding an input or textarea based on the 'for'
-            # attribute of a label
-            xpath = fieldset_prefix + (
-                "//*[self::input or self::textarea]"
-                f'[@id=string(//label[.="{label}" or .="*{label}" or .="{label}*"]/@for)]'
-            )
-            elements = browser.find_elements_by_xpath(xpath)
+        # For each match, find either the nearest ancestor lightning component,
+        # or the component pointed to by the `for` attribute.
+        elements = []
+        for label_element in labels:
+            try:
+                # Since we've already waited for the label, there's not much point of waiting
+                # for the component or input area. If it's not in the DOM by now, it will
+                # probably never be. Famous last words, right?
+                orig_wait = self.selenium.set_selenium_implicit_wait(0)
+                component = None
+                component = label_element.find_element_by_xpath(
+                    "./ancestor::*[starts-with(local-name(), 'lightning-')][1]"
+                )
+            except NoSuchElementException:
+                component_id = label_element.get_attribute("for")
+                if component_id:
+                    component = browser.find_element_by_id(component_id)
+                # else find an input or textarea in a sibling or descendant?
+            finally:
+                self.selenium.set_selenium_implicit_wait(orig_wait)
+
+            if component is not None:
+                elements.append(component)
 
         return elements
 

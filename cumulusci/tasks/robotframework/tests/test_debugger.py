@@ -2,7 +2,6 @@ import fnmatch
 import io
 import os
 import signal
-import unittest
 from unittest import mock
 
 from selenium.common.exceptions import InvalidSelectorException
@@ -10,23 +9,20 @@ from selenium.common.exceptions import InvalidSelectorException
 from cumulusci.tasks.robotframework import debugger
 
 
-class TestDebugListener(unittest.TestCase):
+class TestDebugListener:
     @classmethod
-    def setUpClass(cls):
-        super(TestDebugListener, cls).setUpClass()
+    def setup_class(cls):
         cls.listener = debugger.DebugListener()
 
     def test_listener_default_breakpoint(self):
         """Verify we get the correct default breakpoint"""
         listener = debugger.DebugListener()
-        self.assertEqual(len(listener.breakpoints), 1)
+        assert len(listener.breakpoints) == 1
         bp = listener.breakpoints[0]
-        self.assertFalse(bp.temporary)
-        self.assertEqual(
-            bp.pattern, "*::cumulusci.robotframework.Salesforce.Breakpoint"
-        )
-        self.assertEqual(bp.breakpoint_type, debugger.Keyword)
-        self.assertEqual(bp.regex, fnmatch.translate(bp.pattern))
+        assert not bp.temporary
+        assert bp.pattern == "*::cumulusci.robotframework.Salesforce.Breakpoint"
+        assert bp.breakpoint_type == debugger.Keyword
+        assert bp.regex == fnmatch.translate(bp.pattern)
 
     def test_listener_custom_breakpoints(self):
         """Verify we can create a cli with custom breakpoints"""
@@ -36,7 +32,7 @@ class TestDebugListener(unittest.TestCase):
             debugger.Breakpoint(debugger.Suite, "*::suite breakpoint"),
         ]
         listener = debugger.DebugListener(*breakpoints)
-        self.assertEqual(listener.breakpoints, breakpoints)
+        assert listener.breakpoints == breakpoints
 
     def test_listener_stack(self):
         """Verify that the listener properly tracks the stack as a test is executed"""
@@ -48,13 +44,13 @@ class TestDebugListener(unittest.TestCase):
 
         # The listener stack should now include four elements, one for
         # each call to a listener method
-        self.assertEqual(len(self.listener.stack), 5)
+        assert len(self.listener.stack) == 5
 
-        self.assertEqual(self.listener.stack[0].name, "Root")
-        self.assertEqual(self.listener.stack[1].name, "folder")
-        self.assertEqual(self.listener.stack[2].name, "example")
-        self.assertEqual(self.listener.stack[3].name, "Test 1")
-        self.assertEqual(self.listener.stack[4].name, "BuiltIn.Log")
+        assert self.listener.stack[0].name == "Root"
+        assert self.listener.stack[1].name == "folder"
+        assert self.listener.stack[2].name == "example"
+        assert self.listener.stack[3].name == "Test 1"
+        assert self.listener.stack[4].name == "BuiltIn.Log"
 
         # now, unwind the stack and make sure it's empty
         self.listener.end_keyword("BuiltIn.Log", {})
@@ -62,7 +58,7 @@ class TestDebugListener(unittest.TestCase):
         self.listener.end_suite("example", {})
         self.listener.end_suite("folder", {})
         self.listener.end_suite("Root", {})
-        self.assertEqual(len(self.listener.stack), 0)
+        assert len(self.listener.stack) == 0
 
     def test_listener_step(self):
         """Verify that the 'step' debugger command creates a breakpoint for the next step"""
@@ -71,11 +67,9 @@ class TestDebugListener(unittest.TestCase):
         self.listener.start_test("Test 1", {"longname": "Root.example.Test 1"})
         self.listener.start_keyword("cumulusci.Salesforce.breakpoint", {})
 
-        self.assertEqual(
-            len(self.listener.breakpoints),
-            1,
-            "Weird. There should have only been a single breakpoint",
-        )
+        assert (
+            len(self.listener.breakpoints) == 1
+        ), "Weird. There should have only been a single breakpoint"
         # call `do_step` of the *listener*, not the debugger UI.
         # the debugger ui "do_step" method will both add a new breakpoint
         # and then continue to that breakpoint, and then that breakpoint
@@ -85,15 +79,11 @@ class TestDebugListener(unittest.TestCase):
 
         # The 'step' command should cause a new temporary breakpoint to be added
         # in the same context as the current keyword.
-        self.assertEqual(
-            len(self.listener.breakpoints),
-            2,
-            "Expected a breakpoint to be added on the 'step' command",
-        )
-        self.assertEqual(
-            self.listener.breakpoints[-1].pattern, "Root.example.Test 1::*"
-        )
-        self.assertTrue(self.listener.breakpoints[-1].temporary)
+        assert (
+            len(self.listener.breakpoints) == 2
+        ), "Expected a breakpoint to be added on the 'step' command"
+        assert self.listener.breakpoints[-1].pattern == "Root.example.Test 1::*"
+        assert self.listener.breakpoints[-1].temporary
 
     def test_temporary_breakpoint(self):
         """Verify that a temporary breakpoint is removed when encountered"""
@@ -107,21 +97,19 @@ class TestDebugListener(unittest.TestCase):
         # we need to set it to something so that the listener
         # doesnt' crash.
         listener.rdb.intro = "... intro ..."
-        self.assertEqual(len(listener.breakpoints), 2)
+        assert len(listener.breakpoints) == 2
 
         listener.start_suite("Suite", attrs={})
         listener.start_test("Test Case", attrs={})
         listener.start_keyword("temporary breakpoint", attrs={"args": ["one", "two"]})
-        self.assertEqual(len(listener.breakpoints), 1)
-        self.assertEqual(
-            listener.breakpoints[0].pattern,
-            "*::breakpoint",
-            "the wrong breakpoint was removed",
-        )
+        assert len(listener.breakpoints) == 1
+        assert (
+            listener.breakpoints[0].pattern == "*::breakpoint"
+        ), "the wrong breakpoint was removed"
         listener.rdb.cmdloop.assert_called_once()
 
 
-class TestRobotDebugger(unittest.TestCase):
+class TestRobotDebugger:
     """These tests are for the DebuggerCli class
 
     This class has methods of the form 'do_<something'> where
@@ -133,13 +121,9 @@ class TestRobotDebugger(unittest.TestCase):
 
     """
 
-    @classmethod
-    def setUpClass(cls):
-        super(TestRobotDebugger, cls).setUpClass()
-        cls.mock_listener = mock.Mock()
-        cls.mock_builtin = mock.Mock()
-
-    def setUp(self):
+    def setup_method(self):
+        self.mock_listener = mock.Mock()
+        self.mock_builtin = mock.Mock()
         self.stdout = io.StringIO()
         self.cli = debugger.DebuggerCli(self.mock_listener, stdout=self.stdout)
         self.cli.builtin = self.mock_builtin
@@ -148,36 +132,36 @@ class TestRobotDebugger(unittest.TestCase):
         """The comment command does nothing; we just need to verify
         that it returns None, which keeps the cmd REPL alive"""
         return_value = self.cli.default("# this is a comment")
-        self.assertEqual(return_value, None)
+        assert return_value is None
 
     def test_variable_shortcuts(self):
         """Verify that just passing a variable name to the debugger fetches the value of that variable"""
         # scalar variable
         return_value = self.cli.default("${varname}")
         self.mock_builtin.get_variable_value.assert_called_with("${varname}")
-        self.assertIsNone(return_value)
+        assert return_value is None
 
         # list variable
         return_value = self.cli.default("@{varname}")
         self.mock_builtin.get_variable_value.assert_called_with("@{varname}")
-        self.assertIsNone(return_value)
+        assert return_value is None
 
         # dictionary variable
         return_value = self.cli.default("&{varname}")
         self.mock_builtin.get_variable_value.assert_called_with("&{varname}")
-        self.assertIsNone(return_value)
+        assert return_value is None
 
         # None of the above. Make sure we don't try to get the value
         # of something if it doesn't look like a variable
         return_value = self.cli.default("something")
-        self.assertIsNone(return_value)
+        assert return_value is None
         self.mock_builtin.get_variable.value.assert_not_called()
 
         # valid variable syntax, but unknown variable
         self.cli.stdout = io.StringIO()
         self.mock_builtin.get_variable_value.side_effect = Exception("not a variable")
         return_value = self.cli.default("${bogus}")
-        self.assertEqual(self.cli.stdout.getvalue(), "unknown variable '${bogus}'\n")
+        assert self.cli.stdout.getvalue() == "unknown variable '${bogus}'\n"
 
     @mock.patch("pdb.Pdb")
     def test_pdb(self, mock_pdb):
@@ -194,7 +178,7 @@ class TestRobotDebugger(unittest.TestCase):
         that robot can continue.
         """
         return_value = self.cli.do_continue("")
-        self.assertTrue(return_value)
+        assert return_value
 
     def test_selenium(self):
         self.cli.selenium
@@ -210,11 +194,11 @@ class TestRobotDebugger(unittest.TestCase):
         self.cli._highlight_element = mock.Mock()
         self.cli.selenium.get_webelements.return_value = ["Element1", "Element2"]
         return_value = self.cli.do_locate_elements("//whatever")
-        self.assertIsNone(return_value)
+        assert return_value is None
         self.cli._highlight_element.assert_has_calls(
             [mock.call("Element1"), mock.call("Element2")]
         )
-        self.assertEqual(self.cli.stdout.getvalue(), "Found 2 matches\n")
+        assert self.cli.stdout.getvalue() == "Found 2 matches\n"
 
     @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
     def test_locate_elements_exception_handling(self):
@@ -226,9 +210,9 @@ class TestRobotDebugger(unittest.TestCase):
         )
         self.cli.stdout = io.StringIO()
         return_value = self.cli.do_locate_elements("//whatever")
-        self.assertIsNone(return_value)
+        assert return_value is None
         self.cli._highlight_element.assert_not_called()
-        self.assertEqual(self.cli.stdout.getvalue(), "invalid locator '//whatever'\n")
+        assert self.cli.stdout.getvalue() == "invalid locator '//whatever'\n"
 
         # Even if get_webelement throws an exception, the keyword
         # should handle it gracefully
@@ -237,9 +221,9 @@ class TestRobotDebugger(unittest.TestCase):
         )
         self.cli.stdout = io.StringIO()
         return_value = self.cli.do_locate_elements("//whatever")
-        self.assertIsNone(return_value)
+        assert return_value is None
         self.cli._highlight_element.assert_not_called()
-        self.assertEqual(self.cli.stdout.getvalue(), "something unexpected\n")
+        assert self.cli.stdout.getvalue() == "something unexpected\n"
 
     @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
     def test_highlight_element_executes_javascript(self):
@@ -254,7 +238,7 @@ class TestRobotDebugger(unittest.TestCase):
         self.cli._restore_element_style = mock.Mock()
         self.cli.selenium.get_webelements.return_value = ["Element1", "Element2"]
         return_value = self.cli.do_reset_elements("")
-        self.assertIsNone(return_value)
+        assert return_value is None
         self.cli._restore_element_style.assert_has_calls(
             [mock.call("Element1"), mock.call("Element2")]
         )
@@ -273,7 +257,7 @@ class TestRobotDebugger(unittest.TestCase):
             self.mock_builtin, "run_keyword_and_ignore_error", return_value=("PASS", 42)
         ):
             return_value = self.cli.do_shell("some keyword")
-            self.assertIsNone(return_value)
+            assert return_value is None
             assert not self.mock_builtin.set_test_variable.called
 
     def test_shell_one_variable(self):
@@ -285,7 +269,7 @@ class TestRobotDebugger(unittest.TestCase):
             return_value = self.cli.do_shell(
                 "${value}  get variable value  ${whatever}"
             )
-            self.assertIsNone(return_value)
+            assert return_value is None
 
             self.mock_builtin.run_keyword_and_ignore_error.assert_called_with(
                 "get variable value", "${whatever}"
@@ -302,7 +286,7 @@ class TestRobotDebugger(unittest.TestCase):
             return_value = self.cli.do_shell(
                 "${value1}  ${value2}   some keyword  ${whatever}"
             )
-            self.assertIsNone(return_value)
+            assert return_value is None
 
             self.mock_builtin.set_test_variable.assert_not_called()
 
@@ -316,7 +300,7 @@ class TestRobotDebugger(unittest.TestCase):
             return_value = self.cli.do_shell(
                 "${value1}  ${value2}   some keyword  ${whatever}"
             )
-            self.assertIsNone(return_value)
+            assert return_value is None
 
             self.mock_builtin.set_test_variable.assert_has_calls(
                 [mock.call("${value1}", "Inigo"), mock.call("${value2}", "Montoya")]
@@ -329,9 +313,9 @@ class TestRobotDebugger(unittest.TestCase):
             side_effect=Exception("Danger, Will Robinson!"),
         ):
             self.cli.do_shell("${value1}  ${value2}   some keyword  ${whatever}")
-            self.assertEqual(
-                self.cli.stdout.getvalue(),
-                "error running keyword: Danger, Will Robinson!\n",
+            assert (
+                self.cli.stdout.getvalue()
+                == "error running keyword: Danger, Will Robinson!\n"
             )
 
     def test_step(self):
@@ -341,7 +325,7 @@ class TestRobotDebugger(unittest.TestCase):
         # That the number of breakpoints after the step is the
         # same as before the step
         return_value = self.cli.do_step("")
-        self.assertEqual(return_value, True)
+        assert return_value is True
         self.mock_listener.do_step.assert_called()
 
     def test_where(self):
@@ -353,7 +337,7 @@ class TestRobotDebugger(unittest.TestCase):
             debugger.Keyword(name="A keyword", attrs={}),
         ]
         return_value = self.cli.do_where("")
-        self.assertIsNone(return_value)
+        assert return_value is None
 
         # FIXME: add assertions to prove that the listener is
         # keeping track of the stack
@@ -372,37 +356,35 @@ class TestRobotDebugger(unittest.TestCase):
             mock_kill.assert_called_with(os.getpid(), signal.SIGTERM)
 
 
-class TestInternalModels(unittest.TestCase):
+class TestInternalModels:
     def test_testcase(self):
         testcase = debugger.Testcase(
             name="Test Case #1", attrs={"longname": "Root.Test Case #1"}
         )
-        self.assertEqual(repr(testcase), "<Testcase: Test Case #1>")
+        assert repr(testcase) == "<Testcase: Test Case #1>"
 
         # robot passes in a longname, so make sure the property reflects it
-        self.assertEqual(testcase.longname, "Root.Test Case #1")
+        assert testcase.longname == "Root.Test Case #1"
 
     def test_keyword(self):
         keyword = debugger.Keyword(name="Keyword #1", attrs={"args": ["foo", "bar"]})
-        self.assertEqual(repr(keyword), "<Keyword: Keyword #1  foo  bar>")
+        assert repr(keyword) == "<Keyword: Keyword #1  foo  bar>"
         # robot will NOT pass in a longname; make sure the property handles that case
-        self.assertEqual(keyword.longname, keyword.name)
+        assert keyword.longname == keyword.name
 
     def test_suite(self):
         suite = debugger.Suite(
             name="Suite #1", attrs={"source": "test.robot", "longname": "Root.Suite #1"}
         )
-        self.assertEqual(repr(suite), "<Suite: Suite #1 (test.robot)>")
+        assert repr(suite) == "<Suite: Suite #1 (test.robot)>"
         # robot passes in a longname, so make sure the property reflects it
-        self.assertEqual(suite.longname, "Root.Suite #1")
+        assert suite.longname == "Root.Suite #1"
 
     def test_breakpoint_match(self):
         bp = debugger.Breakpoint(debugger.Keyword, "*::breakpoint")
-        self.assertTrue(
-            bp.match(context="Suite.Test Case::breakpoint"),
-            "expected breakpoint to match, but it didn't",
-        )
-        self.assertFalse(
-            bp.match(context="Suite.Test Case::some other keyword"),
-            "didn't expect breakpoint to match, but it did",
-        )
+        assert bp.match(
+            context="Suite.Test Case::breakpoint"
+        ), "expected breakpoint to match, but it didn't"
+        assert not bp.match(
+            context="Suite.Test Case::some other keyword"
+        ), "didn't expect breakpoint to match, but it did"

@@ -1,9 +1,10 @@
-import pytest
 import logging
 
+import pytest
+
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.metadata_etl.field_sets import AddFieldsToFieldSet
+from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.utils.xml import metadata_tree
 
 OBJECT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -152,4 +153,4 @@ class TestAddFieldsToFieldSet:
         )
         tree = metadata_tree.fromstring(OBJECT_XML)
         with pytest.raises(TaskOptionsError):
-            result = task._transform_entity(tree, "Case")
+            task._transform_entity(tree, "Case")

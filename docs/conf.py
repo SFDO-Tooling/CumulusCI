@@ -13,8 +13,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
 import os
+import sys
 
 # If extensions (or modules to document with autodoc) are in another
 # directory, add these directories to sys.path here. If the directory is
@@ -300,10 +300,13 @@ texinfo_documents = [
 
 def generate_task_and_flow_docs(_):
     """Run cci commands to generate tasks.rst and flows.rst"""
+    import logging
     import subprocess
+
     from sphinx.util.logging import getLogger
 
     logger = getLogger("cci")
+    logger.setLevel(logging.INFO)
     logger.info("Generating docs/tasks.rst from cci tasks")
     with open("tasks.rst", "w") as task_docs:
         subprocess.run(["cci", "task", "doc"], stdout=task_docs, check=True)

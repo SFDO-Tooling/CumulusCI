@@ -1,10 +1,11 @@
 import io
-import unittest
 from collections import defaultdict
 from distutils.version import LooseVersion
 from unittest.mock import Mock, call, mock_open, patch
 
-from cumulusci.core.config import BaseConfig
+import pytest
+
+from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.dependencies import (
     GitHubDynamicDependency,
     parse_dependencies,
@@ -29,7 +30,7 @@ from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 
-class test_GenerateDataDictionary(unittest.TestCase):
+class TestGenerateDataDictionary:
     def test_version_from_tag_name(self):
         task = create_task(GenerateDataDictionary, {})
 
@@ -1396,7 +1397,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config = create_project_config()
         project_config.project__name = "Project"
 
-        with self.assertRaises(DependencyParseError):
+        with pytest.raises(DependencyParseError):
             create_task(
                 GenerateDataDictionary,
                 {"additional_dependencies": [{"namespace": "foo"}]},
@@ -1407,7 +1408,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config = create_project_config()
         project_config.project__name = "Project"
 
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             create_task(
                 GenerateDataDictionary,
                 {"additional_dependencies": [{"namespace": "foo", "version": "1.0"}]},
@@ -1418,7 +1419,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config = create_project_config()
         project_config.project__name = "Project"
 
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             create_task(
                 GenerateDataDictionary,
                 {
@@ -1470,7 +1471,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         ]
         project_config.get_repo_from_url = Mock(return_value=None)
 
-        with self.assertRaises(DependencyResolutionError):
+        with pytest.raises(DependencyResolutionError):
             task._get_repo_dependencies(
                 parse_dependencies(project_config.project__dependencies)
             )
@@ -1536,8 +1537,8 @@ project:
         get_static_dependencies.side_effect = fake_get_static_dependencies
 
         get_remote_project_config.side_effect = [
-            BaseConfig(cci_safe_load(cumulusci_yml_one)),
-            BaseConfig(cci_safe_load(cumulusci_yml_two)),
+            BaseProjectConfig(None, cci_safe_load(cumulusci_yml_one)),
+            BaseProjectConfig(None, cci_safe_load(cumulusci_yml_two)),
         ]
 
         results = task._get_repo_dependencies(

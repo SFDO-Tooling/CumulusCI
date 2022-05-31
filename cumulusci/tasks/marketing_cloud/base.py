@@ -31,3 +31,8 @@ class BaseMarketingCloudTask(BaseTask):
             raise Exception(
                 f"Error from Marketing Cloud: {status_message}\n\nFull response text: {response.text}"
             )
+
+    def get_mc_stack_key(self) -> str:
+        """Return the stack_key associated with this tasks's marketing_cloud service"""
+        user_info_payload = self.mc_config.get_user_info()
+        return user_info_payload["organization"]["stack_key"]

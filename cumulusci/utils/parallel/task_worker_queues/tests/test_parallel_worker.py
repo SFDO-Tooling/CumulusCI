@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from logging import getLogger
+from multiprocessing import Lock
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
@@ -11,7 +12,7 @@ from cumulusci.core.config import BaseProjectConfig, OrgConfig, UniversalConfig
 from cumulusci.tasks.util import Sleep
 from cumulusci.utils.parallel.task_worker_queues.parallel_worker import (
     ParallelWorker,
-    SubprocessKeyChain,
+    SubprocessKeychain,
     TaskWorker,
     WorkerConfig,
 )
@@ -63,7 +64,7 @@ class TestWorkerQueue:
             parent_dir=Path(parent_dir),
             **kwargs,
         )
-        q = WorkerQueue(config)
+        q = WorkerQueue(config, filesystem_lock=Lock())
 
         yield q
 
@@ -307,7 +308,7 @@ class TestParallelWorker:
                 outbox_dir=outbox_dir,
                 working_dir=working_dir,
             )
-            worker = ParallelWorker(DelaySpawner, config, None)
+            worker = ParallelWorker(DelaySpawner, config, None, Lock())
             worker.start()
             worker.terminate()
             assert "Alive: False" in repr(worker)
@@ -327,7 +328,7 @@ class TestTaskWorker:
                 outbox_dir=outbox_dir,
                 working_dir=working_dir,
             )
-            p = TaskWorker(config.as_dict(), None)
+            p = TaskWorker(config.as_dict(), None, Lock())
             with mock.patch("shutil.move", side_effect=AssertionError):
                 with pytest.raises(AssertionError):
                     p.run()
@@ -342,9 +343,9 @@ class TestTaskWorker:
 # Also we usually mock refresh_oauth_token which is what would
 # invoke this. In other words, using integration tests to cover this
 # function is far easier than using unit test.
-class TestSubprocessKeyChain:
+class TestSubprocessKeychain:
     def test_subprocess_keychain(self):
-        skc = SubprocessKeyChain("Blah")
+        skc = SubprocessKeychain("Blah")
 
         assert skc.get_service("connected_app") == "Blah"
         skc.set_org()

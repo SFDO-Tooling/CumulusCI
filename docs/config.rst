@@ -21,11 +21,9 @@ A ``cumulusci.yml`` file contains these top-level sections.
 
 * ``orgs``: Defines the scratch org configurations that are available for your project. See `scratch org configurations`_ for configuration options in this section.
 
-* ``plans``: Contains any custom plans defined to install your project into a customer org. See :ref:`configuring plans in MetaDeploy <Publish an Install Plan to MetaDeploy>` for more information.
+* ``plans``: Contains any custom plans defined to install your project into a customer org. See the :ref:`**metadeploy_publish**` task for more information.
 
 The :doc:`cumulusci.yml reference <cci_yml_reference>` has a complete list of values that can be used in each section.
-
-
 
 Task Configurations
 -------------------
@@ -337,7 +335,7 @@ for the standard library flow ``build_feature_test_package``.
 The ``update_package_xml`` task will execute *only if* the project's source code format is not equal to "``sfdx``".
 
 .. code-block:: yaml
-        
+
     build_feature_test_package:
         group: Release Operations
         description: Create a 2gp managed package version
@@ -379,17 +377,19 @@ By default, CumulusCI uses the resolution strategy ``production``, which will fe
     This feature requires that the referenced repository be readable (for example,
     it's public, or CumulusCI's GitHub service is configured with the token of a user who has read access to it).
 
-
-It's also possible to fetch a specific ``tag``...
+It's also possible to fetch a specific ``tag`` or ``release``, where ``release`` is one of ``latest``, ``previous``, or ``latest_beta``. For example...
 
 .. code-block:: yaml
 
     sources:
+        eda:
+            github: https://github.com/SalesforceFoundation/EDA
+            release: latest
         npsp:
             github: https://github.com/SalesforceFoundation/NPSP
             tag: rel/3.163
 
-or a specific ``commit`` or ``branch``. We recommend that most projects, however, use a resolution strategy.
+You can also select a specific ``commit`` or ``branch``. We recommend that most projects, however, use a resolution strategy.
 
 When the repo is listed under ``sources``, it's possible to run a task from NPSP...
 

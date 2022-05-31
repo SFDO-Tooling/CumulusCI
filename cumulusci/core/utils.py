@@ -227,7 +227,7 @@ def remove_overridden_flow_steps_in_config(
         for (
             step_num,
             overriding_step_config,
-        ) in flow_config["steps"].items():
+        ) in flow_config.get("steps", {}).items():
             cleanup_old_flow_step_replace_syntax(overriding_step_config)
             both_configs_have_flow_and_step = config_has_flow_and_step_num(
                 config_to_override, flow, step_num
@@ -239,8 +239,25 @@ def remove_overridden_flow_steps_in_config(
                 steps_same_type = steps_are_same_type(
                     overriding_step_config, step_config_to_override
                 )
+
+                link_missing_task_or_flow(
+                    step_config_to_override, overriding_step_config
+                )
+
                 if not steps_same_type:
                     config_to_override["flows"][flow]["steps"][step_num] = {}
+
+
+def link_missing_task_or_flow(
+    step_config_to_override: dict, overriding_step_config: dict
+):
+    """If the incoming override does not have task/flow defined then inherit from
+    the flow step that we're overridding."""
+    if "flow" not in overriding_step_config and "task" not in overriding_step_config:
+        if "task" in step_config_to_override:
+            overriding_step_config["task"] = step_config_to_override["task"]
+        elif "flow" in step_config_to_override:
+            overriding_step_config["flow"] = step_config_to_override["flow"]
 
 
 def cleanup_old_flow_step_replace_syntax(step_config: dict):

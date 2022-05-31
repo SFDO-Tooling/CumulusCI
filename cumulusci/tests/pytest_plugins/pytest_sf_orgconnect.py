@@ -1,3 +1,4 @@
+import typing as T
 from contextlib import contextmanager
 from pathlib import Path
 from unittest import mock
@@ -10,7 +11,7 @@ from cumulusci.cli.runtime import CliRuntime
 from cumulusci.core.config import OrgConfig, TaskConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.tests.util import unmock_env
+from cumulusci.tests.util import CURRENT_SF_API_VERSION, unmock_env
 
 
 def pytest_addoption(parser, pluginmanager):
@@ -114,9 +115,9 @@ def org_config(request, current_org_shape, cli_org_config, fallback_org_config):
     # fast running test suites it might return a hardcoded
     # org and for integration test suites it might return
     # a specific default org or throw an exception.
-    with mock.patch.object(OrgConfig, "latest_api_version", "48.0"), mock.patch.object(
-        OrgConfig, "refresh_oauth_token"
-    ):
+    with mock.patch.object(
+        OrgConfig, "latest_api_version", CURRENT_SF_API_VERSION
+    ), mock.patch.object(OrgConfig, "refresh_oauth_token"):
         yield org_config
 
 
@@ -140,7 +141,9 @@ def create_task(request, project_config, org_config):
 
         task_config = TaskConfig({"options": options})
 
-        return task_class(project_config, task_config, org_config)
+        t = task_class(project_config, task_config, org_config)
+        t._update_credentials = mock.Mock()
+        return t
 
     return create_task
 
@@ -248,21 +251,23 @@ def _change_org_shape(request, current_org_shape, org_shapes):
 
 @contextmanager
 def change_org_shape(
-    current_org_shape, config_name: str, flow_name: str, org_shapes: dict
+    current_org_shape, config_name: str, flow_name: T.Optional[str], org_shapes: dict
 ):
+
     # I don't love that we're using the user's real keychain
-    # but I get weird popups when I use an empty keychain.
+    # but otherwise we have no devhub connection
     with unmock_env():
         org_name = f"pytest__{config_name}__{flow_name}"
         org_config = org_shapes.get(org_name)
         if not org_config:
             org_config = _create_org(org_name, config_name, flow_name)
             org_shapes[org_name] = org_config
-    current_org_shape.org_config = org_config
-    yield org_config
+            org_config.sfdx_info  # generate and cache sfdx info
+    with mock.patch.object(current_org_shape, "org_config", org_config):
+        yield org_config
 
 
-def _create_org(org_name, config_name, flow_name):
+def _create_org(org_name: str, config_name: str, flow_name: str = None):
     runtime = CliRuntime(load_keychain=True)
     try:
         org, org_config = runtime.get_org(org_name)
@@ -281,6 +286,7 @@ def _create_org(org_name, config_name, flow_name):
     )
     org, org_config = runtime.get_org(org_name)
 
-    coordinator = runtime.get_flow(flow_name)
-    coordinator.run(org_config)
+    if flow_name:
+        coordinator = runtime.get_flow(flow_name)
+        coordinator.run(org_config)
     return org_config

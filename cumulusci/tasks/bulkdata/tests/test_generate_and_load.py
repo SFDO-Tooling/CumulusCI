@@ -1,8 +1,9 @@
 import os.path
-import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
+
+import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata import GenerateAndLoadData
@@ -10,7 +11,7 @@ from cumulusci.tasks.bulkdata import GenerateAndLoadData
 from .utils import _make_task
 
 
-class TestGenerateAndLoadData(unittest.TestCase):
+class TestGenerateAndLoadData:
     @mock.patch("cumulusci.tasks.bulkdata.GenerateAndLoadData._dataload")
     def test_generate_and_load_data(self, _dataload):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_vanilla_sf.yml")
@@ -69,7 +70,7 @@ class TestGenerateAndLoadData(unittest.TestCase):
             }
         }
 
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             _make_task(GenerateAndLoadData, options)
 
     @mock.patch("cumulusci.tasks.bulkdata.GenerateAndLoadData._dataload")
@@ -78,10 +79,10 @@ class TestGenerateAndLoadData(unittest.TestCase):
 
         options = {"options": {"num_records": 20, "mapping": mapping_file}}
 
-        with self.assertRaises(TaskOptionsError) as e:
+        with pytest.raises(TaskOptionsError) as e:
             _make_task(GenerateAndLoadData, options)
 
-        assert "No data generation task" in str(e.exception)
+        assert "No data generation task" in str(e.value)
 
     @mock.patch("cumulusci.tasks.bulkdata.GenerateAndLoadData._dataload")
     def test_batchsize_matches_numrecords(self, _dataload):
@@ -103,7 +104,7 @@ class TestGenerateAndLoadData(unittest.TestCase):
         _dataload.assert_called_once()
 
     def test_bad_mapping_file_path(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             _make_task(
                 GenerateAndLoadData,
                 {
@@ -118,7 +119,7 @@ class TestGenerateAndLoadData(unittest.TestCase):
 
     @mock.patch("cumulusci.tasks.bulkdata.GenerateAndLoadData._dataload")
     def test_missing_mapping_file_when_needed(self, _dataload):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             task = _make_task(
                 GenerateAndLoadData,
                 {
@@ -148,7 +149,7 @@ class TestGenerateAndLoadData(unittest.TestCase):
         assert calls[0][1][0]["generate_mapping_file"]
 
     def test_bad_options(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             _make_task(
                 GenerateAndLoadData,
                 {
@@ -205,7 +206,7 @@ class TestGenerateAndLoadData(unittest.TestCase):
             "cumulusci.tasks.bulkdata.generate_and_load_data.GenerateAndLoadData._setup_engine",
             _setup_engine,
         ):
-            with self.assertRaises(TaskOptionsError):
+            with pytest.raises(TaskOptionsError):
                 task = _make_task(
                     GenerateAndLoadData,
                     {

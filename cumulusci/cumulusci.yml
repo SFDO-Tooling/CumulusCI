@@ -15,6 +15,10 @@ tasks:
         group: Metadata Transformations
         description: Adds specified Fields or Visualforce Pages to a Page Layout.
         class_path: cumulusci.tasks.metadata_etl.layouts.AddFieldsToPageLayout
+    add_profile_ip_ranges:
+        group: Metadata Transformations
+        description: Adds (or optionally replaces) IP Login Ranges to the specified Profiles.
+        class_path: cumulusci.tasks.metadata_etl.permissions.AddIPRanges
     add_standard_value_set_entries:
         group: Metadata Transformations
         description: Adds specified picklist entries to a Standard Value Set.
@@ -191,7 +195,6 @@ tasks:
         description: Update records of an sObject matching a where-clause.
         class_path: cumulusci.tasks.bulkdata.update_data.UpdateData
         group: Data Operations
-
     deploy:
         description: Deploys the src directory of the repository to the org
         class_path: cumulusci.tasks.salesforce.Deploy
@@ -673,7 +676,6 @@ tasks:
         group: NPSP/EDA
         options:
             restore: True
-
 flows:
     ci_beta:
         group: Continuous Integration
@@ -683,7 +685,6 @@ flows:
                 flow: install_beta
             2:
                 task: run_tests
-
     ci_feature:
         group: Continuous Integration
         description: Prepare an unmanaged metadata test org and run Apex tests. Intended for use against feature branch commits.
@@ -707,7 +708,6 @@ flows:
             5:
                 task: github_automerge_feature
                 when: project_config.repo_branch and project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
-
     ci_feature_beta_deps:
         group: Continuous Integration
         description: This flow is deprecated. Please use ci_feature instead.
@@ -731,7 +731,6 @@ flows:
             5:
                 task: github_automerge_feature
                 when: project_config.repo_branch and project_config.repo_branch.startswith(project_config.project__git__prefix_feature)
-
     ci_feature_2gp:
         group: Continuous Integration
         description: Install as a managed 2gp package and run Apex tests. Intended for use after build_feature_test_package.
@@ -742,7 +741,6 @@ flows:
                 flow: config_apextest
             3:
                 task: run_tests
-
     ci_master:
         group: Continuous Integration
         description: Deploy the package metadata to the packaging org and prepare for managed package version upload.  Intended for use against main branch commits.
@@ -756,7 +754,6 @@ flows:
                 flow: deploy_packaging
             3:
                 flow: config_packaging
-
     ci_release:
         group: Continuous Integration
         description: Install a production release version and runs tests from the managed package
@@ -765,7 +762,6 @@ flows:
                 flow: install_prod
             2:
                 task: run_tests
-
     config_apextest:
         group: Post-Install Configuration
         description: Configure an org to run apex tests after package metadata is deployed
@@ -774,7 +770,6 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
-
     config_dev:
         group: Post-Install Configuration
         description: Configure an org for use as a dev org after package metadata is deployed
@@ -783,7 +778,6 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
-
     config_managed:
         group: Post-Install Configuration
         description: Configure an org for use after the managed package has been installed.
@@ -792,14 +786,12 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
-
     config_packaging:
         group: Post-Install Configuration
         description: Configure packaging org for upload after package metadata is deployed
         steps:
             1:
                 task: update_admin_profile
-
     config_qa:
         group: Post-Install Configuration
         description: Configure an org for use as a QA org after package metadata is deployed
@@ -808,14 +800,12 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
-
     config_regression:
         group: Post-Install Configuration
         description: Configure an org for QA regression after the package is installed
         steps:
             1:
                 flow: config_managed
-
     dependencies:
         group: Dependency Management
         description: Deploy dependencies to prepare the org environment for the package metadata
@@ -824,7 +814,6 @@ flows:
                 task: update_dependencies
             2:
                 task: deploy_pre
-
     beta_dependencies:
         group: Dependency Management
         description: "This flow is deprecated. Please use the `dependencies` flow and set the `include_beta` option on the first task, `update_dependencies`. Deploy the latest (beta) version of dependencies to prepare the org environment for the package metadata"
@@ -835,7 +824,6 @@ flows:
                     resolution_strategy: preproduction
             2:
                 task: deploy_pre
-
     deploy_unmanaged:
         group: Deployment
         description: Deploy the unmanaged metadata from the package
@@ -861,7 +849,6 @@ flows:
                 when: project_config.project__source_format != "sfdx" or not org_config.scratch
             5:
                 task: snapshot_changes
-
     deploy_unmanaged_ee:
         group: Deployment
         description: Deploy the unmanaged metadata from the package to an Enterprise Edition org
@@ -883,7 +870,6 @@ flows:
                 task: uninstall_packaged_incremental
                 options:
                     purge_on_delete: False
-
     deploy_packaging:
         group: Deployment
         description: Process and deploy the package metadata to the packaging org
@@ -905,7 +891,6 @@ flows:
                 task: revert_managed_src
             6:
                 task: uninstall_packaged_incremental
-
     dev_org:
         group: Org Setup
         description: Set up an org as a development environment for unmanaged metadata
@@ -921,7 +906,6 @@ flows:
                 flow: config_dev
             4:
                 task: snapshot_changes
-
     dev_org_beta_deps:
         group: Org Setup
         description: This flow is deprecated. Please use dev_org instead.
@@ -935,7 +919,6 @@ flows:
                 flow: deploy_unmanaged
             3:
                 flow: config_dev
-
     dev_org_namespaced:
         group: Org Setup
         description: Set up a namespaced scratch org as a development environment for unmanaged metadata
@@ -951,7 +934,6 @@ flows:
                 flow: config_dev
             4:
                 task: snapshot_changes
-
     qa_org:
         group: Org Setup
         description: Set up an org as a QA environment for unmanaged metadata
@@ -967,7 +949,6 @@ flows:
                 flow: config_qa
             4:
                 task: snapshot_changes
-
     qa_org_2gp:
         group: Org Setup
         description: Set up an org as a QA environment using a second-generation package
@@ -978,7 +959,6 @@ flows:
                 flow: config_qa
             3:
                 task: snapshot_changes
-
     regression_org:
         group: Org Setup
         description: Simulates an org that has been upgraded from the latest release of to the current beta and its dependencies, but deploys any unmanaged metadata from the current beta.
@@ -989,7 +969,6 @@ flows:
                 flow: config_regression
             3:
                 task: snapshot_changes
-
     uninstall_managed:
         group: Install / Uninstall
         description: Uninstall the installed managed version of the package.  Run this before install_beta or install_prod if a version is already installed in the target org.
@@ -998,7 +977,6 @@ flows:
                 task: uninstall_post
             2:
                 task: uninstall_managed
-
     install_2gp_commit:
         group: Install / Uninstall
         description: Install the 2GP package for the current commit
@@ -1017,7 +995,6 @@ flows:
                 task: install_managed
                 options:
                     version: ^^github_package_data.version_id
-
     install_beta:
         group: Org Setup
         description: Install and configure the latest beta version
@@ -1033,7 +1010,6 @@ flows:
                 flow: config_managed
             4:
                 task: snapshot_changes
-
     install_prod:
         group: Org Setup
         description: Install and configure the latest production version
@@ -1046,7 +1022,6 @@ flows:
                 flow: config_managed
             4:
                 task: snapshot_changes
-
     install_prod_no_config:
         group: Install / Uninstall
         description: Install but do not configure the latest production version
@@ -1057,7 +1032,6 @@ flows:
                 task: install_managed
             3:
                 task: deploy_post
-
     install_regression:
         group: Install / Uninstall
         description: Install the latest beta dependencies and upgrade to the latest beta version from the most recent production version
@@ -1071,7 +1045,6 @@ flows:
                 task: install_managed
             3:
                 task: install_managed_beta
-
     release_2gp_beta:
         group: Release Operations
         description: Upload and release a beta 2gp managed package version
@@ -1106,7 +1079,6 @@ flows:
                     version_id: ^^create_package_version.subscriber_package_version_id
             4:
                 task: github_automerge_main
-
     release_unlocked_beta:
         group: Release Operations
         description: Upload and release a beta 2gp unlocked package version
@@ -1140,7 +1112,6 @@ flows:
                     version_id: ^^create_package_version.subscriber_package_version_id
             4:
                 task: github_automerge_main
-
     release_beta:
         group: Release Operations
         description: Upload and release a beta version of the metadata currently in packaging
@@ -1168,7 +1139,6 @@ flows:
                     version_id: ^^upload_beta.version_id
             4:
                 task: github_automerge_main
-
     release_production:
         group: Release Operations
         description: Upload and release a production version of the metadata currently in packaging
@@ -1190,7 +1160,6 @@ flows:
                     publish: True
                     tag: ^^github_release.tag_name
                     version_id: ^^upload_production.version_id
-
     release_2gp_production:
         group: Release Operations
         description: Promote the latest beta 2gp managed package version and create a new release in GitHub
@@ -1212,7 +1181,6 @@ flows:
                     publish: True
                     tag: ^^github_release.tag_name
                     version_id: ^^promote_package_version.version_id
-
     release_unlocked_production:
         group: Release Operations
         description: Promote the latest beta 2GP unlocked package version and create a new release in GitHub
@@ -1234,7 +1202,6 @@ flows:
                     publish: True
                     tag: ^^github_release.tag_name
                     version_id: ^^promote_package_version.version_id
-
     build_feature_test_package:
         group: Release Operations
         description: Create a 2gp managed package version
@@ -1251,7 +1218,6 @@ flows:
                     version_type: minor
                     skip_validation: True
                     resolution_strategy: commit_status
-
     unmanaged_ee:
         group: Deployment
         description: Deploy the unmanaged package metadata and all dependencies to the target EE org
@@ -1263,7 +1229,6 @@ flows:
                         purge_on_delete: False
             2:
                 flow: deploy_unmanaged_ee
-
 services:
     connected_app:
         description: A Connected App is required to connect to and run commands against persistent orgs. See https://cumulusci.readthedocs.io/en/latest/connected_orgs.html#use-a-custom-connected-app for more info.
@@ -1348,7 +1313,6 @@ services:
             callback_url:
                 description: The URL that the auth server will callback to after authentication of the user
                 required: True
-
 project:
     name:
     package:
@@ -1357,7 +1321,7 @@ project:
         namespace:
         install_class:
         uninstall_class:
-        api_version: "52.0"
+        api_version: "54.0"
     git:
         default_branch: master
         prefix_feature: feature/
@@ -1410,7 +1374,6 @@ project:
                 - latest_release
                 - unmanaged
     dependencies:
-
 orgs:
     scratch:
         dev:

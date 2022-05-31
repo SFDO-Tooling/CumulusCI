@@ -55,6 +55,50 @@ def test_install_2gp(install_package_by_version_id):
     )
 
 
+@mock.patch(
+    "cumulusci.core.dependencies.dependencies.install_package_by_namespace_version"
+)
+@mock.patch("cumulusci.tasks.salesforce.install_package_version.click.confirm")
+def test_install_interactive(confirm, install_package_by_namespace_version):
+    confirm.return_value = True
+
+    task = create_task(
+        InstallPackageVersion,
+        {"namespace": "test", "version": "1.0", "interactive": True},
+    )
+    task.org_config._installed_packages = {}
+
+    task._run_task()
+    install_package_by_namespace_version.assert_called_once_with(
+        task.project_config,
+        task.org_config,
+        "test",
+        "1.0",
+        PackageInstallOptions(),
+        retry_options=DEFAULT_PACKAGE_RETRY_OPTIONS,
+    )
+
+
+@mock.patch(
+    "cumulusci.core.dependencies.dependencies.install_package_by_namespace_version"
+)
+@mock.patch("cumulusci.tasks.salesforce.install_package_version.click.confirm")
+def test_install_interactive__decline(confirm, install_package_by_namespace_version):
+    confirm.return_value = False
+
+    task = create_task(
+        InstallPackageVersion,
+        {"namespace": "test", "version": "1.0", "interactive": True},
+    )
+    task.org_config._installed_packages = {}
+
+    with pytest.raises(CumulusCIException) as e:
+        task._run_task()
+
+    assert "canceled" in str(e)
+    install_package_by_namespace_version.assert_not_called()
+
+
 def test_init_options():
     project_config = create_project_config()
     project_config.config["project"]["package"]["namespace"] = "ns"
@@ -300,6 +344,8 @@ def test_freeze():
                 "options": {
                     "version": "1.0",
                     "namespace": "ns",
+                    "interactive": False,
+                    "base_package_url_format": "{}",
                 },
                 "checks": [],
             },
@@ -339,6 +385,8 @@ def test_freeze__2gp():
                     "version": "04t000000000000",
                     "version_number": "1.0",
                     "namespace": "ns",
+                    "interactive": False,
+                    "base_package_url_format": "{}",
                 },
                 "checks": [],
             },

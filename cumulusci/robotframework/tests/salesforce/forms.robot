@@ -38,6 +38,15 @@ Require Salesforce object
     Run keyword if  not $result
     ...  log  created object  DEBUG
 
+Go to My Email settings
+    [Documentation]
+    ...  Go directly to the My Email Settings page
+
+    &{org}=  Get org info
+    ${url}=  Set variable
+    ...  ${org['instance_url']}/lightning/settings/personal/EmailSettings/home
+    Go to  ${url}
+
 *** Test Cases ***
 Lightning based form - Opportunity
     [Documentation]
@@ -66,9 +75,73 @@ Lightning based form - Opportunity
 
     capture page screenshot
 
-    # ${contact_id} =       Get Current Record Id
-    # Store Session Record  Contact  ${contact_id}
-    # Validate Contact      ${contact_id}  ${first_name}  ${last_name}
+Non-lightning based form - checkbox
+    [Documentation]
+    ...  Verify that we can check and uncheck standard html checkboxes
+    ...  e.g.: <input type="checkbox">
+
+    [Setup]  Run keywords
+    ...  Go to page                  Home    ServiceCrewMember
+    ...  AND  Click Object Button    New
+    ...  AND  Wait for modal         New     ServiceCrewMember
+    [Teardown]   Click modal button  Cancel
+
+    # first, let's make sure that the keyword returns an element
+    # that is a plain html input element
+    ${element}=      Get webelement       label:Leader
+    Should be equal  ${element.tag_name}  input
+
+    # next, set the checkbox and assert it is checked
+    Input form data
+    ...  Leader    checked
+    Checkbox should be selected      label:Leader
+
+    # finally, unset it and assert it is unchecked
+    Input form data
+    ...  Leader    unchecked
+    Checkbox should not be selected      label:Leader
+
+Lightning based form - radiobutton
+    [Documentation]
+    ...  Verify we can set a lightning radiobutton by its label
+    [Setup]      Run keywords
+    ...  Go to page          Listing    Opportunity
+    ...  AND  Click element  sf:list_view_menu.button
+    ...  AND  Click element  sf:list_view_menu.item:New
+    ...  AND  Wait for modal  New  List View
+    [Teardown]   Click modal button  Cancel
+
+    Input form data
+    ...  Who sees this list view?::All users can see this list view    selected
+
+    # Using the label: locator returns a lightning-input element. We need to find
+    # the actual html input element to verify that it is checked. Ugly, but efficient.
+    ${element}=  Get webelement  label:All users can see this list view
+    Should be true  ${element.find_element_by_xpath(".//input").is_selected()}
+
+Non-lightning based form - radiobutton
+    [Documentation]  Verify we can set a plain non-lightning radiobutton
+
+    [Setup]     Run keywords
+    ...  Skip if  "firefox" in $browser
+    ...  AND  Go to My Email Settings
+    ...  AND  Select frame  //div[@class="setupcontent"]//iframe
+    [Teardown]  Unselect frame
+
+    # The settings page is just about the only page I could find
+    # with old school non-lightning radiobuttons
+    # Thankfully, I can use built-in keywords to validate that
+    # the radiobuttons have actually bet set.
+
+    # make sure it is set to 1
+    Select radio button  use_external_email  1
+
+    # then try to use our keyword to set it
+    Input form data
+    ...  Send through Salesforce  selected
+
+    # ... and then verify that it was set
+    Radio button should be set to  use_external_email  0
 
 Non-lightning based form - Shipment
     [Documentation]
@@ -87,12 +160,9 @@ Non-lightning based form - Shipment
         Should not start with  ${element.tag_name}  lightning-
         ...  Element tag for '${label}' not expected to be lightning component
     END
-
     Input form data
     ...  Ship To Street  2501 Exchange Ave
     ...  Ship To City    Oklahoma City
-
-    capture page screenshot
 
 Fieldsets - Shipment
     [Documentation]

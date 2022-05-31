@@ -13,6 +13,7 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationType,
 )
+from cumulusci.tasks.bulkdata.tests.integration_test_utils import ensure_accounts
 from cumulusci.tasks.bulkdata.update_data import UpdateData
 
 
@@ -29,6 +30,9 @@ def _hashify_operation(kwargs):
 
 def noop(*args, **kwargs):
     pass
+
+
+ensure_accounts = ensure_accounts  # cleans up multiple lint errors at once.
 
 
 class MockBulkAPIResponses:
@@ -142,6 +146,15 @@ class FakeDMLOperationResult(FakeOperationResult):
 
     def end(self):
         pass
+
+    @property
+    def job_result(self):
+        return DataOperationJobResult(
+            self.results.job_result_status,
+            [],
+            len(self.results.results),
+            sum(1 for r in self.results.results if r.success is False),
+        )
 
 
 def _fake_val_and_inject_ns(
@@ -270,7 +283,7 @@ class TestUpdates:
         bulkapi_responses.add_query_operation(
             sobject="Account",
             fields=["Id", "Name"],
-            query="SELECT Id,Name FROM Account WHERE Name Like '%ark%'",
+            query="SELECT Id,Name FROM Account WHERE name LIKE '%ark%'",
             api=DataApi.SMART,
             results=[
                 ["OID000BLAH", "Mark Benihoff"],
@@ -295,7 +308,7 @@ class TestUpdates:
                 "object": "Account",
                 "recipe": "datasets/update.recipe.yml",
                 "fields": ["Name"],
-                "where": "Name Like '%ark%'",
+                "where": "name LIKE '%ark%'",
             },
         )
         task._validate_and_inject_namespace_prefixes = _fake_val_and_inject_ns
@@ -303,7 +316,7 @@ class TestUpdates:
         task()
         last_message = task.logger.mock_calls[-1].args[0]
         assert last_message.startswith(
-            "Updated Account objects matching \"Name Like '%ark%'\""
+            "Account objects matching \"name like '%ark%'\""
         ), last_message
 
     @bulkapi_responses.activate
@@ -386,19 +399,115 @@ class TestUpdates:
             task()
         assert "Unable to update records" in str(e.value)
 
+    @bulkapi_responses.activate
+    def test_update_row_errors(self, create_task):
+        bulkapi_responses.add_query_operation(
+            sobject="Account",
+            fields=["Id", "Name"],
+            query="SELECT Id,Name FROM Account",
+            api=DataApi.SMART,
+            results=[
+                ["OID000BLAH", "Mark Benihoff"],
+                ["OID000BLAH2", "Parkour Hairish"],
+            ],
+        )
+        loader = mock.Mock()
+        bulkapi_responses.add_dml_operation(
+            sobject="Account",
+            operation=DataOperationType.UPDATE,
+            fields=["BillingStreet", "Description", "NumberOfEmployees", "Id"],
+            api_options={},
+            api=DataApi.SMART,
+            volume=2,
+            results=[
+                DataOperationResult("OID000BEEF", success=True, error=""),
+                DataOperationResult("OID000BLAH", success=False, error="humbug"),
+            ],
+            loader_callback=loader,
+            job_result_status=DataOperationStatus.ROW_FAILURE,
+        )
 
-class TestUpdatesIntegrationTests:
-    @pytest.mark.needs_org()
-    def test_updates_task(self, create_task, cumulusci_test_repo_root):
         task = create_task(
             UpdateData,
             {
                 "object": "Account",
                 "recipe": "datasets/update.recipe.yml",
                 "fields": ["Name"],
+                "ignore_row_errors": True,
             },
         )
+
+        task._validate_and_inject_namespace_prefixes = _fake_val_and_inject_ns
         task.logger = mock.Mock()
         task()
-        last_message = task.logger.mock_calls[-1].args[0]
-        assert "Updated all Account" in str(last_message), str(last_message)
+        assert task.return_values["status"] == DataOperationStatus.ROW_FAILURE
+        assert task.return_values["total_row_errors"] == 1
+        assert (
+            task.logger.mock_calls[-1].args[0]
+            == "All account objects processed (2). 1 errors"
+        ), task.logger.mock_calls[-1].args[0]
+
+    @bulkapi_responses.activate
+    def test_update_row_errors_exception_catching(self, create_task):
+        bulkapi_responses.add_query_operation(
+            sobject="Account",
+            fields=["Id", "Name"],
+            query="SELECT Id,Name FROM Account",
+            api=DataApi.SMART,
+            results=[
+                ["OID000BLAH", "Mark Benihoff"],
+                ["OID000BLAH2", "Parkour Hairish"],
+            ],
+        )
+        loader = mock.Mock()
+        bulkapi_responses.add_dml_operation(
+            sobject="Account",
+            operation=DataOperationType.UPDATE,
+            fields=["BillingStreet", "Description", "NumberOfEmployees", "Id"],
+            api_options={},
+            api=DataApi.SMART,
+            volume=2,
+            results=[
+                DataOperationResult("OID000BEEF", success=True, error=""),
+                DataOperationResult("OID000BLAH", success=False, error="humbug"),
+            ],
+            loader_callback=loader,
+            job_result_status=DataOperationStatus.ROW_FAILURE,
+        )
+
+        task = create_task(
+            UpdateData,
+            {
+                "object": "Account",
+                "recipe": "datasets/update.recipe.yml",
+                "fields": ["Name"],
+                "ignore_row_errors": False,
+            },
+        )
+
+        task._validate_and_inject_namespace_prefixes = _fake_val_and_inject_ns
+        with pytest.raises(exc.BulkDataException) as e:
+            task()
+        assert str(e.value) == "1 update error"
+
+
+class TestUpdatesIntegrationTests:
+
+    # VCR doesn't match because of randomized data
+    @pytest.mark.vcr()
+    def test_updates_task(self, create_task, ensure_accounts):
+        with ensure_accounts(6):
+            task = create_task(
+                UpdateData,
+                {
+                    "object": "Account",
+                    "recipe": "datasets/update.recipe.yml",
+                    "fields": ["Name"],
+                },
+            )
+            task.logger = mock.Mock()
+            task()
+            last_message = task.logger.mock_calls[-1].args[0]
+            assert (
+                str(last_message) == "All account objects successfully updated (6)."
+            ), str(last_message)

@@ -4,6 +4,7 @@ import os
 import re
 import time
 import webbrowser
+from string import Template
 from typing import Callable, Optional, Union
 from urllib.parse import urlparse
 
@@ -13,6 +14,7 @@ from github3.exceptions import AuthenticationFailed, ResponseError, TransportErr
 from github3.git import Reference, Tag
 from github3.pulls import ShortPullRequest
 from github3.repos.commit import RepoCommit
+from github3.repos.release import Release
 from github3.repos.repo import Repository
 from github3.session import GitHubSession
 from requests.adapters import HTTPAdapter
@@ -216,14 +218,41 @@ def markdown_link_to_pr(change_note):
     return f"{change_note.title} [[PR{change_note.number}]({change_note.html_url})]"
 
 
-def find_latest_release(repo, include_beta=None):
+def find_latest_release(repo, include_beta=None) -> Optional[Release]:
     try:
         if include_beta:
-            return next(repo.releases())
+            return get_latest_prerelease(repo)
         else:
             return repo.latest_release()
     except (github3.exceptions.NotFoundError, StopIteration):
         pass
+
+
+def get_latest_prerelease(repo: Repository) -> Optional[Release]:
+    """Calls GraphQL to retrieve the latest release, ordered chronologically."""
+    QUERY = Template(
+        """
+          query {
+            repository(owner: "$owner", name: "$name") {
+              releases(last: 1, orderBy: {field: CREATED_AT, direction: ASC}) {
+                nodes {
+                  tagName
+                }
+              }
+            }
+          }
+        """
+    ).substitute(dict(owner=repo.owner, name=repo.name))
+
+    session: GitHubSession = repo.session
+    url: str = session.build_url("graphql")
+    response: Response = session.request("POST", url, json={"query": QUERY})
+    response_dict: dict = response.json()
+
+    release_tags = response_dict["data"]["repository"]["releases"]["nodes"]
+    if release_tags:
+        release = repo.release_from_tag(release_tags[0]["tagName"])
+        return release
 
 
 def find_previous_release(repo, prefix=None):
@@ -374,7 +403,7 @@ def warn_oauth_restricted(exc: ResponseError) -> str:
 
     is_403 = exc.response.status_code == 403
     org_restricted_oauth_warning = (
-        "organization has enabled OAuth App access restrictions"
+        "organization has enabled OAuth App access restriction"
     )
 
     if is_403 and org_restricted_oauth_warning in str(exc):

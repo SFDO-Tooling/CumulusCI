@@ -27,13 +27,16 @@ def list_infos(infos):
 class BaseTaskFlowConfig(BaseConfig):
     """Base class for all configs that contain tasks and flows"""
 
+    tasks: dict
+    flows: dict
+
     def list_tasks(self):
         """Returns a list of task info dictionaries with keys 'name' and 'description'"""
         return list_infos(self.tasks)
 
     def get_task(self, name):
         """Returns a TaskConfig"""
-        config = getattr(self, f"tasks__{name}")
+        config = self.lookup(f"tasks__{name}")
         if not config and name not in self.tasks:
             # task does not exist
             error_msg = f"Task not found: {name}"
@@ -56,7 +59,7 @@ class BaseTaskFlowConfig(BaseConfig):
 
     def get_flow(self, name):
         """Returns a FlowConfig"""
-        config = getattr(self, f"flows__{name}")
+        config = self.lookup(f"flows__{name}")
         if not config:
             error_msg = f"Flow not found: {name}"
             suggestion = self.get_suggested_name(name, self.flows)

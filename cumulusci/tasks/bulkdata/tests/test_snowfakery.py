@@ -14,18 +14,20 @@ from sqlalchemy import MetaData, create_engine
 
 from cumulusci.core import exceptions as exc
 from cumulusci.core.config import OrgConfig
-from cumulusci.tasks.bulkdata.delete import DeleteData
 from cumulusci.tasks.bulkdata.snowfakery import (
     RunningTotals,
     Snowfakery,
     SnowfakeryWorkingDirectory,
 )
+from cumulusci.tasks.bulkdata.tests.integration_test_utils import ensure_accounts
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.tests.util import DummyKeychain, DummyOrgConfig
 from cumulusci.utils.parallel.task_worker_queues.tests.test_parallel_worker import (
     DelaySpawner,
 )
+
+ensure_accounts = ensure_accounts  # fixes 4 lint errors at once. Don't hate the player, hate the game.
 
 simple_salesforce_yaml = (
     Path(__file__).parent / "snowfakery/simple_snowfakery.recipe.yml"
@@ -206,25 +208,6 @@ def temporary_file_path(filename):
         yield path
 
 
-@pytest.fixture()
-def ensure_accounts(create_task, run_code_without_recording, sf):
-    """Delete all accounts and create a certain number of new ones"""
-
-    @contextmanager
-    def _ensure_accounts(number_of_accounts):
-        def setup(number):
-            task = create_task(DeleteData, {"objects": "Entitlement, Account"})
-            task()
-            for i in range(0, number):
-                sf.Account.create({"Name": f"Account {i}"})
-
-        run_code_without_recording(lambda: setup(number_of_accounts))
-        yield
-        run_code_without_recording(lambda: setup(0))
-
-    return _ensure_accounts
-
-
 class SnowfakeryTaskResults(T.NamedTuple):
     """Results from a Snowfakery data generation process"""
 
@@ -321,7 +304,6 @@ class TestSnowfakery:
             },
         )
         task()
-        assert mock_load_data.mock_calls
         # should not be called for a simple one-rep load
         assert not Process.mock_calls
 
@@ -347,7 +329,11 @@ class TestSnowfakery:
     ):
         task = create_task_fixture(
             Snowfakery,
-            {"recipe": sample_yaml, "run_until_recipe_repeated": "7"},
+            {
+                "recipe": sample_yaml,
+                "run_until_recipe_repeated": "7",
+                "drop_missing_schema": True,
+            },
         )
         task()
         # Batch size was 3, so 7 records takes
@@ -355,6 +341,8 @@ class TestSnowfakery:
         assert len(mock_load_data.mock_calls) == 3, mock_load_data.mock_calls
         # One should be in a sub-process/thread
         assert len(threads_instead_of_processes.mock_calls) == 2
+        for call in mock_load_data.mock_calls:
+            assert call.task_config.config["options"]["drop_missing_schema"] is True
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_multi_part(
@@ -372,6 +360,8 @@ class TestSnowfakery:
             len(threads_instead_of_processes.mock_calls)
             == len(mock_load_data.mock_calls) - 1
         )
+        for call in mock_load_data.mock_calls:
+            assert call.task_config.config["options"]["drop_missing_schema"] is False
 
     @mock.patch(
         "cumulusci.utils.parallel.task_worker_queues.parallel_worker_queue.WorkerQueue.Process",
@@ -655,8 +645,9 @@ class TestSnowfakery:
         ]
 
         unique_values = [row.value for batchrows in all_rows for row in batchrows]
-        assert len(unique_values) == len(set(unique_values))
-        # See also W-10142031: Investigate unreliable test assertions
+        assert len(mock_load_data.mock_calls) == 6, len(mock_load_data.mock_calls)
+        assert len(unique_values) == 30, len(unique_values)
+        assert len(set(unique_values)) == 30, unique_values
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 2)
     def test_two_channels(self, mock_load_data, create_task):
@@ -902,6 +893,35 @@ class TestSnowfakery:
                 mock_load_data.reset(fake_exception_on_request=3)
                 task()
 
+    @pytest.mark.vcr()
+    @pytest.mark.skip()
+    def test_snowfakery_upsert(self, create_task, sf, run_code_without_recording):
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": Path(__file__).parent / "snowfakery/upsert.recipe.yml",
+            },
+        )
+
+        def assert_bluth_name(name):
+            data = sf.query(
+                "select FirstName from Contact where email='michael@bluth.com'"
+            )
+            assert data["records"][0]["FirstName"] == name
+
+        task()
+        run_code_without_recording(lambda: assert_bluth_name("Michael"))
+
+        task = create_task(
+            Snowfakery,
+            {
+                "recipe": Path(__file__).parent / "snowfakery/upsert_2.recipe.yml",
+            },
+        )
+
+        task()
+        run_code_without_recording(lambda: assert_bluth_name("Nichael"))
+
     # def test_generate_mapping_file(self):
     #     with temporary_file_path("mapping.yml") as temp_mapping:
     #         with temp_sqlite_database_url() as database_url:
@@ -1039,7 +1059,7 @@ class TestSnowfakery:
     #             {"options": {"generator_yaml": sample_yaml, "num_records": 10}},
     #         )
     #         task()
-    #     assert "without num_records_tablename" in str(e.exception)
+    #     assert "without num_records_tablename" in str(e.value)
 
     # def generate_continuation_data(self, fileobj):
     #     g = data_generator_runtime.Globals()
@@ -1091,8 +1111,8 @@ class TestSnowfakery:
     #             rows = self.assertRowsCreated(database_url)
     #             assert dict(rows[0])["id"] == 6
 
-    #     assert "jazz" in str(e.exception)
-    #     assert "does not exist" in str(e.exception)
+    #     assert "jazz" in str(e.value)
+    #     assert "does not exist" in str(e.value)
 
     # def test_generate_continuation_file(self):
     #     with temporary_file_path("cont.yml") as temp_continuation_file:

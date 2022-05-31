@@ -33,13 +33,15 @@ with open("requirements/prod.txt") as requirements_file:
             continue
         else:
             req = req.split(" ")[0]
+            # Work around normalized name of github3.py distribution
+            req = req.replace("github3-py", "github3.py")
             requirements.append(req)
 
 setup(
     name="cumulusci",
     version=version,
     description="Build and release tools for Salesforce developers",
-    long_description=readme + u"\n\n" + history,
+    long_description=readme + "\n\n" + history,
     long_description_content_type="text/x-rst",
     author="Salesforce.org",
     author_email="jlantz@salesforce.com",

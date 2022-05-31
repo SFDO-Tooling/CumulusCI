@@ -126,14 +126,14 @@ class TestExtractData:
 
             with create_engine(task.options["database_url"]).connect() as conn:
                 household = next(conn.execute("select * from households"))
-                assert "1" == household.sf_id
+                assert household.sf_id == "1"
                 assert not hasattr(household, "IsPersonAccount")
-                assert "HH_Account" == household.record_type
+                assert household.record_type == "HH_Account"
 
                 contact = next(conn.execute("select * from contacts"))
-                assert "2" == contact.sf_id
+                assert contact.sf_id == "2"
                 assert not hasattr(contact, "IsPersonAccount")
-                assert "1" == contact.household_id
+                assert contact.household_id == "1"
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
@@ -181,14 +181,14 @@ class TestExtractData:
             with create_engine(task.options["database_url"]).connect() as conn:
 
                 household = next(conn.execute("select * from households"))
-                assert "1" == household.sf_id
-                assert "false" == household.IsPersonAccount
-                assert "HH_Account" == household.record_type
+                assert household.sf_id == "1"
+                assert household.IsPersonAccount == "false"
+                assert household.record_type == "HH_Account"
 
                 contact = next(conn.execute("select * from contacts"))
-                assert "2" == contact.sf_id
-                assert "true" == contact.IsPersonAccount
-                assert "1" == contact.household_id
+                assert contact.sf_id == "2"
+                assert contact.IsPersonAccount == "true"
+                assert contact.household_id == "1"
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
@@ -353,15 +353,18 @@ class TestExtractData:
         )
         step = mock.Mock()
         task.session = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
+        task.metadata = mock.MagicMock()
 
-        task._import_results(mapping, step)
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.extract.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._import_results(mapping, step)
 
         task.session.connection.assert_called_once_with()
         step.get_results.assert_called_once_with()
-        task._sql_bulk_insert_from_records.assert_called_once_with(
+        sql_bulk_insert_from_records.assert_called_once_with(
             connection=task.session.connection.return_value,
-            table=mapping.table,
+            table=task.metadata.tables[mapping.table],
             columns=["sf_id", "Name", "AccountId"],
             record_iterable=log_mock.return_value,
         )
@@ -386,6 +389,7 @@ class TestExtractData:
         step = mock.Mock()
         step.get_results.return_value = [[1], [2]]
         task.session = mock.Mock()
+        task._init_task()
         task._init_mapping()
         task.mapping["Opportunity"] = mapping
         with task._init_db():
@@ -413,20 +417,24 @@ class TestExtractData:
             [["006000000000001", (date.today() + timedelta(days=9)).isoformat()]]
         )
         task.session = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
-        task._import_results(mapping, step)
+        task.metadata = mock.MagicMock()
+        task._init_task()
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.extract.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._import_results(mapping, step)
 
         task.session.connection.assert_called_once_with()
         step.get_results.assert_called_once_with()
-        task._sql_bulk_insert_from_records.assert_called_once_with(
+        sql_bulk_insert_from_records.assert_called_once_with(
             connection=task.session.connection.return_value,
-            table=mapping.table,
+            table=task.metadata.tables[mapping.table],
             columns=["sf_id", "CloseDate"],
             record_iterable=mock.ANY,
         )
 
         result = list(
-            task._sql_bulk_insert_from_records.call_args_list[0][1]["record_iterable"]
+            sql_bulk_insert_from_records.call_args_list[0][1]["record_iterable"]
         )
         assert result == [["006000000000001", "2020-07-10"]]
 
@@ -438,9 +446,7 @@ class TestExtractData:
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
         task._extract_record_types = mock.Mock()
-        task._sql_bulk_insert_from_records_incremental = mock.Mock(
-            return_value=[None, None]
-        )
+        task.metadata = mock.MagicMock()
         task.session = mock.Mock()
         task.org_config._is_person_accounts_enabled = False
 
@@ -453,10 +459,14 @@ class TestExtractData:
             lookups={},
             table="accounts",
         )
-        task._import_results(
-            mapping,
-            step,
-        )
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.extract.sql_bulk_insert_from_records_incremental",
+            return_value=[None, None],
+        ):
+            task._import_results(
+                mapping,
+                step,
+            )
         task._extract_record_types.assert_called_once_with(
             "Account",
             mapping.get_source_record_type_table(),
@@ -471,8 +481,8 @@ class TestExtractData:
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
         task._extract_record_types = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.session = mock.Mock()
+        task.metadata = mock.MagicMock()
         task.org_config._is_person_accounts_enabled = True
 
         step = mock.Mock()
@@ -481,22 +491,25 @@ class TestExtractData:
             ["000000000000002", "Business Account", "012000000000002", "false"],
         ]
 
-        task._import_results(
-            MappingStep(
-                sf_object="Account",
-                fields={
-                    "Id": "sf_id",
-                    "Name": "Name",
-                    "RecordTypeId": "RecordTypeId",
-                    "IsPersonAccount": "IsPersonAccount",
-                },
-                lookups={},
-            ),
-            step,
-        )
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.extract.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._import_results(
+                MappingStep(
+                    sf_object="Account",
+                    fields={
+                        "Id": "sf_id",
+                        "Name": "Name",
+                        "RecordTypeId": "RecordTypeId",
+                        "IsPersonAccount": "IsPersonAccount",
+                    },
+                    lookups={},
+                ),
+                step,
+            )
 
-        task._sql_bulk_insert_from_records.assert_called()
-        args, kwargs = task._sql_bulk_insert_from_records.call_args_list[0]
+        sql_bulk_insert_from_records.assert_called()
+        args, kwargs = sql_bulk_insert_from_records.call_args_list[0]
 
         records = [record for record in kwargs["record_iterable"]]
 
@@ -524,6 +537,7 @@ class TestExtractData:
         task._convert_lookups_to_id = mock.Mock()
         task.metadata = mock.MagicMock()
 
+        task._init_task()
         task._init_mapping()
         task._map_autopks()
 
@@ -740,6 +754,7 @@ class TestExtractData:
         )
         task.org_config._is_person_accounts_enabled = False
 
+        task._init_task()
         task._init_mapping()
         assert "Insert Households" in task.mapping
 
@@ -757,6 +772,7 @@ class TestExtractData:
         )
         task.org_config._is_person_accounts_enabled = True
 
+        task._init_task()
         task._init_mapping()
         assert "Insert Households" in task.mapping
 
@@ -780,11 +796,12 @@ class TestExtractData:
         )
         t.org_config._is_person_accounts_enabled = True
 
+        t._init_task()
         t._init_mapping()
 
         validate_and_inject_mapping.assert_called_once_with(
             mapping=t.mapping,
-            org_config=t.org_config,
+            sf=t.sf,
             namespace=t.project_config.project__package__namespace,
             data_operation=DataOperationType.QUERY,
             inject_namespaces=True,
@@ -895,15 +912,18 @@ class TestExtractData:
         )
         step = mock.Mock()
         task.session = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
+        task.metadata = mock.MagicMock()
 
-        task._import_results(mapping, step)
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.extract.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._import_results(mapping, step)
 
         task.session.connection.assert_called_once_with()
         step.get_results.assert_called_once_with()
-        task._sql_bulk_insert_from_records.assert_called_once_with(
+        sql_bulk_insert_from_records.assert_called_once_with(
             connection=task.session.connection.return_value,
-            table="Opportunity",
+            table=task.metadata.tables["Opportunity"],
             columns=["sf_id", "Name", "account_id"],
             record_iterable=log_mock.return_value,
         )
@@ -950,7 +970,7 @@ class TestExtractData:
 
             step_mock.side_effect = [mock_query_households, mock_query_contacts]
 
-            with assert_max_memory_usage(15 * 10 ** 6):
+            with assert_max_memory_usage(15 * 10**6):
                 task()
 
     @responses.activate

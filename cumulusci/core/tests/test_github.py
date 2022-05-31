@@ -4,6 +4,7 @@ from datetime import datetime
 from unittest import mock
 
 import pytest
+import requests
 import responses
 from github3.exceptions import (
     AuthenticationFailed,
@@ -37,6 +38,7 @@ from cumulusci.core.github import (
     get_commit,
     get_github_api,
     get_github_api_for_repo,
+    get_latest_prerelease,
     get_oauth_device_flow_token,
     get_oauth_scopes,
     get_pull_requests_by_commit,
@@ -299,7 +301,7 @@ class TestGithub(GithubApiTestMixin):
         self.init_github()
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/tag_SHA",
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=200,
         )
@@ -317,7 +319,7 @@ class TestGithub(GithubApiTestMixin):
         self.init_github()
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/tag_SHA",
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=200,
         )
@@ -337,7 +339,7 @@ class TestGithub(GithubApiTestMixin):
         light_tag["object"]["type"] = "commit"
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/tag_SHA",
             json=light_tag,
             status=200,
         )
@@ -357,7 +359,7 @@ class TestGithub(GithubApiTestMixin):
         self.init_github()
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/tag_SHA",
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=200,
         )
@@ -369,7 +371,7 @@ class TestGithub(GithubApiTestMixin):
         self.init_github()
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/tag_SHA",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/tag_SHA",
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=404,
         )
@@ -381,7 +383,7 @@ class TestGithub(GithubApiTestMixin):
         self.init_github()
         responses.add(  # the ref for the tag is fetched first
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/test-tag-name",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/test-tag-name",
             json=self._get_expected_tag_ref("test-tag-name", "tag_SHA"),
             status=200,
         )
@@ -400,7 +402,7 @@ class TestGithub(GithubApiTestMixin):
         self.init_github()
         responses.add(  # the ref for the tag is fetched first
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/test-tag-name",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/test-tag-name",
             json=self._get_expected_tag_ref("test-tag-name", "tag_SHA"),
             status=200,
         )
@@ -466,11 +468,11 @@ class TestGithub(GithubApiTestMixin):
         resp = Response()
         resp.status_code = 401
         exc = AuthenticationFailed(resp)
-        assert "" == check_github_sso_auth(exc)
+        assert check_github_sso_auth(exc) == ""
 
         resp.status_code = 403
         exc = ForbiddenError(resp)
-        assert "" == check_github_sso_auth(exc)
+        assert check_github_sso_auth(exc) == ""
 
     @mock.patch("webbrowser.open")
     def test_check_github_sso_unauthorized_token(self, browser_open):
@@ -497,7 +499,7 @@ class TestGithub(GithubApiTestMixin):
     def test_github_oauth_org_restricted(self):
         resp = Response()
         resp.status_code = 403
-        body = {"message": "organization has enabled OAuth App access restrictions"}
+        body = {"message": "organization has enabled OAuth App access restriction"}
         resp._content = json.dumps(body)
         exc = ForbiddenError(resp)
 
@@ -658,7 +660,28 @@ class TestGithub(GithubApiTestMixin):
 
         returned_token = get_oauth_device_flow_token()
 
-        assert "expected_access_token" == returned_token
+        assert returned_token == "expected_access_token"
         get_token.assert_called_once()
         get_code.assert_called_once()
         browser_open.assert_called_with("https://github.com/login/device")
+
+    @responses.activate
+    def test_get_latest_prerelease(self):
+        expected_tag = "beta/1.0-Beta_1"
+        query_result = self._get_expected_prerelease_tag_gql(expected_tag)
+        endpoint = "https://api.github.com/graphql"
+
+        responses.add(
+            "POST",
+            endpoint,
+            json=query_result,
+        )
+
+        repo: Repository = mock.MagicMock()
+        repo.session = mock.MagicMock()
+        repo.session.build_url.return_value = endpoint
+        repo.session.request = requests.request
+
+        get_latest_prerelease(repo=repo)
+        assert responses.assert_call_count(endpoint, 1)
+        repo.release_from_tag.assert_called_once_with(expected_tag)

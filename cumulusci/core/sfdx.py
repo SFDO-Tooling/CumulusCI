@@ -46,12 +46,13 @@ def sfdx(
     # Avoid logging access token
     if access_token:
         command += f" -u {shell_quote(access_token)}"
+    env = env or {}
     p = sarge.Command(
         command,
         stdout=sarge.Capture(buffer_size=-1) if capture_output else None,
         stderr=sarge.Capture(buffer_size=-1) if capture_output else None,
         shell=True,
-        env=env,
+        env={**env, "SFDX_DISABLE_TELEMETRY": "true"},
     )
     p.run()
     if capture_output:
@@ -132,7 +133,7 @@ def convert_sfdx_source(
     with contextlib.ExitStack() as stack:
         # Convert SFDX -> MDAPI format if path exists but does not have package.xml
         if (
-            len(os.listdir(path))  # path == None -> CWD
+            len(os.listdir(path))  # path is None -> CWD
             and get_source_format_for_path(path) is SourceFormat.SFDX
         ):
             logger.info("Converting from SFDX to MDAPI format.")

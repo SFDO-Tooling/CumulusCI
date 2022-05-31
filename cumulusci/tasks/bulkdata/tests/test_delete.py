@@ -1,4 +1,3 @@
-import unittest
 from unittest import mock
 
 import pytest
@@ -17,7 +16,7 @@ from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tests.util import mock_describe_calls
 
 
-class TestDeleteData(unittest.TestCase):
+class TestDeleteData:
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.delete.get_query_operation")
     @mock.patch("cumulusci.tasks.bulkdata.delete.get_dml_operation")
@@ -111,7 +110,7 @@ class TestDeleteData(unittest.TestCase):
                 DataOperationResult("001000000000001", False, None),
             ]
         )
-        with self.assertRaises(BulkDataException):
+        with pytest.raises(BulkDataException):
             task()
 
     @responses.activate
@@ -126,7 +125,7 @@ class TestDeleteData(unittest.TestCase):
         query_mock.return_value.job_result = DataOperationJobResult(
             DataOperationStatus.JOB_FAILURE, [], 0, 0
         )
-        with self.assertRaises(BulkDataException):
+        with pytest.raises(BulkDataException):
             task()
 
     @responses.activate
@@ -147,7 +146,7 @@ class TestDeleteData(unittest.TestCase):
                 DataOperationResult("001000000000001", False, None),
             ]
         )
-        with self.assertRaises(BulkDataException):
+        with pytest.raises(BulkDataException):
             task()
 
     @responses.activate
@@ -307,7 +306,7 @@ class TestDeleteData(unittest.TestCase):
         query_mock.return_value.job_result = DataOperationJobResult(
             DataOperationStatus.JOB_FAILURE, [], 0, 0
         )
-        with self.assertRaises(BulkDataException):
+        with pytest.raises(BulkDataException):
             task()
 
     @responses.activate
@@ -371,16 +370,16 @@ class TestDeleteData(unittest.TestCase):
         assert t._object_description("a") == "all a objects"
 
     def test_init_options(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             _make_task(DeleteData, {"options": {"objects": ""}})
 
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             _make_task(DeleteData, {"options": {"objects": "a,b", "where": "x='y'"}})
 
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             _make_task(DeleteData, {"options": {"objects": "a", "api": "blah"}})
 
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             _make_task(
                 DeleteData,
                 {"options": {"objects": "a", "api": "rest", "hardDelete": True}},

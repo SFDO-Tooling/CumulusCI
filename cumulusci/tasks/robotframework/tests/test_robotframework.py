@@ -4,7 +4,6 @@ import re
 import shutil
 import sys
 import tempfile
-import unittest
 from contextlib import contextmanager
 from pathlib import Path
 from unittest import mock
@@ -26,12 +25,12 @@ from cumulusci.utils import temporary_dir, touch
 from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
 
 
-class TestRobot(unittest.TestCase):
+class TestRobot:
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     def test_run_task_with_failure(self, robot_run):
         robot_run.return_value = 1
         task = create_task(Robot, {"suites": "tests", "pdb": True})
-        with self.assertRaises(RobotTestFailure):
+        with pytest.raises(RobotTestFailure):
             task()
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
@@ -49,9 +48,9 @@ class TestRobot(unittest.TestCase):
         for error_code in expected.keys():
             robot_run.return_value = error_code
             task = create_task(Robot, {"suites": "tests", "pdb": True})
-            with self.assertRaises(RobotTestFailure) as error:
+            with pytest.raises(RobotTestFailure) as e:
                 task()
-            self.assertEqual(str(error.exception), expected[error_code])
+            assert str(e.value) == expected[error_code]
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.patch_statusreporter")
     def test_pdb_arg(self, patch_statusreporter):
@@ -88,6 +87,16 @@ class TestRobot(unittest.TestCase):
         )
         for option in ("test", "include", "exclude", "vars", "suites", "skip"):
             assert isinstance(task.options[option], list)
+
+    def test_options_converted_to_dict(self):
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "options": "outputdir:/tmp/example,loglevel:DEBUG",
+            },
+        )
+        assert isinstance(task.options["options"], dict)
 
     def test_process_arg_requires_int(self):
         """Verify we throw a useful error for non-int "processes" option"""
@@ -218,9 +227,9 @@ class TestRobot(unittest.TestCase):
         listener_classes = [
             listener.__class__ for listener in task.options["options"]["listener"]
         ]
-        self.assertIn(
-            DebugListener, listener_classes, "DebugListener was not in task options"
-        )
+        assert (
+            DebugListener in listener_classes
+        ), "DebugListener was not in task options"
 
     def test_verbose_option(self):
         """Verify that setting verbose to True attaches the appropriate listener"""
@@ -234,9 +243,9 @@ class TestRobot(unittest.TestCase):
         listener_classes = [
             listener.__class__ for listener in task.options["options"]["listener"]
         ]
-        self.assertIn(
-            KeywordLogger, listener_classes, "KeywordLogger was not in task options"
-        )
+        assert (
+            KeywordLogger in listener_classes
+        ), "KeywordLogger was not in task options"
 
     def test_user_defined_listeners_option(self):
         """Verify that our listeners don't replace user-defined listeners"""
@@ -252,9 +261,9 @@ class TestRobot(unittest.TestCase):
         listener_classes = [
             listener.__class__ for listener in task.options["options"]["listener"]
         ]
-        self.assertIn("FakeListener.py", task.options["options"]["listener"])
-        self.assertIn(DebugListener, listener_classes)
-        self.assertIn(KeywordLogger, listener_classes)
+        assert "FakeListener.py" in task.options["options"]["listener"]
+        assert DebugListener in listener_classes
+        assert KeywordLogger in listener_classes
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch(
@@ -288,8 +297,8 @@ class TestRobot(unittest.TestCase):
         )
 
         mock_robot_run.return_value = 0
-        self.assertNotIn("dummy1", sys.path)
-        self.assertNotIn("dummy2", sys.path)
+        assert "dummy1" not in sys.path
+        assert "dummy2" not in sys.path
         task()
         project_config.get_namespace.assert_has_calls(
             [mock.call("test1"), mock.call("test2")]
@@ -297,10 +306,10 @@ class TestRobot(unittest.TestCase):
         mock_add_path.assert_has_calls(
             [mock.call("dummy1", end=True), mock.call("dummy2", end=True)]
         )
-        self.assertNotIn("dummy1", sys.path)
-        self.assertNotIn("dummy2", sys.path)
-        self.assertEqual(
-            Path(".").resolve(), Path(task.return_values["robot_outputdir"]).resolve()
+        assert "dummy1" not in sys.path
+        assert "dummy2" not in sys.path
+        assert (
+            Path(".").resolve() == Path(task.return_values["robot_outputdir"]).resolve()
         )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
@@ -324,10 +333,10 @@ class TestRobot(unittest.TestCase):
             task = create_task(
                 Robot, {"suites": "tests"}, project_config=project_config
             )
-            self.assertNotIn(d, sys.path)
+            assert d not in sys.path
             task()
             mock_add_path.assert_called_once_with(d)
-            self.assertNotIn(d, sys.path)
+            assert d not in sys.path
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     def test_sources_not_found(self, mock_robot_run):
@@ -363,7 +372,7 @@ def test_outputdir_return_value(mock_run, tmpdir):
     ).resolve()
 
 
-class TestRobotTestDoc(unittest.TestCase):
+class TestRobotTestDoc:
     @mock.patch("cumulusci.tasks.robotframework.robotframework.testdoc")
     def test_run_task(self, testdoc):
         task = create_task(RobotTestDoc, {"path": ".", "output": "out"})
@@ -371,15 +380,17 @@ class TestRobotTestDoc(unittest.TestCase):
         testdoc.assert_called_once_with(".", "out")
 
 
-class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
-    def setUp(self):
+class TestRobotLibDoc(MockLoggerMixin):
+    maxDiff = None
+
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.task_config = TaskConfig()
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages
         self.datadir = os.path.dirname(__file__)
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_output_directory_not_exist(self):
@@ -474,17 +485,18 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         task = create_task(RobotLibDoc, {"path": path, "output": output.as_posix()})
         task()
         assert os.path.exists(output)
-        with open(output, "r") as csvfile:
+        with open(output, "r", newline="") as csvfile:
             reader = csv.reader(csvfile)
             actual_output = [row for row in reader]
 
         # not only does this verify that the expected keywords are in
         # the output, but that the base class keywords are *not*
+        datadir = os.path.join("cumulusci", "tasks", "robotframework", "tests", "")
         expected_output = [
             ["Name", "Source", "Line#", "po type", "po_object", "Documentation"],
             [
                 "Keyword One",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "13",
                 "Listing",
                 "Something__c",
@@ -492,7 +504,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword One",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "24",
                 "Detail",
                 "Something__c",
@@ -500,7 +512,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword Three",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "30",
                 "Detail",
                 "Something__c",
@@ -508,7 +520,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword Two",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "16",
                 "Listing",
                 "Something__c",
@@ -516,7 +528,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Keyword Two",
-                "cumulusci/tasks/robotframework/tests/TestPageObjects.py",
+                f"{datadir}TestPageObjects.py",
                 "27",
                 "Detail",
                 "Something__c",
@@ -524,7 +536,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Library Keyword One",
-                "cumulusci/tasks/robotframework/tests/TestLibrary.py",
+                f"{datadir}TestLibrary.py",
                 "13",
                 "",
                 "",
@@ -532,7 +544,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Library Keyword Two",
-                "cumulusci/tasks/robotframework/tests/TestLibrary.py",
+                f"{datadir}TestLibrary.py",
                 "17",
                 "",
                 "",
@@ -540,7 +552,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Resource keyword one",
-                "cumulusci/tasks/robotframework/tests/TestResource.robot",
+                f"{datadir}TestResource.robot",
                 "2",
                 "",
                 "",
@@ -548,7 +560,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
             [
                 "Resource keyword two",
-                "cumulusci/tasks/robotframework/tests/TestResource.robot",
+                f"{datadir}TestResource.robot",
                 "6",
                 "",
                 "",
@@ -556,7 +568,7 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
             ],
         ]
 
-        self.assertListEqual(actual_output, expected_output)
+        assert actual_output == expected_output
 
     @mock.patch("cumulusci.tasks.robotframework.libdoc.view_file")
     def test_preview_option(self, mock_view_file):
@@ -570,11 +582,11 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         mock_view_file.assert_called_once_with(output)
 
 
-class TestRobotLibDocKeywordFile(unittest.TestCase):
-    def setUp(self):
+class TestRobotLibDocKeywordFile:
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_existing_file(self):
@@ -612,7 +624,8 @@ class TestRobotLibDocKeywordFile(unittest.TestCase):
         # we'll set the first to a non-relative directory and leave
         # the other one relative to here (assuming that `here` is
         # relative to cwd)
-        libdoc.keywords[0].source = "/bogus/whatever.py"
+        absolute_path = str(Path("/bogus/whatever.py"))
+        libdoc.keywords[0].source = absolute_path
 
         # The returned result is a set, so the order is indeterminate. That's
         # why the following line sorts it.
@@ -621,15 +634,15 @@ class TestRobotLibDocKeywordFile(unittest.TestCase):
         rows = sorted(kwfile.to_tuples())
 
         # verify the absolute path remains absolute
-        assert rows[0][1] == "/bogus/whatever.py"
+        assert rows[0][1] == absolute_path
         # verify that the path to a file under cwd is relative
         assert rows[1][1] == str(path.relative_to(os.getcwd()))
 
 
-class TestRobotLibDocOutput(unittest.TestCase):
+class TestRobotLibDocOutput:
     """Tests for the generated robot keyword documentation"""
 
-    def setUp(self):
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.datadir = os.path.dirname(__file__)
         path = [
@@ -645,7 +658,7 @@ class TestRobotLibDocOutput(unittest.TestCase):
         docroot = ET.parse(output).getroot()
         self.html_body = docroot.find("body")
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_output_title(self):
@@ -694,10 +707,10 @@ class TestRobotLibDocOutput(unittest.TestCase):
         ]
 
 
-class TestLibdocPageObjects(unittest.TestCase):
+class TestLibdocPageObjects:
     """Tests for generating docs for page objects"""
 
-    def setUp(self):
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.datadir = os.path.dirname(__file__)
         path = [os.path.join(self.datadir, "TestPageObjects.py")]
@@ -711,7 +724,7 @@ class TestLibdocPageObjects(unittest.TestCase):
         self.docroot = ET.parse(self.output).getroot()
         self.html_body = self.docroot.find("body")
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_file_title(self):

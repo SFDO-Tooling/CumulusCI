@@ -43,14 +43,14 @@ def test_init():
 
 
 def test_merge_failure():
-    with pytest.raises(ConfigMergeError) as cm:
+    with pytest.raises(ConfigMergeError) as e:
         utils.merge_config(
             {
                 "universal_config": {"hello": "world", "test": {"sample": 1}},
                 "user_config": {"hello": "christian", "test": [1, 2]},
             }
         )
-    exception = cm.value
+    exception = e.value
     assert exception.config_name == "user_config"
 
 
@@ -216,7 +216,9 @@ def test_cleanup_flow_step_override_conflicts__multiple_overrides_of_alternating
     expected_universal_config["flows"]["steps_all_tasks"]["steps"][3] = {}
 
     expected_project_config = copy.deepcopy(project_config)
-    expected_project_config["flows"]["steps_all_tasks"]["steps"][3] = {}
+    expected_project_config["flows"]["steps_all_tasks"]["steps"][3] = {
+        "flow": "custom_flow_two"
+    }
 
     expected_project_local_config = copy.deepcopy(project_local_config)
     expected_project_local_config["flows"]["steps_all_tasks"]["steps"][3] = {
@@ -239,3 +241,36 @@ def test_cleanup_flow_step_override_conflicts__multiple_overrides_of_alternating
     assert expected_project_local_config == clean_configs["project_local_config"]
     # This should remain unchanged
     assert expected_global_config == clean_configs["global_config"]
+
+
+def test_cleanup_flow_step_override_conflicts__obsolete_flow_with_tasks(
+    universal_config,
+):
+    project_config = {
+        "flows": {"steps_all_tasks": {"tasks": {1: {"task": "custom_task"}}}}
+    }
+
+    expected_project_config = copy.deepcopy(project_config)
+    expected_project_config["flows"]["steps_all_tasks"]["tasks"] = {
+        1: {"task": "custom_task"}
+    }
+
+    configs = {
+        "project_config": project_config,
+        "universal_config": universal_config,
+    }
+    clean_configs = utils.cleanup_flow_step_override_conflicts(configs)
+
+    assert expected_project_config == clean_configs["project_config"]
+
+
+def test_link_missing_task_or_flow():
+    step_config_to_override = {"task": "util_sleep"}
+    overriding_step_config = {"options": {"seconds": 1}}
+
+    assert "task" not in overriding_step_config
+    utils.link_missing_task_or_flow(step_config_to_override, overriding_step_config)
+    assert overriding_step_config == {
+        "task": "util_sleep",
+        "options": {"seconds": 1},
+    }

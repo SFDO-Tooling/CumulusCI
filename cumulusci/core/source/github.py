@@ -1,6 +1,7 @@
 import os
 import shutil
 
+import fs
 from github3.exceptions import NotFoundError
 
 from cumulusci.core.exceptions import DependencyResolutionError
@@ -75,6 +76,7 @@ class GitHubSource:
         to locate the appropriate release or ref.
         """
         ref = None
+        self.branch = None
         # These branches preserve some existing behavior: when a source is set to
         # a specific tag or release, there's no fallback, as there would be
         # if we were subsumed within the dependency resolution machinery.
@@ -89,6 +91,7 @@ class GitHubSource:
         elif self.spec.tag:
             ref = "tags/" + self.spec.tag
         elif self.spec.branch:
+            self.branch = self.spec.branch
             ref = "heads/" + self.spec.branch
         elif self.spec.release:
             release = None
@@ -124,18 +127,11 @@ class GitHubSource:
         self.description = ref[6:] if ref.startswith("heads/") else ref
         self.commit = self.repo.ref(ref).object.sha
 
-    def fetch(self, path=None):
+    def fetch(self):
         """Fetch the archive of the specified commit and construct its project config."""
-        # To do: copy this from a shared cache
-        if path is None:
-            path = (
-                self.project_config.cache_dir
-                / "projects"
-                / self.repo_name
-                / self.commit
-            )
-        if not path.exists():
-            path.mkdir(parents=True)
+        with self.project_config.open_cache(
+            fs.path.join("projects", self.repo_name, self.commit)
+        ) as path:
             zf = download_extract_github(
                 self.gh, self.repo_owner, self.repo_name, ref=self.commit
             )
@@ -146,8 +142,6 @@ class GitHubSource:
                 shutil.rmtree(path)
                 raise
 
-        assert path.is_dir()
-
         project_config = self.project_config.construct_subproject_config(
             repo_info={
                 "root": os.path.realpath(path),
@@ -155,6 +149,10 @@ class GitHubSource:
                 "name": self.repo_name,
                 "url": self.url,
                 "commit": self.commit,
+                # Note: we currently only pass the branch if it was explicitly
+                # included in the source spec. If the commit was found another way,
+                # we aren't looking up what branches have that commit as their head.
+                "branch": self.branch,
             }
         )
         return project_config
@@ -162,6 +160,9 @@ class GitHubSource:
     @property
     def frozenspec(self):
         """Return a spec to reconstruct this source at the current commit"""
+        # TODO: The branch name is lost when freezing the source for MetaDeploy.
+        # We could include it here, but it would fail validation when GitHubSourceModel
+        # parses it due to having both commit and branch.
         return {
             "github": self.url,
             "commit": self.commit,

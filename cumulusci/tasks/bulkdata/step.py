@@ -30,6 +30,9 @@ class DataOperationType(Enum):
     DELETE = "delete"
     HARD_DELETE = "hardDelete"
     QUERY = "query"
+    UPSERT = "upsert"
+    ETL_UPSERT = "etl_upsert"
+    SMART_UPSERT = "smart_upsert"  # currently undocumented
 
 
 class DataApi(Enum):
@@ -67,7 +70,7 @@ class DataOperationJobResult(NamedTuple):
 
 
 @contextmanager
-def download_file(uri, bulk_api):
+def download_file(uri, bulk_api, *, chunk_size=8192):
     """Download the Bulk API result file for a single batch,
     and remove it when the context manager exits."""
     try:
@@ -75,7 +78,8 @@ def download_file(uri, bulk_api):
         resp = requests.get(uri, headers=bulk_api.headers(), stream=True)
         resp.raise_for_status()
         f = os.fdopen(handle, "wb")
-        for chunk in resp.iter_content(chunk_size=None):
+        for chunk in resp.iter_content(chunk_size=chunk_size):  # VCR needs a chunk_size
+            # specific chunk_size seems to make no measurable perf difference
             f.write(chunk)
 
         f.close()
@@ -346,6 +350,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             self.operation.value,
             contentType="CSV",
             concurrency=self.api_options.get("bulk_mode", "Parallel"),
+            external_id_name=self.api_options.get("update_key"),
         )
 
     def end(self):
@@ -489,14 +494,20 @@ class RestApiDmlOperation(BaseDmlOperation):
             DataOperationType.INSERT: "POST",
             DataOperationType.UPDATE: "PATCH",
             DataOperationType.DELETE: "DELETE",
+            DataOperationType.UPSERT: "PATCH",
         }[self.operation]
 
+        update_key = self.api_options.get("update_key")
         for chunk in iterate_in_chunks(self.api_options.get("batch_size"), records):
             if self.operation is DataOperationType.DELETE:
                 url_string = "?ids=" + ",".join(_convert(rec)["Id"] for rec in chunk)
                 json = None
             else:
-                url_string = ""
+                if update_key:
+                    assert self.operation == DataOperationType.UPSERT
+                    url_string = f"/{self.sobject}/{update_key}"
+                else:
+                    url_string = ""
                 json = {"allOrNone": False, "records": [_convert(rec) for rec in chunk]}
 
             self.results.extend(
@@ -593,6 +604,8 @@ def get_dml_operation(
     """Create an appropriate DmlOperation instance for the given parameters, selecting
     between REST and Bulk APIs based upon volume (Bulk used at volumes over 2000 records,
     or if the operation is HARD_DELETE, which is only available for Bulk)."""
+
+    context.logger.debug(f"Creating {operation} Operation for {sobject} using {api}")
 
     # REST Collections requires 42.0.
     api_version = float(context.sf.sf_version)

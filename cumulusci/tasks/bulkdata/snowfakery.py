@@ -157,6 +157,10 @@ class Snowfakery(BaseSalesforceApiTask):
         self.ignore_row_errors = process_bool_arg(
             self.options.get("ignore_row_errors", False)
         )
+        self.drop_missing_schema = process_bool_arg(
+            self.options.get("drop_missing_schema", False)
+        )
+
         loading_rules = process_list_arg(self.options.get("loading_rules")) or []
         self.loading_rules = [Path(path) for path in loading_rules if path]
         self.recipe_options = process_list_of_pairs_dict_arg(
@@ -269,8 +273,12 @@ class Snowfakery(BaseSalesforceApiTask):
 
         Each channel can hold multiple queues.
         """
+        additional_load_options = {
+            "ignore_row_errors": self.ignore_row_errors,
+            "drop_missing_schema": self.drop_missing_schema,
+        }
         subtask_configurator = SubtaskConfigurator(
-            self.recipe, self.run_until, self.ignore_row_errors, self.bulk_mode
+            self.recipe, self.run_until, self.bulk_mode, additional_load_options
         )
         self.queue_manager = SnowfakeryChannelManager(
             project_config=self.project_config,
@@ -397,13 +405,23 @@ class Snowfakery(BaseSalesforceApiTask):
         return upload_status
 
     def update_running_totals(self) -> None:
-        """Read and collate result reports from sub-processes/sub-threads"""
+        """Read and collate result reports from sub-processes/sub-threads
+
+        This is a realtime reporting channel which could, in theory, be updated
+        before sub-tasks finish. Currently no sub-tasks are coded to do that.
+
+        The logical next step is to allow LoadData to monitor steps one by
+        one or even batches one by one.
+
+        Note that until we implement that, we are paying the complexity
+        cost of a real-time channel but not getting the benefits of it.
+        """
         while True:
             try:
                 results = self.queue_manager.get_results_report()
             except Empty:
                 break
-            if "results" in results:
+            if "results" in results and "step_results" in results["results"]:
                 self.update_running_totals_from_load_step_results(results["results"])
             elif "error" in results:
                 self.logger.warning(f"Error in load: {results}")
@@ -461,24 +479,6 @@ class Snowfakery(BaseSalesforceApiTask):
         """Log failures from sub-processes to main process"""
         for exception in self.queue_manager.failure_descriptions():
             self.logger.info(exception)
-
-    def data_loader_opts(self, working_dir: Path):
-        """Callback for initializing a data loader task.
-
-        For all of our dataloader sub-threads, these options
-        will be applied.
-        """
-        wd = SnowfakeryWorkingDirectory(working_dir)
-
-        options = {
-            "mapping": wd.mapping_file,
-            "reset_oids": False,
-            "database_url": wd.database_url,
-            "set_recently_viewed": False,
-            "ignore_row_errors": self.ignore_row_errors,
-            # don't need to pass loading_rules because they are merged into mapping
-        }
-        return options
 
     # TODO: This method is actually based on the number generated,
     #       because it is called before the load.
@@ -597,6 +597,7 @@ class Snowfakery(BaseSalesforceApiTask):
             "working_directory": tempdir,
             "set_recently_viewed": False,
             "ignore_row_errors": self.ignore_row_errors,
+            "drop_missing_schema": self.drop_missing_schema,
         }
         subtask_config = TaskConfig({"options": options})
         subtask = GenerateAndLoadDataFromYaml(

@@ -1,12 +1,13 @@
-import unittest
 from unittest.mock import Mock, call
+
+import pytest
 
 from cumulusci.core.exceptions import CumulusCIException, SalesforceException
 from cumulusci.tasks.salesforce.network_member_group import CreateNetworkMemberGroups
 from cumulusci.tasks.salesforce.tests.util import create_task
 
 
-class TestCreateNetworkMemberGroups(unittest.TestCase):
+class TestCreateNetworkMemberGroups:
     """
     Unit tests cumulusci.tasks.salesforce.network_member_group.CreateNetworkMemberGroups.
     """
@@ -22,13 +23,13 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task.format_soql = Mock()
 
         # Execute the test.
-        with self.assertRaises(SalesforceException) as context:
+        with pytest.raises(SalesforceException) as context:
             task._get_network_id(network_name)
 
         # Assert scenario execute as expected.
-        self.assertEqual(
-            f'No Network record found with Name "{network_name}"',
-            context.exception.args[0],
+        assert (
+            f'No Network record found with Name "{network_name}"'
+            == context.value.args[0]
         )
 
         task.sf.query_all.assert_called_once_with(
@@ -50,7 +51,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         actual = task._get_network_id(network_name)
 
         # Assert scenario execute as expected.
-        self.assertEqual(expected, actual)
+        assert expected == actual
 
         task.sf.query_all.assert_called_once_with(
             f"SELECT Id FROM Network WHERE Name = '{network_name}' LIMIT 1"
@@ -78,7 +79,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         actual = task._get_network_member_group_parent_ids(network_id)
 
         # Assert scenario execute as expected.
-        self.assertEqual(expected, actual)
+        assert expected == actual
 
         task.sf.query_all.assert_called_once_with(
             f"SELECT ParentId FROM NetworkMemberGroup WHERE NetworkId = '{network_id}'"
@@ -115,7 +116,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         actual = task._get_parent_ids_by_name(sobject_type, record_names)
 
         # Assert scenario execute as expected.
-        self.assertEqual(expected, actual)
+        assert expected == actual
 
         task.sf.query_all.assert_called_once_with(
             "SELECT Id, Name FROM {} WHERE Name IN ('{}')".format(
@@ -153,7 +154,7 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         actual = task._get_parent_ids_by_name(sobject_type, record_names)
 
         # Assert scenario execute as expected.
-        self.assertEqual(expected, actual)
+        assert expected == actual
 
         task.sf.query_all.assert_called_once_with(
             "SELECT Id, Label FROM {} WHERE Label IN ('{}')".format(
@@ -250,13 +251,13 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task.sf.NetworkMemberGroup.create = Mock(insert_response)
 
         # Execute the test.
-        with self.assertRaises(CumulusCIException) as context:
+        with pytest.raises(CumulusCIException) as context:
             task._create_network_member_group(sobject_type, parent_name, parent_id)
 
         # Assert scenario execute as expected.
-        self.assertEqual(
-            f'No {sobject_type} record found with Name "{parent_name}"',
-            context.exception.args[0],
+        assert (
+            f'No {sobject_type} record found with Name "{parent_name}"'
+            == context.value.args[0]
         )
 
         task.sf.NetworkMemberGroup.create.assert_not_called()
@@ -334,13 +335,13 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task.sf.NetworkMemberGroup.create.return_value = insert_response
 
         # Execute the test.
-        with self.assertRaises(SalesforceException) as context:
+        with pytest.raises(SalesforceException) as context:
             task._create_network_member_group(sobject_type, parent_name, parent_id)
 
         # Assert scenario execute as expected.
-        self.assertEqual(
-            f'Error creating NetworkMemberGroup for Network "{task._network_id}" for parent {sobject_type} "{parent_name}" {parent_id}.   Errors: {", ".join(errors)}',
-            context.exception.args[0],
+        assert (
+            f'Error creating NetworkMemberGroup for Network "{task._network_id}" for parent {sobject_type} "{parent_name}" {parent_id}.   Errors: {", ".join(errors)}'
+            == context.value.args[0]
         )
 
         task.sf.NetworkMemberGroup.create.assert_called_once_with(
@@ -368,13 +369,13 @@ class TestCreateNetworkMemberGroups(unittest.TestCase):
         task.sf.NetworkMemberGroup.create = Mock(return_value=insert_response)
 
         # Execute the test.
-        with self.assertRaises(SalesforceException) as context:
+        with pytest.raises(SalesforceException) as e:
             task._create_network_member_group(sobject_type, parent_name, parent_id)
 
         # Assert scenario execute as expected.
-        self.assertEqual(
-            f'Error creating NetworkMemberGroup for Network "{task._network_id}" for parent {sobject_type} "{parent_name}" {parent_id}.   Errors: {", ".join([])}',
-            context.exception.args[0],
+        assert (
+            f'Error creating NetworkMemberGroup for Network "{task._network_id}" for parent {sobject_type} "{parent_name}" {parent_id}.   Errors: {", ".join([])}'
+            == e.value.args[0]
         )
 
         task.sf.NetworkMemberGroup.create.assert_called_once_with(

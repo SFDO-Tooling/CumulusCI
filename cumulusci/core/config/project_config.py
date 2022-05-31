@@ -10,6 +10,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Union
 
+from cumulusci.core.config.base_config import BaseConfig
 from cumulusci.core.versions import PackageVersionNumber
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
@@ -42,12 +43,30 @@ from cumulusci.utils.yaml.cumulusci_yml import (
 )
 
 
-class BaseProjectConfig(BaseTaskFlowConfig):
+class ProjectConfigPropertiesMixin(BaseConfig):
+    """Mixin for shared properties used by ProjectConfigs and UniversalConfigs"""
+
+    cli: dict
+    services: dict
+    project: dict
+    cumulusci: dict
+    orgs: dict
+    minimum_cumulusci_version: str
+    sources: dict
+    flows: dict
+    plans: dict
+    tasks: dict
+    dev_config: dict  # this is not documented and should be deprecated
+
+
+class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     """Base class for a project's configuration which extends the global config"""
 
     config_filename = "cumulusci.yml"
 
-    def __init__(self, universal_config_obj, config=None, *args, **kwargs):
+    def __init__(
+        self, universal_config_obj, config=None, cache_dir=None, *args, **kwargs
+    ):
         self.universal_config_obj = universal_config_obj
         self.keychain = None
 
@@ -71,6 +90,9 @@ class BaseProjectConfig(BaseTaskFlowConfig):
         # initialize map of project configs referenced from an external source
         self.source = NullSource()
         self.included_sources = kwargs.pop("included_sources", {})
+
+        # Store requested cache directory, which may be our parent's if we are a subproject
+        self._cache_dir = cache_dir
 
         super(BaseProjectConfig, self).__init__(config=config)
 
@@ -284,7 +306,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         url_line = self.git_config_remote_origin_url()
-        return split_repo_url(url_line)[1]
+        if url_line:
+            return split_repo_url(url_line)[1]
 
     @property
     def repo_url(self):
@@ -308,7 +331,8 @@ class BaseProjectConfig(BaseTaskFlowConfig):
             return
 
         url_line = self.git_config_remote_origin_url()
-        return split_repo_url(url_line)[0]
+        if url_line:
+            return split_repo_url(url_line)[0]
 
     @property
     def repo_branch(self):
@@ -523,7 +547,7 @@ class BaseProjectConfig(BaseTaskFlowConfig):
 
         Also makes sure the project has been fetched, if it's from an external source.
         """
-        spec = getattr(self, f"sources__{ns}")
+        spec = self.lookup(f"sources__{ns}")
         if spec is None:
             raise NamespaceNotFoundError(f"Namespace not found: {ns}")
 
@@ -572,7 +596,10 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     def construct_subproject_config(self, **kwargs):
         """Construct another project config for an external source"""
         return self.__class__(
-            self.universal_config_obj, included_sources=self.included_sources, **kwargs
+            self.universal_config_obj,
+            included_sources=self.included_sources,
+            cache_dir=self.cache_dir,
+            **kwargs,
         )
 
     def relpath(self, path):
@@ -582,15 +609,22 @@ class BaseProjectConfig(BaseTaskFlowConfig):
     @property
     def cache_dir(self):
         "A project cache which is on the local filesystem. Prefer open_cache where possible."
+        if self._cache_dir:
+            return self._cache_dir
+
         assert self.repo_root
         cache_dir = Path(self.repo_root, ".cci")
         cache_dir.mkdir(exist_ok=True)
+
         return cache_dir
 
     @contextmanager
     def open_cache(self, cache_name):
         "A context managed PyFilesystem-based cache which could theoretically be on any filesystem."
-        with open_fs_resource(self.cache_dir) as cache_dir:
-            cache = cache_dir / cache_name
-            cache.mkdir(exist_ok=True)
-            yield cache
+        with open_fs_resource(self.cache_dir / cache_name) as cache_dir:
+            cache_dir.mkdir(exist_ok=True, parents=True)
+            yield cache_dir
+
+
+class RemoteProjectConfig(ProjectConfigPropertiesMixin):
+    pass

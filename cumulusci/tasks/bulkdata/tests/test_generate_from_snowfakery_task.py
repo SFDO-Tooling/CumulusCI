@@ -1,4 +1,3 @@
-import unittest
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -48,7 +47,7 @@ def run_task(task=GenerateDataFromYaml, **options):
         yield database_url
 
 
-class TestGenerateFromDataTask(unittest.TestCase):
+class TestGenerateFromDataTask:
     def assertRowsCreated(self, database_url):
         engine = create_engine(database_url)
         connection = engine.connect()
@@ -58,7 +57,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
         return accounts
 
     def test_no_options(self):
-        with self.assertRaises(Exception):
+        with pytest.raises(Exception):
             _make_task(GenerateDataFromYaml, {})
 
     def test_simple(self):
@@ -78,7 +77,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
             self.assertRowsCreated(database_url)
 
     def test_inaccessible_generator_yaml(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             task = _make_task(
                 GenerateDataFromYaml,
                 {
@@ -93,7 +92,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
 
     def test_vars(self):
         with temp_sqlite_database_url() as database_url:
-            with self.assertWarns(UserWarning):
+            with pytest.warns(UserWarning):
                 task = _make_task(
                     GenerateDataFromYaml,
                     {
@@ -238,13 +237,13 @@ class TestGenerateFromDataTask(unittest.TestCase):
             assert len(records) == 14 % 6  # leftovers
 
     def test_mismatched_options(self):
-        with self.assertRaises(TaskOptionsError) as e:
+        with pytest.raises(TaskOptionsError) as e:
             task = _make_task(
                 GenerateDataFromYaml,
                 {"options": {"generator_yaml": sample_yaml, "num_records": 10}},
             )
             task()
-        assert "without num_records_tablename" in str(e.exception)
+        assert "without num_records_tablename" in str(e.value)
 
     def generate_continuation_data(self, fileobj):
         g = data_generator_runtime.Globals()
@@ -279,7 +278,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
                 assert dict(rows[0])["id"] == 6
 
     def test_with_nonexistent_continuation_file(self):
-        with self.assertRaises(TaskOptionsError) as e:
+        with pytest.raises(TaskOptionsError) as e:
             with temp_sqlite_database_url() as database_url:
                 task = _make_task(
                     GenerateDataFromYaml,
@@ -296,8 +295,8 @@ class TestGenerateFromDataTask(unittest.TestCase):
                 rows = self.assertRowsCreated(database_url)
                 assert dict(rows[0])["id"] == 6
 
-        assert "jazz" in str(e.exception)
-        assert "does not exist" in str(e.exception)
+        assert "jazz" in str(e.value)
+        assert "does not exist" in str(e.value)
 
     def test_generate_continuation_file(self):
         with temporary_file_path("cont.yml") as temp_continuation_file:
