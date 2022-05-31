@@ -372,6 +372,11 @@ class TestBaseProjectConfig:
         config._repo_info = {"url": "https://github.com/SFDO-Tooling/CumulusCI"}
         assert config.repo_url == "https://github.com/SFDO-Tooling/CumulusCI"
 
+    def test_lookup_repo_branch(self):
+        config = BaseProjectConfig(UniversalConfig())
+        config._repo_info = {"branch": "foo-bar-baz"}
+        assert config.lookup("repo_branch") == "foo-bar-baz"
+
     def test_repo_url_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
