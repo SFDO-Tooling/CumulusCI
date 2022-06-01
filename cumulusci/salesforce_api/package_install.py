@@ -58,10 +58,10 @@ class PackageInstallOptions(CCIModel):
 
     activate_remote_site_settings: bool = True
     name_conflict_resolution: NameConflictResolution = NameConflictResolution.BLOCK
-    password: Optional[str]
+    password: Optional[str] = None
     security_type: SecurityType = SecurityType.FULL
-    apex_compile_type: Optional[ApexCompileType]
-    upgrade_type: Optional[UpgradeType]
+    apex_compile_type: Optional[ApexCompileType] = None
+    upgrade_type: Optional[UpgradeType] = None
 
     @staticmethod
     def from_task_options(task_options: dict) -> "PackageInstallOptions":
