@@ -8,7 +8,6 @@ Documentation
 ...  or Salesforce.py since those are based on Selenium rather than Playwright.
 ...
 ...  Libraries imported by this resource file:
-...  # *sigh* there's no good way to define these in just one place
 ...
 ...  - Browser
 ...  - Collections
@@ -17,6 +16,7 @@ Documentation
 ...  - cumulusci.robotframework.CumulusCI
 ...  - cumulusci.robotframework.SalesforcePlaywright
 ...  - cumulusci.robotframework.SalesforceAPI
+...  - cumulusci.robotframework.Performance
 ...
 ...  This resource file also defines the following variables, which can all be
 ...  overridden on the command line with the --vars option
@@ -37,3 +37,4 @@ Library        String
 Library        cumulusci.robotframework.CumulusCI  ${ORG}
 Library        cumulusci.robotframework.SalesforcePlaywright
 Library        cumulusci.robotframework.SalesforceAPI
+Library        cumulusci.robotframework.Performance

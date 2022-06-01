@@ -20,6 +20,15 @@ keywords that use the Playwright API.
 Starting with CumulusCI version 3.59.0, we are providing experimental
 support for Playwright and the Browser library in CumulusCI.
 
+In CumulusCI version 3.60 we've reorganized our keywords so that
+a test can import the API and performance keywords without importing
+Selenium keywords. To use Playwright-based keywords, import the resource file
+`SalesforcePlaywright.robot
+<Keywords.html#file-cumulusci/robotframework/SalesforcePlaywright.robot>`_
+which imports the non-selenium keywords along with the keywords in
+the `SalesforcePlaywright library <Keywords.html#file-cumulusci.robotframework.SalesforcePlaywright>`_.
+
+
 Installation
 ------------
 
@@ -78,20 +87,18 @@ write Playwright-based tests with off-the-shelf `keywords provided by
 the Browser library
 <https://marketsquare.github.io/robotframework-browser/Browser.html>`_
 
+To initialize playwright support in a test suite, import the
+SalesforcePlaywright.robot resource file as shown in the following
+example. It will import the Browser library, and defines the keywords
+``Open Test Browser`` and ``Delete records and close browser``.
+
 .. code-block:: robotframework
 
     *** Settings ***
-    Resource     cumulusci/robotframework/Salesforce.robot
-    Library      Browser
+    Resource     cumulusci/robotframework/SalesforcePlaywright.robot
 
-    Suite Setup  Open test browser
-
-    *** Keywords ***
-    Open test browser
-        New Browser  chromium  headless=false
-        ${url}=      Login URL
-        New Page     ${url}
-        Wait until network is idle
+    Suite Setup      Open test browser
+    Suite Teardown   Delete records and close browser
 
     *** Test Cases ***
 
@@ -122,13 +129,13 @@ Things to Notice
 ^^^^^^^^^^^^^^^^
 
 This example test is unable to use any of the existing
-Selenium-based keywords. For that reason, this test creates
-a new ``Open Test Browser`` that uses the Browser keywords
-`New Browser
-<https://marketsquare.github.io/robotframework-browser/Browser.html#New%20Browser>`_
-and `New Page
-<https://marketsquare.github.io/robotframework-browser/Browser.html#New%20Page>`_
-to open the browser.
+Selenium-based keywords, except for two. We've created a
+new library based on Playwright and the Browser library with two
+keywods that are similar to existing keywords:
+`Open Test Browser <Keywords.html#SalesforcePlaywright.Open%20Test%20Browser>`_
+and
+`Delete Records and Close Browser
+<Keywords.html#SalesforcePlaywright.Delete%20Records%20And%20Close%20Browser>`_
 
 This test also uses the Browser keyword
 `Wait until network is idle
