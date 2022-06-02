@@ -109,6 +109,7 @@ class Git(CCIDictModel):
     push_prefix_production: str = None
     release_notes: ReleaseNotes = None
     two_gp_context: str = Field(None, alias="2gp_context")
+    unlocked_context: Optional[str] = None
 
 
 class Plan(CCIDictModel):  # MetaDeploy plans
