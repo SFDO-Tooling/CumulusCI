@@ -1,7 +1,7 @@
 from simple_salesforce.exceptions import SalesforceResourceNotFound
 
 from cumulusci.core.template_utils import format_str
-from cumulusci.robotframework.BaseLibrary import BaseLibrary
+from cumulusci.robotframework.base_library import BaseLibrary
 
 # https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_composite_sobjects_collections_create.htm
 SF_COLLECTION_INSERTION_LIMIT = 200

@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 
-from cumulusci.robotframework.BaseLibrary import BaseLibrary
+from cumulusci.robotframework.base_library import BaseLibrary
 
 
 class BasePage(BaseLibrary):

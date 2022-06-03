@@ -19,7 +19,7 @@ from SeleniumLibrary.errors import ElementNotFound, NoOpenBrowser
 from urllib3.exceptions import ProtocolError
 
 from cumulusci.robotframework import locator_manager
-from cumulusci.robotframework.BaseLibrary import BaseLibrary
+from cumulusci.robotframework.base_library import BaseLibrary
 from cumulusci.robotframework.form_handlers import get_form_handler
 from cumulusci.robotframework.utils import (
     capture_screenshot_on_error,

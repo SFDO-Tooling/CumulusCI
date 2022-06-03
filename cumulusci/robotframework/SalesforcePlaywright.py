@@ -1,6 +1,6 @@
 from Browser import SupportedBrowsers
 
-from cumulusci.robotframework.BaseLibrary import BaseLibrary
+from cumulusci.robotframework.base_library import BaseLibrary
 
 
 class SalesforcePlaywright(BaseLibrary):

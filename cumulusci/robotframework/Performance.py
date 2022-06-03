@@ -5,7 +5,7 @@ from dateutil.parser import parse as parse_date
 from robot.libraries.BuiltIn import BuiltIn
 from robot.utils import timestr_to_secs
 
-from cumulusci.robotframework.BaseLibrary import BaseLibrary
+from cumulusci.robotframework.base_library import BaseLibrary
 
 
 class Performance(BaseLibrary):
