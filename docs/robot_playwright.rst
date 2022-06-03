@@ -20,12 +20,12 @@ keywords that use the Playwright API.
 Starting with CumulusCI version 3.59.0, we are providing experimental
 support for Playwright and the Browser library in CumulusCI.
 
-In CumulusCI version 3.60 we've reorganized our keywords so that
+In CumulusCI 3.60, we've reorganized our keywords so that
 a test can import the API and performance keywords without importing
 Selenium keywords. To use Playwright-based keywords, import the resource file
 `SalesforcePlaywright.robot
-<Keywords.html#file-cumulusci/robotframework/SalesforcePlaywright.robot>`_
-which imports the non-selenium keywords along with the keywords in
+<Keywords.html#file-cumulusci/robotframework/SalesforcePlaywright.robot>`_,
+which imports the non-Selenium keywords along with the keywords in
 the `SalesforcePlaywright library <Keywords.html#file-cumulusci.robotframework.SalesforcePlaywright>`_.
 
 
@@ -87,9 +87,9 @@ write Playwright-based tests with off-the-shelf `keywords provided by
 the Browser library
 <https://marketsquare.github.io/robotframework-browser/Browser.html>`_
 
-To initialize playwright support in a test suite, import the
-SalesforcePlaywright.robot resource file as shown in the following
-example. It will import the Browser library, and defines the keywords
+To initialize Playwright support in a test suite, import the
+``SalesforcePlaywright.robot`` resource file as shown in the following
+example. It imports the Browser library and defines the keywords
 ``Open Test Browser`` and ``Delete records and close browser``.
 
 .. code-block:: robotframework
@@ -131,7 +131,7 @@ Things to Notice
 This example test is unable to use any of the existing
 Selenium-based keywords, except for two. We've created a
 new library based on Playwright and the Browser library with two
-keywods that are similar to existing keywords:
+keywords that are similar to existing keywords:
 `Open Test Browser <Keywords.html#SalesforcePlaywright.Open%20Test%20Browser>`_
 and
 `Delete Records and Close Browser
