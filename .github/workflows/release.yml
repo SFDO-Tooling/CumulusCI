@@ -11,7 +11,6 @@ jobs:
     publish-to-pypi:
         name: Publish new release to PyPI
         runs-on: ubuntu-18.04
-        needs: run-release-test
         steps:
             - uses: actions/checkout@main
             - name: Set up Python 3.8
