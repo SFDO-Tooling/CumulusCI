@@ -23,7 +23,7 @@ tags
 .cache/
 .coverage
 .python-version
-*-screenshot-*.png
+robot/CumulusCI/results/
 *.webm
 playwright-log.txt
 log.html
