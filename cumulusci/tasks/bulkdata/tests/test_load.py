@@ -571,6 +571,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
+        # task._filter_out_person_account_records = mock.Mock() # TODO: Replace this with a better test
 
         # Make mock query chainable
         task.session.query.return_value = task.session.query
@@ -638,6 +639,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=False)
+        # task._filter_out_person_account_records = mock.Mock() # TODO: Replace this with a better test
 
         # Make mock query chainable
         task.session.query.return_value = task.session.query
@@ -671,8 +673,16 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
 
         query_columns, added_filters = _inspect_query(query)
 
+        initialization_columns = task.session.query.mock_calls[0].args
+        added_columns = []
+        for call in task.session.query.mock_calls:
+            name, args, kwargs = call
+            if name == "add_columns":
+                added_columns.extend(args)
+        all_columns = initialization_columns + tuple(added_columns)
+
         # Validate that the column set is accurate
-        assert query_columns == (
+        assert all_columns == (
             model.sf_id,
             model.__table__.columns["name"],
             aliased.return_value.columns.sf_id,
@@ -684,6 +694,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
 
     # This test should be rewritten into a light-mocking style but creating the
     # sample data is non-trivial work that might require some collaboration
+
     @mock.patch("cumulusci.tasks.bulkdata.query_transformers.aliased")
     def test_query_db__person_accounts_enabled__neither_account_nor_contact_mapping(
         self, aliased
@@ -700,6 +711,7 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
         }
         task.session = mock.Mock()
         task._can_load_person_accounts = mock.Mock(return_value=True)
+        # task._filter_out_person_account_records = mock.Mock() # TODO: Replace this with a better test
 
         # Make mock query chainable
         task.session.query.return_value = task.session.query
