@@ -25,7 +25,7 @@ class SalesforcePlaywright(BaseLibrary):
         self.salesforce_api.delete_session_records()
 
     def open_test_browser(self, size=None, useralias=None, record_video=None):
-        """Open a new playwright browser, context, and page to the default org
+        """Open a new Playwright browser, context, and page to the default org.
 
         The return value is a tuple of the browser id, context id, and page details
         returned by the Playwright keywords New Browser, New Context, and New Page.
