@@ -21,8 +21,10 @@ Library        OperatingSystem
 Library        String
 Library        XML
 Library        SeleniumLibrary  implicit_wait=${IMPLICIT_WAIT}  timeout=${TIMEOUT}
+Library        cumulusci.robotframework.SalesforceAPI
 Library        cumulusci.robotframework.CumulusCI  ${ORG}
 Library        cumulusci.robotframework.Salesforce  debug=${DEBUG}
+Library        cumulusci.robotframework.Performance
 
 *** Variables ***
 ${BROWSER}          chrome
