@@ -2,6 +2,12 @@ from robot.libraries.BuiltIn import BuiltIn
 
 
 class BaseLibrary:
+    def __init__(self):
+        self._builtin = None
+        self._cumulusci = None
+        self._salesforce_api = None
+        self._salesforce = None
+
     @property
     def salesforce(self):
         if getattr(self, "_salesforce", None) is None:
