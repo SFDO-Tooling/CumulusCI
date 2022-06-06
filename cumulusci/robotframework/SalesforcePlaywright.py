@@ -24,7 +24,7 @@ class SalesforcePlaywright(BaseLibrary):
         self.browser.close_browser("ALL")
         self.salesforce_api.delete_session_records()
 
-    def open_test_browser(self, size=None, useralias=None, recordVideo=None):
+    def open_test_browser(self, size=None, useralias=None, record_video=None):
         """Open a new Playwright browser, context, and page to the default org.
 
         The return value is a tuple of the browser id, context id, and page details
@@ -34,7 +34,7 @@ class SalesforcePlaywright(BaseLibrary):
         you can create your own browser environment with the Browser library
         keywords `Create Browser`, `Create Context`, and `Create Page`.
 
-        To record a video of the session, set `recordVideo` to True. The video
+        To record a video of the session, set `record_video` to True. The video
         (*.webm) will be viewable in the log.html file at the point where this
         keyword is logged.
 
@@ -65,17 +65,17 @@ class SalesforcePlaywright(BaseLibrary):
         # seem to work when calling the function directly, so we have
         # to pass the enum rather than string representation of the
         # browser. _sigh_
-        if recordVideo:
+        if record_video:
             # ugh. the "dir" value must be non-empty, and will be treated as
             # a folder name under the browser/video folder. using "../video"
             # seems to be the only way to get the videos to go directly in
             # the video folder. Also, using "." doesn't work :-/
-            recordVideo = {"dir": "../video"}
+            record_video = {"dir": "../video"}
         width, height = size.split("x", 1)
 
         browser_id = self.browser.new_browser(browser=browser_enum, headless=headless)
         context_id = self.browser.new_context(
-            viewport={"width": width, "height": height}, recordVideo=recordVideo
+            viewport={"width": width, "height": height}, recordVideo=record_video
         )
         page_details = self.browser.new_page(login_url)
 
