@@ -56,6 +56,7 @@ class MockGetLibraryInstance:
         "SeleniumLibrary": mock.Mock(),
         "cumulusci.robotframework.CumulusCI": cci_lib,
         "cumulusci.robotframework.Salesforce": mock.Mock(),
+        "cumulusci.robotframework.SalesforceAPI": mock.Mock(),
         # Note: the fact that we're using "Contact" here is largely
         # irrelevant. The important thing is that we create a page
         # object for the base types of Home, Listing,and Detail
