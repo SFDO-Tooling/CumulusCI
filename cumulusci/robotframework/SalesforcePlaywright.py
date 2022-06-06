@@ -25,10 +25,10 @@ class SalesforcePlaywright(BaseLibrary):
         self.salesforce_api.delete_session_records()
 
     def open_test_browser(self, size=None, useralias=None, recordVideo=None):
-        """Open a new playwright browser, context, and page to the default org
+        """Open a new Playwright browser, context, and page to the default org.
 
         The return value is a tuple of the browser id, context id, and page details
-        returned by the playwright keywords New Browser, New Context, and New Page.
+        returned by the Playwright keywords New Browser, New Context, and New Page.
 
         This provides the most common environment for testing. For more control,
         you can create your own browser environment with the Browser library
@@ -53,7 +53,7 @@ class SalesforcePlaywright(BaseLibrary):
         browser_enum = getattr(SupportedBrowsers, browser_type, None)
 
         # Note: we can't just pass alias=useralias in the case of useralias being None.
-        # that value gets passed to a salesforce query which barfs if the value
+        # That value gets passed to a salesforce query which barfs if the value
         # is None.
         login_url = (
             self.cumulusci.login_url(alias=useralias)
