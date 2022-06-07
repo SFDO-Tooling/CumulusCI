@@ -24,7 +24,7 @@ from cumulusci.core.dependencies.github import (
 from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
 from cumulusci.core.github import (
     find_latest_release,
-    find_repo_2gp_context,
+    find_repo_commit_status_context,
     find_repo_feature_prefix,
     get_version_id_from_commit,
 )
@@ -44,6 +44,9 @@ class DependencyResolutionStrategy(str, Enum):
     COMMIT_STATUS_EXACT_BRANCH = "commit_status_exact_branch"
     COMMIT_STATUS_RELEASE_BRANCH = "commit_status_release_branch"
     COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH = "commit_status_previous_release_branch"
+    UNLOCKED_EXACT_BRANCH = "unlocked_exact_branch"
+    UNLOCKED_RELEASE_BRANCH = "unlocked_release_branch"
+    UNLOCKED_PREVIOUS_RELEASE_BRANCH = "unlocked_previous_release_branch"
     BETA_RELEASE_TAG = "latest_beta"
     RELEASE_TAG = "latest_release"
     UNMANAGED_HEAD = "unmanaged"
@@ -197,6 +200,9 @@ class GitHubUnmanagedHeadResolver(Resolver):
 class GitHubReleaseBranchResolver(Resolver, abc.ABC):
     """Abstract base class for resolvers that use commit statuses on release branches to find refs."""
 
+    commit_status_context = "2gp_context"
+    commit_status_default = "Build Feature Test Package"
+
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
         return self.is_valid_repo_context(context) and isinstance(
             dep, BaseGitHubDependency
@@ -264,7 +270,9 @@ class GitHubReleaseBranchCommitStatusResolver(GitHubReleaseBranchResolver):
 
         try:
             remote_branch_prefix = find_repo_feature_prefix(repo)
-            remote_2gp_context = find_repo_2gp_context(repo)
+            remote_2gp_context = find_repo_commit_status_context(
+                repo, self.commit_status_context, self.commit_status_default
+            )
         except Exception:
             context.logger.info(
                 f"Could not find feature branch prefix or commit-status context for {repo.clone_url}. Unable to resolve packages."
@@ -308,6 +316,12 @@ class GitHubReleaseBranchCommitStatusResolver(GitHubReleaseBranchResolver):
         return (None, None)
 
 
+class GitHubReleaseBranchUnlockedResolver(GitHubReleaseBranchCommitStatusResolver):
+    name = "GitHub Release Branch Unlocked Commit Status Resolver"
+    commit_status_context = "unlocked_context"
+    commit_status_default = "Build Unlocked Test Package"
+
+
 class GitHubPreviousReleaseBranchCommitStatusResolver(
     GitHubReleaseBranchCommitStatusResolver
 ):
@@ -317,6 +331,14 @@ class GitHubPreviousReleaseBranchCommitStatusResolver(
 
     name = "GitHub Previous Release Branch Commit Status Resolver"
     branch_depth = 3
+
+
+class GitHubPreviousReleaseBranchUnlockedResolver(
+    GitHubPreviousReleaseBranchCommitStatusResolver
+):
+    name = "GitHub Previous Release Branch Unlocked Commit Status Resolver"
+    commit_status_context = "unlocked_context"
+    commit_status_default = "Build Unlocked Test Package"
 
 
 class GitHubReleaseBranchExactMatchCommitStatusResolver(GitHubReleaseBranchResolver):
@@ -338,7 +360,9 @@ class GitHubReleaseBranchExactMatchCommitStatusResolver(GitHubReleaseBranchResol
 
         try:
             remote_branch_prefix = find_repo_feature_prefix(repo)
-            remote_2gp_context = find_repo_2gp_context(repo)
+            remote_2gp_context = find_repo_commit_status_context(
+                repo, self.commit_status_context, self.commit_status_default
+            )
         except Exception:
             context.logger.info(
                 f"Could not find feature branch prefix or commit-status context for {repo.clone_url}. Unable to resolve package."
@@ -379,6 +403,14 @@ class GitHubReleaseBranchExactMatchCommitStatusResolver(GitHubReleaseBranchResol
         return (None, None)
 
 
+class GitHubReleaseBranchExactMatchUnlockedCommitStatusResolver(
+    GitHubReleaseBranchExactMatchCommitStatusResolver
+):
+    name = "GitHub Exact-Match Unlocked Commit Status Resolver"
+    commit_status_context = "unlocked_context"
+    commit_status_default = "Build Unlocked Test Package"
+
+
 RESOLVER_CLASSES = {
     DependencyResolutionStrategy.STATIC_TAG_REFERENCE: GitHubTagResolver,
     DependencyResolutionStrategy.COMMIT_STATUS_EXACT_BRANCH: GitHubReleaseBranchExactMatchCommitStatusResolver,
@@ -387,6 +419,9 @@ RESOLVER_CLASSES = {
     DependencyResolutionStrategy.BETA_RELEASE_TAG: GitHubBetaReleaseTagResolver,
     DependencyResolutionStrategy.RELEASE_TAG: GitHubReleaseTagResolver,
     DependencyResolutionStrategy.UNMANAGED_HEAD: GitHubUnmanagedHeadResolver,
+    DependencyResolutionStrategy.UNLOCKED_EXACT_BRANCH: GitHubReleaseBranchExactMatchUnlockedCommitStatusResolver,
+    DependencyResolutionStrategy.UNLOCKED_RELEASE_BRANCH: GitHubReleaseBranchUnlockedResolver,
+    DependencyResolutionStrategy.UNLOCKED_PREVIOUS_RELEASE_BRANCH: GitHubPreviousReleaseBranchUnlockedResolver,
 }
 
 

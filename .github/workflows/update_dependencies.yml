@@ -1,0 +1,10 @@
+name: Update Python Dependencies
+
+on:
+    workflow_dispatch:
+
+jobs:
+    update_python_dependencies:
+        uses: SFDO-Tooling/.github/.github/workflows/update_python_dependencies.yml@main
+        with:
+            python-version: 3.8

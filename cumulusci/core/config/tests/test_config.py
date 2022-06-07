@@ -372,6 +372,11 @@ class TestBaseProjectConfig:
         config._repo_info = {"url": "https://github.com/SFDO-Tooling/CumulusCI"}
         assert config.repo_url == "https://github.com/SFDO-Tooling/CumulusCI"
 
+    def test_lookup_repo_branch(self):
+        config = BaseProjectConfig(UniversalConfig())
+        config._repo_info = {"branch": "foo-bar-baz"}
+        assert config.lookup("repo_branch") == "foo-bar-baz"
+
     def test_repo_url_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
@@ -1655,6 +1660,56 @@ class TestOrgConfig:
 
         # We should have made 2 calls: 1 token call + 1 describe call
         assert len(responses.calls) == 1 + 1
+
+    @responses.activate
+    def test_is_survey_advanced_features_enabled(self):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+
+        # Token call.
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        # describe()
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/PermissionSet/describe",
+            json={"fields": [{"name": "PermissionsAllowSurveyAdvancedFeatures"}]},
+        )
+
+        assert config.is_survey_advanced_features_enabled
+
+    @responses.activate
+    def test_is_survey_advanced_features_enabled__not_enabled(self):
+        config = OrgConfig(
+            {
+                "instance_url": "https://example.com",
+                "access_token": "TOKEN",
+                "id": "OODxxxxxxxxxxxx/user",
+            },
+            "test",
+        )
+
+        # Token call.
+        responses.add(
+            "GET", "https://example.com/services/data", json=[{"version": 48.0}]
+        )
+
+        # describe()
+        responses.add(
+            "GET",
+            "https://example.com/services/data/v48.0/sobjects/PermissionSet/describe",
+            json={"fields": [{"name": "foo"}]},
+        )
+
+        assert not config.is_survey_advanced_features_enabled
 
     def test_resolve_04t_dependencies(self):
         config = OrgConfig({}, "test")

@@ -1,12 +1,13 @@
 from contextlib import contextmanager
 
-from robot.libraries.BuiltIn import BuiltIn
+from cumulusci.robotframework.base_library import BaseLibrary
 
 
-class BasePage:
+class BasePage(BaseLibrary):
     _object_name = None
 
     def __init__(self, object_name=None):
+        super().__init__()
         if object_name:
             self._object_name = object_name
 
@@ -74,21 +75,6 @@ class BasePage:
         return object_name
 
     @property
-    def builtin(self):
-        """Returns an instance of robot framework's BuiltIn library"""
-        return BuiltIn()
-
-    @property
-    def cumulusci(self):
-        """Returns the instance of the imported CumulusCI library"""
-        return self.builtin.get_library_instance("cumulusci.robotframework.CumulusCI")
-
-    @property
-    def salesforce(self):
-        """Returns the instance of the imported Salesforce library"""
-        return self.builtin.get_library_instance("cumulusci.robotframework.Salesforce")
-
-    @property
     def selenium(self):
         """Returns the instance of the imported SeleniumLibrary library"""
         return self.builtin.get_library_instance("SeleniumLibrary")
@@ -99,7 +85,7 @@ class BasePage:
         This performs a salesforce query. It will raise an exception unless
         exactly one result is returned from the query.
         """
-        results = self.salesforce.salesforce_query(self.object_name, **kwargs)
+        results = self.salesforce_api.salesforce_query(self.object_name, **kwargs)
         if len(results) == 0:
             human_friendly_args = ", ".join(
                 ["{}={}".format(key, kwargs[key]) for key in kwargs]

@@ -9,10 +9,12 @@ from cumulusci.robotframework.Salesforce import Salesforce
 # FIXME: we shouldn't have to tweak these tests for every
 # version. The tests should be smarter.
 class TestLocators:
-    @mock.patch("cumulusci.robotframework.Salesforce.Salesforce.get_latest_api_version")
+    @mock.patch(
+        "cumulusci.robotframework.SalesforceAPI.SalesforceAPI.get_latest_api_version"
+    )
     def test_locators_in_robot_context(self, get_latest_api_version):
         """Verify we can get locators for the current org api version"""
-        get_latest_api_version.return_value = 54.0
+        get_latest_api_version.return_value = 55.0
 
         # This instantiates the robot library, mimicking a robot library import.
         # We've mocked out the code that would otherwise throw an error since
@@ -20,7 +22,7 @@ class TestLocators:
         # return the latest version of the locators.
         sf = Salesforce()
 
-        expected = "cumulusci.robotframework.locators_54"
+        expected = "cumulusci.robotframework.locators_55"
         actual = sf.locators_module.__name__
         message = "expected to load '{}', actually loaded '{}'".format(expected, actual)
         assert expected == actual, message
