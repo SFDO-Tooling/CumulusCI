@@ -164,7 +164,7 @@ $ cci org connect <org_name> --connected_app custom
 
 To edit the Connected App's OAuth scopes:
 
-1.  In Lightning Experience, go to Setup -\> Apps -\> Apps Manager.
+1.  In Lightning Experience, go to Setup --\> Apps --\> Apps Manager.
 2.  Click the arrow on the far right side of the row that pertains to
     the newly created Connected App.
 3.  Click "Edit."

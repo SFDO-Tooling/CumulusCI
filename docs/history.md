@@ -94,7 +94,7 @@ Changes
 
 Issues Closed
 
--   Fixed a bug in the JSON format output of cci service list -json
+-   Fixed a bug in the JSON format output of cci service list --json
 
 ## 3.52.0 (2022-02-03)
 
@@ -2390,7 +2390,7 @@ Issues Closed:
 
 -   Added new features for running Python code (in a file or string)
     without bringing up an interactive shell. You can now use
-    [-python]{.title-ref} and [-script]{.title-ref} arguments for
+    [--python]{.title-ref} and [--script]{.title-ref} arguments for
     the [cci shell]{.title-ref} and [cci org shell]{.title-ref}
     commands.
 -   Added support for up to two optional parameters in Apex anonymous
@@ -3864,7 +3864,7 @@ the original set of flows was designed.
 -   Fixes for CumulusCI on Windows - CumulusCI 2 now supports Windows
     environments!
 -   Support skipping scratch org password creation by specifying
-    [-no-password]{.title-ref} to [cci org scratch]{.title-ref}
+    [--no-password]{.title-ref} to [cci org scratch]{.title-ref}
 -   Add additional logging to PackageUpload
 
 ## 2.0.0-beta95 (2018-05-10)
@@ -4018,7 +4018,7 @@ Resolving a few issues from beta77:
     [release_production]{.title-ref}
 -   Scratch org configs can now specify [days]{.title-ref} as an option
     which defaults to 1. The default for a scratch config can be
-    overridden in [cci org scratch]{.title-ref} with the [-days
+    overridden in [cci org scratch]{.title-ref} with the [--days
     N]{.title-ref} option
 -   [cci org remove]{.title-ref} will now attempt to first delete a
     scratch org if one was already created
@@ -4051,7 +4051,7 @@ Resolving a few issues from beta77:
 
 ## 2.0.0-beta75 (2017-11-07)
 
--   Fix syntax for github dependency with [-extend]{.title-ref} option
+-   Fix syntax for github dependency with [--extend]{.title-ref} option
     on [cci project init]{.title-ref}
 
 ## 2.0.0-beta74 (2017-11-07)
@@ -4086,7 +4086,7 @@ Resolving a few issues from beta77:
 -   [cci project init]{.title-ref} has been upgraded
     -   Better prompt driven user experience with explanations of each
         prompt
-    -   [-extend \<repo_url\>]{.title-ref} option to set up a
+    -   [--extend \<repo_url\>]{.title-ref} option to set up a
         recursive dependency on another CumulusCI project's Github
         repository
     -   Creates [sfdx-project.json]{.title-ref} if it doesn't already
@@ -4117,7 +4117,7 @@ Resolving a few issues from beta77:
 
 -   Configure [namespace_inject]{.title-ref} for
     [deploy_post]{.title-ref}
--   Fix the [-debug]{.title-ref} flag on [cci task run]{.title-ref}
+-   Fix the [--debug]{.title-ref} flag on [cci task run]{.title-ref}
     and [cci flow run]{.title-ref} to allow debugging of exceptions
     which are caught by the CLI such as MetadataApiError,
     MetadataComponentError, etc.
@@ -4184,7 +4184,7 @@ Resolving a few issues from beta77:
     compatible with previous functionality.
 -   New task [push_list]{.title-ref} supports easily pushing a list of
     OrgIds via the Push API from the CLI: [cci task run push_list -o
-    file \<file_path\> -o version 1.2 -org packaging]{.title-ref}
+    file \<file_path\> -o version 1.2 --org packaging]{.title-ref}
 
 ## 2.0.0-beta64 (2017-09-29)
 
@@ -4337,7 +4337,7 @@ Resolving a few issues from beta77:
 
 ## 2.0.0-beta46 (2017-06-23)
 
--   Fix bug in implementation of the [-no-prompt]{.title-ref} flag
+-   Fix bug in implementation of the [--no-prompt]{.title-ref} flag
     when sentry is configured
 
 ## 2.0.0-beta45 (2017-06-23)
@@ -4358,7 +4358,7 @@ Resolving a few issues from beta77:
         now show you the url to the sentry event if one was registered
         and prompt to open in a browser.
     -   [cci task run]{.title-ref} and [cci flow run]{.title-ref} now
-        accept the [-no-prompt]{.title-ref} option flag for running in
+        accept the [--no-prompt]{.title-ref} option flag for running in
         non-interactive mode with the sentry service configured. Use
         this if you want to log build errors in sentry but not have
         builds fail due to a hanging prompt.
@@ -4454,7 +4454,7 @@ Resolving a few issues from beta77:
     cumulusci.yml has a namespace configured. Welcome to dynamic package
     dependency management ;)
 -   [cci task run]{.title-ref} now supports the option flags
-    [-debug-before]{.title-ref} and [-debug-after]{.title-ref}
+    [--debug-before]{.title-ref} and [--debug-after]{.title-ref}
 -   Fix for JUnit output rendering in run_tests
 
 ## 2.0.0-beta36 (2017-05-19)
@@ -4463,7 +4463,7 @@ Resolving a few issues from beta77:
     -   [cci flow run install_beta -o install_managed_beta\_\_version
         "1.0 (Beta 123)"]{.title-ref}
 -   Flows can now accept arguments to in the CLI to skip tasks
-    -   [cci flow run ci_feature -skip run_tests_debug -skip
+    -   [cci flow run ci_feature --skip run_tests_debug --skip
         deploy_post]{.title-ref}
 -   Anonymous apex failures will now throw an exception and fail the
     build in [execute_anon]{.title-ref}
@@ -4480,9 +4480,9 @@ Resolving a few issues from beta77:
 
 ## 2.0.0-beta33 (2017-05-11)
 
--   cci org connect and cci org scratch now accept the -default option
+-   cci org connect and cci org scratch now accept the --default option
     flag to set the newly connected org as the default org for the repo
--   cci org scratch now accepts a new option, -devhub \<username\>,
+-   cci org scratch now accepts a new option, --devhub \<username\>,
     which allows you to specify an alternate devhub username to use when
     creating the scratch org
 -   The SalesforceBrowserTest class now throws a BrowserTestFailure if
@@ -4513,7 +4513,7 @@ Resolving a few issues from beta77:
 ## 2.0.0-beta30 (2017-04-04)
 
 -   New task list_metadata_types
--   \[push upgrades\] Fix push request status Cancelled -\> Canceled
+-   \[push upgrades\] Fix push request status Cancelled --\> Canceled
 -   \[push upgrades\] Fix datetime namespace issues
 -   \[pyinstaller\] Import project-level modules with run-time hook
 
@@ -4920,11 +4920,11 @@ Resolving a few issues from beta77:
     browser on a scratch org that hasn't been created yet gets created
     but doesn't persist after the command
 -   [task run]{.title-ref} and [flow run]{.title-ref} now support the
-    [-debug]{.title-ref} flag which will drop you into the Python
+    [--debug]{.title-ref} flag which will drop you into the Python
     interactive debugger (pdb) at the point of the exception.
 -   Added Cookbook to the docs:
     <http://cumulusci.readthedocs.io/en/latest/cookbook.html>
--   [flow run]{.title-ref} with the [-delete-org]{.title-ref} option
+-   [flow run]{.title-ref} with the [--delete-org]{.title-ref} option
     flag and scratch orgs no longer fails the flow if the delete org
     call fails.
 -   Fixed the [deploy_post]{.title-ref} task which has having errors
@@ -4946,14 +4946,14 @@ Resolving a few issues from beta77:
     connected app. The global credentials will be used by default if
     they exist and individual projects an override them.
     -   Orgs still default to creating in the project level but the
-        [-global]{.title-ref} flag can be used in the CLI to create an
+        [--global]{.title-ref} flag can be used in the CLI to create an
         org
     -   [config_connected_app]{.title-ref} command now sets the
-        connected app as global by default. Use the '-project' flag
+        connected app as global by default. Use the '--project' flag
         to set as a project override
     -   [connect_github]{.title-ref}, [connect_mrbelvedere]{.title-ref},
         and [connect_apextestsdb]{.title-ref} commands now set the
-        service as global by default. Use the '-project' flag to set
+        service as global by default. Use the '--project' flag to set
         as a project override
 
 ## 2.0.0-alpha20 (2016-11-29)
@@ -4984,7 +4984,7 @@ Resolving a few issues from beta77:
 -   Community contributions by \@cdcarter
 
     -   [query]{.title-ref} task using the Bulk Data API
-    -   [-login-url]{.title-ref} option on [cci org
+    -   [--login-url]{.title-ref} option on [cci org
         connect]{.title-ref}
 
 -   Salesforce DX wrapper
@@ -4997,7 +4997,7 @@ Resolving a few issues from beta77:
     -   [cci org scratch_delete \<org_name\>]{.title-ref} deletes a
         scratch org that was created by running a task or flow
     -   [cci flow run]{.title-ref} now supports the
-        [-delete-org]{.title-ref} option to delete a scratch org at
+        [--delete-org]{.title-ref} option to delete a scratch org at
         the end of the flow
     -   [BaseSalesforceDXTask]{.title-ref} wraps the heroku force:\*
         commands. The [dx_push]{.title-ref} task is provided as an
@@ -5170,17 +5170,17 @@ Resolving a few issues from beta77:
 -   New tasks for push upgrading packages
     -   push_all: Pushes a package version to all available subscriber
         orgs
-        -   ex: cci task run -org packaging -o version 1.1 push_all
+        -   ex: cci task run --org packaging -o version 1.1 push_all
     -   push_qa: Pushes a package version to all org ids in the file
         push/orgs_qa.txt in the repo
-        -   ex: cci task run -org packaging -o version 1.1 push_qa
+        -   ex: cci task run --org packaging -o version 1.1 push_qa
     -   push_sandbox: Pushes a package version to all available sandbox
         subscriber orgs
-        -   ex: cci task run -org packaging -o version 1.1
+        -   ex: cci task run --org packaging -o version 1.1
             push_sandbox
     -   push_trial: Pushes a package version to all org ids in the file
         push/orgs_trial.txt in the repo
-        -   ex: cci task run -org packaging -o version 1.1 push_trial
+        -   ex: cci task run --org packaging -o version 1.1 push_trial
     -   Configurable push tasks in cumulusci.tasks.push.tasks:
         -   SchedulePushOrgList: uses a file with one OrgID per line as
             the target list
@@ -5237,7 +5237,7 @@ Resolving a few issues from beta77:
 -   cumulusci org default \<name\>
     -   Set a default org for tasks and flows
     -   No longer require passing org name in task run and flow run
-    -   -unset option flag unsets current default
+    -   --unset option flag unsets current default
     -   cumulusci org list shows a \* next to the default org
 -   BaseAntTask split out into AntTask and SalesforceAntTask
 -   cumulusci.tasks.metadata.package.UpdatePackageXml:

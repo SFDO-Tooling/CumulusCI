@@ -775,8 +775,8 @@ data, you do so like this:
 Which will repeat the recipe 400 times.
 
 There are two other ways to control how many times the recipe is
-repeated: [-run-until-records-loaded]{.title-ref} and
-[-run-until-records-in-org]{.title-ref}.
+repeated: [--run-until-records-loaded]{.title-ref} and
+[--run-until-records-in-org]{.title-ref}.
 
 ### Generated Record Counts
 
@@ -797,7 +797,7 @@ The counting works like this:
 >     a few records, but it depends on the details of your recipe.
 > -   At the end of executing a recipe, it checks whether it has created
 >     enough of the object type mentioned by the
->     [-run-until-records-loaded]{.title-ref} parameter.
+>     [--run-until-records-loaded]{.title-ref} parameter.
 > -   If so, it finishes. If not, it runs the recipe again.
 
 So if your recipe creates 10 Accounts, 5 Contacts and 15 Opportunities,
@@ -805,14 +805,14 @@ then when you run the command above it will run the recipe 100 times
 (100\*10=1000) which will generate 1000 Accounts, 500 Contacts and 1500
 Opportunities.
 
-[-run-until-records-in-org]{.title-ref} works similarly, but it
+[--run-until-records-in-org]{.title-ref} works similarly, but it
 determines how many times to run the recipe based on how many records
 are in the org at the start. For example, if the org already has 300
 Accounts in it then:
 
 `$ cci task run snowfakery --run-until-records-in-org 1000:Account`
 
-Would be equivalent to [-run-until-records-loaded
+Would be equivalent to [--run-until-records-loaded
 700:Account]{.title-ref} because one needs to add 700 Accounts to the
 300 resdent ones to get to 1000.
 

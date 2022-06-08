@@ -145,7 +145,7 @@ Do not commit the files (`large_cassettes/\*.yml`) to the repository.
 
 Some tests generate even more network traffic data and it isn't
 practical to use VCR at all. Still, we'd like to run them when we run
-all of the other org-reliant tests with -org. Mark them with
+all of the other org-reliant tests with --org. Mark them with
 `@pytest.mark.needs_org()` and they will run with the VCR tests.
 
 Some tests are so slow that you only want to run them on an opt-in
@@ -186,9 +186,9 @@ examples where they are used in context, or to see their definitions:
 Decorators for tests:
 
 > -   pytest.mark.slow(): a slow test that should only be executed when
->     requested with -run-slow-tests
+>     requested with --run-slow-tests
 > -   pytest.mark.large_vcr(): a network-based test that generates VCR
->     cassettes too large for version control. Use -org to generate
+>     cassettes too large for version control. Use --org to generate
 >     them locally.
 > -   pytest.mark.needs_org(): a test that needs an org (or at least
 >     access to the network) but should not attempt to store VCR
@@ -205,11 +205,11 @@ Decorators for tests:
 Tests should be executable in any order. You can run this command a few
 times to verify if they are:
 
-> pytest -random-order
+> pytest --random-order
 
 It will output something like this:
 
-> Using -random-order-bucket=module Using -random-order-seed=986925
+> Using --random-order-bucket=module Using --random-order-seed=986925
 
 Using those two parameters on the command line, you can replicate a
 particular run later.

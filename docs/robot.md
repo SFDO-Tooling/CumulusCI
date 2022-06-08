@@ -196,7 +196,7 @@ often in a single test suite.
     keywords that present a complex set of instructions in a
     human-readable language. The result? Test cases that all project
     stakeholders can easily understand, such as a product manager, scrum
-    master, documentation teams, and so on-not just the test authors.
+    master, documentation teams, and so on--not just the test authors.
     In the previous example, `Salesforce Insert`, `Salesforce Get` and
     `Should be equal` are all keywords.
 -   Keyword libraries: Robot organizes keywords into libraries, which

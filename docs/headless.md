@@ -40,13 +40,13 @@ from the environment. If a name is not specified, a defualt name of
 Here are some examples of environment variable names along with their
 corresponding service types and names:
 
--   `CUMULUSCI_SERVICE_github` -\> A `github` service that will have
+-   `CUMULUSCI_SERVICE_github` --\> A `github` service that will have
     the default name of `env`
--   `CUMULUSCI_SERVICE_github__integration-user` -\> A `github`
+-   `CUMULUSCI_SERVICE_github__integration-user` --\> A `github`
     service that will have the name `env-integration-user`
--   `CUMULUSCI_SERVICE_connected_app` -\> A `connected_app` service
+-   `CUMULUSCI_SERVICE_connected_app` --\> A `connected_app` service
     with the default name of `env`
--   `CUMULUSCI_SERVICE_connected_app__sandbox` -\> A `connected_app`
+-   `CUMULUSCI_SERVICE_connected_app__sandbox` --\> A `connected_app`
     service with the name `env-sandbox`
 
 By always prepending [env]{.title-ref} to the names of services

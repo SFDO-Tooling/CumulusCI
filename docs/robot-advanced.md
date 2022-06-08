@@ -156,7 +156,7 @@ rather than through the UI:
 -   [SOQL Query](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.SOQL-Query): Runs a SOQL
     query and returns a REST API result dictionary.
 
-Using Page Objects -
+Using Page Objects -----------------
 
 The
 [PageObjects](https://cumulusci.readthedocs.io/en/stable/Keywords.html#file-cumulusci.robotframework.PageObjects)

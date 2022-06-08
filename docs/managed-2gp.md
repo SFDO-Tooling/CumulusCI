@@ -187,7 +187,7 @@ automatically use `--promote_dependencies True` with the
 $ cci task run promote_package_version --version_id 04t000000000000 --promote_dependencies True
 ```
 
-Test a Production Version -
+Test a Production Version -------------------
 
 To test the new package version:
 
