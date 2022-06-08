@@ -1,11 +1,11 @@
 click
 cryptography
 python-dateutil
-docutils<0.17
+docutils
 Faker
 fs
 github3.py
-jinja2<3
+jinja2
 keyring<=23.0.1
 lxml
 MarkupSafe
@@ -18,16 +18,16 @@ requests
 requests-futures
 rich
 # check with Bryan about upgrading to v5
-robotframework<5
+robotframework
 robotframework-lint
 robotframework-pabot
 robotframework-requests
-robotframework-seleniumlibrary<6
+robotframework-seleniumlibrary
 rst2ansi
 salesforce-bulk
 sarge
-selenium<4
-simple-salesforce==1.11.4
-snowfakery
+selenium
+simple-salesforce
+snowfakery==3.1.1.dev1
 SQLAlchemy
 xmltodict
