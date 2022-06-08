@@ -2,7 +2,7 @@
 
 ## Introduction to Metadata ETL
 
-\"ETL\" refers to \"extract, transform, and load\" operations, usually
+"ETL" refers to "extract, transform, and load" operations, usually
 applied to data. CumulusCI offers a suite of functionality we call
 _Metadata ETL_. Metadata ETL makes it easy to define automation that
 executes targeted transformations of metadata that already exists in an

@@ -78,7 +78,7 @@ these steps in the CI environment after any commits are pushed:
 ## Configure Secrets
 
 You may have noticed that the workflow refers to a couple of
-\"secrets\": `CUMULUSCI_SERVICE_github` and `SFDX_AUTH_URL`. You need to
+"secrets": `CUMULUSCI_SERVICE_github` and `SFDX_AUTH_URL`. You need to
 add these secrets to the repository settings before you can use this
 workflow.
 
@@ -97,15 +97,15 @@ Be sure to select repo and gist scope:
 
 ![Screenshot showing the Github Personal Access Token scopes with only repo and gist selected](images/github_personal_access_token_scopes.png)
 
-Now, in your repository's Secrets settings, click the \"Add a new
-secret\" link. Enter `CUMULUSCI_SERVICE_github` as the Name of the
+Now, in your repository's Secrets settings, click the "Add a new
+secret" link. Enter `CUMULUSCI_SERVICE_github` as the Name of the
 secret. For the Value, enter the following JSON:
 
 ```json
 { "username": "USERNAME", "password": "TOKEN", "email": "EMAIL" }
 ```
 
-Click the \"Add secret\" button to save the secret.
+Click the "Add secret" button to save the secret.
 
 Replace `USERNAME` with your GitHub username, `TOKEN` with the Personal
 Access Token you just created, and `EMAIL` with your email address.

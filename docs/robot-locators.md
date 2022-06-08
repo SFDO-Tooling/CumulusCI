@@ -141,8 +141,8 @@ The following table shows how the locator is parsed:
 
 Sometimes the only difference between multiple elements on a page is the
 text displayed in that element. For example, the html markup for a save,
-edit, and cancel button may be identical except for the word \"Save\",
-\"Edit\", or \"Cancel\".
+edit, and cancel button may be identical except for the word "Save",
+"Edit", or "Cancel".
 
 While you can create a separate locator for each button, it's better to
 use a single parameterized locator for multiple buttons, which gives you

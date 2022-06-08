@@ -17,7 +17,7 @@ keywords that use the Playwright API.
 Starting with CumulusCI version 3.59.0, we are providing experimental
 support for Playwright and the Browser library in CumulusCI.
 
-In CumulusCI 3.60, we\'ve reorganized our keywords so that a test can
+In CumulusCI 3.60, we've reorganized our keywords so that a test can
 import the API and performance keywords without importing Selenium
 keywords. To use Playwright-based keywords, import the resource file
 [SalesforcePlaywright.robot](Keywords.html#file-cumulusci/robotframework/SalesforcePlaywright.robot),
@@ -34,7 +34,7 @@ work on fully supporting it.
 
 ### Step 1: Install Node.js
 
-Playwright is based on Node.js. If you don\'t already have Node.js
+Playwright is based on Node.js. If you don't already have Node.js
 installed, you can find a Node.js installer for your platform on the
 [Node.js downloads page](https://nodejs.org/en/download/).
 
@@ -51,7 +51,7 @@ Step 2: Run the Playwright installation command
 \^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^
 
 Installing the browser library requires a couple of manual steps, which
-we\'ve automated in a single script. This script does three things:
+we've automated in a single script. This script does three things:
 
 -   it verifies that Node.js has been installed
 -   it downloads and installs the Browser keyword library
@@ -64,7 +64,7 @@ Note
 :::
 
 The installation of Playwright contains drivers for all supported
-browsers, so there\'s no need to manually install drivers such as
+browsers, so there's no need to manually install drivers such as
 ChromeDriver. It works right out of the box!
 :::
 
@@ -88,7 +88,7 @@ will do without actually installing anything.
 ## Running an example test
 
 As mentioned earlier, this is an experimental release of Playwright
-integration, so any CumulusCI keywords that rely on Selenium won\'t
+integration, so any CumulusCI keywords that rely on Selenium won't
 work. However, the following example shows how easy it can be to write
 Playwright-based tests with off-the-shelf [keywords provided by the
 Browser
@@ -134,7 +134,7 @@ $ cci task run robot --suites example.robot
 ### Things to Notice
 
 This example test is unable to use any of the existing Selenium-based
-keywords, except for two. We\'ve created a new library based on
+keywords, except for two. We've created a new library based on
 Playwright and the Browser library with two keywords that are similar to
 existing keywords: [Open Test
 Browser](Keywords.html#SalesforcePlaywright.Open%20Test%20Browser) and
@@ -156,7 +156,7 @@ so there should almost never be a need for keywords such as
 Finally, notice how easy it is to interact with both the app menu and
 the user profile. Playwright locators are often much easier to write
 than Selenium locators, which translates to tests and keywords that
-don\'t have to be tweaked when the page markup changes.
+don't have to be tweaked when the page markup changes.
 
 ## Summary
 

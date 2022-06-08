@@ -188,7 +188,7 @@ locate elements on the screen. This makes it easy to experiment with
 xpaths or other types of locators.
 
 In the following example, we want to find all items on the page that
-contain the title \"Learn More\":
+contain the title "Learn More":
 
 ```console
 rdb> locate_elements  //button[@title='Learn More']

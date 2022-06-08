@@ -19,13 +19,13 @@ When reporting a bug, please include:
 
 ### Fix Bugs
 
-Look through the GitHub issues for bugs. Anything tagged with \"bug\"
-and \"help wanted\" is open to whomever wants to implement it.
+Look through the GitHub issues for bugs. Anything tagged with "bug"
+and "help wanted" is open to whomever wants to implement it.
 
 ### Implement Features
 
 Look through the GitHub issues for features. Anything tagged with
-\"enhancement\" and \"help wanted\" is open to whomever wants to
+"enhancement" and "help wanted" is open to whomever wants to
 implement it.
 
 ### Write Documentation
@@ -49,7 +49,7 @@ If you are proposing a feature:
 
 ## Install for Development
 
-Ready to contribute? Here\'s how to set up CumulusCI for local
+Ready to contribute? Here's how to set up CumulusCI for local
 development.
 
 1.  Fork the CumulusCI repo on GitHub.
@@ -101,7 +101,7 @@ Before you submit a pull request, check that it meets these guidelines:
 -   New code has comments.
 -   Code style and file structure is similar to the rest of the project.
 -   You have run the `black` code formatter.
--   If you are a new contributor, don\'t forget to add yourself to the
+-   If you are a new contributor, don't forget to add yourself to the
     `AUTHORS.rst` file in your pull request (either GitHub username, or
     first/last name).
 -   You have labeled your pull request:
@@ -123,13 +123,13 @@ against a real scratch org, you do so like this:
 
     $ pytest --org qa <other arguments and options, such as filename or -k testname>
 
-Where \"orgname\" is a configured org name like \"qa\", \"dev\", etc.
+Where "orgname" is a configured org name like "qa", "dev", etc.
 
 To regenerate the VCR file, you can run this command:
 
     $ pytest --replace-vcrs --org qa
 
-This will configure an org named \"qa\" and regenerate them.
+This will configure an org named "qa" and regenerate them.
 
 That will run all VCR-backed tests against the org, including all of the
 slow integration tests.
@@ -139,13 +139,13 @@ slow integration tests.
 Some tests generate so much data that we do not want to store the VCR
 cassettes in our repo. You can mark tests like that with
 `@pytest.mark.large_vcr()`. When they are executed, their cassettes will
-go in a .gitignore\'d folder called `large_cassettes`.
+go in a .gitignore'd folder called `large_cassettes`.
 
 Do not commit the files (`large_cassettes/\*.yml`) to the repository.
 
-Some tests generate even more network traffic data and it isn\'t
-practical to use VCR at all. Still, we\'d like to run them when we run
-all of the other org-reliant tests with \--org. Mark them with
+Some tests generate even more network traffic data and it isn't
+practical to use VCR at all. Still, we'd like to run them when we run
+all of the other org-reliant tests with -org. Mark them with
 `@pytest.mark.needs_org()` and they will run with the VCR tests.
 
 Some tests are so slow that you only want to run them on an opt-in
@@ -164,7 +164,7 @@ examples where they are used in context, or to see their definitions:
 
 -   gh_api - get a fake github API
 -   with temp_db():\... - create a temporary SQLite Database
--   delete_data_from_org(\"Account,Contacts\") - delete named sobjects
+-   delete_data_from_org("Account,Contacts") - delete named sobjects
     from an org
 -   run_code_without_recording(func) - run a function ONLY when the
     integration tests are being used against real orgs and DO NOT record
@@ -186,18 +186,18 @@ examples where they are used in context, or to see their definitions:
 Decorators for tests:
 
 > -   pytest.mark.slow(): a slow test that should only be executed when
->     requested with \--run-slow-tests
+>     requested with -run-slow-tests
 > -   pytest.mark.large_vcr(): a network-based test that generates VCR
->     cassettes too large for version control. Use \--org to generate
+>     cassettes too large for version control. Use -org to generate
 >     them locally.
 > -   pytest.mark.needs_org(): a test that needs an org (or at least
 >     access to the network) but should not attempt to store VCR
 >     cassettes. Most tests that need network access do so because they
 >     need to talk to an org, but you can also use this decorator to
 >     give access to the network to talk to github or any other API.
-> -   pytest.mark.org_shape(\'qa\', \'qa_org\'): - switch the current
->     org to an org created with org template \"qa\" after running flow
->     \"qa_org\". As with all tests, clean up any changes you make,
+> -   pytest.mark.org_shape('qa', 'qa_org'): - switch the current
+>     org to an org created with org template "qa" after running flow
+>     "qa_org". As with all tests, clean up any changes you make,
 >     because this org may be reused by other tests.
 
 ### Randomized tests
@@ -205,15 +205,15 @@ Decorators for tests:
 Tests should be executable in any order. You can run this command a few
 times to verify if they are:
 
-> pytest \--random-order
+> pytest -random-order
 
 It will output something like this:
 
-> Using \--random-order-bucket=module Using \--random-order-seed=986925
+> Using -random-order-bucket=module Using -random-order-seed=986925
 
 Using those two parameters on the command line, you can replicate a
 particular run later.
 
-In extremely rare cases where it\'s not possible to make tests
+In extremely rare cases where it's not possible to make tests
 independent, you can [enforce an
 order](https://pythonhosted.org/pytest-random-order/##disable-shuffling-in-module-or-class)

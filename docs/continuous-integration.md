@@ -1,6 +1,6 @@
 # Continuous Integration
 
-The \"CI\" in CumulusCI stands for \"continuous integration\".
+The "CI" in CumulusCI stands for "continuous integration".
 Continuous integration is the practice of automatically running a
 project's tests for any change before merging that change to the `main`
 branch in the repository. Continuous integration also configures the

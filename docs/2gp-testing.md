@@ -43,7 +43,7 @@ Packages](#end-to-end-testing-with-second-generation-packages).
 CumulusCI stores data about feature test packages in GitHub
 commit-status messages. When the `build_feature_test_package` flow
 completes successfully, the `04t` id of the created package version is
-stored in the \"Build Feature Test Package\" commit status on GitHub.
+stored in the "Build Feature Test Package" commit status on GitHub.
 Testing and 2GP build flows can acquire the package version from this
 store.
 
@@ -54,7 +54,7 @@ unmanaged feature testing in continuous integration, but uses a 2GP
 feature test package instead of deploying the project unmanaged.
 
 When executed on a specific commit, the flow acquires a 2GP feature test
-package id from the \"Build Feature Test Package\" commit status on that
+package id from the "Build Feature Test Package" commit status on that
 commit. It installs that package, then executes Apex unit tests.
 
 ```{note}

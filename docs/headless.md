@@ -33,20 +33,20 @@ immediately by the `service_type` (for a full list of available services
 run `cci service list`). Additionally, you have the option to provide a
 unique name for your service by adding a double underscore (`__`)
 followed by the name you wish to use. If a name is specified it is
-prepended with \"env-\" to help establish that this service is coming
+prepended with "env-" to help establish that this service is coming
 from the environment. If a name is not specified, a defualt name of
 `env` is used for that service.
 
 Here are some examples of environment variable names along with their
 corresponding service types and names:
 
--   `CUMULUSCI_SERVICE_github` \--\> A `github` service that will have
+-   `CUMULUSCI_SERVICE_github` -\> A `github` service that will have
     the default name of `env`
--   `CUMULUSCI_SERVICE_github__integration-user` \--\> A `github`
+-   `CUMULUSCI_SERVICE_github__integration-user` -\> A `github`
     service that will have the name `env-integration-user`
--   `CUMULUSCI_SERVICE_connected_app` \--\> A `connected_app` service
+-   `CUMULUSCI_SERVICE_connected_app` -\> A `connected_app` service
     with the default name of `env`
--   `CUMULUSCI_SERVICE_connected_app__sandbox` \--\> A `connected_app`
+-   `CUMULUSCI_SERVICE_connected_app__sandbox` -\> A `connected_app`
     service with the name `env-sandbox`
 
 By always prepending [env]{.title-ref} to the names of services
@@ -69,7 +69,7 @@ particular service. The easiest way to find what attributes are needed
 for a particular service is to look for your service under the [services
 tag in the CumulusCI standard
 library](https://github.com/SFDO-Tooling/CumulusCI/blob/34533b4a1caa3f1850c64e223ece26069c83b60e/cumulusci/cumulusci.yml#L1164)
-and provide values for all \"attributes\" listed under the desired
+and provide values for all "attributes" listed under the desired
 service. You can also use `cci service info` to get the values from a
 service you've configured locally.
 
@@ -78,7 +78,7 @@ then the attributes: `callback_url`, `client_id`, and `client_secret`
 would need to be provided in the following format:
 
 ```json
-"{\"callback_url\": \"<callback_url>\", \"client_id\": \"<client_id>\", \"client_secret\": \"<client_secret>\"}"
+"{"callback_url": "<callback_url>", "client_id": "<client_id>", "client_secret": "<client_secret>"}"
 ```
 
 > The values `<callback_url>`, `<client_id>`, and `<client_secret>`
@@ -94,7 +94,7 @@ running CumulusCI headlessly for continuous integration with an existing
 org.
 
 First, you need a Connected App that is configured with a certificate in
-the \"Use digital signatures\" setting in its OAuth settings. You can
+the "Use digital signatures" setting in its OAuth settings. You can
 follow the Salesforce DX Developer Guide to get this set up:
 
 -   [Create a private key and self-signed

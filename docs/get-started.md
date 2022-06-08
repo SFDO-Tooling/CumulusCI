@@ -64,18 +64,18 @@ When finished, [verify your installation](#verify-your-installation).
     page](https://www.python.org/downloads/windows/).
 
 2.  Download the latest Python 3.9 release. Most users select the
-    \"Windows Installer (64-bit)\" link, but it depends on your
+    "Windows Installer (64-bit)" link, but it depends on your
     particular computer setup.
 
 3.  Install using the installation wizard.
 
     -   Select **Add Python \<version\> to PATH**.
-    -   Click \"Install Now\".
+    -   Click "Install Now".
 
     ![image](images/windows_python.png)
 
-4.  On the screen entitled \"Setup was successful,\" click the \"Disable
-    path length limit\" button (if it's present).
+4.  On the screen entitled "Setup was successful," click the "Disable
+    path length limit" button (if it's present).
 
     ![image](images/windows_python_success.png)
 
@@ -378,7 +378,7 @@ you prefer.
 
 -   Our [Community Project Development with
     CumulusCI](https://trailhead.salesforce.com/content/learn/modules/community-project-development-with-cumulusci?trail_id=build-applications-with-cumulusci)
-    module covers GitHub Desktop in the \"Set Up the Project\" section.
+    module covers GitHub Desktop in the "Set Up the Project" section.
 -   If you prefer the command line, GitHub has excellent guides on both
     [git remote](https://github.com/git-guides/git-remote) and [git
     push](https://github.com/git-guides/git-push).

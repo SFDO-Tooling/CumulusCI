@@ -120,8 +120,8 @@ included or excluded depending on which option the regular expression is
 passed. Multiple regular expressions can be passed in a comma-separated
 list.
 
-The following lists all modified metadata that ends in \"Test\" and
-\"Data\" in the default org.
+The following lists all modified metadata that ends in "Test" and
+"Data" in the default org.
 
 ```console
 $ cci task run list_changes --include "Test$,Data$"

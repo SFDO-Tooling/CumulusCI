@@ -377,7 +377,7 @@ org and a persistent org.
 conditionally run a step in a flow based on the source code format of
 the project. Below is the configuration for the standard library flow
 `build_feature_test_package`. The `update_package_xml` task will execute
-_only if_ the project's source code format is not equal to \"`sfdx`\".
+_only if_ the project's source code format is not equal to "`sfdx`".
 
 ```yaml
 build_feature_test_package:

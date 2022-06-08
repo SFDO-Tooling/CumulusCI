@@ -1,7 +1,7 @@
 # Manage Scratch Orgs
 
 Scratch orgs are temporary Salesforce orgs that can be quickly set up
-\"from scratch,\" and which last for no more than 30 days. There are
+"from scratch," and which last for no more than 30 days. There are
 several reasons why scratch orgs are encouraged for development and
 testing over sandboxes or Developer Edition orgs. Scratch orgs:
 

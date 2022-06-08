@@ -5,7 +5,7 @@ and release our products. This process encompasses both a development
 and testing philosophy as well as a specific GitHub branching structure.
 There are several key reasons we like using CumulusCI Flow:
 
--   Everything is done in scratch orgs to eliminate \"state drift\" that
+-   Everything is done in scratch orgs to eliminate "state drift" that
     occurs over time in persistent orgs. The only persistent org in this
     process is the packaging org or production org.
 -   Changes to branches that are being actively developed are thoroughly

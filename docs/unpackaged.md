@@ -3,7 +3,7 @@
 Not everything that's part of an application can be part of a package.
 
 CumulusCI implements the Product Delivery Model by offering support for
-complex applications \-- applications that may include multiple managed
+complex applications - applications that may include multiple managed
 packages as well as unpackaged metadata, and setup automation that
 configures org settings or makes precise changes to existing
 configuration.

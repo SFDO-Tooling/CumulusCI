@@ -125,9 +125,9 @@ cannot be controlled.
 
 ### Upserts
 
-The definition of \"upsert\" is an operation which creates new records
+The definition of "upsert" is an operation which creates new records
 and updates existing records depending on a field (the update key) which
-determines whether the input row and the existing row are \"the same\".
+determines whether the input row and the existing row are "the same".
 
 You can do ID-based,
 [idLookup-based](https://developer.salesforce.com/docs/atlas.en-us.204.0.object_reference.meta/object_reference/access_for_fields.htm##access_lookup)
@@ -775,8 +775,8 @@ data, you do so like this:
 Which will repeat the recipe 400 times.
 
 There are two other ways to control how many times the recipe is
-repeated: [\--run-until-records-loaded]{.title-ref} and
-[\--run-until-records-in-org]{.title-ref}.
+repeated: [-run-until-records-loaded]{.title-ref} and
+[-run-until-records-in-org]{.title-ref}.
 
 ### Generated Record Counts
 
@@ -797,7 +797,7 @@ The counting works like this:
 >     a few records, but it depends on the details of your recipe.
 > -   At the end of executing a recipe, it checks whether it has created
 >     enough of the object type mentioned by the
->     [\--run-until-records-loaded]{.title-ref} parameter.
+>     [-run-until-records-loaded]{.title-ref} parameter.
 > -   If so, it finishes. If not, it runs the recipe again.
 
 So if your recipe creates 10 Accounts, 5 Contacts and 15 Opportunities,
@@ -805,27 +805,27 @@ then when you run the command above it will run the recipe 100 times
 (100\*10=1000) which will generate 1000 Accounts, 500 Contacts and 1500
 Opportunities.
 
-[\--run-until-records-in-org]{.title-ref} works similarly, but it
+[-run-until-records-in-org]{.title-ref} works similarly, but it
 determines how many times to run the recipe based on how many records
 are in the org at the start. For example, if the org already has 300
 Accounts in it then:
 
 `$ cci task run snowfakery --run-until-records-in-org 1000:Account`
 
-Would be equivalent to [\--run-until-records-loaded
+Would be equivalent to [-run-until-records-loaded
 700:Account]{.title-ref} because one needs to add 700 Accounts to the
 300 resdent ones to get to 1000.
 
 ### Controlling the Loading Process
 
 CumulusCI's data loader has many knobs and switches that you might want
-to adjust during your load. It supports a \".load.yml\" file format
+to adjust during your load. It supports a ".load.yml" file format
 which allows you to manipulate these load settings. The simplest way to
 use this file format is to make a file in the same directory as your
 recipe with a filename that is derived from the recipe's by replacing
-everything after the first \".\" with \".load.yml\". For example, if
-your recipe is called \"babka.recipe.yml\" then your load file would be
-\"babka.load.yml\".
+everything after the first "." with ".load.yml". For example, if
+your recipe is called "babka.recipe.yml" then your load file would be
+"babka.load.yml".
 
 Inside of that file you put a list of declarations in the following
 format:
@@ -841,12 +841,12 @@ mode.
 
 The specific keys that you can associate with an object are:
 
--   api: \"smart\", \"rest\" or \"bulk\"
+-   api: "smart", "rest" or "bulk"
 -   batch_size: a number
--   bulk_mode: \"serial\" or \"parallel\"
+-   bulk_mode: "serial" or "parallel"
 -   load_after: the name of another sobject to wait for before loading
 
-\"api\", \"batch_size\" and \"bulk_mode\" have the same meanings that
+"api", "batch_size" and "bulk_mode" have the same meanings that
 they do in mapping.yml as described in [API Selection](#api-selection).
 
 For example, one could force Accounts and Opportunities to load after
@@ -893,12 +893,12 @@ that generates 10 Accounts, 5 Contacts and 15 Opportunities).
 
 Imagine if the numbers were more like 1M, 500K and 1.5M. And further,
 imagine if your network crashed after 1M Accounts and 499K Contacts were
-uploaded. You would not have a single \"complete set\" of 10/5/15.
-Instead you would have 1M \"partial sets\".
+uploaded. You would not have a single "complete set" of 10/5/15.
+Instead you would have 1M "partial sets".
 
 If, by contrast, you had set your batch size to 100*000, your network
 might die more around the 250,000 Account mark, but you would have
-200,000/20[^1] =10K \_complete sets* plus some \"extra\" Accounts which
+200,000/20[^1] =10K \_complete sets* plus some "extra" Accounts which
 you might ignore or delete. You can restart your load with a smaller
 goal (800K Accounts) and finish the job.
 
@@ -909,7 +909,7 @@ task](https://cumulusci.readthedocs.io/en/latest/tasks.html#disable-tdtm-trigger
 for doing for TDTM trigger handlers, but sometimes you cannot avoid
 them. Using smaller batch sizes may be preferable to switching to serial
 mode. If every SObject in a batch uploads less than 10,000 rows then you
-are defacto in serial mode (because only one \"bulk mode batch\" at a
+are defacto in serial mode (because only one "bulk mode batch" at a
 time is being processed).
 
 In general, bigger batch sizes achieve higher throughput. No batching at

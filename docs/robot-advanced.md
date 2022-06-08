@@ -124,7 +124,7 @@ asynchronous actions to complete before proceeding to run the next
 interaction. The Salesforce Library is aware of the Lightning UI and can
 handle waiting automatically. After each click, the Salesforce Library
 waits for any pending requests to the server to complete. (Manually
-waiting using \"sleep\", or waiting for a particular element to appear,
+waiting using "sleep", or waiting for a particular element to appear,
 can still be necessary after specific interactions, and when interacting
 with pages that don't use the Lightning UI.)
 
@@ -156,7 +156,7 @@ rather than through the UI:
 -   [SOQL Query](https://cumulusci.readthedocs.io/en/stable/Keywords.html#Salesforce.SOQL-Query): Runs a SOQL
     query and returns a REST API result dictionary.
 
-Using Page Objects \-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\--
+Using Page Objects -
 
 The
 [PageObjects](https://cumulusci.readthedocs.io/en/stable/Keywords.html#file-cumulusci.robotframework.PageObjects)
@@ -246,7 +246,7 @@ base classes from `cumulusci.robotframework.pageobjects`.
     page object that represents a listing page.
 
 -   `cumulusci.robotframework.pageobject.NewModal`: A class for a page
-    object that represents the \"new object\" modal.
+    object that represents the "new object" modal.
 
 -   `cumulusci.robotframework.pageobject.ObjectManagerPage`: A class for
     interacting with the object manager.
@@ -411,7 +411,7 @@ Example: `Wait for modal New Contact`
 
 This keyword can be used to wait for a modal, such as the one that pops
 up when creating a new object. The keyword returns once a modal appears,
-and has a title of `New <object_name>` (such as \"New Contact\").
+and has a title of `New <object_name>` (such as "New Contact").
 
 #### Wait for Page Object
 
@@ -463,14 +463,14 @@ Detail pages refer to pages with a URL that matches the pattern
 Example: `Go to page Home Contact`
 
 Home pages refer to pages with a URL that matches the pattern
-\"\<host\>/lightning/o/\<object name\>/home\"
+"\<host\>/lightning/o/\<object name\>/home"
 
 ### `Listing`
 
 Example: `Go to page Listing Contact`
 
 Listing pages refer to pages with a URL that matches the pattern
-\"\<host\>b/lightning/o/\<object name\>/list\"
+"\<host\>b/lightning/o/\<object name\>/list"
 
 #### New
 
@@ -500,7 +500,7 @@ tasks:
 ```
 
 Normally this task will generate HTML output. If the output file ends
-with \".csv\", a csv file will be generated instead.
+with ".csv", a csv file will be generated instead.
 
 To generate documentation for more than one keyword file or library,
 give a comma-separated list of files for the `path` option, or define

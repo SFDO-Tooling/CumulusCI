@@ -4,9 +4,9 @@ CumulusCI comes with a testing framework called [Robot
 Framework](https://robotframework.org/) (or just Robot), which is
 specifically for writing acceptance tests. These are typically
 end-to-end tests that verify that the high-level requirements of a
-project have been satisfied. (Think \"Add a new student and verify they
-have been assigned a mentor\" or \"Create a case plan when the student
-is not enrolled in a program\".) Usually, this involves automating a
+project have been satisfied. (Think "Add a new student and verify they
+have been assigned a mentor" or "Create a case plan when the student
+is not enrolled in a program".) Usually, this involves automating a
 browser session with Salesforce, but Robot can also be used to test new
 APIs created by your team.
 
@@ -196,7 +196,7 @@ often in a single test suite.
     keywords that present a complex set of instructions in a
     human-readable language. The result? Test cases that all project
     stakeholders can easily understand, such as a product manager, scrum
-    master, documentation teams, and so on\--not just the test authors.
+    master, documentation teams, and so on-not just the test authors.
     In the previous example, `Salesforce Insert`, `Salesforce Get` and
     `Should be equal` are all keywords.
 -   Keyword libraries: Robot organizes keywords into libraries, which
@@ -674,7 +674,7 @@ test.
 ```{note}
 `Open test browser` doesn't always wait long enough for Salesforce to
 render. That's why the `Wait until page contains` keyword comes in
-handy. It waits until the \"Most Recently Used\" section of the web page
+handy. It waits until the "Most Recently Used" section of the web page
 appears, which is a good indication that the site has loaded.
 ```
 
