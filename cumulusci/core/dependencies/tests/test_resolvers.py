@@ -33,7 +33,7 @@ from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionEr
 
 
 class ConcreteDynamicDependency(DynamicDependency):
-    ref: Optional[str]
+    ref: Optional[str] = None
     resolved: Optional[bool] = False
 
     @property
@@ -482,7 +482,6 @@ class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
         )
 
         assert resolver.can_resolve(dep, project_config)
-
         assert resolver.resolve(dep, project_config) == (
             "feature/232__test_sha",
             PackageVersionIdDependency(
