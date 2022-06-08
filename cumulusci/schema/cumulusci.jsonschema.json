@@ -320,6 +320,10 @@
                 "2gp_context": {
                     "title": "2Gp Context",
                     "type": "string"
+                },
+                "unlocked_context": {
+                    "title": "Unlocked Context",
+                    "type": "string"
                 }
             },
             "additionalProperties": false

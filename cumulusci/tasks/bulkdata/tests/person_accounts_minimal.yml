@@ -1,0 +1,14 @@
+Insert Account:
+    sf_object: Account
+    table: Account
+    fields:
+        - Name
+Insert PersonContact:
+    sf_object: Contact
+    table: PersonContact
+    fields:
+        - IsPersonAccount
+    lookups:
+        AccountId:
+            table: Account
+            key_field: AccountId

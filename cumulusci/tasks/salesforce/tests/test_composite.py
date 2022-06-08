@@ -6,6 +6,7 @@ import responses
 
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.tasks.salesforce.composite import API_ROLLBACK_MESSAGE, CompositeApi
+from cumulusci.tests.util import CURRENT_SF_API_VERSION
 
 from .util import create_task
 
@@ -14,12 +15,12 @@ COMPOSITE_REQUEST = {
     "compositeRequest": [
         {
             "method": "GET",
-            "url": "/services/data/v46.0/query/?q=SELECT+Id+FROM+RecordType+WHERE+SobjectType+=+'Account' AND DeveloperName = 'Educational_Institution'",
+            "url": f"/services/data/v{CURRENT_SF_API_VERSION}/query/?q=SELECT+Id+FROM+RecordType+WHERE+SobjectType+=+'Account' AND DeveloperName = 'Educational_Institution'",
             "referenceId": "schoolRt",
         },
         {
             "method": "POST",
-            "url": "/services/data/v46.0/sobjects/Account",
+            "url": f"/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Account",
             "referenceId": "uni",
             "body": {
                 "Name": "Connected Campus University",
@@ -28,7 +29,7 @@ COMPOSITE_REQUEST = {
         },
         {
             "method": "POST",
-            "url": "/services/data/v46.0/sobjects/User",
+            "url": f"/services/data/v{CURRENT_SF_API_VERSION}/sobjects/User",
             "referenceId": "sophiaUser",
             "body": {
                 "FirstName": "Sophia",
@@ -62,7 +63,7 @@ COMPOSITE_RESPONSE = {
                     {
                         "attributes": {
                             "type": "RecordType",
-                            "url": "/services/data/v46.0/sobjects/RecordType/01211000002FEJ0AAO",
+                            "url": f"/services/data/v{CURRENT_SF_API_VERSION}/sobjects/RecordType/01211000002FEJ0AAO",
                         },
                         "Id": "01211000002FEJ0AAO",
                     }
@@ -75,7 +76,7 @@ COMPOSITE_RESPONSE = {
         {
             "body": {"id": "00111000021SzRwAAK", "success": True, "errors": []},
             "httpHeaders": {
-                "Location": "/services/data/v46.0/sobjects/Account/00111000021SzRwAAK"
+                "Location": f"/services/data/v{CURRENT_SF_API_VERSION}/sobjects/Account/00111000021SzRwAAK"
             },
             "httpStatusCode": 201,
             "referenceId": "uni",
@@ -83,7 +84,7 @@ COMPOSITE_RESPONSE = {
         {
             "body": {"id": "00511000009y7uaAAA", "success": True, "errors": []},
             "httpHeaders": {
-                "Location": "/services/data/v46.0/sobjects/User/00511000009y7uaAAA"
+                "Location": f"/services/data/v{CURRENT_SF_API_VERSION}/sobjects/User/00511000009y7uaAAA"
             },
             "httpStatusCode": 201,
             "referenceId": "sophiaUser",
@@ -108,7 +109,7 @@ class TestCompositeApi:
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
+            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/composite",
             status=200,
             json=COMPOSITE_RESPONSE,
         )
@@ -134,7 +135,7 @@ class TestCompositeApi:
         )
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
+            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/composite",
             status=200,
             json=COMPOSITE_RESPONSE,
         )
@@ -190,7 +191,7 @@ class TestCompositeApi:
         }
         responses.add(
             method="POST",
-            url=f"{task.org_config.instance_url}/services/data/v52.0/composite",
+            url=f"{task.org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/composite",
             status=200,
             json=error_response,
         )
@@ -214,7 +215,7 @@ class TestCompositeApi:
         request.append(
             {
                 "method": "PATCH",
-                "url": "/services/data/v46.0/sobjects/User",
+                "url": f"/services/data/v{CURRENT_SF_API_VERSION}/sobjects/User",
                 "body": {
                     "Id": "%%%USERID%%%",
                     "Email": "test@testerino.patch",

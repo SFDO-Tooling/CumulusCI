@@ -45,8 +45,8 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
-    "myst_parser"#,
-#    "recommonmark"
+    "myst_parser"  # ,
+    #    "recommonmark"
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -54,10 +54,7 @@ templates_path = ["_templates"]
 
 # The suffix of source filenames.
 # source_suffix = ".md" #".rst"
-source_suffix = {
-    '.rst': 'restructuredtext',
-    '.md': 'markdown'
-    }
+source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 
 # Auto-generate anchors for headings
 # myst_heading_anchors = 3
@@ -310,11 +307,13 @@ texinfo_documents = [
 
 def generate_task_and_flow_docs(_):
     """Run cci commands to generate tasks.rst and flows.rst"""
+    import logging
     import subprocess
 
     from sphinx.util.logging import getLogger
 
     logger = getLogger("cci")
+    logger.setLevel(logging.INFO)
     logger.info("Generating docs/tasks.rst from cci tasks")
     with open("tasks.rst", "w") as task_docs:
         subprocess.run(["cci", "task", "doc"], stdout=task_docs, check=True)

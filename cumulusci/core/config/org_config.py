@@ -2,6 +2,7 @@ import os
 import re
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
+from datetime import date, datetime
 from distutils.version import StrictVersion
 from urllib.parse import urlparse
 
@@ -30,6 +31,39 @@ VersionInfo = namedtuple("VersionInfo", ["id", "number"])
 
 class OrgConfig(BaseConfig):
     """Salesforce org configuration (i.e. org credentials)"""
+
+    access_token: str
+    config_file: str
+    config_name: str
+    created: bool
+    date_created: (datetime, date)  # type: ignore
+    days: int
+    email_address: str
+    instance_name: str
+    instance_url: str
+    expires: str  # TODO: note that ScratchOrgConfig has a bool method of same name
+    expired: bool  # ditto
+    is_sandbox: bool
+    namespace: str
+    namespaced: bool
+    org_id: str
+    org_type: str
+    password: str
+    scratch: bool
+    scratch_org_type: str
+    set_password: bool
+    sfdx_alias: str
+    username: str
+    userinfo: str
+    id: str
+    active: bool
+    default: bool
+    client_id: str
+    refresh_token: str
+    client_secret: str
+    connected_app: str
+
+    createable: bool = None
 
     # make sure it can be mocked for tests
     OAuth2Client = OAuth2Client
@@ -494,6 +528,13 @@ class OrgConfig(BaseConfig):
         except SalesforceResourceNotFound:
             # DatedConversionRate Sobject is not exposed meaning Multiple Currencies is not enabled.
             return False
+
+    @property
+    def is_survey_advanced_features_enabled(self) -> bool:
+        return any(
+            f["name"] == "PermissionsAllowSurveyAdvancedFeatures"
+            for f in self.salesforce_client.PermissionSet.describe()["fields"]
+        )
 
     def resolve_04t_dependencies(self, dependencies):
         """Look up 04t SubscriberPackageVersion ids for 1GP project dependencies"""

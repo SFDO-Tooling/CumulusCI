@@ -1,0 +1,18 @@
+Upsert Contacts:
+    api: bulk
+    sf_object: Contact
+    action: etl_upsert
+    update_key: FirstName,LastName
+    fields:
+        - firstName
+        - Lastname
+        - email
+Upsert Opportunities:
+    sf_object: Opportunity
+    api: bulk
+    action: etl_upsert
+    update_key: Name
+    fields:
+        - Name
+        - ClosedAte
+        - StageNamE

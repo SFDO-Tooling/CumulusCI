@@ -34,7 +34,7 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Install dependencies
-              run: make dev-install
+              run: pip install -r requirements_dev.txt
             - name: Build Docs
               run: make docs
 
@@ -55,7 +55,7 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Install dependencies
-              run: make dev-install
+              run: pip install -r requirements_dev.txt
             - name: Run Pytest
               run: pytest --cov-report= --cov=cumulusci
             - name: Run coveralls
@@ -73,7 +73,7 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Install Python dependencies
-              run: make dev-install
+              run: pip install -r requirements_dev.txt
             - name: Install sfdx
               run: |
                   mkdir sfdx
@@ -120,9 +120,9 @@ jobs:
                     - browser: "BROWSER:headlessfirefox"
                       job-name: "Firefox"
                       org-shape: "dev"
-                    # - browser: "BROWSER:headlesschrome"
-                    #   job-name: "Pre-release"
-                    #   org-shape: "prerelease"
+                    - browser: "BROWSER:headlesschrome"
+                      job-name: "Pre-release"
+                      org-shape: "prerelease"
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python 3.8
@@ -132,12 +132,14 @@ jobs:
                   cache: pip
                   cache-dependency-path: "requirements/*.txt"
             - name: Install Python dependencies
-              run: make dev-install
+              run: pip install -r requirements_dev.txt
             - name: Install sfdx
               run: |
                   mkdir sfdx
                   wget -qO- https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz | tar xJ -C sfdx --strip-components 1
                   echo $(realpath sfdx/bin) >> $GITHUB_PATH
+            - name: Initialize Browser/Playwright
+              run: cci robot install_playwright
             - name: Authenticate Dev Hub
               run: |
                   sfdx plugins --core

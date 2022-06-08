@@ -549,10 +549,7 @@ variable](http://robotframework.org/robotframework/latest/libraries/BuiltIn.html
 that the newly created `&{new contact}` variable becomes visible in the
 `Example of using a custom keyword in a setup step` test case.
 
-Each test case and keyword can have its own settings. However, instead
-of a `Settings` section inside of a test case or keyword, test case or
-keyword settings are specified with the setting name in square brackets.
-In the previous example:
+You can create settings for individual test cases and keywords by specifying the setting names in square brackets. These settings are often used to override setting defaults in the Setting section. In the previous example:
 
 -   `[Setup]` is a setting for the
     `Example of using a custom keyword in a setup step` test case.
@@ -917,4 +914,5 @@ robot-locators
 robot-advanced
 robot-tutorial
 robot-debugger
+robot-playwright
 ```

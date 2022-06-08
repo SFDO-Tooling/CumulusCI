@@ -6,10 +6,12 @@ import random
 import sys
 import tracemalloc
 from contextlib import contextmanager, nullcontext
+from functools import lru_cache
 from pathlib import Path
 from unittest import mock
 
 import responses
+import yaml
 from requests import ReadTimeout
 
 from cumulusci.core.config import (
@@ -104,7 +106,7 @@ class DummyService(BaseConfig):
 
     def __init__(self, name, alias):
         self.name = name
-        super().__init__(name)
+        super().__init__()
 
 
 class DummyKeychain(BaseProjectKeychain):
@@ -175,7 +177,7 @@ class FakeSF:
     base_url = "https://fakesf.example.org/"
 
     def describe(self):
-        return self._get_json("global_describe")
+        return self._get_json("Global")
 
     @property
     def sf_version(self):
@@ -191,11 +193,12 @@ class FakeSF:
         return FakeSObjectProxy(self._get_json(name))
 
 
+@lru_cache  # change to @cache when Python 3.9 is allowed
 def read_mock(name: str):
-    base_path = Path(__file__).parent.parent / "tasks/bulkdata/tests"
+    base_path = Path(__file__).parent.parent / "tests/shared_cassettes"
 
-    with (base_path / f"{name}.json").open("r") as f:
-        return f.read()
+    with (base_path / f"GET_sobjects_{name}_describe.yaml").open("r") as f:
+        return yaml.safe_load(f)["response"]["body"]["string"]
 
 
 def mock_describe_calls(domain="example.com", version=CURRENT_SF_API_VERSION):
@@ -223,7 +226,7 @@ def mock_describe_calls(domain="example.com", version=CURRENT_SF_API_VERSION):
     responses.add(
         method="GET",
         url=f"https://{domain}/services/data/v{version}/sobjects",
-        body=read_mock("global_describe"),
+        body=read_mock("Global"),
         status=200,
     )
 

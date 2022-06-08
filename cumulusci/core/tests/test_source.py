@@ -32,7 +32,7 @@ class TestGitHubSource(MockUtilBase):
             universal_config, repo_info={"root": os.getcwd()}
         )
         self.project_config.set_keychain(BaseProjectKeychain(self.project_config, None))
-        self.project_config.sources__foo = {
+        self.project_config.config["sources"]["foo"] = {
             "github": "https://github.com/TestOwner/Foo",
             "release": "latest",
         }
@@ -234,9 +234,14 @@ class TestGitHubSource(MockUtilBase):
             json=self._get_expected_repo(owner="TestOwner", name="TestRepo"),
         )
         responses.add(
+            "POST",
+            "https://api.github.com/graphql",
+            json=self._get_expected_prerelease_tag_gql("beta/1.0-Beta_1"),
+        )
+        responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/releases",
-            json=[self._get_expected_release("beta/1.0-Beta_1")],
+            "https://api.github.com/repos/TestOwner/TestRepo/releases/tags/beta/1.0-Beta_1",
+            json=self._get_expected_release("beta/1.0-Beta_1"),
         )
         responses.add(
             "GET",

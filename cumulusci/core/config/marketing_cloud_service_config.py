@@ -6,10 +6,19 @@ import requests
 from cumulusci.core.config.oauth2_service_config import OAuth2ServiceConfig
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.oauth.client import OAuth2Client
+from cumulusci.tasks.marketing_cloud.mc_constants import AUTH_URI
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 
 class MarketingCloudServiceConfig(OAuth2ServiceConfig):
+
+    refresh_token: str
+    oauth2_client: str
+    soap_instance_url: str
+    rest_instance_url: str
+    redirect_uri: str
+    access_token: str
+
     def __init__(self, config, name, keychain):
         super().__init__(config, name, keychain)
         self._name = name
@@ -64,12 +73,13 @@ class MarketingCloudServiceConfig(OAuth2ServiceConfig):
         """Make a call to the Marketing Cloud REST API UserInfo endpoint.
         Raises HTTPError for bad response status, otherwise returns the payload
         in full."""
-        auth_uri = self.rest_instance_url.replace(".rest", ".auth")
         headers = {
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
         }
-        response = requests.get(f"{auth_uri}v2/userinfo", headers=headers)
+        response = requests.get(
+            f"{AUTH_URI.format(self.tssd)}/v2/userinfo", headers=headers
+        )
         response.raise_for_status()
 
         return safe_json_from_response(response)

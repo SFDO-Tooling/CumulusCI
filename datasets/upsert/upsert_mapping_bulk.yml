@@ -3,22 +3,22 @@ Insert Accounts:
     sf_object: Account
     fields:
         - Name
-Insert Contacts:
+Upsert Contacts:
     api: bulk
     sf_object: Contact
     action: upsert
     update_key: Email
     fields:
-        - FirstName
-        - LastName
-        - Email
+        - firstName
+        - Lastname
+        - email
 Insert Opportunities:
     api: bulk
     sf_object: Opportunity
     fields:
         - Name
-        - StageName
-        - CloseDate
+        - StageNamE
+        - ClosedAte
     lookups:
         AccountId:
             table: Account

@@ -104,6 +104,11 @@ Before you submit a pull request, check that it meets these guidelines:
 -   If you are a new contributor, don\'t forget to add yourself to the
     `AUTHORS.rst` file in your pull request (either GitHub username, or
     first/last name).
+-   You have labeled your pull request:
+    -   `critical-changes` for breaking changes,
+    -   `enhancement` for new features,
+    -   `bug` for when fixing a bug or closing an issue, or
+    -   `ignore-for-release` for internal changes.
 
 ## Testing CumulusCI
 

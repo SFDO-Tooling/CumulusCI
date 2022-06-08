@@ -33,9 +33,9 @@ with the latest managed beta release, use the `install_beta` flow.
 ```yaml
 run_custom_command:
     description: Greets the user
-    class_path: cumulusci.cli
+    class_path: cumulusci.tasks.command.Command
     options:
-        command: "echo 'Hello there!"
+        command: "echo 'Hello there!'"
 ```
 
 ### Run a `sfdx` Command
