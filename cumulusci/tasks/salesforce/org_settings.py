@@ -25,6 +25,7 @@ class DeployOrgSettings(Deploy):
     task_options = {
         "definition_file": {"description": "sfdx scratch org definition file"},
         "settings": {"description": "A dict of settings to apply"},
+        "objectSettings": {"description": "A dict of objectSettings to apply"},
         "api_version": {"description": "API version used to deploy the settings"},
     }
 
@@ -38,21 +39,24 @@ class DeployOrgSettings(Deploy):
 
     def _run_task(self):
         settings = {}
+        objectSettings = {}
         if self.options.get("definition_file"):
             with open(self.options["definition_file"], "r") as f:
                 scratch_org_definition = json.load(f)
                 settings = scratch_org_definition.get("settings", {})
+                objectSettings = scratch_org_definition.get("objectSettings", {})
 
         dictmerge(settings, self.options.get("settings", {}))
+        dictmerge(objectSettings, self.options.get("objectSettings", {}))
 
-        if not settings:
+        if not settings and not objectSettings:
             self.logger.info("No settings provided to deploy.")
             return
 
         api_version = (
             self.options.get("api_version") or self.org_config.latest_api_version
         )
-        with build_settings_package(settings, None, api_version) as path:
+        with build_settings_package(settings, objectSettings, api_version) as path:
             self.options["path"] = path
             return super()._run_task()
 
