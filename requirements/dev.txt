@@ -18,7 +18,7 @@ black==22.3.0
     # via -r requirements/dev.in
 bleach==5.0.0
     # via readme-renderer
-certifi==2021.10.8
+certifi==2022.5.18.1
     # via
     #   -c requirements/prod.txt
     #   requests
@@ -54,7 +54,7 @@ docutils==0.16
     #   sphinx
 factory-boy==3.2.1
     # via -r requirements/dev.in
-faker==12.3.3
+faker==13.12.1
     # via
     #   -c requirements/prod.txt
     #   factory-boy

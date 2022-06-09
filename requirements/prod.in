@@ -28,6 +28,6 @@ salesforce-bulk
 sarge
 selenium<4
 simple-salesforce==1.11.4
-snowfakery
+snowfakery==3.2.0
 SQLAlchemy
 xmltodict
