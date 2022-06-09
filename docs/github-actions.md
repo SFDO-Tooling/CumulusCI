@@ -283,8 +283,7 @@ unscheduling, use the `deploy` task.
 Once new metadata has been added to the packaging org, it is often
 desirable to create a new beta version for your managed package so that
 it can be tested. We can use the `release_beta` flow to accomplish this.
-The following shows a snippet from the [main
-\<https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/main/.github/workflows/main.yml\>]{.title-ref}
+The following shows a snippet from the [main](https://github.com/SFDO-Tooling/CumulusCI-CI-Demo/blob/main/.github/workflows/main.yml)
 workflow in our demo repository.
 
 ```yaml

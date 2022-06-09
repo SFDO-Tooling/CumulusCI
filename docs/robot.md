@@ -1,3 +1,4 @@
+(acceptance-testing-with-robot-framework)=
 # Acceptance Testing with Robot Framework
 
 CumulusCI comes with a testing framework called [Robot
@@ -495,6 +496,7 @@ To run this test from the command line:
 ```console
 $ cci task run robot --suites robot/<ProjectName>/tests/new_contact_record.robot
 ```
+(create-custom-keywords)=
 
 ## Create Custom Keywords
 
@@ -579,7 +581,7 @@ or importing project-specific keyword libraries and resource files.
 
 Let's create a resource file that stores the `Create a test Contact`
 custom keyword, which is currently in the `custom_keyword.robot` test
-case file defined in [Create Custom Keywords](#create-custom-keywords).
+case file defined in [Create Custom Keywords](create-custom-keywords).
 There aren't any requirements for naming resource files. However, most
 teams have standardized creating a resource file named after the
 project, such as `NPSP.robot` for NPSP.

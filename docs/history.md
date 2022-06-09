@@ -133,7 +133,7 @@ Issues Closed
     keywords throw an error like
     `AttributeError: module 'robot.api.logger' has no attribute 'log'`
     in rare cases (#3053)
--   Fixed a bug in the [snowfakery]{.title-ref} task which caused Unique
+-   Fixed a bug in the [](snowfakery) task which caused Unique
     IDs to not always be actually unique. (#3059)
 
 ## 3.51.1 (2022-01-25)
@@ -277,31 +277,31 @@ Issues Closed
 
 Changes
 
--   Added a [cci plan list]{.title-ref} command for displaying a list of
+-   Added a `cci plan list` command for displaying a list of
     MetaDeploy plans (#2940)
 -   Task options can now be marked as "sensitive". These task options
     that will be obfuscated when displayed at the beginning of each task
     in a flow. (#2939)
 -   Improved error message when
-    [uninstall_packaged_incremental]{.title-ref} is run in an
+    [](uninstall-packaged-incremental) is run in an
     SFDX-format project without converting to Metadata API format first
     (#2929)
 -   Improved error messaging for multiple scenarios where tasks are
-    improperly configured in [cumulusci.yml]{.title-ref}. (#2923)
--   We added a new task [create_blank_profile]{.title-ref} that can be
+    improperly configured in `cumulusci.yml`. (#2923)
+-   We added a new task [](create-blank-profile) that can be
     used to create a new profile from scratch without any permissions
     enabled. (This new task requires a Winter 22 Org or API 53.0)
     (#2908)
 -   We've added a user-friendly error message when installing a package
-    using [security_type]{.title-ref} "PUSH" with a 04t Package
+    using `security_type` "PUSH" with a 04t Package
     Version ID. (#2935)
 
 ## 3.46.0 (2021-10-14)
 
 Critical Changes
 
--   Backwards incompatibility: the robot task option [debug]{.title-ref}
-    has been renamed to [robot_debug]{.title-ref}. (#2909)
+-   Backwards incompatibility: the robot task option `debug`
+    has been renamed to `robot_debug`. (#2909)
 
 Changes
 
@@ -310,7 +310,7 @@ Changes
     This is primarily intended to be use for enabling linting in VS
     Code, but could be used for any schema-aware editor or any
     validation purpose. (#2902)
--   We added a new task [create_blank_profile]{.title-ref} that can be
+-   We added a new task [](create-blank-profile) that can be
     used to create a new profile from scratch without any permissions
     enabled. (#2908)
 -   Manually creating a Personal Access Token and pasting it into the
@@ -318,17 +318,17 @@ Changes
     CumulusCI now supports GitHub's device authentication flow,
     allowing you to authenticate via browser using a temporary device
     code. (#2911)
--   [cci service info]{.title-ref} for a github service now displays
+-   `cci service info` for a github service now displays
     expiration dates for GitHub personal access tokens, if set. (#2912)
 -   Improved error messaging for multiple scenarios where tasks are
-    improperly configured in [cumulusci.yml]{.title-ref}. (#2923)
+    improperly configured in `cumulusci.yml`. (#2923)
 
 Issues Fixed
 
--   Fixed a bug where connecting a GitHub service with [cci service
-    connect]{.title-ref} was failing silently. (#2888)
+-   Fixed a bug where connecting a GitHub service with `cci service
+    connect` was failing silently. (#2888)
 -   Fixed an issue where MetaDeploy steps using the old
-    [filename_token]{.title-ref} and [namespace_token]{.title-ref}
+    `filename_token` and `namespace_token`
     options could not be used. (#2914)
 
 ## 3.45.0 (2021-09-30)
@@ -499,14 +499,13 @@ Issues Fixed
 Changes
 
 -   We added a new Metadata ETL task,
-    [add_page_layout_fields]{.title-ref}, that allows adding fields to
+    [](add-page-layout-fields), that allows adding fields to
     existing layouts. (#2766)
 -   We added a task to enable an Einstein prediction:
-    [enable_einstein_prediction]{.title-ref} (thanks, \@erikperkins!)
+    [](enable-einstein-prediction) (thanks, \@erikperkins!)
     (#2778)
 -   We added standard flows for releasing unlocked packages:
-    [release_unlocked_beta]{.title-ref} and
-    [release_unlocked_production]{.title-ref} (#2768)
+    [](release-unlocked-beta)] and [](release-unlocked-production) (#2768)
 -   We added
     [documentation](https://cumulusci.readthedocs.io/en/stable/packaging.html)
     for using CumulusCI to build managed 2GP packages, unlocked
@@ -515,18 +514,17 @@ Changes
     ensures consistency in the order that imports are used. (#2770)
 -   CumulusCI now supports deploying unmanaged dependencies in SFDX
     source format. (#2735)
--   The [create_package_version]{.title-ref} task now handles
-    dependencies that use a [zip_url]{.title-ref}. (#2735)
+-   The [](create-package-version)] task now handles
+    dependencies that use a `zip_url`. (#2735)
 -   Updates to Github Actions configuration documentation. Thanks
     \@Julian88Tex (#2773)
 -   CumulusCI now automatically recognizes services and orgs configured
     via environment variables. See the
     [docs](https://cumulusci.readthedocs.io/en/stable/headless.html) for
     more details. (#2676 and ##2776)
--   We've updated the Push Upgrade tasks ([push_list]{.title-ref},
-    [push_sandbox]{.title-ref}, etc) task option
-    [start_time]{.title-ref} to accept ISO-8601 formatted datetimes.
-    (#2769)
+-   We've updated the Push Upgrade tasks ([](push-list),
+    [](push-sandbox), etc) task option `start_time` to accept ISO-8601 
+    formatted datetimes. (#2769)
 -   You can now specify "sandbox": true on a `CUMULUSCI_ORG_*`
     variable in headless environments to indicate that the org you want
     to connect to is a sandbox. when connecting sandbox orgs in a
@@ -539,9 +537,9 @@ Issues Closed
 -   Fixed an issue where deleting an org failed to mark the org as
     deleted on CumulusCI's keychain. (#2676)
 -   Fixed an issue where CumulusCI would fail on Linux distributions
-    that were incompatible with the [keyring]{.title-ref} package.
+    that were incompatible with the `keyring` package.
     (#2676)
--   We fixed an issue causing the [release_2gp_production]{.title-ref}
+-   We fixed an issue causing the [](release-2gp-production)
     flow to fail with a dependency parsing error. (#2767)
 -   Fixed a couple issues with connecting CumulusCI to sandboxes using
     enhanced domains. (#2753 and ##2765)
@@ -596,7 +594,7 @@ Changes:
 
 Changes:
 
--   A new [snowfakery]{.title-ref} task with better usability and
+-   A new `snowfakery` task with better usability and
     multi-processor support. Look at the CumulusCI docs to learn the new
     syntax:
     <https://cumulusci.readthedocs.io/en/stable/data.html#generate-fake-data>
@@ -1294,7 +1292,7 @@ Changes:
     dependencies, the latest beta version will be used when available.
 -   CumulusCI can now resolve dependencies using second-generation
     packages (2GPs) for upstream projects. When a
-    [ci_feature_2gp]{.title-ref} or [qa_org_2gp]{.title-ref} flow runs
+    [](ci-feature-2gp) or [](qa-org-2gp) flow runs
     on a release branch (starting with `prefix/NNN`, where `prefix` is
     the feature branch prefix and `NNN` is an integer), CumulusCI will
     look for a matching release branch in each upstream dependency and
@@ -1498,7 +1496,7 @@ Issues closed:
 -   Fixed a bug where namespace injection of the `%%%NAMESPACED_ORG%%%`
     token with the `namespaced_org` option enabled did not actually add
     the namespace prefix unless the `managed` option was also enabled.
--   We fixed an issue that resulted in the [batch_size]{.title-ref}
+-   We fixed an issue that resulted in the `batch_size`
     option in a data mapping file being ignored.
 
 ## 3.22.0 (2020-10-29)
@@ -1943,7 +1941,7 @@ with CumulusCI at the Python level):
 >     get the path for storing configuration.
 >     `UniversalConfig.config_local_dir` was removed.
 > -   OrgConfigs now keep track of which keychain they were loaded from,
->     and have a new [save]{.title-ref} method which is the preferred
+>     and have a new `save` method which is the preferred
 >     API for persisting updates to the config.
 
 ## 3.15.0 (2020-07-09)
@@ -1996,8 +1994,7 @@ Issues closed:
     `extract_dataset` task on Windows. (#1838)
 -   Fixed support for the CustomHelpMenuSection metadata type in the
     `update_package_xml` task. (#1832)
--   Deleting a scratch org now clears its domain from showing in [cci
-    org list]{.title-ref}.
+-   Deleting a scratch org now clears its domain from showing in `cci org list`.
 -   If you try to use `cci org connect` with a login URL containing
     `lightning.force.com`, CumulusCI will explain that you should use
     the `.my.salesforce.com` domain instead.
@@ -2047,9 +2044,9 @@ Issues closed:
 
 Issues closed:
 
--   Fixed a bug with "after:" steps in the [load_dataset]{.title-ref}
+-   Fixed a bug with "after:" steps in the [](load-dataset)
     task.
--   Fixed a bug with record types in the [extract_dataset]{.title-ref}
+-   Fixed a bug with record types in the [](extract-dataset)
     task.
 
 ## 3.13.0 (2020-06-04)
@@ -2123,8 +2120,8 @@ Issues closed:
 -   Fixed the `load_dataset` task so that steps which don't explicitly
     specify a `bulk_mode` will inherit the option specified at the task
     level.
--   Fixed error handling if an exception occurs within one of the [cci
-    error]{.title-ref} commands.
+-   Fixed error handling if an exception occurs within one of the `cci error`
+    commands.
 -   Fixed error handling if the Metadata API returns a response that is
     marked as done but also contains an `errorMessage`.
 
@@ -2338,21 +2335,21 @@ Issues closed:
 
 Changes:
 
--   [cci task info]{.title-ref} now has Command Syntax section and
+-   `cci task info` now has Command Syntax section and
     improved formatting of option information.
 -   CumulusCI now displays a more helpful error message when it detects
     a network connection issue. (#1460)
--   We've added the option [ignore_types]{.title-ref} to the
-    [uninstall_packaged_incremental]{.title-ref} task to allow all
+-   We've added the option `ignore_types` to the
+    [](uninstall-packaged-incremental) task to allow all
     components of the specified metadata type to be ignored without
     having to explicitly list each one.
--   The [FindReplace]{.title-ref} task now accepts a list of strings for
-    the [file_pattern]{.title-ref} option.
--   If the [DeleteData]{.title-ref} task fails to delete some rows, this
+-   The [](FindReplace) task now accepts a list of strings for
+    the `file_pattern` option.
+-   If the [](DeleteData) task fails to delete some rows, this
     is now reported as an error.
 -   Robot Framework: Added a new variable
-    [\${SELENIUM_SPEED}]{.title-ref} that is used to control the speed
-    at which selenium runs when the [Open Test Browser]{.title-ref}
+    `\${SELENIUM_SPEED` that is used to control the speed
+    at which selenium runs when the `Open Test Browser`
     keyword is called.
 
 Issues Closed:
@@ -2396,7 +2393,7 @@ Issues Closed:
 -   Added support for up to two optional parameters in Apex anonymous
     via token substitution.
 -   The [EnsureRecordTypes]{.title-ref} class is now exposed as
-    [ensure_record_types]{.title-ref} and correctly supports the Case,
+    [](ensure-record-types) and correctly supports the Case,
     Lead, and Solution sObjects (in addition to other standard objects).
 -   Fixed a bug where the github_parent_pr_notes was attempting to post
     comments on issues related to child pull request change notes.
@@ -2411,7 +2408,7 @@ Issues closed:
     command prompt the user to use the [cci gist]{.title-ref} command.
 -   Removed reference to [os.uname()]{.title-ref} so that [cci
     gist]{.title-ref} works on Windows.
--   Fixed an issue where the [dx_pull]{.title-ref} task causes an
+-   Fixed an issue where the [](dx-pull) task causes an
     infinite loop to occur on Windows.
 
 ## 3.5.1 (2020-01-15)
@@ -2456,7 +2453,7 @@ Changes:
     Admin profile. While it is necessary to retrieve profiles along
     their associated metadata objects, we don't need to do that for
     deployments.
--   Added options to the [deploy]{.title-ref} task: `check_only`,
+-   Added options to the [](deploy) task: `check_only`,
     `test_level`, and `specified_tests`. Run `cci task info deploy` for
     details. (#1066)
 
@@ -3182,7 +3179,7 @@ Changes:
 -   Added support for deploying Lightning Web Components.
 -   Fixed the bulk data load task to handle null values in a datetime
     column.
--   The [ci_master]{.title-ref} flow now explicitly avoids trying to
+-   The [](ci-master) flow now explicitly avoids trying to
     install beta releases of dependencies (since it's meant for use
     with non-scratch orgs and we block installing betas there since they
     can't be upgraded).
@@ -3646,7 +3643,7 @@ Issues Closed:
 ## 2.0.12 (2018-09-20)
 
 -   Fixed apexdoc URL
--   Fixed [update_admin_profile]{.title-ref} to set any existing record
+-   Fixed [](update-admin-profile) to set any existing record
     type defaults to false before setting new defaults.
 -   Fixed deployment of -meta.xml files containing non-ASCII characters.
 -   Updated the robot selector for "Click Modal Button" to work for
@@ -3654,7 +3651,7 @@ Issues Closed:
 
 ## 2.0.11 (2018-09-14)
 
--   [update_admin_profile]{.title-ref} now uses xml parsing instead of
+-   [](update-admin-profile) now uses xml parsing instead of
     string replacement for more targeted editing of Admin.profile to fix
     issues with deploying record types via dependencies
 -   Projects can declare a dependency on a minimum version of cumulusci
@@ -3663,16 +3660,16 @@ Issues Closed:
 
 ## 2.0.10 (2018-09-13)
 
--   [update_admin_profile]{.title-ref} task now sets application and tab
+-   [](update-admin-profile) task now sets application and tab
     visibility and supports setting record type visibility and default
-    via the new [record_types]{.title-ref} task option
+    via the new [](record-types) task option
 -   Restructured exceptions to include two new parent exceptions useful
     in client implementations:
     -   CumulusCIFailure: Used to signify a failure rather than an
         error, such as test or metadata deployment failures
     -   CumulusCIUsageError: Use to signify a usage error such as
         accessing a task that does not exist
--   [execute_anon]{.title-ref} task now accepts either
+-   [](execute-anon) task now accepts either
     [apex]{.title-ref} (string) or [path]{.title-ref} (Apex in a local
     file) for the Apex to execute. Also, the [managed]{.title-ref} and
     [namespaced]{.title-ref} options allow injecting namespace prefixes
@@ -4011,11 +4008,11 @@ Resolving a few issues from beta77:
 
 ## 2.0.0-beta77 (2017-11-22)
 
--   New Salesforce DX tasks: [dx_convert_from]{.title-ref},
-    [dx_convert_to]{.title-ref}, [dx_pull]{.title-ref}, and
-    [dx_push]{.title-ref}
+-   New Salesforce DX tasks: [](dx-convert-from),
+    [](dx-convert-to), [](dx-pull), and
+    [](dx-push)
 -   New flow for creating production releases (use with caution!):
-    [release_production]{.title-ref}
+    [](release-production)
 -   Scratch org configs can now specify [days]{.title-ref} as an option
     which defaults to 1. The default for a scratch config can be
     overridden in [cci org scratch]{.title-ref} with the [--days
@@ -4116,7 +4113,7 @@ Resolving a few issues from beta77:
 ## 2.0.0-beta66 (2017-10-20)
 
 -   Configure [namespace_inject]{.title-ref} for
-    [deploy_post]{.title-ref}
+    [](deploy-post)
 -   Fix the [--debug]{.title-ref} flag on [cci task run]{.title-ref}
     and [cci flow run]{.title-ref} to allow debugging of exceptions
     which are caught by the CLI such as MetadataApiError,
@@ -4168,7 +4165,7 @@ Resolving a few issues from beta77:
     [username]{.title-ref}. NOTE: config_name will only be populated for
     newly created scratch configs. You can use [cci org
     scratch]{.title-ref} to recreate the config in the keychain.
--   The new flow [dev_org_namespaced]{.title-ref} provides a base flow
+-   The new flow [](dev-org-namespaced) provides a base flow
     for deploying unmanaged metadata into a namespaced org such as a
     namespaced scratch org
 -   All tasks which previously supported [namespace_inject]{.title-ref}
@@ -4182,7 +4179,7 @@ Resolving a few issues from beta77:
     the namespace when deploying to a namespaced org.
     [namespaced_org]{.title-ref} defaults to False to be backwards
     compatible with previous functionality.
--   New task [push_list]{.title-ref} supports easily pushing a list of
+-   New task [](push-list) supports easily pushing a list of
     OrgIds via the Push API from the CLI: [cci task run push_list -o
     file \<file_path\> -o version 1.2 --org packaging]{.title-ref}
 
@@ -4218,16 +4215,16 @@ Resolving a few issues from beta77:
     force:org:open]{.title-ref} at the start of a flow or task run
     against a freshly created scratch org.
 -   Add support for Big Objects with [\_\_b]{.title-ref} suffix in
-    [update_package_xml]{.title-ref} and
-    [update_package_xml_managed]{.title-ref}
+    [](update-package-xml) and
+    [](update-package-xml-managed)
 -   Fix bug that caused release notes sections to not render if only h2
     content found
 
 ## 2.0.0-beta60 (2017-09-06)
 
 -   Add support for Platform Events with [\_\_e]{.title-ref} suffix in
-    [update_package_xml]{.title-ref} and
-    [update_package_xml_managed]{.title-ref}
+    [](update-package-xml) and
+    [](update-package-xml-managed)
 
 ## 2.0.0-beta59 (2017-09-06)
 
@@ -4242,7 +4239,7 @@ Resolving a few issues from beta77:
 
 ## 2.0.0-beta58 (2017-08-29)
 
--   Fix import error in [github_release_notes]{.title-ref} task
+-   Fix import error in []github-release-notes() task
     introduced in beta57
 
 ## 2.0.0-beta57 (2017-08-28)
@@ -4256,9 +4253,9 @@ Resolving a few issues from beta77:
     functionality in [MergeBranch]{.title-ref} to support merging from a
     parent feature branch (ex. [feature/parent]{.title-ref}) into all
     child branches (ex. [feature/parent\_\_child]{.title-ref}).
--   [github_master_to_feature]{.title-ref} task will now skip child
+-   [](github-master-to-feature) task will now skip child
     branches if their corresponding parent branch exists
--   [ci_feature]{.title-ref} flow now runs
+-   [](ci-feature) flow now runs
     [github_parent_to_children]{.title-ref} at the end of the flow
 -   Github task classes were restructured but the
     [class_path]{.title-ref} used in [cumulusci.yml]{.title-ref} remains
@@ -4299,7 +4296,7 @@ Resolving a few issues from beta77:
 
 ## 2.0.0-beta49 (2017-07-10)
 
--   New task [batch_apex_wait]{.title-ref} allows pausing until an Apex
+-   New task [](batch-apex-wait) allows pausing until an Apex
     batch job completes. More details at
     <https://github.com/SFDO-Tooling/CumulusCI/pull/372>
 -   SalesforceBrowserTest task now accepts [extra]{.title-ref} argument
@@ -4364,10 +4361,10 @@ Resolving a few issues from beta77:
         builds fail due to a hanging prompt.
 -   If a scratch org password has expired, it is now regenerated when
     calling [cci org info]{.title-ref}
--   New task [unschedule_apex]{.title-ref} was added to unschedule
+-   New task [](unschedule-apex) was added to unschedule
     background jobs and added to the start of the [dev_org]{.title-ref}
     flow
--   [update_meta_xml]{.title-ref} task now uses the project's
+-   [](update-meta-xml) task now uses the project's
     dependencies as the namespace/version to update in the meta.xml
     files
 -   The bulkdata mapping now properly supports Record Types
@@ -4383,7 +4380,7 @@ Resolving a few issues from beta77:
 
 ## 2.0.0-beta44 (2017-06-09)
 
--   Fix issue in [update_dependencies]{.title-ref} when a github
+-   Fix issue in [](update-dependencies) when a github
     dependency depends on another github dependency
 
 ## 2.0.0-beta43 (2017-06-09)
@@ -4413,30 +4410,30 @@ Resolving a few issues from beta77:
     be used by BulkDataLoad to load into a different org.
 -   The Delete util task now uses the glob library so it can support
     paths with wildcards like src/\*
--   New tasks [meta_xml_api]{.title-ref} and
-    [meta_xml_dependencies]{.title-ref} handle updating
+-   New tasks [](meta-xml-api) and
+    [](meta-xml-dependencies) handle updating
     [\*-meta.xml]{.title-ref} files with api versions or underlying
     package versions.
 
 ## 2.0.0-beta40 (2017-06-03)
 
--   More enhancements to [update_dependencies]{.title-ref} including the
+-   More enhancements to [](update-dependencies) including the
     ability to handle namespace injection, namespace stripping, and
     unmanaged versions of managed repositories. See the new doc at
     <http://cumulusci.readthedocs.io/en/latest/dependencies.html>
 
 ## 2.0.0-beta39 (2017-06-02)
 
--   Fix new bug in [update_dependencies]{.title-ref} which caused
+-   Fix new bug in [](update-dependencies) which caused
     failure when running against an org that already has a required
     package installed
 
 ## 2.0.0-beta38 (2017-06-01)
 
--   [update_dependencies]{.title-ref} now properly handles references to
+-   [](update-dependencies) now properly handles references to
     a github repository that itself contains dependencies in its
     cumulusci.yml file
--   [update_dependencies]{.title-ref} now handles deploying unmanaged
+-   [](update-dependencies) now handles deploying unmanaged
     metadata from subfolders under unpackaged/pre of a referenced Github
     repository
 -   The [dependencies]{.title-ref} section of
@@ -4446,7 +4443,7 @@ Resolving a few issues from beta77:
 
 ## 2.0.0-beta37 (2017-06-01)
 
--   [update_dependencies]{.title-ref} now supports dynamically
+-   [](update-dependencies) now supports dynamically
     referencing other Github repositories configured with a
     cumulusci.yml file. The referenced repository's cumulusci.yml is
     parsed and the dependencies are included. Also, the Github API is
@@ -4466,12 +4463,12 @@ Resolving a few issues from beta77:
     -   [cci flow run ci_feature --skip run_tests_debug --skip
         deploy_post]{.title-ref}
 -   Anonymous apex failures will now throw an exception and fail the
-    build in [execute_anon]{.title-ref}
+    build in [](execute-anon)
 -   Fixes ##322: local variable 'message' referenced before assignment
 
 ## 2.0.0-beta35 (2017-05-19)
 
--   New task [execute_anon]{.title-ref} is available to run anonymous
+-   New task [](execute-anon) is available to run anonymous
     apex and takes the extra task option [apex]{.title-ref}
 
 ## 2.0.0-beta34 (2017-05-16)
@@ -4554,10 +4551,10 @@ Resolving a few issues from beta77:
 
 ## 2.0.0-beta22 (2017-03-20)
 
--   [github_release_notes]{.title-ref} now supports the
+-   []github-release-notes() now supports the
     [link_pr]{.title-ref} option to add links to the pull request where
     each line of content came from
--   Fixes ##266: [update_dependencies]{.title-ref} now supports the
+-   Fixes ##266: [](update-dependencies) now supports the
     [purge_on_delete]{.title-ref} option to allow running against
     production orgs
 -   Fixes ##267: package.xml generation now skips RecordType when
@@ -4600,7 +4597,7 @@ Resolving a few issues from beta77:
     is being run from a flow.
 -   BaseTask now includes methods for handling retry logic. Implemented
     in the InstallPackageVersion and RunApexTests
--   New task [retrieve_unpackaged]{.title-ref} can be used to retrieve
+-   New task [](retrieve-unpackaged) can be used to retrieve
     metadata from a package.xml manifest
 -   Fixes ##240 - CumulusCI should now properly handle escaping special
     characters in xml where appropriate
@@ -4617,7 +4614,7 @@ Resolving a few issues from beta77:
 
 ## 2.0.0-beta15 (2017-02-15)
 
--   Bug fix release for bug in [update_admin_profile]{.title-ref} from
+-   Bug fix release for bug in [](update-admin-profile) from
     the beta 14 release changes to the ApiRetrieveUnpackaged class
 
 ## 2.0.0-beta14 (2017-02-15)
@@ -4651,8 +4648,8 @@ Resolving a few issues from beta77:
         MetadataApiError
     -   Output for each component failure on a deploy now includes more
         information such as the column number of the error
--   [release_beta]{.title-ref} now ignores errors in the
-    [github_release_notes]{.title-ref} process by default
+-   [](release-beta) now ignores errors in the
+    []github-release-notes() process by default
 
 ## 2.0.0-beta12 (2017-02-02)
 
@@ -4662,7 +4659,7 @@ Resolving a few issues from beta77:
 ## 2.0.0-beta11 (2017-02-01)
 
 -   Fixes and new functionality for
-    [update_package_xml_managed]{.title-ref} task.
+    [](update-package-xml-managed) task.
     -   Added support for project -\> package -\> name_managed in the
         cumulusci.yml file to specify a different package name to use
         when deploying to the packaging org.
@@ -4699,7 +4696,7 @@ Resolving a few issues from beta77:
     [SF_INSTANCE_URL]{.title-ref} environment variables.
 -   Added new CLI commands [cci project connect_saucelabs]{.title-ref}
     and [cci project show_saucelabs]{.title-ref}
--   Added [ci_install_beta]{.title-ref} flow that uninstalls the
+-   Added [](ci-install-beta) flow that uninstalls the
     previous managed version then installs the latest beta without
     running apex tests
 -   Added new method cumulusci.utils.download_extract_zip to download
@@ -4724,28 +4721,28 @@ Resolving a few issues from beta77:
 
 ## 2.0.0-beta5 (2017-01-16)
 
--   Fixes for the [unmanaged_ee]{.title-ref} flow to fix a bug where
+-   Fixes for the [](unmanaged-ee) flow to fix a bug where
     avialableFields elements were not properly being stripped from
     fieldsSets in .object files
--   Fixes for [github_master_to_feature]{.title-ref} where merge
+-   Fixes for [](github-master-to-feature) where merge
     conflicts would throw exception rather than creating a pull request
     as expected
 
 ## 2.0.0-beta4 (2017-01-13)
 
--   Add [update_admin_profile]{.title-ref} to all flows that deploy or
+-   Add [](update-admin-profile) to all flows that deploy or
     install to a Salesforce org. Note that this adjusted the task
     numbers in some flows so you should double check your project
     specific flow customizations.
 
 ## 2.0.0-beta3 (2017-01-13)
 
--   Remove [deploy_post_managed]{.title-ref} task from the default
-    [ci_master]{.title-ref} flow. Deploying the unpackaged/post content
+-   Remove `deploy-post-managed` task from the default
+    [](ci-master) flow. Deploying the unpackaged/post content
     to the packaging org risks the spider accidentally including some of
     it in the package. Projects that want to run
-    [deploy_post_managed]{.title-ref} against the packaging org can
-    extend [ci_master]{.title-ref} in their cumulusci.yml file to add
+    `deploy-post-managed` against the packaging org can
+    extend [](ci-master) in their cumulusci.yml file to add
     it.
 
 ## 2.0.0-beta2 (2017-01-12)
@@ -4761,11 +4758,11 @@ Resolving a few issues from beta77:
 -   Changed all docs to use [cci]{.title-ref} command in examples
 -   Peg push api tasks to api version 38.0 rather than project api
     version
--   Added 2 new flows: [install_beta]{.title-ref} and
-    [install_prod]{.title-ref} which install the latest managed version
+-   Added 2 new flows: [](install-beta) and
+    [](install-prod) which install the latest managed version
     of the package with all dependencies but without running tests
--   [release_beta]{.title-ref} flow now runs
-    [github_master_to_feature]{.title-ref} at the end of the flow
+-   [](release-beta) flow now runs
+    [](github-master-to-feature) at the end of the flow
 
 ## 2.0.0-alpha42 (2017-01-10)
 
@@ -4775,12 +4772,12 @@ Resolving a few issues from beta77:
 
 ## 2.0.0-alpha41 (2017-01-06)
 
--   Fix bug in [uninstall_packaged_incremental]{.title-ref} where the
+-   Fix bug in [](uninstall-packaged-incremental) where the
     task would error out if no metadata was found to delete
 
 ## 2.0.0-alpha40 (2017-01-06)
 
--   [uninstall_packaged_incremental]{.title-ref} task now skips the
+-   [](uninstall-packaged-incremental) task now skips the
     deploy step if now metadata was found to be deleted
 
 ## 2.0.0-alpha39 (2017-01-06)
@@ -4806,37 +4803,37 @@ Resolving a few issues from beta77:
     stderr in the case of an exception in calls to Heroku CLI
 -   [run_tests_debug]{.title-ref} now deletes existing TraceFlag objects
     in addition to DebugLevels
--   Fix bug in [push_all]{.title-ref} and [push_sandbox]{.title-ref}
+-   Fix bug in [](push-all) and [](push-sandbox)
 -   Push tasks now use timezone for start_date option
 
 ## 2.0.0-alpha37 (2016-12-20)
 
--   [github_release_notes]{.title-ref} now correctly handles the
+-   []github-release-notes() now correctly handles the
     situation where a merge commit's date can be different than the
     PR's merged_at date in Github by comparing commit sha's
 
 ## 2.0.0-alpha36 (2016-12-20)
 
--   [github_release]{.title-ref} now works with an existing tag/ref and
+-   [](github-release) now works with an existing tag/ref and
     sleeps for 3 seconds after creating the tag to allow Github time to
     catch up
 
 ## 2.0.0-alpha35 (2016-12-20)
 
--   Remove [draft]{.title-ref} option from [github_release]{.title-ref}
+-   Remove [draft]{.title-ref} option from [](github-release)
     since the Github API doesn't support querying draft releases
 
 ## 2.0.0-alpha34 (2016-12-20)
 
--   Fix bug with [github_release]{.title-ref} that was causing
+-   Fix bug with [](github-release) that was causing
     validation errors from Github
 
 ## 2.0.0-alpha33 (2016-12-20)
 
--   [github_release_notes]{.title-ref} now raises an exception in
+-   []github-release-notes() now raises an exception in
     [publish]{.title-ref} mode if the release doesn't exist instead of
-    attempting to create it. Use [github_release]{.title-ref} to create
-    the release first before calling [github_release_notes]{.title-ref}
+    attempting to create it. Use [](github-release) to create
+    the release first before calling []github-release-notes()
 -   Fix a bug with dynamic task option lookup in flows
 
 ## 2.0.0-alpha32 (2016-12-19)
@@ -4845,7 +4842,7 @@ Resolving a few issues from beta77:
     implementations can provide their own logger configurations
 -   Added [retry_interval]{.title-ref} and
     [retry_interval_add]{.title-ref} options to
-    [install_beta]{.title-ref} to introduce a progressive delay between
+    [](install-beta) to introduce a progressive delay between
     retry attempts when the package is unavailable
 
 ## 2.0.0-alpha30 (2016-12-13)
@@ -4868,7 +4865,7 @@ Resolving a few issues from beta77:
 ## 2.0.0-alpha30 (2016-12-12)
 
 -   Bug fixes submitted by \@ccarter:
-    -   [uninstall_post]{.title-ref} was failing to substitute
+    -   [](uninstall-post) was failing to substitute
         namespaces
     -   new util method [findRename]{.title-ref} to rename files with a
         token in their name
@@ -4927,9 +4924,9 @@ Resolving a few issues from beta77:
 -   [flow run]{.title-ref} with the [--delete-org]{.title-ref} option
     flag and scratch orgs no longer fails the flow if the delete org
     call fails.
--   Fixed the [deploy_post]{.title-ref} task which has having errors
+-   Fixed the [](deploy-post) task which has having errors
     with namespaced file names
--   Fixed [update_admin_profile]{.title-ref} to properly update the
+-   Fixed [](update-admin-profile) to properly update the
     profile. This involved fixing the utils [findReplace]{.title-ref}
     and [findReplaceRegex]{.title-ref}.
 -   Reworked exceptions structure and ensure that tasks throw an
@@ -4983,7 +4980,7 @@ Resolving a few issues from beta77:
 
 -   Community contributions by \@cdcarter
 
-    -   [query]{.title-ref} task using the Bulk Data API
+    -   [](query) task using the Bulk Data API
     -   [--login-url]{.title-ref} option on [cci org
         connect]{.title-ref}
 
@@ -5000,19 +4997,19 @@ Resolving a few issues from beta77:
         [--delete-org]{.title-ref} option to delete a scratch org at
         the end of the flow
     -   [BaseSalesforceDXTask]{.title-ref} wraps the heroku force:\*
-        commands. The [dx_push]{.title-ref} task is provided as an
+        commands. The [](dx-push) task is provided as an
         example.
         -   NOTE: Currently the command output is buffered and only
             outputs when the command completes.
 
 -   Integration with mrbelvedere
 
-    -   [mrbelvedere_publish]{.title-ref} task publishes a beta or
+    -   [](mrbelvedere-publish) task publishes a beta or
         release tag to an existing package on mrbelvedere
 
 -   Flow changes
 
-    > -   [ci_feature]{.title-ref} now runs tests as part of the flow
+    > -   [](ci-feature) now runs tests as part of the flow
     > -   New flow task configuration [ignore_failure]{.title-ref} can
     >     be used to ignore a failure from a particular task in the flow
 

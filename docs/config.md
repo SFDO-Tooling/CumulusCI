@@ -21,16 +21,12 @@ A `cumulusci.yml` file contains these top-level sections.
     you can use in automation. See
     [](tasks-and-flows-from-a-different-project) for more information.
 -   `orgs`: Defines the scratch org configurations that are available
-    for your project. See [scratch org
-    configurations](#scratch-org-configurations) for configuration
+    for your project. See [](scratch-org-configurations) for configuration
     options in this section.
 -   `plans`: Contains any custom plans defined to install your project
     into a customer org. See the [](metadeploy-publish) task for more
     information.
 
-The `cumulusci.yml reference <cci_yml_reference>`{.interpreted-text
-role="doc"} has a complete list of values that can be used in each
-section.
 
 (task-configurations)=
 
@@ -133,6 +129,7 @@ tasks:
         group: projectName
 ```
 
+(use-variables-for-task-options)=
 ### Use Variables for Task Options
 
 To reference a project configuration value within the `tasks` section of
@@ -397,7 +394,7 @@ build_feature_test_package:
                 skip_validation: True
 ```
 
-See [use variables for task options](#use-variables-for-task-options)
+See [](use-variables-for-task-options)
 for more information.
 
 (tasks-and-flows-from-a-different-project)=
@@ -473,6 +470,7 @@ flows:
 This flow uses NPSP's `install_prod` flow to install NPSP as a managed
 package, and then run this project's own `dev_org` flow.
 
+(scratch-org-configurations)=
 ## Scratch Org Configurations
 
 This section defines the scratch org configurations that are available

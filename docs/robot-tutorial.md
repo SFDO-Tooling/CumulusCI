@@ -7,7 +7,7 @@ Framework documentation see the [Robot Framework User
 Guide](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html)
 
 It is assumed you've worked through the CumulusCI [](get-started) section at least up to the point where you've called `cci project init`. It is also assumed that
-you've read the [](robot) section of this document, which gives an overview of CumulusCI and Robot Framework integration.
+you've read the [](acceptance-testing-with-robot-framework) section of this document, which gives an overview of CumulusCI and Robot Framework integration.
 
 ## Part 1: Folder Structure
 
@@ -282,7 +282,7 @@ Suite Setup     Run keywords
 ```
 
 Notice that our `Suite Teardown` calls
-`Delete records and close browser`. The \_[records]() in that keyword
+`Delete records and close browser`. The `records` in that keyword
 refers to any data records created by `Salesforce Insert`. This makes it
 possible to both create and later clean up temporary data used for a
 test.

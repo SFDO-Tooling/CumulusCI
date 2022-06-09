@@ -38,7 +38,7 @@ validation ensures that feature test packages build extremely quickly,
 and also avoids locking in dependency versions - making it easy to
 achieve complex end-to-end testing workflows, as described in
 [End-to-End Testing with Second-Generation
-Packages](#end-to-end-testing-with-second-generation-packages).
+Packages](end-to-end-testing-with-second-generation-packages).
 
 CumulusCI stores data about feature test packages in GitHub
 commit-status messages. When the `build_feature_test_package` flow
@@ -86,6 +86,7 @@ which operates just like `ci_feature_2gp` but which also executes
 may be executed against 2GP orgs by running `qa_org_2gp` instead of
 `qa_org` before invoking `robot`.
 
+(end-to-end-testing-with-second-generation-packages)=
 ## End-to-End Testing with Second-Generation Packages
 
 The `qa_org_2gp` flow allows for performing manual and automated

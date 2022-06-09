@@ -84,8 +84,7 @@ prefix values for tags are `beta/` and `release/`.
 By differentiating beta and release tags, we allow tooling to query for
 the latest beta and the latest production release of each repository.
 
-To change the default prefix values see [branch
-configuration](#branch-configuration).
+To change the default prefix values see [](branch-configuration).
 
 ## Feature Branches
 
@@ -154,7 +153,7 @@ feature branch, they participate in CumulusCI's parent-to-child merge
 operations. The release number immediately after the `feature/` prefix
 allows CumulusCI to detect and merge changes from one release branch to
 other future release branches. See [Release to (Future) Release
-Merges](#release-to-future-release-merges) for more information.
+Merges](release-to-future-release-merges) for more information.
 
 An example of a release branch with two items of work associated with it
 could look like this:
@@ -163,6 +162,7 @@ could look like this:
 -   `feature/001__feature1`
 -   `feature/001__feature2`
 
+(branch-configuration)=
 ## Branch Configuration
 
 The name of the main (default) branch, as well as the branch prefixes
@@ -263,8 +263,8 @@ which gets code reviewed by other developers working on the parent
 feature branch and finally merged to the parent branch.
 
 CumulusCI facilitates parent to child auto-merges via the
-[github_automerge_feature]{.title-ref} task, which is included by
-default in the [ci_feature]{.title-ref} flow. If a parent feature branch
+[](github-automerge-feature) task, which is included by
+default in the [](ci-feature) flow. If a parent feature branch
 passes the build, it is automatically merged into all child branches.
 
 The parent to child merge functionality works across _multiple levels_

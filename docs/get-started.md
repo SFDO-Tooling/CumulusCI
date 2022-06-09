@@ -1,5 +1,6 @@
 # Get Started
 
+(install-cumulusci)=
 ## Install CumulusCI
 
 ```{tip}
@@ -35,7 +36,7 @@ After `pipx` installs, install CumulusCI:
 $ pipx install cumulusci
 ```
 
-When finished, [verify your installation](#verify-your-installation).
+When finished, [verify your installation](verify-your-installation).
 
 ### On Linux
 
@@ -54,7 +55,7 @@ After `pipx` installs, install CumulusCI:
 $ pipx install cumulusci
 ```
 
-When finished, [verify your installation](#verify-your-installation).
+When finished, [verify your installation](verify-your-installation).
 
 ### On Windows
 
@@ -134,8 +135,9 @@ Finally, install CumulusCI with this command:
 pipx install cumulusci
 ```
 
-When finished, [verify your installation](#verify-your-installation).
+When finished, [verify your installation](verify-your-installation).
 
+(verify-your-installation)=
 ### Verify Your Installation
 
 In a new terminal window, verify that CumulusCI installed correctly by
@@ -241,7 +243,7 @@ Services are stored in the global CumulusCI keychain by default.
 If you'd like to work on an existing CumulusCI project on GitHub, these
 are the prerequisites.
 
-1.  [Install CumulusCI](#install-cumulusci)
+1.  [Install CumulusCI](install-cumulusci)
 2.  [Install
     Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 3.  [Clone the Project's GitHub
@@ -296,12 +298,13 @@ test:
     name_match: %_TEST%
 ```
 
+(start-a-new-cumulusci-project)=
 ## Start a New CumulusCI Project
 
 If you'd like to start a new CumulusCI project, these are the
 prerequisites.
 
-1.  [Install CumulusCI](#install-cumulusci)
+1.  [Install CumulusCI](install-cumulusci)
 2.  [Install
     Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 3.  [Install the Salesforce
@@ -370,6 +373,7 @@ $ git add cumulusci.yml
 $ git commit -m "Initialized CumulusCI Configuration"
 ```
 
+(add-your-repo-to-github)=
 ### Add Your Repo to GitHub
 
 With your `cumulusci.yml` file committed, create a repository on GitHub
@@ -408,9 +412,9 @@ directory.
 
 -   Create a project directory and initialize it as a Git repository as
     outlined in [start a new CumulusCI
-    project](#start-a-new-cumulusci-project).
+    project](start-a-new-cumulusci-project).
 -   Initialize the directory as a CumulusCI project as outlined in
-    [project initialization](#project-initialization).
+    [project initialization](project-initialization).
 
 ### Retrieve Metadata from the Persistent Org
 
@@ -438,7 +442,7 @@ $ sfdx force:source:retrieve -n package_name /path/to/project/
 
 That's it! You now have all of the metadata you care about in a single
 Git repository configured for use with CumulusCI. At this point [add
-your repo to GitHub](#add-your-repo-to-github), or perhaps begin to
+your repo to GitHub](add-your-repo-to-github), or perhaps begin to
 [configure CumulusCI](config).
 
 ### Setup Scratch Orgs

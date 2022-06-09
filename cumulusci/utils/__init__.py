@@ -342,7 +342,7 @@ def doc_task(task_name, task_config, project_config=None, org_config=None):
 
     doc = []
     doc.append(f".. _{task_name.replace('_', '-')}:\n")
-    doc.append(f"**{task_name}**\n==========================================\n")
+    doc.append(f"{task_name}\n==========================================\n")
     doc.append(f"**Description:** {task_config.description}\n")
     doc.append(f"**Class:** {task_config.class_path}\n")
 

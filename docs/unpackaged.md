@@ -87,7 +87,7 @@ Do not include metadata in `unpackaged/post` unless it is intended to be
 delivered to _all_ environments (both managed installations and
 unmanaged deployments). It's also critical for managed package projects
 that this metadata include namespace tokens (see [namespace
-injection](#namespace-injection)).
+injection](namespace-injection)).
 ```
 
 ### `unpackaged/config`: Tailor an Org

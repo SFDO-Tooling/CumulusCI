@@ -29,15 +29,15 @@ $ cci task run push_all --version <version> --start_time 2020-10-19T10:00 --org 
 There are additional tasks related to push upgrades in the CumulusCI
 standard library.
 
--   `**push_failure_report**`{.interpreted-text role="ref"}: Produces a
+-   [](push-failure-report): Produces a
     `csv` report of the failed and otherwise anomalous push jobs.
--   `**push_list**`{.interpreted-text role="ref"}: Schedules a push
+-   [](push-list): Schedules a push
     upgrade of a package version to all orgs listed in a specified file.
--   `**push_qa**`{.interpreted-text role="ref"}: Schedules a push
+-   [](push-qa): Schedules a push
     upgrade of a package version to all orgs listed in
     `push/orgs_qa.txt`.
--   `**push_sandbox**`{.interpreted-text role="ref"}: Schedules a push
+-   [](push-sandbox): Schedules a push
     upgrade of a package version to all subscribers' sandboxes.
--   `**push_trial**`{.interpreted-text role="ref"}: Schedules a push
+-   [](push-trial): Schedules a push
     upgrade of a package version to Trialforce Template orgs listed in
     `push/orgs_trial.txt`.

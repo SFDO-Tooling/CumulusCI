@@ -80,8 +80,7 @@ deploy_reports:
 
 Being able to give this task a new name makes it much more intuitive as
 to what the task is actually doing. Multiple custom deploy tasks like
-this allow NPSP to [create flows
-\<https://github.com/SalesforceFoundation/NPSP/blob/87daa94f9494d28ce3a5cc52bd5d5308cc804a2b/cumulusci.yml#L692\>]{.title-ref}
+this allow NPSP to [create flows](https://github.com/SalesforceFoundation/NPSP/blob/87daa94f9494d28ce3a5cc52bd5d5308cc804a2b/cumulusci.yml#L692)
 that make it easy to define the order that Metadata is deployed in.
 
 ### Task to Execute Anonymous Apex

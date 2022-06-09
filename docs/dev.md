@@ -37,7 +37,7 @@ $ cci org browser dev
 ## List Changes
 
 To see what components have changed in a target org use the
-`list_changes`{.interpreted-text role="ref"} task:
+[](list-changes) task:
 
 ```console
 $ cci task run list_changes --org dev
@@ -51,18 +51,18 @@ Sandboxes, and Developer Pro Sandboxes.
 ```
 
 For more information, see [List and Retrieve
-Options](#list-and-retrieve-options).
+Options](list-and-retrieve-options).
 
 (retrieve-changes)=
 
 ## Retrieve Changes
 
-The `retrieve_changes`{.interpreted-text role="ref"} task supports both
+The [](retrieve-changes) task supports both
 Salesforce DX and Metadata API-format source code. It utilizes the
 [SourceMember](https://developer.salesforce.com/docs/atlas.en-us.api_tooling.meta/api_tooling/tooling_api_objects_sourcemember.htm)
 `sObject` to detect what has changed in an org, and also gives you
 discretion regarding which components are retrieved when compared to the
-`dx_pull`{.interpreted-text role="ref"} task.
+[](dx-pull) task.
 
 To retrieve _all_ changes in an org:
 
@@ -71,7 +71,7 @@ $ cci task run retrieve_changes --org dev
 ```
 
 For information on retrieving specific subsets of changes, see [List and
-Retrieve Options](#list-and-retrieve-options).
+Retrieve Options](list-and-retrieve-options).
 
 ### `--path`
 
@@ -89,6 +89,7 @@ option:
 $ cci task run retrieve_changes --org dev --path your/unique/path
 ```
 
+(list-and-retrieve-options)=
 ## List and Retrieve Options
 
 When developing in an org, the changes you're most interested in are
@@ -160,14 +161,14 @@ editor, push these changes from your project's local repository to the
 target org.
 
 If your project uses the Salesforce DX source format, use the
-`dx_push`{.interpreted-text role="ref"} task.
+[](dx-push) task.
 
 ```console
 $ cci task run dx_push
 ```
 
 If your project uses the Metadata API source format, use the
-`deploy`{.interpreted-text role="ref"} task:
+[](deploy) task:
 
 ```console
 $ cci task run deploy
@@ -175,7 +176,7 @@ $ cci task run deploy
 
 The `deploy` task has _many_ options for handling a number of different
 scenarios. For a comprehensive list of options, see the
-`deploy`{.interpreted-text role="ref"} task reference.
+[](deploy) task reference.
 
 ## Run Apex Tests
 
@@ -189,7 +190,7 @@ $ cci task run run_tests --org <org_name>
 
 The `run_tests` task has _many_ options for running tests. For a
 comprehensive list of options and examples, see the
-`run_tests`{.interpreted-text role="ref"} task reference.
+[](run-tests) task reference.
 
 ## Set Up a QA Org
 
@@ -460,7 +461,7 @@ must contain valid metadata for use with a deploy, including a
 Unmanaged metadata dependencies from GitHub may optionally specify the
 `ref` to download. If they do not, unmanaged GitHub dependencies are
 resolved like other GitHub references. See [Controlling GitHub
-Dependency Resolution](#controlling-github-dependency-resolution) for
+Dependency Resolution](controlling-github-dependency-resolution) for
 more details on resolution of dynamic dependencies.
 
 ```{note}
@@ -493,7 +494,7 @@ before deploying the unpackaged dependency.
 
 For more on this topic see [](namespace-injection).
 
-(dependency-resolution)=
+(controlling-github-dependency-resolution)=
 
 ### Controlling GitHub Dependency Resolution
 

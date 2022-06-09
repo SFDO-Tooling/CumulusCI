@@ -48,7 +48,7 @@ flow.
 
 ```{warning}
 The `ci_master` flow runs the
-`uninstall_packaged_incremental`{.interpreted-text role="ref"} task,
+[](uninstall-packaged-incremental) task,
 which deletes any metadata from the package in the target org that's
 not in the repository.
 ```
@@ -65,7 +65,7 @@ The `ci_master` flow executes these tasks in the target org.
 -   Deploys destructive changes to remove metadata in the target org
     that is no longer in the local repository
 -   Runs the `config_packaging` flow, which by default consists only of
-    the `update_admin_profile`{.interpreted-text role="ref"} task.
+    the [](update-admin-profile) task.
 
 ```{tip}
 To list each step in the `ci_master` flow, run
@@ -94,8 +94,7 @@ it:
 -   Creates a new GitHub release tag for the new beta version. Extension
     packages that also use CumulusCI require this release tag to find
     the latest version when this repository is listed as a dependency.
--   `Generates Release Notes <github_release_notes>`{.interpreted-text
-    role="ref"}.
+-   [Generates Release Notes](github-release-notes).
 -   Syncs feature branches with the `main` branch, which automatically
     integrates the latest changes from `main`. For more information see
     [](auto-merging).

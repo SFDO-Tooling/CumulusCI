@@ -63,8 +63,7 @@ The `release_unlocked_beta` flow executes these tasks:
 -   Creates a new GitHub release tag for the new beta version. Extension
     packages that also use CumulusCI require this release tag to find
     the latest version when this repository is listed as a dependency.
--   `Generates Release Notes <github_release_notes>`{.interpreted-text
-    role="ref"}.
+-   [Generates Release Notes](github-release-notes).
 -   Syncs feature branches with the `main` branch, which automatically
     integrates the latest changes from `main`. For more information see
     [](auto-merging).

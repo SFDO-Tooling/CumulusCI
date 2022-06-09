@@ -49,7 +49,7 @@ corresponding service types and names:
 -   `CUMULUSCI_SERVICE_connected_app__sandbox` --\> A `connected_app`
     service with the name `env-sandbox`
 
-By always prepending [env]{.title-ref} to the names of services
+By always prepending `env` to the names of services
 specified by environment variables, it is easy to see which services are
 currently set by environment variables and which are not.
 

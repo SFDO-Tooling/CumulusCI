@@ -7,10 +7,10 @@ into some advanced topics.
 ## Running CumulusCI Tasks
 
 CumulusCI provides two keywords for running a task from within a robot
-test case: [Run Task](https://cumulusci.readthedocs.io/en/stable/Keywords.html#CumulusCI.Run%20Task) and [Run Task
-Class](https://cumulusci.readthedocs.io/en/stable/Keywords.html#CumulusCI.Run%20Task%20Class).
+test case: [Run Task](https://cumulusci.readthedocs.io/en/stable/Keywords.html#CumulusCI.Run-Task) and [Run Task
+Class](https://cumulusci.readthedocs.io/en/stable/Keywords.html#CumulusCI.Run-Task-Class).
 
-[Run Task](robot-keywords#CumulusCI.Run-Task) can be used to run any
+[Run Task](https://cumulusci.readthedocs.io/en/stable/Keywords.html#CumulusCI.Run-Task) can be used to run any
 CumulusCI tasks configured for the project. Tasks run can be any of
 CumulusCI's standard tasks as well as project-specific custom tasks
 from the project's `cumulusci.yml` file. `Run Task` accepts a single
@@ -330,7 +330,7 @@ As mentioned in the previous section, you must first import the
 
 Next, either explicitly load the keywords for a page object, or
 reference a page object with one of the generic [page object
-keywords](#page-object-keywords) provided by the `PageObjects` library.
+keywords](page-object-keywords) provided by the `PageObjects` library.
 
 To explicitly load the keywords for a page object, use the
 `Load Page Object` keyword provided by the `PageObjects` library. If
@@ -341,6 +341,7 @@ For example, call the `Go To Page` keyword followed by a page object
 reference. If the keyword (or page object reference?) navigates you to
 the proper page, its keywords will automatically be loaded.
 
+(page-object-keywords)=
 ### Page Object Keywords
 
 The `PageObjects` library provides these keywords.
