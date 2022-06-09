@@ -11,7 +11,10 @@ Changes:
 * Robot framework API and performance keywords have been moved into separate libraries. They are still automatically imported when using Salesforce.robot so it is not necessary to modify any existing test files. (#3216)
 * There are new robot framework keyword libraries with limited support for `Playwright <https://playwright.dev/>`_ via the `robotframework-browser library <https://robotframework-browser.org/>`_. To use, import the resource file ``cumulusci/robotframework/SalesforcePlaywright.robot`` instead of ``cumulusci/robotframework/Salesforce.robot``. Note: Playwright is not yet supported by MetaCI. (#3216)
 * ``cumulusci.robotframework.BaseLibrary`` can be used when creating new libraries in order to get some useful properties (``self.salesforce``, ``self.salesforce_api``, ``self.cumulusci``, etc) (#3216)
-
+* Snowfakery 3.2 is included, with the following changes:
+* Snowfakery can now do random_reference to nicknames.
+* We removed some limitations on what Snowfakery can do with objects referenced through random_reference, especially using a.b.c.d syntax.
+* We added a unique option for random_reference to allow for 1-1 relationships across random references and no-duplicates many-to-many join relationships like Account->CampaignMember->Campaign
 
 3.59.1 (2022-05-31)
 -------------------
