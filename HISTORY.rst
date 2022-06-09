@@ -1,6 +1,18 @@
 =======
 History
 =======
+3.60.0 (2022-06-09)
+-------------------
+Changes:
+
+* We added a new dependency resolution strategy, ``unlocked``. Like our existing dependency strategies using parallel 2GP package builds, this strategy installs parallel unlocked package builds. (#3223)
+* We added the flows ``build_unlocked_test_package``, ``install_unlocked_commit``, and ``qa_org_unlocked`` to support use of parallel unlocked packages. (#3223)
+* We added a property, ``is_survey_advanced_features_enabled``, to the org_config entity available in when clauses. (#3149)
+* Robot framework API and performance keywords have been moved into separate libraries. They are still automatically imported when using Salesforce.robot so it is not necessary to modify any existing test files. (#3216)
+* There are new robot framework keyword libraries with limited support for `Playwright <https://playwright.dev/>`_ via the `robotframework-browser library <https://robotframework-browser.org/>`_. To use, import the resource file ``cumulusci/robotframework/SalesforcePlaywright.robot`` instead of ``cumulusci/robotframework/Salesforce.robot``. Note: Playwright is not yet supported by MetaCI. (#3216)
+* ``cumulusci.robotframework.BaseLibrary`` can be used when creating new libraries in order to get some useful properties (``self.salesforce``, ``self.salesforce_api``, ``self.cumulusci``, etc) (#3216)
+
+
 3.59.1 (2022-05-31)
 -------------------
 
