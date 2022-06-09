@@ -1,102 +1,109 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <script
-      src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
-      integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E="
-      crossorigin="anonymous">
-    </script>
-    <script>
-      function filter() {
-          var filter_string = $("#filter").val().toLowerCase();
-          $(".kwtable .kwname").each(function() {
-              if ($(this).text().toLowerCase().indexOf(filter_string) !== -1) {
-                  $(this).parent().show();
-              } else {
-                  $(this).parent().hide();
-              }
-          })
-      }
-      $(document).ready(function() {
-          $("#filter").on("input", function() {
-              filter()
-          })
-          $("#filter").keyup(function() {
-              filter()
-          })
-      });
-    </script>
-    <style>
-      {{stylesheet}}
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <!-- this is the header for the documentation as a whole -->
-      <div class="header">
-        <h1 class="title">{{title}}</h1>
-        <div class="filter right">filter: <input id="filter" type="filter"/></div>
-      </div>
+    <head>
+        <meta charset="utf-8" />
+        <script
+            src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+            integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E="
+            crossorigin="anonymous"
+        ></script>
+        <script>
+            function filter() {
+                var filter_string = $("#filter").val().toLowerCase();
+                $(".kwtable .kwname").each(function () {
+                    if ($(this).text().toLowerCase().indexOf(filter_string) !== -1) {
+                        $(this).parent().show();
+                    } else {
+                        $(this).parent().hide();
+                    }
+                });
+            }
+            $(document).ready(function () {
+                $("#filter").on("input", function () {
+                    filter();
+                });
+                $("#filter").keyup(function () {
+                    filter();
+                });
+            });
+        </script>
+        <style>
+            {{stylesheet}}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <!-- this is the header for the documentation as a whole -->
+            <div class="header">
+                <h1 class="title">{{title}}</h1>
+                <div class="filter right">
+                    filter: <input id="filter" type="filter" />
+                </div>
+            </div>
 
-      {% for kwfile in libraries %}
-      <div class="file" id="file-{{kwfile.path}}">
-        <div class='file-header'>
-          <h2 title='{{kwfile.path}}'>{{kwfile.title}}</h2>
-          <div class='file-path'>{{kwfile.path}}</div>
+            {% for kwfile in libraries %}
+            <div class="file" id="file-{{kwfile.path}}">
+                <div class="file-header">
+                    <h2 title="{{kwfile.path}}">{{kwfile.title}}</h2>
+                    <div class="file-path">{{kwfile.path}}</div>
+                </div>
+
+                {% if kwfile.doc %}
+                <div class="pageobject-file-description">{{kwfile.doc|robot_html}}</div>
+                {% endif %} {% for pageobject, library in kwfile.keywords.items() %}
+                <div class="section" pageobject="{{pageobject|join('-')}}">
+                    {% if pageobject %}
+                    <div class="pageobject-header">
+                        <table class="pageobject-header">
+                            <tbody>
+                                <tr class="data">
+                                    <td title="Page Type">{{pageobject[0]}}</td>
+                                    {% if pageobject[1] %}
+                                    <td title="Object Name">{{pageobject[1]}}</td>
+                                    {% endif %}
+                                </tr>
+                                <tr class="labels">
+                                    <td>Page Type</td>
+                                    {% if pageobject[1] %}
+                                    <td>Object Name</td>
+                                    {% endif %}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    <div class="description" title="Description">
+                        {{library.doc|robot_html}}
+                    </div>
+                    <table class="kwtable" title="Table of keywords">
+                        <tbody>
+                            <tr>
+                                <th>Keyword</th>
+                                <th>Arguments</th>
+                                <th>Documentation</th>
+                            </tr>
+                            {% for keyword in library.keywords %}
+                            <tr
+                                class="kwrow"
+                                id="{{kwfile.filename}}.{{keyword.name.replace(' ', '-')}}"
+                            >
+                                <td class="kwname">{{keyword.name}}</td>
+                                <td class="kwargs">
+                                    {% for arg in keyword.args %}
+                                    <i>{{arg}}</i>{% if not loop.last %}, {% endif %} {%
+                                    endfor %}
+                                </td>
+                                <td class="kwdoc">{{keyword.doc|robot_html}}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {# class="library-whatever" #} {% endfor %}
+            </div>
+            {% endfor %}
         </div>
-
-        {% if kwfile.doc %}
-        <div class='pageobject-file-description'>{{kwfile.doc|robot_html}}</div>
-        {% endif %}
-
-        {% for pageobject, library in kwfile.keywords.items() %}
-        <div class="section" pageobject="{{pageobject|join('-')}}">
-
-          {% if pageobject %}
-          <div class='pageobject-header'>
-
-            <table class='pageobject-header'>
-              <tbody>
-	        <tr class='data'>
-	          <td title='Page Type'>{{pageobject[0]}}</td>
-	          {% if pageobject[1] %}<td title='Object Name'>{{pageobject[1]}}</td>{% endif %}
-	        </tr>
-	        <tr class='labels'>
-	          <td>Page Type</td>
-	          {% if pageobject[1] %}<td>Object Name</td>{% endif %}
-	        </tr>
-              </tbody>
-            </table>
-          </div>
-          {% endif %}
-
-          <div class='description' title='Description'>{{library.doc|robot_html}}</div>
-          <table class="kwtable" title='Table of keywords'>
-            <tbody>
-              <tr><th>Keyword</th><th>Arguments</th><th>Documentation</th></tr>
-              {% for keyword in library.keywords %}
-              <tr class="kwrow" id="{{kwfile.filename}}.{{keyword.name.replace(" ", "-")}}">
-                <td class="kwname">
-                  {{keyword.name}}
-                </td>
-                <td class="kwargs">
-                  {% for arg in keyword.args %}
-                  <i>{{arg}}</i>{% if not loop.last %}, {% endif %}
-                  {% endfor %}
-                </td>
-                <td class="kwdoc">{{keyword.doc|robot_html}}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div> {# class="library-whatever" #}
-        {% endfor %}
-      </div>
-      {% endfor %}
-    </div>
-    <div class="footer">
-      Generated on {{date}} - cumulusci v{{cci_version}}
-    </div>
-  </body>
+        <div class="footer">Generated on {{date}} - cumulusci v{{cci_version}}</div>
+    </body>
 </html>
