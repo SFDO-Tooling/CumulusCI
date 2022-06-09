@@ -123,7 +123,7 @@ branch in the repository of Product B. The following will occur:
     `cumulusci.yml` file, using the `commit_status` resolution strategy.
     CumulusCI matches the current branch and release against branches in
     the upstream dependencies to locate the most relevant 2GP packages
-    for this testing process. See [](dependency-resolution) for more
+    for this testing process. See [](controlling-github-dependency-resolution) for more
     details.
 2.  CumulusCI installs suitable 2GP feature test packages for Product A
     and any other dependencies, if found, or falls back to 1GP packages

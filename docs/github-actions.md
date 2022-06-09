@@ -8,7 +8,7 @@ that you are successfully running CumulusCI flows locally.
 
 There is also a [template
 repository](https://github.com/SFDO-Tooling/CumulusCI-CI-Demo) that is
-setup to run [](cumulusci-flow)] with GitHub
+setup to run [](cumulusci-flow) with GitHub
 actions. This repository can be used as a starting point for
 implementing your own project or as a reference for the following
 material.

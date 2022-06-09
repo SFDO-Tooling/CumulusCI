@@ -190,7 +190,7 @@ While Robot Framework is used primarily for automated browser testing,
 it can also be harnessed to help configure orgs where other strategies
 and APIs are insufficient.
 
-See [](acceptance-testing-with-robot-framework) for more information.
+See [Acceptance Testing with Robot Framework](acceptance-testing-with-robot-framework) for more information.
 
 ### `unpackaged` metadata
 

@@ -9,7 +9,7 @@ practices [CumulusCI Flow](cumulusci-flow), which incorporates all of these step
 This section assumes:
 
 -   [CumulusCI is installed](get-started) on your computer.
--   A Salesforce managed package project has been [configured](project-initialization)
+-   A Salesforce managed package project has been [configured](work-on-an-existing-cumulusci-project)
     for use with CumulusCI.
 -   A packaging org [is connected](connected-orgs) to CumulusCI under the name of `packaging`.
 

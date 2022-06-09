@@ -240,6 +240,8 @@ $ cci service connect github mygithub --username $GITHUB_USERNAME --token $GITHU
 
 Services are stored in the global CumulusCI keychain by default.
 
+(work-on-an-existing-cumulusci-project)=
+
 ## Work On an Existing CumulusCI Project
 
 If you'd like to work on an existing CumulusCI project on GitHub, these
