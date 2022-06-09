@@ -20,10 +20,10 @@ support for Playwright and the Browser library in CumulusCI.
 In CumulusCI 3.60, we've reorganized our keywords so that a test can
 import the API and performance keywords without importing Selenium
 keywords. To use Playwright-based keywords, import the resource file
-[SalesforcePlaywright.robot](Keywords.html#file-cumulusci/robotframework/SalesforcePlaywright.robot),
+[SalesforcePlaywright.robot](https://cumulusci.readthedocs.io/en/stable/Keywords.html#file-cumulusci/robotframework/SalesforcePlaywright.robot),
 which imports the non-Selenium keywords along with the keywords in the
 [SalesforcePlaywright
-library](Keywords.html#file-cumulusci.robotframework.SalesforcePlaywright).
+library](https://cumulusci.readthedocs.io/en/stable/Keywords.html#file-cumulusci.robotframework.SalesforcePlaywright).
 
 ## Installation
 
@@ -137,9 +137,9 @@ This example test is unable to use any of the existing Selenium-based
 keywords, except for two. We've created a new library based on
 Playwright and the Browser library with two keywords that are similar to
 existing keywords: [Open Test
-Browser](Keywords.html#SalesforcePlaywright.Open%20Test%20Browser) and
+Browser](https://cumulusci.readthedocs.io/en/stable/Keywords.html#SalesforcePlaywright.Open%20Test%20Browser) and
 [Delete Records and Close
-Browser](Keywords.html#SalesforcePlaywright.Delete%20Records%20And%20Close%20Browser)
+Browser](https://cumulusci.readthedocs.io/en/stable/Keywords.html#SalesforcePlaywright.Delete%20Records%20And%20Close%20Browser)
 
 This test also uses the Browser keyword [Wait until network is
 idle](https://marketsquare.github.io/robotframework-browser/Browser.html#Wait%20Until%20Network%20Is%20Idle)

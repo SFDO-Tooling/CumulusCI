@@ -148,7 +148,7 @@ has stuck.
 Love demos? These no-audio screencasts show how to use CumulusCI from a
 command line.
 
-```{=html}
+```{html}
 <!-- https://stackoverflow.com/a/58399508/113477 -->
 <link rel="stylesheet"
   type="text/css"
@@ -158,25 +158,25 @@ command line.
 
 Initialize a fresh CumulusCI project.
 
-```{=html}
+```{html}
 <asciinema-player preload="True" poster="npt:0:01" src="https://raw.githubusercontent.com/SFDO-Tooling/cci-demo-animations/master/build/1_setup.cast"></asciinema-player>
 ```
 
 Retrieve metadata from a Salesforce org and save it in GitHub.
 
-```{=html}
+```{html}
 <asciinema-player preload="True" poster="npt:0:01" src="https://raw.githubusercontent.com/SFDO-Tooling/cci-demo-animations/master/build/2_retrieve_changes.cast"></asciinema-player>
 ```
 
 Manage sample or test data.
 
-```{=html}
+```{html}
 <asciinema-player preload="True" poster="npt:0:01" src="https://raw.githubusercontent.com/SFDO-Tooling/cci-demo-animations/master/build/3_populate_data.cast"></asciinema-player>
 ```
 
 Customize flows and use CumulusCI for QA.
 
-```{=html}
+```{html}
 <asciinema-player preload="True" poster="npt:0:01" src="https://raw.githubusercontent.com/SFDO-Tooling/cci-demo-animations/master/build/4_qa_org.cast"></asciinema-player>
 ```
 
