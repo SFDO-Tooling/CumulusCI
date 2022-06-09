@@ -163,6 +163,7 @@ could look like this:
 -   `feature/001__feature2`
 
 (branch-configuration)=
+
 ## Branch Configuration
 
 The name of the main (default) branch, as well as the branch prefixes

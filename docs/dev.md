@@ -90,6 +90,7 @@ $ cci task run retrieve_changes --org dev --path your/unique/path
 ```
 
 (list-and-retrieve-options)=
+
 ## List and Retrieve Options
 
 When developing in an org, the changes you're most interested in are

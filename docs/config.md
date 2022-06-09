@@ -27,7 +27,6 @@ A `cumulusci.yml` file contains these top-level sections.
     into a customer org. See the [](metadeploy-publish) task for more
     information.
 
-
 (task-configurations)=
 
 ## Task Configurations
@@ -130,6 +129,7 @@ tasks:
 ```
 
 (use-variables-for-task-options)=
+
 ### Use Variables for Task Options
 
 To reference a project configuration value within the `tasks` section of
@@ -471,6 +471,7 @@ This flow uses NPSP's `install_prod` flow to install NPSP as a managed
 package, and then run this project's own `dev_org` flow.
 
 (scratch-org-configurations)=
+
 ## Scratch Org Configurations
 
 This section defines the scratch org configurations that are available

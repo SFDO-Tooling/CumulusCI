@@ -325,8 +325,7 @@ Changes
 
 Issues Fixed
 
--   Fixed a bug where connecting a GitHub service with `cci service
-    connect` was failing silently. (#2888)
+-   Fixed a bug where connecting a GitHub service with `cci service connect` was failing silently. (#2888)
 -   Fixed an issue where MetaDeploy steps using the old
     `filename_token` and `namespace_token`
     options could not be used. (#2914)
@@ -523,7 +522,7 @@ Changes
     [docs](https://cumulusci.readthedocs.io/en/stable/headless.html) for
     more details. (#2676 and ##2776)
 -   We've updated the Push Upgrade tasks ([](push-list),
-    [](push-sandbox), etc) task option `start_time` to accept ISO-8601 
+    [](push-sandbox), etc) task option `start_time` to accept ISO-8601
     formatted datetimes. (#2769)
 -   You can now specify "sandbox": true on a `CUMULUSCI_ORG_*`
     variable in headless environments to indicate that the org you want

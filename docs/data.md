@@ -95,6 +95,7 @@ completed. In the example above, an `after` definition is used to
 support the `ParentId` self-lookup on `Account`.
 
 (api-selection)=
+
 ### API Selection
 
 By default, CumulusCI will determine the data volume of the specified
@@ -503,7 +504,7 @@ Each top-level YAML key should be the API name of a Custom Setting. List
 Custom Settings should contain a nested map of names to values.
 Hierarchy Custom settings should contain a list, each of which contains
 a `data` key and a `location` key. The
-`location` key may contain either `profile: \<profile name\>`, `user: name: \<username\>`, 
+`location` key may contain either `profile: \<profile name\>`, `user: name: \<username\>`,
 `user: email: \<email\>`, or `org`.
 
 Example: :

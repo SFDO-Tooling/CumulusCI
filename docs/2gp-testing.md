@@ -87,6 +87,7 @@ may be executed against 2GP orgs by running `qa_org_2gp` instead of
 `qa_org` before invoking `robot`.
 
 (end-to-end-testing-with-second-generation-packages)=
+
 ## End-to-End Testing with Second-Generation Packages
 
 The `qa_org_2gp` flow allows for performing manual and automated

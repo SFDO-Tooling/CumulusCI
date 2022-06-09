@@ -1,6 +1,7 @@
 # Get Started
 
 (install-cumulusci)=
+
 ## Install CumulusCI
 
 ```{tip}
@@ -138,6 +139,7 @@ pipx install cumulusci
 When finished, [verify your installation](verify-your-installation).
 
 (verify-your-installation)=
+
 ### Verify Your Installation
 
 In a new terminal window, verify that CumulusCI installed correctly by
@@ -299,6 +301,7 @@ test:
 ```
 
 (start-a-new-cumulusci-project)=
+
 ## Start a New CumulusCI Project
 
 If you'd like to start a new CumulusCI project, these are the
@@ -374,6 +377,7 @@ $ git commit -m "Initialized CumulusCI Configuration"
 ```
 
 (add-your-repo-to-github)=
+
 ### Add Your Repo to GitHub
 
 With your `cumulusci.yml` file committed, create a repository on GitHub

@@ -1,4 +1,5 @@
 (acceptance-testing-with-robot-framework)=
+
 # Acceptance Testing with Robot Framework
 
 CumulusCI comes with a testing framework called [Robot
@@ -496,6 +497,7 @@ To run this test from the command line:
 ```console
 $ cci task run robot --suites robot/<ProjectName>/tests/new_contact_record.robot
 ```
+
 (create-custom-keywords)=
 
 ## Create Custom Keywords
