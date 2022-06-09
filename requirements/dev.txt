@@ -38,7 +38,7 @@ commonmark==0.9.1
     # via
     #   -c requirements/prod.txt
     #   rich
-coverage[toml]==6.4
+coverage[toml]==6.4.1
     # via
     #   -r requirements/dev.in
     #   coveralls
@@ -61,13 +61,13 @@ faker==12.3.3
     # via
     #   -c requirements/prod.txt
     #   factory-boy
-filelock==3.7.0
+filelock==3.7.1
     # via
     #   tox
     #   virtualenv
 flake8==3.9.2
     # via -r requirements/dev.in
-furo==2022.4.7
+furo==2022.6.4.1
     # via -r requirements/dev.in
 google-auth==1.35.0
     # via
