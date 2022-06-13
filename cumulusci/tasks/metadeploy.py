@@ -18,12 +18,6 @@ from cumulusci.utils.yaml.cumulusci_yml import Plan
 
 INSTALL_VERSION_RE = re.compile(r"^Install .*\d$")
 
-# corresponds to the `supported_orgs` field on a Plan in MetaDeploy
-ALLOWED_ORG_PROVIDERS = [
-    "user",
-    "devhub",
-]
-
 
 class BaseMetaDeployTask(BaseTask):
     """Base class for tasks that talk to MetaDeploy's API."""
