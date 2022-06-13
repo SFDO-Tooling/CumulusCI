@@ -2,6 +2,7 @@ import json
 import os
 import re
 from pathlib import Path
+from typing import List, Union
 
 import requests
 
@@ -13,8 +14,15 @@ from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.utils import cd, download_extract_github, temporary_dir
 from cumulusci.utils.http.requests_utils import safe_json_from_response
+from cumulusci.utils.yaml.cumulusci_yml import Plan
 
 INSTALL_VERSION_RE = re.compile(r"^Install .*\d$")
+
+# corresponds to the `supported_orgs` field on a Plan in MetaDeploy
+ALLOWED_ORG_PROVIDERS = [
+    "user",
+    "devhub",
+]
 
 
 class BaseMetaDeployTask(BaseTask):
@@ -195,6 +203,11 @@ class Publish(BaseMetaDeployTask):
             product, plan_name, plan_config
         )
 
+        allowed_org_providers = self._get_allowed_org_providers(plan_name)
+        supported_orgs = self._convert_org_providers_to_plan_equivalent(
+            allowed_org_providers
+        )
+
         plan_json = {
             "is_listed": plan_config.get("is_listed", True),
             "plan_template": plan_template["url"],
@@ -205,6 +218,7 @@ class Publish(BaseMetaDeployTask):
                 "preflight_message_additional", ""
             ),
             "steps": steps,
+            "supported_orgs": supported_orgs,
             "tier": plan_config["tier"],
             "title": plan_config["title"],
             "version": version["url"],
@@ -217,6 +231,26 @@ class Publish(BaseMetaDeployTask):
         # Create Plan
         plan = self._call_api("POST", "/plans", json=plan_json)
         self.logger.info(f"Created Plan {plan['url']}")
+
+    def _get_allowed_org_providers(self, plan_name: str) -> str:
+        "Validates and returns the org providers for a given plan"
+        plan = Plan.parse_obj(self.project_config.config["plans"][plan_name])
+        return plan.allowed_org_providers
+
+    def _convert_org_providers_to_plan_equivalent(
+        self, providers: Union[None, List[str]]
+    ) -> str:
+        """Given a list of plan.allowed_org_providers return the value that
+        corresponds `supported_orgs` field on the Plan model in MetaDeploy
+        """
+        if not providers or providers == ["user"]:
+            org_providers = "persistent"
+        elif "user" in providers and "devhub" in providers:
+            org_providers = "both"
+        elif providers == ["devhub"]:
+            org_providers = "scratch"
+
+        return org_providers
 
     def _freeze_steps(self, project_config, plan_config):
         steps = plan_config["steps"]
