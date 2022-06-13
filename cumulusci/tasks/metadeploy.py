@@ -226,7 +226,7 @@ class Publish(BaseMetaDeployTask):
         plan = self._call_api("POST", "/plans", json=plan_json)
         self.logger.info(f"Created Plan {plan['url']}")
 
-    def _get_allowed_org_providers(self, plan_name: str) -> str:
+    def _get_allowed_org_providers(self, plan_name: str) -> List[str]:
         "Validates and returns the org providers for a given plan"
         plan = Plan.parse_obj(self.project_config.config["plans"][plan_name])
         return plan.allowed_org_providers
