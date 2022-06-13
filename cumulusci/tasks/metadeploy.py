@@ -24,7 +24,7 @@ class BaseMetaDeployTask(BaseTask):
         metadeploy_service = self.project_config.keychain.get_service("metadeploy")
         self.base_url = metadeploy_service.url
         self.api = requests.Session()
-        self.api.headers["Authorization"] = "token {}".format(metadeploy_service.token)
+        self.api.headers["Authorization"] = f"token {metadeploy_service.token}"
 
     def _call_api(self, method, path, collect_pages=False, **kwargs):
         next_url = self.base_url + path
@@ -85,9 +85,7 @@ class Publish(BaseMetaDeployTask):
         plan_name = self.options.get("plan")
         if plan_name:
             plan_configs = {}
-            plan_configs[plan_name] = self.project_config.lookup(
-                "plans__{}".format(plan_name)
-            )
+            plan_configs[plan_name] = self.project_config.lookup(f"plans__{plan_name}")
 
             self.plan_configs = plan_configs
         else:
@@ -184,10 +182,10 @@ class Publish(BaseMetaDeployTask):
             if self.publish:
                 self._call_api(
                     "PATCH",
-                    "/versions/{}".format(version["id"]),
+                    f"/versions/{version['id']}",
                     json={"is_listed": True},
                 )
-                self.logger.info("Published Version {}".format(version["url"]))
+                self.logger.info(f"Published Version {version['url']}")
 
         # Save labels
         self._save_labels()
@@ -218,7 +216,7 @@ class Publish(BaseMetaDeployTask):
 
         # Create Plan
         plan = self._call_api("POST", "/plans", json=plan_json)
-        self.logger.info("Created Plan {}".format(plan["url"]))
+        self.logger.info(f"Created Plan {plan['url']}")
 
     def _freeze_steps(self, project_config, plan_config):
         steps = plan_config["steps"]
@@ -243,7 +241,7 @@ class Publish(BaseMetaDeployTask):
             result = self._call_api("GET", "/products", params={"repo_url": repo_url})
             if len(result["data"]) != 1:
                 raise CumulusCIException(
-                    "No product found in MetaDeploy with repo URL {}".format(repo_url)
+                    f"No product found in MetaDeploy with repo URL {repo_url}"
                 )
         except KeyError:
             raise CumulusCIException(
@@ -287,10 +285,10 @@ class Publish(BaseMetaDeployTask):
                     "is_listed": False,
                 },
             )
-            self.logger.info("Created {}".format(version["url"]))
+            self.logger.info(f"Created {version['url']}")
         else:
             version = result["data"][0]
-            self.logger.info("Found {}".format(version["url"]))
+            self.logger.info(f"Found {version['url']}")
         return version
 
     def _find_or_create_plan_template(self, product, plan_name, plan_config):
@@ -311,16 +309,16 @@ class Publish(BaseMetaDeployTask):
                     "error_message": plan_config.get("error_message", ""),
                 },
             )
-            self.logger.info("Created {}".format(plantemplate["url"]))
+            self.logger.info(f"Created {plantemplate['url']}")
             planslug = self._call_api(
                 "POST",
                 "/planslug",
                 json={"slug": plan_config["slug"], "parent": plantemplate["url"]},
             )
-            self.logger.info("Created {}".format(planslug["url"]))
+            self.logger.info(f"Created {planslug['url']}")
         else:
             plantemplate = result["data"][0]
-            self.logger.info("Found {}".format(plantemplate["url"]))
+            self.logger.info(f"Found {plantemplate['url']}")
         return plantemplate
 
     def _load_labels(self):
