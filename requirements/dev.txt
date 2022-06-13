@@ -22,6 +22,10 @@ certifi==2021.10.8
     # via
     #   -c requirements/prod.txt
     #   requests
+cffi==1.15.0
+    # via
+    #   -c requirements/prod.txt
+    #   cryptography
 cfgv==3.3.1
     # via pre-commit
 charset-normalizer==2.0.12
@@ -36,13 +40,17 @@ commonmark==0.9.1
     # via
     #   -c requirements/prod.txt
     #   rich
-coverage[toml]==6.4
+coverage[toml]==6.4.1
     # via
     #   -r requirements/dev.in
     #   coveralls
     #   pytest-cov
 coveralls==3.3.1
     # via -r requirements/dev.in
+cryptography==37.0.2
+    # via
+    #   -c requirements/prod.txt
+    #   secretstorage
 distlib==0.3.4
     # via virtualenv
 docopt==0.6.2
@@ -58,13 +66,13 @@ faker==12.3.3
     # via
     #   -c requirements/prod.txt
     #   factory-boy
-filelock==3.7.0
+filelock==3.7.1
     # via
     #   tox
     #   virtualenv
 flake8==3.9.2
     # via -r requirements/dev.in
-furo==2022.4.7
+furo==2022.6.4.1
     # via -r requirements/dev.in
 identify==2.5.1
     # via pre-commit
@@ -87,11 +95,16 @@ iniconfig==1.1.1
     # via pytest
 isort==5.10.1
     # via -r requirements/dev.in
+jeepney==0.8.0
+    # via
+    #   -c requirements/prod.txt
+    #   keyring
+    #   secretstorage
 jinja2==2.11.3
     # via
     #   -c requirements/prod.txt
     #   sphinx
-jsonschema==4.5.1
+jsonschema==4.6.0
     # via -r requirements/dev.in
 keyring==23.0.1
     # via
@@ -116,7 +129,7 @@ packaging==21.3
     #   tox
 pathspec==0.9.0
     # via black
-pkginfo==1.8.2
+pkginfo==1.8.3
     # via twine
 platformdirs==2.5.2
     # via
@@ -134,6 +147,10 @@ py==1.11.0
     #   tox
 pycodestyle==2.7.0
     # via flake8
+pycparser==2.21
+    # via
+    #   -c requirements/prod.txt
+    #   cffi
 pyflakes==2.3.1
     # via flake8
 pygments==2.12.0
@@ -184,7 +201,7 @@ requests==2.27.1
     #   twine
 requests-toolbelt==0.9.1
     # via twine
-responses==0.20.0
+responses==0.21.0
     # via -r requirements/dev.in
 rfc3986==2.0.0
     # via twine
@@ -192,6 +209,10 @@ rich==12.4.4
     # via
     #   -c requirements/prod.txt
     #   twine
+secretstorage==3.3.2
+    # via
+    #   -c requirements/prod.txt
+    #   keyring
 six==1.16.0
     # via
     #   -c requirements/prod.txt
@@ -204,10 +225,13 @@ snowballstemmer==2.2.0
     # via sphinx
 soupsieve==2.3.2.post1
     # via beautifulsoup4
-sphinx==4.5.0
+sphinx==5.0.1
     # via
     #   -r requirements/dev.in
     #   furo
+    #   sphinx-basic-ng
+sphinx-basic-ng==0.0.1a11
+    # via furo
 sphinxcontrib-applehelp==1.0.2
     # via sphinx
 sphinxcontrib-devhelp==1.0.2
@@ -233,7 +257,7 @@ tomli==2.0.1
     #   pytest
 tox==3.25.0
     # via -r requirements/dev.in
-twine==4.0.0
+twine==4.0.1
     # via -r requirements/dev.in
 typeguard==2.13.3
     # via -r requirements/dev.in
