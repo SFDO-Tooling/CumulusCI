@@ -388,6 +388,10 @@
                     "default": "mdapi",
                     "enum": ["sfdx", "mdapi"],
                     "type": "string"
+                },
+                "project_specific": {
+                    "title": "Project Specific",
+                    "type": "object"
                 }
             },
             "additionalProperties": false
