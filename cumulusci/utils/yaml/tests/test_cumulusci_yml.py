@@ -173,6 +173,29 @@ class TestCumulusciYml:
         assert not caplog.text, caplog.text
         assert out == {}
 
+    def test_project_specific(self, caplog):
+        yaml = """project:
+                    project_specific:
+                        foo: X
+                        bar:
+                            - a
+                            - b
+                            - c
+                        baz:
+                            a: aa
+                            b: bb
+                            c: cc
+"""
+        cciyml = cci_safe_load(StringIO(yaml))
+        assert not caplog.text
+        assert cciyml["project"]["project_specific"]["foo"] == "X"
+        assert cciyml["project"]["project_specific"]["bar"] == ["a", "b", "c"]
+        assert cciyml["project"]["project_specific"]["baz"] == {
+            "a": "aa",
+            "b": "bb",
+            "c": "cc",
+        }
+
 
 @pytest.fixture
 def cci_yml_file():

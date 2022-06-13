@@ -140,6 +140,7 @@ class Project(CCIDictModel):
     dependencies: List[Dict[str, str]] = None  # TODO
     dependency_resolutions: DependencyResolutions = None
     source_format: Literal["sfdx", "mdapi"] = "mdapi"
+    project_specific: Dict
 
 
 class ScratchOrg(CCIDictModel):
