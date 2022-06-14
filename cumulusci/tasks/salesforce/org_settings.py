@@ -38,16 +38,19 @@ class DeployOrgSettings(Deploy):
         self.options["namespaced_org"] = False
 
     def _run_task(self):
-        settings = {}
-        object_settings = {}
-        if self.options.get("definition_file"):
-            with open(self.options["definition_file"], "r") as f:
-                scratch_org_definition = json.load(f)
-                settings = scratch_org_definition.get("settings", {})
-                object_settings = scratch_org_definition.get("objectSettings", {})
+        try:
+            path = self.options["definition_file"]
+            scratch_org_definition = json.loads(pathlib.Path(path).read_text())
+        except KeyError:
+            scratch_org_definition = {}
 
-        dictmerge(settings, self.options.get("settings", {}))
-        dictmerge(object_settings, self.options.get("object_settings", {}))
+        settings = dictmerge(
+            scratch_org_definition.get("settings", {}), self.options.get("settings", {})
+        )
+        object_settings = dictmerge(
+            scratch_org_definition.get("objectSettings", {}),
+            self.options.get("object_settings", {}),
+        )
 
         if not settings and not object_settings:
             self.logger.info("No settings provided to deploy.")
