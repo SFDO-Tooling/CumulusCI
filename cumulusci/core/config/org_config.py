@@ -82,7 +82,7 @@ class OrgConfig(BaseConfig):
 
         super().__init__(config)
 
-    def refresh_oauth_token(self, keychain, connected_app=None, is_sandbox=True):
+    def refresh_oauth_token(self, keychain, connected_app=None, is_sandbox=False):
         """Get a fresh access token and store it in the org config.
 
         If the SFDX_CLIENT_ID and SFDX_HUB_KEY environment variables are set,
