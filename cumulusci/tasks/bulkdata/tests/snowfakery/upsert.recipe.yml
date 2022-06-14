@@ -1,0 +1,23 @@
+- object: Contact
+  update_key: email
+  fields:
+      firstname: Nichael # change first name
+      lastname: Bluth # https://www.youtube.com/watch?v=vWLvp8m0vwI
+      email: michael@bluth.com
+- object: Contact
+  update_key: email
+  fields:
+      firstname: Lindsay
+      lastname: Bluth # change last name
+      email: lindsay.bluth@example.com
+- object: Contact
+  update_key: email
+  fields:
+      firstname: Hel-Loh # insert due to no match
+      lastname: Bluth
+      email: annyong@example.com
+- object: Contact # normal insert
+  fields:
+      firstname: GOB
+      lastname: Bluth
+      email: GOB.bluth@example.com

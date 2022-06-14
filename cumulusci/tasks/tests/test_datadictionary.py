@@ -5,7 +5,7 @@ from unittest.mock import Mock, call, mock_open, patch
 
 import pytest
 
-from cumulusci.core.config import BaseConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.dependencies import (
     GitHubDynamicDependency,
     parse_dependencies,
@@ -1537,8 +1537,8 @@ project:
         get_static_dependencies.side_effect = fake_get_static_dependencies
 
         get_remote_project_config.side_effect = [
-            BaseConfig(cci_safe_load(cumulusci_yml_one)),
-            BaseConfig(cci_safe_load(cumulusci_yml_two)),
+            BaseProjectConfig(None, cci_safe_load(cumulusci_yml_one)),
+            BaseProjectConfig(None, cci_safe_load(cumulusci_yml_two)),
         ]
 
         results = task._get_repo_dependencies(

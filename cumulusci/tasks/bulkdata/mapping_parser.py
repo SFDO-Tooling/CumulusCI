@@ -1,9 +1,10 @@
 import typing as T
 from datetime import date
 from enum import Enum
+from functools import lru_cache
 from logging import getLogger
 from pathlib import Path
-from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Union
+from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 from pydantic import Field, ValidationError, root_validator, validator
 from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDict
@@ -99,13 +100,26 @@ class MappingStep(CCIDictModel):
     ] = None  # default should come from task options
     anchor_date: Optional[Union[str, date]] = None
     soql_filter: Optional[str] = None  # soql_filter property
-    update_key: str = None  # only for upserts
+    update_key: T.Union[str, T.Tuple[str, ...]] = ()  # only for upserts
 
     @validator("bulk_mode", "api", "action", pre=True)
     def case_normalize(cls, val):
         if isinstance(val, Enum):
             return val
         return ENUM_VALUES.get(val.lower())
+
+    @validator("update_key", pre=True)
+    def split_update_key(cls, val):
+        if isinstance(val, (list, tuple)):
+            assert all(isinstance(v, str) for v in val), "All keys should be strings"
+            return tuple(v.strip() for v in val)
+        if isinstance(val, str):
+            return tuple(v.strip() for v in val.split(","))
+        else:
+            assert isinstance(
+                val, (str, list, tuple)
+            ), "`update_key` should be a field name or list of field names."
+            assert False, "Should be unreachable"  # pragma: no cover
 
     def get_oid_as_pk(self):
         """Returns True if using Salesforce Ids as primary keys."""
@@ -234,9 +248,9 @@ class MappingStep(CCIDictModel):
         if values is None:
             values = {}
         if type(values) is list:
-            return {elem: elem for elem in values}
+            values = {elem: elem for elem in values}
 
-        return values
+        return CaseInsensitiveDict(values)
 
     @root_validator
     @classmethod
@@ -257,13 +271,27 @@ class MappingStep(CCIDictModel):
 
     @root_validator
     @classmethod
-    def validate_external_id_and_upsert(cls, v):
-        # TODO: should also validate that update_key is in fields list.
-        has_update_key = bool(v.get("update_key"))
-        is_upsert = v["action"] == DataOperationType.UPSERT
-        assert (
-            has_update_key == is_upsert
-        ), "Action 'upsert' and option 'update_key' must always be used together."
+    def validate_update_key_and_upsert(cls, v):
+        """Check that update_key and action are synchronized"""
+        update_key = v.get("update_key")
+        action = v.get("action")
+
+        if action == DataOperationType.UPSERT:
+            assert update_key, "'update_key' must always be supplied for upsert."
+            assert (
+                len(update_key) == 1
+            ), "simple upserts can only support one field at a time."
+        elif action in (DataOperationType.ETL_UPSERT, DataOperationType.SMART_UPSERT):
+            assert update_key, "'update_key' must always be supplied for upsert."
+        else:
+            assert not update_key, "Update key should only be specified for upserts"
+
+        if update_key:
+            for key in update_key:
+                assert key.lower() in (
+                    f.lower() for f in v["fields_"]
+                ), f"`update_key`: {key} not found in `fields``"
+
         return v
 
     @staticmethod
@@ -273,7 +301,7 @@ class MappingStep(CCIDictModel):
     def _get_required_permission_types(
         self, operation: DataOperationType
     ) -> T.Tuple[str]:
-        """Return a tuple of the permssion types required to execute an operaation"""
+        """Return a tuple of the permission types required to execute an operation"""
         if operation is DataOperationType.QUERY:
             return ("queryable",)
         if (
@@ -281,10 +309,10 @@ class MappingStep(CCIDictModel):
             and self.action is DataOperationType.UPDATE
         ):
             return ("updateable",)
-        if (
-            operation is DataOperationType.UPSERT
-            or self.action is DataOperationType.UPSERT
-        ):
+        if operation in (
+            DataOperationType.UPSERT,
+            DataOperationType.ETL_UPSERT,
+        ) or self.action in (DataOperationType.UPSERT, DataOperationType.ETL_UPSERT):
             return ("updateable", "createable")
 
         return ("createable",)
@@ -327,11 +355,13 @@ class MappingStep(CCIDictModel):
                 return name
 
         orig_fields = field_dict.copy()
+        special_names = {"id": "Id", "ispersonaccount": "IsPersonAccount"}
         for f, entry in orig_fields.items():
             # Do we need to inject this field?
-            if f.lower() == "id":
+            if f.lower() in special_names:
                 del field_dict[f]
-                field_dict["Id"] = entry
+                canonical_name = special_names[f.lower()]
+                field_dict[canonical_name] = entry
                 continue
 
             if inject and self._is_injectable(f) and inject(f) not in orig_fields:
@@ -372,7 +402,6 @@ class MappingStep(CCIDictModel):
                     del field_dict[f]
                 else:
                     ret = False
-
         return ret
 
     def _validate_sobject(
@@ -454,10 +483,7 @@ class MappingStep(CCIDictModel):
 
         # Validate, inject, and drop (if configured) fields.
         # By this point, we know the attribute is valid.
-        describe = getattr(sf, self.sf_object).describe()
-        describe = CaseInsensitiveDict(
-            {entry["name"]: entry for entry in describe["fields"]}
-        )
+        describe = self.describe_data(sf)
 
         if not self._validate_field_dict(
             describe, self.fields, inject, strip, drop_missing, operation
@@ -469,7 +495,25 @@ class MappingStep(CCIDictModel):
         ):
             return False
 
+        # inject namespaces into the update_key
+        if self.update_key:
+            assert isinstance(self.update_key, Tuple)
+            update_keys = {k: k for k in self.update_key}
+            if not self._validate_field_dict(
+                describe,
+                update_keys,
+                inject,
+                strip,
+                drop_missing=False,
+                data_operation_type=operation,
+            ):
+                return False
+            self.update_key = tuple(update_keys.keys())
+
         return True
+
+    def describe_data(self, sf: Salesforce):
+        return describe_data(self.sf_object, sf)
 
 
 class MappingSteps(CCIDictModel):
@@ -571,3 +615,9 @@ def _inject_or_strip_name(name, transform, global_describe):
         return new_name
 
     return None
+
+
+@lru_cache(maxsize=50)
+def describe_data(obj: str, sf: Salesforce):
+    describe = getattr(sf, obj).describe()
+    return CaseInsensitiveDict({entry["name"]: entry for entry in describe["fields"]})

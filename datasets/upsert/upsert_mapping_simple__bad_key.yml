@@ -1,0 +1,14 @@
+Insert Accounts:
+    api: rest
+    sf_object: Account
+    fields:
+        - Name
+Upsert Contacts:
+    api: rest
+    sf_object: Contact
+    action: upsert
+    update_key: FirstName
+    fields:
+        - FirstName
+        - LastName
+        - Email

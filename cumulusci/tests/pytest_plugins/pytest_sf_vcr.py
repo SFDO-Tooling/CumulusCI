@@ -224,7 +224,7 @@ def __contains__(self, request):
     for index, response in self._responses(request):
         if self.play_counts[index] != 0:
             raise AssertionError(
-                "SALESFORCE VCR Error: Request matched but response had already been used ****"
+                f"SALESFORCE VCR Error: Request matched but response had already been used **** {request}"
             )
 
     for index, (stored_request, response) in enumerate(self.data):

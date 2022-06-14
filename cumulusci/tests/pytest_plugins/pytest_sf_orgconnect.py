@@ -1,3 +1,4 @@
+import typing as T
 from contextlib import contextmanager
 from pathlib import Path
 from unittest import mock
@@ -250,21 +251,23 @@ def _change_org_shape(request, current_org_shape, org_shapes):
 
 @contextmanager
 def change_org_shape(
-    current_org_shape, config_name: str, flow_name: str, org_shapes: dict
+    current_org_shape, config_name: str, flow_name: T.Optional[str], org_shapes: dict
 ):
+
     # I don't love that we're using the user's real keychain
-    # but I get weird popups when I use an empty keychain.
+    # but otherwise we have no devhub connection
     with unmock_env():
         org_name = f"pytest__{config_name}__{flow_name}"
         org_config = org_shapes.get(org_name)
         if not org_config:
             org_config = _create_org(org_name, config_name, flow_name)
             org_shapes[org_name] = org_config
-    current_org_shape.org_config = org_config
-    yield org_config
+            org_config.sfdx_info  # generate and cache sfdx info
+    with mock.patch.object(current_org_shape, "org_config", org_config):
+        yield org_config
 
 
-def _create_org(org_name, config_name, flow_name):
+def _create_org(org_name: str, config_name: str, flow_name: str = None):
     runtime = CliRuntime(load_keychain=True)
     try:
         org, org_config = runtime.get_org(org_name)
@@ -283,6 +286,7 @@ def _create_org(org_name, config_name, flow_name):
     )
     org, org_config = runtime.get_org(org_name)
 
-    coordinator = runtime.get_flow(flow_name)
-    coordinator.run(org_config)
+    if flow_name:
+        coordinator = runtime.get_flow(flow_name)
+        coordinator.run(org_config)
     return org_config

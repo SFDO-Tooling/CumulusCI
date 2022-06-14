@@ -31,6 +31,8 @@ class DataOperationType(Enum):
     HARD_DELETE = "hardDelete"
     QUERY = "query"
     UPSERT = "upsert"
+    ETL_UPSERT = "etl_upsert"
+    SMART_UPSERT = "smart_upsert"  # currently undocumented
 
 
 class DataApi(Enum):

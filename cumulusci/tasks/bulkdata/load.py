@@ -4,28 +4,26 @@ from collections import defaultdict
 from contextlib import contextmanager
 from unittest.mock import MagicMock
 
-from sqlalchemy import (
-    Column,
-    MetaData,
-    Table,
-    Unicode,
-    create_engine,
-    func,
-    inspect,
-    text,
-)
+from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, func, inspect
 from sqlalchemy.ext.automap import automap_base
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.org_schema import get_org_schema
 from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
 from cumulusci.tasks.bulkdata.mapping_parser import (
+    CaseInsensitiveDict,
     MappingLookup,
     MappingStep,
     parse_from_yaml,
     validate_and_inject_mapping,
+)
+from cumulusci.tasks.bulkdata.query_transformers import (
+    AddLookupsToQuery,
+    AddMappingFiltersToQuery,
+    AddPersonAccountsToQuery,
+    AddRecordTypesToQuery,
 )
 from cumulusci.tasks.bulkdata.step import (
     DEFAULT_BULK_BATCH_SIZE,
@@ -33,6 +31,11 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationType,
     get_dml_operation,
+)
+from cumulusci.tasks.bulkdata.upsert_utils import (
+    AddUpsertsToQuery,
+    extract_upsert_key_data,
+    needs_etl_upsert,
 )
 from cumulusci.tasks.bulkdata.utils import (
     RowErrorChecker,
@@ -175,20 +178,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self._load_record_types([mapping.sf_object], conn)
             self.session.commit()
 
-        query = self._query_db(mapping)
-        bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
-        api_options = {"batch_size": mapping.batch_size, "bulk_mode": bulk_mode}
-        if mapping.update_key:
-            api_options["update_key"] = mapping.update_key
-        step = get_dml_operation(
-            sobject=mapping.sf_object,
-            operation=mapping.action,
-            api_options=api_options,
-            context=self,
-            fields=mapping.get_load_field_list(),
-            api=mapping.api,
-            volume=query.count(),
-        )
+        step, query = self.configure_step(mapping)
 
         with tempfile.TemporaryFile(mode="w+t") as local_ids:
             step.start()
@@ -200,6 +190,62 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 self._process_job_results(mapping, step, local_ids)
 
             return step.job_result
+
+    def configure_step(self, mapping):
+        """Create a step appropriate to the action"""
+        bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
+        api_options = {"batch_size": mapping.batch_size, "bulk_mode": bulk_mode}
+
+        fields = mapping.get_load_field_list()
+
+        # implement "smart" upsert
+        if mapping.action == DataOperationType.SMART_UPSERT:
+            if needs_etl_upsert(mapping, self.sf):
+                mapping.action = DataOperationType.ETL_UPSERT
+            else:
+                mapping.action = DataOperationType.UPSERT
+
+        if mapping.action == DataOperationType.ETL_UPSERT:
+            extract_upsert_key_data(
+                mapping.sf_object,
+                mapping.update_key,
+                self,
+                self.metadata,
+                self.session.connection(),
+            )
+
+            # If we treat "Id" as an "external_id_name" then it's
+            # allowed to be sparse.
+            api_options["update_key"] = "Id"
+            action = DataOperationType.UPSERT
+            fields.append("Id")
+        elif mapping.action == DataOperationType.UPSERT:
+            self.check_simple_upsert(mapping)
+            api_options["update_key"] = mapping.update_key[0]
+            action = DataOperationType.UPSERT
+        else:
+            action = mapping.action
+
+        query = self._query_db(mapping)
+
+        step = get_dml_operation(
+            sobject=mapping.sf_object,
+            operation=action,
+            api_options=api_options,
+            context=self,
+            fields=fields,
+            api=mapping.api,
+            volume=query.count(),
+        )
+        return step, query
+
+    def check_simple_upsert(self, mapping):
+        """Check that this upsert is correct."""
+        if needs_etl_upsert(mapping, self.sf):
+            raise BulkDataException(
+                f"This update key is not compatible with a simple upsert: `{','.join(mapping.update_key)}`. "
+                "Use `action: ETL_UPSERT` instead."
+            )
 
     def _stream_queried_data(self, mapping, local_ids, query):
         """Get data from the local db"""
@@ -273,79 +319,43 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         id_column = model.__table__.primary_key.columns.keys()[0]
         columns = [getattr(model, id_column)]
 
+        table_cases = CaseInsensitiveDict(model.__table__.columns)
         for name, f in mapping.fields.items():
             if name not in ("Id", "RecordTypeId", "RecordType"):
-                columns.append(model.__table__.columns[f])
-
-        lookups = {
-            lookup_field: lookup
-            for lookup_field, lookup in mapping.lookups.items()
-            if not lookup.after
-        }
-
-        for lookup in lookups.values():
-            lookup.aliased_table = aliased(
-                self.metadata.tables[f"{lookup.table}_sf_ids"]
-            )
-            columns.append(lookup.aliased_table.columns.sf_id)
-
-        if "RecordTypeId" in mapping.fields:
-            rt_dest_table = self.metadata.tables[
-                mapping.get_destination_record_type_table()
-            ]
-            columns.append(rt_dest_table.columns.record_type_id)
+                column = table_cases.get(f)
+                columns.append(column)
 
         query = self.session.query(*columns)
-        if mapping.record_type and hasattr(model, "record_type"):
-            query = query.filter(model.record_type == mapping.record_type)
-        if mapping.filters:
-            filter_args = []
-            for f in mapping.filters:
-                filter_args.append(text(f))
-            query = query.filter(*filter_args)
 
-        if "RecordTypeId" in mapping.fields:
-            try:
-                rt_source_table = self.metadata.tables[
-                    mapping.get_source_record_type_table()
-                ]
-            except KeyError as e:
-                raise BulkDataException(
-                    "A record type mapping table was not found in your dataset. "
-                    f"Was it generated by extract_data? {e}",
-                ) from e
-            rt_dest_table = self.metadata.tables[
-                mapping.get_destination_record_type_table()
-            ]
-            query = query.outerjoin(
-                rt_source_table,
-                rt_source_table.columns.record_type_id
-                == getattr(model, mapping.fields["RecordTypeId"]),
-            )
-            query = query.outerjoin(
-                rt_dest_table,
-                rt_dest_table.columns.developer_name
-                == rt_source_table.columns.developer_name,
-            )
+        classes = [
+            AddLookupsToQuery,
+            AddRecordTypesToQuery,
+            AddMappingFiltersToQuery,
+            AddUpsertsToQuery,
+        ]
+        transformers = [cls(mapping, self.metadata, model) for cls in classes]
 
-        for sf_field, lookup in lookups.items():
-            # Outer join with lookup ids table:
-            # returns main obj even if lookup is null
+        if mapping.sf_object == "Contact" and self._can_load_person_accounts(mapping):
+            transformers.append(AddPersonAccountsToQuery(mapping, self.metadata, model))
+
+        for transformer in transformers:
+            query = transformer.add_columns(query)
+
+        for transformer in transformers:
+            query = transformer.add_filters(query)
+
+        for transformer in transformers:
+            query = transformer.add_outerjoins(query)
+
+        query = self._sort_by_lookups(query, mapping, model)
+        return query
+
+    def _sort_by_lookups(self, query, mapping, model):
+        lookups = [lookup for lookup in mapping.lookups.values() if not lookup.after]
+        for lookup in lookups:
             key_field = lookup.get_lookup_key_field(model)
-            value_column = getattr(model, key_field)
-            query = query.outerjoin(
-                lookup.aliased_table,
-                lookup.aliased_table.columns.id == value_column,
-            )
-            # Order by foreign key to minimize lock contention
-            # by trying to keep lookup targets in the same batch
             lookup_column = getattr(model, key_field)
             query = query.order_by(lookup_column)
-
-        # Filter out non-person account Contact records.
-        # Contact records for person accounts were already created by the system.
-        if mapping.sf_object == "Contact" and self._can_load_person_accounts(mapping):
-            query = self._filter_out_person_account_records(query, model)
 
         return query
 
@@ -356,6 +366,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         is_insert_or_upsert = mapping.action in (
             DataOperationType.INSERT,
             DataOperationType.UPSERT,
+            DataOperationType.ETL_UPSERT,
         )
         if is_insert_or_upsert:
             id_table_name = self._initialize_id_table(mapping, self.reset_oids)
@@ -596,11 +607,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         return (
             self._db_has_person_accounts_column(mapping)
             and self.org_config.is_person_accounts_enabled
-        )
-
-    def _filter_out_person_account_records(self, query, model):
-        return query.filter(
-            func.lower(model.__table__.columns.get("IsPersonAccount")) == "false"
         )
 
     def _generate_contact_id_map_for_person_accounts(

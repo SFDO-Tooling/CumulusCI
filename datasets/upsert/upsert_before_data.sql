@@ -3,14 +3,15 @@ BEGIN TRANSACTION;
 CREATE TABLE "Account" (
 	id INTEGER NOT NULL, 
 	"Name" VARCHAR(255), 
+	"AccountNumber" VARCHAR(255),
 	PRIMARY KEY (id)
 );
-INSERT INTO "Account" VALUES(1,'Sitwell-Bluth');
+INSERT INTO "Account" VALUES(1,'Sitwell-Bluth', "420");
 CREATE TABLE "Contact" (
 	id INTEGER NOT NULL, 
-	"FirstName" VARCHAR(255), 
-	"LastName" VARCHAR(255), 
-	"Email" VARCHAR(255), 
+	"firstName" VARCHAR(255), 
+	"Lastname" VARCHAR(255), 
+	"email" VARCHAR(255), 
 	PRIMARY KEY (id)
 );
 INSERT INTO "Contact" VALUES(1,'Lindsay','Sitwell','lindsay.bluth@example.com');
@@ -33,9 +34,9 @@ COMMIT;
 CREATE TABLE "Opportunity" (
 	id INTEGER NOT NULL,
 	"Name" VARCHAR(255),
-	"CloseDate" VARCHAR(255),
+	"ClosedAte" VARCHAR(255),
 	"Amount" VARCHAR(255),
-	"StageName" VARCHAR(255),
+	"StageNamE" VARCHAR(255),
 	"AccountId" VARCHAR(255),
 	"ContactId" VARCHAR(255),
 	PRIMARY KEY (id)
