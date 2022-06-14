@@ -2,6 +2,7 @@ import json
 import os
 import re
 from pathlib import Path
+from typing import List, Union
 
 import requests
 
@@ -13,6 +14,7 @@ from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.utils import cd, download_extract_github, temporary_dir
 from cumulusci.utils.http.requests_utils import safe_json_from_response
+from cumulusci.utils.yaml.cumulusci_yml import Plan
 
 INSTALL_VERSION_RE = re.compile(r"^Install .*\d$")
 
@@ -24,7 +26,7 @@ class BaseMetaDeployTask(BaseTask):
         metadeploy_service = self.project_config.keychain.get_service("metadeploy")
         self.base_url = metadeploy_service.url
         self.api = requests.Session()
-        self.api.headers["Authorization"] = "token {}".format(metadeploy_service.token)
+        self.api.headers["Authorization"] = f"token {metadeploy_service.token}"
 
     def _call_api(self, method, path, collect_pages=False, **kwargs):
         next_url = self.base_url + path
@@ -85,9 +87,7 @@ class Publish(BaseMetaDeployTask):
         plan_name = self.options.get("plan")
         if plan_name:
             plan_configs = {}
-            plan_configs[plan_name] = self.project_config.lookup(
-                "plans__{}".format(plan_name)
-            )
+            plan_configs[plan_name] = self.project_config.lookup(f"plans__{plan_name}")
 
             self.plan_configs = plan_configs
         else:
@@ -184,10 +184,10 @@ class Publish(BaseMetaDeployTask):
             if self.publish:
                 self._call_api(
                     "PATCH",
-                    "/versions/{}".format(version["id"]),
+                    f"/versions/{version['id']}",
                     json={"is_listed": True},
                 )
-                self.logger.info("Published Version {}".format(version["url"]))
+                self.logger.info(f"Published Version {version['url']}")
 
         # Save labels
         self._save_labels()
@@ -195,6 +195,11 @@ class Publish(BaseMetaDeployTask):
     def _publish_plan(self, product, version, plan_name, plan_config, steps):
         plan_template = self._find_or_create_plan_template(
             product, plan_name, plan_config
+        )
+
+        allowed_org_providers = self._get_allowed_org_providers(plan_name)
+        supported_orgs = self._convert_org_providers_to_plan_equivalent(
+            allowed_org_providers
         )
 
         plan_json = {
@@ -207,6 +212,7 @@ class Publish(BaseMetaDeployTask):
                 "preflight_message_additional", ""
             ),
             "steps": steps,
+            "supported_orgs": supported_orgs,
             "tier": plan_config["tier"],
             "title": plan_config["title"],
             "version": version["url"],
@@ -218,7 +224,27 @@ class Publish(BaseMetaDeployTask):
 
         # Create Plan
         plan = self._call_api("POST", "/plans", json=plan_json)
-        self.logger.info("Created Plan {}".format(plan["url"]))
+        self.logger.info(f"Created Plan {plan['url']}")
+
+    def _get_allowed_org_providers(self, plan_name: str) -> List[str]:
+        "Validates and returns the org providers for a given plan"
+        plan = Plan.parse_obj(self.project_config.config["plans"][plan_name])
+        return plan.allowed_org_providers
+
+    def _convert_org_providers_to_plan_equivalent(
+        self, providers: Union[None, List[str]]
+    ) -> str:
+        """Given a list of plan.allowed_org_providers return the value that
+        corresponds `supported_orgs` field on the Plan model in MetaDeploy
+        """
+        if not providers or providers == ["user"]:
+            org_providers = "persistent"
+        elif "user" in providers and "devhub" in providers:
+            org_providers = "both"
+        elif providers == ["devhub"]:
+            org_providers = "scratch"
+
+        return org_providers
 
     def _freeze_steps(self, project_config, plan_config):
         steps = plan_config["steps"]
@@ -243,7 +269,7 @@ class Publish(BaseMetaDeployTask):
             result = self._call_api("GET", "/products", params={"repo_url": repo_url})
             if len(result["data"]) != 1:
                 raise CumulusCIException(
-                    "No product found in MetaDeploy with repo URL {}".format(repo_url)
+                    f"No product found in MetaDeploy with repo URL {repo_url}"
                 )
         except KeyError:
             raise CumulusCIException(
@@ -287,10 +313,10 @@ class Publish(BaseMetaDeployTask):
                     "is_listed": False,
                 },
             )
-            self.logger.info("Created {}".format(version["url"]))
+            self.logger.info(f"Created {version['url']}")
         else:
             version = result["data"][0]
-            self.logger.info("Found {}".format(version["url"]))
+            self.logger.info(f"Found {version['url']}")
         return version
 
     def _find_or_create_plan_template(self, product, plan_name, plan_config):
@@ -311,16 +337,16 @@ class Publish(BaseMetaDeployTask):
                     "error_message": plan_config.get("error_message", ""),
                 },
             )
-            self.logger.info("Created {}".format(plantemplate["url"]))
+            self.logger.info(f"Created {plantemplate['url']}")
             planslug = self._call_api(
                 "POST",
                 "/planslug",
                 json={"slug": plan_config["slug"], "parent": plantemplate["url"]},
             )
-            self.logger.info("Created {}".format(planslug["url"]))
+            self.logger.info(f"Created {planslug['url']}")
         else:
             plantemplate = result["data"][0]
-            self.logger.info("Found {}".format(plantemplate["url"]))
+            self.logger.info(f"Found {plantemplate['url']}")
         return plantemplate
 
     def _load_labels(self):
