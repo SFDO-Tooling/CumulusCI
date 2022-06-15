@@ -551,6 +551,15 @@
                 "preflight_message": {
                     "title": "Preflight Message",
                     "type": "string"
+                },
+                "allowed_org_providers": {
+                    "title": "Allowed Org Providers",
+                    "default": ["user"],
+                    "type": "array",
+                    "items": {
+                        "enum": ["devhub", "user"],
+                        "type": "string"
+                    }
                 }
             },
             "additionalProperties": false

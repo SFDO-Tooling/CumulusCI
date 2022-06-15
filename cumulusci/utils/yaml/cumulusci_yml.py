@@ -123,6 +123,7 @@ class Plan(CCIDictModel):  # MetaDeploy plans
     error_message: str = None
     post_install_message: str = None
     preflight_message: str = None
+    allowed_org_providers: List[Literal["devhub", "user"]] = ["user"]
 
 
 class DependencyResolutions(CCIDictModel):

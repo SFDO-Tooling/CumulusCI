@@ -126,6 +126,7 @@ class TestPublish(GithubApiTestMixin):
                     },
                 },
                 "checks": [{"when": "False", "action": "error"}],
+                "allowed_org_providers": ["user", "devhub"],
             }
         }
         project_config.keychain.set_service(
@@ -269,7 +270,10 @@ class TestPublish(GithubApiTestMixin):
         task = Publish(project_config, task_config)
         task()
 
-        steps = json.loads(responses.calls[-2].request.body)["steps"]
+        body = json.loads(responses.calls[-2].request.body)
+        assert body["supported_orgs"] == "both"
+
+        steps = body["steps"]
         self.maxDiff = None
         assert [
             {
@@ -524,3 +528,38 @@ class TestPublish(GithubApiTestMixin):
         task._init_task()
         steps = task._freeze_steps(project_config, plan_config)
         assert steps == []
+
+    providers = [
+        (["user"], "persistent"),
+        (["devhub"], "scratch"),
+        (["user", "devhub"], "both"),
+    ]
+
+    @pytest.mark.parametrize("org_providers,metadeploy_equivalent", providers)
+    def test_convert_org_providers_to_plan_equivalent(
+        self, org_providers, metadeploy_equivalent
+    ):
+        project_config = create_project_config()
+        project_config.keychain.set_service(
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
+        )
+
+        plan_config = {
+            "title": "Test Install",
+            "slug": "install",
+            "tier": "primary",
+            "steps": {1: {"task": "None"}},
+            "allowed_org_providers": org_providers,
+        }
+        plan_name = "test_install"
+        project_config.config["plans"] = {
+            plan_name: plan_config,
+        }
+        task_config = TaskConfig({"options": {"tag": "release/1.0"}})
+
+        task = Publish(project_config, task_config)
+        actual = task._convert_org_providers_to_plan_equivalent(org_providers)
+
+        assert actual == metadeploy_equivalent
