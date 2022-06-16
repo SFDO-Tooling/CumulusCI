@@ -746,14 +746,14 @@ class TestUpsert:
         ver = CURRENT_SF_API_VERSION
         responses.add(
             method="GET",
-            url=f"https://{domain}/services/data/v54.0/limits/recordCount?sObjects=Contact",
+            url=f"https://{domain}/services/data/v{ver}/limits/recordCount?sObjects=Contact",
             status=200,
             json={"sObjects": []},
         )
         # It needs to do ETL, so this should be hit
         responses.add(
             method="GET",
-            url=f"https://{domain}/services/data/v54.0/query/?q=select+Id%2CFirstName+from+Contact",
+            url=f"https://{domain}/services/data/v{ver}/query/?q=select+Id%2CFirstName+from+Contact",
             status=200,
             json={"totalSize": 0, "done": True, "records": []},
         )
