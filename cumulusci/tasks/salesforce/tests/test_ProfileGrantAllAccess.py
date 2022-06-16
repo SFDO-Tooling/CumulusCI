@@ -269,6 +269,66 @@ def test_throws_exception_record_type_not_found():
         task._transform_entity(metadata_tree.fromstring(ADMIN_PROFILE_BEFORE), "Admin")
 
 
+def test_transforms_profile_with_layouts():
+    task = create_task(
+        ProfileGrantAllAccess,
+        {
+            "record_types": [
+                {
+                    "record_type": "Account.HH_Account",
+                    "page_layout": "Account-Account Layout",
+                },
+                {
+                    "record_type": "Account.Business_Account",
+                    "page_layout": "Account-Account Layout",
+                    "default": True,
+                },
+            ],
+        },
+    )
+
+    # To support coverage for when pulling metadata with layout definitions
+    profile_before = ADMIN_PROFILE_BEFORE.replace(
+        b"</Profile>",
+        b"""\n      <layoutAssignments>
+            <recordType>Account.Business_Account</recordType>
+            <layout>Account-Business Account Layout</layout>
+        </layoutAssignments>
+    </Profile>""",
+    )
+
+    inbound = metadata_tree.fromstring(profile_before)
+    assert len(inbound.findall("layoutAssignments")) == 1
+
+    # Verify the expected input includes the layoutAssignment element and
+    # the original layout
+    assert (
+        inbound.find("layoutAssignments", recordType="Account.Business_Account")
+        .find("layout")
+        .text
+        == "Account-Business Account Layout"
+    )
+
+    # Run the transformation and assert that there are two layoutAssignments
+    outbound = task._transform_entity(inbound, "Admin")
+    assert len(outbound.findall("layoutAssignments")) == 2
+
+    # Verify that the original layout assignment was updated
+    assignments = outbound.find(
+        "layoutAssignments", recordType="Account.Business_Account"
+    )
+    assert assignments is not None
+    assert assignments.find("layout").text == "Account-Account Layout"
+
+    assignments = outbound.find("layoutAssignments", recordType="Account.HH_Account")
+    assert assignments is not None
+    assert assignments.find("layout").text == "Account-Account Layout"
+
+    # assert that the nodes are included in the xml output as expected
+    xml_output = outbound.tostring(xml_declaration=True)
+    assert xml_output.count("<layoutAssignments>") == 2
+
+
 def test_expand_package_xml():
     task = create_task(ProfileGrantAllAccess, {"api_names": ["Admin"]})
     task.tooling = mock.Mock()
@@ -285,6 +345,30 @@ def test_expand_package_xml():
     types = package_xml.find("types", name="CustomObject")
     assert "ns__Test__c" in {elem.text for elem in types.findall("members")}
     assert "fb__Foo_Bar__c" in {elem.text for elem in types.findall("members")}
+
+
+def test_expand_package_xml_objects():
+    task = create_task(
+        ProfileGrantAllAccess,
+        {"api_names": ["Admin"], "record_types": [{"record_type": "Case.Case"}]},
+    )
+    task.tooling = mock.Mock()
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+    task._expand_package_xml_objects(package_xml)
+    types = package_xml.find("types", name="CustomObject")
+    assert "Case" in {elem.text for elem in types.findall("members")}
+
+
+def test_expand_package_xml_objects_no_record_types():
+    task = create_task(
+        ProfileGrantAllAccess,
+        {"api_names": ["Admin"]},
+    )
+    task.tooling = mock.Mock()
+    package_xml = metadata_tree.fromstring(PACKAGE_XML_BEFORE)
+    task._expand_package_xml_objects(package_xml)
+    types = package_xml.find("types", name="CustomObject")
+    assert "Case" not in {elem.text for elem in types.findall("members")}
 
 
 def test_expand_package_xml__broken_package():
