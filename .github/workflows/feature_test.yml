@@ -20,7 +20,7 @@ jobs:
     docs:
         name: Build Docs
         if: ${{ github.event_name == 'pull_request' }}
-        runs-on: sfdc-ubuntu-20
+        runs-on: SFDO-Tooling-Ubuntu
         steps:
             - name: "Checkout"
               uses: actions/checkout@v2
@@ -44,7 +44,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: [macos-latest, sfdc-ubuntu-20, sfdc-windows-latest]
+                os: [macos-latest, SFDO-Tooling-Ubuntu, sfdc-windows-latest]
                 python-version: ["3.8", "3.9", "3.10"]
         steps:
             - uses: actions/checkout@v2
@@ -63,7 +63,7 @@ jobs:
 
     robot_api:
         name: "Robot: No browser"
-        runs-on: sfdc-ubuntu-20
+        runs-on: SFDO-Tooling-Ubuntu
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python 3.8
@@ -109,7 +109,7 @@ jobs:
                   path: robot/CumulusCI/results
     robot_ui:
         name: "Robot: ${{ matrix.job-name }}"
-        runs-on: sfdc-ubuntu-20
+        runs-on: SFDO-Tooling-Ubuntu
         strategy:
             fail-fast: false
             matrix:
@@ -172,6 +172,6 @@ jobs:
     coveralls_done:
         name: Finalize coveralls
         needs: [unit_tests, robot_api, robot_ui]
-        runs-on: sfdc-ubuntu-20
+        runs-on: SFDO-Tooling-Ubuntu
         steps:
             - run: curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$GITHUB_SHA&payload[status]=done"
