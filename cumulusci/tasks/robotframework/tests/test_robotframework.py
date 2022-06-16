@@ -672,7 +672,7 @@ class TestRobotLibDocOutput:
     def test_formatted_documentation(self):
         """Verify that markup in the documentation is rendered as html"""
         doc_element = self.html_body.find(
-            ".//tr[@id='TestLibrary.py.Library Keyword One']//td[@class='kwdoc']"
+            ".//tr[@id='TestLibrary.py.Library-Keyword-One']//td[@class='kwdoc']"
         )
         doc_html = str(ET.tostring(doc_element, method="html").strip())
         # we could just do an assert on the full markup of the
@@ -756,13 +756,13 @@ class TestLibdocPageObjects:
         description = section.find("div[@class='description']")
         expected = '<div class="description" title="Description"><p>Description of SomethingDetailPage</p></div>'
         actual = ET.tostring(description).decode("utf-8").strip()
-        assert actual == expected
+        assert shrinkws(actual) == shrinkws(expected)
 
         section = self.html_body.find(".//div[@pageobject='Listing-Something__c']")
         description = section.find("div[@class='description']")
         expected = '<div class="description" title="Description"><p>Description of SomethingListingPage</p></div>'
         actual = ET.tostring(description).decode("utf-8").strip()
-        assert actual == expected
+        assert shrinkws(actual) == shrinkws(expected)
 
 
 class TestRobotPerformanceKeywords:
@@ -858,3 +858,7 @@ class TestRobotPerformanceKeywords:
             assert list(filter(None, elapsed_times)) == [
                 {"Elapsed Time": 11655.9, "Donuts": 42.3}
             ]
+
+
+def shrinkws(s):
+    return re.sub(r"\s+", " ", s).replace("> <", "><")
