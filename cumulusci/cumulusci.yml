@@ -1262,6 +1262,7 @@ flows:
                     resolution_strategy: unlocked
                     org_dependent: True
                     force_upload: True
+                    post_install_script: None
             3:
                 task: promote_package_version
                 options:
