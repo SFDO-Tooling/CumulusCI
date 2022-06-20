@@ -224,7 +224,9 @@ class TestUtils:
         task_doc = utils.doc_task("scoop_icecream", task_config)
         assert (
             task_doc
-            == """**scoop_icecream**
+            == """.. _scoop-icecream:
+
+scoop_icecream
 ==========================================\n
 **Description:** Scoops icecream\n
 **Class:** cumulusci.tests.test_utils.FunTestTask\n
@@ -299,6 +301,7 @@ Options\n------------------------------------------\n\n
         flow_doc = utils.document_flow("test flow", "test description.", coordinator)
 
         expected_doc = (
+            ".. _test flow:\n\n"
             "test flow"
             "\n^^^^^^^^^\n"
             "\n**Description:** test description.\n"
@@ -306,7 +309,7 @@ Options\n------------------------------------------\n\n
             "\n.. code-block:: console\n"
         )
 
-        assert expected_doc == flow_doc
+        assert expected_doc == flow_doc, flow_doc
 
     def test_document_flow__additional_info(self):
         flow_steps = ["1) (Task) Extract"]
@@ -321,6 +324,7 @@ Options\n------------------------------------------\n\n
         )
 
         expected_doc = (
+            ".. _test flow:\n\n"
             "test flow"
             "\n^^^^^^^^^\n"
             "\n**Description:** test description.\n"
@@ -329,6 +333,9 @@ Options\n------------------------------------------\n\n
             "\n.. code-block:: console\n"
             "\n\t1) (Task) Extract"
         )
+        if expected_doc != flow_doc:
+            print(repr(expected_doc))
+            print(repr(flow_doc))
         assert expected_doc == flow_doc
 
     @responses.activate
