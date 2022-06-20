@@ -1,3 +1,3 @@
-```{eval-rst}
-.. include:: ../HISTORY.rst
+```{include} ../HISTORY.md
+
 ```
