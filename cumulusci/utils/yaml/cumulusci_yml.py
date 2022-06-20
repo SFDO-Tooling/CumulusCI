@@ -140,7 +140,7 @@ class Project(CCIDictModel):
     dependencies: List[Dict[str, str]] = None  # TODO
     dependency_resolutions: DependencyResolutions = None
     source_format: Literal["sfdx", "mdapi"] = "mdapi"
-    project_specific: Dict = None
+    custom: Dict = None
 
 
 class ScratchOrg(CCIDictModel):
@@ -279,7 +279,7 @@ def _log_yaml_errors(logger, errors: List[ErrorDict]):
             "NOTE: These warnings will become errors on Sept 30, 2022.\n\n"
             "If you need to put non-standard data in your CumulusCI file "
             "(for some form of project-specific setting), put it in "
-            "the `project: project_specific:` section of `cumulusci.yml` ."
+            "the `project: custom:` section of `cumulusci.yml` ."
         )
         logger.error(
             "If you think your YAML has no error, please report the bug to the CumulusCI team."

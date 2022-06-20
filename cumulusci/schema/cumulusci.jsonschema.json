@@ -389,8 +389,8 @@
                     "enum": ["sfdx", "mdapi"],
                     "type": "string"
                 },
-                "project_specific": {
-                    "title": "Project Specific",
+                "custom": {
+                    "title": "Custom",
                     "type": "object"
                 }
             },
