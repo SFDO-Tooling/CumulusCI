@@ -628,7 +628,7 @@ Changes
     [push_sandbox]{.title-ref}, etc) task option
     [start_time]{.title-ref} to accept ISO-8601 formatted datetimes.
     (#2769)
--   You can now specify \"sandbox\": true on a [CUMULUSCI_ORG]()\*
+-   You can now specify \"sandbox\": true on a `CUMULUSCI_ORG`
     variable in headless environments to indicate that the org you want
     to connect to is a sandbox. when connecting sandbox orgs in a
     headless environment. (#2753)
@@ -2354,7 +2354,7 @@ Changes:
     with scratch org settings to:
     -   Use the Enhanced Profile Editor
     -   Allow logging in as another user
-    -   \_[not]() force relogin after Login-As
+    -   _Not_ force relogin after Login-As
 -   If `cumulusci.yml` contains non-breaking spaces in indentation, they
     will be automatically converted to normal spaces.
 -   Bulk data tasks:
@@ -3101,7 +3101,7 @@ Breaking changes:
     `regression_org`.
 
     Details: The `install_regression` flow now installs the package
-    \_[without]() configuring it. There is a new `config_regression`
+    without configuring it. There is a new `config_regression`
     flow to configure the package (it defaults to calling
     `config_managed`) and a `regression_org` flow that includes both
     `install_regression` and `config_regression`.
@@ -3289,7 +3289,7 @@ Changes:
 ## 2.3.4 (2019-03-06)
 
 -   Added a new flow, `install_upgrade`, which can be used for testing
-    package upgrades. It installs and configures the \_[previous]()
+    package upgrades. It installs and configures the previous
     release of the package, then installs the latest release.
 -   Fixed an error when using `cci org info --json` (fixes #1013).
 
