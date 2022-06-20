@@ -137,14 +137,21 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
+        # Allow this field to be explicitly set to `None`
+        # so that unlocked builds can override an otherwise-configured
+        # postinstall script
+        if "post_install_script" in self.options:
+            post_install_script = self.options["post_install_script"]
+        else:
+            post_install_script = self.project_config.project__package__install_class
+
         self.package_config = PackageConfig(
             package_name=self.options.get("package_name")
             or self.project_config.project__package__name,
             package_type=self.options.get("package_type")
             or self.project_config.project__package__type,
             org_dependent=self.options.get("org_dependent", False),
-            post_install_script=self.options.get("post_install_script")
-            or self.project_config.project__package__install_class,
+            post_install_script=post_install_script,
             uninstall_script=self.options.get("uninstall_script")
             or self.project_config.project__package__uninstall_class,
             namespace=self.options.get("namespace")
