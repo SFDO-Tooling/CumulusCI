@@ -18,7 +18,7 @@ robot
 continuous-integration
 packaging
 unpackaged
-metadata-et
+metadata-etl
 reference
 about
 ```
