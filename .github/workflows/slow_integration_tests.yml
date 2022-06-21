@@ -12,7 +12,7 @@ env:
 jobs:
     org_backed_tests:
         name: "Org-connected Tests"
-        runs-on: ubuntu-latest
+        runs-on: sfdc-ubuntu-latest
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python 3.8
