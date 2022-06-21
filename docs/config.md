@@ -14,6 +14,7 @@ A `cumulusci.yml` file contains these top-level sections.
 
     If you need custom markup that's unique to your project, you can
     store it in a section called `custom` under `project`.
+
 -   `tasks`: Defines the tasks that are available to run in your
     project. See [](task-configurations) for
     configuration options in this section.
