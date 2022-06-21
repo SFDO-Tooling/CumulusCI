@@ -290,6 +290,9 @@ tasks:
     generate_and_load_from_yaml:
         class_path: cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml
         group: Data Operations
+    generate_snowfakery_dataset:
+        class_path: cumulusci.tasks.bulkdata.generate_data_recipe.GenerateDataRecipe
+        group: Data Operations
     get_installed_packages:
         description: Retrieves a list of the currently installed managed package namespaces and their versions
         class_path: cumulusci.tasks.preflight.packages.GetInstalledPackages

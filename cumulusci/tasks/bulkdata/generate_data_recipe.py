@@ -52,7 +52,6 @@ class GenerateDataRecipe(BaseSalesforceApiTask):
                 raise TaskOptionsError("Rules file does not exist")
 
             self.extract_rules = ExtractRulesFile.parse_from_yaml(extract_rules_path)
-            print("XXX", self.extract_rules)
             assert isinstance(self.extract_rules, list)
         else:
             self.extract_rules = [
@@ -61,7 +60,7 @@ class GenerateDataRecipe(BaseSalesforceApiTask):
                 )
             ]
 
-        export_data_and_snowfakery_recipe(
+        recipe = export_data_and_snowfakery_recipe(
             self.sf,
             self.project_config,
             self.org_config,
@@ -69,6 +68,7 @@ class GenerateDataRecipe(BaseSalesforceApiTask):
             self.output_directory,
             self.logger,
         )
+        self.logger.info(f"Created {recipe}")
 
 
 SKIP_PATTERNS = (
@@ -301,7 +301,7 @@ def doit(export_declarations):
 
 def export_data_and_snowfakery_recipe(
     sf, project_config, org_config, export_declarations, directory, logger
-):
+) -> Path:
     with get_org_schema(sf, org_config) as schema:
         # constrain to populated sobjects to reduce wasted effort
         potential_objects = [
@@ -333,6 +333,7 @@ def export_data_and_snowfakery_recipe(
         )
         recipe = directory / "sample.data_recipe.yml"
         write_recipe(finalized_declarations, extracted_objects, recipe)
+        return recipe
 
 
 def classify_and_filter_lookups(decls, schema: Schema):
