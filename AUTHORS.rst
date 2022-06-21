@@ -35,3 +35,4 @@ For example:
 (add your name here, when you contribute through a Pull Request!)
 
 * Ed Rivas (jerivas)
+* Gustavo Tandeciarz (dcinzona)
