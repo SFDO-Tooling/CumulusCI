@@ -388,20 +388,27 @@ class MappingStep(CCIDictModel):
 
             # Do we have the right permissions for this field, or do we need to drop it?
             is_after_lookup = hasattr(field_dict[f], "after")
-            if not self._check_field_permission(
+            relevant_operation = (
+                data_operation_type if not is_after_lookup else DataOperationType.UPDATE
+            )
+
+            if f not in describe:
+                logger.warning(
+                    f"Field {self.sf_object}.{f} does not exist or is not visible to the current user."
+                )
+                ret = False
+            elif not self._check_field_permission(
                 describe,
                 f,
-                data_operation_type
-                if not is_after_lookup
-                else DataOperationType.UPDATE,
+                relevant_operation,
             ):
                 logger.warning(
-                    f"Field {self.sf_object}.{f} is not present or does not have the correct permissions."
+                    f"Field {self.sf_object}.{f} does not have the correct permissions for this operation: {self._get_required_permission_types(relevant_operation)}."
                 )
-                if drop_missing:
-                    del field_dict[f]
-                else:
-                    ret = False
+                ret = False
+            if ret is False and drop_missing:
+                del field_dict[f]
+
         return ret
 
     def _validate_sobject(
