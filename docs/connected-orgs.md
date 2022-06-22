@@ -8,7 +8,7 @@ version, or installing to a sandbox for user acceptance testing.
 ```{attention}
 A different setup is required to connect to orgs in the context of an
 automated build. See
-`continuous integration [](continuous-integration) for more information.
+[continuous integration](continuous-integration) for more information.
 ```
 
 ## The `org connect` Command
