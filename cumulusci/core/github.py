@@ -107,6 +107,7 @@ def get_github_api_for_repo(keychain, owner, repo, session=None):
 def validate_service(options: dict) -> dict:
     username = options["username"]
     token = options["token"]
+    repo_domain = options["repo_domain"]
     # Don't make the user wait 4 minutes to fail
     gh = GitHub(token=token)
 
@@ -146,6 +147,10 @@ def validate_service(options: dict) -> dict:
         )
         if expiration_date:
             options["expires"] = expiration_date
+
+        # For backwards compatability, set a default repo_domain
+        if not repo_domain:
+            repo_domain = "https://github.com/"
 
     return options
 
