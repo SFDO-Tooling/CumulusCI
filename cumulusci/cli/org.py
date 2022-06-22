@@ -153,13 +153,7 @@ def connect_org_to_keychain(
     org_config = OrgConfig(oauth_dict, org_name, runtime.keychain, global_org)
     org_config.config["connected_app"] = connected_app
     org_config.load_userinfo()
-    org_config._load_orginfo()
-    if org_config.organization_sobject["TrialExpirationDate"] is None:
-        org_config.config["expires"] = "Persistent"
-    else:
-        org_config.config["expires"] = parse_api_datetime(
-            org_config.organization_sobject["TrialExpirationDate"]
-        ).date()
+    org_config.populate_expiration_date()
 
     org_config.save()
 
@@ -284,7 +278,7 @@ def org_import(runtime: CliRuntime, username_or_alias: str, org_name: str):
     else:
         # This is either a persistent org or a scratch org imported into the
         # sfdx keychain via OAuth login.
-
+        org_config.populate_expiration_date()
         org_config.save()
         click.echo(
             "Imported org: {org_id}, username: {username}".format(

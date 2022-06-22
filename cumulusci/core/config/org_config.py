@@ -18,6 +18,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
 from cumulusci.oauth.salesforce import SANDBOX_LOGIN_URL, jwt_session
+from cumulusci.utils import parse_api_datetime
 from cumulusci.utils.fileutils import open_fs_resource
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
@@ -239,6 +240,16 @@ class OrgConfig(BaseConfig):
             "namespace": self._org_sobject["NamespacePrefix"],
         }
         self.config.update(result)
+
+    def populate_expiration_date(self):
+        if not self.organization_sobject:
+            self._load_orginfo()
+        if self.organization_sobject["TrialExpirationDate"] is None:
+            self.config["expires"] = "Persistent"
+        else:
+            self.config["expires"] = parse_api_datetime(
+                self.organization_sobject["TrialExpirationDate"]
+            ).date()
 
     @property
     def organization_sobject(self):
