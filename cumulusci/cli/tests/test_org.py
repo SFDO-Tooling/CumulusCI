@@ -404,15 +404,15 @@ class TestOrgCommands:
         )
 
         out = []
-        with mock.patch("click.echo", out.append), pytest.raises(
-            click.UsageError, match="cci org connect"
-        ):
+        with mock.patch("click.echo", out.append):
             run_click_command(
                 org.org_import,
                 username_or_alias="test@test.org",
                 org_name="test",
                 runtime=runtime,
             )
+            runtime.keychain.set_org.assert_called_once()
+        assert "Imported org: access, username: test@test.org" in "".join(out)
 
     def test_calculate_org_days(self):
         info_1 = {
