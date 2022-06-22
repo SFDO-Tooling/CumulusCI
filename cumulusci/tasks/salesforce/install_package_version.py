@@ -15,7 +15,7 @@ from cumulusci.salesforce_api.package_install import (
     PACKAGE_INSTALL_TASK_OPTIONS,
     SecurityType,
 )
-from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.base_salesforce_api_task import BaseSalesforceApiTask
 
 
 class InstallPackageVersion(BaseSalesforceApiTask):

@@ -21,7 +21,7 @@ from cumulusci.tasks.bulkdata.snowfakery import (
 )
 from cumulusci.tasks.bulkdata.tests.integration_test_utils import ensure_accounts
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
-from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.base_salesforce_api_task import BaseSalesforceApiTask
 from cumulusci.tests.util import DummyKeychain, DummyOrgConfig
 from cumulusci.utils.parallel.task_worker_queues.tests.test_parallel_worker import (
     DelaySpawner,

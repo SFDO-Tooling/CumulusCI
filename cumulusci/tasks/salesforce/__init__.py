@@ -6,13 +6,13 @@ We should be able to replace LazyModule with a module-level __getattr__
 one we drop support for Python 3.6.
 """
 
-from types import ModuleType
 import sys
+from types import ModuleType
 
 ORIGINS = {
-    "BaseRetrieveMetadata": "cumulusci.tasks.salesforce.BaseRetrieveMetadata",
+    "BaseRetrieveMetadata": "cumulusci.tasks.salesforce.base_retrieve_metadata",
     "BaseSalesforceTask": "cumulusci.tasks.salesforce.BaseSalesforceTask",
-    "BaseSalesforceApiTask": "cumulusci.tasks.salesforce.BaseSalesforceApiTask",
+    "BaseSalesforceApiTask": "cumulusci.tasks.salesforce.base_salesforce_api_task",
     "BaseSalesforceMetadataApiTask": "cumulusci.tasks.salesforce.BaseSalesforceMetadataApiTask",
     "BaseUninstallMetadata": "cumulusci.tasks.salesforce.BaseUninstallMetadata",
     "CreateCommunity": "cumulusci.tasks.salesforce.CreateCommunity",

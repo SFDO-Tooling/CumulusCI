@@ -2,7 +2,7 @@ from simple_salesforce.exceptions import SalesforceMalformedRequest
 
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.base_salesforce_api_task import BaseSalesforceApiTask
 
 
 class CheckMyDomainActive(BaseSalesforceTask):

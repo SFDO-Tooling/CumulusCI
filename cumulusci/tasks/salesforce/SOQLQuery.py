@@ -1,4 +1,4 @@
-from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.base_salesforce_api_task import BaseSalesforceApiTask
 
 
 class SOQLQuery(BaseSalesforceApiTask):

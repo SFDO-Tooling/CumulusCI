@@ -33,7 +33,7 @@ from cumulusci.salesforce_api.package_zip import (
     MetadataPackageZipBuilder,
 )
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.base_salesforce_api_task import BaseSalesforceApiTask
 from cumulusci.tasks.salesforce.org_settings import build_settings_package
 from cumulusci.utils.git import split_repo_url
 

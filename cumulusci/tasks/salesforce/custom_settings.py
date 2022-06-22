@@ -3,7 +3,7 @@ import pathlib
 import yaml
 
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
-from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.base_salesforce_api_task import BaseSalesforceApiTask
 
 
 class LoadCustomSettings(BaseSalesforceApiTask):

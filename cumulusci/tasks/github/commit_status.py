@@ -1,7 +1,7 @@
 from cumulusci.core.exceptions import DependencyLookupError
 from cumulusci.core.github import get_version_id_from_commit
 from cumulusci.tasks.github.base import BaseGithubTask
-from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.base_salesforce_api_task import BaseSalesforceApiTask
 
 
 class GetPackageDataFromCommitStatus(BaseGithubTask, BaseSalesforceApiTask):
