@@ -1,6 +1,9 @@
 import pathlib
 from typing import Any, Optional, Tuple
 
+import giturlparse
+from typing_extensions import TypedDict
+
 
 def git_path(repo_root: str, tail: Any = None) -> Optional[pathlib.Path]:
     """Returns a Path to the .git directory in repo_root
@@ -64,3 +67,21 @@ def split_repo_url(url: str) -> Tuple[str, str]:
     owner = owner.split(":")[-1]
 
     return (owner, name)
+
+
+class UrlInfo(TypedDict):
+    url: str
+    name: str
+    owner: str
+
+
+def parse_repo_url(url: str) -> UrlInfo:
+    parsed = giturlparse.parse(url)
+    repo_url = parsed.url2https
+    if repo_url.endswith(".git"):
+        repo_url = repo_url[: -len(".git")]
+    return {
+        "url": repo_url,
+        "owner": parsed.owner,
+        "name": parsed.repo,
+    }
