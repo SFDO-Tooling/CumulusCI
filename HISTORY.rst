@@ -2047,8 +2047,7 @@ New features:
 * Python 3.8 is now officially supported.
 
 * Flows can now include tasks or flows from a different project.
-  See `Using Tasks and Flows from a Different Project
-  <https://cumulusci.readthedocs.io/en/latest/features.html>`_ for details.
+  See [](tasks-and-flows-from-a-different-project) for details.
 
 * In the ``metadeploy_publish`` task it is now possible to specify a
   commit hash with ``-o commit [sha]``, instead of a tag. This is useful

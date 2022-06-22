@@ -76,6 +76,50 @@ class TestDeployOrgSettings:
 </OtherSettings>"""
         )
 
+    def test_run_task__json_only__with_org_settings(self):
+        with temporary_dir() as d:
+            with open("dev.json", "w") as f:
+                json.dump(
+                    {
+                        "settings": {
+                            "orgPreferenceSettings": {"s1DesktopEnabled": True},
+                            "otherSettings": {
+                                "nested": {
+                                    "boolValue": True,
+                                    "stringValue": "string",
+                                },
+                            },
+                        },
+                        "objectSettings": {"foo__c": {"sharingModel": "Private"}},
+                    },
+                    f,
+                )
+            path = os.path.join(d, "dev.json")
+            task_options = {"definition_file": path, "api_version": "48.0"}
+            task = create_task(DeployOrgSettings, task_options)
+            task.api_class = Mock()
+            task()
+
+        package_zip = task.api_class.call_args[0][1]
+        zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(package_zip)), "r")
+        # The context manager's output is tested separately, below.
+        assert (
+            readtext(zf, "package.xml")
+            == """<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>Foo__c</members>
+        <name>CustomObject</name>
+    </types>
+    <types>
+        <members>OrgPreference</members>
+        <members>Other</members>
+        <name>Settings</name>
+    </types>
+    <version>48.0</version>
+</Package>"""
+        )
+
     def test_run_task__settings_only(self):
         settings = {
             "orgPreferenceSettings": {"s1DesktopEnabled": True},
