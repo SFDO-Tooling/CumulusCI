@@ -1,7 +1,5 @@
-from warnings import warn
+from cumulusci.utils.deprecation import warn_moved
 
 from .scratch_org_config import *  # noqa
 
-warn(
-    "Deprecation warning: Please import from .scratch_org_config rather than .ScratchOrgConfig"
-)
+warn_moved(".scratch_org_config", ".ScratchOrgConfig")
