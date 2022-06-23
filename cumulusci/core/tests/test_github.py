@@ -125,7 +125,9 @@ class TestGithub(GithubApiTestMixin):
         with mock.patch.dict(
             os.environ, {"GITHUB_APP_KEY": "bogus", "GITHUB_APP_ID": "1234"}
         ):
-            gh = get_github_api_for_repo(None, "TestOwner", "TestRepo")
+            gh = get_github_api_for_repo(
+                None, "https://github.com/SFDO-Tooling/CumulusCI"
+            )
             assert isinstance(gh.session.auth, AppInstallationTokenAuth)
 
     @responses.activate

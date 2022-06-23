@@ -27,9 +27,7 @@ class GitHubSource:
         self.repo_owner, self.repo_name = split_repo_url(self.url)
 
         try:
-            self.gh = get_github_api_for_repo(
-                project_config.keychain, self.repo_owner, self.repo_name
-            )
+            self.gh = get_github_api_for_repo(project_config.keychain, self.url)
             self.repo = self._get_repository(self.repo_owner, self.repo_name)
         except NotFoundError:
             raise DependencyResolutionError(
