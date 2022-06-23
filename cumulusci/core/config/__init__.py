@@ -47,6 +47,7 @@ class ServiceConfig(BaseConfig):
     login_url: str
     service_name: str
     name: str
+    repo_domain: str
 
     def __init__(self, config, name=None, keychain=None):
         """Services may need access to a keychain and the alias of their service."""

@@ -112,10 +112,13 @@ def get_github_api_for_repo(keychain, repo_url, session=None):
     elif GITHUB_TOKEN:
         gh.login(token=GITHUB_TOKEN)
     else:
-        github_config = keychain.get_service("github")
+        services = keychain.list_services()
+        for alias in services["github"]:
+            github_config = keychain.get_service("github", alias)
+            if url.startswith(github_config.repo_domain):
+                token = github_config.password or github_config.token
+                gh.login(github_config.username, token)
 
-        token = github_config.password or github_config.token
-        gh.login(github_config.username, token)
     return gh
 
 
