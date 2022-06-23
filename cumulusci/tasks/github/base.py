@@ -7,9 +7,7 @@ class BaseGithubTask(BaseTask):
         super()._init_task()
         self.github_config = self.project_config.keychain.get_service("github")
         self.github = get_github_api_for_repo(
-            self.project_config.keychain,
-            self.project_config.repo_owner,
-            self.project_config.repo_name,
+            self.project_config.keychain, self.project_config.repo_url
         )
 
     def get_repo(self):

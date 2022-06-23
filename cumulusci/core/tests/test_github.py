@@ -20,6 +20,7 @@ from requests.models import Response
 
 import cumulusci
 from cumulusci.core import github
+from cumulusci.core.config import BaseProjectConfig, ServiceConfig, UniversalConfig
 from cumulusci.core.exceptions import (
     DependencyLookupError,
     GithubApiError,
@@ -54,6 +55,7 @@ from cumulusci.core.github import (
     validate_service,
     warn_oauth_restricted,
 )
+from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 
@@ -125,9 +127,8 @@ class TestGithub(GithubApiTestMixin):
         with mock.patch.dict(
             os.environ, {"GITHUB_APP_KEY": "bogus", "GITHUB_APP_ID": "1234"}
         ):
-            gh = get_github_api_for_repo(
-                None, "https://github.com/SFDO-Tooling/CumulusCI"
-            )
+            # Must remove trailing "/" due to https://github.com/nephila/giturlparse/issues/43
+            gh = get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo")
             assert isinstance(gh.session.auth, AppInstallationTokenAuth)
 
     @responses.activate
@@ -143,14 +144,42 @@ class TestGithub(GithubApiTestMixin):
             os.environ, {"GITHUB_APP_KEY": "bogus", "GITHUB_APP_ID": "1234"}
         ):
             with pytest.raises(GithubException):
-                get_github_api_for_repo(None, "TestOwner", "TestRepo")
+                # Must remove trailing "/" due to https://github.com/nephila/giturlparse/issues/43
+                get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo")
 
     @responses.activate
     @mock.patch("cumulusci.core.github.GitHub")
     def test_get_github_api_for_repo__token(self, GitHub):
         with mock.patch.dict(os.environ, {"GITHUB_TOKEN": "token"}):
-            gh = get_github_api_for_repo(None, "TestOwner", "TestRepo")
+            # Must remove trailing "/" due to https://github.com/nephila/giturlparse/issues/43
+            gh = get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo")
         gh.login.assert_called_once_with(token="token")
+
+    @responses.activate
+    @mock.patch("cumulusci.core.github.GitHubEnterprise")
+    def test_get_github_api_for_repo__enterprise(self, GitHubEnterprise):
+        runtime = mock.Mock()
+        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
+        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+        runtime.keychain.set_service(
+            "github",
+            "ent",
+            ServiceConfig(
+                {
+                    "username": "testusername",
+                    "email": "test@domain.com",
+                    "token": "ATOKEN",
+                    "repo_domain": "https://git.enterprise.domain.com/",
+                }
+            ),
+        )
+
+        # Must remove trailing "/" due to https://github.com/nephila/giturlparse/issues/43
+        gh = get_github_api_for_repo(
+            runtime.keychain, "https://git.enterprise.domain.com/TestOwner/TestRepo"
+        )
+
+        gh.login.assert_called_once_with("testusername", "ATOKEN")
 
     @responses.activate
     def test_validate_service(self):
