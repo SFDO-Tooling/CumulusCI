@@ -307,8 +307,8 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
             Package = metadata_tree.parse(package_xml)
             for mdtype in (
                 "FeatureParameterInteger",
-                "FeatureParameterString",
                 "FeatureParameterBoolean",
+                "FeatureParameterDate",
             ):
                 section = Package.find("types", name=mdtype)
                 if section is not None:
