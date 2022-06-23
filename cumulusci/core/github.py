@@ -9,7 +9,7 @@ from typing import Callable, Optional, Union
 from urllib.parse import urlparse
 
 import github3
-from github3 import GitHub, login
+from github3 import GitHub, GitHubEnterprise, login
 from github3.exceptions import AuthenticationFailed, ResponseError, TransportError
 from github3.git import Reference, Tag
 from github3.pulls import ShortPullRequest
@@ -35,6 +35,7 @@ from cumulusci.oauth.client import (
     get_device_code,
     get_device_oauth_token,
 )
+from cumulusci.utils.git import parse_repo_url
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
@@ -70,11 +71,24 @@ def get_github_api(username=None, password=None):
 INSTALLATIONS = {}
 
 
-def get_github_api_for_repo(keychain, owner, repo, session=None):
-    gh = GitHub(
-        session=session
-        or GitHubSession(default_read_timeout=30, default_connect_timeout=30)
-    )
+def get_github_api_for_repo(keychain, repo_url, session=None):
+    repo_info = parse_repo_url(repo_url)
+    owner = repo_info["owner"]
+    repo = repo_info["name"]
+    url = repo_info["url"]
+
+    if "github.com" in url:
+        gh = GitHub(
+            session=session
+            or GitHubSession(default_read_timeout=30, default_connect_timeout=30)
+        )
+    else:
+        gh = GitHubEnterprise(
+            url=url,
+            session=session
+            or GitHubSession(default_read_timeout=30, default_connect_timeout=30),
+        )
+
     # Apply retry policy
     gh.session.mount("http://", adapter)
     gh.session.mount("https://", adapter)
@@ -99,6 +113,7 @@ def get_github_api_for_repo(keychain, owner, repo, session=None):
         gh.login(token=GITHUB_TOKEN)
     else:
         github_config = keychain.get_service("github")
+
         token = github_config.password or github_config.token
         gh.login(github_config.username, token)
     return gh
@@ -108,8 +123,19 @@ def validate_service(options: dict) -> dict:
     username = options["username"]
     token = options["token"]
     repo_domain = options["repo_domain"]
-    # Don't make the user wait 4 minutes to fail
-    gh = GitHub(token=token)
+
+    # For backwards compatability, set a default repo_domain
+    if not repo_domain:
+        repo_domain = "https://github.com/"
+
+    if repo_domain.startswith("https://github.com/"):
+        # Don't make the user wait 4 minutes to fail
+        gh = GitHub(token=token)
+    else:
+        # "verify=False" creates a warning, without it an SSL certificate error displays
+        gh = GitHubEnterprise(
+            username=username, token=token, url=repo_domain, verify=False
+        )
 
     try:
         authed_user = gh.me()
@@ -147,10 +173,6 @@ def validate_service(options: dict) -> dict:
         )
         if expiration_date:
             options["expires"] = expiration_date
-
-        # For backwards compatability, set a default repo_domain
-        if not repo_domain:
-            repo_domain = "https://github.com/"
 
     return options
 

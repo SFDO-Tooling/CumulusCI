@@ -4,6 +4,7 @@ python-dateutil
 docutils<0.17
 Faker
 fs
+giturlparse
 github3.py
 jinja2<3
 keyring<=23.0.1
