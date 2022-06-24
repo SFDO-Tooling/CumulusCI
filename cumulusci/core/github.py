@@ -1,11 +1,12 @@
-import functools
 import io
 import os
 import re
 import time
+import typing as T
 import webbrowser
+from contextlib import contextmanager
 from string import Template
-from typing import Callable, Optional, Union
+from typing import Optional, Union
 from urllib.parse import urlparse
 
 import github3
@@ -510,23 +511,16 @@ def get_oauth_scopes(response: Response) -> set:
     return authorized_scopes
 
 
-def catch_common_github_auth_errors(func: Callable) -> Callable:
-    """
-    A decorator catching the most common Github authentication errors.
-    """
-
-    @functools.wraps(func)
-    def inner(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except (ResponseError, TransportError) as exc:
-            error_msg = format_github3_exception(exc)
-            if error_msg:
-                raise GithubApiError(error_msg)
-            else:
-                raise
-
-    return inner
+@contextmanager
+def catch_common_github_auth_errors(context: T.Any):
+    try:
+        yield
+    except (ResponseError, TransportError) as exc:
+        error_msg = format_github3_exception(exc)
+        if error_msg:
+            raise GithubApiError(f"{context}\n{error_msg}")
+        else:
+            raise
 
 
 def get_oauth_device_flow_token():

@@ -30,7 +30,7 @@ from cumulusci.core.github import (
     SSO_WARNING,
     UNAUTHORIZED_WARNING,
     add_labels_to_pull_request,
-    catch_common_github_auth_errors,
+    catch_common_github_auth_errors_with_context,
     check_github_sso_auth,
     create_gist,
     create_pull_request,
@@ -520,25 +520,26 @@ class TestGithub(GithubApiTestMixin):
         resp.status_code = 403
         resp.headers["X-Github-Sso"] = "partial-results; organizations=0810298,20348880"
 
-        expected_err_msg = "Results may be incomplete. You have not granted your Personal Access token access to the following organizations: ['0810298', '20348880']"
+        expected_err_msg = "Test\nResults may be incomplete. You have not granted your Personal Access token access to the following organizations: ['0810298', '20348880']"
 
-        @catch_common_github_auth_errors
         def test_func():
-            raise ForbiddenError(resp)
+            with catch_common_github_auth_errors_with_context("Test"):
+                raise ForbiddenError(resp)
 
         with pytest.raises(GithubApiError) as exc:
             test_func()
-            actual_error_msg = exc.message
-            assert expected_err_msg == actual_error_msg
+
+        actual_error_msg = str(exc.value)
+        assert expected_err_msg == actual_error_msg, actual_error_msg
 
     def test_catch_common_decorator_ignores(self):
         resp = Response()
         resp.status_code = 401
 
-        @catch_common_github_auth_errors
         def test_func():
-            e = RequestException(response=resp)
-            raise TransportError(e)
+            with catch_common_github_auth_errors_with_context("Test"):
+                e = RequestException(response=resp)
+                raise TransportError(e)
 
         with pytest.raises(TransportError):
             test_func()
