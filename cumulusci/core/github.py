@@ -121,19 +121,23 @@ def get_github_api_for_repo(keychain, repo_url, session=None):
     elif GITHUB_TOKEN:
         gh.login(token=GITHUB_TOKEN)
     else:
-        services = keychain.list_services()
+
         # setup to use default for backwards compatability
         github_config = keychain.get_service("github")
-        for alias in services["github"]:
-            service_confing = keychain.get_service("github", alias)
 
-            # Setup default hithub.com domain
-            if service_confing.repo_domain is None:
-                service_confing.repo_domain = "https://github.com/"
+        github_services = keychain.list_services().get("github")
 
-            if url.startswith(service_confing.repo_domain):
-                github_config = service_confing
-                break
+        if github_services:
+            for alias in github_services:
+                service_confing = keychain.get_service("github", alias)
+
+                # Setup default github.com domain
+                if service_confing.repo_domain is None:
+                    service_confing.repo_domain = "https://github.com/"
+
+                if url.startswith(service_confing.repo_domain):
+                    github_config = service_confing
+                    break
 
         token = github_config.password or github_config.token
         gh.login(github_config.username, token)
@@ -144,11 +148,8 @@ def get_github_api_for_repo(keychain, repo_url, session=None):
 def validate_service(options: dict) -> dict:
     username = options["username"]
     token = options["token"]
-    repo_domain = options["repo_domain"]
-
     # For backwards compatability, set a default repo_domain
-    if not repo_domain:
-        repo_domain = "https://github.com/"
+    repo_domain = options.get("repo_domain", "https://github.com/")
 
     if repo_domain.startswith("https://github.com/"):
         # Don't make the user wait 4 minutes to fail

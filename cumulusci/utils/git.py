@@ -78,10 +78,14 @@ class UrlInfo(TypedDict):
 
 def parse_repo_url(url: str) -> UrlInfo:
     """Built to handle multiple formats ["https://github.com/owner/repo/","https://github.com/owner/repo.git","git@github.com:owner/repo.git"]"""
+
     # Prevent "AttributeError: 'GitUrlParsed' object has no attribute '_platform_obj'"
     url = url.rstrip("/")
-    parsed = giturlparse.parse(url)
+    # Fix invalid urls to prevent AttributeError
+    if "@" in url and not url.endswith(".git"):
+        url = url + ".git"
 
+    parsed = giturlparse.parse(url)
     repo_url = parsed.url2https
 
     # Drop the pathname to strip
