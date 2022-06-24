@@ -297,6 +297,24 @@ class TestGithub(GithubApiTestMixin):
         )
 
     @responses.activate
+    def test_create_gist_no_scope(self, gh_api):
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/gists",
+            status=403,
+        )
+
+        self.init_github()
+
+        description = "Test Gist Creation"
+        filename = "error_output.txt"
+        content = "Hello there gist!"
+        files = {filename: content}
+
+        with pytest.raises(GithubApiError, match="scopes: gist"):
+            create_gist(gh_api, description, files)
+
+    @responses.activate
     def test_get_tag_by_name(self, repo):
         self.init_github()
         responses.add(

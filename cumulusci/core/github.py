@@ -269,16 +269,6 @@ def find_previous_release(repo, prefix=None):
             return release
 
 
-def create_gist(github, description, files):
-    """Creates a gist with the given description and files.
-
-    github - an
-    description - str
-    files - A dict of files in the form of {filename:{'content': content},...}
-    """
-    return github.create_gist(description, files, public=False)
-
-
 VERSION_ID_RE = re.compile(r"version_id: (\S+)")
 
 
@@ -567,3 +557,14 @@ def get_oauth_device_flow_token():
         )
 
     return access_token
+
+
+@catch_common_github_auth_errors
+def create_gist(github, description, files):
+    """Creates a gist with the given description and files.
+
+    github - an
+    description - str
+    files - A dict of files in the form of {filename:{'content': content},...}
+    """
+    return github.create_gist(description, files, public=False)
