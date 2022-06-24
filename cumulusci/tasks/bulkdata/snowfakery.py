@@ -553,12 +553,17 @@ class Snowfakery(BaseSalesforceApiTask):
             "pid": "0",
             "big_ids": "True",
         }
+        # if it's efficient to do the whole load in one go, let's just do that.
+        if self.run_until.gap < MIN_PORTION_SIZE:
+            num_records = self.run_until.gap
+        else:
+            num_records = 1  # smallest possible batch to get to parallelizing fast
         results = self._generate_and_load_batch(
             template_dir,
             channel_decl.org_config,
             {
                 "generator_yaml": self.options.get("recipe"),
-                "num_records": 1,  # smallest possible batch to get to parallelizing fast
+                "num_records": num_records,
                 "num_records_tablename": self.run_until.sobject_name or COUNT_REPS,
                 "loading_rules": self.loading_rules,
                 "vars": channel_decl.merge_recipe_options(self.recipe_options),
@@ -575,7 +580,7 @@ class Snowfakery(BaseSalesforceApiTask):
                 self.run_until.sobject_name
             ]
         else:
-            self.sets_finished_while_generating_template = 1
+            self.sets_finished_while_generating_template = num_records
 
         new_template_dir = data_loader_new_directory_name(template_dir, self.run_until)
         shutil.move(template_dir, new_template_dir)
