@@ -1,0 +1,17 @@
+# Download these Opp fields plus all required fields
+- sf_object: Opportunity
+  fields:
+      - Name
+      - ContactId
+      - AccountId
+- sf_object: Contact # All Contact fields
+  fields:
+      - FIELDS(ALL)
+- sf_object: Account # All Account fields
+  fields:
+      - FIELDS(ALL)
+- sf_object: OBJECTS(CUSTOM) # All fields of all custom objects
+  fields:
+      - FIELDS(ALL)
+## Under the covers it generates a mapping file
+## The user never needs to see it.

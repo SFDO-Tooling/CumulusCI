@@ -3,7 +3,6 @@ import re
 from contextlib import contextmanager
 from pathlib import Path
 
-import yaml
 from sqlalchemy import Column, Integer, MetaData, Table, Unicode, create_engine
 from sqlalchemy.orm import create_session, mapper
 
@@ -31,8 +30,8 @@ from cumulusci.tasks.bulkdata.utils import (
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import log_progress
 
-from .generate_data_recipe_utils.extract_yml import ExtractRulesFile
-from .generate_data_recipe_utils.generate_mapping_from_declarations import (
+from .dataset_utils.extract_yml import ExtractRulesFile
+from .dataset_utils.generate_mapping_from_declarations import (
     create_extract_and_load_mapping_file_from_declarations,
 )
 
@@ -60,11 +59,11 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         "drop_missing_schema": {
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
         },
-        "extract_rules": {
-            "description": "A file containing declarations about what objects and fields "
-            "to download and what API to use. (optional)",
-            "required": False,
-        },
+        # "extract_rules": {
+        #     "description": "A file containing declarations about what objects and fields "
+        #     "to download and what API to use. (optional)",
+        #     "required": False,
+        # },
     }
 
     def _init_options(self, kwargs):
@@ -88,22 +87,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             assert not hasattr(self.options, "mapping")
 
     def _run_task(self):
-        self.extract_rules = self._read_extract_rules()
-
-        if self.extract_rules:
-            with get_org_schema(self.sf, self.org_config) as org_schema:
-                mapping_decls = create_extract_and_load_mapping_file_from_declarations(
-                    self.extract_rules, org_schema, self.sf
-                )
-                self.mapping = MappingSteps.parse_obj(
-                    mapping_decls, "generated mapping"
-                ).__root__
-                # HACK!!!
-                with open("/tmp/debug_mapping.yml", "w") as f:
-                    yaml.dump(mapping_decls, f, sort_keys=False)
-
-        else:
-            self.mapping = self._parse_mapping()
+        self._init_mapping()
 
         with self._init_db():
             for mapping in self.mapping.values():
@@ -122,6 +106,21 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 raise TaskOptionsError("Rules file does not exist")
 
             return ExtractRulesFile.parse_from_yaml(extract_rules_path)
+
+    def _init_mapping(self):
+        self.extract_rules = self._read_extract_rules()
+        if self.extract_rules:
+            self.mapping = self._mapping_from_extract_rules()
+        else:
+            self.mapping = self._parse_mapping()
+        self._validate_and_inject_mapping()
+
+    def _mapping_from_extract_rules(self):
+        with get_org_schema(self.sf, self.org_config) as org_schema:
+            mapping_decls = create_extract_and_load_mapping_file_from_declarations(
+                self.extract_rules, org_schema, self.sf
+            )
+            return MappingSteps.parse_obj(mapping_decls, "generated mapping").__root__
 
     @contextmanager
     def _init_db(self):
