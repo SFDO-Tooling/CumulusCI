@@ -78,12 +78,12 @@ def get_github_api(username=None, password=None):
 INSTALLATIONS = {}
 
 
-def _determine_github_client(host: str, session: GitHubSession) -> GitHub:
+def _determine_github_client(host: str, client_params: dict) -> GitHub:
 
     # also covers "api.github.com"
     is_github: bool = "github.com" in host
     client_cls: GitHub = GitHub if is_github else GitHubEnterprise  # type: ignore
-    params: dict = {"session": session}
+    params: dict = client_params
     if not is_github:
         params["url"] = "https://" + host  # type: ignore
         params["verify"] = False  # type: ignore
@@ -97,7 +97,10 @@ def get_github_api_for_repo(keychain, repo_url, session=None):
     repo: str = repo_info.repo
     gh: GitHub = _determine_github_client(
         repo_info.host,
-        session or GitHubSession(default_read_timeout=30, default_connect_timeout=30),
+        {
+            "session": session
+            or GitHubSession(default_read_timeout=30, default_connect_timeout=30)
+        },
     )
 
     # Apply retry policy
@@ -156,16 +159,8 @@ def validate_service(options: dict) -> dict:
     username = options["username"]
     token = options["token"]
     # For backwards compatability, set a default repo_domain
-    repo_domain = options.get("repo_domain", "https://github.com/")
-
-    if repo_domain.startswith("https://github.com/"):
-        # Don't make the user wait 4 minutes to fail
-        gh = GitHub(token=token)
-    else:
-        # "verify=False" creates a warning, without it an SSL certificate error displays
-        gh = GitHubEnterprise(
-            username=username, token=token, url=repo_domain, verify=False
-        )
+    repo_domain = options.get("repo_domain", "github.com")
+    gh = _determine_github_client(repo_domain, {"token": token})
 
     try:
         authed_user = gh.me()

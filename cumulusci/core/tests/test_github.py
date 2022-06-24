@@ -221,7 +221,7 @@ class TestGithub(GithubApiTestMixin):
         ],
     )
     def test_determine_github_client(self, domain, client):
-        client_result = _determine_github_client(domain, None)
+        client_result = _determine_github_client(domain, {})
         assert type(client_result) == client
 
     @responses.activate
