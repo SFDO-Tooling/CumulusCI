@@ -2,7 +2,6 @@ import pathlib
 from typing import Any, Optional, Tuple
 
 import giturlparse
-from typing_extensions import TypedDict
 
 
 def git_path(repo_root: str, tail: Any = None) -> Optional[pathlib.Path]:
@@ -69,38 +68,16 @@ def split_repo_url(url: str) -> Tuple[str, str]:
     return (owner, name)
 
 
-class UrlInfo(TypedDict):
-    url: str
-    name: str
-    owner: str
-    server: str
-
-
-def parse_repo_url(url: str) -> UrlInfo:
+def parse_repo_url(url: str) -> giturlparse.result.GitUrlParsed:
     """Built to handle multiple formats ["https://github.com/owner/repo/","https://github.com/owner/repo.git","git@github.com:owner/repo.git"]"""
-
+    # We have historically supported invalid GitHUb URIs, so we have to do some processing
+    # to make giturlparse play nicely
     # Prevent "AttributeError: 'GitUrlParsed' object has no attribute '_platform_obj'"
     url = url.rstrip("/")
-    # Fix invalid urls to prevent AttributeError
+    # Fix invalid urls for SSH formatted repo URI to prevent AttributeError
     if "@" in url and not url.endswith(".git"):
         url = url + ".git"
 
-    parsed = giturlparse.parse(url)
-    repo_url = parsed.url2https
+    parsed: giturlparse.result.GitUrlParsed = giturlparse.parse(url)
 
-    # Drop the pathname to strip
-    server = repo_url.replace(parsed.pathname, "")
-    # Strip .git from URLs
-    server = server.replace(".git", "")
-    if not server.endswith("/"):
-        # Finally restore trailing / for API connectivity
-        server = server + "/"
-    if repo_url.endswith(".git"):
-        repo_url = repo_url[: -len(".git")]
-
-    return {
-        "url": repo_url,
-        "owner": parsed.owner,
-        "name": parsed.repo,
-        "server": server,
-    }
+    return parsed

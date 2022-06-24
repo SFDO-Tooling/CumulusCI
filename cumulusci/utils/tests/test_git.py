@@ -1,3 +1,5 @@
+import pytest
+
 from cumulusci.utils.git import (
     construct_release_branch_name,
     get_release_identifier,
@@ -38,28 +40,14 @@ def test_split_repo_url():
     assert split_repo_url("git@alias:owner/repo") == ("owner", "repo")
 
 
-def test_parse_repo_url():
-    assert parse_repo_url("https://github.com/owner/repo/") == {
-        "url": "https://github.com/owner/repo",
-        "owner": "owner",
-        "name": "repo",
-        "server": "https://github.com/",
-    }
-    assert parse_repo_url("https://github.com/owner/repo.git") == {
-        "url": "https://github.com/owner/repo",
-        "owner": "owner",
-        "name": "repo",
-        "server": "https://github.com/",
-    }
-    assert parse_repo_url("git@github.com:owner/repo.git") == {
-        "url": "https://github.com/owner/repo",
-        "owner": "owner",
-        "name": "repo",
-        "server": "https://github.com/",
-    }
-    assert parse_repo_url("git@github.com:owner/repo") == {
-        "url": "https://github.com/owner/repo",
-        "owner": "owner",
-        "name": "repo",
-        "server": "https://github.com/",
-    }
+@pytest.mark.parametrize(
+    "repo_uri,owner",
+    [
+        ("https://github.com/owner/repo/", "owner"),
+        ("https://github.com/owner/repo.git", "owner"),
+        ("git@github.com:owner/repo.git", "owner"),
+        ("git@github.com:owner/repo", "owner"),
+    ],
+)
+def test_parse_repo_url(repo_uri, owner):
+    assert parse_repo_url(repo_uri).owner == owner
