@@ -528,6 +528,22 @@ class TestGithub(GithubApiTestMixin):
 
         with pytest.raises(GithubApiError) as exc:
             test_func()
+        actual_error_msg = str(exc.value)
+        assert expected_err_msg == actual_error_msg, actual_error_msg
+
+    def test_catch_common_decorator_tuple(self):
+        resp = Response()
+        resp.status_code = 403
+        resp.headers["X-Github-Sso"] = "partial-results; organizations=0810298,20348880"
+
+        expected_err_msg = "('SFDO-Tooling', 'ZomboCI')\nResults may be incomplete. You have not granted your Personal Access token access to the following organizations: ['0810298', '20348880']"
+
+        def test_func():
+            with catch_common_github_auth_errors(("SFDO-Tooling", "ZomboCI")):
+                raise ForbiddenError(resp)
+
+        with pytest.raises(GithubApiError) as exc:
+            test_func()
 
         actual_error_msg = str(exc.value)
         assert expected_err_msg == actual_error_msg, actual_error_msg
