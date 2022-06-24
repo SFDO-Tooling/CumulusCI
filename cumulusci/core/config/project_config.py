@@ -331,6 +331,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             return
 
         url_line = self.git_config_remote_origin_url()
+
         if url_line:
             return parse_repo_url(url_line)["owner"]
 
