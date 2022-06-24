@@ -330,8 +330,7 @@ class TestBaseProjectConfig:
             "branch": "feature/test",
             "commit": "HEAD~1",
             "root": ".",
-            "url": "https://github.com/SFDO-Tooling/CumulusCI-Test",
-            "server": "https://github.com/",
+            "url": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
         } == result
 
     def test_repo_info_missing_env(self):

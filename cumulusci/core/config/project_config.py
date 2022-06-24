@@ -35,7 +35,7 @@ from cumulusci.core.github import (
 from cumulusci.core.source import GitHubSource, LocalFolderSource, NullSource
 from cumulusci.core.utils import merge_config
 from cumulusci.utils.fileutils import open_fs_resource
-from cumulusci.utils.git import current_branch, git_path, parse_repo_url
+from cumulusci.utils.git import current_branch, git_path, parse_repo_url, split_repo_url
 from cumulusci.utils.yaml.cumulusci_yml import (
     GitHubSourceModel,
     LocalFolderSourceModel,
@@ -232,8 +232,9 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                     "CUMULUSCI_REPO_URL found, using its value as the repo url, owner, and name"
                 )
 
-            # {"url","name"}
-            url_info = parse_repo_url(repo_url)
+            url_info = {}
+            url_info["owner"], url_info["name"] = split_repo_url(repo_url)
+            url_info["url"] = repo_url
             info.update(url_info)
 
     def _override_repo_env_var(self, repo_env_var, local_var, info):
@@ -307,7 +308,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
         url_line = self.git_config_remote_origin_url()
         if url_line:
-            return parse_repo_url(url_line)["name"]
+            return parse_repo_url(url_line).name
 
     @property
     def repo_url(self):
@@ -333,7 +334,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         url_line = self.git_config_remote_origin_url()
 
         if url_line:
-            return parse_repo_url(url_line)["owner"]
+            return parse_repo_url(url_line).owner
 
     @property
     def repo_branch(self):
@@ -507,9 +508,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     @catch_common_github_auth_errors
     def get_repo_from_url(self, url):
         repo_info = parse_repo_url(url)
-        return self.get_github_api(repo_info["url"]).repository(
-            repo_info["owner"], repo_info["name"]
-        )
+        return self.get_github_api(url).repository(repo_info.owner, repo_info.name)
 
     def get_task(self, name):
         """Get a TaskConfig by task name

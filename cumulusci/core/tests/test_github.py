@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 import requests
 import responses
+from github3 import GitHub, GitHubEnterprise
 from github3.exceptions import (
     AuthenticationFailed,
     ConnectionError,
@@ -30,12 +31,14 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.github import (
     SSO_WARNING,
     UNAUTHORIZED_WARNING,
+    _determine_github_client,
     add_labels_to_pull_request,
     catch_common_github_auth_errors,
     check_github_sso_auth,
     create_gist,
     create_pull_request,
     format_github3_exception,
+    get_auth_from_service,
     get_commit,
     get_github_api,
     get_github_api_for_repo,
@@ -186,6 +189,40 @@ class TestGithub(GithubApiTestMixin):
         responses.add("GET", "https://api.github.com/user", status=401, headers={})
         with pytest.raises(GithubException):
             validate_service({"username": "BOGUS", "token": "BOGUS"})
+
+    @responses.activate
+    def test_get_auth_from_service(self):
+        runtime = mock.Mock()
+        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
+        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+        runtime.keychain.set_service(
+            "github",
+            "ent",
+            ServiceConfig(
+                {
+                    "username": "testusername",
+                    "email": "test@domain.com",
+                    "token": "ATOKEN",
+                    "repo_domain": "https://git.enterprise.domain.com/",
+                }
+            ),
+        )
+        assert get_auth_from_service("git.enterprise.domain.com", runtime.keychain) == (
+            "testusername",
+            "ATOKEN",
+        )
+
+    @pytest.mark.parametrize(
+        "domain,client",
+        [
+            ("github.com", GitHub),
+            ("api.github.com", GitHub),
+            ("git.enterprise.domain.com", GitHubEnterprise),
+        ],
+    )
+    def test_determine_github_client(self, domain, client):
+        client_result = _determine_github_client(domain, None)
+        assert type(client_result) == client
 
     @responses.activate
     def test_get_pull_requests_by_head(self, mock_util, repo):
