@@ -21,6 +21,7 @@ from cumulusci.core.config import (
 from cumulusci.core.config.marketing_cloud_service_config import (
     MarketingCloudServiceConfig,
 )
+from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 from cumulusci.core.exceptions import (
     ConfigError,
     CumulusCIException,
@@ -923,6 +924,8 @@ class TestEncryptedFileProjectKeychain:
             None, [{"scratch": "scratch org"}, "org_name"]
         )
         assert isinstance(result, ScratchOrgConfig)
+        result = keychain._construct_config(None, [{"sfdx": True}, "org_name"])
+        assert isinstance(result, SfdxOrgConfig)
 
     def test_new_service_type_creates_expected_directory(
         self, keychain, service_config
