@@ -39,18 +39,27 @@ def test_split_repo_url():
 
 
 def test_parse_repo_url():
-    assert parse_repo_url("https://github.com/owner/repo") == {
+    # assert parse_repo_url("https://github.com/owner/repo/") == {
+    #     "url": "https://github.com/owner/repo",
+    #     "owner": "owner",
+    #     "name": "repo",
+    #     "server": "https://github.com/",
+    # }
+    # assert parse_repo_url("https://github.com/owner/repo.git") == {
+    #     "url": "https://github.com/owner/repo",
+    #     "owner": "owner",
+    #     "name": "repo",
+    #     "server": "https://github.com/",
+    # }
+    # assert parse_repo_url("git@github.com:owner/repo.git") == {
+    #     "url": "https://github.com/owner/repo",
+    #     "owner": "owner",
+    #     "name": "repo",
+    #     "server": "https://github.com/",
+    # }
+    assert parse_repo_url("git@github.com:owner/repo") == {
         "url": "https://github.com/owner/repo",
         "owner": "owner",
         "name": "repo",
-    }
-    assert parse_repo_url("https://github.com/owner/repo.git") == {
-        "url": "https://github.com/owner/repo",
-        "owner": "owner",
-        "name": "repo",
-    }
-    assert parse_repo_url("git@github.com:owner/repo.git") == {
-        "url": "https://github.com/owner/repo",
-        "owner": "owner",
-        "name": "repo",
+        "server": "https://github.com/",
     }

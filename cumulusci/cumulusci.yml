@@ -1314,7 +1314,6 @@ services:
                 required: True
             repo_domain:
                 description: Set if using GitHub Enterprise. Defaults to github.com
-                required: True
                 default: https://github.com/
             token:
                 description: Personal Access Token for GitHub. Leave blank to log in via browser.
