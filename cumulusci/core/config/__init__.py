@@ -5,25 +5,49 @@ FAILED_TO_CREATE_SCRATCH_ORG = "Failed to create scratch org"
 
 from cumulusci.core.config.base_config import BaseConfig
 
-# inherit from BaseConfig
-
 
 class ConnectedAppOAuthConfig(BaseConfig):
     """Salesforce Connected App OAuth configuration"""
 
-    pass
+    client_id: str
+    client_secret: str
+    login_url: str
+    callback_url: str
 
 
 class FlowConfig(BaseConfig):
     """A flow with its configuration merged"""
 
-    pass
+    description: str
+    steps: dict
+    group: str
+    checks: list
+    project_config: "BaseProjectConfig"
+    title: str
+    slug: str
+    tier: str
+    preflight_message: str
+    error_message: str
+    tasks: dict  # deprecated
 
 
 from cumulusci.core.config.org_config import OrgConfig
 
 
 class ServiceConfig(BaseConfig):
+    url: str
+    username: str
+    password: str
+    token: str
+    email: str
+    client_id: str
+    client_secret: str
+    token_uri: str
+    callback_url: str
+    login_url: str
+    service_name: str
+    name: str
+
     def __init__(self, config, name=None, keychain=None):
         """Services may need access to a keychain and the alias of their service."""
         super().__init__(config, keychain)
@@ -31,6 +55,15 @@ class ServiceConfig(BaseConfig):
 
 class TaskConfig(BaseConfig):
     """A task with its configuration merged"""
+
+    options: dict
+    class_path: str
+    description: str
+    group: str
+    ui_options: dict
+    name: str
+    checks: list
+    project_config: "BaseProjectConfig"
 
     pass
 

@@ -6,6 +6,7 @@ from cumulusci.core.config import (
     ServiceConfig,
     UniversalConfig,
 )
+from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
 
 
 @pytest.fixture()
@@ -29,6 +30,11 @@ def project_config():
 @pytest.fixture
 def org_config():
     return OrgConfig({"foo": "bar"}, "test")
+
+
+@pytest.fixture
+def scratch_org_config():
+    return ScratchOrgConfig({"foo": "bar"}, "test")
 
 
 @pytest.fixture

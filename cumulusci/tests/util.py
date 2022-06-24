@@ -22,7 +22,7 @@ from cumulusci.core.config import (
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 
-CURRENT_SF_API_VERSION = "54.0"
+CURRENT_SF_API_VERSION = "55.0"
 from cumulusci.tasks.bulkdata.tests.utils import FakeBulkAPI
 
 
@@ -106,7 +106,7 @@ class DummyService(BaseConfig):
 
     def __init__(self, name, alias):
         self.name = name
-        super().__init__(name)
+        super().__init__()
 
 
 class DummyKeychain(BaseProjectKeychain):

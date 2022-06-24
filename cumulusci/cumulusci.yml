@@ -959,6 +959,16 @@ flows:
                 flow: config_qa
             3:
                 task: snapshot_changes
+    qa_org_unlocked:
+        group: Org Setup
+        description: Set up an org as a QA environment using an unlocked package
+        steps:
+            1:
+                flow: install_unlocked_commit
+            2:
+                flow: config_qa
+            3:
+                task: snapshot_changes
     regression_org:
         group: Org Setup
         description: Simulates an org that has been upgraded from the latest release of to the current beta and its dependencies, but deploys any unmanaged metadata from the current beta.
@@ -990,6 +1000,24 @@ flows:
                 options:
                     update_dependencies:
                         resolution_strategy: commit_status
+                        dependencies: ^^github_package_data.dependencies
+            3:
+                task: install_managed
+                options:
+                    version: ^^github_package_data.version_id
+    install_unlocked_commit:
+        group: Install / Uninstall
+        description: Install the unlocked package for the current commit
+        steps:
+            1:
+                task: github_package_data
+                options:
+                    context: $project_config.project__git__unlocked_context
+            2:
+                flow: dependencies
+                options:
+                    update_dependencies:
+                        resolution_strategy: unlocked
                         dependencies: ^^github_package_data.dependencies
             3:
                 task: install_managed
@@ -1218,6 +1246,28 @@ flows:
                     version_type: minor
                     skip_validation: True
                     resolution_strategy: commit_status
+    build_unlocked_test_package:
+        group: Release Operations
+        description: Create an Unlocked package version
+        steps:
+            1:
+                task: update_package_xml
+                when: project_config.project__source_format != "sfdx"
+            2:
+                task: create_package_version
+                options:
+                    package_type: Unlocked
+                    package_name: $project_config.project__package__name Unlocked Feature Test
+                    version_type: minor
+                    resolution_strategy: unlocked
+                    org_dependent: True
+                    force_upload: True
+                    post_install_script: null
+                    uninstall_script: null
+            3:
+                task: promote_package_version
+                options:
+                    version_id: ^^create_package_version.subscriber_package_version_id
     unmanaged_ee:
         group: Deployment
         description: Deploy the unmanaged package metadata and all dependencies to the target EE org
@@ -1321,7 +1371,7 @@ project:
         namespace:
         install_class:
         uninstall_class:
-        api_version: "54.0"
+        api_version: "55.0"
     git:
         default_branch: master
         prefix_feature: feature/
@@ -1330,6 +1380,7 @@ project:
         push_prefix_sandbox: "Sandbox orgs: "
         push_prefix_production: "Production orgs: "
         2gp_context: "Build Feature Test Package"
+        unlocked_context: "Build Unlocked Test Package"
         release_notes:
             parsers:
                 1:
@@ -1356,6 +1407,10 @@ project:
         preproduction: latest_release
         production: latest_release
         resolution_strategies:
+            unlocked:
+                - unlocked_exact_branch
+                - unlocked_release_branch
+                - unlocked_previous_release_branch
             commit_status:
                 - tag
                 - commit_status_exact_branch

@@ -24,7 +24,9 @@ tags
 .coverage
 .coverage.*
 .python-version
-*selenium-screenshot-*
+robot/CumulusCI/results/
+*.webm
+playwright-log.txt
 log.html
 report.html
 output.xml
@@ -43,3 +45,4 @@ pabot_results/
 .pabotsuitenames
 large_cassettes/
 github_release_notes.html
+tmp

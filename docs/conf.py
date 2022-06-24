@@ -45,13 +45,20 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
+    "myst_parser"  # ,
+    #    "recommonmark"
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = ".rst"
+# source_suffix = ".md" #".rst"
+source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
+
+# Auto-generate anchors for headings
+# myst_heading_anchors = 3
+
 
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
@@ -68,7 +75,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "CumulusCI"
-copyright = "2021, Salesforce.org"
+copyright = "2022, Salesforce.org"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout

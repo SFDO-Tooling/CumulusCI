@@ -12,7 +12,7 @@ env:
 jobs:
     org_backed_tests:
         name: "Org-connected Tests"
-        runs-on: ubuntu-latest
+        runs-on: sfdc-ubuntu-latest
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python 3.8
@@ -24,7 +24,7 @@ jobs:
             - name: Install Python dependencies
               run: |
                   python -m pip install -U pip
-                  make dev-install
+                  pip install -r requirements_dev.txt
             - name: Install sfdx
               run: |
                   mkdir sfdx

@@ -109,6 +109,7 @@ class Git(CCIDictModel):
     push_prefix_production: str = None
     release_notes: ReleaseNotes = None
     two_gp_context: str = Field(None, alias="2gp_context")
+    unlocked_context: Optional[str] = None
 
 
 class Plan(CCIDictModel):  # MetaDeploy plans
@@ -122,6 +123,7 @@ class Plan(CCIDictModel):  # MetaDeploy plans
     error_message: str = None
     post_install_message: str = None
     preflight_message: str = None
+    allowed_org_providers: List[Literal["devhub", "user"]] = ["user"]
 
 
 class DependencyResolutions(CCIDictModel):
@@ -138,6 +140,7 @@ class Project(CCIDictModel):
     dependencies: List[Dict[str, str]] = None  # TODO
     dependency_resolutions: DependencyResolutions = None
     source_format: Literal["sfdx", "mdapi"] = "mdapi"
+    custom: Dict = None
 
 
 class ScratchOrg(CCIDictModel):
@@ -273,7 +276,10 @@ def _log_yaml_errors(logger, errors: List[ErrorDict]):
         logger.warning("  %s\n    %s", loc, error["msg"])
     if not has_shown_yaml_error_message:
         logger.error(
-            "NOTE: These warnings may become errors in future versions of CumulusCI."
+            "NOTE: These warnings will become errors on Sept 30, 2022.\n\n"
+            "If you need to put non-standard data in your CumulusCI file "
+            "(for some form of project-specific setting), put it in "
+            "the `project: custom:` section of `cumulusci.yml` ."
         )
         logger.error(
             "If you think your YAML has no error, please report the bug to the CumulusCI team."

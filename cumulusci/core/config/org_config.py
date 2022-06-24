@@ -2,6 +2,7 @@ import os
 import re
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
+from datetime import date, datetime
 from distutils.version import StrictVersion
 from urllib.parse import urlparse
 
@@ -17,6 +18,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
 from cumulusci.oauth.salesforce import SANDBOX_LOGIN_URL, jwt_session
+from cumulusci.utils import parse_api_datetime
 from cumulusci.utils.fileutils import open_fs_resource
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
@@ -30,6 +32,39 @@ VersionInfo = namedtuple("VersionInfo", ["id", "number"])
 
 class OrgConfig(BaseConfig):
     """Salesforce org configuration (i.e. org credentials)"""
+
+    access_token: str
+    config_file: str
+    config_name: str
+    created: bool
+    date_created: (datetime, date)  # type: ignore
+    days: int
+    email_address: str
+    instance_name: str
+    instance_url: str
+    expires: str  # TODO: note that ScratchOrgConfig has a bool method of same name
+    expired: bool  # ditto
+    is_sandbox: bool
+    namespace: str
+    namespaced: bool
+    org_id: str
+    org_type: str
+    password: str
+    scratch: bool
+    scratch_org_type: str
+    set_password: bool
+    sfdx_alias: str
+    username: str
+    userinfo: str
+    id: str
+    active: bool
+    default: bool
+    client_id: str
+    refresh_token: str
+    client_secret: str
+    connected_app: str
+
+    createable: bool = None
 
     # make sure it can be mocked for tests
     OAuth2Client = OAuth2Client
@@ -48,7 +83,7 @@ class OrgConfig(BaseConfig):
 
         super().__init__(config)
 
-    def refresh_oauth_token(self, keychain, connected_app=None):
+    def refresh_oauth_token(self, keychain, connected_app=None, is_sandbox=False):
         """Get a fresh access token and store it in the org config.
 
         If the SFDX_CLIENT_ID and SFDX_HUB_KEY environment variables are set,
@@ -70,6 +105,7 @@ class OrgConfig(BaseConfig):
                     self.username,
                     self.instance_url,
                     auth_url=auth_url,
+                    is_sandbox=is_sandbox,
                 )
             else:
                 info = self._refresh_token(keychain, connected_app)
@@ -128,6 +164,8 @@ class OrgConfig(BaseConfig):
 
     @property
     def salesforce_client(self):
+        """Return a simple_salesforce.Salesforce instance authorized to this org.
+        Does not perform a token refresh."""
         return Salesforce(
             instance=self.instance_url.replace("https://", ""),
             session_id=self.access_token,
@@ -153,6 +191,7 @@ class OrgConfig(BaseConfig):
 
     @property
     def start_url(self):
+        """The frontdoor URL that results in an instant login"""
         start_url = "%s/secur/frontdoor.jsp?sid=%s" % (
             self.instance_url,
             self.access_token,
@@ -191,6 +230,7 @@ class OrgConfig(BaseConfig):
         return False
 
     def _load_orginfo(self):
+        """Query the Organization sObject and populate local config values from the result."""
         self._org_sobject = self.salesforce_client.Organization.get(self.org_id)
 
         result = {
@@ -201,8 +241,19 @@ class OrgConfig(BaseConfig):
         }
         self.config.update(result)
 
+    def populate_expiration_date(self):
+        if not self.organization_sobject:
+            self._load_orginfo()
+        if self.organization_sobject["TrialExpirationDate"] is None:
+            self.config["expires"] = "Persistent"
+        else:
+            self.config["expires"] = parse_api_datetime(
+                self.organization_sobject["TrialExpirationDate"]
+            ).date()
+
     @property
     def organization_sobject(self):
+        """Cached copy of Organization sObject. Does not perform API call."""
         return self._org_sobject
 
     def _fetch_community_info(self):
@@ -494,6 +545,13 @@ class OrgConfig(BaseConfig):
         except SalesforceResourceNotFound:
             # DatedConversionRate Sobject is not exposed meaning Multiple Currencies is not enabled.
             return False
+
+    @property
+    def is_survey_advanced_features_enabled(self) -> bool:
+        return any(
+            f["name"] == "PermissionsAllowSurveyAdvancedFeatures"
+            for f in self.salesforce_client.PermissionSet.describe()["fields"]
+        )
 
     def resolve_04t_dependencies(self, dependencies):
         """Look up 04t SubscriberPackageVersion ids for 1GP project dependencies"""

@@ -10,6 +10,7 @@ from rich.console import Console
 
 from cumulusci.cli.ui import CliTable, SimpleSalesforceUIHelpers
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig
+from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.oauth.client import (
     PROD_LOGIN_URL,
@@ -20,7 +21,7 @@ from cumulusci.oauth.client import (
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import parse_api_datetime
 
-from .runtime import pass_runtime
+from .runtime import CliRuntime, pass_runtime
 
 
 @click.group("org", help="Commands for connecting and interacting with Salesforce orgs")
@@ -152,13 +153,7 @@ def connect_org_to_keychain(
     org_config = OrgConfig(oauth_dict, org_name, runtime.keychain, global_org)
     org_config.config["connected_app"] = connected_app
     org_config.load_userinfo()
-    org_config._load_orginfo()
-    if org_config.organization_sobject["TrialExpirationDate"] is None:
-        org_config.config["expires"] = "Persistent"
-    else:
-        org_config.config["expires"] = parse_api_datetime(
-            org_config.organization_sobject["TrialExpirationDate"]
-        ).date()
+    org_config.populate_expiration_date()
 
     org_config.save()
 
@@ -240,32 +235,56 @@ def org_default(runtime, org_name, unset):
             click.echo("There is no default org")
 
 
-@org.command(name="import", help="Import a scratch org from Salesforce DX")
+@org.command(name="import", help="Import an org from Salesforce DX")
 @click.argument("username_or_alias")
 @orgname_option_or_argument(required=True)
 @pass_runtime(require_keychain=True)
-def org_import(runtime, username_or_alias, org_name):
-    org_config = {"username": username_or_alias}
-    scratch_org_config = ScratchOrgConfig(
-        org_config, org_name, runtime.keychain, global_org=False
+def org_import(runtime: CliRuntime, username_or_alias: str, org_name: str):
+    # Import the org from the SFDX keychain as an SfdxOrgConfig
+    # The `sfdx` key ensures we can reload using the right class.
+    org_config = SfdxOrgConfig(
+        {"username": username_or_alias, "sfdx": True},
+        org_name,
+        runtime.keychain,
+        global_org=False,
     )
-    scratch_org_config.config["created"] = True
 
-    info = scratch_org_config.sfdx_info
-    if not info.get("created_date"):
-        raise click.UsageError(
-            "cci org import only works for locally created "
-            "scratch orgs.\nUse `cci org connect` for other orgs."
-        )
-    scratch_org_config.config["days"] = calculate_org_days(info)
-    scratch_org_config.config["date_created"] = parse_api_datetime(info["created_date"])
+    # Determine if we received a locally-created scratch org
+    # or some other org (which we'll treat as persistent)
 
-    scratch_org_config.save()
-    click.echo(
-        "Imported scratch org: {org_id}, username: {username}".format(
-            **scratch_org_config.sfdx_info
+    info = org_config.sfdx_info
+    if info.get("created_date"):
+        # This is a locally-created scratch org.
+        # Re-import accordingly.
+        org_config = ScratchOrgConfig(
+            {"username": username_or_alias},
+            org_name,
+            runtime.keychain,
+            global_org=False,
         )
-    )
+        org_config._sfdx_info = info
+        # Set `created` so we don't try to rebuild it.
+        org_config.config["created"] = True
+
+        org_config.config["days"] = calculate_org_days(info)
+        org_config.config["date_created"] = parse_api_datetime(info["created_date"])
+
+        org_config.save()
+        click.echo(
+            "Imported scratch org: {org_id}, username: {username}".format(
+                **org_config.sfdx_info
+            )
+        )
+    else:
+        # This is either a persistent org or a scratch org imported into the
+        # sfdx keychain via OAuth login.
+        org_config.populate_expiration_date()
+        org_config.save()
+        click.echo(
+            "Imported org: {org_id}, username: {username}".format(
+                **org_config.sfdx_info
+            )
+        )
 
 
 def calculate_org_days(info):
@@ -446,7 +465,7 @@ def _format_scratch_org_data(org_config):
 @pass_runtime(require_project=True, require_keychain=True)
 def org_prune(runtime, include_active=False):
 
-    predefined_scratch_configs = getattr(runtime.project_config, "orgs__scratch", {})
+    predefined_scratch_configs = runtime.project_config.lookup("orgs__scratch", {})
 
     expired_orgs_removed = []
     active_orgs_removed = []
@@ -546,7 +565,7 @@ def org_remove(runtime, org_name, global_org):
 def org_scratch(runtime, config_name, org_name, default, devhub, days, no_password):
     runtime.check_org_overwrite(org_name)
 
-    scratch_configs = getattr(runtime.project_config, "orgs__scratch")
+    scratch_configs = runtime.project_config.lookup("orgs__scratch")
     if not scratch_configs:
         raise click.UsageError("No scratch org configs found in cumulusci.yml")
     scratch_config = scratch_configs.get(config_name)

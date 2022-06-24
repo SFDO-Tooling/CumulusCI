@@ -107,7 +107,7 @@ class StaticDependency(Dependency, abc.ABC):
     are already both resolved and flattened)."""
 
     @abc.abstractmethod
-    def install(self, org_config: OrgConfig, retry_options: dict = None):
+    def install(self, org_config: OrgConfig, retry_options: Optional[dict] = None):
         pass
 
     @property
@@ -123,8 +123,8 @@ class DynamicDependency(Dependency, abc.ABC):
     """Abstract base class for dependencies with dynamic references, like GitHub.
     These dependencies must be resolved and flattened before they can be installed."""
 
-    package_dependency: Optional[StaticDependency]
-    password_env_name: Optional[str]
+    package_dependency: Optional[StaticDependency] = None
+    password_env_name: Optional[str] = None
 
     @property
     def is_flattened(self):
@@ -141,13 +141,13 @@ class DynamicDependency(Dependency, abc.ABC):
 class BaseGitHubDependency(DynamicDependency, abc.ABC):
     """Base class for dynamic dependencies that reference a GitHub repo."""
 
-    github: Optional[AnyUrl]
+    github: Optional[AnyUrl] = None
 
-    repo_owner: Optional[str]  # Deprecated - use full URL
-    repo_name: Optional[str]  # Deprecated - use full URL
+    repo_owner: Optional[str] = None  # Deprecated - use full URL
+    repo_name: Optional[str] = None  # Deprecated - use full URL
 
-    tag: Optional[str]
-    ref: Optional[str]
+    tag: Optional[str] = None
+    ref: Optional[str] = None
 
     @property
     @abc.abstractmethod
@@ -182,8 +182,8 @@ class GitHubDynamicSubfolderDependency(BaseGitHubDependency):
     to be resolved to a specific ref. This is always an unmanaged dependency."""
 
     subfolder: str
-    namespace_inject: Optional[str]
-    namespace_strip: Optional[str]
+    namespace_inject: Optional[str] = None
+    namespace_strip: Optional[str] = None
 
     @property
     def is_unmanaged(self):
@@ -222,9 +222,9 @@ class GitHubDynamicDependency(BaseGitHubDependency):
     to be resolved to a specific ref and/or package version."""
 
     unmanaged: bool = False
-    namespace_inject: Optional[str]
-    namespace_strip: Optional[str]
-    password_env_name: Optional[str]
+    namespace_inject: Optional[str] = None
+    namespace_strip: Optional[str] = None
+    password_env_name: Optional[str] = None
 
     skip: List[str] = []
 
@@ -374,10 +374,10 @@ class PackageNamespaceVersionDependency(StaticDependency):
 
     namespace: str
     version: str
-    package_name: Optional[str]
-    version_id: Optional[str]
+    package_name: Optional[str] = None
+    version_id: Optional[str] = None
 
-    password_env_name: Optional[str]
+    password_env_name: Optional[str] = None
 
     @property
     def package(self):
@@ -387,7 +387,7 @@ class PackageNamespaceVersionDependency(StaticDependency):
         self,
         context: BaseProjectConfig,
         org: OrgConfig,
-        options: PackageInstallOptions = None,
+        options: Optional[PackageInstallOptions] = None,
         retry_options=None,
     ):
         if not options:
@@ -436,10 +436,10 @@ class PackageVersionIdDependency(StaticDependency):
     """Static dependency on a package identified by 04t version id."""
 
     version_id: str
-    package_name: Optional[str]
-    version_number: Optional[str]
+    package_name: Optional[str] = None
+    version_number: Optional[str] = None
 
-    password_env_name: Optional[str]
+    password_env_name: Optional[str] = None
 
     @property
     def package(self):
@@ -449,7 +449,7 @@ class PackageVersionIdDependency(StaticDependency):
         self,
         context: BaseProjectConfig,
         org: OrgConfig,
-        options: PackageInstallOptions = None,
+        options: Optional[PackageInstallOptions] = None,
         retry_options=None,
     ):
         if not options:
@@ -489,10 +489,10 @@ class PackageVersionIdDependency(StaticDependency):
 class UnmanagedDependency(StaticDependency, abc.ABC):
     """Abstract base class for static, unmanaged dependencies."""
 
-    unmanaged: Optional[bool]
-    subfolder: Optional[str]
-    namespace_inject: Optional[str]
-    namespace_strip: Optional[str]
+    unmanaged: Optional[bool] = None
+    subfolder: Optional[str] = None
+    namespace_inject: Optional[str] = None
+    namespace_strip: Optional[str] = None
 
     def _get_unmanaged(self, org: OrgConfig):
         if self.unmanaged is None:
@@ -585,11 +585,11 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
 class UnmanagedGitHubRefDependency(UnmanagedDependency):
     """Static dependency on unmanaged metadata in a specific GitHub ref and subfolder."""
 
-    repo_owner: Optional[str]
-    repo_name: Optional[str]
+    repo_owner: Optional[str] = None
+    repo_name: Optional[str] = None
 
     # or
-    github: Optional[AnyUrl]
+    github: Optional[AnyUrl] = None
 
     # and
     ref: str

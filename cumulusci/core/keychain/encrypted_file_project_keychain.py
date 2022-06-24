@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CBC
 
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig, ServiceConfig
+from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 from cumulusci.core.exceptions import (
     ConfigError,
     CumulusCIException,
@@ -25,6 +26,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
 from cumulusci.core.utils import import_class, import_global
+from cumulusci.utils.yaml.cumulusci_yml import ScratchOrg
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
 
@@ -148,8 +150,11 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         return self._construct_config(config_class, args)
 
     def _construct_config(self, config_class, args):
-        if args[0].get("scratch"):
+        config = args[0]
+        if config.get("scratch"):
             config_class = scratch_org_factory
+        elif config.get("sfdx"):
+            config_class = SfdxOrgConfig
 
         return config_class(*args)
 
@@ -308,18 +313,18 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         with open(fd, "wb") as f:
             f.write(org_bytes)
 
-    def _get_org(self, name):
+    def _get_org(self, org_name: str) -> ScratchOrgConfig:
         try:
-            config = self.orgs[name].data
-            global_org = self.orgs[name].global_org
+            config = self.orgs[org_name].data
+            global_org = self.orgs[org_name].global_org
         except KeyError:
-            raise OrgNotFound(f"Org with name '{name}' does not exist.")
+            raise OrgNotFound(f"Org with name '{org_name}' does not exist.")
 
         try:
-            org = self._config_from_bytes(config, name)
+            org = self._config_from_bytes(config, org_name)
         except Exception as e:
             try:
-                filename = self.orgs[name].filename
+                filename = self.orgs[org_name].filename
             except Exception:  # pragma: no cover
                 filename = None
             if not filename:
@@ -333,7 +338,25 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 "The org can be connected or imported again to replace the corrupted config."
             )
         org.global_org = global_org
+
+        if isinstance(org, ScratchOrgConfig):
+            self._merge_config_from_yml(org)
+
         return org
+
+    def _merge_config_from_yml(self, scratch_config: ScratchOrgConfig):
+        """Merges any values configurable via cumulusci.yml
+        into the scratch org config that is loaded from file."""
+
+        configurable_attributes = list(ScratchOrg.schema()["properties"].keys())
+        for attr in configurable_attributes:
+            try:
+                value_from_yml = self.project_config.config["orgs"]["scratch"][
+                    scratch_config.name
+                ][attr]
+                scratch_config.config[attr] = value_from_yml
+            except KeyError:
+                pass
 
     def _config_from_bytes(self, config, name):
         if self.key:

@@ -21,6 +21,7 @@ from cumulusci.core.config import (
 from cumulusci.core.config.marketing_cloud_service_config import (
     MarketingCloudServiceConfig,
 )
+from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 from cumulusci.core.exceptions import (
     ConfigError,
     CumulusCIException,
@@ -78,6 +79,24 @@ class TestEncryptedFileProjectKeychain:
         keychain.set_org(org_config, True)
         assert list(keychain.orgs.keys()) == ["test"]
         assert keychain.get_org("test").config == org_config.config
+
+    def test_get_org__with_config_properly_overridden(
+        self, keychain, scratch_org_config
+    ):
+        days = 16
+        config_file = "./foo/bar/baz"
+        scratch_org_config.global_org = True
+        # the orgs encrypted file has the default value for days and config_file
+        keychain.set_org(scratch_org_config, True)
+        # but this particular scratch org has days and config_file specified via cumulusci.yml
+        keychain.project_config.config = {
+            "orgs": {"scratch": {"test": {"days": days, "config_file": config_file}}}
+        }
+        org = keychain.get_org("test")
+
+        # ensure what is configured in cumulusci.yml is what is loaded into the config
+        assert org.config["days"] == days
+        assert org.config["config_file"] == config_file
 
     def test_get_org__not_found(self, keychain):
         org_name = "mythical"
@@ -905,6 +924,8 @@ class TestEncryptedFileProjectKeychain:
             None, [{"scratch": "scratch org"}, "org_name"]
         )
         assert isinstance(result, ScratchOrgConfig)
+        result = keychain._construct_config(None, [{"sfdx": True}, "org_name"])
+        assert isinstance(result, SfdxOrgConfig)
 
     def test_new_service_type_creates_expected_directory(
         self, keychain, service_config

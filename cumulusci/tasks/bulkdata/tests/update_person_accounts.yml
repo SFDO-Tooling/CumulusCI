@@ -1,0 +1,23 @@
+Update Account:
+    sf_object: Account
+    table: Account
+    fields:
+        FirstName: FirstName
+        LastName: LastName
+        PersonMailingStreet: PersonMailingStreet
+        PersonMailingCity: PersonMailingCity
+        PersonMailingState: PersonMailingState
+        PersonMailingCountry: PersonMailingCountry
+        PersonMailingPostalCode: PersonMailingPostalCode
+        PersonEmail: PersonEmail
+        Phone: Phone
+        PersonMobilePhone: PersonMobilePhone
+Insert PersonContact:
+    sf_object: Contact
+    table: PersonContact
+    fields:
+        IsPersonAccount: IsPersonAccount
+    lookups:
+        AccountId:
+            table: Account
+            key_field: AccountId
