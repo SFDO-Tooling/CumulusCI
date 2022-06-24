@@ -30,7 +30,7 @@ from cumulusci.core.github import (
     SSO_WARNING,
     UNAUTHORIZED_WARNING,
     add_labels_to_pull_request,
-    catch_common_github_auth_errors_with_context,
+    catch_common_github_auth_errors,
     check_github_sso_auth,
     create_gist,
     create_pull_request,
@@ -523,7 +523,7 @@ class TestGithub(GithubApiTestMixin):
         expected_err_msg = "Test\nResults may be incomplete. You have not granted your Personal Access token access to the following organizations: ['0810298', '20348880']"
 
         def test_func():
-            with catch_common_github_auth_errors_with_context("Test"):
+            with catch_common_github_auth_errors("Test"):
                 raise ForbiddenError(resp)
 
         with pytest.raises(GithubApiError) as exc:
@@ -537,7 +537,7 @@ class TestGithub(GithubApiTestMixin):
         resp.status_code = 401
 
         def test_func():
-            with catch_common_github_auth_errors_with_context("Test"):
+            with catch_common_github_auth_errors("Test"):
                 e = RequestException(response=resp)
                 raise TransportError(e)
 

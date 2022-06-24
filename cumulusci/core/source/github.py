@@ -6,7 +6,7 @@ from github3.exceptions import NotFoundError
 
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.core.github import (
-    catch_common_github_auth_errors_with_context,
+    catch_common_github_auth_errors,
     find_latest_release,
     find_previous_release,
     get_github_api_for_repo,
@@ -52,7 +52,7 @@ class GitHubSource:
         return hash((self.url, self.commit))
 
     def _get_repository(self, repo_owner: str, repo_name: str):
-        with catch_common_github_auth_errors_with_context(f"{repo_owner}/{repo_name}"):
+        with catch_common_github_auth_errors(f"{repo_owner}/{repo_name}"):
             repo = self.gh.repository(repo_owner, repo_name)
             return repo
 
