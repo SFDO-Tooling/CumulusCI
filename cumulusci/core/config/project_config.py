@@ -505,8 +505,10 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
     @catch_common_github_auth_errors
     def get_repo_from_url(self, url):
-        owner, name, url = {(owner, name) for owner, name in parse_repo_url(url)}
-        return self.get_github_api(url).repository(owner, name)
+        repo_info = parse_repo_url(url)
+        return self.get_github_api(repo_info["url"]).repository(
+            repo_info["owner"], repo_info["name"]
+        )
 
     def get_task(self, name):
         """Get a TaskConfig by task name

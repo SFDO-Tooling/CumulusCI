@@ -330,7 +330,8 @@ class TestBaseProjectConfig:
             "branch": "feature/test",
             "commit": "HEAD~1",
             "root": ".",
-            "url": "https://github.com/SFDO-Tooling/CumulusCI-Test.git",
+            "url": "https://github.com/SFDO-Tooling/CumulusCI-Test",
+            "server": "https://github.com/",
         } == result
 
     def test_repo_info_missing_env(self):
@@ -460,7 +461,9 @@ class TestBaseProjectConfig:
         assert config.get_repo_from_url("https://github.com/Test/TestRepo") == (
             config.get_github_api.return_value.repository.return_value
         )
-        config.get_github_api.assert_called_once_with("Test", "TestRepo")
+        config.get_github_api.assert_called_once_with(
+            "https://github.com/Test/TestRepo"
+        )
         config.get_github_api.return_value.repository.assert_called_once_with(
             "Test", "TestRepo"
         )

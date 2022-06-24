@@ -9,6 +9,7 @@ from typing import Callable, Optional, Union
 from urllib.parse import urlparse
 
 import github3
+import requests
 from github3 import GitHub, GitHubEnterprise, login
 from github3.exceptions import AuthenticationFailed, ResponseError, TransportError
 from github3.git import Reference, Tag
@@ -20,6 +21,7 @@ from github3.session import GitHubSession
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
 from requests.models import Response
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from requests.packages.urllib3.util.retry import Retry
 from rich.console import Console
 
@@ -38,6 +40,10 @@ from cumulusci.oauth.client import (
 from cumulusci.utils.git import parse_repo_url
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
+
+# Hiding Warning: Adding certificate verification is strongly advised.
+# See: https://urllib3.readthedocs.io/en/1.26.x/advanced-usage.html#ssl-warnings
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 OAUTH_DEVICE_APP = {
     "client_id": "2a4bc3e5ce4f2c49a957",
@@ -76,6 +82,8 @@ def get_github_api_for_repo(keychain, repo_url, session=None):
     owner = repo_info["owner"]
     repo = repo_info["name"]
     url = repo_info["url"]
+    # need domain without org and repo info
+    server = repo_info["server"]
 
     if "github.com" in url:
         gh = GitHub(
@@ -84,9 +92,10 @@ def get_github_api_for_repo(keychain, repo_url, session=None):
         )
     else:
         gh = GitHubEnterprise(
-            url=url,
+            url=server,
             session=session
             or GitHubSession(default_read_timeout=30, default_connect_timeout=30),
+            verify=False,
         )
 
     # Apply retry policy
@@ -113,11 +122,21 @@ def get_github_api_for_repo(keychain, repo_url, session=None):
         gh.login(token=GITHUB_TOKEN)
     else:
         services = keychain.list_services()
+        # setup to use default for backwards compatability
+        github_config = keychain.get_service("github")
         for alias in services["github"]:
-            github_config = keychain.get_service("github", alias)
-            if url.startswith(github_config.repo_domain):
-                token = github_config.password or github_config.token
-                gh.login(github_config.username, token)
+            service_confing = keychain.get_service("github", alias)
+
+            # Setup default hithub.com domain
+            if service_confing.repo_domain is None:
+                service_confing.repo_domain = "https://github.com/"
+
+            if url.startswith(service_confing.repo_domain):
+                github_config = service_confing
+                break
+
+        token = github_config.password or github_config.token
+        gh.login(github_config.username, token)
 
     return gh
 
