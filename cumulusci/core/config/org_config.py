@@ -18,6 +18,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
 from cumulusci.oauth.salesforce import SANDBOX_LOGIN_URL, jwt_session
+from cumulusci.utils import parse_api_datetime
 from cumulusci.utils.fileutils import open_fs_resource
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 
@@ -163,6 +164,8 @@ class OrgConfig(BaseConfig):
 
     @property
     def salesforce_client(self):
+        """Return a simple_salesforce.Salesforce instance authorized to this org.
+        Does not perform a token refresh."""
         return Salesforce(
             instance=self.instance_url.replace("https://", ""),
             session_id=self.access_token,
@@ -188,6 +191,7 @@ class OrgConfig(BaseConfig):
 
     @property
     def start_url(self):
+        """The frontdoor URL that results in an instant login"""
         start_url = "%s/secur/frontdoor.jsp?sid=%s" % (
             self.instance_url,
             self.access_token,
@@ -226,6 +230,7 @@ class OrgConfig(BaseConfig):
         return False
 
     def _load_orginfo(self):
+        """Query the Organization sObject and populate local config values from the result."""
         self._org_sobject = self.salesforce_client.Organization.get(self.org_id)
 
         result = {
@@ -236,8 +241,19 @@ class OrgConfig(BaseConfig):
         }
         self.config.update(result)
 
+    def populate_expiration_date(self):
+        if not self.organization_sobject:
+            self._load_orginfo()
+        if self.organization_sobject["TrialExpirationDate"] is None:
+            self.config["expires"] = "Persistent"
+        else:
+            self.config["expires"] = parse_api_datetime(
+                self.organization_sobject["TrialExpirationDate"]
+            ).date()
+
     @property
     def organization_sobject(self):
+        """Cached copy of Organization sObject. Does not perform API call."""
         return self._org_sobject
 
     def _fetch_community_info(self):

@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CBC
 
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig, ServiceConfig
+from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 from cumulusci.core.exceptions import (
     ConfigError,
     CumulusCIException,
@@ -149,8 +150,11 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         return self._construct_config(config_class, args)
 
     def _construct_config(self, config_class, args):
-        if args[0].get("scratch"):
+        config = args[0]
+        if config.get("scratch"):
             config_class = scratch_org_factory
+        elif config.get("sfdx"):
+            config_class = SfdxOrgConfig
 
         return config_class(*args)
 
