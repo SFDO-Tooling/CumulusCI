@@ -111,6 +111,10 @@ class FakeLoadData(BaseSalesforceApiTask):
             # remember them for later inspection.
             self.values_loaded = db_values_from_db_url(self.options["database_url"])
 
+            # TODO:
+            #
+            #   Parse the mapping and then count matching objects to return
+            #   more realistic values.
             # return a fake return value so Snowfakery loader doesn't get confused
             self.return_values = {"step_results": next(self.fake_return_values)}
 
@@ -242,8 +246,9 @@ def get_mapping_from_snowfakery_task_results(results: SnowfakeryTaskResults):
     other_mapping = Path(
         str(temp_mapping).replace("template_1", "data_load_outbox/1_1")
     )
-    # check that it's truly shared
-    assert temp_mapping.read_text() == other_mapping.read_text()
+    if other_mapping.exists():
+        # check that it's truly shared
+        assert temp_mapping.read_text() == other_mapping.read_text()
     return mapping
 
 
@@ -252,8 +257,8 @@ def get_record_counts_from_snowfakery_results(
 ) -> Counter:
     """Collate the record counts from Snowfakery outbox directories.
     Note that records created by the initial, just_once seeding flow are not
-    counted because they are deleted. If you need every single result, you s
-    hould probably use return_values instead. (but you may need to implement it)"""
+    counted because they are deleted. If you need every single result, you
+    should probably use return_values instead. (but you may need to implement it)"""
 
     rollups = Counter()
     # when there is more than one channel, the directory structure is deeper
@@ -278,7 +283,6 @@ def run_snowfakery_and_yield_results(snowfakery, mock_load_data):
         with TemporaryDirectory() as workingdir:
             workingdir = Path(workingdir) / "tempdir"
             task = snowfakery(
-                run_until_recipe_repeated=2,
                 working_directory=workingdir,
                 **options,
             )
@@ -410,6 +414,7 @@ class TestSnowfakery:
         ), threads_instead_of_processes.mock_calls
 
     @pytest.mark.vcr()
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 5)
     def test_run_until_records_in_org__one_needed(
         self,
         sf,
@@ -421,7 +426,7 @@ class TestSnowfakery:
         with ensure_accounts(10):
             # org reports 10 records in org
             # so we only need 6 more.
-            # That will be one "initial" batch plus one "parallel" batch
+            # That will be one "initial" batch of 1 plus one "parallel" batch of 5
             task = create_task(
                 Snowfakery,
                 {"recipe": sample_yaml, "run_until_records_in_org": "Account:16"},
@@ -464,6 +469,7 @@ class TestSnowfakery:
             task()
         assert "Using 11 workers" in str(logger.mock_calls)
 
+    @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
     def test_record_count(self, snowfakery, mock_load_data):
         task = snowfakery(recipe="datasets/recipe.yml", run_until_recipe_repeated="4")
         with mock.patch.object(task, "logger") as logger, mock.patch.object(
@@ -478,6 +484,8 @@ class TestSnowfakery:
             keychain.get_org = mock.Mock(wraps=get_org)
             task()
         mock_calls_as_string = str(logger.mock_calls)
+        # note that load_data is mocked so these values are based on FAKE_LOAD_RESULTS
+        # See also: the TODO in FakeLoadData.__call__
         assert "Account: 5 successes" in mock_calls_as_string, mock_calls_as_string[
             -500:
         ]
@@ -578,7 +586,10 @@ class TestSnowfakery:
         self, run_snowfakery_and_inspect_mapping
     ):
 
-        mapping = run_snowfakery_and_inspect_mapping(recipe=simple_salesforce_yaml)
+        mapping = run_snowfakery_and_inspect_mapping(
+            recipe=simple_salesforce_yaml,
+            run_until_recipe_repeated=2,
+        )
 
         assert mapping["Insert Account"]["api"] == "bulk"
         assert mapping["Insert Contact"].get("bulk_mode") is None
@@ -591,7 +602,9 @@ class TestSnowfakery:
             ".recipe.yml", "_2.load.yml"
         )
         mapping = run_snowfakery_and_inspect_mapping(
-            recipe=simple_salesforce_yaml, loading_rules=str(loading_rules)
+            recipe=simple_salesforce_yaml,
+            loading_rules=str(loading_rules),
+            run_until_recipe_repeated=2,
         )
 
         assert mapping["Insert Account"].get("api") is None
@@ -607,13 +620,18 @@ class TestSnowfakery:
             + str(simple_salesforce_yaml).replace(".recipe.yml", ".load.yml")
         )
         mapping = run_snowfakery_and_inspect_mapping(
-            recipe=simple_salesforce_yaml, loading_rules=str(loading_rules)
+            recipe=simple_salesforce_yaml,
+            loading_rules=str(loading_rules),
+            run_until_recipe_repeated=2,
         )
 
         assert mapping["Insert Account"]["api"] == "bulk"
         assert mapping["Insert Contact"]["bulk_mode"].lower() == "parallel"
         assert list(mapping.keys()) == ["Insert Contact", "Insert Account"]
 
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 1
+    )  # force multi-step load
     def test_options(
         self,
         mock_load_data,
@@ -623,7 +641,9 @@ class TestSnowfakery:
             "gen_npsp_standard_objects.recipe.yml", "options.recipe.yml"
         )
         with run_snowfakery_and_yield_results(
-            recipe=options_yaml, recipe_options="row_count:7,account_name:aaaaa"
+            recipe=options_yaml,
+            recipe_options="row_count:7,account_name:aaaaa",
+            run_until_recipe_repeated=2,
         ) as results:
             record_counts = get_record_counts_from_snowfakery_results(results)
         assert record_counts["Account"] == 7, record_counts["Account"]
