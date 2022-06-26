@@ -9,6 +9,7 @@ from cumulusci.tests import util as cci_test_utils
 
 
 def _make_task(task_class, task_config):
+    # Please use the global `create_task` mock instead
     task_config = TaskConfig(task_config)
     universal_config = UniversalConfig()
     project_config = BaseProjectConfig(
@@ -25,6 +26,7 @@ def _make_task(task_class, task_config):
     org_config = cci_test_utils.DummyOrgConfig(
         {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
     )
+    # org_config.keychain = keychain
     return task_class(project_config, task_config, org_config)
 
 

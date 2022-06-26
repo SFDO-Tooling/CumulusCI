@@ -8,11 +8,13 @@ import tracemalloc
 from contextlib import contextmanager, nullcontext
 from functools import lru_cache
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest import mock
 
 import responses
 import yaml
 from requests import ReadTimeout
+from sqlalchemy import create_engine
 
 from cumulusci.core.config import (
     BaseConfig,
@@ -21,6 +23,8 @@ from cumulusci.core.config import (
     UniversalConfig,
 )
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.salesforce_api.org_schema import Schema
+from cumulusci.salesforce_api.org_schema_models import Base
 
 CURRENT_SF_API_VERSION = "55.0"
 from cumulusci.tasks.bulkdata.tests.utils import FakeBulkAPI
@@ -316,6 +320,39 @@ class FakeUnreliableRequestHandler:
 
     def real_reliable_request_callback(self, request):
         return self.response
+
+
+_obj_data = [
+    json.loads(read_mock(obj))
+    for obj in [
+        "Account",
+        "Contact",
+        "Opportunity",
+        # "OpportunityContactRole",
+        # "Case",
+    ]
+]
+
+
+def mock_get_org_schema(*args, **kwargs):
+    return _temp_schema_for_tests(_obj_data)
+
+
+@contextmanager
+def _temp_schema_for_tests(describe_data: list):
+    with TemporaryDirectory() as tempdir:
+        tempfile = str(Path(tempdir) / "tempdb.db")
+        engine = create_engine(f"sqlite:///{tempfile}")
+        Base.metadata.bind = engine
+        Base.metadata.create_all()
+        schema = Schema(engine, f"{tempfile}.gz")
+        try:
+            date = "Thu, 09 Feb 2021 21:35:07 GMT"
+            describe_data_with_dates = [(dct.copy(), date) for dct in describe_data]
+            schema._populate_cache_from_describe(describe_data_with_dates, date)
+            yield schema
+        finally:
+            schema.close()
 
 
 CURRENT_SF_API_VERSION = (

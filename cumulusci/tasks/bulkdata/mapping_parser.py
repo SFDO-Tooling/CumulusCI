@@ -1,7 +1,6 @@
 import typing as T
 from datetime import date
 from enum import Enum
-from functools import lru_cache
 from logging import getLogger
 from pathlib import Path
 from typing import IO, Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
@@ -12,6 +11,7 @@ from simple_salesforce import Salesforce
 from typing_extensions import Literal
 
 from cumulusci.core.exceptions import BulkDataException
+from cumulusci.salesforce_api.org_schema import Schema
 from cumulusci.tasks.bulkdata.dates import iso_to_date
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
 from cumulusci.utils import convert_to_snake_case
@@ -329,10 +329,8 @@ class MappingStep(CCIDictModel):
     ):
         perms = self._get_required_permission_types(operation)
         # Fields don't have "queryable" permission.
-        return field in describe and all(
-            # To discuss: is this different than `describe[field].get(perm, True)`
-            describe[field].get(perm) if perm in describe[field] else True
-            for perm in perms
+        return field in describe.keys() and all(
+            getattr(describe[field], perm, True) for perm in perms
         )
 
     def _validate_field_dict(
@@ -457,7 +455,7 @@ class MappingStep(CCIDictModel):
 
     def validate_and_inject_namespace(
         self,
-        sf: Salesforce,
+        org_schema: Schema,
         namespace: Optional[str],
         operation: DataOperationType,
         inject_namespaces: bool = False,
@@ -490,9 +488,7 @@ class MappingStep(CCIDictModel):
         else:
             inject = strip = None
 
-        global_describe = CaseInsensitiveDict(
-            {entry["name"]: entry for entry in sf.describe()["sobjects"]}
-        )
+        global_describe = CaseInsensitiveDict(org_schema.items())
 
         if not self._validate_sobject(global_describe, inject, strip, operation):
             # Don't attempt to validate field permissions if the object doesn't exist.
@@ -500,7 +496,7 @@ class MappingStep(CCIDictModel):
 
         # Validate, inject, and drop (if configured) fields.
         # By this point, we know the attribute is valid.
-        describe = self.describe_data(sf)
+        describe = CaseInsensitiveDict(global_describe[self.sf_object].fields.items())
 
         fields_correct = self._validate_field_dict(
             describe, self.fields, inject, strip, drop_missing, operation
@@ -530,9 +526,6 @@ class MappingStep(CCIDictModel):
 
         return True
 
-    def describe_data(self, sf: Salesforce):
-        return describe_data(self.sf_object, sf)
-
 
 class MappingSteps(CCIDictModel):
     "Mapping of named steps"
@@ -560,8 +553,8 @@ def parse_from_yaml(source: Union[str, Path, IO]) -> Dict:
 
 def validate_and_inject_mapping(
     *,
+    org_schema: Schema,
     mapping: Dict,
-    sf: Salesforce,
     namespace: str,
     data_operation: DataOperationType,
     inject_namespaces: bool,
@@ -570,7 +563,7 @@ def validate_and_inject_mapping(
 ):
     should_continue = [
         m.validate_and_inject_namespace(
-            sf, namespace, data_operation, inject_namespaces, drop_missing
+            org_schema, namespace, data_operation, inject_namespaces, drop_missing
         )
         for m in mapping.values()
     ]
@@ -590,7 +583,8 @@ def validate_and_inject_mapping(
 
         # Remove any remaining lookups to dropped objects.
         for m in mapping.values():
-            describe = getattr(sf, m.sf_object).describe()
+            # FIXME!
+            describe = getattr("FIXME", m.sf_object).describe()
             describe = {entry["name"]: entry for entry in describe["fields"]}
 
             for field in list(m.lookups.keys()):
@@ -633,9 +627,3 @@ def _inject_or_strip_name(name, transform, global_describe):
         return new_name
 
     return None
-
-
-@lru_cache(maxsize=50)
-def describe_data(obj: str, sf: Salesforce):
-    describe = getattr(sf, obj).describe()
-    return CaseInsensitiveDict({entry["name"]: entry for entry in describe["fields"]})

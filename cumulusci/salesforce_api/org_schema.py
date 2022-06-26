@@ -474,6 +474,8 @@ def deep_describe(
                     "httpHeaders": {"If-Modified-Since": last_modified_date},
                 }
                 for obj in objs
+                # Platform bug!!!
+                if not obj.startswith("MacroInstruction")
             )
         )
 

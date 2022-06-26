@@ -612,7 +612,6 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         if self._cache_dir:
             return self._cache_dir
 
-        assert self.repo_root
         cache_dir = Path(self.repo_root, ".cci")
         cache_dir.mkdir(exist_ok=True)
 

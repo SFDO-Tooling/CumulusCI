@@ -91,62 +91,67 @@ class DeleteData(BaseSalesforceApiTask):
         self._validate_and_inject_namespace()
 
         for obj in self.sobjects:
-            query = f"SELECT Id FROM {obj}"
-            if self.options["where"]:
-                query += f" WHERE {self.options['where']}"
+            try:
+                self.delete_obj(obj)
+            except Exception as e:
+                if not self.options.get("ignore_row_errors"):
+                    raise e
 
-            qs = get_query_operation(
-                sobject=obj,
-                fields=["Id"],
-                api_options={},
-                context=self,
-                query=query,
-                api=self.options["api"],
+    def delete_obj(self, obj):
+        query = f"SELECT Id FROM {obj}"
+        if self.options["where"]:
+            query += f" WHERE {self.options['where']}"
+
+        qs = get_query_operation(
+            sobject=obj,
+            fields=["Id"],
+            api_options={},
+            context=self,
+            query=query,
+            api=self.options["api"],
+        )
+
+        self.logger.info(f"Querying for {obj} objects")
+        qs.query()
+        if qs.job_result.status is not DataOperationStatus.SUCCESS:
+            raise BulkDataException(
+                f"Unable to query records for {obj}: {','.join(qs.job_result.job_errors)}"
+            )
+        if not qs.job_result.records_processed:
+            self.logger.info(f"No records found, skipping delete operation for {obj}")
+            return
+
+        self.logger.info(f"Deleting {self._object_description(obj)} ")
+        ds = get_dml_operation(
+            sobject=obj,
+            operation=(
+                DataOperationType.HARD_DELETE
+                if self.options["hardDelete"]
+                else DataOperationType.DELETE
+            ),
+            fields=["Id"],
+            api_options={},
+            context=self,
+            api=self.options["api"],
+            volume=qs.job_result.records_processed,
+        )
+        ds.start()
+        ds.load_records(qs.get_results())
+        ds.end()
+
+        if ds.job_result.status not in [
+            DataOperationStatus.SUCCESS,
+            DataOperationStatus.ROW_FAILURE,
+        ]:
+            raise BulkDataException(
+                f"Unable to delete records for {obj}: {','.join(ds.job_result.job_errors)}"
             )
 
-            self.logger.info(f"Querying for {obj} objects")
-            qs.query()
-            if qs.job_result.status is not DataOperationStatus.SUCCESS:
-                raise BulkDataException(
-                    f"Unable to query records for {obj}: {','.join(qs.job_result.job_errors)}"
-                )
-            if not qs.job_result.records_processed:
-                self.logger.info(
-                    f"No records found, skipping delete operation for {obj}"
-                )
-                continue
-
-            self.logger.info(f"Deleting {self._object_description(obj)} ")
-            ds = get_dml_operation(
-                sobject=obj,
-                operation=(
-                    DataOperationType.HARD_DELETE
-                    if self.options["hardDelete"]
-                    else DataOperationType.DELETE
-                ),
-                fields=["Id"],
-                api_options={},
-                context=self,
-                api=self.options["api"],
-                volume=qs.job_result.records_processed,
-            )
-            ds.start()
-            ds.load_records(qs.get_results())
-            ds.end()
-
-            if ds.job_result.status not in [
-                DataOperationStatus.SUCCESS,
-                DataOperationStatus.ROW_FAILURE,
-            ]:
-                raise BulkDataException(
-                    f"Unable to delete records for {obj}: {','.join(ds.job_result.job_errors)}"
-                )
-
-            error_checker = RowErrorChecker(
-                self.logger, self.options["ignore_row_errors"], self.row_warning_limit
-            )
-            for result in ds.get_results():
-                error_checker.check_for_row_error(result, result.id)
+        error_checker = RowErrorChecker(
+            self.logger, self.options["ignore_row_errors"], self.row_warning_limit
+        )
+        for result in ds.get_results():
+            error_checker.check_for_row_error(result, result.id)
 
     def _object_description(self, obj):
         """Return a readable description of the object set to delete."""

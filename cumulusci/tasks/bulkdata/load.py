@@ -519,14 +519,18 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         self.mapping = parse_from_yaml(mapping_file_path)
 
-        validate_and_inject_mapping(
-            mapping=self.mapping,
-            sf=self.sf,
-            namespace=self.project_config.project__package__namespace,
-            data_operation=DataOperationType.INSERT,
-            inject_namespaces=self.options["inject_namespaces"],
-            drop_missing=self.options["drop_missing_schema"],
-        )
+        with get_org_schema(
+            self.sf,
+            self.org_config,
+        ) as org_schema:
+            validate_and_inject_mapping(
+                mapping=self.mapping,
+                org_schema=org_schema,
+                namespace=self.project_config.project__package__namespace,
+                data_operation=DataOperationType.INSERT,
+                inject_namespaces=self.options["inject_namespaces"],
+                drop_missing=self.options["drop_missing_schema"],
+            )
 
     def _expand_mapping(self):
         """Walk the mapping and generate any required 'after' steps

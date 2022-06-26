@@ -34,10 +34,12 @@ from cumulusci.tests.util import (
     CURRENT_SF_API_VERSION,
     assert_max_memory_usage,
     mock_describe_calls,
+    mock_get_org_schema,
 )
 from cumulusci.utils import temporary_dir
 
 
+@mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock_get_org_schema)
 class TestLoadData:
     mapping_file = "mapping_v1.yml"
 
@@ -300,7 +302,7 @@ class TestLoadData:
 
         validate_and_inject_mapping.assert_called_once_with(
             mapping=t.mapping,
-            sf=t.sf,
+            org_schema=mock.ANY,
             namespace=t.project_config.project__package__namespace,
             data_operation=DataOperationType.INSERT,
             inject_namespaces=True,
@@ -470,6 +472,7 @@ class TestLoadData:
             )
         )
 
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock_get_org_schema)
     def test_get_statics_record_type_not_matched(self):
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}

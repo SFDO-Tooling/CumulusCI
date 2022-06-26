@@ -3,6 +3,7 @@ import re
 from contextlib import contextmanager
 from pathlib import Path
 
+import yaml
 from sqlalchemy import Column, Integer, MetaData, Table, Unicode, create_engine
 from sqlalchemy.orm import create_session, mapper
 
@@ -71,7 +72,11 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if self.options.get("database_url"):
             # prefer database_url if it's set
             self.options["sql_path"] = None
+        elif self.options.get("dataset"):
+            self.options["sql_path"] = None
+            assert self.options.get("extract_rules")
         elif not self.options.get("sql_path"):
+            # TODO: fix this message when datasets go public
             raise TaskOptionsError(
                 "You must set either the database_url or sql_path option."
             )
@@ -88,7 +93,6 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _run_task(self):
         self._init_mapping()
-
         with self._init_db():
             for mapping in self.mapping.values():
                 soql = self._soql_for_mapping(mapping)
@@ -97,7 +101,16 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self._map_autopks()
 
             if self.options.get("sql_path"):
-                self._sqlite_dump()
+                self._sqlite_dump(self.options["sql_path"])
+            elif self.options.get("dataset"):
+                dataset_name = self.options.get("dataset")
+                datasets_dir = Path(self.project_config.repo_rootcu) / "datasets"
+                dataset_dir = datasets_dir / dataset_name
+                dataset_dir.mkdir(parents=True, exist_ok=True)
+                self._sqlite_dump(str(dataset_dir / f"{dataset_name}.sql"))
+                with open(dataset_dir / f"{dataset_name}.load_mapping.yml", "w") as f:
+                    yaml.safe_dump(self.mapping_decls, f, sort_keys=False)
+                self.logger.info(f"Created dataset {dataset_dir}")
 
     def _read_extract_rules(self):
         if self.options.get("extract_rules"):
@@ -108,19 +121,19 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             return ExtractRulesFile.parse_from_yaml(extract_rules_path)
 
     def _init_mapping(self):
-        self.extract_rules = self._read_extract_rules()
-        if self.extract_rules:
-            self.mapping = self._mapping_from_extract_rules()
-        else:
-            self.mapping = self._parse_mapping()
-        self._validate_and_inject_mapping()
-
-    def _mapping_from_extract_rules(self):
         with get_org_schema(self.sf, self.org_config) as org_schema:
-            mapping_decls = create_extract_and_load_mapping_file_from_declarations(
-                self.extract_rules, org_schema, self.sf
-            )
-            return MappingSteps.parse_obj(mapping_decls, "generated mapping").__root__
+            self.extract_rules = self._read_extract_rules()
+            if self.extract_rules:
+                self.mapping = self._mapping_from_extract_rules(org_schema)
+            else:
+                self.mapping = self._parse_mapping()
+            self._validate_and_inject_mapping(org_schema)
+
+    def _mapping_from_extract_rules(self, org_schema):
+        self.mapping_decls = create_extract_and_load_mapping_file_from_declarations(
+            self.extract_rules, org_schema, self.sf
+        )
+        return MappingSteps.parse_obj(self.mapping_decls, "generated mapping").__root__
 
     @contextmanager
     def _init_db(self):
@@ -153,10 +166,10 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         return parse_from_yaml(mapping_file_path)
 
-    def _validate_and_inject_mapping(self):
+    def _validate_and_inject_mapping(self, org_schema):
         validate_and_inject_mapping(
+            org_schema=org_schema,
             mapping=self.mapping,
-            sf=self.sf,
             namespace=self.project_config.project__package__namespace,
             data_operation=DataOperationType.QUERY,
             inject_namespaces=self.options["inject_namespaces"],
@@ -384,9 +397,8 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         mapper(self.models[mapping.table], t, **mapper_kwargs)
 
-    def _sqlite_dump(self):
+    def _sqlite_dump(self, path):
         """Write a SQLite script output file."""
-        path = self.options["sql_path"]
         with open(path, "w", encoding="utf-8") as f:
             for line in self.session.connection().connection.iterdump():
                 f.write(line + "\n")

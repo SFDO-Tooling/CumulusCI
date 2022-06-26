@@ -171,6 +171,7 @@ class CompositeParallelSalesforce:
         unrecoverable_errors = []
         singleton_requests = []
         for error in errors:
+            print("ERROR", error)
             if isinstance(error.exception, RECOVERABLE_ERRORS):
                 single_requests = split_requests(error.request)
                 for request in single_requests:

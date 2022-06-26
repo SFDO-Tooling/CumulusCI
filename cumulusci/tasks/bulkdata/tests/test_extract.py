@@ -22,6 +22,7 @@ from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tests.util import (
     assert_max_memory_usage,
     mock_describe_calls,
+    mock_get_org_schema,
     mock_salesforce_client,
 )
 from cumulusci.utils import temporary_dir
@@ -75,6 +76,7 @@ class MockScalableBulkQueryOperation(MockBulkQueryOperation):
         )
 
 
+@mock.patch("cumulusci.tasks.bulkdata.extract.get_org_schema", mock_get_org_schema)
 class TestExtractData:
 
     mapping_file_v1 = "mapping_v1.yml"
@@ -83,20 +85,18 @@ class TestExtractData:
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
-    def test_run__person_accounts_disabled(self, query_op_mock):
+    def test_run__person_accounts_disabled(self, query_op_mock, create_task):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
-        mock_describe_calls()
+        mock_describe_calls(domain="orgname.my.salesforce.com")
         with temporary_dir() as d:
             tmp_db_path = os.path.join(d, "testdata.db")
 
-            task = _make_task(
+            task = create_task(
                 ExtractData,
                 {
-                    "options": {
-                        "database_url": f"sqlite:///{tmp_db_path}",
-                        "mapping": mapping_path,
-                    }
+                    "database_url": f"sqlite:///{tmp_db_path}",
+                    "mapping": mapping_path,
                 },
             )
             task.bulk = mock.Mock()
@@ -137,6 +137,10 @@ class TestExtractData:
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.extract.get_org_schema",
+        mock_get_org_schema,
+    )
     def test_run__person_accounts_enabled(self, query_op_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
@@ -192,6 +196,10 @@ class TestExtractData:
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.extract.get_org_schema",
+        mock_get_org_schema,
+    )
     def test_run__sql(self, query_op_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
@@ -239,6 +247,10 @@ class TestExtractData:
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.extract.get_org_schema",
+        mock_get_org_schema,
+    )
     def test_run__v2__person_accounts_disabled(self, query_op_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v2)
@@ -290,6 +302,10 @@ class TestExtractData:
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.extract.get_org_schema",
+        mock_get_org_schema,
+    )
     def test_run__v2__person_accounts_enabled(self, query_op_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v2)
@@ -370,6 +386,10 @@ class TestExtractData:
         )
 
     @responses.activate
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.extract.get_org_schema",
+        mock_get_org_schema,
+    )
     def test_import_results__no_columns(self):  # , query_op_mock):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
@@ -519,6 +539,10 @@ class TestExtractData:
         ] == records
 
     @responses.activate
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.extract.get_org_schema",
+        mock_get_org_schema,
+    )
     def test_map_autopks(self):
         mock_describe_calls()
         base_path = os.path.dirname(__file__)
@@ -640,6 +664,10 @@ class TestExtractData:
         assert "accounts" in task.models
 
     @responses.activate
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.extract.get_org_schema",
+        mock_get_org_schema,
+    )
     def test_create_table__already_exists(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
@@ -744,6 +772,10 @@ class TestExtractData:
                 )
 
     @responses.activate
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.extract.get_org_schema",
+        mock_get_org_schema,
+    )
     def test_init_mapping(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
@@ -762,6 +794,10 @@ class TestExtractData:
         self.assert_person_accounts_in_mapping(task.mapping, False)
 
     @responses.activate
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.extract.get_org_schema",
+        mock_get_org_schema,
+    )
     def test_init_mapping_org_has_person_accounts_enabled(self):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
@@ -780,6 +816,10 @@ class TestExtractData:
         self.assert_person_accounts_in_mapping(task.mapping, True)
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.validate_and_inject_mapping")
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.extract.get_org_schema",
+        mock_get_org_schema,
+    )
     def test_init_mapping_passes_options_to_validate(self, validate_and_inject_mapping):
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
@@ -801,7 +841,7 @@ class TestExtractData:
 
         validate_and_inject_mapping.assert_called_once_with(
             mapping=t.mapping,
-            sf=t.sf,
+            org_schema=mock.ANY,
             namespace=t.project_config.project__package__namespace,
             data_operation=DataOperationType.QUERY,
             inject_namespaces=True,
@@ -930,6 +970,10 @@ class TestExtractData:
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.extract.get_org_schema",
+        mock_get_org_schema,
+    )
     def test_extract_memory_usage(self, step_mock):
         with TemporaryDirectory() as t:
             base_path = os.path.dirname(__file__)
@@ -974,6 +1018,10 @@ class TestExtractData:
                 task()
 
     @responses.activate
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.extract.get_org_schema",
+        mock_get_org_schema,
+    )
     def test_import_results__autopk(self, create_task_fixture):
         mock_describe_calls()
         base_path = os.path.dirname(__file__)

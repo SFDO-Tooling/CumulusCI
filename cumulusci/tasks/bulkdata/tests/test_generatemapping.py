@@ -6,32 +6,16 @@ from unittest import mock
 import pytest
 import responses
 import yaml
-from sqlalchemy import create_engine
 
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.salesforce_api.org_schema import Base, Schema
 from cumulusci.salesforce_api.org_schema_models import Field as SQLField
 from cumulusci.salesforce_api.org_schema_models import SObject as SQLSObject
 from cumulusci.tasks.bulkdata import GenerateMapping
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
+from cumulusci.tests.util import _temp_schema_for_tests
 from cumulusci.utils import temporary_dir
 
-
-@contextmanager
-def _temp_schema_for_tests(describe_data: list):
-    with TemporaryDirectory() as tempdir:
-        tempfile = str(Path(tempdir) / "tempdb.db")
-        engine = create_engine(f"sqlite:///{tempfile}")
-        Base.metadata.bind = engine
-        Base.metadata.create_all()
-        schema = Schema(engine, f"{tempfile}.gz")
-        try:
-            date = "Thu, 09 Feb 2021 21:35:07 GMT"
-            describe_data_with_dates = [(dct, date) for dct in describe_data]
-            schema._populate_cache_from_describe(describe_data_with_dates, date)
-            yield schema
-        finally:
-            schema.close()
+# TODO: Move this to a utility class
 
 
 def _SObject(name, fields, **kwargs):
