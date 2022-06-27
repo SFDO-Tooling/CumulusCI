@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.salesforce_api.org_schema import get_org_schema
+from cumulusci.salesforce_api.org_schema import Schema, get_org_schema
 from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
 from cumulusci.tasks.bulkdata.mapping_parser import (
     CaseInsensitiveDict,
@@ -122,7 +122,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _run_task(self):
         self._init_mapping()
-        with self._init_db():
+        # TODO: filter org_schema fetch to only objects from the mapping
+        with self._init_db(), get_org_schema(self.sf, self.org_config) as org_schema:
+            self._validate_and_inject_mapping(org_schema)
             self._expand_mapping()
 
             start_step = self.options.get("start_step")
@@ -137,7 +139,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 started = True
 
                 self.logger.info(f"Running step: {name}")
-                result = self._execute_step(mapping)
+                result = self._execute_step(mapping, org_schema)
                 if result.status is DataOperationStatus.JOB_FAILURE:
                     raise BulkDataException(
                         f"Step {name} did not complete successfully: {','.join(result.job_errors)}"
@@ -169,7 +171,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         }
 
     def _execute_step(
-        self, mapping: MappingStep
+        self, mapping: MappingStep, org_schema: Schema
     ) -> T.Union[DataOperationJobResult, MagicMock]:
         """Load data for a single step."""
 
@@ -178,7 +180,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self._load_record_types([mapping.sf_object], conn)
             self.session.commit()
 
-        step, query = self.configure_step(mapping)
+        step, query = self.configure_step(mapping, org_schema)
 
         with tempfile.TemporaryFile(mode="w+t") as local_ids:
             step.start()
@@ -191,7 +193,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
             return step.job_result
 
-    def configure_step(self, mapping):
+    def configure_step(self, mapping, org_schema):
         """Create a step appropriate to the action"""
         bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
         api_options = {"batch_size": mapping.batch_size, "bulk_mode": bulk_mode}
@@ -200,7 +202,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         # implement "smart" upsert
         if mapping.action == DataOperationType.SMART_UPSERT:
-            if needs_etl_upsert(mapping, self.sf):
+            if needs_etl_upsert(mapping, org_schema):
                 mapping.action = DataOperationType.ETL_UPSERT
             else:
                 mapping.action = DataOperationType.UPSERT
@@ -220,7 +222,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             action = DataOperationType.UPSERT
             fields.append("Id")
         elif mapping.action == DataOperationType.UPSERT:
-            self.check_simple_upsert(mapping)
+            self.check_simple_upsert(mapping, org_schema)
             api_options["update_key"] = mapping.update_key[0]
             action = DataOperationType.UPSERT
         else:
@@ -239,9 +241,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         )
         return step, query
 
-    def check_simple_upsert(self, mapping):
+    def check_simple_upsert(self, mapping, org_schema):
         """Check that this upsert is correct."""
-        if needs_etl_upsert(mapping, self.sf):
+        if needs_etl_upsert(mapping, org_schema):
             raise BulkDataException(
                 f"This update key is not compatible with a simple upsert: `{','.join(mapping.update_key)}`. "
                 "Use `action: ETL_UPSERT` instead."
@@ -519,18 +521,15 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         self.mapping = parse_from_yaml(mapping_file_path)
 
-        with get_org_schema(
-            self.sf,
-            self.org_config,
-        ) as org_schema:
-            validate_and_inject_mapping(
-                mapping=self.mapping,
-                org_schema=org_schema,
-                namespace=self.project_config.project__package__namespace,
-                data_operation=DataOperationType.INSERT,
-                inject_namespaces=self.options["inject_namespaces"],
-                drop_missing=self.options["drop_missing_schema"],
-            )
+    def _validate_and_inject_mapping(self, org_schema):
+        validate_and_inject_mapping(
+            mapping=self.mapping,
+            org_schema=org_schema,
+            namespace=self.project_config.project__package__namespace,
+            data_operation=DataOperationType.INSERT,
+            inject_namespaces=self.options["inject_namespaces"],
+            drop_missing=self.options["drop_missing_schema"],
+        )
 
     def _expand_mapping(self):
         """Walk the mapping and generate any required 'after' steps

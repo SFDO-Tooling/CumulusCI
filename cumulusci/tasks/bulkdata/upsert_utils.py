@@ -1,12 +1,12 @@
 import logging
 import typing as T
 
-from simple_salesforce import Salesforce
 from sqlalchemy import Column, MetaData, Table, Unicode, UniqueConstraint, and_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.exc import IntegrityError
 
 from cumulusci.core.exceptions import BulkDataException
+from cumulusci.salesforce_api.org_schema import Schema
 from cumulusci.tasks.bulkdata.mapping_parser import CaseInsensitiveDict, MappingStep
 from cumulusci.tasks.bulkdata.query_transformers import LoadQueryExtender
 from cumulusci.tasks.bulkdata.step import DataOperationType
@@ -69,7 +69,7 @@ def extract_upsert_key_data(
     return table
 
 
-def needs_etl_upsert(mapping: MappingStep, sf: Salesforce):
+def needs_etl_upsert(mapping: MappingStep, org_schema: Schema):
     """Is this an upsert that Salesforce cannot do natively?"""
     # is this an upsert and one that Salesforce cannot do by itself?
     keys = mapping.update_key
@@ -77,13 +77,13 @@ def needs_etl_upsert(mapping: MappingStep, sf: Salesforce):
     if len(keys) > 1:
         return True
 
-    describe_data = mapping.describe_data(sf)
+    describe_data = org_schema[mapping.sf_object]
 
     key = keys[0]
     is_sf_builtin_key = (
         key == "Id"
-        or describe_data[key]["externalId"]
-        or describe_data[key]["idLookup"]
+        or describe_data.fields[key].externalId
+        or describe_data.fields[key].idLookup
     )
     return not is_sf_builtin_key
 

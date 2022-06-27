@@ -17,9 +17,14 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
     validate_and_inject_mapping,
 )
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
-from cumulusci.tests.util import DummyOrgConfig, mock_describe_calls
+from cumulusci.tests.util import (
+    DummyOrgConfig,
+    mock_describe_calls,
+    mock_get_org_schema,
+)
 
 
+@mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock_get_org_schema)
 class TestMappingParser:
     def test_simple_parse(self):
         base_path = Path(__file__).parent / "mapping_v2.yml"
@@ -889,7 +894,7 @@ class TestMappingParser:
             {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
         )
 
-        with pytest.raises(BulkDataException):
+        with mock_get_org_schema(), pytest.raises(BulkDataException):
             validate_and_inject_mapping(
                 mapping=mapping,
                 sf=org_config.salesforce_client,

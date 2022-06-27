@@ -102,6 +102,7 @@ class TestLoadData:
                 hh_ids = next(c.execute("SELECT * from households_sf_ids"))
                 assert hh_ids == ("1", "001000000000000")
 
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock_get_org_schema)
     def test_run_task__start_step(self):
         task = _make_task(
             LoadData,
@@ -117,15 +118,15 @@ class TestLoadData:
         task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task.mapping = {}
-        task.mapping["Insert Households"] = MappingStep(sf_object="one", fields={})
-        task.mapping["Insert Contacts"] = MappingStep(sf_object="two", fields={})
+        task.mapping["Insert Households"] = MappingStep(sf_object="Account", fields={})
+        task.mapping["Insert Contacts"] = MappingStep(sf_object="Contact", fields={})
         task.after_steps = {}
         task._execute_step = mock.Mock(
             return_value=DataOperationJobResult(DataOperationStatus.SUCCESS, [], 0, 0)
         )
         task()
         task._execute_step.assert_called_once_with(
-            MappingStep(sf_object="two", fields={})
+            MappingStep(sf_object="Contact", fields={}), mock.ANY
         )
 
     def test_run_task__after_steps(self):
@@ -157,9 +158,16 @@ class TestLoadData:
         )
         task()
         task._execute_step.assert_has_calls(
-            [mock.call(one), mock.call(4), mock.call(5), mock.call(two), mock.call(3)]
+            [
+                mock.call(one, mock.ANY),
+                mock.call(4),
+                mock.call(5),
+                mock.call(two, mock.ANY),
+                mock.call(3),
+            ]
         )
 
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock_get_org_schema)
     def test_run_task__after_steps_failure(self):
         task = _make_task(
             LoadData,
@@ -168,6 +176,7 @@ class TestLoadData:
         task._init_db = mock.Mock(return_value=nullcontext())
         task._init_mapping = mock.Mock()
         task._expand_mapping = mock.Mock()
+        task._validate_and_inject_mapping = mock.Mock()
         task.mapping = {}
         task.mapping["Insert Households"] = 1
         task.mapping["Insert Contacts"] = 2
@@ -280,34 +289,6 @@ class TestLoadData:
 
         assert t.options["sql_path"] == "test.sql"
         assert t.options["database_url"] is None
-
-    @mock.patch("cumulusci.tasks.bulkdata.load.validate_and_inject_mapping")
-    def test_init_mapping_passes_options_to_validate(self, validate_and_inject_mapping):
-        base_path = os.path.dirname(__file__)
-
-        t = _make_task(
-            LoadData,
-            {
-                "options": {
-                    "sql_path": "test.sql",
-                    "mapping": os.path.join(base_path, self.mapping_file),
-                    "inject_namespaces": True,
-                    "drop_missing_schema": True,
-                }
-            },
-        )
-
-        t._init_task()
-        t._init_mapping()
-
-        validate_and_inject_mapping.assert_called_once_with(
-            mapping=t.mapping,
-            org_schema=mock.ANY,
-            namespace=t.project_config.project__package__namespace,
-            data_operation=DataOperationType.INSERT,
-            inject_namespaces=True,
-            drop_missing=True,
-        )
 
     @responses.activate
     def test_expand_mapping_creates_after_steps(self):
@@ -1391,8 +1372,9 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
                     "sf_object": "Account",
                     "action": "insert",
                     "fields": {"Name": "Name"},
-                }
-            )
+                },
+            ),
+            mock.Mock(),
         )
 
         task._load_record_types.assert_not_called()
@@ -1404,7 +1386,8 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
                     "action": "insert",
                     "fields": {"Name": "Name", "RecordTypeId": "RecordTypeId"},
                 }
-            )
+            ),
+            mock.Mock(),
         )
         task._load_record_types.assert_called_once_with(
             ["Account"], task.session.connection.return_value
@@ -2195,7 +2178,6 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             ):
                 task()
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock.MagicMock())
     def test_set_viewed(self):
         base_path = os.path.dirname(__file__)
         task = _make_task(

@@ -1,0 +1,19 @@
+request:
+    body: null
+    headers:
+        Request-Headers:
+            - Elided
+    method: GET
+    uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects/Custom__c/describe
+response:
+    body:
+        string:
+            '{"actionOverrides":[],"activateable":false,"childRelationships":[{"cascadeDelete":false,"childSObject":"FlowExecutionErrorEvent","deprecatedAndHidden":false,"field":"ContextRecordId","junctionIdListNames":[],"junctionReferenceTo":[],"relationshipName":null,"restrictedDelete":false},{"cascadeDelete":false,"childSObject":"FlowRecordRelation","deprecatedAndHidden":false,"field":"RelatedRecordId","junctionIdListNames":[],"junctionReferenceTo":[],"relationshipName":null,"restrictedDelete":false}],"compactLayoutable":true,"createable":true,"custom":true,"customSetting":false,"deepCloneable":false,"defaultImplementation":null,"deletable":true,"deprecatedAndHidden":false,"extendedBy":null,"extendsInterfaces":null,"feedEnabled":false,"fields":[],"hasSubtypes":false,"implementedBy":null,"implementsInterfaces":null,"isInterface":false,"isSubtype":false,"keyPrefix":"00K","label":"Custom obj"
+            ,"labelPlural":"Custom Objs","layoutable":true,"listviewable":null,"lookupLayoutable":null,"mergeable":false,"mruEnabled":true,"name":"Custom__c","namedLayoutInfos":[],"networkScopeFieldName":null,"queryable":true,"recordTypeInfos":[],"replicateable":true,"retrieveable":true,"searchLayoutable":false,"searchable":false,"supportedScopes":[],"triggerable":true,"undeletable":false,"updateable":true,"urls":{}}'
+    headers:
+        Content-Type:
+            - application/json;charset=UTF-8
+        Others: Elided
+    status:
+        code: 200
+        message: OK

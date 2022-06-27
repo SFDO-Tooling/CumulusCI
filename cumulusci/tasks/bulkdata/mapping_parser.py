@@ -324,9 +324,14 @@ class MappingStep(CCIDictModel):
         perms = self._get_required_permission_types(operation)
         return all(global_describe[sobject][perm] for perm in perms)
 
+    from pysnooper import snoop
+
+    @snoop()
     def _check_field_permission(
         self, describe: Mapping, field: str, operation: DataOperationType
     ):
+        print("XXX", describe)
+        assert 0
         perms = self._get_required_permission_types(operation)
         # Fields don't have "queryable" permission.
         return field in describe.keys() and all(

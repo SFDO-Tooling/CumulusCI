@@ -328,8 +328,9 @@ _obj_data = [
         "Account",
         "Contact",
         "Opportunity",
-        # "OpportunityContactRole",
-        # "Case",
+        "OpportunityContactRole",
+        "Case",
+        "Custom__c",
     ]
 ]
 
