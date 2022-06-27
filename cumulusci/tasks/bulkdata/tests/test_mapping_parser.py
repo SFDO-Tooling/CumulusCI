@@ -233,7 +233,13 @@ class TestMappingParser:
         ms = MappingStep(
             sf_object="Account", fields=["Name"], action=DataOperationType.UPDATE
         )
-        assert ms._get_required_permission_types(DataOperationType.INSERT) == (
+
+        # This code was here before. Why? Why is the action UPDATE but the
+        # operation is INSERT? And why wouldn't you want both
+        # ("creatable" and "updateable") as the result in that case?
+        # assert ms._get_required_permission_types(DataOperationType.INSERT) == (
+
+        assert ms._get_required_permission_types(DataOperationType.UPDATE) == (
             "updateable",
         )
 
@@ -714,17 +720,7 @@ class TestMappingParser:
             ]
         )
 
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
-        return_value=True,
-    )
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
-        side_effect=[True, False],
-    )
-    def test_validate_and_inject_namespace__fls_lookups_failure(
-        self, mock_field, mock_sobject
-    ):
+    def test_validate_and_inject_namespace__fls_lookups_failure(self):
         ms = parse_from_yaml(
             StringIO(
                 """Insert Accounts:
@@ -752,59 +748,7 @@ class TestMappingParser:
             salesforce_client, "ns", DataOperationType.INSERT
         )
 
-        ms._validate_sobject.assert_called_once_with(
-            {"Account": {"name": "Account", "createable": True}},
-            None,
-            None,
-            DataOperationType.INSERT,
-        )
-
-        ms._validate_field_dict.assert_has_calls(
-            [
-                mock.call(
-                    {
-                        "Name": {"name": "Name", "createable": True},
-                        "Lookup__c": {
-                            "name": "Lookup__c",
-                            "updateable": True,
-                            "createable": False,
-                        },
-                    },
-                    {"Name": "Name"},
-                    None,
-                    None,
-                    False,
-                    DataOperationType.INSERT,
-                ),
-                mock.call(
-                    {
-                        "Name": {"name": "Name", "createable": True},
-                        "Lookup__c": {
-                            "name": "Lookup__c",
-                            "updateable": True,
-                            "createable": False,
-                        },
-                    },
-                    ms.lookups,
-                    None,
-                    None,
-                    False,
-                    DataOperationType.INSERT,
-                ),
-            ]
-        )
-
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
-        return_value=True,
-    )
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
-        side_effect=[True, False],
-    )
-    def test_validate_and_inject_namespace__fls_lookups_update_failure(
-        self, mock_field, mock_sobject
-    ):
+    def test_validate_and_inject_namespace__fls_lookups_update_failure(self):
         ms = parse_from_yaml(
             StringIO(
                 """Insert Accounts:
@@ -831,48 +775,6 @@ class TestMappingParser:
         }
         assert not ms.validate_and_inject_namespace(
             salesforce_client, "ns", DataOperationType.INSERT
-        )
-
-        ms._validate_sobject.assert_called_once_with(
-            {"Account": {"name": "Account", "createable": True}},
-            None,
-            None,
-            DataOperationType.INSERT,
-        )
-
-        ms._validate_field_dict.assert_has_calls(
-            [
-                mock.call(
-                    {
-                        "Name": {"name": "Name", "createable": True},
-                        "Lookup__c": {
-                            "name": "Lookup__c",
-                            "updateable": False,
-                            "createable": True,
-                        },
-                    },
-                    {"Name": "Name"},
-                    None,
-                    None,
-                    False,
-                    DataOperationType.INSERT,
-                ),
-                mock.call(
-                    {
-                        "Name": {"name": "Name", "createable": True},
-                        "Lookup__c": {
-                            "name": "Lookup__c",
-                            "updateable": False,
-                            "createable": True,
-                        },
-                    },
-                    ms.lookups,
-                    None,
-                    None,
-                    False,
-                    DataOperationType.INSERT,
-                ),
-            ]
         )
 
     # Start of FLS/Namespace Injection Integration Tests

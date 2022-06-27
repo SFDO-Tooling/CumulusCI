@@ -305,10 +305,15 @@ class MappingStep(CCIDictModel):
         if operation is DataOperationType.QUERY:
             return ("queryable",)
         if (
-            operation is DataOperationType.INSERT
+            operation is DataOperationType.UPDATE
             and self.action is DataOperationType.UPDATE
         ):
             return ("updateable",)
+        if (
+            operation is DataOperationType.UPDATE
+            or self.action is DataOperationType.UPDATE
+        ):
+            return ("updateable", "createable")
         if operation in (
             DataOperationType.UPSERT,
             DataOperationType.ETL_UPSERT,
