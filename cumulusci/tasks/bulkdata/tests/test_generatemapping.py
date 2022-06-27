@@ -15,8 +15,6 @@ from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.tests.util import _temp_schema_for_tests
 from cumulusci.utils import temporary_dir
 
-# TODO: Move this to a utility class
-
 
 def _SObject(name, fields, **kwargs):
     assert name

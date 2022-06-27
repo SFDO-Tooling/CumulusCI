@@ -9,12 +9,12 @@ from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationStatus
 from cumulusci.tests.util import (
     CURRENT_SF_API_VERSION,
+    fake_get_org_schema,
     mock_describe_calls,
-    mock_get_org_schema,
 )
 
 
-@mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock_get_org_schema)
+@mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", fake_get_org_schema)
 class TestUpsert:
     # Would be nice to slim down this VCR further. It's still 50kb.
     # The next step of VCR compression would be to have some templates

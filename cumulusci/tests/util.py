@@ -335,8 +335,14 @@ _obj_data = [
 ]
 
 
-def mock_get_org_schema(*args, **kwargs):
-    return _temp_schema_for_tests(_obj_data)
+def mock_get_org_schema(*args, obj_data=None, **kwargs):
+    "Use this in mocks"
+    return _temp_schema_for_tests(obj_data or _obj_data)
+
+
+def fake_get_org_schema(obj_data=None):
+    "Use this in tests where you need a fake"
+    return _temp_schema_for_tests(obj_data or _obj_data)
 
 
 @contextmanager

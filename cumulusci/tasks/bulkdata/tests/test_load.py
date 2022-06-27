@@ -33,13 +33,13 @@ from cumulusci.tasks.bulkdata.tests.utils import (
 from cumulusci.tests.util import (
     CURRENT_SF_API_VERSION,
     assert_max_memory_usage,
+    fake_get_org_schema,
     mock_describe_calls,
-    mock_get_org_schema,
 )
 from cumulusci.utils import temporary_dir
 
 
-@mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock_get_org_schema)
+@mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", fake_get_org_schema)
 class TestLoadData:
     mapping_file = "mapping_v1.yml"
 
@@ -102,7 +102,7 @@ class TestLoadData:
                 hh_ids = next(c.execute("SELECT * from households_sf_ids"))
                 assert hh_ids == ("1", "001000000000000")
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock_get_org_schema)
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", fake_get_org_schema)
     def test_run_task__start_step(self):
         task = _make_task(
             LoadData,
@@ -167,7 +167,7 @@ class TestLoadData:
             ]
         )
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock_get_org_schema)
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", fake_get_org_schema)
     def test_run_task__after_steps_failure(self):
         task = _make_task(
             LoadData,
@@ -453,7 +453,7 @@ class TestLoadData:
             )
         )
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock_get_org_schema)
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", fake_get_org_schema)
     def test_get_statics_record_type_not_matched(self):
         task = _make_task(
             LoadData, {"options": {"database_url": "sqlite://", "mapping": "test.yml"}}

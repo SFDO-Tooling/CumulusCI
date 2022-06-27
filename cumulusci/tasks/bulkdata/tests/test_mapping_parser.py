@@ -1,4 +1,5 @@
 import logging
+import typing as T
 from datetime import date
 from io import StringIO
 from pathlib import Path
@@ -19,12 +20,13 @@ from cumulusci.tasks.bulkdata.mapping_parser import (
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
 from cumulusci.tests.util import (
     DummyOrgConfig,
+    fake_get_org_schema,
     mock_describe_calls,
-    mock_get_org_schema,
 )
+from cumulusci.utils import inject_namespace
 
 
-@mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock_get_org_schema)
+@mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", fake_get_org_schema)
 class TestMappingParser:
     def test_simple_parse(self):
         base_path = Path(__file__).parent / "mapping_v2.yml"
@@ -278,14 +280,14 @@ class TestMappingParser:
             {"Name": {"updateable": False}}, "Website", DataOperationType.INSERT
         )
 
-    def test_validate_field_dict__fls_checks(self):
+    def test_validate_and_inject_field_dict__fls_checks(self):
         ms = MappingStep(
             sf_object="Account",
             fields=["Id", "Name", "Website"],
             action=DataOperationType.INSERT,
         )
 
-        assert ms._validate_field_dict(
+        assert ms._validate_and_inject_field_dict(
             describe=CaseInsensitiveDict(
                 {"Name": {"createable": True}, "Website": {"createable": True}}
             ),
@@ -296,7 +298,7 @@ class TestMappingParser:
             data_operation_type=DataOperationType.INSERT,
         )
 
-        assert not ms._validate_field_dict(
+        assert not ms._validate_and_inject_field_dict(
             describe=CaseInsensitiveDict(
                 {"Name": {"createable": True}, "Website": {"createable": False}}
             ),
@@ -307,14 +309,14 @@ class TestMappingParser:
             data_operation_type=DataOperationType.INSERT,
         )
 
-    def test_validate_field_dict__injection(self):
+    def test_validate_and_inject_field_dict__injection(self):
         ms = MappingStep(
             sf_object="Account",
             fields=["Id", "Name", "Test__c"],
             action=DataOperationType.INSERT,
         )
 
-        assert ms._validate_field_dict(
+        assert ms._validate_and_inject_field_dict(
             describe=CaseInsensitiveDict(
                 {"Name": {"createable": True}, "npsp__Test__c": {"createable": True}}
             ),
@@ -327,14 +329,14 @@ class TestMappingParser:
 
         assert ms.fields_ == {"Id": "Id", "Name": "Name", "npsp__Test__c": "Test__c"}
 
-    def test_validate_field_dict__injection_duplicate_fields(self):
+    def test_validate_and_inject_field_dict__injection_duplicate_fields(self):
         ms = MappingStep(
             sf_object="Account",
             fields=["Id", "Name", "Test__c"],
             action=DataOperationType.INSERT,
         )
 
-        assert ms._validate_field_dict(
+        assert ms._validate_and_inject_field_dict(
             describe=CaseInsensitiveDict(
                 {
                     "Name": {"createable": True},
@@ -351,14 +353,14 @@ class TestMappingParser:
 
         assert ms.fields_ == {"Id": "Id", "Name": "Name", "Test__c": "Test__c"}
 
-    def test_validate_field_dict__drop_missing(self):
+    def test_validate_and_inject_field_dict__drop_missing(self):
         ms = MappingStep(
             sf_object="Account",
             fields=["Id", "Name", "Website"],
             action=DataOperationType.INSERT,
         )
 
-        assert ms._validate_field_dict(
+        assert ms._validate_and_inject_field_dict(
             describe=CaseInsensitiveDict(
                 {"Name": {"createable": True}, "Website": {"createable": False}}
             ),
@@ -371,19 +373,19 @@ class TestMappingParser:
 
         assert ms.fields_ == {"Id": "Id", "Name": "Name"}
 
-    def test_validate_sobject(self):
+    def test_validate_and_inject_sobject(self):
         ms = MappingStep(
             sf_object="Account", fields=["Name"], action=DataOperationType.INSERT
         )
 
-        assert ms._validate_sobject(
+        assert ms._validate_and_inject_sobject(
             CaseInsensitiveDict({"Account": {"createable": True}}),
             None,
             None,
             DataOperationType.INSERT,
         )
 
-        assert ms._validate_sobject(
+        assert ms._validate_and_inject_sobject(
             CaseInsensitiveDict({"Account": {"queryable": True}}),
             None,
             None,
@@ -394,19 +396,19 @@ class TestMappingParser:
             sf_object="Account", fields=["Name"], action=DataOperationType.UPDATE
         )
 
-        assert not ms._validate_sobject(
+        assert not ms._validate_and_inject_sobject(
             CaseInsensitiveDict({"Account": {"updateable": False}}),
             None,
             None,
             DataOperationType.INSERT,
         )
 
-    def test_validate_sobject__injection(self):
+    def test_validate_and_inject_sobject__injection(self):
         ms = MappingStep(
             sf_object="Test__c", fields=["Name"], action=DataOperationType.INSERT
         )
 
-        assert ms._validate_sobject(
+        assert ms._validate_and_inject_sobject(
             CaseInsensitiveDict({"npsp__Test__c": {"createable": True}}),
             inject=lambda obj: f"npsp__{obj}",
             strip=None,
@@ -414,12 +416,12 @@ class TestMappingParser:
         )
         assert ms.sf_object == "npsp__Test__c"
 
-    def test_validate_sobject__stripping(self):
+    def test_validate_and_inject_sobject__stripping(self):
         ms = MappingStep(
             sf_object="foo__Test__c", fields=["Name"], action=DataOperationType.INSERT
         )
 
-        assert ms._validate_sobject(
+        assert ms._validate_and_inject_sobject(
             CaseInsensitiveDict({"Test__c": {"createable": True}}),
             inject=None,
             strip=lambda obj: obj[len("foo__") :],
@@ -427,12 +429,12 @@ class TestMappingParser:
         )
         assert ms.sf_object == "Test__c"
 
-    def test_validate_sobject__injection_duplicate(self):
+    def test_validate_and_inject_sobject__injection_duplicate(self):
         ms = MappingStep(
             sf_object="Test__c", fields=["Name"], action=DataOperationType.INSERT
         )
 
-        assert ms._validate_sobject(
+        assert ms._validate_and_inject_sobject(
             CaseInsensitiveDict(
                 {"npsp__Test__c": {"createable": True}, "Test__c": {"createable": True}}
             ),
@@ -442,293 +444,61 @@ class TestMappingParser:
         )
         assert ms.sf_object == "Test__c"
 
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
-        return_value=True,
-    )
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
-        return_value=True,
-    )
-    def test_validate_and_inject_namespace__injection_fields(
-        self, mock_field, mock_sobject
-    ):
-        ms = parse_from_yaml(
-            StringIO(
-                """Insert Accounts:
-                  sf_object: Account
-                  table: Account
-                  fields:
-                    - Test__c"""
-            )
-        )["Insert Accounts"]
-
-        salesforce_client = mock.Mock()
-        salesforce_client.describe.return_value = {
-            "sobjects": [{"name": "Account", "createable": True}]
-        }
-        salesforce_client.Account.describe.return_value = {
-            "fields": [{"name": "ns__Test__c", "createable": True}]
-        }
-
-        assert ms.validate_and_inject_namespace(
-            salesforce_client, "ns", DataOperationType.INSERT, inject_namespaces=True
-        )
-
-        ms._validate_sobject.assert_called_once_with(
-            CaseInsensitiveDict({"Account": {"name": "Account", "createable": True}}),
-            mock.ANY,  # This is a function def
-            mock.ANY,
-            DataOperationType.INSERT,
-        )
-
-        ms._validate_field_dict.assert_has_calls(
-            [
-                mock.call(
-                    CaseInsensitiveDict(
-                        {"ns__Test__c": {"name": "ns__Test__c", "createable": True}}
-                    ),
-                    ms.fields,
-                    mock.ANY,  # local function def
-                    mock.ANY,  # local function def
-                    False,
-                    DataOperationType.INSERT,
-                ),
-                mock.call(
-                    {"ns__Test__c": {"name": "ns__Test__c", "createable": True}},
-                    ms.lookups,
-                    mock.ANY,  # local function def
-                    mock.ANY,  # local function def
-                    False,
-                    DataOperationType.INSERT,
-                ),
-            ]
-        )
-
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
-        return_value=True,
-    )
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
-        return_value=True,
-    )
-    def test_validate_and_inject_namespace__injection_lookups(
-        self, mock_field, mock_sobject
-    ):
-        ms = parse_from_yaml(
-            StringIO(
-                """Insert Accounts:
-                  sf_object: Account
-                  table: Account
-                  fields:
-                    - Name
-                  lookups:
-                    Lookup__c:
-                        table: Stuff"""
-            )
-        )["Insert Accounts"]
-
-        salesforce_client = mock.Mock()
-        salesforce_client.describe.return_value = {
-            "sobjects": [{"name": "Account", "createable": True}]
-        }
-        salesforce_client.Account.describe.return_value = {
-            "fields": [
-                {"name": "Name", "createable": True},
-                {"name": "ns__Lookup__c", "updateable": False, "createable": True},
-            ]
-        }
-
-        assert ms.validate_and_inject_namespace(
-            salesforce_client, "ns", DataOperationType.INSERT, inject_namespaces=True
-        )
-
-        ms._validate_sobject.assert_called_once_with(
-            CaseInsensitiveDict({"Account": {"name": "Account", "createable": True}}),
-            mock.ANY,  # local function def
-            mock.ANY,
-            DataOperationType.INSERT,
-        )
-
-        ms._validate_field_dict.assert_has_calls(
-            [
-                mock.call(
-                    {
-                        "Name": {"name": "Name", "createable": True},
-                        "ns__Lookup__c": {
-                            "name": "ns__Lookup__c",
-                            "updateable": False,
-                            "createable": True,
-                        },
-                    },
-                    ms.fields,
-                    mock.ANY,  # local function def.
-                    mock.ANY,  # local function def.
-                    False,
-                    DataOperationType.INSERT,
-                ),
-                mock.call(
-                    {
-                        "Name": {"name": "Name", "createable": True},
-                        "ns__Lookup__c": {
-                            "name": "ns__Lookup__c",
-                            "updateable": False,
-                            "createable": True,
-                        },
-                    },
-                    ms.lookups,
-                    mock.ANY,  # local function def.
-                    mock.ANY,  # local function def.
-                    False,
-                    DataOperationType.INSERT,
-                ),
-            ]
-        )
-
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
-        return_value=True,
-    )
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
-        return_value=True,
-    )
-    def test_validate_and_inject_namespace__fls(self, mock_field, mock_sobject):
-        ms = MappingStep(
-            sf_object="Test__c", fields=["Field__c"], action=DataOperationType.INSERT
-        )
-
-        salesforce_client = mock.Mock()
-        salesforce_client.describe.return_value = {
-            "sobjects": [{"name": "Test__c", "createable": True}]
-        }
-        salesforce_client.Test__c.describe.return_value = {
-            "fields": [{"name": "Field__c", "createable": True}]
-        }
-        assert ms.validate_and_inject_namespace(
-            salesforce_client, "ns", DataOperationType.INSERT
-        )
-
-        ms._validate_sobject.assert_called_once_with(
-            CaseInsensitiveDict({"Test__c": {"name": "Test__c", "createable": True}}),
-            None,
-            None,
-            DataOperationType.INSERT,
-        )
-
-        ms._validate_field_dict.assert_has_calls(
-            [
-                mock.call(
-                    {"Field__c": {"name": "Field__c", "createable": True}},
-                    {"Field__c": "Field__c"},
-                    None,
-                    None,
-                    False,
-                    DataOperationType.INSERT,
-                ),
-                mock.call(
-                    {"Field__c": {"name": "Field__c", "createable": True}},
-                    {},
-                    None,
-                    None,
-                    False,
-                    DataOperationType.INSERT,
-                ),
-            ]
-        )
-
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
-        return_value=False,
-    )
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
-        return_value=True,
-    )
-    def test_validate_and_inject_namespace__fls_sobject_failure(
-        self, mock_field, mock_sobject
-    ):
-        ms = MappingStep(
-            sf_object="Test__c", fields=["Name"], action=DataOperationType.INSERT
-        )
-
-        salesforce_client = mock.Mock()
-        salesforce_client.describe.return_value = {
-            "sobjects": [{"name": "Test__c", "createable": False}]
-        }
-        salesforce_client.Test__c.describe.return_value = {
-            "fields": [{"name": "Name", "createable": True}]
-        }
-        assert not ms.validate_and_inject_namespace(
-            salesforce_client, "ns", DataOperationType.INSERT
-        )
-
-        ms._validate_sobject.assert_called_once_with(
-            {"Test__c": {"name": "Test__c", "createable": False}},
-            None,
-            None,
-            DataOperationType.INSERT,
-        )
-
-        ms._validate_field_dict.assert_not_called()
-
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
-        return_value=True,
-    )
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
-        return_value=False,
-    )
-    def test_validate_and_inject_namespace__fls_fields_failure(
-        self, mock_field, mock_sobject
-    ):
-        ms = MappingStep(
-            sf_object="Test__c", fields=["Name"], action=DataOperationType.INSERT
-        )
-
-        salesforce_client = mock.Mock()
-        salesforce_client.describe.return_value = {
-            "sobjects": [{"name": "Test__c", "createable": True}]
-        }
-        salesforce_client.Test__c.describe.return_value = {
-            "fields": [{"name": "Name", "createable": False}]
-        }
-        assert not ms.validate_and_inject_namespace(
-            salesforce_client, "ns", DataOperationType.INSERT
-        )
-
-        ms._validate_sobject.assert_called_once_with(
-            {"Test__c": {"name": "Test__c", "createable": True}},
-            None,
-            None,
-            DataOperationType.INSERT,
-        )
-
-        ms._validate_field_dict.assert_has_calls(
-            [
-                mock.call(
-                    {"Name": {"name": "Name", "createable": False}},
-                    {"Name": "Name"},
-                    None,
-                    None,
-                    False,
-                    DataOperationType.INSERT,
+    def test_validate_and_inject_namespace__injection_fields(self):
+        def get_mapping():
+            return parse_from_yaml(
+                StringIO(
+                    """Insert Accounts:
+                    sf_object: Account
+                    table: Account
+                    fields:
+                        - Test__c"""
                 )
-            ]
-        )
+            )["Insert Accounts"]
 
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
-        return_value=True,
-    )
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
-        side_effect=[True, False],
-    )
-    def test_validate_and_inject_namespace__fls_lookups_failure(
-        self, mock_field, mock_sobject
+        ms = get_mapping()
+        with fake_get_org_schema(
+            obj_data=[
+                {
+                    "name": "Account",
+                    "createable": True,
+                    "fields": [{"name": "ns__Test__c", "createable": True}],
+                }
+            ]
+        ) as org_schema:
+            assert "Test__c" in ms["fields"]
+            assert "ns__Test__c" not in ms["fields"]
+            assert ms.validate_and_inject_namespace(
+                org_schema, "ns", DataOperationType.INSERT, inject_namespaces=True
+            )
+            assert "Test__c" not in ms["fields"]
+            assert "ns__Test__c" in ms["fields"]
+
+        ms = get_mapping()
+        with fake_get_org_schema(
+            obj_data=[
+                {
+                    "name": "Account",
+                    "createable": True,
+                    "fields": [{"name": "ns__Test__c", "createable": False}],
+                }
+            ]
+        ) as org_schema:
+            assert not ms.validate_and_inject_namespace(
+                org_schema, "ns", DataOperationType.INSERT, inject_namespaces=True
+            )
+
+        with fake_get_org_schema(
+            obj_data=[
+                {"name": "Account", "createable": True, "fields": []},
+            ]
+        ) as org_schema:
+            assert not ms.validate_and_inject_namespace(
+                org_schema, "ns", DataOperationType.INSERT, inject_namespaces=True
+            )
+
+    def test_validate_and_inject_namespace__injection_lookups(
+        self,
     ):
         ms = parse_from_yaml(
             StringIO(
@@ -743,73 +513,149 @@ class TestMappingParser:
             )
         )["Insert Accounts"]
 
-        salesforce_client = mock.Mock()
-        salesforce_client.describe.return_value = {
-            "sobjects": [{"name": "Account", "createable": True}]
-        }
-        salesforce_client.Account.describe.return_value = {
-            "fields": [
-                {"name": "Name", "createable": True},
-                {"name": "Lookup__c", "updateable": True, "createable": False},
-            ]
-        }
-        assert not ms.validate_and_inject_namespace(
-            salesforce_client, "ns", DataOperationType.INSERT
-        )
+        objs = [
+            {
+                "name": "Account",
+                "createable": True,
+                "fields": [
+                    {"name": "Name", "createable": True},
+                    {"name": "ns__Lookup__c", "updateable": False, "createable": True},
+                ],
+            }
+        ]
+        with fake_get_org_schema(objs) as schema:
+            assert ms.validate_and_inject_namespace(
+                schema,
+                "ns",
+                DataOperationType.INSERT,
+                inject_namespaces=True,
+            )
+        assert "ns__Lookup__c" in ms.lookups
+        assert "Lookup__c" not in ms.lookups
 
-        ms._validate_sobject.assert_called_once_with(
-            {"Account": {"name": "Account", "createable": True}},
-            None,
-            None,
-            DataOperationType.INSERT,
-        )
+    # def test_validate_and_inject_namespace__fls(self):
+    #     ms = MappingStep(
+    #         sf_object="Test__c", fields=["Field__c"], action=DataOperationType.INSERT
+    #     )
 
-        ms._validate_field_dict.assert_has_calls(
-            [
-                mock.call(
-                    {
-                        "Name": {"name": "Name", "createable": True},
-                        "Lookup__c": {
-                            "name": "Lookup__c",
-                            "updateable": True,
-                            "createable": False,
-                        },
-                    },
-                    {"Name": "Name"},
-                    None,
-                    None,
-                    False,
-                    DataOperationType.INSERT,
-                ),
-                mock.call(
-                    {
-                        "Name": {"name": "Name", "createable": True},
-                        "Lookup__c": {
-                            "name": "Lookup__c",
-                            "updateable": True,
-                            "createable": False,
-                        },
-                    },
-                    ms.lookups,
-                    None,
-                    None,
-                    False,
-                    DataOperationType.INSERT,
-                ),
-            ]
-        )
+    #     objs = [
+    #         {
+    #             "name": "Test__c",
+    #             "createable": True,
+    #             "fields": [{"name": "Field__c", "createable": True}],
+    #         }
+    #     ]
 
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_sobject",
-        return_value=True,
-    )
-    @mock.patch(
-        "cumulusci.tasks.bulkdata.mapping_parser.MappingStep._validate_field_dict",
-        side_effect=[True, False],
-    )
-    def test_validate_and_inject_namespace__fls_lookups_update_failure(
-        self, mock_field, mock_sobject
+    #     with fake_get_org_schema(objs) as schema:
+    #         assert ms.validate_and_inject_namespace(
+    #             schema, "ns", DataOperationType.INSERT
+    #         )
+
+    #     assert "Field__c" in ms.fields
+    #     assert "ns__Field__c" not in ms.fields
+
+    def test_validate_and_inject_namespace__fls(self):
+        ms = MappingStep(
+            sf_object="Test__c",
+            fields=["Field__c"],
+            action=DataOperationType.INSERT,
+        )
+        objs = [
+            {
+                "name": "Test__c",
+                "createable": True,
+                "fields": [{"name": "Field__c", "createable": True}],
+            }
+        ]
+
+        self._expect_validate_and_inject_namespace(ms=ms, objs=objs)
+        assert "Field__c" in ms.fields
+        assert "ns__Field__c" not in ms.fields
+        assert ms.sf_object == "Test__c"  # no ns injection requested
+
+    @staticmethod
+    def _expect_validate_and_inject_namespace(
+        ms: MappingStep,
+        objs: T.Sequence[dict] = None,  # use global defaults
+        namespace: str = "ns",
+        action: DataOperationType = DataOperationType.INSERT,
+        inject_namespaces=False,
     ):
+        with fake_get_org_schema(objs) as schema:
+            res = ms.validate_and_inject_namespace(
+                schema, namespace, action, inject_namespaces=inject_namespaces
+            )
+
+        return res
+
+    def test_validate_and_inject_namespace__fls_sobject_failure(self):
+        ms = MappingStep(
+            sf_object="Test__c", fields=["Name"], action=DataOperationType.INSERT
+        )
+
+        valid = self._expect_validate_and_inject_namespace(
+            ms=ms,
+            objs=[
+                {
+                    "name": "Test__c",
+                    "createable": False,
+                    "fields": [{"name": "Name", "createable": True}],
+                }
+            ],
+        )
+        assert not valid
+        assert ms.sf_object == "Test__c"  # no namespace injection requested
+        assert "Name" in ms.fields
+
+    def test_validate_and_inject_namespace__fls_fields_failure(self):
+        ms = MappingStep(
+            sf_object="Test__c", fields=["Name"], action=DataOperationType.INSERT
+        )
+        valid = self._expect_validate_and_inject_namespace(
+            ms=ms,
+            objs=[
+                {
+                    "name": "Test__c",
+                    "createable": True,
+                    "fields": [{"name": "Name", "createable": False}],
+                }
+            ],
+        )
+        assert not valid
+        assert ms.sf_object == "Test__c"  # no namespace injection requested
+        assert "Name" in ms.fields
+
+    def test_validate_and_inject_namespace__fls_lookups_failure(self):
+        ms = parse_from_yaml(
+            StringIO(
+                """Insert Accounts:
+                  sf_object: Account
+                  table: Account
+                  fields:
+                    - Name
+                  lookups:
+                    Lookup__c:
+                        table: Stuff"""
+            )
+        )["Insert Accounts"]
+
+        valid = self._expect_validate_and_inject_namespace(
+            ms=ms,
+            objs=[
+                {
+                    "name": "Account",
+                    "createable": True,
+                    "fields": [
+                        {"name": "Name", "createable": True},
+                        {"name": "Lookup__c", "updateable": True, "createable": False},
+                    ],
+                }
+            ],
+        )
+        assert not valid
+        assert "Name" in ms.fields
+
+    def test_validate_and_inject_namespace__fls_lookups_update_failure(self):
         ms = parse_from_yaml(
             StringIO(
                 """Insert Accounts:
@@ -824,80 +670,39 @@ class TestMappingParser:
             )
         )["Insert Accounts"]
 
-        salesforce_client = mock.Mock()
-        salesforce_client.describe.return_value = {
-            "sobjects": [{"name": "Account", "createable": True}]
-        }
-        salesforce_client.Account.describe.return_value = {
-            "fields": [
-                {"name": "Name", "createable": True},
-                {"name": "Lookup__c", "updateable": False, "createable": True},
-            ]
-        }
-        assert not ms.validate_and_inject_namespace(
-            salesforce_client, "ns", DataOperationType.INSERT
-        )
-
-        ms._validate_sobject.assert_called_once_with(
-            {"Account": {"name": "Account", "createable": True}},
-            None,
-            None,
-            DataOperationType.INSERT,
-        )
-
-        ms._validate_field_dict.assert_has_calls(
-            [
-                mock.call(
+        objs = [
+            {
+                "name": "Account",
+                "createable": True,
+                "fields": [
+                    {"name": "Name", "createable": True},
                     {
-                        "Name": {"name": "Name", "createable": True},
-                        "Lookup__c": {
-                            "name": "Lookup__c",
-                            "updateable": False,
-                            "createable": True,
-                        },
+                        "name": "Lookup__c",
+                        "updateable": False,
+                        "createable": True,
                     },
-                    {"Name": "Name"},
-                    None,
-                    None,
-                    False,
-                    DataOperationType.INSERT,
-                ),
-                mock.call(
-                    {
-                        "Name": {"name": "Name", "createable": True},
-                        "Lookup__c": {
-                            "name": "Lookup__c",
-                            "updateable": False,
-                            "createable": True,
-                        },
-                    },
-                    ms.lookups,
-                    None,
-                    None,
-                    False,
-                    DataOperationType.INSERT,
-                ),
-            ]
-        )
+                ],
+            }
+        ]
+        validated = self._expect_validate_and_inject_namespace(ms=ms, objs=objs)
+
+        assert not validated
 
     # Start of FLS/Namespace Injection Integration Tests
 
     @responses.activate
     def test_validate_and_inject_mapping_enforces_fls(self):
-        mock_describe_calls()
         mapping = parse_from_yaml(
             StringIO(
                 "Insert Accounts:\n  sf_object: Account\n  table: Account\n  fields:\n    - Nonsense__c"
             )
         )
-        org_config = DummyOrgConfig(
-            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
-        )
-
-        with mock_get_org_schema(), pytest.raises(BulkDataException):
+        with fake_get_org_schema(obj_data=None) as schema, pytest.raises(
+            BulkDataException
+        ):
             validate_and_inject_mapping(
                 mapping=mapping,
-                sf=org_config.salesforce_client,
+                org_schema=schema,
                 namespace=None,
                 data_operation=DataOperationType.INSERT,
                 inject_namespaces=False,
@@ -906,24 +711,21 @@ class TestMappingParser:
 
     @responses.activate
     def test_validate_and_inject_mapping_removes_steps_with_drop_missing(self):
-        mock_describe_calls()
         mapping = parse_from_yaml(
             StringIO(
                 "Insert Accounts:\n  sf_object: NotAccount\n  table: Account\n  fields:\n    - Nonsense__c"
             )
         )
-        org_config = DummyOrgConfig(
-            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
-        )
 
-        validate_and_inject_mapping(
-            mapping=mapping,
-            sf=org_config.salesforce_client,
-            namespace=None,
-            data_operation=DataOperationType.INSERT,
-            inject_namespaces=False,
-            drop_missing=True,
-        )
+        with fake_get_org_schema() as org_schema:
+            validate_and_inject_mapping(
+                mapping=mapping,
+                org_schema=org_schema,
+                namespace=None,
+                data_operation=DataOperationType.INSERT,
+                inject_namespaces=False,
+                drop_missing=True,
+            )
 
         assert "Insert Accounts" not in mapping
 
@@ -938,18 +740,16 @@ class TestMappingParser:
                 )
             )
         )
-        org_config = DummyOrgConfig(
-            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
-        )
 
-        validate_and_inject_mapping(
-            mapping=mapping,
-            sf=org_config.salesforce_client,
-            namespace=None,
-            data_operation=DataOperationType.INSERT,
-            inject_namespaces=False,
-            drop_missing=True,
-        )
+        with fake_get_org_schema() as org_schema:
+            validate_and_inject_mapping(
+                mapping=mapping,
+                org_schema=org_schema,
+                namespace=None,
+                data_operation=DataOperationType.INSERT,
+                inject_namespaces=False,
+                drop_missing=True,
+            )
 
         assert "Insert Accounts" not in mapping
         assert "Insert Contacts" in mapping
@@ -970,14 +770,11 @@ class TestMappingParser:
                 )
             )
         )
-        org_config = DummyOrgConfig(
-            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
-        )
 
-        with pytest.raises(BulkDataException):
+        with pytest.raises(BulkDataException), fake_get_org_schema() as org_schema:
             validate_and_inject_mapping(
                 mapping=mapping,
-                sf=org_config.salesforce_client,
+                org_schema=org_schema,
                 namespace=None,
                 data_operation=DataOperationType.INSERT,
                 inject_namespaces=False,
@@ -997,22 +794,13 @@ class TestMappingParser:
                     - Description__c"""
             )
         )["Insert Accounts"]
-        org_config = DummyOrgConfig(
-            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
-        )
 
-        assert ms.validate_and_inject_namespace(
-            org_config.salesforce_client,
-            "ns",
-            DataOperationType.INSERT,
-            inject_namespaces=True,
-        )
+        self._expect_validate_and_inject_namespace(ms, inject_namespaces=True)
 
         assert list(ms.fields.keys()) == ["ns__Description__c"]
 
     @responses.activate
     def test_validate_and_inject_mapping_removes_namespaces(self):
-        mock_describe_calls()
         # Note: History__c is a mock field added to our stored, mock describes (in JSON)
         ms = parse_from_yaml(
             StringIO(
@@ -1023,14 +811,18 @@ class TestMappingParser:
                     - ns__History__c"""
             )
         )["Insert Accounts"]
-        org_config = DummyOrgConfig(
-            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
-        )
 
-        assert ms.validate_and_inject_namespace(
-            org_config.salesforce_client,
-            "ns",
-            DataOperationType.INSERT,
+        objs = [
+            {
+                "name": "Account",
+                "createable": True,
+                "fields": [{"name": "History__c", "createable": True}],
+            }
+        ]
+
+        assert self._expect_validate_and_inject_namespace(
+            ms=ms,
+            objs=objs,
             inject_namespaces=True,
         )
 
@@ -1038,7 +830,6 @@ class TestMappingParser:
 
     @responses.activate
     def test_validate_and_inject_mapping_queries_is_person_account_field(self):
-        mock_describe_calls()
         mapping = parse_from_yaml(
             StringIO(
                 (
@@ -1047,19 +838,17 @@ class TestMappingParser:
                 )
             )
         )
-        org_config = DummyOrgConfig(
-            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
-        )
 
-        validate_and_inject_mapping(
-            mapping=mapping,
-            sf=org_config.salesforce_client,
-            namespace=None,
-            data_operation=DataOperationType.QUERY,
-            inject_namespaces=False,
-            drop_missing=True,
-            org_has_person_accounts_enabled=True,
-        )
+        with fake_get_org_schema() as org_schema:
+            validate_and_inject_mapping(
+                mapping=mapping,
+                org_schema=org_schema,
+                namespace=None,
+                data_operation=DataOperationType.QUERY,
+                inject_namespaces=False,
+                drop_missing=True,
+                org_has_person_accounts_enabled=True,
+            )
 
         assert "Insert Accounts" in mapping
         assert "Insert Contacts" in mapping
@@ -1107,7 +896,6 @@ class TestMappingLookup:
 
     @responses.activate
     def test_validate_and_inject_mapping_works_case_insensitively(self):
-        mock_describe_calls()
         mapping = parse_from_yaml(
             StringIO(
                 (
@@ -1116,27 +904,25 @@ class TestMappingLookup:
                 )
             )
         )
-        org_config = DummyOrgConfig(
-            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
-        )
 
         assert mapping["Insert Accounts"].sf_object != "Account"
         assert mapping["Insert Accounts"].sf_object == "account"
         assert "name" in mapping["Insert Accounts"].fields
         assert "Name" not in mapping["Insert Accounts"].fields
 
-        validate_and_inject_mapping(
-            mapping=mapping,
-            sf=org_config.salesforce_client,
-            namespace=None,
-            data_operation=DataOperationType.INSERT,
-            inject_namespaces=False,
-            drop_missing=False,
-        )
-        assert mapping["Insert Accounts"].sf_object == "Account"
-        assert mapping["Insert Accounts"].sf_object != "account"
-        assert "Name" in mapping["Insert Accounts"].fields
-        assert "name" not in mapping["Insert Accounts"].fields
+        with fake_get_org_schema() as org_schema:
+            validate_and_inject_mapping(
+                mapping=mapping,
+                org_schema=org_schema,
+                namespace=None,
+                data_operation=DataOperationType.INSERT,
+                inject_namespaces=False,
+                drop_missing=False,
+            )
+            assert mapping["Insert Accounts"].sf_object == "Account"
+            assert mapping["Insert Accounts"].sf_object != "account"
+            assert "Name" in mapping["Insert Accounts"].fields
+            assert "name" not in mapping["Insert Accounts"].fields
 
     @responses.activate
     def test_bulk_attributes(self):
