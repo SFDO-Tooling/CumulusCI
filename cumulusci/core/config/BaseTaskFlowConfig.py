@@ -1,7 +1,5 @@
-from warnings import warn
+from cumulusci.utils.deprecation import warn_moved
 
 from .base_task_flow_config import *  # noqa
 
-warn(
-    "Deprecation warning: Please import from .base_task_flow_config rather than .BaseTaskFlowConfig"
-)
+warn_moved(".base_task_flow_config", ".BaseTaskFlowConfig")
