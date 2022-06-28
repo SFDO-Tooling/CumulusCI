@@ -505,10 +505,10 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                 + "config.set_keychain(keychain) before accessing orgs"
             )
 
+    @catch_common_github_auth_errors
     def get_repo_from_url(self, url):
-        with catch_common_github_auth_errors(url):
-            owner, name = split_repo_url(url)
-            return self.get_github_api(owner, name).repository(owner, name)
+        owner, name = split_repo_url(url)
+        return self.get_github_api(owner, name).repository(owner, name)
 
     def get_task(self, name):
         """Get a TaskConfig by task name
