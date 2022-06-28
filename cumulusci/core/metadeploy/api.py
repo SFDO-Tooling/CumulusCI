@@ -1,5 +1,4 @@
 """Calls to the MetaDeploy REST API."""
-
 import functools
 from typing import Optional, Union
 
