@@ -10,8 +10,10 @@ from github3.exceptions import (
     AuthenticationFailed,
     ConnectionError,
     ForbiddenError,
+    ResponseError,
     TransportError,
 )
+from github3.github import GitHub
 from github3.pulls import ShortPullRequest
 from github3.repos.repo import Repository
 from github3.session import AppInstallationTokenAuth
@@ -51,6 +53,7 @@ from cumulusci.core.github import (
     is_label_on_pull_request,
     is_pull_request_merged,
     markdown_link_to_pr,
+    request_url_from_exc,
     validate_service,
     warn_oauth_restricted,
 )
@@ -533,6 +536,17 @@ class TestGithub(GithubApiTestMixin):
         exc = TransportError(base_exc)
         assert UNAUTHORIZED_WARNING == format_github3_exception(exc)
 
+    def test_format_url_from_exc(self):
+        resp = Response()
+        resp.status_code = 401
+        resp.url = expected_url = "http://example.com"
+        message = "Max retries exceeded with url: foo (Caused by ResponseError('too many 401 error responses',))"
+        base_exc = RetryError(message, response=resp)
+        exc = TransportError(base_exc)
+        resp_exc = ResponseError(resp)
+        assert expected_url == request_url_from_exc(exc)
+        assert expected_url == request_url_from_exc(resp_exc)
+
     def test_catch_common_decorator(self):
         resp = Response()
         resp.status_code = 403
@@ -549,6 +563,32 @@ class TestGithub(GithubApiTestMixin):
             test_func()
             actual_error_msg = exc.message
             assert expected_err_msg == actual_error_msg
+
+    @responses.activate
+    def test_catch_common_decorator_transport_url(self):
+        mock_rsp = responses.Response(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            status=401,
+            headers={"X-Github-Sso": "partial-results; organizations=0810298,20348880"},
+        )
+        responses.add(mock_rsp)
+
+        rsp = requests.get("https://api.github.com/rate_limit")
+        responses.calls.reset()
+
+        retry_err = RetryError("too many 401 error responses")
+        retry_err.response = rsp
+        mock_rsp.body = retry_err
+
+        @catch_common_github_auth_errors
+        def test_func():
+            GitHub().rate_limit()
+
+        with pytest.raises(
+            GithubApiError, match="^https://api.github.com/rate_limit\n"
+        ):
+            test_func()
 
     def test_catch_common_decorator_ignores(self):
         resp = Response()

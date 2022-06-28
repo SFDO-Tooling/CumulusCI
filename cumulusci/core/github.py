@@ -510,12 +510,10 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
         try:
             return func(*args, **kwargs)
         except (ResponseError, TransportError) as exc:
-            error_msg = format_github3_exception(exc)
-            if error_msg:
+            if error_msg := format_github3_exception(exc):
                 url = request_url_from_exc(exc)
-                if url:
-                    error_msg = f"{url}\n{error_msg}"
-                raise GithubApiError(error_msg)
+                error_msg = f"{url}\n{error_msg}".strip()
+                raise GithubApiError(error_msg) from exc
             else:
                 raise
 
@@ -525,10 +523,8 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
 def request_url_from_exc(exc: Union[ResponseError, TransportError]) -> str:
     if isinstance(exc, TransportError):
         return exc.exception.response.url
-    elif isinstance(exc, ResponseError):
-        return exc.response.url
     else:
-        return ""
+        return exc.response.url
 
 
 def get_oauth_device_flow_token():
