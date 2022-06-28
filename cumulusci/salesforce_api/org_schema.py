@@ -119,9 +119,11 @@ class Schema:
         """Populate a schema cache from the API, using last_modified_date
         to pull down only new schema"""
 
-        sobjs = sf.describe()["sobjects"]
-        include = set(include) if include is not None else Everything()
-        sobj_names = [obj["name"] for obj in sobjs if obj["name"] in include]
+        if include:
+            sobj_names = include
+        else:
+            sobjs = sf.describe()["sobjects"]
+            sobj_names = [obj["name"] for obj in sobjs]
 
         responses = list(deep_describe(sf, last_modified_date, sobj_names, logger))
         changes = [
