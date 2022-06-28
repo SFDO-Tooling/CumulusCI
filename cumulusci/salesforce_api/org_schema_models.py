@@ -75,12 +75,6 @@ class OrgSchemaModelMixin:
         other_state.pop("_sa_instance_state", None)
         return my_state == other_state
 
-    def __contains__(self, attr):
-        return hasattr(self, attr)
-
-    def get(self, attr, default=None):
-        return getattr(self, attr, default)
-
 
 class SObject(OrgSchemaModelMixin, Base):
     __tablename__ = "sobjects"
