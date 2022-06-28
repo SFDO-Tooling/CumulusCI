@@ -93,21 +93,21 @@ def patch_home_and_env(request):
         yield
 
 
-# @pytest.fixture()
-# def temp_db():
-#     with TemporaryDirectory() as t:
+@pytest.fixture()
+def temp_db():
+    with TemporaryDirectory() as t:
 
-#         @contextmanager
-#         def open_db():
-#             engine = create_engine(f"sqlite:///{t}/tempfile.db")
-#             with engine.connect() as connection:
-#                 Session = sessionmaker(bind=connection)
-#                 Base.metadata.bind = engine
-#                 Base.metadata.create_all()
-#                 session = Session()
-#                 yield connection, Base.metadata, session
+        @contextmanager
+        def open_db():
+            engine = create_engine(f"sqlite:///{t}/tempfile.db")
+            with engine.connect() as connection:
+                Session = sessionmaker(bind=connection)
+                Base.metadata.bind = engine
+                Base.metadata.create_all()
+                session = Session()
+                yield connection, Base.metadata, session
 
-#         yield open_db
+        yield open_db
 
 
 @pytest.fixture()
