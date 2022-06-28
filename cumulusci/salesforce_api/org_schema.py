@@ -44,13 +44,6 @@ def unzip_database(gzipfile, outfile):
                 db.write(gzipped.read())
 
 
-class Everything:
-    """A set that contains everything"""
-
-    def __contains__(self, obj):
-        return True
-
-
 class Schema:
     """Represents an org's schema, cached from describe() calls"""
 
