@@ -1,4 +1,4 @@
-"""Utilities for working with MetaDeploy objects"""
+"""Utilities for working with MetaDeploy plans"""
 
 from cumulusci.core.config import FlowConfig, TaskConfig
 from cumulusci.core.flowrunner import FlowCoordinator
