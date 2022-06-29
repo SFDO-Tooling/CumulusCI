@@ -1,10 +1,6 @@
 name: Release Test
 
 on:
-    push:
-        branches:
-            - feature/**
-            - main
     pull_request:
         types: [opened, synchronize, reopened] # Default
     workflow_call:
