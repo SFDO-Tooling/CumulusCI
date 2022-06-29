@@ -1,4 +1,5 @@
 import gzip
+import typing as T
 from collections import defaultdict
 from contextlib import ExitStack, contextmanager
 from email.utils import parsedate
@@ -7,10 +8,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Dict, Iterable, List, NamedTuple, Optional, Tuple
 
+from simple_salesforce import Salesforce
 from sqlalchemy import MetaData, create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import create_session, exc, sessionmaker
 
+from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.salesforce_api.org_schema_models import (
     Base,
     Field,
@@ -105,12 +108,15 @@ class Schema:
     def __repr__(self):
         return f"<Schema {self.path} : {self.engine}>"
 
-    def populate_cache(self, sf, last_modified_date, logger=None):
+    def populate_cache(self, sf, last_modified_date, include=None, logger=None):
         """Populate a schema cache from the API, using last_modified_date
         to pull down only new schema"""
 
-        sobjs = sf.describe()["sobjects"]
-        sobj_names = [obj["name"] for obj in sobjs]
+        if include:
+            sobj_names = include
+        else:
+            sobjs = sf.describe()["sobjects"]
+            sobj_names = [obj["name"] for obj in sobjs]
 
         responses = list(deep_describe(sf, last_modified_date, sobj_names, logger))
         changes = [
@@ -126,7 +132,9 @@ class Schema:
         self._populate_cache_from_describe(changes, last_modified_date)
 
     def _populate_cache_from_describe(
-        self, describe_objs: List[Tuple[dict, str]], last_modified_date
+        self,
+        describe_objs: List[Tuple[dict, str]],
+        last_modified_date,
     ):
         """Populate a schema cache from a list of describe objects."""
         engine = self.engine
@@ -220,7 +228,14 @@ class BufferedSession:
 
 
 @contextmanager
-def get_org_schema(sf, org_config, force_recache=False, logger=None):
+def get_org_schema(
+    sf: Salesforce,
+    org_config: OrgConfig,
+    include: T.Sequence[str] = None,
+    *,
+    force_recache=False,
+    logger=None,
+):
     """
     Get a read-only representation of an org's schema.
 
@@ -270,11 +285,7 @@ def get_org_schema(sf, org_config, force_recache=False, logger=None):
                 closer.callback(schema.close)
                 schema.from_cache = False
 
-            schema.populate_cache(
-                sf,
-                schema.last_modified_date or y2k,
-                logger,
-            )
+            schema.populate_cache(sf, schema.last_modified_date or y2k, include, logger)
             schema.block_writing()
             # save a gzipped copy for later
             zip_database(tempfile, schema_path)
@@ -309,6 +320,8 @@ def deep_describe(
                     "httpHeaders": {"If-Modified-Since": last_modified_date},
                 }
                 for obj in objs
+                # Platform bug!!!
+                if not obj.startswith("MacroInstruction")
             )
         )
 

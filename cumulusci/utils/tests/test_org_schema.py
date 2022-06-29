@@ -290,6 +290,15 @@ class TestDescribeOrg:
             with get_org_schema(sf, org_config):
                 pass
 
+    def test_minimal_schema(self, sf, org_config, vcr):
+        with vcr.use_cassette(
+            "ManualEditTestDescribeOrg.test_minimal_schema.yaml",
+            record_mode="none",
+        ), get_org_schema(
+            sf, org_config, include=["Account", "Opportunity"], force_recache=True
+        ) as schema:
+            assert list(schema.keys()) == ["Account", "Opportunity"]
+
 
 @pytest.mark.vcr()  # too hard to make these VCR-compatible due to data volume
 @pytest.mark.slow()
@@ -311,6 +320,12 @@ class TestOrgSchemaIntegration:
         with get_org_schema(sf, org_config) as schema:
             self.validate_real_schema_data(schema)
             assert schema.from_cache
+
+    def test_minimal_schema(self, sf, org_config):
+        with get_org_schema(
+            sf, org_config, include=["Account", "Opportunity"], force_recache=True
+        ) as schema:
+            assert list(schema.keys()) == ["Account", "Opportunity"]
 
 
 class TestBufferedSession:

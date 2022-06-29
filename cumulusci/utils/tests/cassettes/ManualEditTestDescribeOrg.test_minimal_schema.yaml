@@ -1,0 +1,36 @@
+interactions:
+    - include_file: GET_sobjects_Global_describe.yaml
+    - request:
+          body:
+              '{"compositeRequest": [{"referenceId": "refAccount", "method": "GET", "url":
+              "/services/data/vxx.0/sobjects/Account/describe", "httpHeaders": {"If-Modified-Since":
+              "Sat, 1 Jan 2000 00:00:01 GMT"}}, {"referenceId": "refOpportunity", "method":
+              "GET", "url": "/services/data/vxx.0/sobjects/Opportunity/describe", "httpHeaders":
+              {"If-Modified-Since": "Sat, 1 Jan 2000 00:00:01 GMT"}}]}'
+          headers:
+              Request-Headers:
+                  - Elided
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite
+      response:
+          body:
+              string:
+                  '{"compositeResponse": [{"body": {"label": "Account", "labelPlural": "Accounts", "layoutable":
+                  true, "listviewable": null, "lookupLayoutable": null, "mergeable": true, "mruEnabled":
+                  true, "name": "Account", "fields":[]}, "httpHeaders": {"ETag": "\"2b806538\"",
+                  "Last-Modified": "Tue, 28 Jun 2022 03:46:54 GMT"}, "httpStatusCode": 200,
+                  "referenceId": "refAccount"}, {"body": {"fields": [], "name": "Opportunity",
+                  "namedLayoutInfos": [], "networkScopeFieldName": null, "queryable": true,
+                  "replicateable": true, "retrieveable": true, "searchLayoutable": true,
+                  "searchable": true, "sobjectDescribeOption": "FULL", "triggerable": true,
+                  "undeletable": true, "updateable": true}, "httpHeaders":
+                  {"ETag": "\"2b806538\"", "Last-Modified": "Tue, 28 Jun 2022 03:46:54 GMT"},
+                  "httpStatusCode": 200, "referenceId": "refOpportunity"}]}'
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+version: 1
