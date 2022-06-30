@@ -41,8 +41,14 @@ def count_sobjects(sf: Salesforce, objs: T.Sequence[str]) -> ObjectCount:
 
     successes = list(successes)
 
+    def removeprefix(mainstr: str, prefix: str):
+        # Until Python 3.9 is minimum supported
+        a, b = mainstr[0 : len(prefix)], mainstr[len(prefix) :]
+        assert a == prefix
+        return b
+
     ret = {
-        response["referenceId"].removeprefix("ref"): response["body"]["totalSize"]
+        removeprefix(response["referenceId"], "ref"): response["body"]["totalSize"]
         for response in successes
     }
     return ObjectCount(ret, transport_errors, tuple(salesforce_errors))
