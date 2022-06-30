@@ -214,8 +214,17 @@ class Schema:
                 or ignore_based_on_properties(obj, filters)
             )
         ]
-        changes = list(deep_describe(sf, last_modified_date, sobj_names, logger))
-
+        responses = list(deep_describe(sf, last_modified_date, sobj_names, logger))
+        changes = [
+            (resp.body, resp.last_modified_date)
+            for resp in responses
+            if resp.status == 200
+        ]
+        unexpected = [resp for resp in responses if resp.status not in (200, 304)]
+        for unknown in unexpected:  # pragma: no cover
+            logger.warning(
+                f"Unexpected describe reply. An SObject may be missing: {unknown}"
+            )
         self._populate_cache_from_describe(changes, last_modified_date)
         if include_counts:
             results = populate_counts(sf, self, sobj_names, logger)
@@ -432,7 +441,7 @@ def get_org_schema(
 class ZippableTempDb:
     """A database that loads and saves from a tempdir to a zippped cache"""
 
-    def __enter__(self) -> Path:
+    def __enter__(self) -> "ZippableTempDb":
         self.tempdir = TemporaryDirectory()
         self.tempfile = Path(self.tempdir.name) / "temp_org_schema.db"
         return self
