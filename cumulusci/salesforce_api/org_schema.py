@@ -1,19 +1,19 @@
 import gzip
+import re
 import typing as T
 from collections import defaultdict
 from contextlib import ExitStack, contextmanager
 from email.utils import parsedate
+from enum import Enum
 from logging import getLogger
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Dict, Iterable, List, NamedTuple, Optional, Tuple
 
-from simple_salesforce import Salesforce
-from sqlalchemy import MetaData, create_engine
+from sqlalchemy import MetaData, create_engine, not_
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import create_session, exc, sessionmaker
 
-from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.salesforce_api.org_schema_models import (
     Base,
     Field,
@@ -24,6 +24,7 @@ from cumulusci.utils.http.multi_request import (
     RECOVERABLE_ERRORS,
     CompositeParallelSalesforce,
 )
+from cumulusci.utils.salesforce.count_sobjects import count_sobjects
 
 y2k = "Sat, 1 Jan 2000 00:00:01 GMT"
 
@@ -44,12 +45,81 @@ def unzip_database(gzipfile, outfile):
                 db.write(gzipped.read())
 
 
+def ignore_based_on_name(objname, patterns: T.Sequence[re.Pattern]):
+    return any(pat.fullmatch(objname) for pat in patterns)
+
+
+class _SqlAlchemyFilter(T.NamedTuple):
+    sqlalchemy_filter: T.Any = None
+
+    def __eq__(self, foo):
+        return False
+
+
+class Filters(Enum):
+    """Options for filtering schemas"""
+
+    # These were originally done using SQL Alchemy syntax because filtering
+    # was done in SQL Alchemy. It is still possible to use them that way
+    # in client code:
+    #
+    # schema.objects.filter(Filters.activateable.value)
+    activateable = _SqlAlchemyFilter(SObject.activateable)
+    compactLayoutable = _SqlAlchemyFilter(SObject.compactLayoutable)
+    createable = _SqlAlchemyFilter(SObject.createable)
+    deepCloneable = _SqlAlchemyFilter(SObject.deepCloneable)
+    deletable = _SqlAlchemyFilter(SObject.deletable)
+    layoutable = _SqlAlchemyFilter(SObject.layoutable)
+    listviewable = _SqlAlchemyFilter(SObject.listviewable)
+    lookupLayoutable = _SqlAlchemyFilter(SObject.lookupLayoutable)
+    mergeable = _SqlAlchemyFilter(SObject.mergeable)
+    queryable = _SqlAlchemyFilter(SObject.queryable)
+    replicateable = _SqlAlchemyFilter(SObject.replicateable)
+    retrieveable = _SqlAlchemyFilter(SObject.retrieveable)
+    searchLayoutable = _SqlAlchemyFilter(SObject.searchLayoutable)
+    searchable = _SqlAlchemyFilter(SObject.searchable)
+    triggerable = _SqlAlchemyFilter(SObject.triggerable)
+    undeletable = _SqlAlchemyFilter(SObject.undeletable)
+    updateable = _SqlAlchemyFilter(SObject.updateable)
+
+    not_activateable = _SqlAlchemyFilter(not_(SObject.activateable))
+    not_compactLayoutable = _SqlAlchemyFilter(not_(SObject.compactLayoutable))
+    not_createable = _SqlAlchemyFilter(not_(SObject.createable))
+    not_deepCloneable = _SqlAlchemyFilter(not_(SObject.deepCloneable))
+    not_deletable = _SqlAlchemyFilter(not_(SObject.deletable))
+    not_layoutable = _SqlAlchemyFilter(not_(SObject.layoutable))
+    not_listviewable = _SqlAlchemyFilter(not_(SObject.listviewable))
+    not_lookupLayoutable = _SqlAlchemyFilter(not_(SObject.lookupLayoutable))
+    not_mergeable = _SqlAlchemyFilter(not_(SObject.mergeable))
+    not_queryable = _SqlAlchemyFilter(not_(SObject.queryable))
+    not_replicateable = _SqlAlchemyFilter(not_(SObject.replicateable))
+    not_retrieveable = _SqlAlchemyFilter(not_(SObject.retrieveable))
+    not_searchLayoutable = _SqlAlchemyFilter(not_(SObject.searchLayoutable))
+    not_searchable = _SqlAlchemyFilter(not_(SObject.searchable))
+    not_triggerable = _SqlAlchemyFilter(not_(SObject.triggerable))
+    not_undeletable = _SqlAlchemyFilter(not_(SObject.undeletable))
+    not_updateable = _SqlAlchemyFilter(not_(SObject.updateable))
+
+    extractable = "extractable"  # can it be extracted safely?
+    # non-extractable objects are discovered
+    # through experimentation.
+    # Also, all non-queryable and non-retrievable objects are
+    # considered non-extractable.
+
+    populated = _SqlAlchemyFilter(SObject.count > 0)  # does it have data in the org
+
+
 class Schema:
     """Represents an org's schema, cached from describe() calls"""
 
     _last_modified_date = None
+    included_objects = None
 
-    def __init__(self, engine, schema_path):
+    def __init__(
+        self,
+        engine,
+        schema_path,
+    ):
         self.engine = engine
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
@@ -57,25 +127,28 @@ class Schema:
 
     @property
     def sobjects(self):
-        return self.session.query(SObject)
+        query = self.session.query(SObject)
+        if self.included_objects:
+            query = query.filter(SObject.name.in_(self.included_objects))
+        return query
 
     def __getitem__(self, name):
         try:
-            return self.session.query(SObject).filter_by(name=name).one()
+            return self.sobjects.filter_by(name=name).one()
         except exc.NoResultFound:
             raise KeyError(f"No sobject named {name}")
 
     def __contains__(self, name):
-        return self.session.query(SObject).filter_by(name=name).all()
+        return self.sobjects.filter_by(name=name).all()
 
     def keys(self):
-        return (x[0] for x in self.session.query(SObject.name).all())
+        return [x.name for x in self.sobjects.all()]
 
     def values(self):
-        return self.session.query(SObject).all()
+        return self.sobjects.all()
 
     def items(self):
-        return ((obj.name, obj) for obj in self.session.query(SObject).all())
+        return [(obj.name, obj) for obj in self.sobjects]
 
     def block_writing(self):
         """After this method is called, the database can't be updated again"""
@@ -108,15 +181,38 @@ class Schema:
     def __repr__(self):
         return f"<Schema {self.path} : {self.engine}>"
 
-    def populate_cache(self, sf, last_modified_date, include=None, logger=None):
+    def populate_cache(
+        self,
+        sf,
+        included_objects,
+        last_modified_date,
+        filters: T.Sequence[Filters] = (),
+        patterns_to_ignore: T.Sequence[str] = (),
+        logger=None,
+    ) -> T.List[str]:
         """Populate a schema cache from the API, using last_modified_date
         to pull down only new schema"""
+        for pat in patterns_to_ignore:
+            assert pat.replace("%", "").isalpha(), f"Pattern has wrong chars {pat}"
 
-        if include:
-            sobj_names = include
-        else:
-            sobjs = sf.describe()["sobjects"]
-            sobj_names = [obj["name"] for obj in sobjs]
+        # Platform bug!
+        patterns_to_ignore = ("MacroInstruction%",) + tuple(patterns_to_ignore)
+        regexps_to_ignore = [
+            re.compile(pat.replace("%", ".*"), re.IGNORECASE)
+            for pat in patterns_to_ignore
+        ]
+
+        objs = [obj for obj in sf.describe()["sobjects"]]
+        if included_objects:
+            objs = [obj for obj in objs if obj["name"] in included_objects]
+        sobj_names = [
+            obj["name"]
+            for obj in objs
+            if not (
+                ignore_based_on_name(obj["name"], regexps_to_ignore)
+                or ignore_based_on_properties(obj, filters)
+            )
+        ]
 
         responses = list(deep_describe(sf, last_modified_date, sobj_names, logger))
         changes = [
@@ -125,17 +221,16 @@ class Schema:
             if resp.status == 200
         ]
         unexpected = [resp for resp in responses if resp.status not in (200, 304)]
-        for unknown in unexpected:
+        for unknown in unexpected:  # pragma: no cov
             logger.warning(
                 f"Unexpected describe reply. An SObject may be missing: {unknown}"
             )
         self._populate_cache_from_describe(changes, last_modified_date)
+        return sobj_names
 
     def _populate_cache_from_describe(
-        self,
-        describe_objs: List[Tuple[dict, str]],
-        last_modified_date,
-    ):
+        self, describe_objs: List[Tuple[dict, str]], last_modified_date
+    ) -> T.List[str]:
         """Populate a schema cache from a list of describe objects."""
         engine = self.engine
         metadata = Base.metadata
@@ -229,26 +324,58 @@ class BufferedSession:
 
 @contextmanager
 def get_org_schema(
-    sf: Salesforce,
-    org_config: OrgConfig,
-    include: T.Sequence[str] = None,
+    sf,
+    org_config,
     *,
+    include_counts: bool = False,
+    filters: T.Sequence[Filters] = (),
+    patterns_to_ignore: T.Tuple[str] = (),
+    included_objects: T.List[str] = (),
     force_recache=False,
     logger=None,
 ):
     """
     Get a read-only representation of an org's schema.
-
+    sf - simple_saleforce object
     org_config - an OrgConfig for the relevant org
+
+    include_counts: query each queryable/retrievable object count.
+                    This takes time and may even timeout in huge orgs!
+    filters: A sequence of Filters which are the same as Salesforce SObject properties
+            like .createable, .deletable etc. Objects that do not match are ignored.
+            Two special filters exist:
+                * Filters.extractable, which uses heuristics to limit to objects
+                    that extract properly
+                * Filters.populated, which limits to objects that have data in them.
+                    This depends upon `include_counts`
+    included_objects: Ignore objects not in this list. Stacks with other filters
+    patterns_to_ignore: Strings in SQL %LIKE% syntax that match SObjects to be
+                        ignored.
+
     force_recache: True - replace cache. False (default) - use/update cache is available.
     logger - replace the standard logger "cumulusci.salesforce_api.org_schema"
     """
+    assert not isinstance(patterns_to_ignore, str)
+
+    filters = set(filters)
     with org_config.get_orginfo_cache_dir(Schema.__module__) as directory:
         directory.mkdir(exist_ok=True, parents=True)
         schema_path = directory / "org_schema.db.gz"
 
         if force_recache and schema_path.exists():
             schema_path.unlink()
+
+        if Filters.populated in filters:
+            filters.add(Filters.queryable)
+            filters.add(Filters.retrieveable)
+            # experiment with removing this limitation by using limit 1 query instead
+            assert include_counts, "Filters.populated depends on include_counts"
+            patterns_to_ignore += NOT_COUNTABLE
+
+        if Filters.extractable in filters:
+            filters.add(Filters.queryable)
+            filters.add(Filters.retrieveable)
+            patterns_to_ignore += NOT_EXTRACTABLE
 
         logger = logger or getLogger(__name__)
 
@@ -263,8 +390,11 @@ def get_org_schema(
                     unzip_database(schema_path, tempfile)
                     cleanups_on_failure.extend([schema_path.unlink, tempfile.unlink])
                     engine = create_engine(f"sqlite:///{str(tempfile)}")
+                    schema = Schema(
+                        engine,
+                        schema_path,
+                    )
 
-                    schema = Schema(engine, schema_path)
                     cleanups_on_failure.append(schema.close)
                     closer.callback(schema.close)
                     assert schema.sobjects.first().name
@@ -281,15 +411,48 @@ def get_org_schema(
                 engine = create_engine(f"sqlite:///{str(tempfile)}")
                 Base.metadata.bind = engine
                 Base.metadata.create_all()
-                schema = Schema(engine, schema_path)
+                schema = Schema(
+                    engine,
+                    schema_path,
+                )
                 closer.callback(schema.close)
                 schema.from_cache = False
 
-            schema.populate_cache(sf, schema.last_modified_date or y2k, include, logger)
+            objs_cached = schema.populate_cache(
+                sf,
+                included_objects,
+                schema.last_modified_date or y2k,
+                filters,
+                patterns_to_ignore,
+                logger,
+            )
+            if include_counts:
+                objs_counted = populate_counts(sf, schema, objs_cached, logger)
+
+            if Filters.populated in filters:
+                # another way to compute this might be by querying the first ID
+                objs_cached = [objname for objname, count in objs_counted if count > 0]
+            schema.included_objects = objs_cached
             schema.block_writing()
             # save a gzipped copy for later
             zip_database(tempfile, schema_path)
             yield schema
+
+
+def populate_counts(sf, schema, objs_cached, logger):
+    objects_to_count = [objname for objname in objs_cached]
+    counts, transports_errors, salesforce_errors = count_sobjects(sf, objects_to_count)
+    errors = transports_errors + salesforce_errors
+    for error in errors[0:10]:
+        logger.warning(f"Error counting SObjects: {error}")
+
+    if len(errors) > 10:
+        logger.warning(f"{len(errors)} more counting errors surpressed")
+
+    for objname, count in counts.items():
+        schema[objname].count = count
+    schema.session.flush()
+    return counts.items()
 
 
 class DescribeResponse(NamedTuple):
@@ -308,6 +471,7 @@ def deep_describe(
     Fetch describe data for sobjects from the list 'objs'
     which have changed since last_modified_date (in HTTP
     proto format) and yield each object as a DescribeResponse object."""
+
     logger = logger or getLogger(__name__)
     last_modified_date = last_modified_date or y2k
     with CompositeParallelSalesforce(sf, max_workers=8) as cpsf:
@@ -320,8 +484,6 @@ def deep_describe(
                     "httpHeaders": {"If-Modified-Since": last_modified_date},
                 }
                 for obj in objs
-                # Platform bug!!!
-                if not obj.startswith("MacroInstruction")
             )
         )
 
@@ -348,3 +510,31 @@ def deep_describe(
             for response in responses
         )
         yield from responses
+
+
+def ignore_based_on_properties(obj: dict, filters: T.Sequence[Filters]):
+    if all(obj.get(filter.name, True) for filter in filters):
+        return False
+    else:
+        return True
+
+
+NOT_COUNTABLE = (
+    "ContentDocumentLink",  # ContentDocumentLink requires a filter by a single Id on ContentDocumentId or LinkedEntityId
+    "ContentFolder%",  # Implementation restriction: ContentFolderItem requires a filter by Id or ParentContentFolderId
+    "IdeaComment",  # you must filter using the following syntax: CommunityId = [single ID],
+    "Vote",  # you must filter using the following syntax: ParentId = [single ID],
+    "RecordActionHistory",  # Gack: 1133111327-118855 (1126216936)
+)
+
+
+NOT_EXTRACTABLE = NOT_COUNTABLE + (
+    "%permission%",
+    "%use%",
+    "%access%",
+    "group",
+    "%share",
+    "NetworkUserHistoryRecent",
+    "OutgoingEmail",
+    "OutgoingEmailRelation",
+)
