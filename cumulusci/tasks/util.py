@@ -5,7 +5,9 @@ import time
 from xml.dom.minidom import parse
 
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.tasks import BaseTask
+from cumulusci.core.tasks import BaseSalesforceTask, BaseTask
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.config import TaskConfig
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.utils import download_extract_zip, find_replace, find_replace_regex
 
@@ -244,3 +246,90 @@ class PassOptionAsReturnValue(BaseTask):
 
     def _run_task(self):
         self.return_values[self.options["key"]] = self.options["value"]
+
+
+class InjectMetaDataValueLWC(BaseSalesforceTask):
+    """This class is used for the injection of variables at run time."""
+
+    task_options = {
+        "path": {
+            "description": "Metadata API version to use, if not project__package__api_version.",
+            "required": True,
+        },
+        "find": {
+            "description": "Value to be replaced with within a file",
+            "required": True,
+        },
+        "env_var": {
+            "description": "Represents the value to replace the find variable in the file",
+            "required": False,
+        },
+        "literal_var": {
+            "description": "Represents the value to replace the find variable in the file",
+            "required": False,
+        },
+    }
+
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+
+        self.api_version = (
+            self.options.get("api_version")
+            or self.project_config.project__package__api_version
+        )
+
+        if any(["path" not in self.options, "find" not in self.options]):
+            raise TaskOptionsError("Please check your options passed in.")
+        self.options["literal_var"] = f"{self.org_config.instance_url}"
+        self.options["replace"] = f"{self.org_config.instance_url}".replace(
+            ".my.salesforce.com", ".lightning.force.com"
+        )
+
+    def _run_task(self):
+        task_config = TaskConfig({"options": self.options})
+        task = FindReplace(self.project_config, task_config, self.org_config)
+        task()
+
+
+class InjectMetaDataValueVisualForce(BaseSalesforceTask):
+    """This class is used for the injection of variables at run time."""
+
+    task_options = {
+        "path": {
+            "description": "Metadata API version to use, if not project__package__api_version.",
+            "required": True,
+        },
+        "find": {
+            "description": "Value to be replaced with within a file",
+            "required": True,
+        },
+        "env_var": {
+            "description": "Represents the value to replace the find variable in the file",
+            "required": False,
+        },
+        "literal_var": {
+            "description": "Represents the value to replace the find variable in the file",
+            "required": False,
+        },
+    }
+
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+
+        self.api_version = (
+            self.options.get("api_version")
+            or self.project_config.project__package__api_version
+        )
+
+        if any(["path" not in self.options, "find" not in self.options]):
+            raise TaskOptionsError("Please check your options passed in.")
+        self.options["literal_var"] = f"{self.org_config.instance_url}"
+        self.options["replace"] = f"{self.org_config.instance_url}".replace(
+            ".my.salesforce.com",
+            f"--omnistudio.{self.org_config.instance_name}.visual.force.com",
+        )
+
+    def _run_task(self):
+        task_config = TaskConfig({"options": self.options})
+        task = FindReplace(self.project_config, task_config, self.org_config)
+        task()

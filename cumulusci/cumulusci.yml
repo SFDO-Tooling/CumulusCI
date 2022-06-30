@@ -205,6 +205,12 @@ tasks:
         class_path: cumulusci.tasks.marketing_cloud.deploy.MarketingCloudDeployTask
         description: Deploys a package zip file to a Marketing Cloud Tenant via the Marketing Cloud Package Manager API.
         group: Marketing Cloud
+    inject_visualforce_remote_site_setting:
+        class_path: tasks.configure_remote_site_settings.InjectMetaDataValueVisualForce
+        description: Creates a RemoteSiteSetting with proper visualforce url convention dynamically by replacing patterns in metadata with live org information.
+    inject_omni_lightning_remote_site_setting:
+        class_path: tasks.configure_remote_site_settings.InjectMetaDataValueLWC
+        description: Creates a RemoteSiteSetting with proper Lighting Web Component url convention dynamically by replacing patterns in metadata with live org information.
     marketing_cloud_create_subscriber_attribute:
         class_path: cumulusci.tasks.marketing_cloud.api.CreateSubscriberAttribute
         description: Creates a Subscriber Attribute via the Marketing Cloud SOAP API.
