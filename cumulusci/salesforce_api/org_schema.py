@@ -432,7 +432,7 @@ def get_org_schema(
 class ZippableTempDb:
     """A database that loads and saves from a tempdir to a zippped cache"""
 
-    def __enter__(self) -> Path:
+    def __enter__(self) -> "ZippableTempDb":
         self.tempdir = TemporaryDirectory()
         self.tempfile = Path(self.tempdir.name) / "temp_org_schema.db"
         return self
