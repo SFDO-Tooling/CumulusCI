@@ -49,13 +49,6 @@ def ignore_based_on_name(objname, patterns: T.Sequence[re.Pattern]):
     return any(pat.fullmatch(objname) for pat in patterns)
 
 
-class _SqlAlchemyFilter(T.NamedTuple):
-    sqlalchemy_filter: T.Any = None
-
-    def __eq__(self, foo):
-        return False
-
-
 class Filters(Enum):
     """Options for filtering schemas"""
 
@@ -63,42 +56,42 @@ class Filters(Enum):
     # was done in SQL Alchemy. It is still possible to use them that way
     # in client code:
     #
-    # schema.objects.filter(Filters.activateable.value)
-    activateable = _SqlAlchemyFilter(SObject.activateable)
-    compactLayoutable = _SqlAlchemyFilter(SObject.compactLayoutable)
-    createable = _SqlAlchemyFilter(SObject.createable)
-    deepCloneable = _SqlAlchemyFilter(SObject.deepCloneable)
-    deletable = _SqlAlchemyFilter(SObject.deletable)
-    layoutable = _SqlAlchemyFilter(SObject.layoutable)
-    listviewable = _SqlAlchemyFilter(SObject.listviewable)
-    lookupLayoutable = _SqlAlchemyFilter(SObject.lookupLayoutable)
-    mergeable = _SqlAlchemyFilter(SObject.mergeable)
-    queryable = _SqlAlchemyFilter(SObject.queryable)
-    replicateable = _SqlAlchemyFilter(SObject.replicateable)
-    retrieveable = _SqlAlchemyFilter(SObject.retrieveable)
-    searchLayoutable = _SqlAlchemyFilter(SObject.searchLayoutable)
-    searchable = _SqlAlchemyFilter(SObject.searchable)
-    triggerable = _SqlAlchemyFilter(SObject.triggerable)
-    undeletable = _SqlAlchemyFilter(SObject.undeletable)
-    updateable = _SqlAlchemyFilter(SObject.updateable)
+    # schema.objects.filter(Filters.activateable)
+    activateable = SObject.activateable
+    compactLayoutable = SObject.compactLayoutable
+    createable = SObject.createable
+    deepCloneable = SObject.deepCloneable
+    deletable = SObject.deletable
+    layoutable = SObject.layoutable
+    listviewable = SObject.listviewable
+    lookupLayoutable = SObject.lookupLayoutable
+    mergeable = SObject.mergeable
+    queryable = SObject.queryable
+    replicateable = SObject.replicateable
+    retrieveable = SObject.retrieveable
+    searchLayoutable = SObject.searchLayoutable
+    searchable = SObject.searchable
+    triggerable = SObject.triggerable
+    undeletable = SObject.undeletable
+    updateable = SObject.updateable
 
-    not_activateable = _SqlAlchemyFilter(not_(SObject.activateable))
-    not_compactLayoutable = _SqlAlchemyFilter(not_(SObject.compactLayoutable))
-    not_createable = _SqlAlchemyFilter(not_(SObject.createable))
-    not_deepCloneable = _SqlAlchemyFilter(not_(SObject.deepCloneable))
-    not_deletable = _SqlAlchemyFilter(not_(SObject.deletable))
-    not_layoutable = _SqlAlchemyFilter(not_(SObject.layoutable))
-    not_listviewable = _SqlAlchemyFilter(not_(SObject.listviewable))
-    not_lookupLayoutable = _SqlAlchemyFilter(not_(SObject.lookupLayoutable))
-    not_mergeable = _SqlAlchemyFilter(not_(SObject.mergeable))
-    not_queryable = _SqlAlchemyFilter(not_(SObject.queryable))
-    not_replicateable = _SqlAlchemyFilter(not_(SObject.replicateable))
-    not_retrieveable = _SqlAlchemyFilter(not_(SObject.retrieveable))
-    not_searchLayoutable = _SqlAlchemyFilter(not_(SObject.searchLayoutable))
-    not_searchable = _SqlAlchemyFilter(not_(SObject.searchable))
-    not_triggerable = _SqlAlchemyFilter(not_(SObject.triggerable))
-    not_undeletable = _SqlAlchemyFilter(not_(SObject.undeletable))
-    not_updateable = _SqlAlchemyFilter(not_(SObject.updateable))
+    not_activateable = not_(SObject.activateable)
+    not_compactLayoutable = not_(SObject.compactLayoutable)
+    not_createable = not_(SObject.createable)
+    not_deepCloneable = not_(SObject.deepCloneable)
+    not_deletable = not_(SObject.deletable)
+    not_layoutable = not_(SObject.layoutable)
+    not_listviewable = not_(SObject.listviewable)
+    not_lookupLayoutable = not_(SObject.lookupLayoutable)
+    not_mergeable = not_(SObject.mergeable)
+    not_queryable = not_(SObject.queryable)
+    not_replicateable = not_(SObject.replicateable)
+    not_retrieveable = not_(SObject.retrieveable)
+    not_searchLayoutable = not_(SObject.searchLayoutable)
+    not_searchable = not_(SObject.searchable)
+    not_triggerable = not_(SObject.triggerable)
+    not_undeletable = not_(SObject.undeletable)
+    not_updateable = not_(SObject.updateable)
 
     extractable = "extractable"  # can it be extracted safely?
     # non-extractable objects are discovered
@@ -106,7 +99,7 @@ class Filters(Enum):
     # Also, all non-queryable and non-retrievable objects are
     # considered non-extractable.
 
-    populated = _SqlAlchemyFilter(SObject.count > 0)  # does it have data in the org
+    populated = SObject.count > 0  # does it have data in the org?
 
 
 class Schema:
@@ -115,11 +108,7 @@ class Schema:
     _last_modified_date = None
     included_objects = None
 
-    def __init__(
-        self,
-        engine,
-        schema_path,
-    ):
+    def __init__(self, engine, schema_path):
         self.engine = engine
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
@@ -221,7 +210,7 @@ class Schema:
             if resp.status == 200
         ]
         unexpected = [resp for resp in responses if resp.status not in (200, 304)]
-        for unknown in unexpected:  # pragma: no cov
+        for unknown in unexpected:  # pragma: no cover
             logger.warning(
                 f"Unexpected describe reply. An SObject may be missing: {unknown}"
             )

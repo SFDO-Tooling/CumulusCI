@@ -331,6 +331,13 @@ class TestOrgSchema:
                 assert "Account" not in schema
                 assert "PermissionSet" in schema
 
+    def test_reuse_query(self, sf, org_config):
+        with mock_return_uncached_responses(self.cassette_data):
+            with get_org_schema(
+                FakeSF(), org_config, filters=[Filters.extractable]
+            ) as schema:
+                assert len(tuple(schema.sobjects)) == len(tuple(schema.sobjects))
+
     def test_filter_not_extractable_implicit(self, sf, org_config):
         """Permission Sets are an example of an object considered "not extractable" """
         with mock_return_uncached_responses(self.cassette_data):
