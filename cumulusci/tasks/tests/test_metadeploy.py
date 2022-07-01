@@ -13,11 +13,88 @@ import yaml
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.core.metadeploy.models import Product, Version
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.metadeploy import BaseMetaDeployTask, Publish
 from cumulusci.tests.util import create_project_config
 
 pytestmark = pytest.mark.metadeploy
+
+
+@pytest.fixture
+def product_dict():
+    return {
+        "id": "abcdef",
+        "url": "https://EXISTING_PRODUCT",
+        "title": "Education Data Architecture (EDA)",
+        "short_description": "The Foundation for the Connected Campus",
+        "description": "## Welcome to the EDA installer!",
+        "click_through_agreement": "Ladies and Gentlemen of the jury, I'm just a Caveman.",
+        "error_message": "",
+        "slug": "existing",
+    }
+
+
+@pytest.fixture
+def simple_plan_dict():
+    return {
+        "url": "http://localhost:8080/admin/rest/plans/GLN6Ppx",
+        "id": "GLN6Ppx",
+        "steps": [],
+        "title": "Full Install",
+        "preflight_message_additional": "",
+        "post_install_message_additional": "",
+        "commit_ish": None,
+        "order_key": 0,
+        "tier": "primary",
+        "is_listed": True,
+        "preflight_checks": [],
+        "supported_orgs": "Persistent",
+        "org_config_name": "release",
+        "scratch_org_duration_override": None,
+        "created_at": "2022-06-30T21:15:11.629638Z",
+        "visible_to": None,
+        "plan_template": "http://localhost:8080/admin/rest/plantemplates/1",
+        "version": "http://localhost:8080/admin/rest/versions/GLN6Ppx",
+    }
+
+
+@pytest.fixture
+def version_dict():
+    return {
+        "url": "http://EXISTING_VERSION",
+        "id": "OkAgPpL",
+        "label": "1.0",
+        "created_at": "2022-06-30T21:15:15.390046Z",
+        "is_production": True,
+        "commit_ish": "release/1.0",
+        "is_listed": True,
+        "product": "http://localhost:8080/admin/rest/products/abcdef",
+    }
+
+
+@pytest.fixture
+def plantemplate_dict():
+    return {
+        "url": "http://localhost:8080/admin/rest/plantemplates/1",
+        "id": "1",
+        "preflight_message": "Preflight message consists of generic product message and step pre-check info — run in one operation before the install begins. Preflight includes the name of what is being installed. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.",
+        "post_install_message": "Success! You installed it.",
+        "error_message": "",
+        "name": "Full Install for Product With Useful Data, Version 0.2.0",
+        "regression_test_opt_out": False,
+        "product": "http://localhost:8080/admin/rest/products/GLN6Ppx",
+    }
+
+
+@pytest.fixture
+def product_model(product_dict):
+    return Product.parse_obj(product_dict)
+
+
+@pytest.fixture
+def version_model(version_dict):
+    return Version.parse_obj(version_dict)
 
 
 class TestBaseMetaDeployTask:
@@ -113,7 +190,9 @@ class TestPublish(GithubApiTestMixin):
         assert "Admin API" in str(e.value)
 
     @responses.activate
-    def test_run_task(self):
+    def test_run_task(
+        self, simple_plan_dict, product_dict, version_dict, plantemplate_dict
+    ):
         project_config = create_project_config()
         project_config.config["plans"] = {
             "install": {
@@ -147,15 +226,7 @@ class TestPublish(GithubApiTestMixin):
         responses.add(
             "GET",
             "https://metadeploy/products?repo_url=https%3A%2F%2Fgithub.com%2FTestOwner%2FTestRepo",
-            json={
-                "data": [
-                    {
-                        "id": "abcdef",
-                        "url": "https://EXISTING_PRODUCT",
-                        "slug": "existing",
-                    }
-                ]
-            },
+            json={"data": [product_dict]},
         )
         responses.add(
             "GET",
@@ -237,19 +308,21 @@ class TestPublish(GithubApiTestMixin):
         responses.add(
             "POST",
             "https://metadeploy/versions",
-            json={"url": "https:/metadeploy/versions/1", "id": 1},
+            json=version_dict,
         )
         responses.add(
             "GET",
             "https://metadeploy/plantemplates?product=abcdef&name=install",
-            json={"data": [{"url": "https://metadeploy/plantemplates/1"}]},
+            json={"data": [plantemplate_dict]},
         )
         responses.add(
             "POST",
             "https://metadeploy/plans",
-            json={"url": "https://metadeploy/plans/1"},
+            json=simple_plan_dict,
         )
-        responses.add("PATCH", "https://metadeploy/versions/1", json={})
+        responses.add(
+            "PATCH", f"https://metadeploy/versions/{version_dict['id']}", json={}
+        )
 
         labels_path = tempfile.mkdtemp()
         en_labels_path = Path(labels_path, "labels_en.json")
@@ -279,17 +352,17 @@ class TestPublish(GithubApiTestMixin):
         self.maxDiff = None
         assert [
             {
+                "is_recommended": True,
                 "is_required": True,
                 "kind": "managed",
                 "name": "Install Test Product 1.0",
                 "path": "install_prod.install_managed",
-                "source": None,
                 "step_num": "1/2",
                 "task_class": "cumulusci.tasks.salesforce.InstallPackageVersion",
                 "task_config": {
                     "options": {
-                        "namespace": "ns",
                         "version": "1.0",
+                        "namespace": "ns",
                         "interactive": False,
                         "base_package_url_format": "{}",
                     },
@@ -297,11 +370,11 @@ class TestPublish(GithubApiTestMixin):
                 },
             },
             {
+                "is_recommended": True,
                 "is_required": True,
                 "kind": "metadata",
                 "name": "Update Admin Profile",
                 "path": "install_prod.config_managed.update_admin_profile",
-                "source": None,
                 "step_num": "1/3/2",
                 "task_class": "cumulusci.tasks.salesforce.ProfileGrantAllAccess",
                 "task_config": {
@@ -313,9 +386,10 @@ class TestPublish(GithubApiTestMixin):
                 },
             },
             {
-                "name": "util_sleep",
-                "kind": "other",
+                "is_recommended": True,
                 "is_required": True,
+                "kind": "other",
+                "name": "util_sleep",
                 "path": "util_sleep",
                 "step_num": "2",
                 "task_class": "cumulusci.tasks.util.Sleep",
@@ -323,7 +397,6 @@ class TestPublish(GithubApiTestMixin):
                     "options": {"seconds": 5},
                     "checks": [{"when": "False", "action": "error"}],
                 },
-                "source": None,
             },
         ] == steps
 
@@ -354,11 +427,11 @@ class TestPublish(GithubApiTestMixin):
         shutil.rmtree(labels_path)
 
     @responses.activate
-    def test_find_or_create_version__already_exists(self):
+    def test_find_or_create_version__already_exists(self, product_model, version_dict):
         responses.add(
             "GET",
             "https://metadeploy/versions?product=abcdef&label=1.0",
-            json={"data": [{"url": "http://EXISTING_VERSION"}]},
+            json={"data": [version_dict]},
         )
 
         project_config = create_project_config()
@@ -379,17 +452,15 @@ class TestPublish(GithubApiTestMixin):
         task_config = TaskConfig({"options": {"tag": "release/1.0"}})
         task = Publish(project_config, task_config)
         task._init_task()
-        version = task._find_or_create_version(
-            {"url": "http://EXISTING_PRODUCT", "id": "abcdef"}
-        )
-        assert version["url"] == "http://EXISTING_VERSION"
+        version = task._find_or_create_version(product_model)
+        assert version.url == "http://EXISTING_VERSION"
 
     @responses.activate
-    def test_find_or_create_version__commit(self):
+    def test_find_or_create_version__commit(self, product_model, version_dict):
         responses.add(
             "GET",
             "https://metadeploy/versions?product=abcdef&label=abcdef",
-            json={"data": [{"url": "http://EXISTING_VERSION"}]},
+            json={"data": [version_dict]},
         )
 
         project_config = create_project_config()
@@ -410,10 +481,8 @@ class TestPublish(GithubApiTestMixin):
         task_config = TaskConfig({"options": {"commit": "abcdef"}})
         task = Publish(project_config, task_config)
         task._init_task()
-        version = task._find_or_create_version(
-            {"url": "http://EXISTING_PRODUCT", "id": "abcdef"}
-        )
-        assert version["url"] == "http://EXISTING_VERSION"
+        version = task._find_or_create_version(product_model)
+        assert version.url == "http://EXISTING_VERSION"
 
     @responses.activate
     def test_find_product__not_found(self):
@@ -471,7 +540,9 @@ class TestPublish(GithubApiTestMixin):
         assert expected_plans == task.plan_configs
 
     @responses.activate
-    def test_find_or_create_plan_template__not_found(self):
+    def test_find_or_create_plan_template__not_found(
+        self, product_model, plantemplate_dict
+    ):
         responses.add(
             "GET",
             "https://metadeploy/plantemplates?product=abcdef&name=install",
@@ -480,10 +551,16 @@ class TestPublish(GithubApiTestMixin):
         responses.add(
             "POST",
             "https://metadeploy/plantemplates",
-            json={"url": "https://NEW_PLANTEMPLATE"},
+            json=plantemplate_dict,
         )
         responses.add(
-            "POST", "https://metadeploy/planslug", json={"url": "http://NEW_PLANSLUG"}
+            "POST",
+            "https://metadeploy/planslug",
+            json={
+                "parent": plantemplate_dict["product"],
+                "slug": "install",
+                "url": "http://NEW_PLANSLUG",
+            },
         )
 
         project_config = create_project_config()
@@ -506,11 +583,11 @@ class TestPublish(GithubApiTestMixin):
         task = Publish(project_config, task_config)
         task._init_task()
         plantemplate = task._find_or_create_plan_template(
-            {"url": "https://EXISTING_PRODUCT", "id": "abcdef"},
+            product_model,
             "install",
             {"slug": "install"},
         )
-        assert plantemplate["url"] == "https://NEW_PLANTEMPLATE"
+        assert plantemplate.url == plantemplate_dict["url"]
 
     def test_freeze_steps__skip(self):
         project_config = create_project_config()
@@ -530,38 +607,3 @@ class TestPublish(GithubApiTestMixin):
         task._init_task()
         steps = task._freeze_steps(project_config, plan_config)
         assert steps == []
-
-    providers = [
-        (["user"], "Persistent"),
-        (["devhub"], "Scratch"),
-        (["user", "devhub"], "Both"),
-    ]
-
-    @pytest.mark.parametrize("org_providers,metadeploy_equivalent", providers)
-    def test_convert_org_providers_to_plan_equivalent(
-        self, org_providers, metadeploy_equivalent
-    ):
-        project_config = create_project_config()
-        project_config.keychain.set_service(
-            "metadeploy",
-            "test_alias",
-            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
-        )
-
-        plan_config = {
-            "title": "Test Install",
-            "slug": "install",
-            "tier": "primary",
-            "steps": {1: {"task": "None"}},
-            "allowed_org_providers": org_providers,
-        }
-        plan_name = "test_install"
-        project_config.config["plans"] = {
-            plan_name: plan_config,
-        }
-        task_config = TaskConfig({"options": {"tag": "release/1.0"}})
-
-        task = Publish(project_config, task_config)
-        actual = task._convert_org_providers_to_plan_equivalent(org_providers)
-
-        assert actual == metadeploy_equivalent

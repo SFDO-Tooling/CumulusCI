@@ -1,12 +1,11 @@
 import json
 from pathlib import Path
-from typing import List, Optional, Union
+from zipfile import ZipFile
 
 import requests
 
-from cumulusci.core.config import BaseProjectConfig, FlowConfig, TaskConfig
-from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
-from cumulusci.core.flowrunner import FlowCoordinator
+from cumulusci.core.config import BaseProjectConfig
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.github import get_tag_by_name
 from cumulusci.core.metadeploy.api import MetaDeployAPI
 from cumulusci.core.metadeploy.labels import (
@@ -17,9 +16,16 @@ from cumulusci.core.metadeploy.labels import (
     update_product_labels,
     update_step_labels,
 )
+from cumulusci.core.metadeploy.models import (
+    MetaDeployPlan,
+    PlanTemplate,
+    Product,
+    Version,
+)
+from cumulusci.core.metadeploy.plans import get_frozen_steps
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.utils import cd, download_extract_github, temporary_dir
+from cumulusci.utils import download_extract_github, temporary_dir
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from cumulusci.utils.yaml.cumulusci_yml import Plan
 
@@ -80,17 +86,16 @@ class Publish(BaseMetaDeployTask):
             self.options.get("publish") or False
         )
         self.tag = self.options.get("tag")
-        self.commit = self.options.get("commit")
+        self.commit: str = self.options.get("commit")
         if not self.tag and not self.commit:
             raise TaskOptionsError("You must specify either the tag or commit option.")
         self.labels_path = self.options.get("labels_path", "metadeploy")
         Path(self.labels_path).mkdir(parents=True, exist_ok=True)
 
         if plan_name := self.options.get("plan"):
-            plan_configs = {
+            self.plan_configs = {
                 plan_name: self.project_config.lookup(f"plans__{plan_name}")
             }
-            self.plan_configs = plan_configs
         else:
             self.plan_configs = self.project_config.plans
 
@@ -103,25 +108,13 @@ class Publish(BaseMetaDeployTask):
 
         # Find or create Version
         product = self._find_product(repo_url)
-        if not product:
-            raise CumulusCIException(
-                f"No product found in MetaDeploy with repo URL {repo_url}"
-            )
+
         if not self.dry_run:
             version = self._find_or_create_version(product)
             if self.labels_path and "slug" in product:
-                self._publish_labels(product["slug"])
+                self._publish_labels(product.slug)
 
-        # Check out the specified tag
-        gh = self.project_config.get_github_api()
-        repo = gh.repository(repo_owner, repo_name)
-        if self.tag:
-            tag = get_tag_by_name(repo, self.tag)
-            self.commit = tag.object.sha
-        self.logger.info(
-            f"Downloading commit {self.commit} of {repo.full_name} from GitHub"
-        )
-        zf = download_extract_github(gh, repo_owner, repo_name, ref=self.commit)
+        zf: ZipFile = self._checkout_tag(repo_owner, repo_name)
         with temporary_dir() as project_dir:
             zf.extractall(project_dir)
             project_config = BaseProjectConfig(
@@ -147,29 +140,27 @@ class Publish(BaseMetaDeployTask):
 
             # Update version to set is_listed=True
             if self.publish:
-                self.api.update_version(version["id"])
-                self.logger.info(f"Published Version {version['url']}")
+                self.api.update_version(version.id)
+                self.logger.info(f"Published Version {version.url}")
 
         # Save labels
         self.logger.info(f"Updating labels in {self.labels_path}")
         save_default_labels(self.labels_path, self.labels)
 
+    def _checkout_tag(self, repo_owner, repo_name) -> ZipFile:
+        # Check out the specified tag
+        gh = self.project_config.get_github_api()
+        repo = gh.repository(repo_owner, repo_name)
+        if self.tag:
+            tag = get_tag_by_name(repo, self.tag)
+            self.commit = tag.object.sha
+        self.logger.info(
+            f"Downloading commit {self.commit} of {repo.full_name} from GitHub"
+        )
+        return download_extract_github(gh, repo_owner, repo_name, ref=self.commit)
+
     def _freeze_steps(self, project_config, plan_config) -> list:
-        steps = plan_config["steps"]
-        flow_config = FlowConfig(plan_config)
-        flow_config.project_config = project_config
-        flow = FlowCoordinator(project_config, flow_config)
-        steps = []
-        for step in flow.steps:
-            if step.skip:
-                continue
-            with cd(step.project_config.repo_root):
-                task = step.task_class(
-                    step.project_config,
-                    TaskConfig(step.task_config),
-                    name=step.task_name,
-                )
-                steps.extend(task.freeze(step))
+        steps = get_frozen_steps(project_config, plan_config)
         self.logger.debug("Prepared steps:\n" + json.dumps(steps, indent=4))
 
         update_step_labels(steps, self.labels)
@@ -180,107 +171,68 @@ class Publish(BaseMetaDeployTask):
             product, plan_name, plan_config
         )
 
-        allowed_org_providers = self._get_allowed_org_providers(plan_name)
-        supported_orgs = self._convert_org_providers_to_plan_equivalent(
-            allowed_org_providers
-        )
-
-        plan_json = {
-            "is_listed": plan_config.get("is_listed", True),
-            "plan_template": plan_template["url"],
-            "post_install_message_additional": plan_config.get(
-                "post_install_message_additional", ""
-            ),
-            "preflight_message_additional": plan_config.get(
-                "preflight_message_additional", ""
-            ),
-            "steps": steps,
-            "supported_orgs": supported_orgs,
-            "tier": plan_config["tier"],
-            "title": plan_config["title"],
-            "version": version["url"],
+        parsed_plan = Plan.parse_obj(self.project_config.config["plans"][plan_name])
+        plan_json = MetaDeployPlan(
+            plan_template=plan_template.url,
+            is_listed=parsed_plan.is_listed,
+            post_install_message=plan_config.get("post_install_message", ""),
+            preflight_message=plan_config.get("post_install_message", ""),
+            tier=parsed_plan.tier,
+            title=parsed_plan.title,
+            steps=steps,
+            supported_orgs=parsed_plan.allowed_org_providers,
+            version=version.url,
             # Use same AllowedList as the product, if any
-            "visible_to": product.get("visible_to"),
-        }
-        if plan_config.get("checks"):
-            plan_json["preflight_checks"] = plan_config["checks"]
+            visible_to=product.visible_to,
+            preflight_checks=plan_config.get("checks"),
+        )
 
         # Create Plan
         plan = self.api.create_plan(plan=plan_json)
-        self.logger.info(f"Created Plan {plan['url']}")
+        self.logger.info(f"Created Plan {plan.url}")
 
-    def _get_allowed_org_providers(self, plan_name: str) -> List[str]:
-        "Validates and returns the org providers for a given plan"
-        plan = Plan.parse_obj(self.project_config.config["plans"][plan_name])
-        return plan.allowed_org_providers
-
-    def _convert_org_providers_to_plan_equivalent(
-        self, providers: Union[None, List[str]]
-    ) -> str:
-        """Given a list of plan.allowed_org_providers return the value that
-        corresponds `supported_orgs` field on the Plan model in MetaDeploy
-        """
-        if not providers or providers == ["user"]:
-            org_providers = "Persistent"
-        elif "user" in providers and "devhub" in providers:
-            org_providers = "Both"
-        elif providers == ["devhub"]:
-            org_providers = "Scratch"
-
-        return org_providers
-
-    def _find_product(self, repo_url):
-        product = self.api.find_product(repo_url)
+    def _find_product(self, repo_url) -> Product:
+        product: Product = self.api.find_product(repo_url)
         update_product_labels(product, self.labels)
         return product
 
     def _find_or_create_version(self, product):
         """Create a Version in MetaDeploy if it doesn't already exist"""
-        if self.tag:
-            label = self.project_config.get_version_for_tag(self.tag)
-        else:
-            label = self.commit
+        label: str = self._get_label()
 
-        version: Optional[dict] = self.api.find_version(
-            query={"product": product["id"], "label": label}
+        version_to_create = Version(
+            product=product.url,
+            label=label,
+            is_production=True,
+            commit_ish=self.tag or self.commit,
+            is_listed=False,
         )
-        verb: str = "Found" if version else "Created"
+        version: Version = self.api.find_or_create_version(
+            product.id, version_to_create
+        )
 
-        if not version:
-            version_dict = {
-                "product": product["url"],
-                "label": label,
-                "description": self.options.get("description", ""),
-                "is_production": True,
-                "commit_ish": self.tag or self.commit,
-                "is_listed": False,
-            }
-            version = self.api.create_version(version_dict)
-
-        self.logger.info(f"{verb} {version['url']}")
+        self.logger.info(f"Found or created {version.url}")
         return version
 
-    def _find_or_create_plan_template(self, product, plan_name, plan_config):
-        plantemplate = self.api.find_plan_template(
-            {"product": product["id"], "name": plan_name}
-        )
-        verb: str = "Found" if plantemplate else "Created"
+    def _get_label(self) -> str:
+        if self.tag:
+            return self.project_config.get_version_for_tag(self.tag)
+        else:
+            return self.commit
 
-        if not plantemplate:
-            plantemplate = self.api.create_plan_template(
-                {
-                    "name": plan_name,
-                    "product": product["url"],
-                    "preflight_message": plan_config.get("preflight_message", ""),
-                    "post_install_message": plan_config.get("post_install_message", ""),
-                    "error_message": plan_config.get("error_message", ""),
-                }
-            )
-            planslug = self.api.create_plan_slug(
-                {"slug": plan_config["slug"], "parent": plantemplate["url"]}
-            )
-            self.logger.info(f"Created {planslug['url']}")
-        self.logger.info(f"{verb} {plantemplate['url']}")
+    def _find_or_create_plan_template(self, product, plan_name, plan_config):
+        template_to_create: PlanTemplate = PlanTemplate(
+            name=plan_name,
+            product=product.url,
+            preflight_message=plan_config.get("preflight_message", ""),
+            post_install_message=plan_config.get("post_install_message", ""),
+            error_message=plan_config.get("error_message", ""),
+        )
+
+        plantemplate: PlanTemplate = self.api.find_or_create_plan_template(
+            product.id, template_to_create, plan_config["slug"]
+        )
+        self.logger.info(f"Found or created {plantemplate.url}")
         return plantemplate
 
     def _publish_labels(self, slug):

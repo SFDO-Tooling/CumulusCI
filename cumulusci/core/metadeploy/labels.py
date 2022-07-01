@@ -69,7 +69,7 @@ def save_default_labels(labels_path: Union[Path, str], labels_to_save: dict):
     """Save updates to English labels."""
     with contextlib.suppress(FileNotFoundError):
         labels_file: Path = Path(labels_path, "labels_en.json")
-        labels_file.write_text(json.dumps(labels_to_save, indent=4))
+        labels_file.write_text(f"{json.dumps(labels_to_save, indent=4)}\n")
 
 
 def update_plan_labels(plan_name: str, plan, labels_to_update):
