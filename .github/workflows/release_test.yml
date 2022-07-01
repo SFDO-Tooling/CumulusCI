@@ -1,10 +1,6 @@
 name: Release Test
 
 on:
-    push:
-        branches:
-            - feature/**
-            - main
     pull_request:
         types: [opened, synchronize, reopened] # Default
     workflow_call:
@@ -39,6 +35,7 @@ jobs:
     test_release:
         name: "Test Release Flows"
         runs-on: sfdc-ubuntu-latest
+        concurrency: release
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python 3.8
