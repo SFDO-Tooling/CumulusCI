@@ -17,6 +17,8 @@ from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.metadeploy import BaseMetaDeployTask, Publish
 from cumulusci.tests.util import create_project_config
 
+pytestmark = pytest.mark.metadeploy
+
 
 class TestBaseMetaDeployTask:
     maxDiff = None

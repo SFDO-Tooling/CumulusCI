@@ -8,6 +8,7 @@ from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.metadeploy.api import MetaDeployAPI, make_api_session
 
+pytestmark = pytest.mark.metadeploy
 DEFAULT_REST_URL: str = "https://metadeploy.example.com/api/rest"
 DEFAULT_TOKEN: str = "37b003aee9bdd744a6618e9fe12"
 
