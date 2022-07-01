@@ -7,6 +7,13 @@ from responses import matchers
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.metadeploy.api import MetaDeployAPI, make_api_session
+from cumulusci.core.metadeploy.models import (
+    MetaDeployPlan,
+    PlanTemplate,
+    Product,
+    Slug,
+    Version,
+)
 
 pytestmark = pytest.mark.metadeploy
 DEFAULT_REST_URL: str = "https://metadeploy.example.com/api/rest"
@@ -56,15 +63,17 @@ def test_make_api(auth_header_matcher):
 
 def test_find_product(default_api_client, auth_header_matcher):
     params = {"repo_url": "https://api.github.com/repos/TestOwner/TestRepo"}
-    payload = {
-        "data": [
-            {
-                "id": "abcdef",
-                "url": "https://EXISTING_PRODUCT",
-                "slug": "existing",
-            }
-        ]
+    payload_json = {
+        "id": "abcdef",
+        "url": "https://EXISTING_PRODUCT",
+        "title": "Education Data Architecture (EDA)",
+        "short_description": "The Foundation for the Connected Campus",
+        "description": "## Welcome to the EDA installer!",
+        "click_through_agreement": "Ladies and Gentlemen of the jury, I'm just a Caveman.",
+        "error_message": "",
+        "slug": "existing",
     }
+    payload = {"data": [payload_json]}
 
     with responses.RequestsMock() as rsps:
         rsps.add(
@@ -74,8 +83,8 @@ def test_find_product(default_api_client, auth_header_matcher):
             json=payload,
         )
 
-        product: dict = default_api_client.find_product(params["repo_url"])
-    assert product == payload["data"][0]
+        product: Product = default_api_client.find_product(params["repo_url"])
+    assert product == Product.parse_obj(payload_json)
 
 
 def test_find_product__api_err(default_api_client, auth_header_matcher):
@@ -94,36 +103,40 @@ def test_find_product__api_err(default_api_client, auth_header_matcher):
             default_api_client.find_product(params["repo_url"])
 
 
-def test_create_plan(default_api_client, auth_header_matcher):
-    payload = {"url": f"{DEFAULT_REST_URL}/plans/1"}
-    plan = {
-        "is_listed": True,
-        "plan_template": "https://foo.example.com/1",
-        "post_install_message_additional": "",
-        "preflight_message_additional": "",
-        "steps": [],
-        "supported_orgs": "persistent",
-        "tier": "primary",
-        "title": "Install Tubulator 1.0",
-        "version": f"{DEFAULT_REST_URL}/version/1",
-        "visible_to": None,
-    }
+def test_create_plan(default_api_client, auth_header_matcher, simple_plan_dict):
+    plan = MetaDeployPlan(
+        is_listed=True,
+        plan_template="https://foo.example.com/1",
+        post_install_message_additional="",
+        preflight_message_additional="",
+        steps=[],
+        supported_orgs="Persistent",
+        tier="primary",
+        title="Install Tubulator 1.0",
+        version=f"{DEFAULT_REST_URL}/version/1",
+        visible_to=None,
+    )
 
     with responses.RequestsMock() as rsps:
         rsps.add(
             method=responses.POST,
             url=f"{DEFAULT_REST_URL}/plans",
-            match=(auth_header_matcher, matchers.json_params_matcher(plan)),
+            match=(
+                auth_header_matcher,
+                matchers.json_params_matcher(plan.dict(exclude_none=True)),
+            ),
             status=201,
-            json=payload,
+            json=simple_plan_dict,
         )
         result = default_api_client.create_plan(plan)
-    assert result == payload
+    assert result == MetaDeployPlan.parse_obj(simple_plan_dict)
 
 
-def test_find_version(default_api_client, auth_header_matcher):
+def test_find_version(
+    default_api_client, auth_header_matcher, version_dict, version_model
+):
     query = {"product": "bDcaVz", "label": "1.0"}
-    payload = {"data": [{"url": "http://EXISTING_VERSION"}]}
+    payload = {"data": [version_dict]}
 
     with responses.RequestsMock() as rsps:
         rsps.add(
@@ -135,7 +148,7 @@ def test_find_version(default_api_client, auth_header_matcher):
 
         result = default_api_client.find_version(query)
 
-    assert result == payload["data"][0]
+    assert result == version_model
 
 
 def test_find_version_missing_none(default_api_client, auth_header_matcher):
@@ -155,7 +168,7 @@ def test_find_version_missing_none(default_api_client, auth_header_matcher):
     assert result is None
 
 
-def test_create_version(default_api_client, auth_header_matcher):
+def test_create_version(default_api_client, auth_header_matcher, version_dict):
     version = {
         "product": f"{DEFAULT_REST_URL}/product/foo",
         "label": "1.0",
@@ -164,7 +177,8 @@ def test_create_version(default_api_client, auth_header_matcher):
         "commit_ish": "tag_or_sha",
         "is_listed": False,
     }
-    payload = {"url": f"http://{DEFAULT_REST_URL}/versions/1", "id": 1}
+    version_dict.update({"url": f"http://{DEFAULT_REST_URL}/versions/1", "id": 1})
+    expected = Version.parse_obj(version_dict)
 
     with responses.RequestsMock() as rsps:
         rsps.add(
@@ -172,12 +186,12 @@ def test_create_version(default_api_client, auth_header_matcher):
             url=f"{DEFAULT_REST_URL}/versions",
             match=(auth_header_matcher, matchers.json_params_matcher(version)),
             status=201,
-            json=payload,
+            json=version_dict,
         )
 
         version = default_api_client.create_version(version)
 
-    assert version == payload
+    assert expected == version
 
 
 def test_publish_version(default_api_client, auth_header_matcher):
@@ -197,10 +211,10 @@ def test_publish_version(default_api_client, auth_header_matcher):
     assert payload == updated_version
 
 
-def test_find_plan_template(default_api_client, auth_header_matcher):
-    query = {"product": "bDcaVz", "name": "Shinra"}
-    payload = {"data": [{"url": "http://existing_template"}]}
-
+def test_find_plan_template(default_api_client, auth_header_matcher, plantemplate_dict):
+    query = {"product": "GLN6Ppx", "name": "Shinra"}
+    payload = {"data": [plantemplate_dict]}
+    plantemplate_model = PlanTemplate.parse_obj(plantemplate_dict)
     with responses.RequestsMock() as rsps:
         rsps.add(
             method=responses.GET,
@@ -211,18 +225,14 @@ def test_find_plan_template(default_api_client, auth_header_matcher):
 
         template = default_api_client.find_plan_template(query)
 
-    assert template == payload["data"][0]
+    assert template == plantemplate_model
 
 
-def test_create_plan_template(default_api_client, auth_header_matcher):
-    template = {
-        "name": "plan_name",
-        "product": "product",
-        "preflight_message": "",
-        "post_install_message": "",
-        "error_message": "oops",
-    }
-    payload = {"url": "http://EXISTING_VERSION"}
+def test_create_plan_template(
+    default_api_client, auth_header_matcher, plantemplate_dict, plantemplate_model
+):
+    template = plantemplate_model
+    payload = plantemplate_dict
 
     with responses.RequestsMock() as rsps:
         rsps.add(
@@ -235,25 +245,33 @@ def test_create_plan_template(default_api_client, auth_header_matcher):
 
         created_template = default_api_client.create_plan_template(template)
 
-    assert created_template == payload
+    assert created_template == template
 
 
 def test_create_plan_slug(default_api_client, auth_header_matcher):
-    slug = {"slug": "plan_name", "parent": "product"}
-    payload = {"url": "http://EXISTING_VERSION"}
+    slug = Slug(slug="plan_name", parent="http://metadeploy/products/product")
+
+    payload = {
+        "slug": "plan_name",
+        "parent": "http://metadeploy/products/product",
+        "url": "http://metadeploy/plantemplates/41",
+    }
 
     with responses.RequestsMock() as rsps:
         rsps.add(
             method=responses.POST,
             url=f"{DEFAULT_REST_URL}/planslug",
-            match=(auth_header_matcher, matchers.json_params_matcher(slug)),
+            match=(
+                auth_header_matcher,
+                matchers.json_params_matcher(slug.dict(exclude_none=True)),
+            ),
             status=201,
             json=payload,
         )
 
         created_slug = default_api_client.create_plan_slug(slug)
 
-    assert created_slug == payload
+    assert created_slug == Slug.parse_obj(payload)
 
 
 def test_publish_labels(default_api_client, auth_header_matcher):
