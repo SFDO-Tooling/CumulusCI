@@ -249,7 +249,7 @@ class PassOptionAsReturnValue(BaseTask):
 
 
 class InjectMetaDataValueLWC(BaseSalesforceTask):
-    """This class is used for the injection of variables at run time."""
+    """This class is used for the injection a dynamic remoteSiteSetting with a url that represents the instance_url of the org lightning web component."""
 
     task_options = {
         "path": {
@@ -259,14 +259,6 @@ class InjectMetaDataValueLWC(BaseSalesforceTask):
         "find": {
             "description": "Value to be replaced with within a file",
             "required": True,
-        },
-        "env_var": {
-            "description": "Represents the value to replace the find variable in the file",
-            "required": False,
-        },
-        "literal_var": {
-            "description": "Represents the value to replace the find variable in the file",
-            "required": False,
         },
     }
 
@@ -292,7 +284,7 @@ class InjectMetaDataValueLWC(BaseSalesforceTask):
 
 
 class InjectMetaDataValueVisualForce(BaseSalesforceTask):
-    """This class is used for the injection of variables at run time."""
+    """This class is used for the injection a dynamic remoteSiteSetting with a url that represents the instance_url of the org VisualForce Page, this task injects the org's myDomain and instance name into the URL."""
 
     task_options = {
         "path": {
@@ -302,14 +294,6 @@ class InjectMetaDataValueVisualForce(BaseSalesforceTask):
         "find": {
             "description": "Value to be replaced with within a file",
             "required": True,
-        },
-        "env_var": {
-            "description": "Represents the value to replace the find variable in the file",
-            "required": False,
-        },
-        "literal_var": {
-            "description": "Represents the value to replace the find variable in the file",
-            "required": False,
         },
     }
 

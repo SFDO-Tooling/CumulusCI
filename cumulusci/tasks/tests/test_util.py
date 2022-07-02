@@ -1,7 +1,6 @@
 import os
 import shutil
-from tempfile import mkdtemp, tempdir
-from tempfile import TemporaryDirectory
+from tempfile import mkdtemp
 from pathlib import Path
 
 from unittest import mock
@@ -31,6 +30,14 @@ OMNISTUDIO_LWC_XML = """<?xml version="1.0" encoding="UTF-8"?>
     <disableProtocolSecurity>false</disableProtocolSecurity>
     <isActive>true</isActive>
     <url>${OmniStudioLightning}</url>
+</RemoteSiteSetting>
+"""
+
+OMNISTUDIO_VISUALFORCE_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<RemoteSiteSetting xmlns="http://soap.sforce.com/2006/04/metadata">
+    <disableProtocolSecurity>false</disableProtocolSecurity>
+    <isActive>true</isActive>
+    <url>${OmniStudioVisualforce}</url>
 </RemoteSiteSetting>
 """
 
@@ -217,7 +224,7 @@ class TestUtilTasks:
         result = task()
         assert result["foo"] == "bar"
 
-    def test_replaceLWCRemoteSiteSetting(self):
+    def test_injectLWCRemoteSiteSettingURL(self):
         with temporary_dir() as tmpdir:
             tmpdir = Path(tmpdir).resolve()
             tempfile = tmpdir / "remotSiteSetting.xml"
@@ -231,8 +238,7 @@ class TestUtilTasks:
                     name="test",
                     instance_name="CS100",
                 )
-                self.project_config.keychain = mock.MagicMock()
-                self.project_config.api_version = "42.0"
+                self.project_config.keychain = mock.MagicMock(api_version="42.0")
                 task = util.InjectMetaDataValueLWC(
                     project_config=self.project_config,
                     task_config=task_config,
@@ -248,4 +254,95 @@ class TestUtilTasks:
                 assert final == final.replace(
                     ".my.salesforce.com", ".lightning.force.com"
                 )
-                file.close()  # is this needed inside a tmpdir()?
+                file.close()
+
+    def test_error_injectLWCRemoteSiteSettingURL(self):
+        with temporary_dir() as tmpdir:
+            tmpdir = Path(tmpdir).resolve()
+            tempfile = tmpdir / "remotSiteSetting.xml"
+            with open(tempfile, "w+", encoding=("utf-8")) as file:
+                file.write(OMNISTUDIO_VISUALFORCE_XML)
+                task_config = TaskConfig(
+                    {
+                        "options": {
+                            "find": "${OmniStudioVisualforce}",
+                        }
+                    }
+                )
+                self.org_config = mock.MagicMock(
+                    instance_url="https://test.my.salesforce.com",
+                    name="test",
+                    instance_name="CS100",
+                )
+                self.project_config.keychain = mock.MagicMock(api_version="42.0")
+                with pytest.raises(
+                    TaskOptionsError, match="Please check your options passed in."
+                ):
+                    util.InjectMetaDataValueLWC(
+                        project_config=self.project_config,
+                        task_config=task_config,
+                        org_config=self.org_config,
+                    )
+                file.close()
+
+    def test_injectVisualForceRemoteSiteSettingURL(self):
+        with temporary_dir() as tmpdir:
+            tmpdir = Path(tmpdir).resolve()
+            tempfile = tmpdir / "remotSiteSetting.xml"
+            with open(tempfile, "w+", encoding=("utf-8")) as file:
+                file.write(OMNISTUDIO_VISUALFORCE_XML)
+                task_config = TaskConfig(
+                    {"options": {"find": "${OmniStudioVisualforce}", "path": tmpdir}}
+                )
+                self.org_config = mock.MagicMock(
+                    instance_url="https://test.my.salesforce.com",
+                    name="test",
+                    instance_name="CS100",
+                )
+                self.project_config.keychain = mock.MagicMock(api_version="42.0")
+                task = util.InjectMetaDataValueVisualForce(
+                    project_config=self.project_config,
+                    task_config=task_config,
+                    org_config=self.org_config,
+                )
+                preview = file
+                preview.seek(0)
+                preview = preview.read()
+                assert preview == OMNISTUDIO_VISUALFORCE_XML
+                task()
+                file.seek(0)
+                final = file.read()
+                assert final == final.replace(
+                    ".my.salesforce.com",
+                    f"--omnistudio.{self.org_config.instance_name}.visual.force.com",
+                )
+                file.close()
+
+    def test_error_injectVisualForceRemoteSiteSettingURL(self):
+        with temporary_dir() as tmpdir:
+            tmpdir = Path(tmpdir).resolve()
+            tempfile = tmpdir / "remotSiteSetting.xml"
+            with open(tempfile, "w+", encoding=("utf-8")) as file:
+                file.write(OMNISTUDIO_VISUALFORCE_XML)
+                task_config = TaskConfig(
+                    {
+                        "options": {
+                            "find": "${OmniStudioVisualforce}",
+                        }
+                    }
+                )
+                self.org_config = mock.MagicMock(
+                    instance_url="https://test.my.salesforce.com",
+                    name="test",
+                    instance_name="CS100",
+                )
+                self.project_config.keychain = mock.MagicMock(api_version="42.0")
+                with pytest.raises(
+                    TaskOptionsError, match="Please check your options passed in."
+                ):
+                    util.InjectMetaDataValueVisualForce(
+                        project_config=self.project_config,
+                        task_config=task_config,
+                        org_config=self.org_config,
+                    )
+                file.close()
