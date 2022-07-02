@@ -1,19 +1,38 @@
 import os
 import shutil
-from tempfile import mkdtemp
+from tempfile import mkdtemp, tempdir
+from tempfile import TemporaryDirectory
+from pathlib import Path
+
 from unittest import mock
+from unittest.mock import Mock, patch
 
 import pytest
+from pytest_mock import mocker
 
 from cumulusci.core.config import (
     BaseProjectConfig,
     OrgConfig,
+    ScratchOrgConfig,
+    ServiceConfig,
     TaskConfig,
     UniversalConfig,
 )
+from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.keychain.base_project_keychain import BaseProjectKeychain
+from cumulusci.core.keychain.tests.conftest import org_config
 from cumulusci.tasks import util
 from cumulusci.tests.util import DummyLogger
+from cumulusci.utils import temporary_dir
+
+OMNISTUDIO_LWC_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<RemoteSiteSetting xmlns="http://soap.sforce.com/2006/04/metadata">
+    <disableProtocolSecurity>false</disableProtocolSecurity>
+    <isActive>true</isActive>
+    <url>${OmniStudioLightning}</url>
+</RemoteSiteSetting>
+"""
 
 
 class TestUtilTasks:
@@ -197,3 +216,36 @@ class TestUtilTasks:
         )
         result = task()
         assert result["foo"] == "bar"
+
+    def test_replaceLWCRemoteSiteSetting(self):
+        with temporary_dir() as tmpdir:
+            tmpdir = Path(tmpdir).resolve()
+            tempfile = tmpdir / "remotSiteSetting.xml"
+            with open(tempfile, "w+", encoding=("utf-8")) as file:
+                file.write(OMNISTUDIO_LWC_XML)
+                task_config = TaskConfig(
+                    {"options": {"find": "${OmniStudioLightning}", "path": tmpdir}}
+                )
+                self.org_config = mock.MagicMock(
+                    instance_url="https://test.my.salesforce.com",
+                    name="test",
+                    instance_name="CS100",
+                )
+                self.project_config.keychain = mock.MagicMock()
+                self.project_config.api_version = "42.0"
+                task = util.InjectMetaDataValueLWC(
+                    project_config=self.project_config,
+                    task_config=task_config,
+                    org_config=self.org_config,
+                )
+                preview = file
+                preview.seek(0)
+                preview = preview.read()
+                assert preview == OMNISTUDIO_LWC_XML
+                task()
+                file.seek(0)
+                final = file.read()
+                assert final == final.replace(
+                    ".my.salesforce.com", ".lightning.force.com"
+                )
+                file.close()  # is this needed inside a tmpdir()?
