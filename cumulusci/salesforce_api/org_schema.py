@@ -502,10 +502,7 @@ def deep_describe(
 
 
 def ignore_based_on_properties(obj: dict, filters: T.Sequence[Filters]):
-    if all(obj.get(filter.name, True) for filter in filters):
-        return False
-    else:
-        return True
+    return not all(obj.get(filter.name, True) for filter in filters)
 
 
 NOT_COUNTABLE = (
