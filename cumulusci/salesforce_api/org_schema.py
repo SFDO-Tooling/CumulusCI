@@ -436,7 +436,7 @@ def populate_counts(sf, schema, objs_cached, logger):
         logger.warning(f"Error counting SObjects: {error}")
 
     if len(errors) > 10:
-        logger.warning(f"{len(errors)} more counting errors surpressed")
+        logger.warning(f"{len(errors)} more counting errors suppressed")
 
     for objname, count in counts.items():
         schema[objname].count = count
