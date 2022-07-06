@@ -15,6 +15,7 @@ from cumulusci.core.config import (
     ServiceConfig,
     UniversalConfig,
 )
+from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 from cumulusci.core.exceptions import (
     OrgNotFound,
     ScratchOrgException,
@@ -22,6 +23,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.tests.utils import MockLookup
+from cumulusci.utils import parse_api_datetime
 
 from .. import org
 from .utils import run_cli_command, run_click_command
@@ -367,7 +369,7 @@ class TestOrgCommands:
                 "createdDate": "1970-01-01T00:00:00.000Z",
                 "expirationDate": "1970-01-01",
                 "instanceUrl": "url",
-                "accessToken": "access!token",
+                "accessToken": "OODxxxxxxxxxxxx!token",
                 "username": "test@test.org",
                 "password": "password"
             }
@@ -385,16 +387,21 @@ class TestOrgCommands:
                 runtime=runtime,
             )
             runtime.keychain.set_org.assert_called_once()
-        assert "Imported scratch org: access, username: test@test.org" in "".join(out)
+        assert (
+            "Imported scratch org: OODxxxxxxxxxxxx, username: test@test.org"
+            in "".join(out)
+        )
 
     @mock.patch("sarge.Command")
+    @responses.activate
     def test_org_import__persistent_org(self, cmd):
         runtime = mock.Mock()
         result = b"""{
             "result": {
+                "id": "OODxxxxxxxxxxxx",
                 "createdDate": null,
-                "instanceUrl": "url",
-                "accessToken": "access!token",
+                "instanceUrl": "https://instance",
+                "accessToken": "OODxxxxxxxxxxxx!token",
                 "username": "test@test.org",
                 "password": "password"
             }
@@ -403,16 +410,98 @@ class TestOrgCommands:
             stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=0
         )
 
+        # Mock the call to get the Organization sObject
+        responses.add(
+            method="GET",
+            url="https://instance/services/data",
+            status=200,
+            json=[{"version": "54.0"}],
+        )
+        responses.add(
+            method="GET",
+            url="https://instance/services/data/v54.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            json={
+                "TrialExpirationDate": None,
+                "OrganizationType": "Developer Edition",
+                "IsSandbox": True,
+                "InstanceName": "CS420",
+                "NamespacePrefix": None,
+            },
+            status=200,
+        )
+
         out = []
-        with mock.patch("click.echo", out.append), pytest.raises(
-            click.UsageError, match="cci org connect"
-        ):
+        with mock.patch("click.echo", out.append):
             run_click_command(
                 org.org_import,
                 username_or_alias="test@test.org",
                 org_name="test",
                 runtime=runtime,
             )
+            runtime.keychain.set_org.assert_called_once()
+            created_org = runtime.keychain.set_org.call_args[0][0]
+            assert isinstance(created_org, SfdxOrgConfig)
+            assert created_org.config["sfdx"]
+        assert created_org.config["expires"] == "Persistent"
+
+        assert "Imported org: OODxxxxxxxxxxxx, username: test@test.org" in "".join(out)
+
+    @mock.patch("sarge.Command")
+    @responses.activate
+    def test_org_import__trial_org(self, cmd):
+        runtime = mock.Mock()
+        result = b"""{
+            "result": {
+                "id": "OODxxxxxxxxxxxx",
+                "createdDate": null,
+                "instanceUrl": "https://instance",
+                "accessToken": "OODxxxxxxxxxxxx!token",
+                "username": "test@test.org",
+                "password": "password"
+            }
+        }"""
+        cmd.return_value = mock.Mock(
+            stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=0
+        )
+
+        # Mock the call to get the Organization sObject
+        api_datetime = "2030-08-07T16:00:56.000+0000"
+        responses.add(
+            method="GET",
+            url="https://instance/services/data",
+            status=200,
+            json=[{"version": "54.0"}],
+        )
+        responses.add(
+            method="GET",
+            url="https://instance/services/data/v54.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            json={
+                "TrialExpirationDate": api_datetime,
+                "OrganizationType": "Developer Edition",
+                "IsSandbox": True,
+                "InstanceName": "CS420",
+                "NamespacePrefix": None,
+            },
+            status=200,
+        )
+
+        out = []
+        with mock.patch("click.echo", out.append):
+            run_click_command(
+                org.org_import,
+                username_or_alias="test@test.org",
+                org_name="test",
+                runtime=runtime,
+            )
+            runtime.keychain.set_org.assert_called_once()
+            created_org = runtime.keychain.set_org.call_args[0][0]
+            assert isinstance(created_org, SfdxOrgConfig)
+            assert created_org.config["sfdx"]
+            assert (
+                created_org.config["expires"] == parse_api_datetime(api_datetime).date()
+            )
+
+        assert "Imported org: OODxxxxxxxxxxxx, username: test@test.org" in "".join(out)
 
     def test_calculate_org_days(self):
         info_1 = {

@@ -1,5 +1,5 @@
-from warnings import warn
+from cumulusci.utils.deprecation import warn_moved
 
 from .org_config import *  # noqa
 
-warn("Deprecation warning: Please import from .org_config rather than .OrgConfig")
+warn_moved(".org_config", ".OrgConfig")

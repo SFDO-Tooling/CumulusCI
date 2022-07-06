@@ -587,8 +587,9 @@ class TestGithub(GithubApiTestMixin):
         resp = Response()
         resp.status_code = 403
         resp.headers["X-Github-Sso"] = "partial-results; organizations=0810298,20348880"
+        resp.url = "http://zombo.com"
 
-        expected_err_msg = "Results may be incomplete. You have not granted your Personal Access token access to the following organizations: ['0810298', '20348880']"
+        expected_err_msg = "http://zombo.com\nResults may be incomplete. You have not granted your Personal Access token access to the following organizations: ['0810298', '20348880']"
 
         @catch_common_github_auth_errors
         def test_func():
