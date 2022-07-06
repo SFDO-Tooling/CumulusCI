@@ -195,6 +195,7 @@ class GenerateDataDictionary(BaseGithubTask):
             dependencies,
             resolution_strategy="production",
             filter_function=log_github,
+            pins=self.project_config.lookup("project__dependency_pins"),
         )
 
         for dependency in github_deps:

@@ -9,6 +9,7 @@ from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.dependencies import (
     BaseGitHubDependency,
     Dependency,
+    DependencyPin,
     DynamicDependency,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
@@ -474,10 +475,11 @@ def dependency_filter_ignore_deps(ignore_deps: List[dict]) -> Callable:
 
 def get_static_dependencies(
     context: BaseProjectConfig,
-    dependencies: List[Dependency] = None,
-    resolution_strategy: str = None,
-    strategies: List[DependencyResolutionStrategy] = None,
-    filter_function: Callable = None,
+    dependencies: Optional[List[Dependency]] = None,
+    resolution_strategy: Optional[str] = None,
+    strategies: Optional[List[DependencyResolutionStrategy]] = None,
+    filter_function: Optional[Callable] = None,
+    pins: Optional[List[DependencyPin]] = None,
 ) -> List[StaticDependency]:
     """Resolves the dependencies of a CumulusCI project
     to convert dynamic GitHub dependencies into static dependencies
@@ -504,9 +506,24 @@ def get_static_dependencies(
     if filter_function is None:
         filter_function = lambda x: True  # noqa: E731
 
+    pin_map = {pin.github: pin.tag for pin in pins or []}
+
     while any(not d.is_flattened or not d.is_resolved for d in dependencies):
         for d in dependencies:
             if isinstance(d, DynamicDependency) and not d.is_resolved:
+                # If we have pins that would affect this dynamic dependency, apply them.
+                # Pins apply one level below DynamicDependency, which is inelegant,
+                # but acknowledges that future subclasses of DynamicDependency
+                # may have very different structures.
+                if isinstance(d, BaseGitHubDependency) and d.github in pin_map:
+                    if d.tag != pin_map[d.github]:
+                        d.tag = pin_map[d.github]
+                    else:
+                        raise DependencyResolutionError(
+                            f"Dependency {d} is pinned, but has a conflicting tag specifier"
+                        )
+
+                # Finish resolving the dependency using our given strategies.
                 d.resolve(context, strategies)
 
         def unique(it: Iterable):
@@ -528,13 +545,15 @@ def get_static_dependencies(
         )
 
     # Make sure, if we had no flattening or resolving to do, that we apply the ignore list.
-    return [d for d in dependencies if filter_function(d)]
+    # Type is guaranteed via the logic above.
+    return [d for d in dependencies if filter_function(d)]  # type: ignore
 
 
 def resolve_dependency(
     dependency: DynamicDependency,
     context: BaseProjectConfig,
     strategies: List[DependencyResolutionStrategy],
+    pins: Optional[List[DependencyPin]] = None,
 ):
     """Resolve a DynamicDependency that is not pinned to a specific version into one that is.
 

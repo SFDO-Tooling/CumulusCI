@@ -530,6 +530,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         dependencies = get_static_dependencies(
             self.project_config,
             resolution_strategy=self.options.get("resolution_strategy") or "production",
+            pins=self.project_config.lookup("project__dependency_pins"),
         )
 
         # If any dependencies are expressed as a 1gp namespace + version,

@@ -65,6 +65,29 @@ def _validate_github_parameters(values):
     return values
 
 
+class DependencyPin(HashableBaseModel, abc.ABC):
+    @abc.abstractmethod
+    def can_pin(self, d: "DynamicDependency") -> bool:
+        ...
+
+    @abc.abstractmethod
+    def pin(self, d: "DynamicDependency"):
+        ...
+
+
+class GitHubDependencyPin(DependencyPin):
+    """Model representing a request to pin a GitHub dependency to a specific tag"""
+
+    github: str
+    tag: str
+
+    def can_pin(self, d: "DynamicDependency") -> bool:
+        return isinstance(d, BaseGitHubDependency) and d.github == self.github
+
+    def pin(self, d: "BaseGitHubDependency"):
+        d.tag = self.tag
+
+
 class Dependency(HashableBaseModel, abc.ABC):
     """Abstract base class for models representing dependencies
 
@@ -130,16 +153,28 @@ class DynamicDependency(Dependency, abc.ABC):
     def is_flattened(self):
         return False
 
-    def resolve(self, context, strategies):
+    def resolve(
+        self,
+        context: BaseProjectConfig,
+        strategies: List,  # List[DependencyResolutionStrategy], but circular import
+        pins: Optional[List[DependencyPin]] = None,
+    ):
         """Resolve a DynamicDependency that is not pinned to a specific version into one that is."""
         # avoid import cycle
         from .resolvers import resolve_dependency
+
+        for pin in pins or []:
+            if pin.can_pin(self):
+                pin.pin(self)
+                break
 
         resolve_dependency(self, context, strategies)
 
 
 class BaseGitHubDependency(DynamicDependency, abc.ABC):
     """Base class for dynamic dependencies that reference a GitHub repo."""
+
+    pin_class = GitHubDependencyPin
 
     github: Optional[AnyUrl] = None
 
@@ -672,6 +707,16 @@ def parse_dependencies(deps: Optional[List[dict]]) -> List[Dependency]:
     return parsed_deps
 
 
+AVAILABLE_DEPENDENCY_CLASSES = [
+    PackageVersionIdDependency,
+    PackageNamespaceVersionDependency,
+    UnmanagedGitHubRefDependency,
+    UnmanagedZipURLDependency,
+    GitHubDynamicDependency,
+    GitHubDynamicSubfolderDependency,
+]
+
+
 def parse_dependency(dep_dict: dict) -> Optional[Dependency]:
     """Parse a single dependency specification in the form of a dict
     into a concrete Dependency subclass.
@@ -685,14 +730,7 @@ def parse_dependency(dep_dict: dict) -> Optional[Dependency]:
     # We also want PackageVersionIdDependency to match before
     # PackageNamespaceVersionDependency, which can also accept a `version_id`.
 
-    for dependency_class in [
-        PackageVersionIdDependency,
-        PackageNamespaceVersionDependency,
-        UnmanagedGitHubRefDependency,
-        UnmanagedZipURLDependency,
-        GitHubDynamicDependency,
-        GitHubDynamicSubfolderDependency,
-    ]:
+    for dependency_class in AVAILABLE_DEPENDENCY_CLASSES:
         try:
             dep = dependency_class.parse_obj(dep_dict)
             if dep:
