@@ -14,6 +14,7 @@ from sqlalchemy import MetaData, create_engine, not_
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import create_session, exc, sessionmaker
 
+from cumulusci.salesforce_api.filterable_objects import NOT_COUNTABLE, NOT_EXTRACTABLE
 from cumulusci.salesforce_api.org_schema_models import (
     Base,
     Field,
@@ -182,7 +183,7 @@ class Schema:
         """Populate a schema cache from the API, using last_modified_date
         to pull down only new schema"""
         for pat in patterns_to_ignore:
-            assert pat.replace("%", "").isalpha(), f"Pattern has wrong chars {pat}"
+            assert pat.replace("%", "").isalnum(), f"Pattern has wrong chars {pat}"
 
         # Platform bug!
         patterns_to_ignore = ("MacroInstruction%",) + tuple(patterns_to_ignore)
@@ -503,24 +504,3 @@ def deep_describe(
 
 def ignore_based_on_properties(obj: dict, filters: T.Sequence[Filters]):
     return not all(obj.get(filter.name, True) for filter in filters)
-
-
-NOT_COUNTABLE = (
-    "ContentDocumentLink",  # ContentDocumentLink requires a filter by a single Id on ContentDocumentId or LinkedEntityId
-    "ContentFolder%",  # Implementation restriction: ContentFolderItem requires a filter by Id or ParentContentFolderId
-    "IdeaComment",  # you must filter using the following syntax: CommunityId = [single ID],
-    "Vote",  # you must filter using the following syntax: ParentId = [single ID],
-    "RecordActionHistory",  # Gack: 1133111327-118855 (1126216936)
-)
-
-
-NOT_EXTRACTABLE = NOT_COUNTABLE + (
-    "%permission%",
-    "%use%",
-    "%access%",
-    "group",
-    "%share",
-    "NetworkUserHistoryRecent",
-    "OutgoingEmail",
-    "OutgoingEmailRelation",
-)
