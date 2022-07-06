@@ -417,7 +417,7 @@ class TestOrgSchema:
             ):
                 pass
             assert "Apostasy" in caplog.text
-            assert "more counting errors surpressed" in caplog.text
+            assert "more counting errors suppressed" in caplog.text
 
     @pytest.mark.needs_org()
     def test_schema_populated_real(self, sf, org_config, ensure_accounts):
