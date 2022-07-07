@@ -8,32 +8,21 @@ History
 Changes 🎉
 ~~~~~~~~~~
 
--  ``metadeploy_publish`` consumes legal targets for supported orgs by
-   @Br4nd0R in https://github.com/SFDO-Tooling/CumulusCI/pull/3239
--  Add update_profile support for record type layouts by @davidmreed in
-   https://github.com/SFDO-Tooling/CumulusCI/pull/3243
--  Add ``custom`` key to cumulusci.yml schema by @prescod in
-   https://github.com/SFDO-Tooling/CumulusCI/pull/3238
--  Make OrgSettings also deploy objectSettings, if present by
-   @davidmreed in https://github.com/SFDO-Tooling/CumulusCI/pull/3235
--  Import persistent orgs from the SFDX keychain by @davidmreed in
-   https://github.com/SFDO-Tooling/CumulusCI/pull/3253
--  Speed up Snowfakery handling of small batch sizes by @prescod in
-   https://github.com/SFDO-Tooling/CumulusCI/pull/3188
--  Allow org_schema consumers to download a subset by @prescod in
-   https://github.com/SFDO-Tooling/CumulusCI/pull/3260
+-  ``metadeploy_publish`` consumes legal targets for supported orgs (#3239)
+-  Add update_profile support for record type layouts by (#3243)
+-  Add ``custom`` key to cumulusci.yml schema (#3238)
+-  Make OrgSettings also deploy objectSettings, if present (#3235)
+-  Import persistent orgs from the SFDX keychain (#3253)
+-  Speed up Snowfakery handling of small batch sizes  (#3188)
 
 Issues Fixed 🩴
 ~~~~~~~~~~~~~~~~
 
--  Fix JWT audience for sandboxes by @Br4nd0R in
-   https://github.com/SFDO-Tooling/CumulusCI/pull/3240
+-  Fix JWT audience for sandboxes (#3240)
 -  Fixed a bug where scratch org attributes configured via cumulusci.yml were
-   not taking effect.  @Br4nd0R in https://github.com/SFDO-Tooling/CumulusCI/pull/3209
--  Correct FeatureParameterString to FeatureParameterDate by @davidmreed
-   in https://github.com/SFDO-Tooling/CumulusCI/pull/3254
--  No postinstall script for unlocked package builds by @davidmreed in
-   https://github.com/SFDO-Tooling/CumulusCI/pull/3247
+   not taking effect. (#3209)
+-  Correct FeatureParameterString to FeatureParameterDate (#3254)
+-  No postinstall script for unlocked package builds (#3247)
 
 3.60.0 (2022-06-09)
 -------------------
