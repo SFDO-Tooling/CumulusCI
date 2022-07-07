@@ -18,7 +18,6 @@ from github3.repos.commit import RepoCommit
 from github3.repos.release import Release
 from github3.repos.repo import Repository
 from github3.session import GitHubSession
-from giturlparse import GitUrlParsed
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
 from requests.models import Response
@@ -79,9 +78,8 @@ INSTALLATIONS = {}
 
 
 def _determine_github_client(host: str, client_params: dict) -> GitHub:
-
     # also covers "api.github.com"
-    is_github: bool = "github.com" in host
+    is_github: bool = host is None or "github.com" in host
     client_cls: GitHub = GitHub if is_github else GitHubEnterprise  # type: ignore
     params: dict = client_params
     if not is_github:
@@ -92,11 +90,12 @@ def _determine_github_client(host: str, client_params: dict) -> GitHub:
 
 
 def get_github_api_for_repo(keychain, repo_url, session=None):
-    repo_info: GitUrlParsed = parse_repo_url(repo_url)
-    owner: str = repo_info.owner
-    repo: str = repo_info.repo
+
+    repo_info: dict = parse_repo_url(repo_url)
+    owner = repo_info.get("owner")
+    repo = repo_info.get("repo")
     gh: GitHub = _determine_github_client(
-        repo_info.host,
+        repo_info.get("host"),  # type: ignore
         {
             "session": session
             or GitHubSession(default_read_timeout=30, default_connect_timeout=30)
@@ -126,7 +125,7 @@ def get_github_api_for_repo(keychain, repo_url, session=None):
     elif GITHUB_TOKEN:
         gh.login(token=GITHUB_TOKEN)
     else:
-        username, token = get_auth_from_service(repo_info.host, keychain)
+        username, token = get_auth_from_service(repo_info.get("host"), keychain)
         gh.login(username, token)
 
     return gh
@@ -137,19 +136,17 @@ def get_auth_from_service(host, keychain) -> tuple:
     Given a host extracted from a repo_url, returns the username and token for
     the first service with a matching repo_domain
     """
-
-    # only the first alias for a given service.repo_domain is captured
-    services = [
-        keychain.get_service("github", alias)
-        for alias in reversed(keychain.list_services().get("github", []))
-    ]
-    services_by_host = {
-        service.repo_domain: service
-        for service in services
-        if service.repo_domain not in (None, "github.com")
-    }
-    # default github service as fallback when no match found in services_by_host
-    service_config = services_by_host.get(host, keychain.get_service("github"))
+    if "github.com" in host:
+        service_config = keychain.get_service("github")
+    else:
+        # Collect and process github_enterprise services
+        # only the first alias for a given service.repo_domain is captured
+        services = [
+            keychain.get_service("github_enterprise", alias)
+            for alias in reversed(keychain.list_services().get("github_enterprise", []))
+        ]
+        services_by_host = {service.repo_domain: service for service in services}
+        service_config = services_by_host.get(host)
 
     token = service_config.password or service_config.token
     return service_config.username, token
@@ -158,9 +155,14 @@ def get_auth_from_service(host, keychain) -> tuple:
 def validate_service(options: dict) -> dict:
     username = options["username"]
     token = options["token"]
-    # For backwards compatability, set a default repo_domain
-    repo_domain = options.get("repo_domain", "github.com")
+    # Github service doesn't have "repo_domain",
+    repo_domain = options.get("repo_domain", None)
+
     gh = _determine_github_client(repo_domain, {"token": token})
+
+    default = options.get("default", False)
+    if repo_domain is not None and default:
+        raise GithubException("GitHub Enterprise services may not be set as default.")
 
     try:
         authed_user = gh.me()

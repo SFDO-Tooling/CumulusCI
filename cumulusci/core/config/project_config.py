@@ -308,7 +308,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
         url_line = self.git_config_remote_origin_url()
         if url_line:
-            return parse_repo_url(url_line).name
+            return parse_repo_url(url_line).get("repo")
 
     @property
     def repo_url(self):
@@ -334,7 +334,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         url_line = self.git_config_remote_origin_url()
 
         if url_line:
-            return parse_repo_url(url_line).owner
+            return parse_repo_url(url_line).get("owner")
 
     @property
     def repo_branch(self):
@@ -508,7 +508,9 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     @catch_common_github_auth_errors
     def get_repo_from_url(self, url):
         repo_info = parse_repo_url(url)
-        return self.get_github_api(url).repository(repo_info.owner, repo_info.name)
+        return self.get_github_api(url).repository(
+            repo_info.get("owner"), repo_info.get("repo")
+        )
 
     def get_task(self, name):
         """Get a TaskConfig by task name

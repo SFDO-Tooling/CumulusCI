@@ -130,8 +130,7 @@ class TestGithub(GithubApiTestMixin):
         with mock.patch.dict(
             os.environ, {"GITHUB_APP_KEY": "bogus", "GITHUB_APP_ID": "1234"}
         ):
-            # Must remove trailing "/" due to https://github.com/nephila/giturlparse/issues/43
-            gh = get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo")
+            gh = get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo/")
             assert isinstance(gh.session.auth, AppInstallationTokenAuth)
 
     @responses.activate
@@ -147,15 +146,13 @@ class TestGithub(GithubApiTestMixin):
             os.environ, {"GITHUB_APP_KEY": "bogus", "GITHUB_APP_ID": "1234"}
         ):
             with pytest.raises(GithubException):
-                # Must remove trailing "/" due to https://github.com/nephila/giturlparse/issues/43
-                get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo")
+                get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo/")
 
     @responses.activate
     @mock.patch("cumulusci.core.github.GitHub")
     def test_get_github_api_for_repo__token(self, GitHub):
         with mock.patch.dict(os.environ, {"GITHUB_TOKEN": "token"}):
-            # Must remove trailing "/" due to https://github.com/nephila/giturlparse/issues/43
-            gh = get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo")
+            gh = get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo/")
         gh.login.assert_called_once_with(token="token")
 
     @responses.activate
@@ -165,21 +162,20 @@ class TestGithub(GithubApiTestMixin):
         runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
         runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
         runtime.keychain.set_service(
-            "github",
+            "github_enterprise",
             "ent",
             ServiceConfig(
                 {
                     "username": "testusername",
                     "email": "test@domain.com",
                     "token": "ATOKEN",
-                    "repo_domain": "https://git.enterprise.domain.com/",
+                    "repo_domain": "git.enterprise.domain.com",
                 }
             ),
         )
 
-        # Must remove trailing "/" due to https://github.com/nephila/giturlparse/issues/43
         gh = get_github_api_for_repo(
-            runtime.keychain, "https://git.enterprise.domain.com/TestOwner/TestRepo"
+            runtime.keychain, "https://git.enterprise.domain.com/TestOwner/TestRepo/"
         )
 
         gh.login.assert_called_once_with("testusername", "ATOKEN")
@@ -196,14 +192,14 @@ class TestGithub(GithubApiTestMixin):
         runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
         runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
         runtime.keychain.set_service(
-            "github",
+            "github_enterprise",
             "ent",
             ServiceConfig(
                 {
                     "username": "testusername",
                     "email": "test@domain.com",
                     "token": "ATOKEN",
-                    "repo_domain": "https://git.enterprise.domain.com/",
+                    "repo_domain": "git.enterprise.domain.com",
                 }
             ),
         )
@@ -215,6 +211,7 @@ class TestGithub(GithubApiTestMixin):
     @pytest.mark.parametrize(
         "domain,client",
         [
+            (None, GitHub),
             ("github.com", GitHub),
             ("api.github.com", GitHub),
             ("git.enterprise.domain.com", GitHubEnterprise),
@@ -703,6 +700,76 @@ class TestGithub(GithubApiTestMixin):
         with pytest.raises(cumulusci.core.exceptions.GithubException) as e:
             validate_service(service_dict)
         assert "401" in str(e.value)
+
+    @responses.activate
+    def test_validate_enterprise_default(self):
+        service_dict = {
+            "username": "e2ac67",
+            "token": "bad_cf83e1357eefb8bdf1542850d66d8007d620e4",
+            "email": "testerson@test.com",
+            "default": True,
+            "repo_domain": "ent.git.domain.com",
+        }
+
+        with pytest.raises(cumulusci.core.exceptions.GithubException) as e:
+            validate_service(service_dict)
+        assert "GitHub Enterprise services may not be set as default" in str(e)
+
+        responses.add(
+            responses.GET,
+            "https://ent.git.domain.com/api/v3/user",
+            json={
+                "login": "e2ac67",
+                "id": 91303375,
+                "node_id": "MDQ6VXNlcjkxMzAzMzc1",
+                "avatar_url": "https://avatars.githubusercontent.com/u/91303375?v=4",
+                "gravatar_id": "",
+                "url": "https://api.github.com/users/e2ac67",
+                "html_url": "https://github.com/e2ac67",
+                "followers_url": "https://api.github.com/users/e2ac67/followers",
+                "following_url": "https://api.github.com/users/e2ac67/following{/other_user}",
+                "gists_url": "https://api.github.com/users/e2ac67/gists{/gist_id}",
+                "starred_url": "https://api.github.com/users/e2ac67/starred{/owner}{/repo}",
+                "subscriptions_url": "https://api.github.com/users/e2ac67/subscriptions",
+                "organizations_url": "https://api.github.com/users/e2ac67/orgs",
+                "repos_url": "https://api.github.com/users/e2ac67/repos",
+                "events_url": "https://api.github.com/users/e2ac67/events{/privacy}",
+                "received_events_url": "https://api.github.com/users/e2ac67/received_events",
+                "type": "User",
+                "site_admin": False,
+                "name": None,
+                "company": None,
+                "blog": "",
+                "location": None,
+                "email": None,
+                "hireable": None,
+                "bio": None,
+                "twitter_username": None,
+                "public_repos": 0,
+                "public_gists": 0,
+                "followers": 0,
+                "following": 0,
+                "created_at": "2021-09-24T03:53:02Z",
+                "updated_at": "2021-09-24T03:59:40Z",
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://ent.git.domain.com/api/v3/user/orgs",
+            json=[],
+        )
+        responses.add(
+            responses.GET,
+            "https://ent.git.domain.com/api/v3/user/repos",
+            json=[],
+            headers={
+                "GitHub-Authentication-Token-Expiration": "2021-10-07 19:07:53 UTC",
+                "X-OAuth-Scopes": "gist, repo",
+            },
+        )
+        service_dict["default"] = False
+        options = validate_service(service_dict)
+        assert options["repo_domain"] == "ent.git.domain.com"
 
     @mock.patch("webbrowser.open")
     @mock.patch("cumulusci.core.github.get_device_code")
