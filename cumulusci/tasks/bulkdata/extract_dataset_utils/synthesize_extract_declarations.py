@@ -4,11 +4,58 @@ import typing as T
 
 from pydantic import validator
 
-from cumulusci.salesforce_api.org_schema import NOT_EXTRACTABLE, Schema
+from cumulusci.salesforce_api.org_schema import NOT_EXTRACTABLE, Field, Schema
 from cumulusci.utils.iterators import partition
 
-from .extract_yml import ExtractDeclaration
+from .extract_yml import ExtractDeclaration, SFFieldGroupTypes, SFObjectGroupTypes
 from .hardcoded_default_declarations import DEFAULT_DECLARATIONS
+
+
+class SimplifiedExtractDeclaration(ExtractDeclaration):
+    # a model where sf_object references a single sf_object
+    # and every field is a single field name, rather
+    # than a group declaration like FIELDS(xxx)
+    @validator("sf_object")
+    def sf_object_fits_pattern(cls, val):
+        assert val.isidentifier()
+        return val
+
+
+def flatten_declarations(
+    declarations: T.Iterable[ExtractDeclaration], schema: Schema
+) -> list[SimplifiedExtractDeclaration]:
+    """Convert short-form, abstract Extract declarations like this:
+
+    OBJECTS(CUSTOM):
+        fields: FIELDS(REQUIRED)
+
+    to concrete ones like this (a "Simplified" declaration):
+
+    Custom__c:
+        fields:
+            - Name
+            - CustomField__c
+    Custom2__c:
+        fields:
+            - Name
+            - CustomField2__c
+
+    Also detects dependencies between tables and pulls in required fields
+    from referenced tables recursively.
+    """
+    assert schema.includes_counts, "Schema object was not set up with `includes_counts`"
+    merged_declarations = _simplify_sfobject_declarations(declarations, schema)
+    simplified_declarations = [
+        _expand_field_definitions(decl, schema[decl.sf_object].fields)
+        for decl in merged_declarations
+    ]
+    from .calculate_dependencies import extend_declarations_to_include_referenced_tables
+
+    simplified_declarations = extend_declarations_to_include_referenced_tables(
+        simplified_declarations, schema
+    )
+
+    return simplified_declarations
 
 
 def _simplify_sfobject_declarations(declarations, schema: Schema):
@@ -16,7 +63,7 @@ def _simplify_sfobject_declarations(declarations, schema: Schema):
     (like OBJECTS(CUSTOM)) have been expanded into many declarations
     with specific names and defaults have been merged in."""
     simple_declarations, group_declarations = partition(
-        lambda d: d.group_type, declarations
+        lambda d: d.is_group, declarations
     )
     simple_declarations = list(simple_declarations)
     simple_declarations = _normalize_user_supplied_simple_declarations(
@@ -55,111 +102,108 @@ def _merge_group_declarations_with_simple_declarations(
 
 def _expand_group_sobject_declaration(decl: ExtractDeclaration, schema: Schema):
     """Expand a group sobject declaration to a list of simple declarations"""
-    if decl.group_type == "standard":
+    if decl.group_type == SFObjectGroupTypes.standard:
 
         def matches_obj(obj):
             return not obj.custom
 
-    elif decl.group_type == "custom":
+    elif decl.group_type == SFObjectGroupTypes.custom:
 
         def matches_obj(obj):
             return obj.custom
 
-    elif decl.group_type == "all":
+    elif decl.group_type == SFObjectGroupTypes.all:
 
         def matches_obj(obj):
             return True
 
-    elif decl.group_type == "populated":
-
-        def matches_obj(obj):
-            return obj.count > 1
-
     else:
         assert 0, decl.group_type
 
-    matching_objects = [obj["name"] for obj in schema.sobjects if matches_obj(obj)]
+    matching_objects = [
+        obj["name"] for obj in schema.sobjects if matches_obj(obj) and obj.count > 1
+    ]
     decls = [
         synthesize_declaration_for_sobject(obj, decl.fields) for obj in matching_objects
     ]
+
     return decls
 
 
-class SimplifiedExtractDeclaration(ExtractDeclaration):
-    # a model where sf_object references a single sf_object
-    # and every field is a single field name, not FIELDS(OLD)
-
-    # lookups: dict[str, str] = None  # was this used???
-
-    @validator("sf_object")
-    def sf_object_fits_pattern(cls, val):
-        assert val.isidentifier()
-        return val
-
-
 def _expand_field_definitions(
-    sobject_decl: ExtractDeclaration, schema_fields
+    sobject_decl: ExtractDeclaration, schema_fields: dict[str, Field]
 ) -> SimplifiedExtractDeclaration:
     simple_declarations, group_declarations = partition(
         lambda d: "(" in d, sobject_decl.fields
     )
     declarations = list(simple_declarations)
-    for c in group_declarations:
-        ctype = ExtractDeclaration.parse_field_complex_type(c)
-        if not ctype:
-            raise TypeError(f"Could not parse {c}")  # FIX THIS EXCEPTION
 
-        if ctype == "standard":
-            # find updateable standard fields
-            declarations.extend(
-                field.name
-                for field in schema_fields.values()
-                if field.createable and not field.custom
-            )
-        elif ctype == "custom":
-            declarations.extend(
-                field.name
-                for field in schema_fields.values()
-                if field.createable and field.custom
-            )
-        elif ctype == "required":
-            # required fields are always exported
-            pass
-        elif ctype == "all":
-            declarations.extend(
-                field.name for field in schema_fields.values() if field.createable
-            )
-        else:
-            raise NotImplementedError(type)
+    # expand group declarations to concrete ones.
+    # e.g. FIELDS(STANDARD) -> "LastName",
+    for c in group_declarations:
+        declarations.extend(_find_matching_field_declarations(c, schema_fields))
+
+    # add in all of the required fields
     declarations.extend(
         field.name
         for field in schema_fields.values()
         if (field.createable and not field.nillable and field.name not in declarations)
     )
-    new_sobject_decl = dict(sobject_decl)
-    del new_sobject_decl["fields_"]
-    return SimplifiedExtractDeclaration(**new_sobject_decl, fields=declarations)
+    # get rid of OwnerId because we don't move users between orgs
+    if "OwnerId" in declarations:
+        index = declarations.index("OwnerId")
+        del declarations[index]
+
+    return _SimplifiedExtractDeclaration_with_fields(sobject_decl, fields=declarations)
 
 
-def flatten_declarations(
-    declarations: T.Iterable[ExtractDeclaration], schema: Schema
-) -> list[SimplifiedExtractDeclaration]:
-    assert schema.includes_counts, "Schema object was not set up with `includes_counts`"
-    merged_declarations = _simplify_sfobject_declarations(declarations, schema)
-    simplified_declarations = [
-        _expand_field_definitions(decl, schema[decl.sf_object].fields)
-        for decl in merged_declarations
-    ]
+def _find_matching_field_declarations(
+    field_group_type: str, schema_fields: dict[str, Field]
+) -> T.Iterable[str]:
+    ctype = ExtractDeclaration.parse_field_complex_type(field_group_type)
+    assert ctype, f"Could not parse {field_group_type}"  # Should be impossible
 
-    return simplified_declarations
+    if ctype == SFFieldGroupTypes.standard:
+        # find updateable standard fields
+        return (
+            field.name
+            for field in schema_fields.values()
+            if field.createable and not field.custom
+        )
+    elif ctype == SFFieldGroupTypes.custom:
+        return (
+            field.name
+            for field in schema_fields.values()
+            if field.createable and field.custom
+        )
+    elif ctype == SFFieldGroupTypes.required:
+        # required fields are always exported
+        return ()
+    elif ctype == SFFieldGroupTypes.all:
+        return (field.name for field in schema_fields.values() if field.createable)
+    else:  # pragma: no cover
+        raise NotImplementedError(type)
 
 
-def synthesize_declaration_for_sobject(sf_object, fields):
+def _SimplifiedExtractDeclaration_with_fields(
+    template: ExtractDeclaration, fields: list[str]
+):
+    data = dict(template)
+    data["fields"] = fields
+    del data["fields_"]
+    return SimplifiedExtractDeclaration(**data)
+
+
+def synthesize_declaration_for_sobject(
+    sf_object, fields
+) -> SimplifiedExtractDeclaration:
     """Fake a declaration for an sobject that was mentioned
     indirectly"""
-    return DEFAULT_DECLARATIONS.get(sf_object) or SimplifiedExtractDeclaration(
-        sf_object=sf_object, fields=fields
-    )
+    default = DEFAULT_DECLARATIONS.get(sf_object)
+    if default:
+        return _SimplifiedExtractDeclaration_with_fields(default, fields)
+    else:
+        return SimplifiedExtractDeclaration(sf_object=sf_object, fields=fields)
 
 
 def _normalize_user_supplied_simple_declarations(

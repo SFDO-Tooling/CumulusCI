@@ -1,14 +1,28 @@
 import re
 import typing as T
+from enum import Enum
 from pathlib import Path
 
-from pydantic import Field, root_validator, validator
+from pydantic import Field, validator
 
 from cumulusci.tasks.bulkdata.step import DataApi
 from cumulusci.utils.yaml.model_parser import CCIDictModel, HashableBaseModel
 
 object_decl = re.compile(r"objects\((\w+)\)", re.IGNORECASE)
 field_decl = re.compile(r"fields\((\w+)\)", re.IGNORECASE)
+
+
+class SFObjectGroupTypes(Enum):
+    all = "all"
+    custom = "custom"
+    standard = "standard"
+
+
+class SFFieldGroupTypes(Enum):
+    all = "all"
+    custom = "custom"
+    standard = "standard"
+    required = "required"
 
 
 class ExtractDeclaration(HashableBaseModel):
@@ -21,17 +35,17 @@ class ExtractDeclaration(HashableBaseModel):
     def parse_field_complex_type(fieldspec):
         """If it's something like FIELDS(...), parse it out"""
         if match := field_decl.match(fieldspec):
-            return match.groups()[0].lower()
+            matching_group = match.groups()[0].lower()
+            field_group_type = getattr(SFFieldGroupTypes, matching_group, None)
+            return field_group_type
         else:
             return None
 
-    def sf_object_fits_pattern(self):
-        if self.group_type:
-            assert self.group_type in (
-                "populated",
-                "custom",
-                "standard",
-            ), f"Expected OBJECTS(POPULATED), OBJECTS(CUSTOM) or OBJECTS(STANDARD), not `{self.group_type.upper()}`"
+    def assert_sf_object_fits_pattern(self):
+        if self.is_group:
+            assert (
+                self.group_type in SFObjectGroupTypes
+            ), f"Expected OBJECTS(ALL), OBJECTS(CUSTOM) or OBJECTS(STANDARD), not `{self.group_type.upper()}`"
         else:
             assert self.sf_object.isidentifier(), (
                 "Value should start with OBJECTS( or be a simple alphanumeric field name"
@@ -39,14 +53,11 @@ class ExtractDeclaration(HashableBaseModel):
             )
         return self.sf_object
 
-    @root_validator
-    @classmethod
-    def check_where_against_complex(cls, values):
+    def assert_check_where_against_complex(self):
         """Check that a where clause was not used with a group declaration."""
         assert not (
-            values.get("where") and "(" in values["sf_object"]
+            self.where and self.is_group
         ), "Cannot specify a `where` clause on a declaration for multiple kinds of objects."
-        return values
 
     @validator("fields_")
     def normalize_fields(cls, vals):
@@ -60,30 +71,30 @@ class ExtractDeclaration(HashableBaseModel):
     def validate_field(cls, val):
         assert cls.parse_field_complex_type(val) or val.isidentifier(), val
         if group_type := cls.parse_field_complex_type(val):
-            assert group_type in ("custom", "required", "all", "standard"), group_type
+            assert group_type, (
+                "group_type in OBJECT(group_type) should be one of "
+                f"{tuple(SFFieldGroupTypes.__members__.keys())}, "
+                f"not {val}"
+            )
 
         return val
 
-
-class SimpleExtractDeclaration(ExtractDeclaration):
-    # lookups: dict[str, str] = None  # is this used???
-
-    @validator("sf_object")
-    def sf_object_fits_pattern(cls, val):
-        assert val.isidentifier(), "Not an SObject name"
-        return val
-
-
-class GroupExtractDeclaration(ExtractDeclaration):
-    @validator("sf_object")
-    def is_group(cls, val):
-        assert val._parse_group_type(), "Not a Group"
-        return val
+    @property
+    def is_group(self):
+        return bool(self.group_type)
 
     @property
     def group_type(self):
         """If it's something like OBJECT(...), parse it out"""
-        return self._parse_group_type(self.sf_object)
+        val = self._parse_group_type(self.sf_object)
+        if val:
+            group_type = getattr(SFObjectGroupTypes, val, None)
+            assert group_type, (
+                "group_type in OBJECT(group_type) should be one of "
+                f"{tuple(SFObjectGroupTypes.__members__.keys())}, "
+                f"not {val}"
+            )
+            return group_type
 
     @staticmethod
     def _parse_group_type(val):
@@ -95,13 +106,15 @@ class GroupExtractDeclaration(ExtractDeclaration):
 
 class ExtractRulesFile(CCIDictModel):
     version: int = 1
-    extract: dict[str, T.Union[GroupExtractDeclaration, SimpleExtractDeclaration]]
+    extract: dict[str, ExtractDeclaration]
 
     @validator("extract")
-    def sf_object_fits_pattern(cls, val):
-        for name, decl in val.items():
-            decl.sf_object = name
-            decl.sf_object_fits_pattern()
+    def inject_sf_object_name(cls, val):
+        for sf_object, decl in val.items():
+            decl.sf_object = sf_object
+            decl.assert_sf_object_fits_pattern()
+            decl.assert_check_where_against_complex()
+
         return val
 
     @classmethod

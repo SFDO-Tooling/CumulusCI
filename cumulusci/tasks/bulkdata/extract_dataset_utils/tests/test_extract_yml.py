@@ -34,7 +34,7 @@ class TestExtractYML:
         )
         assert extract["OBJECTS(STANDARD)"].fields == ["FIELDS(CUSTOM)"]
         assert extract["OBJECTS(STANDARD)"].sf_object == "OBJECTS(STANDARD)"
-        assert extract["OBJECTS(STANDARD)"].group_type == "standard"
+        assert extract["OBJECTS(STANDARD)"].group_type.value == "standard"
         assert extract["Opportunity"].group_type is None
 
     def test_default_version(self):
@@ -53,7 +53,7 @@ class TestExtractYML:
 
     def test_mini_parser(self):
         assert (
-            ExtractDeclaration.parse_field_complex_type("FIELDS(STANDARD)")
+            ExtractDeclaration.parse_field_complex_type("FIELDS(STANDARD)").value
             == "standard"
         )
         assert ExtractDeclaration.parse_field_complex_type("ffff") is None
@@ -64,7 +64,7 @@ class TestExtractYML:
                 OBJECTS(XYZZY):
                     fields: FIELDS(CUSTOM)
         """
-        with pytest.raises(ValidationError, match="XYZZY"):
+        with pytest.raises(ValidationError, match="xyzzy"):
             ExtractRulesFile.parse_from_yaml(StringIO(yaml))
 
         yaml = """
@@ -73,14 +73,14 @@ class TestExtractYML:
                     fields:
                         - FIELDS(CUSTOM)
         """
-        with pytest.raises(ValidationError, match="XYZZY"):
+        with pytest.raises(ValidationError, match="xyzzy"):
             ExtractRulesFile.parse_from_yaml(StringIO(yaml))
         yaml = """
             extract:
                 OBJECTS(POPULATED):
                     fields: FIELDS(XYZZY)
         """
-        with pytest.raises(ValidationError, match="xyzzy"):
+        with pytest.raises(ValidationError, match="XYZZY"):
             ExtractRulesFile.parse_from_yaml(StringIO(yaml))
 
         yaml = """
@@ -89,7 +89,7 @@ class TestExtractYML:
                     fields:
                         - FIELDS(XYZZY)
         """
-        with pytest.raises(ValidationError, match="xyzzy"):
+        with pytest.raises(ValidationError, match="XYZZY"):
             ExtractRulesFile.parse_from_yaml(StringIO(yaml))
 
         yaml = """
@@ -99,7 +99,7 @@ class TestExtractYML:
                         - abcde
                         - FIELDS(XYZZY)
         """
-        with pytest.raises(ValidationError, match="xyzzy"):
+        with pytest.raises(ValidationError, match="XYZZY"):
             ExtractRulesFile.parse_from_yaml(StringIO(yaml))
 
         yaml = """
