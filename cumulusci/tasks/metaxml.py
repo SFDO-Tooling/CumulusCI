@@ -61,7 +61,6 @@ class UpdateDependencies(MetaXmlBaseTask):
         dependencies = get_static_dependencies(
             self.project_config,
             resolution_strategy="production",
-            pins=self.project_config.lookup("project__dependency_pins"),
         )
         self._process_dependencies(dependencies)
 

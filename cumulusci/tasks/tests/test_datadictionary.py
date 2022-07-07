@@ -1522,7 +1522,6 @@ project:
             resolution_strategy=None,
             strategies=None,
             filter_function=None,
-            pins=None,
         ):
             filter_function(
                 GitHubDynamicDependency(github="https://github.com/test/test")

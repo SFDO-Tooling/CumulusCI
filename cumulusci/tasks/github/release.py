@@ -79,7 +79,6 @@ class CreateRelease(BaseGithubTask):
                 or self.project_config.project__dependencies,
             ),
             resolution_strategy=self.options.get("resolution_strategy") or "production",
-            pins=self.project_config.lookup("project__dependency_pins"),
         )
         if dependencies:
             dependencies = [d.dict(exclude_none=True) for d in dependencies]

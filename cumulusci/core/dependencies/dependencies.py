@@ -71,8 +71,11 @@ class DependencyPin(HashableBaseModel, abc.ABC):
         ...
 
     @abc.abstractmethod
-    def pin(self, d: "DynamicDependency"):
+    def pin(self, d: "DynamicDependency", context: BaseProjectConfig):
         ...
+
+
+DependencyPin.update_forward_refs()
 
 
 class GitHubDependencyPin(DependencyPin):
@@ -84,8 +87,20 @@ class GitHubDependencyPin(DependencyPin):
     def can_pin(self, d: "DynamicDependency") -> bool:
         return isinstance(d, BaseGitHubDependency) and d.github == self.github
 
-    def pin(self, d: "BaseGitHubDependency"):
+    def pin(self, d: "BaseGitHubDependency", context: BaseProjectConfig):
+        from cumulusci.core.dependencies.resolvers import (  # Circular imports
+            GitHubTagResolver,
+        )
+
+        if d.tag and d.tag != self.tag:
+            raise DependencyResolutionError(
+                f"A pin is specified for {self.github}, but the dependency already has a tag specified."
+            )
         d.tag = self.tag
+        d.ref, d.package_dependency = GitHubTagResolver().resolve(d, context)
+
+
+GitHubDependencyPin.update_forward_refs()
 
 
 class Dependency(HashableBaseModel, abc.ABC):
@@ -165,8 +180,9 @@ class DynamicDependency(Dependency, abc.ABC):
 
         for pin in pins or []:
             if pin.can_pin(self):
-                pin.pin(self)
-                break
+                context.logger.info(f"Pinning dependency {self} to {pin}")
+                pin.pin(self, context)
+                return
 
         resolve_dependency(self, context, strategies)
 
@@ -691,6 +707,39 @@ class UnmanagedZipURLDependency(UnmanagedDependency):
     def description(self):
         subfolder = f"/{self.subfolder}" if self.subfolder else ""
         return f"{self.zip_url} {subfolder}"
+
+
+def parse_pins(pins: Optional[List[dict]]) -> List[DependencyPin]:
+    """Convert a list of dependency pin specifications in the form of dicts
+    (as defined in `cumulusci.yml`) and parse each into a concrete DependencyPin subclass.
+
+    Throws DependencyParseError if a dict cannot be parsed."""
+    parsed_pins = []
+    for pin in pins or []:
+        parsed = parse_dependency_pin(pin)
+        if parsed is None:
+            raise DependencyParseError(f"Unable to parse dependency pin: {pin}")
+        parsed_pins.append(parsed)
+
+    return parsed_pins
+
+
+AVAILABLE_DEPENDENCY_PIN_CLASSES = [GitHubDependencyPin]
+
+
+def parse_dependency_pin(pin_dict: dict) -> Optional[DependencyPin]:
+    """Parse a single dependency pin specification in the form of a dict
+    into a concrete DependencyPin subclass.
+
+    Returns None if the given dict cannot be parsed."""
+
+    for dependency_pin_class in AVAILABLE_DEPENDENCY_PIN_CLASSES:
+        try:
+            pin = dependency_pin_class.parse_obj(pin_dict)
+            if pin:
+                return pin
+        except pydantic.ValidationError:
+            pass
 
 
 def parse_dependencies(deps: Optional[List[dict]]) -> List[Dependency]:

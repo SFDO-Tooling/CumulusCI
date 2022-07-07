@@ -198,7 +198,6 @@ class UpdateDependencies(BaseSalesforceTask):
                 dependencies=self.dependencies,
                 strategies=self.resolution_strategy,
                 filter_function=filter_function,
-                pins=self.project_config.lookup("project__dependency_pins"),
             )
         )
         self.logger.info("Collected dependencies:")
@@ -256,7 +255,6 @@ class UpdateDependencies(BaseSalesforceTask):
                 dependencies=self.dependencies,
                 strategies=self.resolution_strategy,
                 filter_function=filter_function,
-                pins=self.project_config.lookup("project__dependency_pins"),
             )
         )
 

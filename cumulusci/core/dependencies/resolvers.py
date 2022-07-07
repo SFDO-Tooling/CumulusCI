@@ -15,6 +15,7 @@ from cumulusci.core.dependencies.dependencies import (
     PackageVersionIdDependency,
     StaticDependency,
     parse_dependencies,
+    parse_pins,
 )
 from cumulusci.core.dependencies.github import (
     get_package_data,
@@ -498,6 +499,8 @@ def get_static_dependencies(
     """
     if dependencies is None:
         dependencies = parse_dependencies(context.project__dependencies)
+    if pins is None:
+        pins = parse_pins(context.lookup("project__dependency_pins"))
     assert (resolution_strategy is None and strategies is not None) or (
         strategies is None and resolution_strategy is not None
     ), "Expected resolution_strategy or strategies but not both"
@@ -506,25 +509,11 @@ def get_static_dependencies(
     if filter_function is None:
         filter_function = lambda x: True  # noqa: E731
 
-    pin_map = {pin.github: pin.tag for pin in pins or []}
-
     while any(not d.is_flattened or not d.is_resolved for d in dependencies):
         for d in dependencies:
             if isinstance(d, DynamicDependency) and not d.is_resolved:
-                # If we have pins that would affect this dynamic dependency, apply them.
-                # Pins apply one level below DynamicDependency, which is inelegant,
-                # but acknowledges that future subclasses of DynamicDependency
-                # may have very different structures.
-                if isinstance(d, BaseGitHubDependency) and d.github in pin_map:
-                    if d.tag != pin_map[d.github]:
-                        d.tag = pin_map[d.github]
-                    else:
-                        raise DependencyResolutionError(
-                            f"Dependency {d} is pinned, but has a conflicting tag specifier"
-                        )
-
                 # Finish resolving the dependency using our given strategies.
-                d.resolve(context, strategies)
+                d.resolve(context, strategies, pins)
 
         def unique(it: Iterable):
             seen = set()
