@@ -133,6 +133,10 @@ def _expand_group_sobject_declaration(decl: ExtractDeclaration, schema: Schema):
 def _expand_field_definitions(
     sobject_decl: ExtractDeclaration, schema_fields: dict[str, Field]
 ) -> SimplifiedExtractDeclaration:
+    """Expand group declarations to concrete ones. e.g. FIELDS(STANDARD) -> "LastName",
+
+    Also include all required fields whether asked for or not.
+    """
     simple_declarations, group_declarations = partition(
         lambda d: "(" in d, sobject_decl.fields
     )
@@ -160,6 +164,7 @@ def _expand_field_definitions(
 def _find_matching_field_declarations(
     field_group_type: str, schema_fields: dict[str, Field]
 ) -> T.Iterable[str]:
+    """Look in schema for field declarations matching a pattern like "Custom", "Standard", etc."""
     ctype = ExtractDeclaration.parse_field_complex_type(field_group_type)
     assert ctype, f"Could not parse {field_group_type}"  # Should be impossible
 
@@ -188,6 +193,7 @@ def _find_matching_field_declarations(
 def _SimplifiedExtractDeclaration_with_fields(
     template: ExtractDeclaration, fields: list[str]
 ):
+    """Generate a simplified declaration with specified properties and fields"""
     data = dict(template)
     data["fields"] = fields
     del data["fields_"]
@@ -195,7 +201,7 @@ def _SimplifiedExtractDeclaration_with_fields(
 
 
 def synthesize_declaration_for_sobject(
-    sf_object, fields
+    sf_object: str, fields: list
 ) -> SimplifiedExtractDeclaration:
     """Fake a declaration for an sobject that was mentioned
     indirectly"""
@@ -210,7 +216,11 @@ def _normalize_user_supplied_simple_declarations(
     simple_declarations: list[ExtractDeclaration],
     default_declarations: T.Mapping[str, ExtractDeclaration],
 ) -> list[ExtractDeclaration]:
+    """Merge info provided by the user with things we already know about each SObject
 
+    For example, if we extract WorkBadgeDefinition, don't extract the
+    built-in ones.
+    """
     duplicates = _find_duplicates(simple_declarations, lambda x: x.sf_object)
 
     assert not duplicates, f"Duplicate declarations not allowed: {duplicates}"
@@ -223,7 +233,8 @@ def _normalize_user_supplied_simple_declarations(
     return list(simple_declarations.values())
 
 
-def _find_duplicates(input, key):
+def _find_duplicates(input: T.Iterable[T.Tuple], key: T.Callable[[str], str]):
+    """Find duplicates in an iterable"""
     counts = collections.Counter((key(v), v) for v in input)
     duplicates = [name for name, count in counts.items() if count > 1]
     return duplicates
@@ -232,6 +243,7 @@ def _find_duplicates(input, key):
 def _merge_declarations_with_defaults(
     user_decl: ExtractDeclaration, default_decl: ExtractDeclaration
 ):
+    """Merge two declarations with one taking priority over the other"""
     default_decl = default_decl or _DEFAULT_DEFAULTS
     return ExtractDeclaration(
         sf_object=user_decl.sf_object,

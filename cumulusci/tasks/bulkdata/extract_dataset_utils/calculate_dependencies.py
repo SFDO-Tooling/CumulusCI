@@ -18,6 +18,11 @@ class Dependency(T.NamedTuple):
 def _calculate_dependencies_for_declarations(
     decls: T.Sequence[SimplifiedExtractDeclaration], schema: Schema
 ) -> dict[str, list[Dependency]]:
+    """Ensure that required lookups are fulfilled for list of SimplifiedExtractDeclarations
+
+    Do this by adding their referent tables (in full) to the extract.
+    Module-internal helper function.
+    """
     dependencies = {}
     for decl in decls:
         new_dependencies = _calculate_dependencies_for_sobject(
@@ -30,6 +35,11 @@ def _calculate_dependencies_for_declarations(
 def _calculate_dependencies_for_sobject(
     source_sfobject: str, fields: list[str], schema: Schema, only_required_fields: bool
 ):
+    """Ensure that required lookups are fulfilled for a single SObject
+
+    Do this by adding its referent tables (in full) to the extract.
+    Module-internal helper function.
+    """
     dependencies = {}
     for field_name in fields:
         field_info = schema[source_sfobject].fields[field_name]
@@ -53,6 +63,7 @@ def _calculate_dependencies_for_sobject(
 def extend_declarations_to_include_referenced_tables(
     decl_list: T.Sequence[SimplifiedExtractDeclaration], schema: Schema
 ) -> T.Sequence[SimplifiedExtractDeclaration]:
+    """Extend the declarations to complete required or requested lookups recursively"""
     decls = {decl.sf_object: decl for decl in decl_list}
     dependencies = _calculate_dependencies_for_declarations(decl_list, schema)
     to_process = list(decls.keys())
