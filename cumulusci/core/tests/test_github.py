@@ -203,10 +203,62 @@ class TestGithub(GithubApiTestMixin):
                 }
             ),
         )
+        # github service, should be ignored
+        runtime.keychain.set_service(
+            "github",
+            "ent",
+            ServiceConfig(
+                {
+                    "username": "testusername",
+                    "email": "test@domain.com",
+                    "token": "ATOKEN",
+                }
+            ),
+        )
         assert get_auth_from_service("git.enterprise.domain.com", runtime.keychain) == (
             "testusername",
             "ATOKEN",
         )
+
+    @responses.activate
+    def test_get_auth_from_service__exceptions(self):
+        runtime = mock.Mock()
+        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
+        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+        runtime.keychain.set_service(
+            "github_enterprise",
+            "ent2",
+            ServiceConfig(
+                {
+                    "username": "testusername2",
+                    "email": "test2@domain.com",
+                    "token": "ATOKEN2",
+                    "repo_domain": "git.enterprise.domain.com",
+                }
+            ),
+        )
+        runtime.keychain.set_service(
+            "github_enterprise",
+            "ent",
+            ServiceConfig(
+                {
+                    "username": "testusername",
+                    "email": "test@domain.com",
+                    "token": "ATOKEN",
+                    "repo_domain": "git.enterprise.domain.com",
+                }
+            ),
+        )
+        with pytest.raises(
+            GithubException,
+            match="More than one Github Enterprise service configured for domain git.enterprise.domain.com",
+        ):
+            get_auth_from_service("git.enterprise.domain.com", runtime.keychain)
+        with pytest.raises(
+            GithubException,
+            match="No Github Enterprise service configured for domain garbage",
+        ):
+            get_auth_from_service("garbage", runtime.keychain)
 
     @pytest.mark.parametrize(
         "domain,client",

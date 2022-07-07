@@ -4,6 +4,7 @@ import os
 import re
 import time
 import webbrowser
+from collections import defaultdict
 from string import Template
 from typing import Callable, Optional, Union
 from urllib.parse import urlparse
@@ -143,8 +144,19 @@ def get_auth_from_service(host, keychain) -> tuple:
             keychain.get_service("github_enterprise", alias)
             for alias in reversed(keychain.list_services().get("github_enterprise", []))
         ]
-        services_by_host = {service.repo_domain: service for service in services}
-        service_config = services_by_host.get(host)
+        services_by_host = defaultdict(list)
+        for service in services:
+            services_by_host[service.repo_domain].append(service)
+        if not services_by_host.get(host):
+            raise GithubException(
+                f"No Github Enterprise service configured for domain {host}."
+            )
+        elif len(services_by_host.get(host)) > 1:
+            raise GithubException(
+                f"More than one Github Enterprise service configured for domain {host}."
+            )
+        else:
+            service_config = services_by_host.get(host)[0]
 
     token = service_config.password or service_config.token
     return service_config.username, token
