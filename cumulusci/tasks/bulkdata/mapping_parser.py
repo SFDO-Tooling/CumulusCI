@@ -388,20 +388,37 @@ class MappingStep(CCIDictModel):
 
             # Do we have the right permissions for this field, or do we need to drop it?
             is_after_lookup = hasattr(field_dict[f], "after")
-            if not self._check_field_permission(
+            relevant_operation = (
+                data_operation_type if not is_after_lookup else DataOperationType.UPDATE
+            )
+
+            error_in_f = False
+
+            if f not in describe:
+                logger.warning(
+                    f"Field {self.sf_object}.{f} does not exist or is not visible to the current user."
+                )
+                error_in_f = True
+            elif not self._check_field_permission(
                 describe,
                 f,
-                data_operation_type
-                if not is_after_lookup
-                else DataOperationType.UPDATE,
+                relevant_operation,
             ):
-                logger.warning(
-                    f"Field {self.sf_object}.{f} is not present or does not have the correct permissions."
+                relevant_permissions = self._get_required_permission_types(
+                    relevant_operation
                 )
+                logger.warning(
+                    f"Field {self.sf_object}.{f} does not have the correct permissions "
+                    + f"{relevant_permissions} for this operation."
+                )
+                error_in_f = True
+
+            if error_in_f:
                 if drop_missing:
                     del field_dict[f]
                 else:
                     ret = False
+
         return ret
 
     def _validate_sobject(
@@ -485,14 +502,15 @@ class MappingStep(CCIDictModel):
         # By this point, we know the attribute is valid.
         describe = self.describe_data(sf)
 
-        if not self._validate_field_dict(
+        fields_correct = self._validate_field_dict(
             describe, self.fields, inject, strip, drop_missing, operation
-        ):
-            return False
+        )
 
-        if not self._validate_field_dict(
+        lookups_correct = self._validate_field_dict(
             describe, self.lookups, inject, strip, drop_missing, operation
-        ):
+        )
+
+        if not (fields_correct and lookups_correct):
             return False
 
         # inject namespaces into the update_key
