@@ -91,11 +91,9 @@ def _determine_github_client(host: str, client_params: dict) -> GitHub:
 
 def get_github_api_for_repo(keychain, repo_url, session=None):
 
-    repo_info: dict = parse_repo_url(repo_url)
-    owner = repo_info.get("owner")
-    repo = repo_info.get("repo")
+    owner, repo_name, host = parse_repo_url(repo_url)
     gh: GitHub = _determine_github_client(
-        repo_info.get("host"),  # type: ignore
+        host,
         {
             "session": session
             or GitHubSession(default_read_timeout=30, default_connect_timeout=30)
@@ -110,22 +108,22 @@ def get_github_api_for_repo(keychain, repo_url, session=None):
     APP_KEY = os.environ.get("GITHUB_APP_KEY", "").encode("utf-8")
     APP_ID = os.environ.get("GITHUB_APP_ID")
     if APP_ID and APP_KEY:
-        installation = INSTALLATIONS.get((owner, repo))
+        installation = INSTALLATIONS.get((owner, repo_name))
         if installation is None:
             gh.login_as_app(APP_KEY, APP_ID, expire_in=120)
             try:
-                installation = gh.app_installation_for_repository(owner, repo)
+                installation = gh.app_installation_for_repository(owner, repo_name)
             except github3.exceptions.NotFoundError:
                 raise GithubException(
-                    f"Could not access {owner}/{repo} using GitHub app. "
+                    f"Could not access {owner}/{repo_name} using GitHub app. "
                     "Does the app need to be installed for this repository?"
                 )
-            INSTALLATIONS[(owner, repo)] = installation
+            INSTALLATIONS[(owner, repo_name)] = installation
         gh.login_as_app_installation(APP_KEY, APP_ID, installation.id)
     elif GITHUB_TOKEN:
         gh.login(token=GITHUB_TOKEN)
     else:
-        username, token = get_auth_from_service(repo_info.get("host"), keychain)
+        username, token = get_auth_from_service(host, keychain)
         gh.login(username, token)
 
     return gh

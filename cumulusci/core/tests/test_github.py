@@ -711,9 +711,11 @@ class TestGithub(GithubApiTestMixin):
             "repo_domain": "ent.git.domain.com",
         }
 
-        with pytest.raises(cumulusci.core.exceptions.GithubException) as e:
+        with pytest.raises(
+            cumulusci.core.exceptions.GithubException,
+            match="GitHub Enterprise services may not be set as default",
+        ):
             validate_service(service_dict)
-        assert "GitHub Enterprise services may not be set as default" in str(e)
 
         responses.add(
             responses.GET,

@@ -33,23 +33,21 @@ def test_construct_release_branch_name():
     assert construct_release_branch_name("feature/", "230") == "feature/230"
 
 
-def test_split_repo_url():
-    assert split_repo_url("https://github.com/owner/repo") == ("owner", "repo")
-    assert split_repo_url("https://github.com/owner/repo.git") == ("owner", "repo")
-    assert split_repo_url("git@github.com:owner/repo") == ("owner", "repo")
-    assert split_repo_url("git@alias:owner/repo") == ("owner", "repo")
-
-
 @pytest.mark.parametrize(
-    "repo_uri,owner,host",
+    "repo_uri,owner,repo_name,host",
     [
-        ("https://github.com/owner/repo/", "owner", "github.com"),
-        ("https://github.com/owner/repo.git", "owner", "github.com"),
-        ("git@github.com:owner/repo.git", "owner", "github.com"),
-        ("git@github.com:owner/repo", "owner", "github.com"),
-        ("https://api.github.com/repos/owner/repo/", "owner", "api.github.com"),
+        ("https://github.com/owner/repo_name/", "owner", "repo_name", "github.com"),
+        ("https://github.com/owner/repo_name.git", "owner", "repo_name", "github.com"),
+        ("git@github.com:owner/repo_name.git", "owner", "repo_name", "github.com"),
+        ("git@github.com:owner/repo_name", "owner", "repo_name", "github.com"),
+        (
+            "https://api.github.com/repos/owner/repo_name/",
+            "owner",
+            "repo_name",
+            "api.github.com",
+        ),
     ],
 )
-def test_parse_repo_url(repo_uri, owner, host):
-    assert parse_repo_url(repo_uri).get("owner") == owner
-    assert parse_repo_url(repo_uri).get("host") == host
+def test_parse_repo_url(repo_uri, owner, repo_name, host):
+    assert parse_repo_url(repo_uri) == (owner, repo_name, host)
+    assert split_repo_url(repo_uri) == (owner, repo_name)
