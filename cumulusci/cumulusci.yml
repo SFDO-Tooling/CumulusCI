@@ -1312,9 +1312,6 @@ services:
             email:
                 description: The email address to used by Github tasks when an operation requires an email address.
                 required: True
-            repo_domain:
-                description: "Set to GitHub Enterprise domain (Example: git.enterprise.comain.com)."
-                default: github.com
             token:
                 description: Personal Access Token for GitHub. Leave blank to log in via browser.
                 required: True
