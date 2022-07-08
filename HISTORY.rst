@@ -2,6 +2,14 @@
 History
 =======
 
+3.61.1 (2022-07-10)
+-------------------
+
+Issues Fixed 🩴
+~~~~~~~~~~~~~~~~
+
+-  Fix ``metadeploy_publish`` error caused by supported_orgs case-sensitivity (#3277)
+
 3.61.0 (2022-07-09)
 -------------------
 
