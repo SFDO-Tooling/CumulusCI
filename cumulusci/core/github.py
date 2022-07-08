@@ -144,19 +144,18 @@ def get_auth_from_service(host, keychain) -> tuple:
             keychain.get_service("github_enterprise", alias)
             for alias in reversed(keychain.list_services().get("github_enterprise", []))
         ]
-        services_by_host = defaultdict(list)
-        for service in services:
-            services_by_host[service.repo_domain].append(service)
-        if not services_by_host.get(host):
-            raise GithubException(
-                f"No Github Enterprise service configured for domain {host}."
-            )
-        elif len(services_by_host.get(host)) > 1:
+        hosts = [service.repo_domain for service in services]
+        if hosts.count(host) > 1:
             raise GithubException(
                 f"More than one Github Enterprise service configured for domain {host}."
             )
-        else:
-            service_config = services_by_host.get(host)[0]
+        elif hosts.count(host) == 0:
+            raise ServiceNotConfigured(
+                f"No Github Enterprise service configured for domain {host}."
+            )
+
+        service_by_host = {service.repo_domain: service for service in services}
+        service_config = services_by_host[host]
 
     token = service_config.password or service_config.token
     return service_config.username, token
