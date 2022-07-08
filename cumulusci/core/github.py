@@ -4,7 +4,6 @@ import os
 import re
 import time
 import webbrowser
-from collections import defaultdict
 from string import Template
 from typing import Callable, Optional, Union
 from urllib.parse import urlparse
@@ -31,6 +30,7 @@ from cumulusci.core.exceptions import (
     GithubApiError,
     GithubApiNotFoundError,
     GithubException,
+    ServiceNotConfigured,
 )
 from cumulusci.oauth.client import (
     OAuth2ClientConfig,
@@ -155,7 +155,7 @@ def get_auth_from_service(host, keychain) -> tuple:
             )
 
         service_by_host = {service.repo_domain: service for service in services}
-        service_config = services_by_host[host]
+        service_config = service_by_host[host]
 
     token = service_config.password or service_config.token
     return service_config.username, token

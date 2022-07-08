@@ -27,6 +27,7 @@ from cumulusci.core.exceptions import (
     GithubApiError,
     GithubApiNotFoundError,
     GithubException,
+    ServiceNotConfigured,
 )
 from cumulusci.core.github import (
     SSO_WARNING,
@@ -255,7 +256,7 @@ class TestGithub(GithubApiTestMixin):
         ):
             get_auth_from_service("git.enterprise.domain.com", runtime.keychain)
         with pytest.raises(
-            GithubException,
+            ServiceNotConfigured,
             match="No Github Enterprise service configured for domain garbage",
         ):
             get_auth_from_service("garbage", runtime.keychain)
