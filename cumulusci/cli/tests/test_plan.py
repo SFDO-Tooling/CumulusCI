@@ -9,6 +9,8 @@ from cumulusci.cli.runtime import CliRuntime
 from .. import plan
 from .utils import run_click_command
 
+pytestmark = pytest.mark.metadeploy
+
 
 @pytest.fixture
 def runtime():
