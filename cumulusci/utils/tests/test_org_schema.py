@@ -429,8 +429,7 @@ class TestOrgSchema:
                 assert "Case" not in schema
 
 
-@pytest.mark.vcr()  # too hard to make these VCR-compatible due to data volume
-@pytest.mark.slow()
+@pytest.mark.needs_org()  # too hard to make these VCR-compatible due to data volume
 class TestOrgSchemaIntegration:
     def validate_real_schema_data(self, schema):
         assert len(list(schema.sobjects)) > 800
@@ -452,7 +451,10 @@ class TestOrgSchemaIntegration:
 
     def test_minimal_schema(self, sf, org_config):
         with get_org_schema(
-            sf, org_config, include=["Account", "Opportunity"], force_recache=True
+            sf,
+            org_config,
+            included_objects=["Account", "Opportunity"],
+            force_recache=True,
         ) as schema:
             assert list(schema.keys()) == ["Account", "Opportunity"]
 
