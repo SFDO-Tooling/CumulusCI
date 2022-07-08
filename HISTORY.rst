@@ -1,6 +1,37 @@
 =======
 History
 =======
+
+3.61.1 (2022-07-10)
+-------------------
+
+Issues Fixed 🩴
+~~~~~~~~~~~~~~~~
+
+-  Fix ``metadeploy_publish`` error caused by supported_orgs case-sensitivity (#3277)
+
+3.61.0 (2022-07-09)
+-------------------
+
+Changes 🎉
+~~~~~~~~~~
+
+-  ``metadeploy_publish`` consumes legal targets for supported orgs (#3239)
+-  Add update_profile support for record type layouts by (#3243)
+-  Add ``custom`` key to cumulusci.yml schema (#3238)
+-  Make OrgSettings also deploy objectSettings, if present (#3235)
+-  Import persistent orgs from the SFDX keychain (#3253)
+-  Speed up Snowfakery handling of small batch sizes  (#3188)
+
+Issues Fixed 🩴
+~~~~~~~~~~~~~~~~
+
+-  Fix JWT audience for sandboxes (#3240)
+-  Fixed a bug where scratch org attributes configured via cumulusci.yml were
+   not taking effect. (#3209)
+-  Correct FeatureParameterString to FeatureParameterDate (#3254)
+-  No postinstall script for unlocked package builds (#3247)
+
 3.60.0 (2022-06-09)
 -------------------
 Changes:
@@ -3114,7 +3145,7 @@ Resolving a few issues from beta77:
 -------------------------
 
 Breaking Changes
-================
+~~~~~~~~~~~~~~~~
 
 * If you created custom tasks off of `DeployNamespaced` or `DeployNamespacedBundles`, you will need to switch to using `Deploy` and `DeployBundles`.  The recommended configuration for such custom tasks is represented below.  In flows that need to inject the actual namespace prefix, override the `unmanaged` option .. ::
 
@@ -3126,7 +3157,7 @@ Breaking Changes
             unmanaged: False
 
 Enhancements
-============
+~~~~~~~~~~~~
 
 * The `cci` CLI will now check for new versions and print output at the top of the log if a new version is available
 * The `cci` keychain now automatically creates orgs for all named scratch org configs in the project.  The orgs are created with the same name as the config.  Out of the box, CumulusCI comes with 4 org configs: `dev`, `feature`, `beta`, and `release`.  You can add additional org configs per project using the `orgs` -> `scratch` section of the project's `cumulusci.yml`.  With this change, `cci org list` will always show at least 4 orgs for any project.  If an org already exists in the keychain, it is not touched and no scratch org config is auto-created for that config.  The goal is to eliminate the need to call `cci org scratch` in most cases and make it easier for new users to get up and running with scratch orgs and CumulusCI.
