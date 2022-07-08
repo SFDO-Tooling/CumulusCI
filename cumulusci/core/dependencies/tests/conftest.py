@@ -38,6 +38,7 @@ def github():
         },
         [
             DummyRelease("release/2.0", "2.0"),
+            DummyRelease("release/1.5", "1.5"),
         ],
     )
 
@@ -62,6 +63,7 @@ def github():
         },
         [
             DummyRelease("release/1.1", "1.1"),
+            DummyRelease("release/1.0", "1.0"),
         ],
     )
 
@@ -317,6 +319,7 @@ def github():
 @pytest.fixture
 def project_config(github):
     pc = mock.Mock()
+    pc.lookup.return_value = None
 
     def get_repo_from_url(url):
         return github.repository(*split_repo_url(url))

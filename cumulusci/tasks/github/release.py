@@ -76,7 +76,7 @@ class CreateRelease(BaseGithubTask):
             self.project_config,
             dependencies=parse_dependencies(
                 self.options.get("dependencies")
-                or self.project_config.project__dependencies
+                or self.project_config.project__dependencies,
             ),
             resolution_strategy=self.options.get("resolution_strategy") or "production",
         )

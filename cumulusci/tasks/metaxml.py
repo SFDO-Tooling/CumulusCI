@@ -59,7 +59,8 @@ class UpdateDependencies(MetaXmlBaseTask):
     def _init_task(self):
         self.dependencies = []
         dependencies = get_static_dependencies(
-            self.project_config, resolution_strategy="production"
+            self.project_config,
+            resolution_strategy="production",
         )
         self._process_dependencies(dependencies)
 

@@ -383,6 +383,16 @@
                 "dependency_resolutions": {
                     "$ref": "#/definitions/DependencyResolutions"
                 },
+                "dependency_pins": {
+                    "title": "Dependency Pins",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
                 "source_format": {
                     "title": "Source Format",
                     "default": "mdapi",

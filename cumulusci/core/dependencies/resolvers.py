@@ -9,11 +9,13 @@ from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.dependencies import (
     BaseGitHubDependency,
     Dependency,
+    DependencyPin,
     DynamicDependency,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
     StaticDependency,
     parse_dependencies,
+    parse_pins,
 )
 from cumulusci.core.dependencies.github import (
     get_package_data,
@@ -474,10 +476,11 @@ def dependency_filter_ignore_deps(ignore_deps: List[dict]) -> Callable:
 
 def get_static_dependencies(
     context: BaseProjectConfig,
-    dependencies: List[Dependency] = None,
-    resolution_strategy: str = None,
-    strategies: List[DependencyResolutionStrategy] = None,
-    filter_function: Callable = None,
+    dependencies: Optional[List[Dependency]] = None,
+    resolution_strategy: Optional[str] = None,
+    strategies: Optional[List[DependencyResolutionStrategy]] = None,
+    filter_function: Optional[Callable] = None,
+    pins: Optional[List[DependencyPin]] = None,
 ) -> List[StaticDependency]:
     """Resolves the dependencies of a CumulusCI project
     to convert dynamic GitHub dependencies into static dependencies
@@ -496,6 +499,8 @@ def get_static_dependencies(
     """
     if dependencies is None:
         dependencies = parse_dependencies(context.project__dependencies)
+    if pins is None:
+        pins = parse_pins(context.lookup("project__dependency_pins"))
     assert (resolution_strategy is None and strategies is not None) or (
         strategies is None and resolution_strategy is not None
     ), "Expected resolution_strategy or strategies but not both"
@@ -507,7 +512,8 @@ def get_static_dependencies(
     while any(not d.is_flattened or not d.is_resolved for d in dependencies):
         for d in dependencies:
             if isinstance(d, DynamicDependency) and not d.is_resolved:
-                d.resolve(context, strategies)
+                # Finish resolving the dependency using our given strategies.
+                d.resolve(context, strategies, pins)
 
         def unique(it: Iterable):
             seen = set()
@@ -528,13 +534,15 @@ def get_static_dependencies(
         )
 
     # Make sure, if we had no flattening or resolving to do, that we apply the ignore list.
-    return [d for d in dependencies if filter_function(d)]
+    # Type is guaranteed via the logic above.
+    return [d for d in dependencies if filter_function(d)]  # type: ignore
 
 
 def resolve_dependency(
     dependency: DynamicDependency,
     context: BaseProjectConfig,
     strategies: List[DependencyResolutionStrategy],
+    pins: Optional[List[DependencyPin]] = None,
 ):
     """Resolve a DynamicDependency that is not pinned to a specific version into one that is.
 
