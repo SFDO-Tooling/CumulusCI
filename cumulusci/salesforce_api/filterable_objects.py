@@ -247,7 +247,7 @@ NOT_EXTRACTABLE = NOT_COUNTABLE + (
 
 # And this code:
 #
-# patterns_to_ignore = NOT_EXTRACTABLE_WITHOUT_NOT_COUNTABpytestLE
+# patterns_to_ignore = NOT_EXTRACTABLE_WITHOUT_NOT_COUNTABLE
 
 # names = [obj["name"] for obj in sf.describe()["sobjects"]]
 
