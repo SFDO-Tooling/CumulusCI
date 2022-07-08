@@ -259,11 +259,11 @@ class Publish(BaseMetaDeployTask):
         corresponds `supported_orgs` field on the Plan model in MetaDeploy
         """
         if not providers or providers == ["user"]:
-            org_providers = "persistent"
+            org_providers = "Persistent"
         elif "user" in providers and "devhub" in providers:
-            org_providers = "both"
+            org_providers = "Both"
         elif providers == ["devhub"]:
-            org_providers = "scratch"
+            org_providers = "Scratch"
 
         return org_providers
 
