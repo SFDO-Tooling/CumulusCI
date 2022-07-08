@@ -183,7 +183,7 @@ class Schema:
         """Populate a schema cache from the API, using last_modified_date
         to pull down only new schema"""
         for pat in patterns_to_ignore:
-            assert pat.replace("%", "").isalnum(), f"Pattern has wrong chars {pat}"
+            assert pat.replace("%", "").isidentifier(), f"Pattern has wrong chars {pat}"
 
         # Platform bug!
         patterns_to_ignore = ("MacroInstruction%",) + tuple(patterns_to_ignore)
