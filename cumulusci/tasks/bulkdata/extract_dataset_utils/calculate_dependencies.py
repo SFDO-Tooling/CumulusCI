@@ -17,7 +17,7 @@ class Dependency(T.NamedTuple):
 
 def _calculate_dependencies_for_declarations(
     decls: T.Sequence[SimplifiedExtractDeclaration], schema: Schema
-) -> dict[str, list[Dependency]]:
+) -> T.Dict[str, T.List[Dependency]]:
     """Ensure that required lookups are fulfilled for list of SimplifiedExtractDeclarations
 
     Do this by adding their referent tables (in full) to the extract.
@@ -33,7 +33,10 @@ def _calculate_dependencies_for_declarations(
 
 
 def _calculate_dependencies_for_sobject(
-    source_sfobject: str, fields: list[str], schema: Schema, only_required_fields: bool
+    source_sfobject: str,
+    fields: T.List[str],
+    schema: Schema,
+    only_required_fields: bool,
 ):
     """Ensure that required lookups are fulfilled for a single SObject
 

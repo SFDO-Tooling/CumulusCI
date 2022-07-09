@@ -1,6 +1,7 @@
 import json
+import typing as T
 from contextlib import contextmanager
-from functools import cache
+from functools import lru_cache
 from io import StringIO
 from pathlib import Path
 from unittest import mock
@@ -318,7 +319,7 @@ class TestSynthesizeExtractDeclarations:
             ) - set(["Id"])
 
 
-@cache
+@lru_cache(maxsize=None)
 def describe_for(sobject: str):
     return json.loads(read_mock(sobject))
 
@@ -326,8 +327,8 @@ def describe_for(sobject: str):
 @contextmanager
 def _fake_get_org_schema(
     org_config: OrgConfig,
-    org_describes: list[dict],
-    object_counts: dict[str, int],
+    org_describes: T.List[dict],
+    object_counts: T.Dict[str, int],
     **kwargs,
 ):
     with mock.patch(

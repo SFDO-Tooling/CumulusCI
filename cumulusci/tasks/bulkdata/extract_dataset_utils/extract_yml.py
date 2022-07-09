@@ -27,7 +27,7 @@ class SFFieldGroupTypes(Enum):
 
 class ExtractDeclaration(HashableBaseModel):
     where: str = None
-    fields_: T.Union[list[str], str] = Field(["FIELDS(ALL)"], alias="fields")
+    fields_: T.Union[T.List[str], str] = Field(["FIELDS(ALL)"], alias="fields")
     api: DataApi = DataApi.SMART
     sf_object: str = None  # injected, not implied
 
@@ -106,7 +106,7 @@ class ExtractDeclaration(HashableBaseModel):
 
 class ExtractRulesFile(CCIDictModel):
     version: int = 1
-    extract: dict[str, ExtractDeclaration]
+    extract: T.Dict[str, ExtractDeclaration]
 
     @validator("extract")
     def inject_sf_object_name(cls, val):

@@ -23,7 +23,7 @@ class SimplifiedExtractDeclaration(ExtractDeclaration):
 
 def flatten_declarations(
     declarations: T.Iterable[ExtractDeclaration], schema: Schema
-) -> list[SimplifiedExtractDeclaration]:
+) -> T.List[SimplifiedExtractDeclaration]:
     """Convert short-form, abstract Extract declarations like this:
 
     OBJECTS(CUSTOM):
@@ -79,7 +79,7 @@ def _merge_group_declarations_with_simple_declarations(
     simple_declarations: T.Iterable[ExtractDeclaration],
     group_declarations: T.Iterable[ExtractDeclaration],
     schema: Schema,
-) -> list[ExtractDeclaration]:
+) -> T.List[ExtractDeclaration]:
     """Expand group declarations to simple declarations and merge
     with existing simple declarations"""
     simple_declarations = list(simple_declarations)
@@ -131,7 +131,7 @@ def _expand_group_sobject_declaration(decl: ExtractDeclaration, schema: Schema):
 
 
 def _expand_field_definitions(
-    sobject_decl: ExtractDeclaration, schema_fields: dict[str, Field]
+    sobject_decl: ExtractDeclaration, schema_fields: T.Dict[str, Field]
 ) -> SimplifiedExtractDeclaration:
     """Expand group declarations to concrete ones. e.g. FIELDS(STANDARD) -> "LastName",
 
@@ -162,7 +162,7 @@ def _expand_field_definitions(
 
 
 def _find_matching_field_declarations(
-    field_group_type: str, schema_fields: dict[str, Field]
+    field_group_type: str, schema_fields: T.Dict[str, Field]
 ) -> T.Iterable[str]:
     """Look in schema for field declarations matching a pattern like "Custom", "Standard", etc."""
     ctype = ExtractDeclaration.parse_field_complex_type(field_group_type)
@@ -191,7 +191,7 @@ def _find_matching_field_declarations(
 
 
 def _SimplifiedExtractDeclaration_with_fields(
-    template: ExtractDeclaration, fields: list[str]
+    template: ExtractDeclaration, fields: T.List[str]
 ):
     """Generate a simplified declaration with specified properties and fields"""
     data = dict(template)
@@ -213,9 +213,9 @@ def synthesize_declaration_for_sobject(
 
 
 def _normalize_user_supplied_simple_declarations(
-    simple_declarations: list[ExtractDeclaration],
+    simple_declarations: T.List[ExtractDeclaration],
     default_declarations: T.Mapping[str, ExtractDeclaration],
-) -> list[ExtractDeclaration]:
+) -> T.List[ExtractDeclaration]:
     """Merge info provided by the user with things we already know about each SObject
 
     For example, if we extract WorkBadgeDefinition, don't extract the
