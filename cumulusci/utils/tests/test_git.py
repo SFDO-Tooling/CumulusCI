@@ -36,12 +36,30 @@ def test_construct_release_branch_name():
 @pytest.mark.parametrize(
     "repo_uri,owner,repo_name,host",
     [
+        (
+            "https://git.ent.example.com/org/private_repo/",
+            "org",
+            "private_repo",
+            "git.ent.example.com",
+        ),
         ("https://github.com/owner/repo_name/", "owner", "repo_name", "github.com"),
         ("https://github.com/owner/repo_name.git", "owner", "repo_name", "github.com"),
+        (
+            "https://git.ent.example.com/org/private_repo.git",
+            "org",
+            "private_repo",
+            "git.ent.example.com",
+        ),
         ("git@github.com:owner/repo_name.git", "owner", "repo_name", "github.com"),
         ("git@github.com:owner/repo_name", "owner", "repo_name", "github.com"),
         (
-            "https://api.github.com/repos/owner/repo_name/",
+            "git@api.github.com/owner/repo_name/",
+            "owner",
+            "repo_name",
+            "api.github.com",
+        ),
+        (
+            "git@api.github.com/owner/repo_name.git",
             "owner",
             "repo_name",
             "api.github.com",

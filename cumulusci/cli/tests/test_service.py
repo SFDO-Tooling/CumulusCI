@@ -341,7 +341,6 @@ def test_service_info():
     runtime.keychain.set_service("test", "test-alias", ServiceConfig({"x": 1}))
 
     result = run_cli_command("service", "info", "test", "test-alias", runtime=runtime)
-
     assert (
         result.output
         == """  test:test-alias  
@@ -528,11 +527,11 @@ def test_service_remove__environment_service_cannot_be_removed():
     ) in result.output
 
 
-def validate_service(options):
+def validate_service(options, keychain):
     return {"key": "value"}
 
 
-def validate_service_error(options):
+def validate_service_error(options, keychain):
     raise Exception("Validation failed")
 
 

@@ -138,22 +138,7 @@ def get_auth_from_service(host, keychain) -> tuple:
     if "github.com" in host:
         service_config = keychain.get_service("github")
     else:
-        # Collect and process github_enterprise services
-        # only the first alias for a given service.repo_domain is captured
-        services = [
-            keychain.get_service("github_enterprise", alias)
-            for alias in reversed(keychain.list_services().get("github_enterprise", []))
-        ]
-        hosts = [service.repo_domain for service in services]
-        if hosts.count(host) > 1:
-            raise GithubException(
-                f"More than one Github Enterprise service configured for domain {host}."
-            )
-        elif hosts.count(host) == 0:
-            raise ServiceNotConfigured(
-                f"No Github Enterprise service configured for domain {host}."
-            )
-
+        services = keychain.get_services_for_type("github_enterprise")
         service_by_host = {service.repo_domain: service for service in services}
         service_config = service_by_host[host]
 
@@ -161,17 +146,29 @@ def get_auth_from_service(host, keychain) -> tuple:
     return service_config.username, token
 
 
-def validate_service(options: dict) -> dict:
+def validate_gh_enterprise(host: str, keychain) -> None:
+    # Where keychain
+    services = keychain.get_services_for_type("github_enterprise")
+    hosts = [service.repo_domain for service in services]
+    if hosts.count(host) > 1:
+        raise GithubException(
+            f"More than one Github Enterprise service configured for domain {host}."
+        )
+    elif hosts.count(host) == 0:
+        raise ServiceNotConfigured(
+            f"No Github Enterprise service configured for domain {host}."
+        )
+
+
+def validate_service(options: dict, keychain) -> dict:
     username = options["username"]
     token = options["token"]
     # Github service doesn't have "repo_domain",
     repo_domain = options.get("repo_domain", None)
 
     gh = _determine_github_client(repo_domain, {"token": token})
-
-    default = options.get("default", False)
-    if repo_domain is not None and default:
-        raise GithubException("GitHub Enterprise services may not be set as default.")
+    if type(gh) == GitHubEnterprise:
+        validate_gh_enterprise(repo_domain, keychain)
 
     try:
         authed_user = gh.me()
