@@ -11,7 +11,7 @@ NOT_COUNTABLE = (
 
 
 NOT_EXTRACTABLE = NOT_COUNTABLE + (
-    "%__Share",
+    "%Share",
     "AccountBrandShare",
     "AccountShare",
     "AccountUserTerritory2View",
