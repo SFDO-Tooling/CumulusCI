@@ -11,6 +11,9 @@ exclude_lines = ["pragma: no cover", "@abstract", "@abc.abstract" ]
 [tool.pytest.ini_options]
 testpaths = "cumulusci"
 addopts =  "-p cumulusci.tests.pytest_plugins.pytest_typeguard -p cumulusci.tests.pytest_plugins.pytest_sf_vcr -p cumulusci.tests.pytest_plugins.pytest_sf_orgconnect"
+markers = [
+    "metadeploy: mark a test that interacts with the MetaDeploy REST API",
+]
 
 [tool.isort]
 profile = "black"

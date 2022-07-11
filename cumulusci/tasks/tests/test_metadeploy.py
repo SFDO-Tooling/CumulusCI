@@ -17,6 +17,8 @@ from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.metadeploy import BaseMetaDeployTask, Publish
 from cumulusci.tests.util import create_project_config
 
+pytestmark = pytest.mark.metadeploy
+
 
 class TestBaseMetaDeployTask:
     maxDiff = None
@@ -271,7 +273,7 @@ class TestPublish(GithubApiTestMixin):
         task()
 
         body = json.loads(responses.calls[-2].request.body)
-        assert body["supported_orgs"] == "both"
+        assert body["supported_orgs"] == "Both"
 
         steps = body["steps"]
         self.maxDiff = None
@@ -530,9 +532,9 @@ class TestPublish(GithubApiTestMixin):
         assert steps == []
 
     providers = [
-        (["user"], "persistent"),
-        (["devhub"], "scratch"),
-        (["user", "devhub"], "both"),
+        (["user"], "Persistent"),
+        (["devhub"], "Scratch"),
+        (["user", "devhub"], "Both"),
     ]
 
     @pytest.mark.parametrize("org_providers,metadeploy_equivalent", providers)

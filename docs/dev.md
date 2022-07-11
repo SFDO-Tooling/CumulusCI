@@ -273,7 +273,7 @@ Now `config_qa` (which is included in the `qa_org` flow) executes the
 ## Manage Dependencies
 
 CumulusCI is built to automate the complexities of dependency management
-for projects that extend and implement managed packages. CumulusCI
+for projects that extend, customize, or compose other projects. CumulusCI
 currently handles these main types of dependencies for projects.
 
 -   **GitHub Repository**: Dynamically resolve a product release, and
@@ -494,6 +494,64 @@ instructs CumulusCI to replace these tokens with the specified namespace
 before deploying the unpackaged dependency.
 
 For more on this topic see [](namespace-injection).
+
+(pinning-github-dependencies)=
+
+### Pinning GitHub Dependencies
+
+By default, CumulusCI resolves dynamic GitHub dependencies to the latest
+available releases. In some cases, this may be undesirable. You can use
+dependency pinning to control how dependencies are resolved, including
+transitive dependencies referenced by your own direct dependencies.
+
+Use the `project__dependency_pins` section of your `cumulusci.yml` to
+establish pins. Each pin includes the keys `github`, which must match
+the URL of the repo you wish to pin, and a `tag` to which you wish to
+pin the dependency. Here's an example that pins NPSP and its transitive
+dependencies to specific versions:
+
+```yaml
+project:
+    dependencies:
+        - github: https://github.com/SalesforceFoundation/NPSP
+    dependency_pins:
+        - github: https://github.com/SalesforceFoundation/NPSP
+          tag: rel/3.219
+        - github: https://github.com/SalesforceFoundation/Contacts_and_Organizations
+          tag: rel/3.19
+        - github: https://github.com/SalesforceFoundation/Households
+          tag: rel/3.16
+        - github: https://github.com/SalesforceFoundation/Recurring_Donations
+          tag: rel/3.22
+        - github: https://github.com/SalesforceFoundation/Relationships
+          tag: rel/3.12
+        - github: https://github.com/SalesforceFoundation/Affiliations
+          tag: rel/3.10
+```
+
+Pins affect resolution of managed package versions and any unmanaged dependencies
+included in the target repositories.
+
+If CumulusCI encounters a conflict with an existing tag or other specifier
+while attempting to pin dependencies, like this:
+
+```yaml
+project:
+    dependencies:
+        - github: https://github.com/SalesforceFoundation/NPSP
+          tag: rel/3.220
+    dependency_pins:
+        - github: https://github.com/SalesforceFoundation/NPSP
+          tag: rel/3.219
+```
+
+it will stop and require you to resolve the conflict by removing either the pin
+or the dependency specification.
+
+We recommend using pins only when referencing external products whose development
+process or release schedule you do not control, such as NPSP and EDA.
+In most cases, it's preferable for dependencies within a product suite to remain
+unpinned to support ongoing development.
 
 (controlling-github-dependency-resolution)=
 

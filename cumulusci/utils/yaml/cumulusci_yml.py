@@ -133,14 +133,15 @@ class DependencyResolutions(CCIDictModel):
 
 
 class Project(CCIDictModel):
-    name: str = None
-    package: Package = None
-    test: Test = None
-    git: Git = None
-    dependencies: List[Dict[str, str]] = None  # TODO
-    dependency_resolutions: DependencyResolutions = None
+    name: Optional[str] = None
+    package: Optional[Package] = None
+    test: Optional[Test] = None
+    git: Optional[Git] = None
+    dependencies: Optional[List[Dict[str, str]]] = None
+    dependency_resolutions: Optional[DependencyResolutions] = None
+    dependency_pins: Optional[List[Dict[str, str]]]
     source_format: Literal["sfdx", "mdapi"] = "mdapi"
-    custom: Dict = None
+    custom: Optional[Dict] = None
 
 
 class ScratchOrg(CCIDictModel):
