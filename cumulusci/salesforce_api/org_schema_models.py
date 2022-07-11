@@ -205,6 +205,10 @@ class Field(OrgSchemaModelMixin, Base):
     writeRequiresMasterRead = Column(Boolean)
     picklistValues = Column(types.PickleType)
 
+    @property
+    def requiredOnCreate(self):
+        return not (self.nillable or self.defaultedOnCreate)
+
 
 class FileMetadata(Base):
     __tablename__ = "file_metadata"
