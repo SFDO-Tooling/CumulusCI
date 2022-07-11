@@ -125,6 +125,7 @@ class SObject(OrgSchemaModelMixin, Base):
     urls = Column(MappingType)
     supportedScopes = Column(SequenceType)
     actionOverrides = Column(SequenceType)
+    count = Column(Integer)
 
 
 field_references = Table(
