@@ -210,7 +210,7 @@ class ConnectServiceCommand(click.MultiCommand):
             validator_path = service_config.get("validator")
             if validator_path:
                 validator = import_global(validator_path)
-                updated_conf: dict = validator(serv_conf)
+                updated_conf: dict = validator(serv_conf, runtime.keychain)
                 if updated_conf:
                     serv_conf.update(updated_conf)
 

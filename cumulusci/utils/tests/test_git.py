@@ -33,21 +33,39 @@ def test_construct_release_branch_name():
     assert construct_release_branch_name("feature/", "230") == "feature/230"
 
 
-def test_split_repo_url():
-    assert split_repo_url("https://github.com/owner/repo") == ("owner", "repo")
-    assert split_repo_url("https://github.com/owner/repo.git") == ("owner", "repo")
-    assert split_repo_url("git@github.com:owner/repo") == ("owner", "repo")
-    assert split_repo_url("git@alias:owner/repo") == ("owner", "repo")
-
-
 @pytest.mark.parametrize(
-    "repo_uri,owner",
+    "repo_uri,owner,repo_name,host",
     [
-        ("https://github.com/owner/repo/", "owner"),
-        ("https://github.com/owner/repo.git", "owner"),
-        ("git@github.com:owner/repo.git", "owner"),
-        ("git@github.com:owner/repo", "owner"),
+        (
+            "https://git.ent.example.com/org/private_repo/",
+            "org",
+            "private_repo",
+            "git.ent.example.com",
+        ),
+        ("https://github.com/owner/repo_name/", "owner", "repo_name", "github.com"),
+        ("https://github.com/owner/repo_name.git", "owner", "repo_name", "github.com"),
+        (
+            "https://git.ent.example.com/org/private_repo.git",
+            "org",
+            "private_repo",
+            "git.ent.example.com",
+        ),
+        ("git@github.com:owner/repo_name.git", "owner", "repo_name", "github.com"),
+        ("git@github.com:owner/repo_name", "owner", "repo_name", "github.com"),
+        (
+            "git@api.github.com/owner/repo_name/",
+            "owner",
+            "repo_name",
+            "api.github.com",
+        ),
+        (
+            "git@api.github.com/owner/repo_name.git",
+            "owner",
+            "repo_name",
+            "api.github.com",
+        ),
     ],
 )
-def test_parse_repo_url(repo_uri, owner):
-    assert parse_repo_url(repo_uri).owner == owner
+def test_parse_repo_url(repo_uri, owner, repo_name, host):
+    assert parse_repo_url(repo_uri) == (owner, repo_name, host)
+    assert split_repo_url(repo_uri) == (owner, repo_name)

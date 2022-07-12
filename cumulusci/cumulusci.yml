@@ -1312,13 +1312,29 @@ services:
             email:
                 description: The email address to used by Github tasks when an operation requires an email address.
                 required: True
-            repo_domain:
-                description: "Set to GitHub Enterprise domain (Example: git.enterprise.comain.com)."
-                default: github.com
             token:
                 description: Personal Access Token for GitHub. Leave blank to log in via browser.
                 required: True
                 default_factory: cumulusci.core.github.get_oauth_device_flow_token
+        validator: cumulusci.core.github.validate_service
+    github_enterprise:
+        description: Configure connection for GitHub Enterprise Server
+        attributes:
+            username:
+                description: The GitHub Enterprise username to use for tasks.
+                required: True
+            email:
+                description: The email address to used by GitHub tasks when an operation requires an email address.
+                required: True
+            repo_domain:
+                description: "GitHub Enterprise domain (Example: git.ent.domain.com)."
+                required: True
+            token:
+                description: Personal Access Token
+                required: True
+            verify_ssl:
+                description: Set to False if the GitHub Enterprise connection uses a self-signed certificate
+                default: False
         validator: cumulusci.core.github.validate_service
     marketing_cloud:
         description: Configure a connection to a Marketing Cloud instance

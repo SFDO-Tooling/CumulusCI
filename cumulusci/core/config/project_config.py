@@ -35,7 +35,7 @@ from cumulusci.core.github import (
 from cumulusci.core.source import GitHubSource, LocalFolderSource, NullSource
 from cumulusci.core.utils import merge_config
 from cumulusci.utils.fileutils import open_fs_resource
-from cumulusci.utils.git import current_branch, git_path, parse_repo_url, split_repo_url
+from cumulusci.utils.git import current_branch, git_path, split_repo_url
 from cumulusci.utils.yaml.cumulusci_yml import (
     GitHubSourceModel,
     LocalFolderSourceModel,
@@ -308,7 +308,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
         url_line = self.git_config_remote_origin_url()
         if url_line:
-            return parse_repo_url(url_line).name
+            return split_repo_url(url_line)[1]
 
     @property
     def repo_url(self):
@@ -334,7 +334,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         url_line = self.git_config_remote_origin_url()
 
         if url_line:
-            return parse_repo_url(url_line).owner
+            return split_repo_url(url_line)[0]
 
     @property
     def repo_branch(self):
@@ -507,8 +507,8 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
     @catch_common_github_auth_errors
     def get_repo_from_url(self, url):
-        repo_info = parse_repo_url(url)
-        return self.get_github_api(url).repository(repo_info.owner, repo_info.name)
+        owner, name = split_repo_url(url)
+        return self.get_github_api(url).repository(owner, name)
 
     def get_task(self, name):
         """Get a TaskConfig by task name

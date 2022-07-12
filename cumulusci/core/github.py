@@ -18,7 +18,6 @@ from github3.repos.commit import RepoCommit
 from github3.repos.release import Release
 from github3.repos.repo import Repository
 from github3.session import GitHubSession
-from giturlparse import GitUrlParsed
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
 from requests.models import Response
@@ -31,6 +30,7 @@ from cumulusci.core.exceptions import (
     GithubApiError,
     GithubApiNotFoundError,
     GithubException,
+    ServiceNotConfigured,
 )
 from cumulusci.oauth.client import (
     OAuth2ClientConfig,
@@ -79,9 +79,8 @@ INSTALLATIONS = {}
 
 
 def _determine_github_client(host: str, client_params: dict) -> GitHub:
-
     # also covers "api.github.com"
-    is_github: bool = "github.com" in host
+    is_github: bool = host is None or "github.com" in host
     client_cls: GitHub = GitHub if is_github else GitHubEnterprise  # type: ignore
     params: dict = client_params
     if not is_github:
@@ -92,11 +91,10 @@ def _determine_github_client(host: str, client_params: dict) -> GitHub:
 
 
 def get_github_api_for_repo(keychain, repo_url, session=None):
-    repo_info: GitUrlParsed = parse_repo_url(repo_url)
-    owner: str = repo_info.owner
-    repo: str = repo_info.repo
+
+    owner, repo_name, host = parse_repo_url(repo_url)
     gh: GitHub = _determine_github_client(
-        repo_info.host,
+        host,
         {
             "session": session
             or GitHubSession(default_read_timeout=30, default_connect_timeout=30)
@@ -111,22 +109,22 @@ def get_github_api_for_repo(keychain, repo_url, session=None):
     APP_KEY = os.environ.get("GITHUB_APP_KEY", "").encode("utf-8")
     APP_ID = os.environ.get("GITHUB_APP_ID")
     if APP_ID and APP_KEY:
-        installation = INSTALLATIONS.get((owner, repo))
+        installation = INSTALLATIONS.get((owner, repo_name))
         if installation is None:
             gh.login_as_app(APP_KEY, APP_ID, expire_in=120)
             try:
-                installation = gh.app_installation_for_repository(owner, repo)
+                installation = gh.app_installation_for_repository(owner, repo_name)
             except github3.exceptions.NotFoundError:
                 raise GithubException(
-                    f"Could not access {owner}/{repo} using GitHub app. "
+                    f"Could not access {owner}/{repo_name} using GitHub app. "
                     "Does the app need to be installed for this repository?"
                 )
-            INSTALLATIONS[(owner, repo)] = installation
+            INSTALLATIONS[(owner, repo_name)] = installation
         gh.login_as_app_installation(APP_KEY, APP_ID, installation.id)
     elif GITHUB_TOKEN:
         gh.login(token=GITHUB_TOKEN)
     else:
-        username, token = get_auth_from_service(repo_info.host, keychain)
+        username, token = get_auth_from_service(host, keychain)
         gh.login(username, token)
 
     return gh
@@ -137,30 +135,41 @@ def get_auth_from_service(host, keychain) -> tuple:
     Given a host extracted from a repo_url, returns the username and token for
     the first service with a matching repo_domain
     """
-
-    # only the first alias for a given service.repo_domain is captured
-    services = [
-        keychain.get_service("github", alias)
-        for alias in reversed(keychain.list_services().get("github", []))
-    ]
-    services_by_host = {
-        service.repo_domain: service
-        for service in services
-        if service.repo_domain not in (None, "github.com")
-    }
-    # default github service as fallback when no match found in services_by_host
-    service_config = services_by_host.get(host, keychain.get_service("github"))
+    if "github.com" in host:
+        service_config = keychain.get_service("github")
+    else:
+        services = keychain.services["github_enterprise"]
+        service_by_host = {
+            service.repo_domain: service for service in services.values()
+        }
+        service_config = service_by_host[host]
 
     token = service_config.password or service_config.token
     return service_config.username, token
 
 
-def validate_service(options: dict) -> dict:
+def validate_gh_enterprise(host: str, keychain) -> None:
+    services = keychain.services["github_enterprise"]
+    hosts = [service.repo_domain for service in services.values()]
+    if hosts.count(host) > 1:
+        raise GithubException(
+            f"More than one Github Enterprise service configured for domain {host}."
+        )
+    elif hosts.count(host) == 0:
+        raise ServiceNotConfigured(
+            f"No Github Enterprise service configured for domain {host}."
+        )
+
+
+def validate_service(options: dict, keychain) -> dict:
     username = options["username"]
     token = options["token"]
-    # For backwards compatability, set a default repo_domain
-    repo_domain = options.get("repo_domain", "github.com")
+    # Github service doesn't have "repo_domain",
+    repo_domain = options.get("repo_domain", None)
+
     gh = _determine_github_client(repo_domain, {"token": token})
+    if type(gh) == GitHubEnterprise:
+        validate_gh_enterprise(repo_domain, keychain)
 
     try:
         authed_user = gh.me()

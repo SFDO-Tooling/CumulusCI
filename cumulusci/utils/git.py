@@ -1,7 +1,6 @@
 import pathlib
+import re
 from typing import Any, Optional, Tuple
-
-import giturlparse
 
 
 def git_path(repo_root: str, tail: Any = None) -> Optional[pathlib.Path]:
@@ -55,29 +54,22 @@ def construct_release_branch_name(prefix: str, release_identifier: str) -> str:
 
 
 def split_repo_url(url: str) -> Tuple[str, str]:
-    url_parts = url.rstrip("/").split("/")
+    owner, name, _ = parse_repo_url(url)
+    return (owner, name)
+
+
+def parse_repo_url(url: str) -> Tuple[str, str, str]:
+    """Built to handle multiple formats ["https://github.com/owner/repo/","https://github.com/owner/repo.git","git@github.com:owner/repo.git", "https://api.github.com/repos/owner/repo_name/"]"""
+    url_parts = re.split("/|@|:", url.rstrip("/"))
 
     name = url_parts[-1]
     if name.endswith(".git"):
         name = name[:-4]
 
     owner = url_parts[-2]
-    # if it's an ssh url we might need to get rid of git@github.com
-    owner = owner.split(":")[-1]
 
-    return (owner, name)
-
-
-def parse_repo_url(url: str) -> giturlparse.result.GitUrlParsed:
-    """Built to handle multiple formats ["https://github.com/owner/repo/","https://github.com/owner/repo.git","git@github.com:owner/repo.git"]"""
-    # We have historically supported invalid GitHUb URIs, so we have to do some processing
-    # to make giturlparse play nicely
-    # Prevent "AttributeError: 'GitUrlParsed' object has no attribute '_platform_obj'"
-    url = url.rstrip("/")
-    # Fix invalid urls for SSH formatted repo URI to prevent AttributeError
-    if "@" in url and not url.endswith(".git"):
-        url = url + ".git"
-
-    parsed: giturlparse.result.GitUrlParsed = giturlparse.parse(url)
-
-    return parsed
+    host = url_parts[-3]
+    # Need to consider "https://api.github.com/repos/owner/repo/" pattern
+    if "http" in url_parts[0] and len(url_parts) > 6:
+        host = url_parts[-4]
+    return (owner, name, host)
