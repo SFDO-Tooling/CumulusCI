@@ -21,6 +21,7 @@ from cumulusci.salesforce_api.org_schema_models import (
     FileMetadata,
     SObject,
 )
+from cumulusci.utils.fileutils import FSResource
 from cumulusci.utils.http.multi_request import (
     RECOVERABLE_ERRORS,
     CompositeParallelSalesforce,
@@ -30,7 +31,7 @@ from cumulusci.utils.salesforce.count_sobjects import count_sobjects
 y2k = "Sat, 1 Jan 2000 00:00:01 GMT"
 
 
-def zip_database(tempfile, schema_path):
+def zip_database(tempfile: Path, schema_path: T.Union[FSResource, Path]):
     """Compress tempfile.db to schema_path.db.gz"""
     with tempfile.open("rb") as db:
         with schema_path.open("wb") as fileobj:
@@ -50,6 +51,7 @@ def ignore_based_on_name(objname, patterns: T.Sequence[re.Pattern]):
     return any(pat.fullmatch(objname) for pat in patterns)
 
 
+# TODO: Rename this SObjectFilters
 class Filters(Enum):
     """Options for filtering schemas"""
 
@@ -108,12 +110,14 @@ class Schema:
 
     _last_modified_date = None
     included_objects = None
+    includes_counts = False
 
-    def __init__(self, engine, schema_path):
+    def __init__(self, engine, schema_path, filters: T.Sequence[Filters] = ()):
         self.engine = engine
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
         self.path = schema_path
+        self.filters = set(filters)
 
     @property
     def sobjects(self):
@@ -171,6 +175,11 @@ class Schema:
     def __repr__(self):
         return f"<Schema {self.path} : {self.engine}>"
 
+    def add_counts(self, counts: T.Dict[str, int]):
+        for objname, count in counts.items():
+            self[objname].count = count
+        self.includes_counts = True
+
     def populate_cache(
         self,
         sf,
@@ -179,7 +188,9 @@ class Schema:
         filters: T.Sequence[Filters] = (),
         patterns_to_ignore: T.Sequence[str] = (),
         logger=None,
-    ) -> T.List[str]:
+        *,
+        include_counts: bool = False,
+    ) -> T.Union[T.Dict[str, int], T.Dict[str, None]]:
         """Populate a schema cache from the API, using last_modified_date
         to pull down only new schema"""
         for pat in patterns_to_ignore:
@@ -203,20 +214,14 @@ class Schema:
                 or ignore_based_on_properties(obj, filters)
             )
         ]
+        changes = list(deep_describe(sf, last_modified_date, sobj_names, logger))
 
-        responses = list(deep_describe(sf, last_modified_date, sobj_names, logger))
-        changes = [
-            (resp.body, resp.last_modified_date)
-            for resp in responses
-            if resp.status == 200
-        ]
-        unexpected = [resp for resp in responses if resp.status not in (200, 304)]
-        for unknown in unexpected:  # pragma: no cover
-            logger.warning(
-                f"Unexpected describe reply. An SObject may be missing: {unknown}"
-            )
         self._populate_cache_from_describe(changes, last_modified_date)
-        return sobj_names
+        if include_counts:
+            results = populate_counts(sf, self, sobj_names, logger)
+        else:
+            results = {name: None for name in sobj_names}
+        return results
 
     def _populate_cache_from_describe(
         self, describe_objs: List[Tuple[dict, str]], last_modified_date
@@ -231,6 +236,7 @@ class Schema:
 
             max_last_modified = (parsedate(last_modified_date), last_modified_date)
             for (sobj_data, last_modified) in describe_objs:
+                sobj_data = sobj_data.copy()
                 fields = sobj_data.pop("fields")
                 create_row(sess, SObject, sobj_data)
                 for field in fields:
@@ -369,21 +375,15 @@ def get_org_schema(
 
         logger = logger or getLogger(__name__)
 
-        with ExitStack() as closer:
-            tempdir = TemporaryDirectory()
-            closer.enter_context(tempdir)
-            tempfile = Path(tempdir.name) / "temp_org_schema.db"
+        with ZippableTempDb() as tempdb, ExitStack() as closer:
             schema = None
+            engine = tempdb.create_engine()
             if schema_path.exists():
                 try:
                     cleanups_on_failure = []
-                    unzip_database(schema_path, tempfile)
-                    cleanups_on_failure.extend([schema_path.unlink, tempfile.unlink])
-                    engine = create_engine(f"sqlite:///{str(tempfile)}")
-                    schema = Schema(
-                        engine,
-                        schema_path,
-                    )
+                    tempdb.unzip_database(schema_path)
+                    cleanups_on_failure.extend([schema_path.unlink, tempdb.clear])
+                    schema = Schema(engine, schema_path, filters)
 
                     cleanups_on_failure.append(schema.close)
                     closer.callback(schema.close)
@@ -398,38 +398,65 @@ def get_org_schema(
                         cleanup_action()
 
             if schema is None:
-                engine = create_engine(f"sqlite:///{str(tempfile)}")
                 Base.metadata.bind = engine
                 Base.metadata.create_all()
-                schema = Schema(
-                    engine,
-                    schema_path,
-                )
+                schema = Schema(engine, schema_path, filters)
                 closer.callback(schema.close)
                 schema.from_cache = False
 
-            objs_cached = schema.populate_cache(
+            populated_objs = schema.populate_cache(
                 sf,
                 included_objects,
                 schema.last_modified_date or y2k,
                 filters,
                 patterns_to_ignore,
                 logger,
+                include_counts=include_counts,
             )
-            if include_counts:
-                objs_counted = populate_counts(sf, schema, objs_cached, logger)
 
             if Filters.populated in filters:
                 # another way to compute this might be by querying the first ID
-                objs_cached = [objname for objname, count in objs_counted if count > 0]
+                objs_cached = [
+                    objname for objname, count in populated_objs.items() if count > 0
+                ]
+            else:
+                objs_cached = [objname for objname, count in populated_objs.items()]
+
             schema.included_objects = objs_cached
             schema.block_writing()
             # save a gzipped copy for later
-            zip_database(tempfile, schema_path)
+            tempdb.zip_database(schema_path)
             yield schema
 
 
-def populate_counts(sf, schema, objs_cached, logger):
+class ZippableTempDb:
+    """A database that loads and saves from a tempdir to a zippped cache"""
+
+    def __enter__(self) -> Path:
+        self.tempdir = TemporaryDirectory()
+        self.tempfile = Path(self.tempdir.name) / "temp_org_schema.db"
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self.clear()
+        self.tempdir.cleanup()
+
+    def zip_database(self, target_path: T.Union[FSResource, Path]):
+        "Save a gzipped copy for later"
+        zip_database(self.tempfile, target_path)
+
+    def unzip_database(self, zipped_db: T.Union[FSResource, Path]):
+        unzip_database(zipped_db, self.tempfile)
+
+    def clear(self):
+        if self.tempfile.exists():
+            self.tempfile.unlink()
+
+    def create_engine(self):
+        return create_engine(f"sqlite:///{str(self.tempfile)}")
+
+
+def populate_counts(sf, schema, objs_cached, logger) -> T.Dict[str, int]:
     objects_to_count = [objname for objname in objs_cached]
     counts, transports_errors, salesforce_errors = count_sobjects(sf, objects_to_count)
     errors = transports_errors + salesforce_errors
@@ -439,10 +466,9 @@ def populate_counts(sf, schema, objs_cached, logger):
     if len(errors) > 10:
         logger.warning(f"{len(errors)} more counting errors suppressed")
 
-    for objname, count in counts.items():
-        schema[objname].count = count
+    schema.add_counts(counts)
     schema.session.flush()
-    return counts.items()
+    return counts
 
 
 class DescribeResponse(NamedTuple):
@@ -453,9 +479,14 @@ class DescribeResponse(NamedTuple):
     last_modified_date: str = None
 
 
+class DescribeUpdate(NamedTuple):
+    body: dict
+    last_modified_date: str = None
+
+
 def deep_describe(
     sf, last_modified_date: Optional[str], objs: List[str], logger
-) -> Iterable[DescribeResponse]:
+) -> Iterable[DescribeUpdate]:
     """Fetch describe data for changed sobjects
 
     Fetch describe data for sobjects from the list 'objs'
@@ -499,7 +530,19 @@ def deep_describe(
             )
             for response in responses
         )
-        yield from responses
+
+        changes = [
+            DescribeUpdate(resp.body, resp.last_modified_date)
+            for resp in responses
+            if resp.status == 200
+        ]
+        unexpected = [resp for resp in responses if resp.status not in (200, 304)]
+        for unknown in unexpected:  # pragma: no cover
+            logger.warning(
+                f"Unexpected describe reply. An SObject may be missing: {unknown}"
+            )
+
+        yield from changes
 
 
 def ignore_based_on_properties(obj: dict, filters: T.Sequence[Filters]):
