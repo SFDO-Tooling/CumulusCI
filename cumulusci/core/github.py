@@ -138,8 +138,10 @@ def get_auth_from_service(host, keychain) -> tuple:
     if "github.com" in host:
         service_config = keychain.get_service("github")
     else:
-        services = keychain.get_services_for_type("github_enterprise")
-        service_by_host = {service.repo_domain: service for service in services}
+        services = keychain.services["github_enterprise"]
+        service_by_host = {
+            service.repo_domain: service for service in services.values()
+        }
         service_config = service_by_host[host]
 
     token = service_config.password or service_config.token
@@ -147,9 +149,8 @@ def get_auth_from_service(host, keychain) -> tuple:
 
 
 def validate_gh_enterprise(host: str, keychain) -> None:
-    # Where keychain
-    services = keychain.get_services_for_type("github_enterprise")
-    hosts = [service.repo_domain for service in services]
+    services = keychain.services["github_enterprise"]
+    hosts = [service.repo_domain for service in services.values()]
     if hosts.count(host) > 1:
         raise GithubException(
             f"More than one Github Enterprise service configured for domain {host}."

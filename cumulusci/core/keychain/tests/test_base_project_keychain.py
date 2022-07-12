@@ -247,31 +247,6 @@ class TestBaseProjectKeychain:
         assert services["devhub"] == ["bar_alias", "foo_alias"]
         assert services["github"] == ["zed_alias", "zoo_alias"]
 
-    def test_get_services_for_type(self, keychain):
-        service_config = ServiceConfig({"foo": "bar"})
-        keychain.services = {
-            "devhub": {
-                "foo_alias": service_config,
-                "bar_alias": service_config,
-            },
-            "github": {
-                "zed_alias": service_config,
-                "zoo_alias": service_config,
-                "zap_alias": service_config,
-            },
-            "github_enterprise": {
-                "meep_alias": service_config,
-                "morp_alias": service_config,
-            },
-        }
-        devhub_services = keychain.get_services_for_type("devhub")
-        github_services = keychain.get_services_for_type("github")
-        ghent_services = keychain.get_services_for_type("github_enterprise")
-
-        assert len(devhub_services) == 2
-        assert len(github_services) == 3
-        assert len(ghent_services) == 2
-
     def test_remove_org(
         self,
         keychain,
