@@ -318,6 +318,39 @@ class TestSynthesizeExtractDeclarations:
                 schema["Custom__c"].fields.keys()
             ) - set(["Id"])
 
+    def test_synthesize_extract_declarations__where_clause(self, org_config):
+        declarations = """
+            extract:
+                Contact:
+                    fields:
+                        FIELDS(REQUIRED)
+                Account:
+                    where: Name Like '%Foo%'
+                    fields:
+                        - Description
+
+        """
+        declarations = ExtractRulesFile.parse_extract(StringIO(declarations))
+        object_counts = {"Account": 2, "Contact": 2, "Custom__c": 5}
+        obj_describes = (
+            describe_for("Account"),
+            describe_for("Contact"),
+            describe_for("Custom__c"),
+        )
+        with _fake_get_org_schema(
+            org_config,
+            obj_describes,
+            object_counts,
+            include_counts=True,
+        ) as schema:
+            decls = flatten_declarations(declarations.values(), schema)
+            decls = {decl.sf_object: decl for decl in decls}
+            assert "Account" in decls
+            assert "Contact" in decls
+            assert "Custom__c" not in decls
+
+            assert set(decls["Account"].fields) == set(["Name", "Description"])
+
 
 @lru_cache(maxsize=None)
 def describe_for(sobject: str):
@@ -377,6 +410,12 @@ def faketempdb():
     yield Path("")
 
 
-# TODO: TEST WHERE CLAUSES
-# TODO: Test field types
-# TODO: fields should use enum
+# TODO: Decide upon what happens in this cases:
+#       OBJECTS(STANDARD)
+#          fields:
+#           - X
+#       Account:
+#          fields:
+#           - Y
+#    Do you get X and Y? (Union semantics?) Or just Y (override semantics)
+# Consider all kinds of conflicting/complementary declarations.

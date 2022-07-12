@@ -29,15 +29,7 @@ def count_sobjects(sf: Salesforce, objs: T.Sequence[str]) -> ObjectCount:
             lambda response: response["httpStatusCode"] == 200, responses
         )
 
-        def normalize_errors(error):
-            if isinstance(error, dict):
-                return error
-            elif hasattr(error, "_asdict"):
-                return error._asdict()
-            else:
-                raise vars(error)
-
-        transport_errors = tuple(normalize_errors(error) for error in transport_errors)
+        transport_errors = tuple(error._asdict() for error in transport_errors)
 
     successes = list(successes)
 

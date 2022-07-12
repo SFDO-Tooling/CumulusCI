@@ -117,7 +117,7 @@ def _expand_group_sobject_declaration(decl: ExtractDeclaration, schema: Schema):
         def matches_obj(obj):
             return True
 
-    else:
+    else:  # pragma: no cover
         assert 0, decl.group_type
 
     matching_objects = [

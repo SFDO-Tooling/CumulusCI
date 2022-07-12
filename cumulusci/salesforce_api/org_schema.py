@@ -130,7 +130,7 @@ class Schema:
         try:
             return self.sobjects.filter_by(name=name).one()
         except exc.NoResultFound:
-            raise KeyError(f"No sobject named {name}")
+            raise KeyError(f"No sobject named `{name}`")
 
     def __contains__(self, name):
         return self.sobjects.filter_by(name=name).all()
@@ -214,17 +214,8 @@ class Schema:
                 or ignore_based_on_properties(obj, filters)
             )
         ]
-        responses = list(deep_describe(sf, last_modified_date, sobj_names, logger))
-        changes = [
-            (resp.body, resp.last_modified_date)
-            for resp in responses
-            if resp.status == 200
-        ]
-        unexpected = [resp for resp in responses if resp.status not in (200, 304)]
-        for unknown in unexpected:  # pragma: no cover
-            logger.warning(
-                f"Unexpected describe reply. An SObject may be missing: {unknown}"
-            )
+        changes = list(deep_describe(sf, last_modified_date, sobj_names, logger))
+
         self._populate_cache_from_describe(changes, last_modified_date)
         if include_counts:
             results = populate_counts(sf, self, sobj_names, logger)
