@@ -5,7 +5,6 @@ from unittest import mock
 
 import pytest
 import yaml
-from snowfakery import data_generator, data_generator_runtime
 from sqlalchemy import create_engine
 
 from cumulusci.core.exceptions import TaskOptionsError
@@ -244,38 +243,6 @@ class TestGenerateFromDataTask:
             )
             task()
         assert "without num_records_tablename" in str(e.value)
-
-    def generate_continuation_data(self, fileobj):
-        g = data_generator_runtime.Globals()
-        o = data_generator_runtime.ObjectRow(
-            "Account", {"Name": "Johnston incorporated", "id": 5}
-        )
-        g.register_object(o, "The Company", False)
-        for i in range(0, 5):
-            # burn through 5 imaginary accounts
-            g.id_manager.generate_id("Account")
-        data_generator.save_continuation_yaml(g, fileobj)
-
-    def test_with_continuation_file(self):
-        with temp_sqlite_database_url() as database_url:
-            with temporary_file_path("cont.yml") as continuation_file_path:
-                with open(continuation_file_path, "w") as continuation_file:
-                    self.generate_continuation_data(continuation_file)
-
-                task = _make_task(
-                    GenerateDataFromYaml,
-                    {
-                        "options": {
-                            "generator_yaml": sample_yaml,
-                            "database_url": database_url,
-                            "mapping": vanilla_mapping_file,
-                            "continuation_file": continuation_file_path,
-                        }
-                    },
-                )
-                task()
-                rows = self.assertRowsCreated(database_url)
-                assert dict(rows[0])["id"] == 6
 
     def test_with_nonexistent_continuation_file(self):
         with pytest.raises(TaskOptionsError) as e:
