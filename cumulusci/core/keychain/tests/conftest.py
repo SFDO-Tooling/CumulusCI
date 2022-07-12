@@ -16,6 +16,9 @@ def project_config():
     project_config.config["services"] = {
         "connected_app": {"attributes": {"test": {"required": True}}},
         "github": {"attributes": {"name": {"required": True}, "password": {}}},
+        "github_enterprise": {
+            "attributes": {"name": {"required": True}, "password": {}}
+        },
         "not_configured": {"attributes": {"foo": {"required": True}}},
         "devhub": {"attributes": {"foo": {"required": True}}},
         "marketing_cloud": {
