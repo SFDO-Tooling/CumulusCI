@@ -80,6 +80,25 @@ class TestGithub(GithubApiTestMixin):
         repo_json = self._get_expected_repo("TestOwner", "TestRepo")
         return Repository(repo_json, gh_api)
 
+    @pytest.fixture
+    def keychain_enterprise(self):
+        runtime = mock.Mock()
+        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
+        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+        runtime.keychain.set_service(
+            "github_enterprise",
+            "ent",
+            ServiceConfig(
+                {
+                    "username": "testusername",
+                    "email": "test@domain.com",
+                    "token": "ATOKEN",
+                    "repo_domain": "git.enterprise.domain.com",
+                }
+            ),
+        )
+        return runtime.keychain
+
     def test_github_api_retries(self, mock_http_response):
         gh = get_github_api("TestUser", "TestPass")
         adapter = gh.session.get_adapter("http://")
@@ -159,56 +178,28 @@ class TestGithub(GithubApiTestMixin):
 
     @responses.activate
     @mock.patch("cumulusci.core.github.GitHubEnterprise")
-    def test_get_github_api_for_repo__enterprise(self, GitHubEnterprise):
-        runtime = mock.Mock()
-        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
-        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
-        runtime.keychain.set_service(
-            "github_enterprise",
-            "ent",
-            ServiceConfig(
-                {
-                    "username": "testusername",
-                    "email": "test@domain.com",
-                    "token": "ATOKEN",
-                    "repo_domain": "git.enterprise.domain.com",
-                }
-            ),
-        )
+    def test_get_github_api_for_repo__enterprise(
+        self, GitHubEnterprise, keychain_enterprise
+    ):
 
         gh = get_github_api_for_repo(
-            runtime.keychain, "https://git.enterprise.domain.com/TestOwner/TestRepo/"
+            keychain_enterprise, "https://git.enterprise.domain.com/TestOwner/TestRepo/"
         )
 
         gh.login.assert_called_once_with("testusername", "ATOKEN")
 
     @responses.activate
-    def test_validate_service(self):
+    def test_validate_service(self, keychain_enterprise):
         responses.add("GET", "https://api.github.com/user", status=401, headers={})
-        runtime = mock.Mock()
-        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
-        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
-        runtime.keychain.set_service(
-            "github_enterprise",
-            "ent",
-            ServiceConfig(
-                {
-                    "username": "testusername",
-                    "email": "test@domain.com",
-                    "token": "ATOKEN",
-                    "repo_domain": "git.enterprise.domain.com",
-                }
-            ),
-        )
+
         with pytest.raises(GithubException):
-            validate_service({"username": "BOGUS", "token": "BOGUS"}, runtime.keychain)
+            validate_service(
+                {"username": "BOGUS", "token": "BOGUS"}, keychain_enterprise
+            )
 
     @responses.activate
-    def test_validate_gh_enterprise(self):
-        runtime = mock.Mock()
-        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
-        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
-        runtime.keychain.set_service(
+    def test_validate_gh_enterprise(self, keychain_enterprise):
+        keychain_enterprise.set_service(
             "github_enterprise",
             "ent2",
             ServiceConfig(
@@ -220,48 +211,22 @@ class TestGithub(GithubApiTestMixin):
                 }
             ),
         )
-        runtime.keychain.set_service(
-            "github_enterprise",
-            "ent",
-            ServiceConfig(
-                {
-                    "username": "testusername",
-                    "email": "test@domain.com",
-                    "token": "ATOKEN",
-                    "repo_domain": "git.enterprise.domain.com",
-                }
-            ),
-        )
+
         with pytest.raises(
             GithubException,
             match="More than one Github Enterprise service configured for domain git.enterprise.domain.com",
         ):
-            validate_gh_enterprise("git.enterprise.domain.com", runtime.keychain)
+            validate_gh_enterprise("git.enterprise.domain.com", keychain_enterprise)
         with pytest.raises(
             ServiceNotConfigured,
             match="No Github Enterprise service configured for domain garbage",
         ):
-            validate_gh_enterprise("garbage", runtime.keychain)
+            validate_gh_enterprise("garbage", keychain_enterprise)
 
     @responses.activate
-    def test_get_auth_from_service(self):
-        runtime = mock.Mock()
-        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
-        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
-        runtime.keychain.set_service(
-            "github_enterprise",
-            "ent",
-            ServiceConfig(
-                {
-                    "username": "testusername",
-                    "email": "test@domain.com",
-                    "token": "ATOKEN",
-                    "repo_domain": "git.enterprise.domain.com",
-                }
-            ),
-        )
+    def test_get_auth_from_service(self, keychain_enterprise):
         # github service, should be ignored
-        runtime.keychain.set_service(
+        keychain_enterprise.set_service(
             "github",
             "ent",
             ServiceConfig(
@@ -272,7 +237,9 @@ class TestGithub(GithubApiTestMixin):
                 }
             ),
         )
-        assert get_auth_from_service("git.enterprise.domain.com", runtime.keychain) == (
+        assert get_auth_from_service(
+            "git.enterprise.domain.com", keychain_enterprise
+        ) == (
             "testusername",
             "ATOKEN",
         )
@@ -679,23 +646,7 @@ class TestGithub(GithubApiTestMixin):
             test_func()
 
     @responses.activate
-    def test_validate_no_repo_exc(self):
-        runtime = mock.Mock()
-        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
-        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
-        runtime.keychain.set_service(
-            "github_enterprise",
-            "ent",
-            ServiceConfig(
-                {
-                    "username": "testusername",
-                    "email": "test@domain.com",
-                    "token": "ATOKEN",
-                    "repo_domain": "git.enterprise.domain.com",
-                }
-            ),
-        )
-
+    def test_validate_no_repo_exc(self, keychain_enterprise):
         service_dict = {
             "username": "e2ac67",
             "token": "ghp_cf83e1357eefb8bdf1542850d66d8007d620e4",
@@ -753,7 +704,7 @@ class TestGithub(GithubApiTestMixin):
                 "X-OAuth-Scopes": "gist, repo",
             },
         )
-        updated_dict = validate_service(service_dict, runtime.keychain)
+        updated_dict = validate_service(service_dict, keychain_enterprise)
         expected_dict = {
             "username": "e2ac67",
             "token": "ghp_cf83e1357eefb8bdf1542850d66d8007d620e4",
@@ -765,23 +716,7 @@ class TestGithub(GithubApiTestMixin):
         assert expected_dict == updated_dict
 
     @responses.activate
-    def test_validate_bad_auth(self):
-        runtime = mock.Mock()
-        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
-        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
-        runtime.keychain.set_service(
-            "github_enterprise",
-            "ent",
-            ServiceConfig(
-                {
-                    "username": "testusername",
-                    "email": "test@domain.com",
-                    "token": "ATOKEN",
-                    "repo_domain": "git.enterprise.domain.com",
-                }
-            ),
-        )
-
+    def test_validate_bad_auth(self, keychain_enterprise):
         service_dict = {
             "username": "e2ac67",
             "token": "bad_cf83e1357eefb8bdf1542850d66d8007d620e4",
@@ -799,7 +734,7 @@ class TestGithub(GithubApiTestMixin):
         )
 
         with pytest.raises(cumulusci.core.exceptions.GithubException) as e:
-            validate_service(service_dict, runtime.keychain)
+            validate_service(service_dict, keychain_enterprise)
         assert "401" in str(e.value)
 
     @mock.patch("webbrowser.open")
