@@ -1073,6 +1073,23 @@ flows:
                 task: install_managed
             3:
                 task: install_managed_beta
+    push_upgrade_org:
+        steps:
+            1:
+                flow: dependencies
+            2:
+                task: install_managed
+            3:
+                task: update_dependencies
+                options:
+                    security_type: NONE
+                    resolution_strategy: include_beta
+            4:
+                task: install_managed_beta
+                options:
+                    security_type: NONE
+            5:
+                flow: config_qa
     release_2gp_beta:
         group: Release Operations
         description: Upload and release a beta 2gp managed package version
