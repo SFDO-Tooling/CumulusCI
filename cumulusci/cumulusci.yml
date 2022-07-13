@@ -1332,9 +1332,6 @@ services:
             token:
                 description: Personal Access Token
                 required: True
-            verify_ssl:
-                description: Set to False if the GitHub Enterprise connection uses a self-signed certificate
-                default: False
         validator: cumulusci.core.github.validate_service
     marketing_cloud:
         description: Configure a connection to a Marketing Cloud instance

@@ -85,7 +85,6 @@ def _determine_github_client(host: str, client_params: dict) -> GitHub:
     params: dict = client_params
     if not is_github:
         params["url"] = "https://" + host  # type: ignore
-        params["verify"] = False  # type: ignore
 
     return client_cls(**params)
 
@@ -138,10 +137,15 @@ def get_auth_from_service(host, keychain) -> tuple:
     if "github.com" in host:
         service_config = keychain.get_service("github")
     else:
-        services = keychain.services["github_enterprise"]
-        service_by_host = {
-            service.repo_domain: service for service in services.values()
-        }
+        services = keychain.get_services_for_type("github_enterprise")
+        service_by_host = {service.repo_domain: service for service in services}
+
+        # Check when connecting to server, but not with verification
+        if list(service_by_host.keys()).count(host) == 0:
+            raise ServiceNotConfigured(
+                f"No Github Enterprise service configured for domain {host}."
+            )
+
         service_config = service_by_host[host]
 
     token = service_config.password or service_config.token
@@ -149,16 +153,13 @@ def get_auth_from_service(host, keychain) -> tuple:
 
 
 def validate_gh_enterprise(host: str, keychain) -> None:
-    services = keychain.services["github_enterprise"]
-    hosts = [service.repo_domain for service in services.values()]
-    if hosts.count(host) > 1:
-        raise GithubException(
-            f"More than one Github Enterprise service configured for domain {host}."
-        )
-    elif hosts.count(host) == 0:
-        raise ServiceNotConfigured(
-            f"No Github Enterprise service configured for domain {host}."
-        )
+    services = keychain.get_services_for_type("github_enterprise")
+    if services:
+        hosts = [service.repo_domain for service in services]
+        if hosts.count(host) > 1:
+            raise GithubException(
+                f"More than one Github Enterprise service configured for domain {host}."
+            )
 
 
 def validate_service(options: dict, keychain) -> dict:
@@ -170,7 +171,6 @@ def validate_service(options: dict, keychain) -> dict:
     gh = _determine_github_client(repo_domain, {"token": token})
     if type(gh) == GitHubEnterprise:
         validate_gh_enterprise(repo_domain, keychain)
-
     try:
         authed_user = gh.me()
         auth_login = authed_user.login
