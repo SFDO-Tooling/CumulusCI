@@ -1334,7 +1334,7 @@ services:
                 required: True
             verify_ssl:
                 description: Set to False if the GitHub Enterprise connection uses a self-signed certificate
-                default: False
+                default: True
         validator: cumulusci.core.github.validate_service
     marketing_cloud:
         description: Configure a connection to a Marketing Cloud instance

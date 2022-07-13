@@ -274,6 +274,12 @@ class BaseProjectKeychain(BaseConfig):
                 services[s_type].append(name)
         return services
 
+    def get_services_for_type(self, service_type: str) -> list:
+        return [
+            self.get_service(service_type, alias)
+            for alias in self.list_services().get(service_type, [])
+        ]
+
     def rename_service(
         self, service_type: str, current_alias: str, new_alias: str
     ) -> None:

@@ -32,14 +32,14 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.github import (
     SSO_WARNING,
     UNAUTHORIZED_WARNING,
-    _determine_github_client,
+    _get_github_client,
+    _get_service_for_host,
     add_labels_to_pull_request,
     catch_common_github_auth_errors,
     check_github_sso_auth,
     create_gist,
     create_pull_request,
     format_github3_exception,
-    get_auth_from_service,
     get_commit,
     get_github_api,
     get_github_api_for_repo,
@@ -81,6 +81,24 @@ class TestGithub(GithubApiTestMixin):
         return Repository(repo_json, gh_api)
 
     @pytest.fixture
+    def keychain_github(self):
+        runtime = mock.Mock()
+        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
+        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+        runtime.keychain.set_service(
+            "github",
+            "default",
+            ServiceConfig(
+                {
+                    "username": "testusername",
+                    "email": "test@domain.com",
+                    "token": "ATOKEN",
+                }
+            ),
+        )
+        return runtime.keychain
+
+    @pytest.fixture
     def keychain_enterprise(self):
         runtime = mock.Mock()
         runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
@@ -94,6 +112,7 @@ class TestGithub(GithubApiTestMixin):
                     "email": "test@domain.com",
                     "token": "ATOKEN",
                     "repo_domain": "git.enterprise.domain.com",
+                    "verify_ssl": False,
                 }
             ),
         )
@@ -119,7 +138,7 @@ class TestGithub(GithubApiTestMixin):
 
     @responses.activate
     @mock.patch("github3.apps.create_token")
-    def test_get_github_api_for_repo(self, create_token):
+    def test_get_github_api_for_repo(self, create_token, keychain_github):
         create_token.return_value = "ATOKEN"
         responses.add(
             "GET",
@@ -151,12 +170,16 @@ class TestGithub(GithubApiTestMixin):
         with mock.patch.dict(
             os.environ, {"GITHUB_APP_KEY": "bogus", "GITHUB_APP_ID": "1234"}
         ):
-            gh = get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo/")
+            gh = get_github_api_for_repo(
+                keychain_github, "https://github.com/TestOwner/TestRepo/"
+            )
             assert isinstance(gh.session.auth, AppInstallationTokenAuth)
 
     @responses.activate
     @mock.patch("github3.apps.create_token")
-    def test_get_github_api_for_repo__not_installed(self, create_token):
+    def test_get_github_api_for_repo__not_installed(
+        self, create_token, keychain_github
+    ):
         create_token.return_value = "ATOKEN"
         responses.add(
             "GET",
@@ -167,13 +190,17 @@ class TestGithub(GithubApiTestMixin):
             os.environ, {"GITHUB_APP_KEY": "bogus", "GITHUB_APP_ID": "1234"}
         ):
             with pytest.raises(GithubException):
-                get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo/")
+                get_github_api_for_repo(
+                    keychain_github, "https://github.com/TestOwner/TestRepo/"
+                )
 
     @responses.activate
     @mock.patch("cumulusci.core.github.GitHub")
-    def test_get_github_api_for_repo__token(self, GitHub):
+    def test_get_github_api_for_repo__token(self, GitHub, keychain_github):
         with mock.patch.dict(os.environ, {"GITHUB_TOKEN": "token"}):
-            gh = get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo/")
+            gh = get_github_api_for_repo(
+                keychain_github, "https://github.com/TestOwner/TestRepo/"
+            )
         gh.login.assert_called_once_with(token="token")
 
     @responses.activate
@@ -189,12 +216,26 @@ class TestGithub(GithubApiTestMixin):
         gh.login.assert_called_once_with("testusername", "ATOKEN")
 
     @responses.activate
-    def test_validate_service(self, keychain_enterprise):
+    def test_validate_service(self, keychain_github):
+        responses.add("GET", "https://api.github.com/user", status=401, headers={})
+
+        with pytest.raises(GithubException):
+            validate_service({"username": "BOGUS", "token": "BOGUS"}, keychain_github)
+
+    @responses.activate
+    def test_validate_service__enterprise(self, keychain_enterprise):
         responses.add("GET", "https://api.github.com/user", status=401, headers={})
 
         with pytest.raises(GithubException):
             validate_service(
-                {"username": "BOGUS", "token": "BOGUS"}, keychain_enterprise
+                {
+                    "username": "testusername",
+                    "email": "test@domain.com",
+                    "token": "ATOKEN",
+                    "repo_domain": "git.enterprise.domain.com",
+                    "verify_ssl": False,
+                },
+                keychain_enterprise,
             )
 
     @responses.activate
@@ -224,7 +265,7 @@ class TestGithub(GithubApiTestMixin):
             validate_gh_enterprise("garbage", keychain_enterprise)
 
     @responses.activate
-    def test_get_auth_from_service(self, keychain_enterprise):
+    def test_get_service_for_host(self, keychain_enterprise):
         # github service, should be ignored
         keychain_enterprise.set_service(
             "github",
@@ -237,12 +278,9 @@ class TestGithub(GithubApiTestMixin):
                 }
             ),
         )
-        assert get_auth_from_service(
-            "git.enterprise.domain.com", keychain_enterprise
-        ) == (
-            "testusername",
-            "ATOKEN",
-        )
+        config = _get_service_for_host("git.enterprise.domain.com", keychain_enterprise)
+        assert config.username == "testusername"
+        assert config.token == "ATOKEN"
 
     @pytest.mark.parametrize(
         "domain,client",
@@ -253,8 +291,8 @@ class TestGithub(GithubApiTestMixin):
             ("git.enterprise.domain.com", GitHubEnterprise),
         ],
     )
-    def test_determine_github_client(self, domain, client):
-        client_result = _determine_github_client(domain, {})
+    def test_get_github_client(self, domain, client):
+        client_result = _get_github_client(domain, {})
         assert type(client_result) == client
 
     @responses.activate

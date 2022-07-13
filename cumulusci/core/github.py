@@ -25,6 +25,7 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from requests.packages.urllib3.util.retry import Retry
 from rich.console import Console
 
+from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import (
     DependencyLookupError,
     GithubApiError,
@@ -32,6 +33,7 @@ from cumulusci.core.exceptions import (
     GithubException,
     ServiceNotConfigured,
 )
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.oauth.client import (
     OAuth2ClientConfig,
     OAuth2DeviceConfig,
@@ -42,8 +44,13 @@ from cumulusci.utils.git import parse_repo_url
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
-# Hiding Warning: Adding certificate verification is strongly advised.
-# See: https://urllib3.readthedocs.io/en/1.26.x/advanced-usage.html#ssl-warnings
+# Hiding Warnings:
+#   "Adding certificate verification is strongly advised.
+#   See: https://urllib3.readthedocs.io/en/1.26.x/advanced-usage.html#ssl-warnings"
+# These warning appear when using verify=False for github3 connections
+#   to servers using self signed certificates, otherwise
+#   the connection will fail with error: "SSL: CERTIFICATE_VERIFY_FAILED]
+#   certificate verify failed: self signed certificate in certificate chain"
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 OAUTH_DEVICE_APP = {
@@ -78,27 +85,35 @@ def get_github_api(username=None, password=None):
 INSTALLATIONS = {}
 
 
-def _determine_github_client(host: str, client_params: dict) -> GitHub:
+def _is_github(host: str) -> bool:
     # also covers "api.github.com"
-    is_github: bool = host is None or "github.com" in host
-    client_cls: GitHub = GitHub if is_github else GitHubEnterprise  # type: ignore
-    params: dict = client_params
-    if not is_github:
-        params["url"] = "https://" + host  # type: ignore
-        params["verify"] = False  # type: ignore
+    return host is None or "github.com" in host
 
-    return client_cls(**params)
+
+def _get_github_client(host: str, client_params: dict) -> GitHub:
+    client_cls: GitHub = GitHub if _is_github(host) else GitHubEnterprise  # type: ignore
+    if not _is_github(host):
+        client_params["url"] = "https://" + host  # type: ignore
+
+    return client_cls(**client_params)
 
 
 def get_github_api_for_repo(keychain, repo_url, session=None):
-
     owner, repo_name, host = parse_repo_url(repo_url)
-    gh: GitHub = _determine_github_client(
+    service_config = _get_service_for_host(host, keychain)
+
+    client_params = {
+        "session": session
+        or GitHubSession(default_read_timeout=30, default_connect_timeout=30)
+    }
+
+    # Special Case for Github Enterprise
+    if not _is_github(host):
+        client_params["verify"] = process_bool_arg(service_config.verify_ssl)
+
+    gh: GitHub = _get_github_client(
         host,
-        {
-            "session": session
-            or GitHubSession(default_read_timeout=30, default_connect_timeout=30)
-        },
+        client_params,
     )
 
     # Apply retry policy
@@ -124,52 +139,54 @@ def get_github_api_for_repo(keychain, repo_url, session=None):
     elif GITHUB_TOKEN:
         gh.login(token=GITHUB_TOKEN)
     else:
-        username, token = get_auth_from_service(host, keychain)
-        gh.login(username, token)
+        gh.login(service_config.username, service_config.token)
 
     return gh
 
 
-def get_auth_from_service(host, keychain) -> tuple:
+def _get_service_for_host(host, keychain) -> ServiceConfig:
     """
-    Given a host extracted from a repo_url, returns the username and token for
-    the first service with a matching repo_domain
+    Given a host return the ServiceConfig for a matching service
     """
-    if "github.com" in host:
+    if _is_github(host):
         service_config = keychain.get_service("github")
     else:
-        services = keychain.services["github_enterprise"]
-        service_by_host = {
-            service.repo_domain: service for service in services.values()
-        }
+        services = keychain.get_services_for_type("github_enterprise")
+        service_by_host = {service.repo_domain: service for service in services}
         service_config = service_by_host[host]
 
-    token = service_config.password or service_config.token
-    return service_config.username, token
+    return service_config
 
 
 def validate_gh_enterprise(host: str, keychain) -> None:
-    services = keychain.services["github_enterprise"]
-    hosts = [service.repo_domain for service in services.values()]
-    if hosts.count(host) > 1:
-        raise GithubException(
-            f"More than one Github Enterprise service configured for domain {host}."
-        )
-    elif hosts.count(host) == 0:
-        raise ServiceNotConfigured(
-            f"No Github Enterprise service configured for domain {host}."
-        )
+    services = keychain.get_services_for_type("github_enterprise")
+    # These verifications only work with current GitHub Enterprise services configured
+    if services:
+        hosts = [service.repo_domain for service in services]
+        if hosts.count(host) > 1:
+            raise GithubException(
+                f"More than one Github Enterprise service configured for domain {host}."
+            )
+        elif hosts.count(host) == 0:
+            raise ServiceNotConfigured(
+                f"No Github Enterprise service configured for domain {host}."
+            )
 
 
 def validate_service(options: dict, keychain) -> dict:
-    username = options["username"]
-    token = options["token"]
-    # Github service doesn't have "repo_domain",
+    username = options.get("username")
+    params = {"token": options.get("token")}
+    # Github service doesn't have "repo_domain"
     repo_domain = options.get("repo_domain", None)
+    if not _is_github(repo_domain):
+        # We have to verify SSL here because we may not have any GitHub Enterprise services configured
+        verify_ssl = options.get("verify_ssl", None)
+        if verify_ssl:
+            params["verify"] = process_bool_arg(verify_ssl)
 
-    gh = _determine_github_client(repo_domain, {"token": token})
-    if type(gh) == GitHubEnterprise:
         validate_gh_enterprise(repo_domain, keychain)
+
+    gh = _get_github_client(repo_domain, params)
 
     try:
         authed_user = gh.me()
