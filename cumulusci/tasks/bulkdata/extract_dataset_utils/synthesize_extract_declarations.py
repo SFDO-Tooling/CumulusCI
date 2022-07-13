@@ -20,6 +20,16 @@ class SimplifiedExtractDeclaration(ExtractDeclaration):
         assert val.isidentifier()
         return val
 
+    @classmethod
+    def from_template_and_fields(
+        cls, template: ExtractDeclaration, fields: T.List[str]
+    ):
+        """Generate a simplified declaration with specified properties and fields"""
+        data = dict(template)
+        data["fields"] = fields
+        del data["fields_"]
+        return cls(**data)
+
 
 def flatten_declarations(
     declarations: T.Iterable[ExtractDeclaration], schema: Schema
@@ -158,7 +168,9 @@ def _expand_field_definitions(
         index = declarations.index("OwnerId")
         del declarations[index]
 
-    return _SimplifiedExtractDeclaration_with_fields(sobject_decl, fields=declarations)
+    return SimplifiedExtractDeclaration.from_template_and_fields(
+        sobject_decl, fields=declarations
+    )
 
 
 def _find_matching_field_declarations(
@@ -190,16 +202,6 @@ def _find_matching_field_declarations(
         raise NotImplementedError(type)
 
 
-def _SimplifiedExtractDeclaration_with_fields(
-    template: ExtractDeclaration, fields: T.List[str]
-):
-    """Generate a simplified declaration with specified properties and fields"""
-    data = dict(template)
-    data["fields"] = fields
-    del data["fields_"]
-    return SimplifiedExtractDeclaration(**data)
-
-
 def synthesize_declaration_for_sobject(
     sf_object: str, fields: list
 ) -> SimplifiedExtractDeclaration:
@@ -207,7 +209,7 @@ def synthesize_declaration_for_sobject(
     indirectly"""
     default = DEFAULT_DECLARATIONS.get(sf_object)
     if default:
-        return _SimplifiedExtractDeclaration_with_fields(default, fields)
+        return SimplifiedExtractDeclaration.from_template_and_fields(default, fields)
     else:
         return SimplifiedExtractDeclaration(sf_object=sf_object, fields=fields)
 
