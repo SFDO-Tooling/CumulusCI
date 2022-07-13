@@ -29,7 +29,7 @@ class ExtractDeclaration(HashableBaseModel):
     where: T.Optional[str] = None
     fields_: T.Union[T.List[str], str] = Field(["FIELDS(ALL)"], alias="fields")
     api: DataApi = DataApi.SMART
-    sf_object: str = None  # injected, not implied
+    sf_object: T.Optional[str] = None  # injected, not implied
 
     @staticmethod
     def parse_field_complex_type(fieldspec):
