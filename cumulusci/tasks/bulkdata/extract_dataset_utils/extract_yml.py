@@ -26,7 +26,7 @@ class SFFieldGroupTypes(Enum):
 
 
 class ExtractDeclaration(HashableBaseModel):
-    where: str = None
+    where: T.Optional[str] = None
     fields_: T.Union[T.List[str], str] = Field(["FIELDS(ALL)"], alias="fields")
     api: DataApi = DataApi.SMART
     sf_object: str = None  # injected, not implied
