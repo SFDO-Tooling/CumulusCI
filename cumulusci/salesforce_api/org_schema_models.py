@@ -125,6 +125,7 @@ class SObject(OrgSchemaModelMixin, Base):
     urls = Column(MappingType)
     supportedScopes = Column(SequenceType)
     actionOverrides = Column(SequenceType)
+    count = Column(Integer)
 
 
 field_references = Table(
@@ -203,6 +204,10 @@ class Field(OrgSchemaModelMixin, Base):
     updateable = Column(Boolean)
     writeRequiresMasterRead = Column(Boolean)
     picklistValues = Column(types.PickleType)
+
+    @property
+    def requiredOnCreate(self):
+        return not (self.nillable or self.defaultedOnCreate)
 
 
 class FileMetadata(Base):

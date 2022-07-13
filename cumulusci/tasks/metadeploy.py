@@ -2,7 +2,7 @@ import contextlib
 import json
 import re
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 import requests
 
@@ -10,6 +10,7 @@ from cumulusci.core.config import BaseProjectConfig, FlowConfig, TaskConfig
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.github import get_tag_by_name
+from cumulusci.core.metadeploy.api import MetaDeployAPI
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.utils import cd, download_extract_github, temporary_dir
@@ -24,15 +25,13 @@ class BaseMetaDeployTask(BaseTask):
 
     def _init_task(self):
         metadeploy_service = self.project_config.keychain.get_service("metadeploy")
-        self.base_url = metadeploy_service.url
-        self.api = requests.Session()
-        self.api.headers["Authorization"] = f"token {metadeploy_service.token}"
+        self.api: MetaDeployAPI = MetaDeployAPI(metadeploy_service)
 
     def _call_api(self, method, path, collect_pages=False, **kwargs):
-        next_url = self.base_url + path
+        next_url = path
         results = []
         while next_url is not None:
-            response = self.api.request(method, next_url, **kwargs)
+            response = self.api.session.request(method, next_url, **kwargs)
             if response.status_code == 400:
                 raise requests.exceptions.HTTPError(response.content)
             response = safe_json_from_response(response)
@@ -100,6 +99,10 @@ class Publish(BaseMetaDeployTask):
 
         # Find or create Version
         product = self._find_product(repo_url)
+        if not product:
+            raise CumulusCIException(
+                f"No product found in MetaDeploy with repo URL {repo_url}"
+            )
         if not self.dry_run:
             version = self._find_or_create_version(product)
             if self.labels_path and "slug" in product:
@@ -144,11 +147,7 @@ class Publish(BaseMetaDeployTask):
 
             # Update version to set is_listed=True
             if self.publish:
-                self._call_api(
-                    "PATCH",
-                    f"/versions/{version['id']}",
-                    json={"is_listed": True},
-                )
+                self.api.update_version(version["id"])
                 self.logger.info(f"Published Version {version['url']}")
 
         # Save labels
@@ -244,7 +243,7 @@ class Publish(BaseMetaDeployTask):
             plan_json["preflight_checks"] = plan_config["checks"]
 
         # Create Plan
-        plan = self._call_api("POST", "/plans", json=plan_json)
+        plan = self.api.create_plan(plan=plan_json)
         self.logger.info(f"Created Plan {plan['url']}")
 
     def _get_allowed_org_providers(self, plan_name: str) -> List[str]:
@@ -259,28 +258,16 @@ class Publish(BaseMetaDeployTask):
         corresponds `supported_orgs` field on the Plan model in MetaDeploy
         """
         if not providers or providers == ["user"]:
-            org_providers = "persistent"
+            org_providers = "Persistent"
         elif "user" in providers and "devhub" in providers:
-            org_providers = "both"
+            org_providers = "Both"
         elif providers == ["devhub"]:
-            org_providers = "scratch"
+            org_providers = "Scratch"
 
         return org_providers
 
     def _find_product(self, repo_url):
-        try:
-            result = self._call_api("GET", "/products", params={"repo_url": repo_url})
-            if len(result["data"]) != 1:
-                raise CumulusCIException(
-                    f"No product found in MetaDeploy with repo URL {repo_url}"
-                )
-        except KeyError as exc:
-            raise CumulusCIException(
-                "CumulusCI received an unexpected response from MetaDeploy. "
-                "Ensure that your MetaDeploy service is configured with the Admin API URL, which "
-                "ends in /rest, and that your authentication token is valid."
-            ) from exc
-        product = result["data"][0]
+        product = self.api.find_product(repo_url)
         self._add_labels(
             product,
             "product",
@@ -300,56 +287,47 @@ class Publish(BaseMetaDeployTask):
             label = self.project_config.get_version_for_tag(self.tag)
         else:
             label = self.commit
-        result = self._call_api(
-            "GET", "/versions", params={"product": product["id"], "label": label}
+
+        version: Optional[dict] = self.api.find_version(
+            query={"product": product["id"], "label": label}
         )
-        if len(result["data"]) == 0:
-            version = self._call_api(
-                "POST",
-                "/versions",
-                json={
-                    "product": product["url"],
-                    "label": label,
-                    "description": self.options.get("description", ""),
-                    "is_production": True,
-                    "commit_ish": self.tag or self.commit,
-                    "is_listed": False,
-                },
-            )
-            self.logger.info(f"Created {version['url']}")
-        else:
-            version = result["data"][0]
-            self.logger.info(f"Found {version['url']}")
+        verb: str = "Found" if version else "Created"
+
+        if not version:
+            version_dict = {
+                "product": product["url"],
+                "label": label,
+                "description": self.options.get("description", ""),
+                "is_production": True,
+                "commit_ish": self.tag or self.commit,
+                "is_listed": False,
+            }
+            version = self.api.create_version(version_dict)
+
+        self.logger.info(f"{verb} {version['url']}")
         return version
 
     def _find_or_create_plan_template(self, product, plan_name, plan_config):
-        result = self._call_api(
-            "GET",
-            "/plantemplates",
-            params={"product": product["id"], "name": plan_name},
+        plantemplate = self.api.find_plan_template(
+            {"product": product["id"], "name": plan_name}
         )
-        if len(result["data"]) == 0:
-            plantemplate = self._call_api(
-                "POST",
-                "/plantemplates",
-                json={
+        verb: str = "Found" if plantemplate else "Created"
+
+        if not plantemplate:
+            plantemplate = self.api.create_plan_template(
+                {
                     "name": plan_name,
                     "product": product["url"],
                     "preflight_message": plan_config.get("preflight_message", ""),
                     "post_install_message": plan_config.get("post_install_message", ""),
                     "error_message": plan_config.get("error_message", ""),
-                },
+                }
             )
-            self.logger.info(f"Created {plantemplate['url']}")
-            planslug = self._call_api(
-                "POST",
-                "/planslug",
-                json={"slug": plan_config["slug"], "parent": plantemplate["url"]},
+            planslug = self.api.create_plan_slug(
+                {"slug": plan_config["slug"], "parent": plantemplate["url"]}
             )
             self.logger.info(f"Created {planslug['url']}")
-        else:
-            plantemplate = result["data"][0]
-            self.logger.info(f"Found {plantemplate['url']}")
+        self.logger.info(f"{verb} {plantemplate['url']}")
         return plantemplate
 
     def _load_labels(self):
@@ -398,6 +376,6 @@ class Publish(BaseMetaDeployTask):
 
             self.logger.info(f"Updating {lang} translations")
             try:
-                self._call_api("PATCH", f"/translations/{lang}", json=prefixed_labels)
+                self.api.update_lang_translation(lang, prefixed_labels)
             except requests.exceptions.HTTPError as err:
                 self.logger.warning(f"Could not update {lang} translation: {err}")

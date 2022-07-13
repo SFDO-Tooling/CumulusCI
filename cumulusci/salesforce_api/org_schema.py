@@ -1,34 +1,37 @@
 import gzip
+import re
 import typing as T
 from collections import defaultdict
 from contextlib import ExitStack, contextmanager
 from email.utils import parsedate
+from enum import Enum
 from logging import getLogger
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Dict, Iterable, List, NamedTuple, Optional, Tuple
 
-from simple_salesforce import Salesforce
-from sqlalchemy import MetaData, create_engine
+from sqlalchemy import MetaData, create_engine, not_
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import create_session, exc, sessionmaker
 
-from cumulusci.core.config.org_config import OrgConfig
+from cumulusci.salesforce_api.filterable_objects import NOT_COUNTABLE, NOT_EXTRACTABLE
 from cumulusci.salesforce_api.org_schema_models import (
     Base,
     Field,
     FileMetadata,
     SObject,
 )
+from cumulusci.utils.fileutils import FSResource
 from cumulusci.utils.http.multi_request import (
     RECOVERABLE_ERRORS,
     CompositeParallelSalesforce,
 )
+from cumulusci.utils.salesforce.count_sobjects import count_sobjects
 
 y2k = "Sat, 1 Jan 2000 00:00:01 GMT"
 
 
-def zip_database(tempfile, schema_path):
+def zip_database(tempfile: Path, schema_path: T.Union[FSResource, Path]):
     """Compress tempfile.db to schema_path.db.gz"""
     with tempfile.open("rb") as db:
         with schema_path.open("wb") as fileobj:
@@ -44,38 +47,102 @@ def unzip_database(gzipfile, outfile):
                 db.write(gzipped.read())
 
 
+def ignore_based_on_name(objname, patterns: T.Sequence[re.Pattern]):
+    return any(pat.fullmatch(objname) for pat in patterns)
+
+
+# TODO: Rename this SObjectFilters
+class Filters(Enum):
+    """Options for filtering schemas"""
+
+    # These were originally done using SQL Alchemy syntax because filtering
+    # was done in SQL Alchemy. It is still possible to use them that way
+    # in client code:
+    #
+    # schema.objects.filter(Filters.activateable)
+    activateable = SObject.activateable
+    compactLayoutable = SObject.compactLayoutable
+    createable = SObject.createable
+    deepCloneable = SObject.deepCloneable
+    deletable = SObject.deletable
+    layoutable = SObject.layoutable
+    listviewable = SObject.listviewable
+    lookupLayoutable = SObject.lookupLayoutable
+    mergeable = SObject.mergeable
+    queryable = SObject.queryable
+    replicateable = SObject.replicateable
+    retrieveable = SObject.retrieveable
+    searchLayoutable = SObject.searchLayoutable
+    searchable = SObject.searchable
+    triggerable = SObject.triggerable
+    undeletable = SObject.undeletable
+    updateable = SObject.updateable
+
+    not_activateable = not_(SObject.activateable)
+    not_compactLayoutable = not_(SObject.compactLayoutable)
+    not_createable = not_(SObject.createable)
+    not_deepCloneable = not_(SObject.deepCloneable)
+    not_deletable = not_(SObject.deletable)
+    not_layoutable = not_(SObject.layoutable)
+    not_listviewable = not_(SObject.listviewable)
+    not_lookupLayoutable = not_(SObject.lookupLayoutable)
+    not_mergeable = not_(SObject.mergeable)
+    not_queryable = not_(SObject.queryable)
+    not_replicateable = not_(SObject.replicateable)
+    not_retrieveable = not_(SObject.retrieveable)
+    not_searchLayoutable = not_(SObject.searchLayoutable)
+    not_searchable = not_(SObject.searchable)
+    not_triggerable = not_(SObject.triggerable)
+    not_undeletable = not_(SObject.undeletable)
+    not_updateable = not_(SObject.updateable)
+
+    extractable = "extractable"  # can it be extracted safely?
+    # non-extractable objects are discovered
+    # through experimentation.
+    # Also, all non-queryable and non-retrievable objects are
+    # considered non-extractable.
+
+    populated = SObject.count > 0  # does it have data in the org?
+
+
 class Schema:
     """Represents an org's schema, cached from describe() calls"""
 
     _last_modified_date = None
+    included_objects = None
+    includes_counts = False
 
-    def __init__(self, engine, schema_path):
+    def __init__(self, engine, schema_path, filters: T.Sequence[Filters] = ()):
         self.engine = engine
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
         self.path = schema_path
+        self.filters = set(filters)
 
     @property
     def sobjects(self):
-        return self.session.query(SObject)
+        query = self.session.query(SObject)
+        if self.included_objects:
+            query = query.filter(SObject.name.in_(self.included_objects))
+        return query
 
     def __getitem__(self, name):
         try:
-            return self.session.query(SObject).filter_by(name=name).one()
+            return self.sobjects.filter_by(name=name).one()
         except exc.NoResultFound:
             raise KeyError(f"No sobject named {name}")
 
     def __contains__(self, name):
-        return self.session.query(SObject).filter_by(name=name).all()
+        return self.sobjects.filter_by(name=name).all()
 
     def keys(self):
-        return (x[0] for x in self.session.query(SObject.name).all())
+        return [x.name for x in self.sobjects.all()]
 
     def values(self):
-        return self.session.query(SObject).all()
+        return self.sobjects.all()
 
     def items(self):
-        return ((obj.name, obj) for obj in self.session.query(SObject).all())
+        return [(obj.name, obj) for obj in self.sobjects]
 
     def block_writing(self):
         """After this method is called, the database can't be updated again"""
@@ -108,34 +175,57 @@ class Schema:
     def __repr__(self):
         return f"<Schema {self.path} : {self.engine}>"
 
-    def populate_cache(self, sf, last_modified_date, include=None, logger=None):
+    def add_counts(self, counts: T.Dict[str, int]):
+        for objname, count in counts.items():
+            self[objname].count = count
+        self.includes_counts = True
+
+    def populate_cache(
+        self,
+        sf,
+        included_objects,
+        last_modified_date,
+        filters: T.Sequence[Filters] = (),
+        patterns_to_ignore: T.Sequence[str] = (),
+        logger=None,
+        *,
+        include_counts: bool = False,
+    ) -> T.Union[T.Dict[str, int], T.Dict[str, None]]:
         """Populate a schema cache from the API, using last_modified_date
         to pull down only new schema"""
+        for pat in patterns_to_ignore:
+            assert pat.replace("%", "").isidentifier(), f"Pattern has wrong chars {pat}"
 
-        if include:
-            sobj_names = include
-        else:
-            sobjs = sf.describe()["sobjects"]
-            sobj_names = [obj["name"] for obj in sobjs]
-
-        responses = list(deep_describe(sf, last_modified_date, sobj_names, logger))
-        changes = [
-            (resp.body, resp.last_modified_date)
-            for resp in responses
-            if resp.status == 200
+        # Platform bug!
+        patterns_to_ignore = ("MacroInstruction%",) + tuple(patterns_to_ignore)
+        regexps_to_ignore = [
+            re.compile(pat.replace("%", ".*"), re.IGNORECASE)
+            for pat in patterns_to_ignore
         ]
-        unexpected = [resp for resp in responses if resp.status not in (200, 304)]
-        for unknown in unexpected:
-            logger.warning(
-                f"Unexpected describe reply. An SObject may be missing: {unknown}"
+
+        objs = [obj for obj in sf.describe()["sobjects"]]
+        if included_objects:
+            objs = [obj for obj in objs if obj["name"] in included_objects]
+        sobj_names = [
+            obj["name"]
+            for obj in objs
+            if not (
+                ignore_based_on_name(obj["name"], regexps_to_ignore)
+                or ignore_based_on_properties(obj, filters)
             )
+        ]
+        changes = list(deep_describe(sf, last_modified_date, sobj_names, logger))
+
         self._populate_cache_from_describe(changes, last_modified_date)
+        if include_counts:
+            results = populate_counts(sf, self, sobj_names, logger)
+        else:
+            results = {name: None for name in sobj_names}
+        return results
 
     def _populate_cache_from_describe(
-        self,
-        describe_objs: List[Tuple[dict, str]],
-        last_modified_date,
-    ):
+        self, describe_objs: List[Tuple[dict, str]], last_modified_date
+    ) -> T.List[str]:
         """Populate a schema cache from a list of describe objects."""
         engine = self.engine
         metadata = Base.metadata
@@ -146,6 +236,7 @@ class Schema:
 
             max_last_modified = (parsedate(last_modified_date), last_modified_date)
             for (sobj_data, last_modified) in describe_objs:
+                sobj_data = sobj_data.copy()
                 fields = sobj_data.pop("fields")
                 create_row(sess, SObject, sobj_data)
                 for field in fields:
@@ -229,20 +320,40 @@ class BufferedSession:
 
 @contextmanager
 def get_org_schema(
-    sf: Salesforce,
-    org_config: OrgConfig,
-    include: T.Sequence[str] = None,
+    sf,
+    org_config,
     *,
+    include_counts: bool = False,
+    filters: T.Sequence[Filters] = (),
+    patterns_to_ignore: T.Tuple[str] = (),
+    included_objects: T.List[str] = (),
     force_recache=False,
     logger=None,
 ):
     """
     Get a read-only representation of an org's schema.
-
+    sf - simple_saleforce object
     org_config - an OrgConfig for the relevant org
+
+    include_counts: query each queryable/retrievable object count.
+                    This takes time and may even timeout in huge orgs!
+    filters: A sequence of Filters which are the same as Salesforce SObject properties
+            like .createable, .deletable etc. Objects that do not match are ignored.
+            Two special filters exist:
+                * Filters.extractable, which uses heuristics to limit to objects
+                    that extract properly
+                * Filters.populated, which limits to objects that have data in them.
+                    This depends upon `include_counts`
+    included_objects: Ignore objects not in this list. Stacks with other filters
+    patterns_to_ignore: Strings in SQL %LIKE% syntax that match SObjects to be
+                        ignored.
+
     force_recache: True - replace cache. False (default) - use/update cache is available.
     logger - replace the standard logger "cumulusci.salesforce_api.org_schema"
     """
+    assert not isinstance(patterns_to_ignore, str)
+
+    filters = set(filters)
     with org_config.get_orginfo_cache_dir(Schema.__module__) as directory:
         directory.mkdir(exist_ok=True, parents=True)
         schema_path = directory / "org_schema.db.gz"
@@ -250,21 +361,30 @@ def get_org_schema(
         if force_recache and schema_path.exists():
             schema_path.unlink()
 
+        if Filters.populated in filters:
+            filters.add(Filters.queryable)
+            filters.add(Filters.retrieveable)
+            # experiment with removing this limitation by using limit 1 query instead
+            assert include_counts, "Filters.populated depends on include_counts"
+            patterns_to_ignore += NOT_COUNTABLE
+
+        if Filters.extractable in filters:
+            filters.add(Filters.queryable)
+            filters.add(Filters.retrieveable)
+            patterns_to_ignore += NOT_EXTRACTABLE
+
         logger = logger or getLogger(__name__)
 
-        with ExitStack() as closer:
-            tempdir = TemporaryDirectory()
-            closer.enter_context(tempdir)
-            tempfile = Path(tempdir.name) / "temp_org_schema.db"
+        with ZippableTempDb() as tempdb, ExitStack() as closer:
             schema = None
+            engine = tempdb.create_engine()
             if schema_path.exists():
                 try:
                     cleanups_on_failure = []
-                    unzip_database(schema_path, tempfile)
-                    cleanups_on_failure.extend([schema_path.unlink, tempfile.unlink])
-                    engine = create_engine(f"sqlite:///{str(tempfile)}")
+                    tempdb.unzip_database(schema_path)
+                    cleanups_on_failure.extend([schema_path.unlink, tempdb.clear])
+                    schema = Schema(engine, schema_path, filters)
 
-                    schema = Schema(engine, schema_path)
                     cleanups_on_failure.append(schema.close)
                     closer.callback(schema.close)
                     assert schema.sobjects.first().name
@@ -278,18 +398,77 @@ def get_org_schema(
                         cleanup_action()
 
             if schema is None:
-                engine = create_engine(f"sqlite:///{str(tempfile)}")
                 Base.metadata.bind = engine
                 Base.metadata.create_all()
-                schema = Schema(engine, schema_path)
+                schema = Schema(engine, schema_path, filters)
                 closer.callback(schema.close)
                 schema.from_cache = False
 
-            schema.populate_cache(sf, schema.last_modified_date or y2k, include, logger)
+            populated_objs = schema.populate_cache(
+                sf,
+                included_objects,
+                schema.last_modified_date or y2k,
+                filters,
+                patterns_to_ignore,
+                logger,
+                include_counts=include_counts,
+            )
+
+            if Filters.populated in filters:
+                # another way to compute this might be by querying the first ID
+                objs_cached = [
+                    objname for objname, count in populated_objs.items() if count > 0
+                ]
+            else:
+                objs_cached = [objname for objname, count in populated_objs.items()]
+
+            schema.included_objects = objs_cached
             schema.block_writing()
             # save a gzipped copy for later
-            zip_database(tempfile, schema_path)
+            tempdb.zip_database(schema_path)
             yield schema
+
+
+class ZippableTempDb:
+    """A database that loads and saves from a tempdir to a zippped cache"""
+
+    def __enter__(self) -> Path:
+        self.tempdir = TemporaryDirectory()
+        self.tempfile = Path(self.tempdir.name) / "temp_org_schema.db"
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self.clear()
+        self.tempdir.cleanup()
+
+    def zip_database(self, target_path: T.Union[FSResource, Path]):
+        "Save a gzipped copy for later"
+        zip_database(self.tempfile, target_path)
+
+    def unzip_database(self, zipped_db: T.Union[FSResource, Path]):
+        unzip_database(zipped_db, self.tempfile)
+
+    def clear(self):
+        if self.tempfile.exists():
+            self.tempfile.unlink()
+
+    def create_engine(self):
+        return create_engine(f"sqlite:///{str(self.tempfile)}")
+
+
+def populate_counts(sf, schema, objs_cached, logger) -> T.Dict[str, int]:
+    objects_to_count = [objname for objname in objs_cached]
+    counts, transports_errors, salesforce_errors = count_sobjects(sf, objects_to_count)
+    errors = transports_errors + salesforce_errors
+    for error in errors[0:10]:
+        logger.warning(f"Error counting SObjects: {error}")
+
+    if len(errors) > 10:
+        logger.warning(f"{len(errors)} more counting errors suppressed")
+
+    schema.add_counts(counts)
+    schema.session.flush()
+    return counts
 
 
 class DescribeResponse(NamedTuple):
@@ -300,14 +479,20 @@ class DescribeResponse(NamedTuple):
     last_modified_date: str = None
 
 
+class DescribeUpdate(NamedTuple):
+    body: dict
+    last_modified_date: str = None
+
+
 def deep_describe(
     sf, last_modified_date: Optional[str], objs: List[str], logger
-) -> Iterable[DescribeResponse]:
+) -> Iterable[DescribeUpdate]:
     """Fetch describe data for changed sobjects
 
     Fetch describe data for sobjects from the list 'objs'
     which have changed since last_modified_date (in HTTP
     proto format) and yield each object as a DescribeResponse object."""
+
     logger = logger or getLogger(__name__)
     last_modified_date = last_modified_date or y2k
     with CompositeParallelSalesforce(sf, max_workers=8) as cpsf:
@@ -320,8 +505,6 @@ def deep_describe(
                     "httpHeaders": {"If-Modified-Since": last_modified_date},
                 }
                 for obj in objs
-                # Platform bug!!!
-                if not obj.startswith("MacroInstruction")
             )
         )
 
@@ -347,4 +530,20 @@ def deep_describe(
             )
             for response in responses
         )
-        yield from responses
+
+        changes = [
+            DescribeUpdate(resp.body, resp.last_modified_date)
+            for resp in responses
+            if resp.status == 200
+        ]
+        unexpected = [resp for resp in responses if resp.status not in (200, 304)]
+        for unknown in unexpected:  # pragma: no cover
+            logger.warning(
+                f"Unexpected describe reply. An SObject may be missing: {unknown}"
+            )
+
+        yield from changes
+
+
+def ignore_based_on_properties(obj: dict, filters: T.Sequence[Filters]):
+    return not all(obj.get(filter.name, True) for filter in filters)

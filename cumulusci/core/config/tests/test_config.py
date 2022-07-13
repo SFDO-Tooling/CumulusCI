@@ -1721,7 +1721,6 @@ class TestOrgConfig:
         result = config.resolve_04t_dependencies(
             [PackageNamespaceVersionDependency(namespace="dep", version="1.0")]
         )
-        print(result)
         assert result == [PackageVersionIdDependency(version_id="04t000000000001AAA")]
 
     def test_resolve_04t_dependencies__not_installed(self):

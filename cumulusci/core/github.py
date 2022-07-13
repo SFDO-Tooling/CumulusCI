@@ -330,16 +330,6 @@ def find_previous_release(repo, prefix=None):
             return release
 
 
-def create_gist(github, description, files):
-    """Creates a gist with the given description and files.
-
-    github - an
-    description - str
-    files - A dict of files in the form of {filename:{'content': content},...}
-    """
-    return github.create_gist(description, files, public=False)
-
-
 VERSION_ID_RE = re.compile(r"version_id: (\S+)")
 
 
@@ -581,12 +571,10 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
         try:
             return func(*args, **kwargs)
         except (ResponseError, TransportError) as exc:
-            error_msg = format_github3_exception(exc)
-            if error_msg:
+            if error_msg := format_github3_exception(exc):
                 url = request_url_from_exc(exc)
-                if url:
-                    error_msg = f"{url}\n{error_msg}"
-                raise GithubApiError(error_msg)
+                error_msg = f"{url}\n{error_msg}".strip()
+                raise GithubApiError(error_msg) from exc
             else:
                 raise
 
@@ -596,10 +584,8 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
 def request_url_from_exc(exc: Union[ResponseError, TransportError]) -> str:
     if isinstance(exc, TransportError):
         return exc.exception.response.url
-    elif isinstance(exc, ResponseError):
-        return exc.response.url
     else:
-        return ""
+        return exc.response.url
 
 
 def get_oauth_device_flow_token():
@@ -628,3 +614,14 @@ def get_oauth_device_flow_token():
         )
 
     return access_token
+
+
+@catch_common_github_auth_errors
+def create_gist(github, description, files):
+    """Creates a gist with the given description and files.
+
+    github - an
+    description - str
+    files - A dict of files in the form of {filename:{'content': content},...}
+    """
+    return github.create_gist(description, files, public=False)

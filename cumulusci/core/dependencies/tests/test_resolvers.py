@@ -9,6 +9,7 @@ from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config.tests.test_config import DummyRelease
 from cumulusci.core.dependencies.dependencies import (
     DynamicDependency,
+    GitHubDependencyPin,
     GitHubDynamicDependency,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
@@ -633,6 +634,113 @@ class TestStaticDependencyResolution:
                 namespace_inject="bar",
             ),
         ]
+
+    def test_get_static_dependencies__pins(self, project_config):
+        gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
+
+        tag = mock.Mock()
+        tag.return_value.object.sha = "tag_sha"
+        tag.return_value.message = """
+package_type: 1GP
+
+version_id: 04t000000000000"""
+        project_config.get_repo_from_url(
+            "https://github.com/SFDO-Tooling/RootRepo"
+        ).tag = tag
+
+        project_config.get_repo_from_url(
+            "https://github.com/SFDO-Tooling/DependencyRepo"
+        ).tag = tag
+
+        # Add a pin for the direct dependency and a transitive dependency
+        pins = [
+            GitHubDependencyPin(
+                github="https://github.com/SFDO-Tooling/DependencyRepo",
+                tag="release/1.0",
+            ),
+            GitHubDependencyPin(
+                github="https://github.com/SFDO-Tooling/RootRepo", tag="release/1.5"
+            ),
+        ]
+
+        assert pins[1].can_pin(gh)
+
+        deps = get_static_dependencies(
+            project_config,
+            dependencies=[gh],
+            strategies=[DependencyResolutionStrategy.RELEASE_TAG],
+            pins=pins,
+        )
+
+        assert deps == [
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/DependencyRepo",
+                subfolder="unpackaged/pre/top",
+                unmanaged=True,
+                ref="tag_sha",
+            ),
+            PackageNamespaceVersionDependency(
+                namespace="foo",
+                version="1.0",  # from the pinned tag
+                package_name="DependencyRepo",
+                version_id="04t000000000000",
+            ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/DependencyRepo",
+                subfolder="unpackaged/post/top",
+                unmanaged=False,
+                ref="tag_sha",
+                namespace_inject="foo",
+            ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/pre/first",
+                unmanaged=True,
+                ref="tag_sha",
+            ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/pre/second",
+                unmanaged=True,
+                ref="tag_sha",
+            ),
+            PackageNamespaceVersionDependency(
+                namespace="bar",
+                version="1.5",  # From pinned tag
+                package_name="RootRepo",
+                version_id="04t000000000000",
+            ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/post/first",
+                unmanaged=False,
+                ref="tag_sha",
+                namespace_inject="bar",
+            ),
+        ]
+
+    def test_get_static_dependencies__conflicting_pin(self, project_config):
+        gh = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/RootRepo", tag="release/foo"
+        )
+
+        # Add a pin for the direct dependency that conflicts
+        pins = [
+            GitHubDependencyPin(
+                github="https://github.com/SFDO-Tooling/RootRepo", tag="release/1.5"
+            ),
+        ]
+
+        assert pins[0].can_pin(gh)
+        with pytest.raises(
+            DependencyResolutionError, match="dependency already has a tag specified"
+        ):
+            get_static_dependencies(
+                project_config,
+                dependencies=[gh],
+                strategies=[DependencyResolutionStrategy.RELEASE_TAG],
+                pins=pins,
+            )
 
     def test_get_static_dependencies__ignore_namespace(self, project_config):
         gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
