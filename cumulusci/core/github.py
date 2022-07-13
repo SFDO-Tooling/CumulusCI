@@ -9,7 +9,6 @@ from typing import Callable, Optional, Union
 from urllib.parse import urlparse
 
 import github3
-import requests
 from github3 import GitHub, GitHubEnterprise, login
 from github3.exceptions import AuthenticationFailed, ResponseError, TransportError
 from github3.git import Reference, Tag
@@ -21,7 +20,6 @@ from github3.session import GitHubSession
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
 from requests.models import Response
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from requests.packages.urllib3.util.retry import Retry
 from rich.console import Console
 
@@ -41,10 +39,6 @@ from cumulusci.oauth.client import (
 from cumulusci.utils.git import parse_repo_url
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
-
-# Hiding Warning: Adding certificate verification is strongly advised.
-# See: https://urllib3.readthedocs.io/en/1.26.x/advanced-usage.html#ssl-warnings
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 OAUTH_DEVICE_APP = {
     "client_id": "2a4bc3e5ce4f2c49a957",
