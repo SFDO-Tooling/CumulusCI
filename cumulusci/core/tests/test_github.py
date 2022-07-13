@@ -219,11 +219,6 @@ class TestGithub(GithubApiTestMixin):
             match="More than one Github Enterprise service configured for domain git.enterprise.domain.com",
         ):
             validate_gh_enterprise("git.enterprise.domain.com", keychain_enterprise)
-        with pytest.raises(
-            ServiceNotConfigured,
-            match="No Github Enterprise service configured for domain garbage",
-        ):
-            validate_gh_enterprise("garbage", keychain_enterprise)
 
     @responses.activate
     def test_get_auth_from_service(self, keychain_enterprise):
@@ -245,6 +240,12 @@ class TestGithub(GithubApiTestMixin):
             "testusername",
             "ATOKEN",
         )
+
+        with pytest.raises(
+            ServiceNotConfigured,
+            match="No Github Enterprise service configured for domain garbage",
+        ):
+            get_auth_from_service("garbage", keychain_enterprise)
 
     @pytest.mark.parametrize(
         "domain,client",
