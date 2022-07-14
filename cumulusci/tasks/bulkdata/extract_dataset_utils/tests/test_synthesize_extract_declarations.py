@@ -6,10 +6,11 @@ from io import StringIO
 from pathlib import Path
 from unittest import mock
 
+import pytest
 from sqlalchemy import create_engine
 
 from cumulusci.core.config import OrgConfig
-from cumulusci.salesforce_api.org_schema import get_org_schema
+from cumulusci.salesforce_api.org_schema import Filters, get_org_schema
 from cumulusci.tasks.bulkdata.extract_dataset_utils.extract_yml import ExtractRulesFile
 from cumulusci.tasks.bulkdata.extract_dataset_utils.synthesize_extract_declarations import (
     flatten_declarations,
@@ -351,6 +352,28 @@ class TestSynthesizeExtractDeclarations:
 
             assert set(decls["Account"].fields) == set(["Name", "Description"])
 
+    @pytest.mark.needs_org()
+    @pytest.mark.slow()
+    def test_find_standard_objects__integration_tests(self, sf, org_config):
+        declarations = """
+            extract:
+                    OBJECTS(STANDARD):
+                        fields:
+                            FIELDS(REQUIRED)
+        """
+        with get_org_schema(
+            sf,
+            org_config,
+            include_counts=True,
+            filters=[Filters.createable, Filters.extractable, Filters.populated],
+        ) as schema:
+            declarations = ExtractRulesFile.parse_extract(StringIO(declarations))
+            decls = flatten_declarations(declarations.values(), schema)
+            decls = {decl.sf_object: decl for decl in decls}
+            assert "WorkBadgeDefinition" in decls
+            # HEY NOW!
+            assert "You\\'re a RockStar!" in decls.get("WorkBadgeDefinition").where
+
 
 @lru_cache(maxsize=None)
 def describe_for(sobject: str):
@@ -360,7 +383,7 @@ def describe_for(sobject: str):
 @contextmanager
 def _fake_get_org_schema(
     org_config: OrgConfig,
-    org_describes: T.List[dict],
+    org_describes: T.Sequence[dict],
     object_counts: T.Dict[str, int],
     **kwargs,
 ):
@@ -391,10 +414,10 @@ class FakeZippableTempDb:
     def __exit__(self, *args, **kwargs):
         return ""
 
-    def zip_database(self, target_path: Path):
+    def zip_database(self, target_path):
         pass
 
-    def unzip_database(self, zipped_db: Path):
+    def unzip_database(self, zipped_db):
         pass
 
     def clear(self):

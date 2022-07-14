@@ -77,14 +77,18 @@ def extend_declarations_to_include_referenced_tables(
         my_dependencies = dependencies.get(sf_object, ())
         for dep in my_dependencies:
             target_table = dep.table_name_to
-            if target_table not in decls and target_table not in NOT_EXTRACTABLE:
+            sobj = schema.get(target_table)
+            target_extractable = (
+                target_table not in NOT_EXTRACTABLE and sobj and sobj.extractable
+            )
+            if target_table not in decls and target_extractable:
                 required_fields = [
                     field.name
                     for field in schema[target_table].fields.values()
                     if field.requiredOnCreate
                 ]
                 decls[target_table] = synthesize_declaration_for_sobject(
-                    target_table, required_fields
+                    target_table, required_fields, schema[target_table].fields
                 )
 
                 new_dependencies = _calculate_dependencies_for_sobject(
