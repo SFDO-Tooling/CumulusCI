@@ -130,7 +130,7 @@ class Schema:
         try:
             return self.sobjects.filter_by(name=name).one()
         except exc.NoResultFound:
-            raise KeyError(f"No sobject named {name}")
+            raise KeyError(f"No sobject named `{name}`")
 
     def __contains__(self, name):
         return self.sobjects.filter_by(name=name).all()
@@ -432,7 +432,7 @@ def get_org_schema(
 class ZippableTempDb:
     """A database that loads and saves from a tempdir to a zippped cache"""
 
-    def __enter__(self) -> Path:
+    def __enter__(self) -> "ZippableTempDb":
         self.tempdir = TemporaryDirectory()
         self.tempfile = Path(self.tempdir.name) / "temp_org_schema.db"
         return self
