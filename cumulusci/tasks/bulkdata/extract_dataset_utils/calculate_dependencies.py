@@ -79,7 +79,7 @@ def extend_declarations_to_include_referenced_tables(
             target_table = dep.table_name_to
             sobj = schema.get(target_table)
             target_extractable = (
-                target_table not in NOT_EXTRACTABLE and sobj and sobj.retrieveable
+                target_table not in NOT_EXTRACTABLE and sobj and sobj.extractable
             )
             if target_table not in decls and target_extractable:
                 required_fields = [
