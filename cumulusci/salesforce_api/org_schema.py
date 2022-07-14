@@ -123,7 +123,7 @@ class Schema:
     @property
     def sobjects(self):
         query = self.session.query(SObject)
-        if self.included_objects:
+        if self.included_objects is not None:
             query = query.filter(SObject.name.in_(self.included_objects))
         return query
 
@@ -134,7 +134,7 @@ class Schema:
             raise KeyError(f"No sobject named `{name}`")
 
     def __contains__(self, name):
-        return self.sobjects.filter_by(name=name).all()
+        return bool(self.sobjects.filter_by(name=name).first())
 
     @lru_cache(maxsize=10)
     def keys(self):
@@ -424,13 +424,13 @@ def get_org_schema(
 
             if Filters.populated in filters:
                 # another way to compute this might be by querying the first ID
-                objs_cached = [
+                objs_to_include = [
                     objname for objname, count in populated_objs.items() if count > 0
                 ]
             else:
-                objs_cached = [objname for objname, count in populated_objs.items()]
+                objs_to_include = [objname for objname, _ in populated_objs.items()]
 
-            schema.included_objects = objs_cached
+            schema.included_objects = objs_to_include
             schema.block_writing()
             # save a gzipped copy for later
             tempdb.zip_database(schema_path)
