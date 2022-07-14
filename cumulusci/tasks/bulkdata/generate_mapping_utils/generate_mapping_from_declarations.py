@@ -93,7 +93,7 @@ def _fields_and_lookups_for_decl(decl, sobject_schema_info, referenceable_tables
     def target_table(field_info):
         if len(field_info.referenceTo) == 1:
             target = field_info.referenceTo[0]
-        else:  # TODO: Coverage
+        else:  # pragma: no cover  # TODO: Cover
             target = "Polymorphic lookups are not supported"
         return target
 

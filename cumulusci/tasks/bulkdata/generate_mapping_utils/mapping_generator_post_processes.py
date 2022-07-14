@@ -10,10 +10,12 @@ def add_after_statements(mappings: dict):
         for lookup in mapping.get("lookups", {}).values():
             target_table = lookup["table"]
             # PersonContacts are not real
-            if target_table == "PersonContact":
+            if target_table == "PersonContact":  # pragma: no cover  # TODO: Cover
                 continue
             target_mapping_index = indexed_by_sobject[target_table]
-            if target_mapping_index.first_instance >= idx:
+            if (
+                target_mapping_index.first_instance >= idx
+            ):  # pragma: no cover  # TODO: Cover
                 if not lookup.get("after"):
                     lookup["after"] = target_mapping_index.last_step_name
 
@@ -33,7 +35,7 @@ def _index_by_sobject(mappings):
         sobject = mapping["sf_object"]
         existing_index = indexed_by_sobject.get(sobject)
 
-        if existing_index:
+        if existing_index:  # pragma: no cover  # TODO: Cover
             new_mi = MappingIndex(existing_index.first_instance, mapping_name)
         else:
             new_mi = MappingIndex(idx, mapping_name)
