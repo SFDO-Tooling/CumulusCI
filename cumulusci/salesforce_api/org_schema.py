@@ -5,7 +5,6 @@ from collections import defaultdict
 from contextlib import ExitStack, contextmanager
 from email.utils import parsedate
 from enum import Enum
-from functools import lru_cache
 from logging import getLogger
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -106,6 +105,10 @@ class Filters(Enum):
     populated = SObject.count > 0  # does it have data in the org?
 
 
+# TODO: Profiling and optimizing of the
+#      SQL parts. After the object is frozen,
+#      all query-sets can be cached as
+#      dicts and lists
 class Schema:
     """Represents an org's schema, cached from describe() calls"""
 
@@ -136,7 +139,6 @@ class Schema:
     def __contains__(self, name):
         return bool(self.sobjects.filter_by(name=name).first())
 
-    @lru_cache(maxsize=10)
     def keys(self):
         return [x.name for x in self.sobjects.all()]
 
