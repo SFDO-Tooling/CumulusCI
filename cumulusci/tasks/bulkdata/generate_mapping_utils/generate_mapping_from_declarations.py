@@ -1,0 +1,110 @@
+import typing as T
+from itertools import chain
+
+from cumulusci.salesforce_api.org_schema import Schema
+from cumulusci.utils.collections import OrderedSet
+from cumulusci.utils.iterators import partition
+
+from ..extract_dataset_utils.calculate_dependencies import Dependency
+from ..extract_dataset_utils.synthesize_extract_declarations import (
+    ExtractDeclaration,
+    SimplifiedExtractDeclaration,
+    flatten_declarations,
+)
+from .load_mapping_file_generator import OutputSet, generate_load_mapping_file
+
+
+class SimplifiedExtractDeclarationWithLookups(SimplifiedExtractDeclaration):
+    lookups: T.Dict[str, str]
+
+
+def create_load_mapping_file_from_extract_declarations(
+    decls: T.List[ExtractDeclaration],
+    schema: Schema,
+) -> T.Dict[str, dict]:
+    """Create a mapping file from Extract declarations"""
+    simplified_decls = flatten_declarations(decls, schema)
+    simplified_decls_w_lookups = classify_and_filter_lookups(simplified_decls, schema)
+    intertable_dependencies = _discover_dependendencies(simplified_decls_w_lookups)
+
+    output_sets = [
+        OutputSet(decl.sf_object, None, tuple(chain(decl.fields, decl.lookups.keys())))
+        for decl in simplified_decls_w_lookups
+    ]
+
+    mappings = generate_load_mapping_file(output_sets, intertable_dependencies, None)
+    return mappings
+
+
+def _discover_dependendencies(simplified_decls: T.Sequence):
+    intertable_dependencies = OrderedSet()
+
+    for decl in simplified_decls:
+        for fieldname, tablename in decl.lookups.items():
+            intertable_dependencies.add(
+                Dependency(decl.sf_object, tablename, fieldname)
+            )
+    return intertable_dependencies
+
+
+# def create_extract_mapping_file_from_declarations(
+#     decls: list[ExtractDeclaration], schema: Schema, sf: Salesforce
+# ):
+#     assert decls is not None
+#     simplified_decls = simplify_declarations(decls, schema, sf).values()
+#     mappings = [mapping_decl_for_extract_decl(decl) for decl in simplified_decls]
+#     return dict(pair for pair in mappings if pair)
+
+
+def classify_and_filter_lookups(
+    decls: T.Sequence[SimplifiedExtractDeclaration], schema: Schema
+) -> T.Sequence[SimplifiedExtractDeclarationWithLookups]:
+    """Move lookups into their own field, if they reference a table we're including"""
+    referenceable_tables = [decl.sf_object for decl in decls]
+    return [_add_lookups_to_decl(decl, schema, referenceable_tables) for decl in decls]
+
+
+def _add_lookups_to_decl(
+    decl: SimplifiedExtractDeclaration,
+    schema: Schema,
+    referenceable_tables: T.Sequence[str],
+) -> SimplifiedExtractDeclarationWithLookups:
+    sobject_schema_info = schema[decl.sf_object]
+    fields, lookups_and_targets = _fields_and_lookups_for_decl(
+        decl, sobject_schema_info, referenceable_tables
+    )
+    new_decl_data = {
+        **dict(decl),
+        "fields": list(fields),
+        "lookups": dict(lookups_and_targets),
+    }
+    del new_decl_data["fields_"]
+    new_decl = SimplifiedExtractDeclarationWithLookups(**new_decl_data)
+    return new_decl
+
+
+def _fields_and_lookups_for_decl(decl, sobject_schema_info, referenceable_tables):
+    """Split fields versus lookups for a declaration"""
+    simple_fields, lookups = partition(
+        lambda field_name: sobject_schema_info.fields[field_name].referenceTo,
+        decl.fields,
+    )
+
+    def target_table(field_info):
+        if len(field_info.referenceTo) == 1:
+            target = field_info.referenceTo[0]
+        else:  # TODO: Coverage
+            target = "Polymorphic lookups are not supported"
+        return target
+
+    lookups = list(lookups)
+
+    lookups_and_targets = (
+        (lookup, target_table(sobject_schema_info.fields[lookup])) for lookup in lookups
+    )
+    lookups_and_targets = (
+        (lookup, table)
+        for lookup, table in lookups_and_targets
+        if table in referenceable_tables
+    )
+    return simple_fields, lookups_and_targets
