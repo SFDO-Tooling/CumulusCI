@@ -5,6 +5,7 @@ from collections import defaultdict
 from contextlib import ExitStack, contextmanager
 from email.utils import parsedate
 from enum import Enum
+from functools import lru_cache
 from logging import getLogger
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -135,6 +136,7 @@ class Schema:
     def __contains__(self, name):
         return self.sobjects.filter_by(name=name).all()
 
+    @lru_cache(maxsize=10)
     def keys(self):
         return [x.name for x in self.sobjects.all()]
 
@@ -143,6 +145,9 @@ class Schema:
 
     def items(self):
         return [(obj.name, obj) for obj in self.sobjects]
+
+    def get(self, name: str):
+        return self.sobjects.filter_by(name=name).first()
 
     def block_writing(self):
         """After this method is called, the database can't be updated again"""
@@ -177,7 +182,9 @@ class Schema:
 
     def add_counts(self, counts: T.Dict[str, int]):
         for objname, count in counts.items():
-            self[objname].count = count
+            obj = self.get(objname)
+            if obj:
+                obj.count = count
         self.includes_counts = True
 
     def populate_cache(
@@ -371,6 +378,7 @@ def get_org_schema(
         if Filters.extractable in filters:
             filters.add(Filters.queryable)
             filters.add(Filters.retrieveable)
+            filters.add(Filters.createable)  # so we can load again later
             patterns_to_ignore += NOT_EXTRACTABLE
 
         logger = logger or getLogger(__name__)
