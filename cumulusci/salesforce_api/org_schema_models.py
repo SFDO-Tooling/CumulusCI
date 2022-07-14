@@ -127,6 +127,10 @@ class SObject(OrgSchemaModelMixin, Base):
     actionOverrides = Column(SequenceType)
     count = Column(Integer)
 
+    @property
+    def extractable(self):
+        return self.createable and self.queryable and self.retrieveable
+
 
 field_references = Table(
     "references",

@@ -105,6 +105,10 @@ class Filters(Enum):
     populated = SObject.count > 0  # does it have data in the org?
 
 
+# TODO: Profiling and optimizing of the
+#      SQL parts. After the object is frozen,
+#      all query-sets can be cached as
+#      dicts and lists
 class Schema:
     """Represents an org's schema, cached from describe() calls"""
 
@@ -122,7 +126,7 @@ class Schema:
     @property
     def sobjects(self):
         query = self.session.query(SObject)
-        if self.included_objects:
+        if self.included_objects is not None:
             query = query.filter(SObject.name.in_(self.included_objects))
         return query
 
@@ -130,10 +134,10 @@ class Schema:
         try:
             return self.sobjects.filter_by(name=name).one()
         except exc.NoResultFound:
-            raise KeyError(f"No sobject named {name}")
+            raise KeyError(f"No sobject named `{name}`")
 
     def __contains__(self, name):
-        return self.sobjects.filter_by(name=name).all()
+        return bool(self.sobjects.filter_by(name=name).first())
 
     def keys(self):
         return [x.name for x in self.sobjects.all()]
@@ -143,6 +147,9 @@ class Schema:
 
     def items(self):
         return [(obj.name, obj) for obj in self.sobjects]
+
+    def get(self, name: str):
+        return self.sobjects.filter_by(name=name).first()
 
     def block_writing(self):
         """After this method is called, the database can't be updated again"""
@@ -177,7 +184,9 @@ class Schema:
 
     def add_counts(self, counts: T.Dict[str, int]):
         for objname, count in counts.items():
-            self[objname].count = count
+            obj = self.get(objname)
+            if obj:
+                obj.count = count
         self.includes_counts = True
 
     def populate_cache(
@@ -371,6 +380,7 @@ def get_org_schema(
         if Filters.extractable in filters:
             filters.add(Filters.queryable)
             filters.add(Filters.retrieveable)
+            filters.add(Filters.createable)  # so we can load again later
             patterns_to_ignore += NOT_EXTRACTABLE
 
         logger = logger or getLogger(__name__)
@@ -416,13 +426,13 @@ def get_org_schema(
 
             if Filters.populated in filters:
                 # another way to compute this might be by querying the first ID
-                objs_cached = [
+                objs_to_include = [
                     objname for objname, count in populated_objs.items() if count > 0
                 ]
             else:
-                objs_cached = [objname for objname, count in populated_objs.items()]
+                objs_to_include = [objname for objname, _ in populated_objs.items()]
 
-            schema.included_objects = objs_cached
+            schema.included_objects = objs_to_include
             schema.block_writing()
             # save a gzipped copy for later
             tempdb.zip_database(schema_path)
@@ -432,7 +442,7 @@ def get_org_schema(
 class ZippableTempDb:
     """A database that loads and saves from a tempdir to a zippped cache"""
 
-    def __enter__(self) -> Path:
+    def __enter__(self) -> "ZippableTempDb":
         self.tempdir = TemporaryDirectory()
         self.tempfile = Path(self.tempdir.name) / "temp_org_schema.db"
         return self
