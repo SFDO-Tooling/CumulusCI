@@ -9,14 +9,14 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.github import get_tag_by_name
 from cumulusci.core.metadeploy.api import MetaDeployAPI
 from cumulusci.core.metadeploy.labels import (
+    METADEPLOY_DIR,
     read_default_labels,
     read_label_files,
     save_default_labels,
-    update_plan_labels,
-    update_product_labels,
     update_step_labels,
 )
 from cumulusci.core.metadeploy.models import (
+    FrozenStep,
     MetaDeployPlan,
     PlanTemplate,
     Product,
@@ -89,7 +89,7 @@ class Publish(BaseMetaDeployTask):
         self.commit: str = self.options.get("commit")
         if not self.tag and not self.commit:
             raise TaskOptionsError("You must specify either the tag or commit option.")
-        self.labels_path = self.options.get("labels_path", "metadeploy")
+        self.labels_path = self.options.get("labels_path", METADEPLOY_DIR)
         Path(self.labels_path).mkdir(parents=True, exist_ok=True)
 
         if plan_name := self.options.get("plan"):
@@ -132,8 +132,11 @@ class Publish(BaseMetaDeployTask):
 
             # Create each plan
             for plan_name, plan_config in self.plan_configs.items():
-                update_plan_labels(plan_name, plan_config, self.labels)
                 steps = self._freeze_steps(project_config, plan_config)
+                plan: MetaDeployPlan = MetaDeployPlan.parse_obj(
+                    dict(plan_config, steps=steps)
+                )
+                self.labels.update(plan.get_labels())
 
                 if not self.dry_run:
                     self._publish_plan(product, version, plan_name, plan_config, steps)
@@ -163,6 +166,7 @@ class Publish(BaseMetaDeployTask):
         steps = get_frozen_steps(project_config, plan_config)
         self.logger.debug("Prepared steps:\n" + json.dumps(steps, indent=4))
 
+        steps = [FrozenStep.parse_obj(step) for step in steps]
         update_step_labels(steps, self.labels)
         return steps
 
@@ -193,7 +197,7 @@ class Publish(BaseMetaDeployTask):
 
     def _find_product(self, repo_url) -> Product:
         product: Product = self.api.find_product(repo_url)
-        update_product_labels(product, self.labels)
+        self.labels["product"].update(product.get_labels())
         return product
 
     def _find_or_create_version(self, product):

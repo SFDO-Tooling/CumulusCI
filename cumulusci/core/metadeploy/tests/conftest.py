@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 import pytest
 
-from cumulusci.core.metadeploy.models import PlanTemplate, Product, Version
+from cumulusci.core.metadeploy.models import (
+    MetaDeployPlan,
+    PlanTemplate,
+    Product,
+    Version,
+)
 
 
 @pytest.fixture
@@ -83,3 +88,8 @@ def version_model(version_dict):
 @pytest.fixture
 def plantemplate_model(plantemplate_dict):
     return PlanTemplate.parse_obj(plantemplate_dict)
+
+
+@pytest.fixture
+def plan_model(simple_plan_dict):
+    return MetaDeployPlan.parse_obj(simple_plan_dict)

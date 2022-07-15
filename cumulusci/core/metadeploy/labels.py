@@ -72,64 +72,10 @@ def save_default_labels(labels_path: Union[Path, str], labels_to_save: dict):
         labels_file.write_text(f"{json.dumps(labels_to_save, indent=4)}\n")
 
 
-def update_plan_labels(plan_name: str, plan, labels_to_update):
-    """Add specified fields from plan to a label category."""
-    labels_to_update[f"plan:{plan_name}"].update(
-        {
-            name: {"message": plan[name], "description": description}
-            for name, description in METADEPLOY_LABELS["plan"].items()
-            if name in plan
-        }
-    )
-    update_check_labels(plan, labels_to_update)
-
-
-def update_product_labels(product, labels_to_update):
-    """
-    Mutates labels_to_update to add specified fields from obj to a label category.
-    """
-    if updates := {
-        name: {"message": product[name], "description": description}
-        for name, description in METADEPLOY_LABELS["product"].items()
-        if name in product
-    }:
-        labels_to_update["product"].update(updates)
-
-
 def update_step_labels(steps, labels_to_update):
     """Mutates labels_to_update
     Keyword Arguments:
     """
     for step in steps:
-        # avoid separate labels for installing each package
-        name = (
-            "Install {product} {version}"
-            if INSTALL_VERSION_RE.match(step["name"])
-            else step["name"]
-        )
-        labels_to_update["steps"][name] = {
-            "message": name,
-            "description": METADEPLOY_LABELS["steps"]["name"],
-        }
-        if step.get("description"):
-            description = step.get("description")
-            labels_to_update["steps"][description] = {
-                "message": description,
-                "description": METADEPLOY_LABELS["steps"]["descripton"],
-            }
-        update_check_labels(step["task_config"], labels_to_update)
-
-
-def update_check_labels(plan_or_step, labels_to_update):
-    checks = plan_or_step.get("checks", [])
-    updates = [
-        {
-            "message": check.get("message"),
-            "description": METADEPLOY_LABELS["checks"]["message"],
-        }
-        for check in checks
-        if check.get("message")
-    ]
-    for label in updates:
-        msg = label["message"]
-        labels_to_update["checks"][msg] = label
+        labels_to_update["steps"].update(step.get_labels())
+        labels_to_update["checks"].update(step.task_config.get_labels())

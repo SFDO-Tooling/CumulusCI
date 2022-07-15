@@ -403,10 +403,18 @@ class TestPublish(GithubApiTestMixin):
         labels = json.loads(en_labels_path.read_text())
         assert labels == {
             "plan:install": {
+                "post_install_message": {
+                    "message": "",
+                    "description": "shown after successful installation (markdown)",
+                },
+                "preflight_message": {
+                    "message": "",
+                    "description": "shown before user starts installation (markdown)",
+                },
                 "title": {
                     "message": "Test Install",
                     "description": "title of installation plan",
-                }
+                },
             },
             "steps": {
                 "Install {product} {version}": {
@@ -423,6 +431,29 @@ class TestPublish(GithubApiTestMixin):
                 },
             },
             "test": {"title": {}},
+            "checks": {},
+            "product": {
+                "title": {
+                    "message": "Education Data Architecture (EDA)",
+                    "description": "name of product",
+                },
+                "short_description": {
+                    "message": "The Foundation for the Connected Campus",
+                    "description": "tagline of product",
+                },
+                "description": {
+                    "message": "## Welcome to the EDA installer!",
+                    "description": "shown on product detail page (markdown)",
+                },
+                "click_through_agreement": {
+                    "message": "Ladies and Gentlemen of the jury, I'm just a Caveman.",
+                    "description": "legal text shown in modal dialog",
+                },
+                "error_message": {
+                    "message": "",
+                    "description": "shown after failed installation (markdown)",
+                },
+            },
         }
         shutil.rmtree(labels_path)
 
