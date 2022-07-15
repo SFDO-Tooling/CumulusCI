@@ -54,11 +54,8 @@ def flatten_declarations(
     from referenced tables recursively.
     """
     assert schema.includes_counts, "Schema object was not set up with `includes_counts`"
-    merged_declarations = _simplify_sfobject_declarations(declarations, schema)
-    simplified_declarations = [
-        _expand_field_definitions(decl, schema[decl.sf_object].fields)
-        for decl in merged_declarations
-    ]
+    simplified_declarations = _simplify_sfobject_declarations(declarations, schema)
+
     from .calculate_dependencies import extend_declarations_to_include_referenced_tables
 
     simplified_declarations = extend_declarations_to_include_referenced_tables(
@@ -68,21 +65,28 @@ def flatten_declarations(
     return simplified_declarations
 
 
-def _simplify_sfobject_declarations(declarations, schema: Schema):
+def _simplify_sfobject_declarations(
+    declarations, schema: Schema
+) -> T.List[SimplifiedExtractDeclaration]:
     """Generate a new list of declarations such that all sf_object patterns
     (like OBJECTS(CUSTOM)) have been expanded into many declarations
     with specific names and defaults have been merged in."""
-    simple_declarations, group_declarations = partition(
+    atomic_declarations, group_declarations = partition(
         lambda d: d.is_group, declarations
     )
-    simple_declarations = list(simple_declarations)
-    simple_declarations = _normalize_user_supplied_simple_declarations(
-        simple_declarations, DEFAULT_DECLARATIONS
+    atomic_declarations = list(atomic_declarations)
+    normalized_atomic_declarations = _normalize_user_supplied_simple_declarations(
+        atomic_declarations, DEFAULT_DECLARATIONS
     )
-    simple_declarations = _merge_group_declarations_with_simple_declarations(
-        simple_declarations, group_declarations, schema
+    atomized_declarations = _merge_group_declarations_with_simple_declarations(
+        normalized_atomic_declarations, group_declarations, schema
     )
-    return simple_declarations
+    simplifed_declarations = [
+        _expand_field_definitions(decl, schema[decl.sf_object].fields)
+        for decl in atomized_declarations
+        if decl.sf_object in schema.keys()
+    ]
+    return simplifed_declarations
 
 
 def _merge_group_declarations_with_simple_declarations(
@@ -134,7 +138,8 @@ def _expand_group_sobject_declaration(decl: ExtractDeclaration, schema: Schema):
         obj["name"] for obj in schema.sobjects if matches_obj(obj) and obj.count > 1
     ]
     decls = [
-        synthesize_declaration_for_sobject(obj, decl.fields) for obj in matching_objects
+        synthesize_declaration_for_sobject(obj, decl.fields, schema[obj].fields)
+        for obj in matching_objects
     ]
 
     return decls
@@ -203,13 +208,18 @@ def _find_matching_field_declarations(
 
 
 def synthesize_declaration_for_sobject(
-    sf_object: str, fields: list
+    sf_object: str, fields: list, schema_fields: T.Mapping[str, Field]
 ) -> SimplifiedExtractDeclaration:
     """Fake a declaration for an sobject that was mentioned
     indirectly"""
     default = DEFAULT_DECLARATIONS.get(sf_object)
+
     if default:
-        return SimplifiedExtractDeclaration.from_template_and_fields(default, fields)
+        expanded_default = _expand_field_definitions(default, schema_fields)
+        ret = SimplifiedExtractDeclaration.from_template_and_fields(
+            expanded_default, fields
+        )
+        return ret
     else:
         return SimplifiedExtractDeclaration(sf_object=sf_object, fields=fields)
 
