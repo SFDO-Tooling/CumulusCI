@@ -1,7 +1,7 @@
 """MetaDeploy domain models"""
 
 import enum
-from typing import Dict, List, Literal, Mapping, Optional
+from typing import ChainMap, Dict, List, Literal, Mapping, Optional
 
 from pydantic import BaseModel, root_validator, validator
 from pydantic.fields import Field
@@ -22,6 +22,25 @@ def labels_to_field_descriptions(labels: Mapping[str, str]) -> Dict[str, dict]:
     }
 
 
+def labels_for_model(model_type: str, model_instance) -> Dict[str, dict]:
+    return {
+        name: {
+            "message": value,
+            "description": METADEPLOY_LABELS[model_type][name],
+        }
+        for name, value in model_instance
+        if name in METADEPLOY_LABELS[model_type]
+    }
+
+
+class PreflightAction(str, enum.Enum):
+    WARN = "warn"
+    ERROR = "error"
+    SKIP = "skip"
+    OPTIONAL = "optional"
+    HIDE = "hide"
+
+
 class SupportedOrgs(str, enum.Enum):
     BOTH = "Both"
     PERSISTENT = "Persistent"
@@ -40,11 +59,21 @@ class FrozenModel(BaseModel):
 
 class PreflightCheck(BaseModel):
     when: Optional[str] = None
-    action: Optional[str] = None
+    action: Optional[PreflightAction] = None
     message: Optional[str] = None
 
     class Config:
         fields = {"message": {"description": "shown if validation fails"}}
+
+    def get_labels(self) -> dict:
+        if msg := self.message:
+            return {
+                msg: {
+                    "message": msg,
+                    "description": METADEPLOY_LABELS["checks"]["message"],
+                }
+            }
+        return {}
 
 
 class FrozenSpec(FrozenModel):
@@ -56,6 +85,13 @@ class FrozenSpec(FrozenModel):
 class FrozenTaskConfig(FrozenModel):
     options: dict
     checks: List[PreflightCheck] = []
+
+    def get_labels(self):
+        labels = {}
+        if self.checks:
+            check_labels: List[dict] = [check.get_labels() for check in self.checks]
+            labels = dict(ChainMap(*check_labels))
+        return labels
 
 
 class FrozenStep(FrozenModel):
@@ -70,6 +106,26 @@ class FrozenStep(FrozenModel):
     task_class: str
     task_config: FrozenTaskConfig
     url: Optional[AnyUrl] = None
+
+    def get_labels(self) -> dict:
+        # avoid separate labels for installing each package
+        name = (
+            "Install {product} {version}"
+            if INSTALL_VERSION_RE.match(self.name)
+            else self.name
+        )
+        labels = {
+            name: {
+                "message": name,
+                "description": METADEPLOY_LABELS["steps"]["name"],
+            },
+        }
+        if description := self.description:
+            labels[description] = {
+                "message": description,
+                "description": METADEPLOY_LABELS["steps"]["description"],
+            }
+        return labels
 
 
 class PublisherOptions(FrozenModel):
@@ -111,6 +167,9 @@ class Product(MetaDeployModel):
     layout: Optional[Literal["Default", "Card"]]
     visible_to: Optional[str]
     category: Optional[str]
+
+    def get_labels(self) -> Dict[str, dict]:
+        return labels_for_model("product", self)
 
 
 class Slug(MetaDeployModel):
@@ -154,7 +213,7 @@ class MetaDeployPlan(MetaDeployModel):
     tier: Literal["primary", "secondary", "additional"]
     title: str
     url: Optional[AnyUrl] = None
-    version: AnyUrl
+    version: Optional[AnyUrl] = None
     visible_to: Optional[str]
 
     class Config:
@@ -176,3 +235,13 @@ class MetaDeployPlan(MetaDeployModel):
                 frozenset(["devhub", "user"]): SupportedOrgs.BOTH,
             }
             return lookup[frozenset(input)]
+
+    def get_labels(self) -> dict:
+        labels: dict = {f"plan:{self.slug}": labels_for_model("plan", self)}
+
+        if self.preflight_checks:
+            check_labels: List[dict] = [
+                check.get_labels() for check in self.preflight_checks
+            ]
+            labels["checks"] = dict(ChainMap(*check_labels))
+        return labels
