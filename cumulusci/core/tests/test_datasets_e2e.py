@@ -20,7 +20,7 @@ class TestDatasetsE2E:
         # Create a dataset directory and associated files
         dataset.create()
 
-        # Read schema objects and fields into a T.Dict[str, T.List[str]]
+        # Read selected schema objects and fields into a T.Dict[str, T.List[str]]
         # Datastructure like {"Account": ["Name", "Description"]}
         objs = dataset.read_schema_subset()
         for objname, fields in objs.items():
@@ -30,6 +30,11 @@ class TestDatasetsE2E:
         # Save a similar datastructure back to the file system
         objs["Account"].remove("Description")
         dataset.update_schema_subset(objs)
+
+        # Read full schema in a Datastructure like {"Account": {"Name": True, "Description": False}}
+        objs = dataset.read_which_fields_selected()
+        assert objs["Account"]["Name"] is True
+        assert objs["Account"]["Description"] is False
 
         # Run an extract to the filesystem
         dataset.extract()

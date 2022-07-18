@@ -135,6 +135,19 @@ class Dataset:
         flattened = flatten_declarations(list(decls.values()), self.schema)
         return {obj.sf_object: obj.fields for obj in flattened}
 
+    def read_which_fields_selected(self) -> T.Dict[str, T.Dict[str, bool]]:
+        selected = self.read_schema_subset()
+        selected_fields = {
+            (obj, field) for obj, fields in selected.items() for field in fields
+        }
+        out = {}
+        for objname, obj in self.schema.items():
+            objrepr = out.setdefault(objname, {})
+            for field in obj.fields.keys():
+                is_selected = (objname, field) in selected_fields
+                objrepr[field] = is_selected
+        return out
+
     def update_schema_subset(self, objs: T.Dict[str, T.List[str]]):
         # TODO: Test round-tripping through this carefully...especially
         #       for weird objects like WorkBadgeDefinitions
