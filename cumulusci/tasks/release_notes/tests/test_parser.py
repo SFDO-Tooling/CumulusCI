@@ -313,6 +313,12 @@ class TestGithubIssuesParser(GithubApiTestMixin):
         with pytest.raises(GithubApiNotFoundError):
             parser.render()
 
+    def test_init__issues_enabled(self):
+        generator = mock.Mock(has_issues=True)
+        result = GithubIssuesParser(generator, self.title)
+        assert isinstance(result, GithubIssuesParser)
+        assert result.title == self.title
+
     def test_init__issues_disabled(self):
         generator = mock.Mock(has_issues=False)
         result = GithubIssuesParser(generator, self.title)

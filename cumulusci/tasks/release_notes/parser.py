@@ -191,7 +191,7 @@ class GithubIssuesParser(IssuesParser):
             )
             return GithubLinesParser(release_notes_generator, title)
 
-        return super().__new__(cls, release_notes_generator, title, issue_regex)  # type: ignore
+        return super().__new__(cls)
 
     def __init__(self, release_notes_generator, title, issue_regex=None):
         super().__init__(release_notes_generator, title, issue_regex)
