@@ -32,7 +32,7 @@ class VlocityBaseTask(Command, BaseSalesforceTask):
             raise BuildToolMissingError(BUILD_TOOL_MISSING_ERROR)
 
     def _vlocity_build_tool_exists(self) -> bool:
-        command = f"vlocity --json"
+        command = "vlocity --json"
         p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
         p.run(async_=True)
         p.wait()
@@ -58,7 +58,7 @@ class VlocitySimpleJobTask(VlocityBaseTask, ABC):
         username = self.org_config.username
         job_file = self.options.get("job_file")
 
-        command: str = f"{self.command} -job {job_file}"
+        command: str = f"{self.command_keyword} -job {job_file}"
 
         if isinstance(self.org_config, ScratchOrgConfig):
             command = f"{command} -sfdx.username '{username}'"
@@ -72,10 +72,10 @@ class VlocitySimpleJobTask(VlocityBaseTask, ABC):
 class VlocityRetrieveTask(VlocitySimpleJobTask):
     """Runs a `vlocity packExport` command with a given user and job file"""
 
-    command: Final[str] = "packExport"
+    command_keyword: Final[str] = "packExport"
 
 
 class VlocityDeployTask(VlocitySimpleJobTask):
     """Runs a `vlocity packDeploy` command with a given user and job file"""
 
-    command: Final[str] = "packDeploy"
+    command_keyword: Final[str] = "packDeploy"
