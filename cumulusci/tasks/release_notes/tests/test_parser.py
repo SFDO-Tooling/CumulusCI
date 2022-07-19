@@ -317,6 +317,7 @@ class TestGithubIssuesParser(GithubApiTestMixin):
         generator = mock.Mock(has_issues=False)
         result = GithubIssuesParser(generator, self.title)
         assert isinstance(result, GithubLinesParser)
+        assert result.title == self.title
 
     def _create_expected_content(self, issue_numbers, pr_url):
         y = []
