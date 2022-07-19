@@ -184,14 +184,14 @@ class GithubIssuesParser(IssuesParser):
         "prod": "Included in production release",
     }
 
-    def __new__(cls, *args, **kwargs):
-        if not args[0].has_issues:
+    def __new__(cls, release_notes_generator, title, issue_regex=None):
+        if not release_notes_generator.has_issues:
             logging.getLogger(__file__).warn(
                 "Issues are disabled for this repository. Falling back to change notes parser."
             )
-            return super().__new__(GithubLinesParser)
+            return GithubLinesParser(release_notes_generator, title)
 
-        return super().__new__(cls)
+        return super().__new__(cls, release_notes_generator, title, issue_regex)  # type: ignore
 
     def __init__(self, release_notes_generator, title, issue_regex=None):
         super().__init__(release_notes_generator, title, issue_regex)
