@@ -676,6 +676,14 @@ tasks:
         group: NPSP/EDA
         options:
             restore: True
+    vlocity_pack_export:
+        class_path: cumulusci.tasks.vlocity.vlocity.VlocityRetrieveTask
+        description: "Retrieves all OmniStudio components from an org"
+        group: Vlocity
+    vlocity_pack_deploy:
+        class_path: cumulusci.tasks.vlocity.vlocity.VlocityDeployTask
+        description: "Deploys all OmniStudio components from an org"
+        group: Vlocity
 flows:
     ci_beta:
         group: Continuous Integration
