@@ -66,31 +66,47 @@ vlocity_test_cases = [
     (
         scratch_org_config,
         VlocityRetrieveTask,
+        None,
         f"vlocity packExport -job vlocity.yaml -sfdx.username '{username}'",
     ),
     (
         persistent_org_config,
         VlocityRetrieveTask,
+        None,
         f"vlocity packExport -job vlocity.yaml -sf.accesstoken '{access_token}' -sf.instanceUrl '{instance_url}'",
     ),
     (
         scratch_org_config,
         VlocityDeployTask,
+        None,
         f"vlocity packDeploy -job vlocity.yaml -sfdx.username '{username}'",
     ),
     (
         persistent_org_config,
         VlocityDeployTask,
+        None,
         f"vlocity packDeploy -job vlocity.yaml -sf.accesstoken '{access_token}' -sf.instanceUrl '{instance_url}'",
+    ),
+    (
+        persistent_org_config,
+        VlocityDeployTask,
+        "foo=bar",
+        f"vlocity packDeploy -job vlocity.yaml -sf.accesstoken '{access_token}' -sf.instanceUrl '{instance_url}' foo=bar",
     ),
 ]
 
 
-@pytest.mark.parametrize("org_config,task_class,expected_command", vlocity_test_cases)
-def test_vlocity_simple_job(project_config, org_config, task_class, expected_command):
+@pytest.mark.parametrize(
+    "org_config,task_class,extra,expected_command", vlocity_test_cases
+)
+def test_vlocity_simple_job(
+    project_config, org_config, task_class, extra, expected_command
+):
 
     task_config = TaskConfig(
-        config={"options": {"job_file": "vlocity.yaml", "org": org_name}}
+        config={
+            "options": {"job_file": "vlocity.yaml", "org": org_name, "extra": extra}
+        }
     )
     task = task_class(project_config, task_config, org_config)
 
