@@ -8,7 +8,6 @@ import responses
 from cumulusci.core.exceptions import GithubApiNotFoundError
 from cumulusci.core.github import get_github_api
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
-from cumulusci.tasks.release_notes.exceptions import GithubIssuesError
 from cumulusci.tasks.release_notes.generator import GithubReleaseNotesGenerator
 from cumulusci.tasks.release_notes.parser import (
     BaseChangeNotesParser,
@@ -316,8 +315,8 @@ class TestGithubIssuesParser(GithubApiTestMixin):
 
     def test_init__issues_disabled(self):
         generator = mock.Mock(has_issues=False)
-        with pytest.raises(GithubIssuesError):
-            GithubIssuesParser(generator, self.title)
+        result = GithubIssuesParser(generator, self.title)
+        assert isinstance(result, GithubLinesParser)
 
     def _create_expected_content(self, issue_numbers, pr_url):
         y = []
