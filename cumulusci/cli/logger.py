@@ -4,6 +4,7 @@ import os
 import sys
 import tempfile
 
+import click
 import requests
 from rich.logging import RichHandler
 
@@ -30,6 +31,7 @@ def init_logger(debug=False):
             show_level=debug,
             show_path=debug,
             tracebacks_show_locals=debug,
+            tracebacks_suppress=[click],
         )
     )
     logger.setLevel(logging.DEBUG)
