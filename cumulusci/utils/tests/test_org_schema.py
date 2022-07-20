@@ -33,7 +33,7 @@ class FakeSF:
     headers = {}
 
     def describe(self):
-        defaults = {"createable": False, "deletable": True, "deepCloneable": True}
+        defaults = {"createable": True, "deletable": True, "layoutable": True}
 
         def fake_obj_desc(name, **props):
             return {**defaults, **props, "name": name}
@@ -44,7 +44,7 @@ class FakeSF:
             "sobjects": [
                 fake_obj_desc("Account"),
                 fake_obj_desc("Contact"),
-                fake_obj_desc("PermissionSet", deepCloneable=False),
+                fake_obj_desc("PermissionSet", layoutable=False),
                 fake_obj_desc("Campaign"),
                 fake_obj_desc("Case"),
             ],
@@ -63,7 +63,12 @@ def makeFakeCompositeParallelSalesforce(responses):
             pass
 
         def do_composite_requests(self, requests):
-            return responses(), []
+            refIds = set(req["referenceId"] for req in requests)
+            return (
+                response
+                for response in responses()
+                if response["referenceId"] in refIds
+            ), []
 
     return FakeCompositeParallelSalesforce
 
@@ -351,7 +356,7 @@ class TestOrgSchema:
         """Permission Sets are an example of an object considered "not extractable" """
         with mock_return_uncached_responses(self.cassette_data):
             with get_org_schema(
-                FakeSF(), org_config, filters=[Filters.deepCloneable]
+                FakeSF(), org_config, filters=[Filters.layoutable]
             ) as schema:
                 assert "Account" in schema
                 assert "PermissionSet" not in schema
@@ -364,7 +369,7 @@ class TestOrgSchema:
                 assert "PermissionSet" in schema
 
             with get_org_schema(
-                FakeSF(), org_config, filters=[Filters.deepCloneable]
+                FakeSF(), org_config, filters=[Filters.layoutable]
             ) as schema:
                 assert schema.from_cache
                 assert "Account" in schema
