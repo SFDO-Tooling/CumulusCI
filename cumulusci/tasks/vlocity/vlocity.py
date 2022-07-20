@@ -32,11 +32,14 @@ class VlocityBaseTask(Command, BaseSalesforceTask):
             raise BuildToolMissingError(BUILD_TOOL_MISSING_ERROR)
 
     def _vlocity_build_tool_exists(self) -> bool:
-        command = "vlocity --json"
-        p = sarge.Command(command, stdout=sarge.Capture(buffer_size=-1))
-        p.run(async_=True)
-        p.wait()
-        return p.returncode == 0
+        try:
+            p = sarge.Command("vlocity", stdout=sarge.Capture(buffer_size=-1))
+            p.run(async_=True)
+            p.wait()
+        except ValueError:
+            return False
+        else:
+            return True
 
     def _get_command(self) -> str:
         command: str = f"{CLI_KEYWORD} {self.options['command']}"
@@ -55,8 +58,8 @@ class VlocitySimpleJobTask(VlocityBaseTask, ABC):
     }
 
     def _get_command(self) -> str:
-        username = self.org_config.username
-        job_file = self.options.get("job_file")
+        username: str = self.org_config.username
+        job_file: str = self.options.get("job_file")
 
         command: str = f"{self.command_keyword} -job {job_file}"
 
