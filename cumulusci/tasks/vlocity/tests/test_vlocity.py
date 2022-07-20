@@ -38,49 +38,36 @@ persistent_org_config = OrgConfig(
 )
 
 
-def test_vlocity_build_tool_missing(project_config):
-    task_config = TaskConfig(
-        config={"options": {"job_file": "vlocity.yaml", "org": org_name}}
-    )
-    task = VlocityRetrieveTask(project_config, task_config, scratch_org_config)
-
-    with mock.patch(
-        "cumulusci.tasks.vlocity.vlocity.sarge.Command", mock.Mock({"returncode": 1})
-    ):
-        with pytest.raises(BuildToolMissingError, match=BUILD_TOOL_MISSING_ERROR):
-            task._init_task()
-
-
 vlocity_test_cases = [
     (
         scratch_org_config,
         VlocityRetrieveTask,
         None,
-        f"vlocity packExport -job vlocity.yaml -sfdx.username '{username}'",
+        f"vlocity packExport -job vlocity.yaml --json -sfdx.username '{username}'",
     ),
     (
         persistent_org_config,
         VlocityRetrieveTask,
         None,
-        f"vlocity packExport -job vlocity.yaml -sf.accesstoken '{access_token}' -sf.instanceUrl '{instance_url}'",
+        f"vlocity packExport -job vlocity.yaml --json -sf.accessToken '{access_token}' -sf.instanceUrl '{instance_url}'",
     ),
     (
         scratch_org_config,
         VlocityDeployTask,
         None,
-        f"vlocity packDeploy -job vlocity.yaml -sfdx.username '{username}'",
+        f"vlocity packDeploy -job vlocity.yaml --json -sfdx.username '{username}'",
     ),
     (
         persistent_org_config,
         VlocityDeployTask,
         None,
-        f"vlocity packDeploy -job vlocity.yaml -sf.accesstoken '{access_token}' -sf.instanceUrl '{instance_url}'",
+        f"vlocity packDeploy -job vlocity.yaml --json -sf.accessToken '{access_token}' -sf.instanceUrl '{instance_url}'",
     ),
     (
         persistent_org_config,
         VlocityDeployTask,
         "foo=bar",
-        f"vlocity packDeploy -job vlocity.yaml -sf.accesstoken '{access_token}' -sf.instanceUrl '{instance_url}' foo=bar",
+        f"vlocity packDeploy -job vlocity.yaml --json -sf.accessToken '{access_token}' -sf.instanceUrl '{instance_url}' foo=bar",
     ),
 ]
 
@@ -100,3 +87,17 @@ def test_vlocity_simple_job(
     task = task_class(project_config, task_config, org_config)
 
     assert task._get_command() == expected_command
+
+
+def test_vlocity_build_tool_missing(project_config):
+    task_config = TaskConfig(
+        config={"options": {"job_file": "vlocity.yaml", "org": org_name}}
+    )
+    task = VlocityRetrieveTask(project_config, task_config, scratch_org_config)
+
+    with mock.patch(
+        "cumulusci.tasks.vlocity.vlocity.sarge.Command",
+        mock.Mock(side_effect=ValueError),
+    ):
+        with pytest.raises(BuildToolMissingError, match=BUILD_TOOL_MISSING_ERROR):
+            task._init_task()
