@@ -66,7 +66,9 @@ class VlocitySimpleJobTask(VlocityBaseTask, ABC):
         if isinstance(self.org_config, ScratchOrgConfig):
             command = f"{command} -sfdx.username '{username}'"
         else:
-            command = f"{command} -sf.accesstoken '{self.org_config.access_token}' -sf.instanceUrl '{self.org_config.instance_url}'"
+            access_token: str = f"-sf.accessToken '{self.org_config.access_token}'"
+            instance_url: str = f"-sf.instanceUrl '{self.org_config.instance_url}'"
+            command = f"{command} {access_token} {instance_url}"
 
         self.options["command"] = command
         return super()._get_command()
