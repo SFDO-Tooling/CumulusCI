@@ -283,7 +283,10 @@ def service_info(runtime, service_type, service_name, plain):
         service_data = [["Key", "Value"]]
         service_data.extend(
             [
-                [click.style(k, bold=True), str(v)]
+                [
+                    click.style(k, bold=True),
+                    (v[:5] + (len(v[5:]) * "*") if k == "token" else str(v)),
+                ]
                 for k, v in service_config.config.items()
                 if k != "service_name"
             ]
