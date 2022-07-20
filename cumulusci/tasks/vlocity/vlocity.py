@@ -61,7 +61,7 @@ class VlocitySimpleJobTask(VlocityBaseTask, ABC):
         username: str = self.org_config.username
         job_file: str = self.options.get("job_file")
 
-        command: str = f"{self.command_keyword} -job {job_file}"
+        command: str = f"{self.command_keyword} -job {job_file} --json"
 
         if isinstance(self.org_config, ScratchOrgConfig):
             command = f"{command} -sfdx.username '{username}'"
