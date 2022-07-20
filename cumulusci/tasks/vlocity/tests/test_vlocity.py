@@ -12,32 +12,6 @@ from cumulusci.tasks.vlocity.vlocity import (
     VlocityRetrieveTask,
 )
 
-
-def test_vlocity_build_tool_missing(project_config):
-    username = "foo"
-    org_name = "dev"
-    org_config = ScratchOrgConfig(
-        {
-            "instance_url": "https://test.salesforce.com",
-            "username": username,
-            "org_id": "00Dxxxxxxxxxxxx",
-            "password": "test",
-        },
-        org_name,
-        keychain=mock.Mock(),
-    )
-    task_config = TaskConfig(
-        config={"options": {"job_file": "vlocity.yaml", "org": org_name}}
-    )
-    task = VlocityRetrieveTask(project_config, task_config, org_config)
-
-    with mock.patch(
-        "cumulusci.tasks.vlocity.vlocity.sarge.Command", mock.Mock({"returncode": 1})
-    ):
-        with pytest.raises(BuildToolMissingError, match=BUILD_TOOL_MISSING_ERROR):
-            task._init_task()
-
-
 username = "foo"
 org_name = "dev"
 access_token = "foo.bar.baz"
@@ -62,6 +36,21 @@ persistent_org_config = OrgConfig(
     org_name,
     keychain=mock.Mock(),
 )
+
+
+def test_vlocity_build_tool_missing(project_config):
+    task_config = TaskConfig(
+        config={"options": {"job_file": "vlocity.yaml", "org": org_name}}
+    )
+    task = VlocityRetrieveTask(project_config, task_config, scratch_org_config)
+
+    with mock.patch(
+        "cumulusci.tasks.vlocity.vlocity.sarge.Command", mock.Mock({"returncode": 1})
+    ):
+        with pytest.raises(BuildToolMissingError, match=BUILD_TOOL_MISSING_ERROR):
+            task._init_task()
+
+
 vlocity_test_cases = [
     (
         scratch_org_config,
