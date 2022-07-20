@@ -161,6 +161,7 @@ class ServiceAttribute(CCIDictModel):
     required: bool = None
     default_factory: PythonClassPath = None
     default: str = None
+    sensitive: bool = False
 
 
 class Service(CCIDictModel):

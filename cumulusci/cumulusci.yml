@@ -1305,6 +1305,7 @@ services:
             client_secret:
                 description: Client Secret/Consumer Secret from the Connected App
                 required: True
+                sensitive: True
     devhub:
         description: Configure which SFDX org to use as a Dev Hub for creating scratch orgs
         attributes:
@@ -1324,6 +1325,7 @@ services:
                 description: Personal Access Token for GitHub. Leave blank to log in via browser.
                 required: True
                 default_factory: cumulusci.core.github.get_oauth_device_flow_token
+                sensitive: True
         validator: cumulusci.core.github.validate_service
     marketing_cloud:
         description: Configure a connection to a Marketing Cloud instance
@@ -1344,6 +1346,7 @@ services:
             token:
                 description: Your API token to the MetaCI site (get from SITE_URL/api/token)
                 required: True
+                sensitive: True
     metadeploy:
         description: Connect with a MetaDeploy site to publish installers from this repository
         attributes:
@@ -1353,6 +1356,7 @@ services:
             token:
                 description: Your API token to the MetaDeploy site (get from SITE_URL/admin/authtoken/token)
                 required: True
+                sensitive: True
     oauth2_client:
         description: Holds information pertaining to a single OAuth2 client
         attributes:
@@ -1362,6 +1366,7 @@ services:
             client_secret:
                 description: The client secret
                 required: True
+                sensitive: True
             auth_uri:
                 description: The URI for where users are directed to login
                 required: True

@@ -274,32 +274,52 @@ def service_connect():
 @service.command(name="info", help="Show the details of a connected service")
 @click.argument("service_type")
 @click.argument("service_name", required=False)
-@click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
+@click.option("--json", is_flag=True, help="Get JSON output.")
 @pass_runtime(require_project=False, require_keychain=True)
-def service_info(runtime, service_type, service_name, plain):
+def service_info(runtime, service_type, service_name, json):
     try:
-        plain = plain or runtime.universal_config.cli__plain_output
+        console = Console()
         service_config = runtime.keychain.get_service(service_type, service_name)
-        service_data = [["Key", "Value"]]
-        service_data.extend(
-            [
-                [
-                    click.style(k, bold=True),
-                    (v[:5] + (len(v[5:]) * "*") if k == "token" else str(v)),
-                ]
-                for k, v in service_config.config.items()
-                if k != "service_name"
-            ]
-        )
+        if json:
+            console.print(service_config.config)
+            return
+        sensitive_attributes = get_sensitive_service_attributes(runtime, service_type)
+        service_data = get_service_data(service_config, sensitive_attributes)
         default_service = runtime.keychain.get_default_service_name(service_type)
         service_name = default_service if not service_name else service_name
-        service_table = CliTable(service_data, title=f"{service_type}:{service_name}")
-        console = Console()
-        console.print(service_table)
+        console.print(CliTable(service_data, title=f"{service_type}:{service_name}"))
     except ServiceNotConfigured:
         click.echo(
             f"{service_type} is not configured for this project.  Use service connect {service_type} to configure."
         )
+
+
+def get_service_data(service_config, sensitive_attributes) -> list:
+    service_data = [["Key", "Value"]]
+    service_data.extend(
+        [
+            [
+                click.style(k, bold=True),
+                (v[:5] + (len(v[5:]) * "*") if k in sensitive_attributes else str(v)),
+            ]
+            for k, v in service_config.config.items()
+            if k != "service_name"
+        ]
+    )
+    return service_data
+
+
+def get_sensitive_service_attributes(runtime, service_type) -> list:
+    services = (
+        runtime.project_config.services
+        if runtime.project_config
+        else runtime.universal_config.services
+    )
+    try:
+        service_type_attributes = services[service_type]["attributes"]
+        return [k for k, v in service_type_attributes.items() if v.get("sensitive")]
+    except KeyError:
+        return []
 
 
 @service.command(
