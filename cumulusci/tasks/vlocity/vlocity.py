@@ -15,14 +15,11 @@ BUILD_TOOL_MISSING_ERROR = (
 )
 
 
-class VlocityBaseTask(Command, BaseSalesforceTask):
+class VlocityBaseTask(Command, BaseSalesforceTask, ABC):
     """Call the vlocity build tool cli with params"""
 
     task_options: dict = {
-        "command": {
-            "description": "The full command to run with the sfdx cli.",
-            "required": True,
-        },
+        "job_file": {"description": "Filepath to the jobfile", "required": True},
         "extra": {"description": "Any extra arguments to pass to the vlocity CLI"},
     }
 
@@ -42,26 +39,10 @@ class VlocityBaseTask(Command, BaseSalesforceTask):
             return True
 
     def _get_command(self) -> str:
-        command: str = f"{CLI_KEYWORD} {self.options['command']}"
-
-        if extra_options := self.options.get("extra"):
-            command += f" {extra_options}"
-        return command
-
-
-class VlocitySimpleJobTask(VlocityBaseTask, ABC):
-    """Abstract class for working with the `vlocity` CLI tool"""
-
-    task_options: dict = {
-        "job_file": {"description": "Filepath to the jobfile", "required": True},
-        "extra": {"description": "Any extra arguments to pass to the vlocity CLI"},
-    }
-
-    def _get_command(self) -> str:
         username: str = self.org_config.username
         job_file: str = self.options.get("job_file")
 
-        command: str = f"{self.command_keyword} -job {job_file} --json"
+        command: str = f"{CLI_KEYWORD} {self.command_keyword} -job {job_file} --json"
 
         if isinstance(self.org_config, ScratchOrgConfig):
             command = f"{command} -sfdx.username '{username}'"
@@ -70,17 +51,21 @@ class VlocitySimpleJobTask(VlocityBaseTask, ABC):
             instance_url: str = f"-sf.instanceUrl '{self.org_config.instance_url}'"
             command = f"{command} {access_token} {instance_url}"
 
+        if extra_options := self.options["extra"]:
+            command += f" {extra_options}"
+
+        # The Command parent class expects this option to be set
         self.options["command"] = command
         return super()._get_command()
 
 
-class VlocityRetrieveTask(VlocitySimpleJobTask):
+class VlocityRetrieveTask(VlocityBaseTask):
     """Runs a `vlocity packExport` command with a given user and job file"""
 
     command_keyword: Final[str] = "packExport"
 
 
-class VlocityDeployTask(VlocitySimpleJobTask):
+class VlocityDeployTask(VlocityBaseTask):
     """Runs a `vlocity packDeploy` command with a given user and job file"""
 
     command_keyword: Final[str] = "packDeploy"
