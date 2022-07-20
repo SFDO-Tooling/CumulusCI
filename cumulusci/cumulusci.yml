@@ -678,7 +678,7 @@ tasks:
             restore: True
     vlocity_pack_export:
         class_path: cumulusci.tasks.vlocity.vlocity.VlocityRetrieveTask
-        description: "Retrieves rg"
+        description: "Executes the `vlocity packExport` command against an org"
         group: Vlocity
     vlocity_pack_deploy:
         class_path: cumulusci.tasks.vlocity.vlocity.VlocityDeployTask
