@@ -35,7 +35,7 @@ class DataOperationType(Enum):
     SMART_UPSERT = "smart_upsert"  # currently undocumented
 
 
-class DataApi(Enum):
+class DataApi(str, Enum):
     """Enum defining requested Salesforce data API for an operation."""
 
     BULK = "bulk"
