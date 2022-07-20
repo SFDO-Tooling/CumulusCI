@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from typing import Callable, Optional
@@ -271,17 +272,21 @@ def service_connect():
     pass
 
 
-@service.command(name="info", help="Show the details of a connected service")
+@service.command(name="info")
 @click.argument("service_type")
 @click.argument("service_name", required=False)
-@click.option("--json", is_flag=True, help="Get JSON output.")
+@click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_runtime(require_project=False, require_keychain=True)
-def service_info(runtime, service_type, service_name, json):
+def service_info(runtime, service_type, service_name, print_json):
+    """Show the details of a connected service.
+
+    Use --json to include the full value of sensitive attributes, such as a token or secret.
+    """
     try:
         console = Console()
         service_config = runtime.keychain.get_service(service_type, service_name)
-        if json:
-            console.print(service_config.config)
+        if print_json:
+            console.print(json.dumps(service_config.config))
             return
         sensitive_attributes = get_sensitive_service_attributes(runtime, service_type)
         service_data = get_service_data(service_config, sensitive_attributes)
@@ -300,7 +305,11 @@ def get_service_data(service_config, sensitive_attributes) -> list:
         [
             [
                 click.style(k, bold=True),
-                (v[:5] + (len(v[5:]) * "*") if k in sensitive_attributes else str(v)),
+                (
+                    (v[:5] + (len(v[5:]) * "*") if len(v) > 10 else "*" * len(v))
+                    if k in sensitive_attributes
+                    else str(v)
+                ),
             ]
             for k, v in service_config.config.items()
             if k != "service_name"
