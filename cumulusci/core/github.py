@@ -132,9 +132,7 @@ def validate_service(options: dict) -> dict:
         repo_generator = gh.repositories()
         _ = next(repo_generator, None)
         repo_response = repo_generator.last_response
-        options["scopes"] = ", ".join(
-            v for v in sorted(get_oauth_scopes(repo_response))
-        )
+        options["scopes"] = ", ".join(sorted(get_oauth_scopes(repo_response)))
 
         unauthorized_org_ids = get_sso_disabled_orgs(repo_response)
         unauthorized_orgs = {
