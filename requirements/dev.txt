@@ -42,7 +42,7 @@ commonmark==0.9.1
     # via
     #   -c requirements/prod.txt
     #   rich
-coverage[toml]==6.4.1
+coverage[toml]==6.4.2
     # via
     #   -r requirements/dev.in
     #   coveralls
@@ -53,7 +53,7 @@ cryptography==37.0.4
     # via
     #   -c requirements/prod.txt
     #   secretstorage
-distlib==0.3.4
+distlib==0.3.5
     # via virtualenv
 docopt==0.6.2
     # via coveralls
@@ -83,7 +83,7 @@ google-auth==1.35.0
     #   myst
 google-auth-oauthlib==0.5.2
     # via myst
-identify==2.5.1
+identify==2.5.2
     # via pre-commit
 idna==3.3
     # via
@@ -114,7 +114,7 @@ jinja2==2.11.3
     #   -c requirements/prod.txt
     #   myst-parser
     #   sphinx
-jsonschema==4.6.2
+jsonschema==4.7.2
     # via -r requirements/dev.in
 keyring==23.0.1
     # via
@@ -163,7 +163,7 @@ pluggy==1.0.0
     # via
     #   pytest
     #   tox
-pre-commit==2.19.0
+pre-commit==2.20.0
     # via -r requirements/dev.in
 py==1.11.0
     # via
@@ -241,11 +241,11 @@ responses==0.21.0
     # via -r requirements/dev.in
 rfc3986==2.0.0
     # via twine
-rich==12.4.4
+rich==12.5.1
     # via
     #   -c requirements/prod.txt
     #   twine
-rsa==4.8
+rsa==4.9
     # via google-auth
 secretstorage==3.3.2
     # via
@@ -333,7 +333,7 @@ wrapt==1.14.1
     # via vcrpy
 yarl==1.7.2
     # via vcrpy
-zipp==3.8.0
+zipp==3.8.1
     # via
     #   -c requirements/prod.txt
     #   importlib-metadata
