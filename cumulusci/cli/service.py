@@ -8,7 +8,7 @@ from rich.console import Console
 
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import CumulusCIException, ServiceNotConfigured
-from cumulusci.core.utils import import_class, import_global
+from cumulusci.core.utils import import_class, import_global, make_jsonable
 
 from .runtime import pass_runtime
 from .ui import CliTable
@@ -286,7 +286,10 @@ def service_info(runtime, service_type, service_name, print_json):
         console = Console()
         service_config = runtime.keychain.get_service(service_type, service_name)
         if print_json:
-            console.print(json.dumps(service_config.config))
+            print_config = {
+                k: make_jsonable(v) for k, v in service_config.config.items()
+            }
+            console.print(json.dumps(print_config))
             return
         sensitive_attributes = get_sensitive_service_attributes(runtime, service_type)
         service_data = get_service_data(service_config, sensitive_attributes)
