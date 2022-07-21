@@ -2,6 +2,16 @@
 History
 =======
 
+3.61.2 (2022-07-21)
+-------------------
+
+Changes 🎉
+~~~~~~~~~~
+- CumulusCI now supports pinning dependencies on other projects by @davidmreed in (#3270)
+- Add extract declarations concept to CumulusCI by @prescod in (#3285)
+- Make ``delete_data`` task freezable by @jstvz in (#3294)
+- Omnistudio vlocity build tool wrapper tasks ``vlocity_pack_export`` and ``vlocity_pack_deploy`` to support datapack export and deployments  by @Br4nd0R in (#3296)
+
 3.61.1 (2022-07-10)
 -------------------
 
