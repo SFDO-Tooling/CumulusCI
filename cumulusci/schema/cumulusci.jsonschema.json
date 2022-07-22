@@ -467,6 +467,11 @@
                 "default": {
                     "title": "Default",
                     "type": "string"
+                },
+                "sensitive": {
+                    "title": "Sensitive",
+                    "default": false,
+                    "type": "boolean"
                 }
             },
             "additionalProperties": false
