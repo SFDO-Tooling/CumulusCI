@@ -95,7 +95,7 @@ class AddRemoteSiteSettings(BaseMetadataSynthesisTask):
 
     def _create_rss_file(self, filename: str, content: str):
         """Creates an xml file with given name and contents in self.deploy_dir/RemoteSiteSettings/"""
-        rss_dir = Path(f"{self.deploy_dir}/{RSS_DIR_NAME}")
+        rss_dir = self.deploy_dir / RSS_DIR_NAME
         rss_dir.mkdir(exist_ok=True)
 
         filepath = rss_dir / filename
