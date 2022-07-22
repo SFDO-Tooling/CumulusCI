@@ -107,7 +107,7 @@ class OmniStudioDeployRemoteSiteSettings(AddRemoteSiteSettings):
         )
         legacy_visualforce_url: str = self.org_config.instance_url.replace(
             ".my.salesforce.com",
-            f"--omnistudio.vf.force.com",
+            "--omnistudio.vf.force.com",
         )
         lightning_url: str = self.org_config.instance_url.replace(
             ".my.salesforce.com", ".lightning.force.com"
