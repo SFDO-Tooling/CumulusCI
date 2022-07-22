@@ -8,6 +8,10 @@ from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
 from cumulusci.tasks.vlocity.exceptions import BuildToolMissingError
 from cumulusci.tasks.vlocity.vlocity import (
     BUILD_TOOL_MISSING_ERROR,
+    LWC_RSS_NAME,
+    VF_LEGACY_RSS_NAME,
+    VF_RSS_NAME,
+    OmniStudioDeployRemoteSiteSettings,
     VlocityDeployTask,
     VlocityRetrieveTask,
 )
@@ -101,3 +105,23 @@ def test_vlocity_build_tool_missing(project_config):
     ):
         with pytest.raises(BuildToolMissingError, match=BUILD_TOOL_MISSING_ERROR):
             task._init_task()
+
+
+def test_deploy_omni_studio_site_settings(project_config, org_config):
+    org_config = ScratchOrgConfig(
+        {
+            "instance_url": "https://inspiration-velocity-34802-dev-ed.my.salesforce.com/",
+            "instance_name": "CS32",
+            "username": username,
+            "org_id": "00Dxxxxxxxxxxxx",
+            "password": "test",
+        },
+        org_name,
+        keychain=mock.Mock(),
+    )
+    task = OmniStudioDeployRemoteSiteSettings(project_config, TaskConfig(), org_config)
+    records = task._get_options().records
+
+    expected_site_names = set([VF_RSS_NAME, VF_LEGACY_RSS_NAME, LWC_RSS_NAME])
+    actual_site_names = set([r.full_name for r in records])
+    assert expected_site_names == actual_site_names

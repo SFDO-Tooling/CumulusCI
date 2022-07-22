@@ -1,4 +1,5 @@
 from abc import ABC
+from re import A
 from typing import Final
 
 import sarge
@@ -6,6 +7,10 @@ import sarge
 from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.tasks.command import Command
+from cumulusci.tasks.metadata_etl.remote_site_settings import (
+    AddRemoteSiteSettings,
+    RSSOptions,
+)
 from cumulusci.tasks.vlocity.exceptions import BuildToolMissingError
 
 CLI_KEYWORD = "vlocity"
@@ -13,6 +18,9 @@ BUILD_TOOL_MISSING_ERROR = (
     "This task requires the Vlocity Build CLI tool which is not currently installed on this system. "
     "For information on installing this tool visit: https://github.com/vlocityinc/vlocity_build#vlocity-build"
 )
+VF_RSS_NAME = "OmniStudioVisualforce"
+VF_LEGACY_RSS_NAME = "OmniStudioLegacyVisualforce"
+LWC_RSS_NAME = "OmniStudioLightning"
 
 
 class VlocityBaseTask(Command, BaseSalesforceTask):
@@ -84,3 +92,46 @@ class VlocityDeployTask(VlocitySimpleJobTask):
     """Runs a `vlocity packDeploy` command with a given user and job file"""
 
     command_keyword: Final[str] = "packDeploy"
+
+
+class OmniStudioDeployRemoteSiteSettings(AddRemoteSiteSettings):
+    """Deploys remote site settings needed for OmniStudio.
+    This cannot be configured in cumulusci/cumulusci.yml because
+    the values for the 'url' field are dynamic."""
+
+    task_options: dict = {}
+
+    def _get_options(self) -> RSSOptions:
+        visualforce_url: str = self.org_config.instance_url.replace(
+            ".my.salesforce.com",
+            f"--omnistudio.{self.org_config.instance_name}.visual.force.com",
+        )
+        legacy_visualforce_url: str = self.org_config.instance_url.replace(
+            ".my.salesforce.com",
+            f"--omnistudio.vf.force.com",
+        )
+        lightning_url: str = self.org_config.instance_url.replace(
+            ".my.salesforce.com", ".lightning.force.com"
+        )
+
+        self.options = {
+            **self.options,
+            "records": [
+                {
+                    "full_name": VF_RSS_NAME,
+                    "url": visualforce_url,
+                    "is_active": True,
+                },
+                {
+                    "full_name": VF_LEGACY_RSS_NAME,
+                    "url": legacy_visualforce_url,
+                    "is_active": True,
+                },
+                {
+                    "full_name": LWC_RSS_NAME,
+                    "url": lightning_url,
+                    "is_active": True,
+                },
+            ],
+        }
+        return super()._get_options()
