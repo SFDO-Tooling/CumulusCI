@@ -528,6 +528,7 @@
                 },
                 "tier": {
                     "title": "Tier",
+                    "default": "primary",
                     "enum": ["primary", "secondary", "additional"],
                     "type": "string"
                 },
