@@ -1,5 +1,4 @@
 from abc import ABC
-from re import A
 from typing import Final
 
 import sarge
