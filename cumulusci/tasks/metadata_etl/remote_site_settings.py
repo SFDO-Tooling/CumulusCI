@@ -98,6 +98,6 @@ class AddRemoteSiteSettings(BaseMetadataSynthesisTask):
         rss_dir = Path(f"{self.deploy_dir}/{RSS_DIR_NAME}")
         rss_dir.mkdir(exist_ok=True)
 
-        filepath = Path(f"{rss_dir}/{filename}")
+        filepath = rss_dir / filename
         filepath.touch(exist_ok=False)
         filepath.write_text(content, encoding="UTF-8")
