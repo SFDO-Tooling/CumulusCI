@@ -9,15 +9,16 @@ from .synthesize_extract_declarations import (
 )
 
 
-class Dependency(T.NamedTuple):
+class SObjDependency(T.NamedTuple):
     table_name_from: str
     table_name_to: str
     field_name: str
+    priority: bool = False
 
 
 def _calculate_dependencies_for_declarations(
     decls: T.Sequence[SimplifiedExtractDeclaration], schema: Schema
-) -> T.Dict[str, T.List[Dependency]]:
+) -> T.Dict[str, T.List[SObjDependency]]:
     """Ensure that required lookups are fulfilled for list of SimplifiedExtractDeclarations
 
     Do this by adding their referent tables (in full) to the extract.
@@ -25,14 +26,14 @@ def _calculate_dependencies_for_declarations(
     """
     dependencies = {}
     for decl in decls:
-        new_dependencies = _calculate_dependencies_for_sobject(
+        new_dependencies = _collect_dependencies_for_sobject(
             decl.sf_object, decl.fields, schema, only_required_fields=False
         )
         dependencies.update(new_dependencies)
     return dependencies
 
 
-def _calculate_dependencies_for_sobject(
+def _collect_dependencies_for_sobject(
     source_sfobject: str,
     fields: T.List[str],
     schema: Schema,
@@ -57,7 +58,9 @@ def _calculate_dependencies_for_sobject(
             field_allowed = not (only_required_fields or field_disallowed)
             if field_info.requiredOnCreate or field_allowed:
                 dependencies.setdefault(source_sfobject, []).append(
-                    Dependency(source_sfobject, target, field_name)
+                    SObjDependency(
+                        source_sfobject, target, field_name, field_info.requiredOnCreate
+                    )
                 )
 
     return dependencies
@@ -91,7 +94,7 @@ def extend_declarations_to_include_referenced_tables(
                     target_table, required_fields, schema[target_table].fields
                 )
 
-                new_dependencies = _calculate_dependencies_for_sobject(
+                new_dependencies = _collect_dependencies_for_sobject(
                     target_table,
                     decls[target_table].fields,
                     schema,

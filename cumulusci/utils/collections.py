@@ -6,6 +6,10 @@ class OrderedSet(dict):
 
     Use with care, because very few methods are implemented."""
 
+    def __init__(self, other: T.Optional[T.Iterable] = None):
+        if other is not None:
+            self.update(other)
+
     def add(self, item):
         self[item] = item
 
@@ -16,7 +20,12 @@ class OrderedSet(dict):
         return OrderedSet(self)
 
     def update(self, other: T.Iterable):
-        super().update(zip(other, other))
+        super().update((x, x) for x in other)
+
+    def union(self, other: T.Iterable):
+        new = OrderedSet(self)
+        new.update(other)
+        return new
 
 
 # Workaround for Python 3.8

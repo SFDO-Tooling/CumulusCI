@@ -31,7 +31,6 @@ class TestGenerateLoadMappingFromDeclarations:
             mf = create_load_mapping_file_from_extract_declarations(
                 declarations, schema
             )
-            print(mf)
             assert mf == {
                 "Insert Account": {
                     "sf_object": "Account",
@@ -63,7 +62,6 @@ class TestGenerateLoadMappingFromDeclarations:
             mf = create_load_mapping_file_from_extract_declarations(
                 declarations, schema
             )
-            print(mf)
             assert mf == {
                 "Insert Account": {
                     "sf_object": "Account",

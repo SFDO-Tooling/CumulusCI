@@ -2,16 +2,17 @@ import typing as T
 from itertools import chain
 
 from cumulusci.salesforce_api.org_schema import Schema
+from cumulusci.tasks.bulkdata.mapping_parser import MappingStep
 from cumulusci.utils.collections import OrderedSet
 from cumulusci.utils.iterators import partition
 
-from ..extract_dataset_utils.calculate_dependencies import Dependency
+from ..extract_dataset_utils.calculate_dependencies import SObjDependency
 from ..extract_dataset_utils.synthesize_extract_declarations import (
     ExtractDeclaration,
     SimplifiedExtractDeclaration,
     flatten_declarations,
 )
-from .load_mapping_file_generator import OutputSet, generate_load_mapping_file
+from .load_mapping_file_generator import generate_load_mapping_file
 
 
 class SimplifiedExtractDeclarationWithLookups(SimplifiedExtractDeclaration):
@@ -27,12 +28,17 @@ def create_load_mapping_file_from_extract_declarations(
     simplified_decls_w_lookups = classify_and_filter_lookups(simplified_decls, schema)
     intertable_dependencies = _discover_dependendencies(simplified_decls_w_lookups)
 
-    output_sets = [
-        OutputSet(decl.sf_object, None, tuple(chain(decl.fields, decl.lookups.keys())))
-        for decl in simplified_decls_w_lookups
-    ]
+    def _mapping_step(decl):
+        fields = tuple(chain(decl.fields, decl.lookups.keys()))
+        return MappingStep(
+            sf_object=decl.sf_object,
+            fields=zip(fields, fields),
+            # lookups=lookups,      # lookups can be re-created later, for simplicity
+        )
 
-    mappings = generate_load_mapping_file(output_sets, intertable_dependencies, None)
+    mapping_steps = [_mapping_step(decl) for decl in simplified_decls_w_lookups]
+
+    mappings = generate_load_mapping_file(mapping_steps, intertable_dependencies, None)
     return mappings
 
 
@@ -42,7 +48,7 @@ def _discover_dependendencies(simplified_decls: T.Sequence):
     for decl in simplified_decls:
         for fieldname, tablename in decl.lookups.items():
             intertable_dependencies.add(
-                Dependency(decl.sf_object, tablename, fieldname)
+                SObjDependency(decl.sf_object, tablename, fieldname)
             )
     return intertable_dependencies
 
