@@ -10,7 +10,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from pydantic import Field, root_validator
+from pydantic import Field, root_validator, validator
 from pydantic.types import DirectoryPath
 from typing_extensions import Literal, TypedDict
 
@@ -115,7 +115,7 @@ class Git(CCIDictModel):
 class Plan(CCIDictModel):  # MetaDeploy plans
     title: str = None
     description: str = None
-    tier: Literal["primary", "secondary", "additional"] = None
+    tier: Literal["primary", "secondary", "additional"] = "primary"
     slug: str = None
     is_listed: bool = True
     steps: Dict[str, Step] = None
@@ -161,6 +161,7 @@ class ServiceAttribute(CCIDictModel):
     required: bool = None
     default_factory: PythonClassPath = None
     default: str = None
+    sensitive: bool = False
 
 
 class Service(CCIDictModel):
@@ -231,6 +232,16 @@ class CumulusCIRoot(CCIDictModel):
     minimum_cumulusci_version: str = None
     sources: Dict[str, Union[LocalFolderSourceModel, GitHubSourceModel]] = {}
     cli: CumulusCLIConfig = None
+
+    @validator("plans")
+    def validate_plan_tiers(cls, plans):
+        existing_tiers = [plan.tier for plan in plans.values()]
+        has_duplicate_tiers = any(
+            existing_tiers.count(tier) > 1 for tier in ("primary", "secondary")
+        )
+        if has_duplicate_tiers:
+            raise ValueError("Only one plan can be defined as 'primary' or 'secondary'")
+        return plans
 
 
 class CumulusCIFile(CCIDictModel):

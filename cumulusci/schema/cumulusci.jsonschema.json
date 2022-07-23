@@ -467,6 +467,11 @@
                 "default": {
                     "title": "Default",
                     "type": "string"
+                },
+                "sensitive": {
+                    "title": "Sensitive",
+                    "default": false,
+                    "type": "boolean"
                 }
             },
             "additionalProperties": false
@@ -523,6 +528,7 @@
                 },
                 "tier": {
                     "title": "Tier",
+                    "default": "primary",
                     "enum": ["primary", "secondary", "additional"],
                     "type": "string"
                 },
