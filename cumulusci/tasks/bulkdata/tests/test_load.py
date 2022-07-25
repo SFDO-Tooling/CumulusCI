@@ -2193,8 +2193,8 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
             ):
                 task()
 
-    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema", mock.MagicMock())
-    def test_set_viewed(self):
+    @mock.patch("cumulusci.tasks.bulkdata.load.get_org_schema")
+    def test_set_viewed(self, get_org_schema):
         base_path = os.path.dirname(__file__)
         task = _make_task(
             LoadData,
