@@ -25,7 +25,7 @@ class TestAddRemoteSiteSettings:
 
         task = create_task(AddRemoteSiteSettings, {"records": records})
         with TemporaryDirectory() as tempdir:
-            task.deploy_dir = tempdir
+            task.deploy_dir = Path(tempdir)
             task._synthesize()
 
             rss_xml_file = Path(f"{tempdir}/{RSS_DIR_NAME}/{name}.{RSS_FILE_EXTENSION}")
