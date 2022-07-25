@@ -2,6 +2,7 @@
 
 import copy
 import glob
+import json
 import time
 import typing as T
 import warnings
@@ -345,3 +346,18 @@ def format_duration(duration: timedelta):
     minutes = f"{int(minutes)}m:" if (hours or minutes) else ""
     seconds = f"{str(int(seconds))}s"
     return hours + minutes + seconds
+
+
+def make_jsonable(x):
+    """Attempts to json serialize an object.
+    If it is not serializable,
+    returns a list if it's a set
+    or a string representation for anything else.
+    """
+    if isinstance(x, set):
+        return list(x)
+    try:
+        json.dumps(x)
+        return x
+    except (TypeError, OverflowError):
+        return str(x)

@@ -667,7 +667,7 @@ class TestGithub(GithubApiTestMixin):
             "token": "ghp_cf83e1357eefb8bdf1542850d66d8007d620e4",
             "email": "testerson@test.com",
             "Organizations": "",
-            "scopes": {"gist", "repo"},
+            "scopes": "gist, repo",
             "expires": "2021-10-07 19:07:53 UTC",
         }
         assert expected_dict == updated_dict
