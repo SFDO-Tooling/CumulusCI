@@ -5,10 +5,12 @@ import pytest
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.vlocity.exceptions import BuildToolMissingError
 from cumulusci.tasks.vlocity.vlocity import (
     BUILD_TOOL_MISSING_ERROR,
     LWC_RSS_NAME,
+    NO_NAMESPACE_FOUND,
     VF_LEGACY_RSS_NAME,
     VF_RSS_NAME,
     OmniStudioDeployRemoteSiteSettings,
@@ -107,21 +109,43 @@ def test_vlocity_build_tool_missing(project_config):
             task._init_task()
 
 
-def test_deploy_omni_studio_site_settings(project_config, org_config):
-    org_config = ScratchOrgConfig(
-        {
-            "instance_url": "https://inspiration-velocity-34802-dev-ed.my.salesforce.com/",
-            "instance_name": "CS32",
-            "username": username,
-            "org_id": "00Dxxxxxxxxxxxx",
-            "password": "test",
-        },
-        org_name,
-        keychain=mock.Mock(),
+def test_deploy_omni_studio_site_settings(project_config):
+    namespace = "namespace"
+    project_config.project__package__namespace = namespace
+    org_config = mock.Mock(
+        installed_packages=[],
+        instance_url="https://inspiration-velocity-34802-dev-ed.my.salesforce.com/",
+        instance_name="CS28",
     )
+
     task = OmniStudioDeployRemoteSiteSettings(project_config, TaskConfig(), org_config)
-    records = task._get_options().records
+    rss_options = task._get_options()
+    records = rss_options.records
 
     expected_site_names = set([VF_RSS_NAME, VF_LEGACY_RSS_NAME, LWC_RSS_NAME])
     actual_site_names = set([r.full_name for r in records])
     assert expected_site_names == actual_site_names
+
+    expected_urls = set(
+        [
+            "https://inspiration-velocity-34802-dev-ed.lightning.force.com/",
+            f"https://inspiration-velocity-34802-dev-ed--{namespace}.vf.force.com/",
+            f"https://inspiration-velocity-34802-dev-ed--{namespace}.CS28.visual.force.com/",
+        ]
+    )
+    actual_urls = set([r.url for r in records])
+    assert expected_urls == actual_urls
+
+
+def test_deploy_omni_studio_site_settings__no_namespace_defined(
+    project_config, org_config
+):
+    project_config.project__package__namespace = None
+    org_config = mock.Mock(
+        installed_packages=[],
+        instance_url="https://inspiration-velocity-34802-dev-ed.my.salesforce.com/",
+        instance_name="CS28",
+    )
+    task = OmniStudioDeployRemoteSiteSettings(project_config, TaskConfig(), org_config)
+    with pytest.raises(TaskOptionsError, match=NO_NAMESPACE_FOUND):
+        task._get_options()

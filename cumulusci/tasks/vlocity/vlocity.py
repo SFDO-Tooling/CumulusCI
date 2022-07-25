@@ -4,6 +4,7 @@ from typing import Final
 import sarge
 
 from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.tasks.command import Command
 from cumulusci.tasks.metadata_etl.remote_site_settings import (
@@ -20,6 +21,10 @@ BUILD_TOOL_MISSING_ERROR = (
 VF_RSS_NAME = "OmniStudioVisualforce"
 VF_LEGACY_RSS_NAME = "OmniStudioLegacyVisualforce"
 LWC_RSS_NAME = "OmniStudioLightning"
+NO_NAMESPACE_FOUND = (
+    "This task requires a namespace, and one is not currently configured for this project."
+    "Configure a project's namespace in the cumulusci.yml file under project->package->namespace."
+)
 
 
 class VlocityBaseTask(Command, BaseSalesforceTask):
@@ -101,13 +106,17 @@ class OmniStudioDeployRemoteSiteSettings(AddRemoteSiteSettings):
     task_options: dict = {}
 
     def _get_options(self) -> RSSOptions:
+        namespace = self.project_config.project__package__namespace
+        if not namespace:
+            raise TaskOptionsError(NO_NAMESPACE_FOUND)
+
         visualforce_url: str = self.org_config.instance_url.replace(
             ".my.salesforce.com",
-            f"--omnistudio.{self.org_config.instance_name}.visual.force.com",
+            f"--{namespace}.{self.org_config.instance_name}.visual.force.com",
         )
         legacy_visualforce_url: str = self.org_config.instance_url.replace(
             ".my.salesforce.com",
-            "--omnistudio.vf.force.com",
+            f"--{namespace}.vf.force.com",
         )
         lightning_url: str = self.org_config.instance_url.replace(
             ".my.salesforce.com", ".lightning.force.com"
