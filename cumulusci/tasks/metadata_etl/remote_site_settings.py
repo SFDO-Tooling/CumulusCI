@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import List, Optional
 
 import pydantic
@@ -64,9 +63,6 @@ class AddRemoteSiteSettings(BaseMetadataSynthesisTask):
             "required": True,
         },
     }
-
-    def _get_package_xml_content(self, operation):
-        return super()._get_package_xml_content(operation)
 
     def _synthesize(self):
         options: RSSOptions = self._get_options()
