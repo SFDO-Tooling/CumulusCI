@@ -35,36 +35,16 @@ repository. These workflows perform a variety of tasks, such as running
 test suites, performing linting checks on code, and creating code
 coverage reports. CumulusCI can also execute flows in GitHub Actions,
 making it possible to run scratch org builds and execute Apex and Robot
-Framework test passes leveraging the custom automation defined in
+Framework tests that leverage the custom automation defined in
 `cumulusci.yml`.
 
-To learn more about these custom workflows, see our [template
-repository](https://github.com/SFDO-Tooling/CumulusCI-CI-Demo) which is
-configured to run [CumulusCI Flow](cumulusci-flow) using [GitHub Actions(github_actions).
-
-## MetaCI
-
-Salesforce.org Release Engineering also maintains a continuous
-integration system called _MetaCI_. MetaCI is an open source app built
-to run on Heroku, and is designed specifically to work with CumulusCI
-and Salesforce. MetaCI's advantages for CumulusCI-based development
-processes include:
-
--   Easily configuring CumulusCI flows as CI builds.
--   Scaling efficiently up to 100 parallel builds without reserving
-    permanent capacity.
--   Exposing CumulusCI flows through a web UI for users to create
-    scratch orgs.
-
-Setting up MetaCI requires experience working with apps on Heroku and
-CumulusCI. To learn more about MetaCI and how to run it with a project,
-see [MetaCI](https://github.com/SFDO-Tooling/MetaCI).
+We offer a comprehensive framework for using [CumulusCI in GitHub Actions](github-actions).
 
 ## Other CI Systems and Servers
 
-One can run CumulusCI in other CI systems and server environments
-without either logging into the servers nor using a Web front-end (like
-MetaCI) by running [headlessly](headless).
+CumulusCI runs on top of virtually any containerized CI platform.
+Running CumulusCI in these contexts requires configuring environment
+variables to provide access to orgs and services [in a headless context](headless).
 
 ## Testing with Second-Generation Packaging
 
@@ -81,7 +61,7 @@ maxdepth: 1
 ---
 
 cumulusci-flow
+github-actions
 2gp-testing
 headless
-github-actions
 ```
