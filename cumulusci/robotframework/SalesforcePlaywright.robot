@@ -2,7 +2,8 @@
 Documentation
 ...  This resource file contains no keywords, but can be used to import
 ...  the most common libraries used for writing browser tests that use
-...  the robotframework Browser library, based upon Playwright.
+...  the robotframework [https://robotframework-browser.org/|Browser library]
+...  that is based upon [https://playwright.dev|Playwright].
 ...
 ...  Note: when using this library, you cannot also use Salesforce.robot
 ...  or Salesforce.py since those are based on Selenium rather than Playwright.
