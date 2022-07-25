@@ -1,6 +1,12 @@
+import re
+import time
+
 from Browser import SupportedBrowsers
+from Browser.utils.data_types import ElementState
+from robot.utils import timestr_to_secs
 
 from cumulusci.robotframework.base_library import BaseLibrary
+from cumulusci.robotframework.utils import WAIT_FOR_AURA_SCRIPT
 
 
 class SalesforcePlaywright(BaseLibrary):
@@ -24,7 +30,9 @@ class SalesforcePlaywright(BaseLibrary):
         self.browser.close_browser("ALL")
         self.salesforce_api.delete_session_records()
 
-    def open_test_browser(self, size=None, useralias=None, record_video=None):
+    def open_test_browser(
+        self, size=None, useralias=None, record_video=None, wait=True
+    ):
         """Open a new Playwright browser, context, and page to the default org.
 
         The return value is a tuple of the browser id, context id, and page details
@@ -34,11 +42,12 @@ class SalesforcePlaywright(BaseLibrary):
         you can create your own browser environment with the Browser library
         keywords `Create Browser`, `Create Context`, and `Create Page`.
 
-        To record a video of the session, set `record_video` to True. The video
+        To record a video of the session, set ``record_video`` to True. The video
         (*.webm) will be viewable in the log.html file at the point where this
         keyword is logged.
 
-        This keyword automatically calls the browser keyword `Wait until network is idle`.
+        This keyword automatically calls `Wait until Salesforce is ready` unless
+        the ``wait`` parameter is set to false.
         """
 
         default_size = self.builtin.get_variable_value(
@@ -79,6 +88,95 @@ class SalesforcePlaywright(BaseLibrary):
         )
         page_details = self.browser.new_page(login_url)
 
-        self.browser.wait_until_network_is_idle()
-
+        if wait:
+            self.wait_until_salesforce_is_ready()
         return browser_id, context_id, page_details
+
+    def wait_until_salesforce_is_ready(
+        self, locator="div.slds-template__container", timeout="30 seconds", interval=5
+    ):
+        """Waits until we are able to render the initial salesforce landing page
+
+        It will continue to refresh the page until we land on a
+        lightning page or until a timeout has been reached. The
+        timeout can be specified in any time string supported by robot
+        (eg: number of seconds, "3 minutes", etc.). If not specified,
+        the default is 30 seconds.
+
+        This keyword will wait a few seconds between each refresh, as
+        well as wait after each refresh for the page to fully render.
+
+        The keyword will attempt to detect when the browser opens up
+        on a classic page, which seems to happen somewhat randomly. If
+        it detects a classic page, it will attempt to visit the
+        lightning/classic switcher URL and then go to the login
+        screen.
+
+        """
+
+        timeout_seconds = timestr_to_secs(timeout)
+        start_time = time.time()
+        login_url = self.cumulusci.login_url()
+        while True:
+            self.browser.wait_for_function("document.readyState == 'complete'")
+            self.browser.execute_javascript(function=WAIT_FOR_AURA_SCRIPT)
+
+            # Is there a lightning component on the page? If so, consider
+            # the page ready
+            count = self.browser.get_element_count(locator)
+            if count > 0:
+                # we're on a lightning page. Do a final wait
+                # before returning.
+                self.browser.wait_until_network_is_idle()
+                break
+
+            elif time.time() - start_time > timeout_seconds:
+                raise Exception("Timed out waiting for a lightning page")
+
+            if self._check_for_classic():
+                # if _check_for_classic returns True, it found a
+                # classic page and automatically hit the switcher URL
+                # So, we'll go back through the loop and hope for the best.
+                continue
+
+            # not a known edge case; take a deep breath and
+            # try again.
+            time.sleep(interval)
+            self.browser.go_to(login_url)
+
+    def _check_for_classic(self):
+        """Switch to lightning if we land on a classic page
+
+        This seems to happen randomly, causing tests to fail
+        catastrophically. The idea is to detect such a case and
+        auto-click the "switch to lightning" link
+
+        """
+        try:
+            self.browser.wait_for_elements_state(
+                "a.switch-to-lightning", ElementState.visible, timeout="2 seconds"
+            )
+            self.builtin.log(
+                "It appears we are on a classic page; attempting to switch to lightning",
+                "WARN",
+            )
+            switcher_url = (
+                self.cumulusci.org.config["instance_url"]
+                + "/ltng/switcher?destination=lex"
+            )
+            self.browser.go_to(switcher_url)
+            # give salesforce a chance to render
+            self.builtin.sleep("5 seconds")
+            return True
+
+        except AssertionError as e:
+            # unfortunately we can't be more precise with the exception, but
+            # we can pull  out the error from the message string
+            if e.args and re.search(
+                r"TimeoutError.*a\.switch-to-lightning", e.args[0], re.DOTALL
+            ):
+                return False
+            else:
+                raise
+
+        return False

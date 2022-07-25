@@ -1,7 +1,9 @@
 *** Settings ***
 Resource         cumulusci/robotframework/SalesforcePlaywright.robot
 
-Suite Setup      Open test browser
+Suite Setup      Run keywords
+...  Open test browser
+...  AND  Set browser timeout  15 seconds
 Suite Teardown   Delete records and close browser
 
 Force Tags       playwright
