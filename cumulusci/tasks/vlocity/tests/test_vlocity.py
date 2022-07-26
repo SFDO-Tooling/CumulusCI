@@ -10,7 +10,7 @@ from cumulusci.tasks.vlocity.exceptions import BuildToolMissingError
 from cumulusci.tasks.vlocity.vlocity import (
     BUILD_TOOL_MISSING_ERROR,
     LWC_RSS_NAME,
-    NO_NAMESPACE_FOUND,
+    OMNI_NAMESPACE,
     VF_LEGACY_RSS_NAME,
     VF_RSS_NAME,
     OmniStudioDeployRemoteSiteSettings,
@@ -109,9 +109,17 @@ def test_vlocity_build_tool_missing(project_config):
             task._init_task()
 
 
-def test_deploy_omni_studio_site_settings(project_config):
-    namespace = "namespace"
-    project_config.project__package__namespace = namespace
+namespace = "cci"
+test_cases = [
+    (TaskConfig(config={}), OMNI_NAMESPACE),
+    (TaskConfig(config={"options": {"namespace": namespace}}), namespace),
+]
+
+
+@pytest.mark.parametrize("task_config,expected_namespace", test_cases)
+def test_deploy_omni_studio_site_settings(
+    project_config, task_config, expected_namespace
+):
     org_config = mock.Mock(
         installed_packages=[],
         instance_url="https://inspiration-velocity-34802-dev-ed.my.salesforce.com/",
@@ -126,6 +134,65 @@ def test_deploy_omni_studio_site_settings(project_config):
     actual_site_names = set([r.full_name for r in records])
     assert expected_site_names == actual_site_names
 
+    # when no 'namespace' option is specified, we default to the omni studio namespace
+    expected_urls = set(
+        [
+            "https://inspiration-velocity-34802-dev-ed.lightning.force.com/",
+            f"https://inspiration-velocity-34802-dev-ed--{OMNI_NAMESPACE}.vf.force.com/",
+            f"https://inspiration-velocity-34802-dev-ed--{OMNI_NAMESPACE}.CS28.visual.force.com/",
+        ]
+    )
+    actual_urls = set([r.url for r in records])
+    assert expected_urls == actual_urls
+
+
+def test_deploy_omni_studio_site_settings(project_config):
+    org_config = mock.Mock(
+        installed_packages=[],
+        instance_url="https://inspiration-velocity-34802-dev-ed.my.salesforce.com/",
+        instance_name="CS28",
+    )
+
+    task = OmniStudioDeployRemoteSiteSettings(project_config, TaskConfig(), org_config)
+    rss_options = task._get_options()
+    records = rss_options.records
+
+    expected_site_names = set([VF_RSS_NAME, VF_LEGACY_RSS_NAME, LWC_RSS_NAME])
+    actual_site_names = set([r.full_name for r in records])
+    assert expected_site_names == actual_site_names
+
+    # when no 'namespace' option is specified, we default to the omni studio namespace
+    expected_urls = set(
+        [
+            "https://inspiration-velocity-34802-dev-ed.lightning.force.com/",
+            f"https://inspiration-velocity-34802-dev-ed--{OMNI_NAMESPACE}.vf.force.com/",
+            f"https://inspiration-velocity-34802-dev-ed--{OMNI_NAMESPACE}.CS28.visual.force.com/",
+        ]
+    )
+    actual_urls = set([r.url for r in records])
+    assert expected_urls == actual_urls
+
+
+def test_deploy_omni_studio_site_settings__different_namespace(
+    project_config, org_config
+):
+    org_config = mock.Mock(
+        installed_packages=[],
+        instance_url="https://inspiration-velocity-34802-dev-ed.my.salesforce.com/",
+        instance_name="CS28",
+    )
+    namespace = "cci"
+    task_config = TaskConfig(config={"options": {"namespace": namespace}})
+    task = OmniStudioDeployRemoteSiteSettings(project_config, task_config, org_config)
+
+    rss_options = task._get_options()
+    records = rss_options.records
+
+    expected_site_names = set([VF_RSS_NAME, VF_LEGACY_RSS_NAME, LWC_RSS_NAME])
+    actual_site_names = set([r.full_name for r in records])
+    assert expected_site_names == actual_site_names
+
+    # when no 'namespace' option is specified, we default to the omni studio namespace
     expected_urls = set(
         [
             "https://inspiration-velocity-34802-dev-ed.lightning.force.com/",
@@ -135,17 +202,3 @@ def test_deploy_omni_studio_site_settings(project_config):
     )
     actual_urls = set([r.url for r in records])
     assert expected_urls == actual_urls
-
-
-def test_deploy_omni_studio_site_settings__no_namespace_defined(
-    project_config, org_config
-):
-    project_config.project__package__namespace = None
-    org_config = mock.Mock(
-        installed_packages=[],
-        instance_url="https://inspiration-velocity-34802-dev-ed.my.salesforce.com/",
-        instance_name="CS28",
-    )
-    task = OmniStudioDeployRemoteSiteSettings(project_config, TaskConfig(), org_config)
-    with pytest.raises(TaskOptionsError, match=NO_NAMESPACE_FOUND):
-        task._get_options()

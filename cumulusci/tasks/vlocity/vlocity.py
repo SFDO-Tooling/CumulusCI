@@ -21,10 +21,7 @@ BUILD_TOOL_MISSING_ERROR = (
 VF_RSS_NAME = "OmniStudioVisualforce"
 VF_LEGACY_RSS_NAME = "OmniStudioLegacyVisualforce"
 LWC_RSS_NAME = "OmniStudioLightning"
-NO_NAMESPACE_FOUND = (
-    "This task requires a namespace, and one is not currently configured for this project."
-    "Configure a project's namespace in the cumulusci.yml file under project->package->namespace."
-)
+OMNI_NAMESPACE = "omnistudio"
 
 
 class VlocityBaseTask(Command, BaseSalesforceTask):
@@ -103,12 +100,14 @@ class OmniStudioDeployRemoteSiteSettings(AddRemoteSiteSettings):
     This cannot be configured in cumulusci/cumulusci.yml because
     the values for the 'url' field are dynamic."""
 
-    task_options: dict = {}
+    task_options: dict = {
+        "namespace": {
+            "description": "The namespace to inject into RemoteSiteSettings.url values. Defaults to '{OMNI_NAMESPACE}'."
+        }
+    }
 
     def _get_options(self) -> RSSOptions:
-        namespace = self.project_config.project__package__namespace
-        if not namespace:
-            raise TaskOptionsError(NO_NAMESPACE_FOUND)
+        namespace = self.options.get("namespace") or OMNI_NAMESPACE
 
         visualforce_url: str = self.org_config.instance_url.replace(
             ".my.salesforce.com",
