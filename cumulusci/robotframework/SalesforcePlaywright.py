@@ -129,15 +129,17 @@ class SalesforcePlaywright(BaseLibrary):
 
             # Is there a lightning component on the page? If so, consider
             # the page ready
-            count = self.browser.get_element_count(locator)
-            if count > 0:
-                # we're on a lightning page. Do a final wait
-                # before returning.
+            try:
+                self.browser.get_element(locator)
                 self.browser.wait_until_network_is_idle()
                 break
 
-            elif time.time() - start_time > timeout_seconds:
-                raise Exception("Timed out waiting for a lightning page")
+            except Exception as e:
+                self.builtin.log(
+                    "caught exception while waiting: {}".format(str(e)), "DEBUG"
+                )
+                if time.time() - start_time > timeout_seconds:
+                    raise Exception("Timed out waiting for a lightning page")
 
             if self._check_for_classic():
                 # if _check_for_classic returns True, it found a
