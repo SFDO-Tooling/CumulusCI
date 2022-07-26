@@ -86,7 +86,12 @@ class SalesforcePlaywright(BaseLibrary):
         context_id = self.browser.new_context(
             viewport={"width": width, "height": height}, recordVideo=record_video
         )
-        page_details = self.browser.new_page(login_url)
+        # this seems to fail randomly even with longer than average
+        # timeouts. Simply trying again seems to make tests more stable.
+        try:
+            page_details = self.browser.new_page(login_url)
+        except Exception:
+            page_details = self.browser.new_page(login_url)
 
         if wait:
             self.wait_until_salesforce_is_ready()
@@ -117,6 +122,7 @@ class SalesforcePlaywright(BaseLibrary):
         timeout_seconds = timestr_to_secs(timeout)
         start_time = time.time()
         login_url = self.cumulusci.login_url()
+
         while True:
             self.browser.wait_for_function("document.readyState == 'complete'")
             self.browser.execute_javascript(function=WAIT_FOR_AURA_SCRIPT)
