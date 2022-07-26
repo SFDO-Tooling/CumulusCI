@@ -35,7 +35,7 @@ from cumulusci.core.github import (
 from cumulusci.core.source import GitHubSource, LocalFolderSource, NullSource
 from cumulusci.core.utils import merge_config
 from cumulusci.utils.fileutils import open_fs_resource
-from cumulusci.utils.git import current_branch, git_path, split_repo_url
+from cumulusci.utils.git import current_branch, git_path, parse_repo_url, split_repo_url
 from cumulusci.utils.yaml.cumulusci_yml import (
     GitHubSourceModel,
     LocalFolderSourceModel,
@@ -296,6 +296,20 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         for path in paths:
             if (path / ".git").is_dir():
                 return str(path)
+
+    @property
+    def repo_domain(self):
+        domain = self.repo_info.get("domain")
+
+        if domain:
+            return domain
+
+        if not self.repo_root:
+            return
+
+        url_line = self.git_config_remote_origin_url()
+        if url_line:
+            return parse_repo_url(url_line)[2]
 
     @property
     def repo_name(self):

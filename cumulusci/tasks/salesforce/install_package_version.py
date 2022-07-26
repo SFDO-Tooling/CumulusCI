@@ -91,7 +91,7 @@ class InstallPackageVersion(BaseSalesforceApiTask):
             ]
 
         dependency = None
-        github = f"https://github.com/{self.project_config.repo_owner}/{self.project_config.repo_name}"
+        github = f"https://{self.project_config.repo_domain}/{self.project_config.repo_owner}/{self.project_config.repo_name}"
 
         if version in ["latest", "latest_beta"]:
             strategy = "include_beta" if version == "latest_beta" else "production"

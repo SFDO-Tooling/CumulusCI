@@ -117,8 +117,8 @@ def get_github_api_for_repo(keychain, repo_url, session=None):
     elif GITHUB_TOKEN:
         gh.login(token=GITHUB_TOKEN)
     else:
-        username, token = get_auth_from_service(host, keychain)
-        gh.login(username, token)
+        token = get_auth_from_service(host, keychain)
+        gh.login(token=token)
 
     return gh
 
@@ -134,7 +134,7 @@ def get_auth_from_service(host, keychain) -> tuple:
         services = keychain.get_services_for_type("github_enterprise")
         service_by_host = {service.repo_domain: service for service in services}
 
-        # Check when connecting to server, but not with verification
+        # Check when connecting to server, but not when creating new service as this would always catch
         if list(service_by_host.keys()).count(host) == 0:
             raise ServiceNotConfigured(
                 f"No Github Enterprise service configured for domain {host}."
@@ -142,8 +142,10 @@ def get_auth_from_service(host, keychain) -> tuple:
 
         service_config = service_by_host[host]
 
-    token = service_config.password or service_config.token
-    return service_config.username, token
+    # Basic Auth no longer supported on github.com, so only returnign token
+    # this essentials requires GitHub Enterprise to use token auth and not simple auth
+    # docs.github.com/en/rest/overview/other-authentication-methods#via-username-and-password
+    return service_config.token
 
 
 def validate_gh_enterprise(host: str, keychain) -> None:
