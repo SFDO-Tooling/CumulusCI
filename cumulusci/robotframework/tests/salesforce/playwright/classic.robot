@@ -12,7 +12,7 @@ Switch to classic
     ...  Go to  ${org}[instance_url]/ltng/switcher?destination=classic
 
 Configure browser and test listener
-    Open test browser
+    Open test browser  wait=False
     Switch to classic
     Close browser
     Reset test listener keyword log
