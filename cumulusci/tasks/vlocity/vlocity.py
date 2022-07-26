@@ -4,7 +4,6 @@ from typing import Final
 import sarge
 
 from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
-from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.tasks.command import Command
 from cumulusci.tasks.metadata_etl.remote_site_settings import (

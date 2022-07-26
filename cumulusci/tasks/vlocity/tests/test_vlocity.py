@@ -5,7 +5,6 @@ import pytest
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
-from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.vlocity.exceptions import BuildToolMissingError
 from cumulusci.tasks.vlocity.vlocity import (
     BUILD_TOOL_MISSING_ERROR,
