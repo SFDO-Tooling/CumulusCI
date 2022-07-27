@@ -59,7 +59,18 @@ def split_repo_url(url: str) -> Tuple[str, str]:
 
 
 def parse_repo_url(url: str) -> Tuple[str, str, str]:
-    """Built to handle multiple formats ["https://github.com/owner/repo/","https://github.com/owner/repo.git","git@github.com:owner/repo.git", "https://api.github.com/repos/owner/repo_name/"]"""
+    """Parses a given Github URI into Owner, Repo Name, and Host)
+
+    Parameters
+    ----------
+    url: str
+        A github URI. Examples: ["https://github.com/owner/repo/","https://github.com/owner/repo.git","git@github.com:owner/repo.git", "https://api.github.com/repos/owner/repo_name/"]
+
+    Returns
+    -------
+    Tuple: (str, str, str)
+        Returns (owner, name, host)
+    """
     url_parts = re.split("/|@|:", url.rstrip("/"))
 
     name = url_parts[-1]
