@@ -298,7 +298,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                 return str(path)
 
     @property
-    def repo_domain(self):
+    def repo_domain(self) -> Optional[str]:
         domain = self.repo_info.get("domain")
 
         if domain:
