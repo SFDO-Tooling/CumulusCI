@@ -8,7 +8,7 @@ from distutils.version import LooseVersion
 from io import StringIO
 from itertools import chain
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 from cumulusci.core.config.base_config import BaseConfig
 from cumulusci.core.versions import PackageVersionNumber

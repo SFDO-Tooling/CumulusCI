@@ -74,7 +74,7 @@ INSTALLATIONS = {}
 
 def _determine_github_client(host: str, client_params: dict) -> GitHub:
     # also covers "api.github.com"
-    is_github: bool = host is None or "github.com" in host
+    is_github: bool = host is None or host == "None" or "github.com" in host
     client_cls: GitHub = GitHub if is_github else GitHubEnterprise  # type: ignore
     params: dict = client_params
     if not is_github:
@@ -84,7 +84,6 @@ def _determine_github_client(host: str, client_params: dict) -> GitHub:
 
 
 def get_github_api_for_repo(keychain, repo_url, session=None):
-
     owner, repo_name, host = parse_repo_url(repo_url)
     gh: GitHub = _determine_github_client(
         host,
@@ -128,7 +127,7 @@ def get_auth_from_service(host, keychain) -> tuple:
     Given a host extracted from a repo_url, returns the username and token for
     the first service with a matching repo_domain
     """
-    if "github.com" in host:
+    if host is None or host == "None" or "github.com" in host:
         service_config = keychain.get_service("github")
     else:
         services = keychain.get_services_for_type("github_enterprise")

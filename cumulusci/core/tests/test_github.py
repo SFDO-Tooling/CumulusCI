@@ -188,7 +188,7 @@ class TestGithub(GithubApiTestMixin):
             keychain_enterprise, "https://git.enterprise.domain.com/TestOwner/TestRepo/"
         )
 
-        gh.login.assert_called_once_with("testusername", "ATOKEN")
+        gh.login.assert_called_once_with(token="ATOKEN")
 
     @responses.activate
     def test_validate_service(self, keychain_enterprise):
@@ -234,11 +234,9 @@ class TestGithub(GithubApiTestMixin):
                 }
             ),
         )
-        assert get_auth_from_service(
-            "git.enterprise.domain.com", keychain_enterprise
-        ) == (
-            "testusername",
-            "ATOKEN",
+        assert (
+            get_auth_from_service("git.enterprise.domain.com", keychain_enterprise)
+            == "ATOKEN"
         )
 
         with pytest.raises(
