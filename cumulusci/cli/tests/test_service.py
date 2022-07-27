@@ -4,6 +4,7 @@ from unittest import mock
 import click
 import pytest
 
+from cumulusci.cli.service import get_sensitive_service_attributes, get_service_data
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.runtime import BaseCumulusCI
 from cumulusci.core.tests.utils import EnvironmentVarGuard
@@ -337,20 +338,97 @@ def test_service_connect__connected_app__with_cli_options():
 
 
 def test_service_info():
-    runtime = BaseCumulusCI(config={"services": {"test": {"attributes": {}}}})
-    runtime.keychain.set_service("test", "test-alias", ServiceConfig({"x": 1}))
+    runtime = BaseCumulusCI(
+        config={
+            "services": {
+                "test": {
+                    "attributes": {
+                        "sensitive_attr": {"sensitive": True},
+                        "non_sensitive_attr": {},
+                    }
+                }
+            }
+        }
+    )
+    runtime.keychain.set_service(
+        "test",
+        "test-alias",
+        ServiceConfig({"sensitive_attr": "abcdefgh", "non_sensitive_attr": 1}),
+    )
 
     result = run_cli_command("service", "info", "test", "test-alias", runtime=runtime)
     assert (
         result.output
-        == """  test:test-alias  
-                   
-  Key       Value  
- ───────────────── 
-  \x1b[1mx\x1b[0m   1      
-                   
+        == """            test:test-alias            
+                                       
+  Key                        Value     
+ ───────────────────────────────────── 
+  \x1b[1msensitive_attr\x1b[0m       ********  
+  \x1b[1mnon_sensitive_attr\x1b[0m   1         
+                                       
 """  # noqa: W291,W293
     )
+
+
+def test_service_info_json():
+    runtime = BaseCumulusCI(
+        config={
+            "services": {
+                "test": {
+                    "attributes": {
+                        "sensitive_attr": {"sensitive": True},
+                        "non_sensitive_attr": {},
+                    }
+                }
+            }
+        }
+    )
+    runtime.keychain.set_service(
+        "test",
+        "test-alias",
+        ServiceConfig({"sensitive_attr": "abcdefgh", "non_sensitive_attr": True}),
+    )
+    result = run_cli_command(
+        "service", "info", "test", "test-alias", "--json", runtime=runtime
+    )
+
+    assert (
+        result.output == '{"sensitive_attr": "abcdefgh", "non_sensitive_attr": true}\n'
+    )  # noqa: W291,W293
+
+
+def test_get_service_data():
+    service_config = ServiceConfig(
+        {
+            "sensitive_attr": "abcdef",
+            "other_secret": "abcdefghijk",
+            "non_sensitive_attr": "hellothere",
+        }
+    )
+    result = get_service_data(service_config, ["sensitive_attr", "other_secret"])
+    assert result == [
+        ["Key", "Value"],
+        ["\x1b[1msensitive_attr\x1b[0m", "******"],
+        ["\x1b[1mother_secret\x1b[0m", "abcde******"],
+        ["\x1b[1mnon_sensitive_attr\x1b[0m", "hellothere"],
+    ]
+
+
+def test_get_sensitive_service_attributes():
+    runtime = BaseCumulusCI(
+        config={
+            "services": {
+                "universal_test": {
+                    "attributes": {
+                        "sensitive_attr": {"sensitive": True},
+                        "non_sensitive_attr": {},
+                    }
+                }
+            }
+        }
+    )
+    result = get_sensitive_service_attributes(runtime, "universal_test")
+    assert result == ["sensitive_attr"]
 
 
 def test_service_info_not_configured():
