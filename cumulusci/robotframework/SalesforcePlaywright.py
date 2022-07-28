@@ -1,9 +1,10 @@
 from Browser import SupportedBrowsers
 
 from cumulusci.robotframework.base_library import BaseLibrary
+from cumulusci.robotframework.faker_mixin import FakerMixin
 
 
-class SalesforcePlaywright(BaseLibrary):
+class SalesforcePlaywright(FakerMixin, BaseLibrary):
     ROBOT_LIBRARY_SCOPE = "Suite"
 
     def __init__(self):
