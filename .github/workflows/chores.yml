@@ -16,7 +16,7 @@ jobs:
               with:
                   ref: main
             - name: Set up Python
-              uses: actions/setup-python@v2
+              uses: actions/setup-python@v4
             - name: Get Dev Hub API Version
               id: devhub-api-version
               env:

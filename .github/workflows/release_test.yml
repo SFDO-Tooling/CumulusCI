@@ -42,8 +42,8 @@ jobs:
               uses: actions/setup-python@v1
               with:
                   python-version: 3.8
-                  # cache pip
-                  # cache-dependency-path: "requirements/*.txt"
+                  cache: pip
+                  cache-dependency-path: "requirements/*.txt"
             - name: Install Python dependencies
               run: pip install -r requirements_dev.txt
             - name: Install sfdx
