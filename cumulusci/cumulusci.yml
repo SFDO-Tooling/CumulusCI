@@ -45,6 +45,10 @@ tasks:
         group: Metadata Transformations
         description: "Adds the specified 'Record' context Lightning button/action to the provided page layout."
         class_path: cumulusci.tasks.metadata_etl.layouts.AddRecordPlatformActionListItem
+    add_remote_site_settings:
+        group: Metadata Transformations
+        description: "Adds the specified RemoteSiteSettings records to an org."
+        class_path: cumulusci.tasks.metadata_etl.remote_site_settings.AddRemoteSiteSettings
     assign_compact_layout:
         group: Metadata Transformations
         description: "Assigns the Compact Layout specified in the 'value' option to the Custom Objects in 'api_names' option."
@@ -221,6 +225,10 @@ tasks:
         class_path: cumulusci.tasks.marketing_cloud.api.UpdateUserRole
         description: Assigns a Role to an existing User via the Marketing Cloud SOAP API.
         group: Marketing Cloud
+    deploy_omni_studio_site_settings:
+        class_path: cumulusci.tasks.vlocity.vlocity.OmniStudioDeployRemoteSiteSettings
+        description: Deploys remote site settings needed for OmniStudio.
+        group: OmniStudio
     deploy_pre:
         description: Deploys all metadata bundles under unpackaged/pre/
         class_path: cumulusci.tasks.salesforce.DeployBundles
@@ -679,11 +687,11 @@ tasks:
     vlocity_pack_export:
         class_path: cumulusci.tasks.vlocity.vlocity.VlocityRetrieveTask
         description: "Executes the `vlocity packExport` command against an org"
-        group: Vlocity
+        group: OmniStudio
     vlocity_pack_deploy:
         class_path: cumulusci.tasks.vlocity.vlocity.VlocityDeployTask
         description: "Executes the `vlocity packDeploy` command against an org"
-        group: Vlocity
+        group: OmniStudio
 flows:
     ci_beta:
         group: Continuous Integration
