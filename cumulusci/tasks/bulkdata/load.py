@@ -157,16 +157,21 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if self.options["set_recently_viewed"]:
             try:
                 self.logger.info("Setting records to 'recently viewed'.")
-                self._set_viewed()
+                set_recently_viewed = self._set_viewed()
             except Exception as e:
                 self.logger.warning(f"Could not set recently viewed because {e}")
+                set_recently_viewed = [SetRecentlyViewedInfo("ALL", e)]
+        else:
+            set_recently_viewed = False
 
         self.return_values = {
             "step_results": {
                 step_name: result_info.simplify()
                 for step_name, result_info in results.items()
-            }
+            },
         }
+        if set_recently_viewed is not False:
+            self.return_values["set_recently_viewed"] = set_recently_viewed
 
     def _execute_step(
         self, mapping: MappingStep
@@ -683,10 +688,11 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 # Join maps together to get tuple (Contact ID, Contact SF ID) to insert into step's ID Table.
                 yield (contact_id, contact_sf_id)
 
-    def _set_viewed(self):
+    def _set_viewed(self) -> T.List["SetRecentlyViewedInfo"]:
         """Set items as recently viewed. Filter out custom objects without custom tabs."""
         object_names = set()
         custom_objects = set()
+        results = []
 
         # Separate standard and custom objects
         for mapping in self.mapping.values():
@@ -718,10 +724,13 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                         self.sf.query_all(
                             f"SELECT Id FROM {mapped_item} ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW"
                         )
+                        results.append(SetRecentlyViewedInfo(mapped_item, None))
                     except Exception as e:
                         self.logger.warning(
                             f"Cannot set recently viewed status for {mapped_item}. Error: {e}"
                         )
+                        results.append(SetRecentlyViewedInfo(mapped_item, e))
+        return results
 
 
 class StepResultInfo(T.NamedTuple):
@@ -737,3 +746,10 @@ class StepResultInfo(T.NamedTuple):
             "record_type": self.record_type,
             **self.result.simplify(),
         }
+
+
+class SetRecentlyViewedInfo(T.NamedTuple):
+    """Did the set recently succeed or fail?"""
+
+    sobject: str
+    error: T.Optional[Exception]

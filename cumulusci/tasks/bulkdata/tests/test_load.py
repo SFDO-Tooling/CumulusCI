@@ -15,6 +15,7 @@ import responses
 from sqlalchemy import Column, Table, Unicode, create_engine
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
+from cumulusci.salesforce_api.org_schema import get_org_schema
 from cumulusci.tasks.bulkdata import LoadData
 from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 from cumulusci.tasks.bulkdata.step import (
@@ -2227,6 +2228,13 @@ FROM accounts LEFT OUTER JOIN accounts_sf_ids AS accounts_sf_ids_1 ON accounts_s
 
         task._set_viewed()
 
+        get_org_schema.assert_called_with(
+            task.sf,
+            task.org_config,
+            included_objects={"Account", "Custom__c"},
+            force_recache=mock.ANY,
+        )
+
         assert queries == [
             "SELECT SObjectName FROM TabDefinition WHERE IsCustom = true AND SObjectName IN ('Custom__c')",
             "SELECT Id FROM Account ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW",
@@ -2417,6 +2425,29 @@ class TestLoadDataIntegrationTests:
             )
             task()
             assert counts == {"Account": [10000], "Contact": [1]}
+
+    @pytest.mark.needs_org()
+    def test_recreate_set_recent_bug(
+        self, sf, create_task, cumulusci_test_repo_root, org_config
+    ):
+        with get_org_schema(sf, org_config, included_objects=["Account"]):
+            pass
+
+        task = create_task(
+            LoadData,
+            {
+                "sql_path": cumulusci_test_repo_root / "datasets/sample.sql",
+                "mapping": cumulusci_test_repo_root / "datasets/mapping.yml",
+                "ignore_row_errors": True,
+            },
+        )
+        task.logger = mock.Mock()
+        results = task()
+        assert results["set_recently_viewed"] == [
+            ("Account", None),
+            ("Contact", None),
+            ("Opportunity", None),
+        ]
 
 
 def _validate_query_for_mapping_step(sql_path, mapping, mapping_step_name, expected):
