@@ -185,6 +185,9 @@ class BaseMetadataSynthesisTask(BaseMetadataETLTask, metaclass=ABCMeta):
         generator = PackageXmlGenerator(str(self.deploy_dir), self.api_version)
         return generator()
 
+    def _get_package_xml_content(self, operation) -> str:
+        return ""
+
     def _transform(self):
         self._synthesize()
 
