@@ -716,7 +716,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                     f"Cannot get the list of custom tabs to set recently viewed status on them. Error: {e}"
                 )
         with get_org_schema(
-            self.sf, self.org_config, included_objects=object_names
+            self.sf, self.org_config, included_objects=object_names, force_recache=True
         ) as org_schema:
             for mapped_item in sorted(object_names):
                 if org_schema[mapped_item].mruEnabled:
