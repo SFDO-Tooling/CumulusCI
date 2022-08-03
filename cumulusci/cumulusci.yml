@@ -1350,6 +1350,7 @@ services:
             token:
                 description: Personal Access Token
                 required: True
+                sensitive: True
         validator: cumulusci.core.github.validate_service
     marketing_cloud:
         description: Configure a connection to a Marketing Cloud instance
