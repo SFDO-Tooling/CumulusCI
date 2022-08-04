@@ -59,7 +59,7 @@ def split_repo_url(url: str) -> Tuple[str, str]:
 
 
 def parse_repo_url(url: str) -> Tuple[str, str, str]:
-    """Parses a given Github URI into Owner, Repo Name, and Host)
+    """Parses a given Github URI into Owner, Repo Name, and Host
 
     Parameters
     ----------
