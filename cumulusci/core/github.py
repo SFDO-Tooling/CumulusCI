@@ -74,7 +74,7 @@ INSTALLATIONS = {}
 
 def _determine_github_client(host: str, client_params: dict) -> GitHub:
     # also covers "api.github.com"
-    is_github: bool = host is None or host == "None" or "github.com" in host
+    is_github: bool = host in (None, "None") or "github.com" in host
     client_cls: GitHub = GitHub if is_github else GitHubEnterprise  # type: ignore
     params: dict = client_params
     if not is_github:
