@@ -142,7 +142,7 @@ def get_auth_from_service(host, keychain) -> tuple:
         service_config = service_by_host[host]
 
     # Basic Auth no longer supported on github.com, so only returning token
-    # this essentials requires GitHub Enterprise to use token auth and not simple auth
+    # this requires GitHub Enterprise to use token auth and not Basic auth
     # docs.github.com/en/rest/overview/other-authentication-methods#via-username-and-password
     return service_config.token
 
