@@ -1,5 +1,117 @@
 # History
 
+## 3.63.0 (2022-08-04)
+
+Changes 🎉
+
+-   CumulusCI can now validate MetaDeploy plans in cumulusci.yml by @jstvz in (#3298)
+-   Sensitive service info is now masked in the `cci service info` command - by @bethbrains in (#3295)
+-   Updated documentation for GitHub Actions framework by @davidmreed in (#3302)
+-   New MetaData ETL Task for deploying remote site settings - `add_remote_site_settings` by @Br4nd0R in (#3303)
+-   New task for deploying remote site settings that are required by OmniStudio - `deploy_omni_studio_site_settings` by @Br4nd0R in (#3303)
+-   Added new robot keywords available when using the SalesforcePlaywright library; get current record id, wait until loading is complete and go to record home. These keywords work in a similar fashion to the existing keywords of the same name that are based on Selenium - by @boakley in (#3310)
+
+Issues Fixed 🩴
+
+-   Fixed two issues which prevented the `set_recently_viewed` feature from working by @prescod in (#3305)
+-   The GithubIssuesParser class will now fall back if issues are disabled by @davidmreed in (#3293)
+
+## 3.62.0 (2022-07-21)
+
+Changes 🎉
+
+-   CumulusCI now supports pinning dependencies on other projects by @davidmreed in (#3270)
+-   Add extract declarations concept to CumulusCI by @prescod in (#3285)
+-   Make `delete_data` task freezable by @jstvz in (#3294)
+-   Omnistudio vlocity build tool wrapper tasks `vlocity_pack_export` and `vlocity_pack_deploy` to support datapack export and deployments by @Br4nd0R in (#3296)
+
+## 3.61.1 (2022-07-10)
+
+Issues Fixed 🩴
+
+-   Fix `metadeploy_publish` error caused by supported_orgs case-sensitivity (#3277)
+
+## 3.61.0 (2022-07-09)
+
+Changes 🎉
+
+-   `metadeploy_publish` consumes legal targets for supported orgs (#3239)
+-   Add update_profile support for record type layouts by (#3243)
+-   Add `custom` key to cumulusci.yml schema (#3238)
+-   Make OrgSettings also deploy objectSettings, if present (#3235)
+-   Import persistent orgs from the SFDX keychain (#3253)
+-   Speed up Snowfakery handling of small batch sizes (#3188)
+
+Issues Fixed 🩴
+
+-   Fix JWT audience for sandboxes (#3240)
+-   Fixed a bug where scratch org attributes configured via cumulusci.yml were
+    not taking effect. (#3209)
+-   Correct FeatureParameterString to FeatureParameterDate (#3254)
+-   No postinstall script for unlocked package builds (#3247)
+
+## 3.60.0 (2022-06-09)
+
+Changes
+
+-   We added a new dependency resolution strategy, `unlocked`. Like our existing dependency strategies using parallel 2GP package builds, this strategy installs parallel unlocked package builds. (#3223)
+-   We added the flows `build_unlocked_test_package`, `install_unlocked_commit`, and `qa_org_unlocked` to support use of parallel unlocked packages. (#3223)
+-   We added a property, `is_survey_advanced_features_enabled`, to the org_config entity available in when clauses. (#3149)
+-   Robot framework API and performance keywords have been moved into separate libraries. They are still automatically imported when using Salesforce.robot so it is not necessary to modify any existing test files. (#3216)
+-   There are new robot framework keyword libraries with limited support for `Playwright <https://playwright.dev/>`_ via the `robotframework-browser library <https://robotframework-browser.org/>`_. To use, import the resource file `cumulusci/robotframework/SalesforcePlaywright.robot` instead of `cumulusci/robotframework/Salesforce.robot`. Note, Playwright is not yet supported by MetaCI. (#3216)
+-   `cumulusci.robotframework.BaseLibrary` can be used when creating new libraries in order to get some useful properties (`self.salesforce`, `self.salesforce_api`, `self.cumulusci`, etc) (#3216)
+-   Snowfakery 3.2 is included, with the following changes
+-   Snowfakery can now do random_reference to nicknames.
+-   We removed some limitations on what Snowfakery can do with objects referenced through random_reference, especially using a.b.c.d syntax.
+-   We added a unique option for random_reference to allow for 1-1 relationships across random references and no-duplicates many-to-many join relationships like Account->CampaignMember->Campaign
+
+## 3.59.1 (2022-05-31)
+
+Issues Closed
+
+-   Fixed a regression relating to lookup of variables like `$project_config.repo_branch`. Identified as a problem in the `github_automerge_main` task, but potentially there might be other tasks that were broken and are fixed by this branch. (#3220)
+
+## 3.59.0 (2022-05-26)
+
+Changes
+
+-   Setting `repo_url` in your project config is no longer required to run `metadeploy_publish`. (#3200)
+-   Adds new commands `cci robot install_playwright` and `cci robot uninstall_playwright` for installing and uninstalling experimental support for the Robot Framework `Browser` library, which is based on Playwright. For more information see the section "Playwright Technology Preview" in the public documentation. (#3194)
+-   Programs using CumulusCI as a library may generate warnings when getting values from config objects. A new method `config.lookup` is the preferred way to look up these values. (#3026)
+
+## 3.58.0 (2022-05-16)
+
+Changes
+
+-   CumulusCI Robot Framework support has been tested on prerelease orgs (#3187)
+-   Upgraded the Snowfakery dependency to version 3.1.0. When embedded in CumulusCI, Snowfakery can now do SObject Upserts. (#3195)
+
+Issues Closed
+
+-   Fix bug when setting the 'options' option in the robot task from the command line (#3173)
+
+## 3.57.0 (2022-04-28)
+
+Changes
+
+-   Support `useralias` in `Open Test Browser` for connected orgs (#3169)
+
+Issues Closed
+
+-   More reliable way to find latest chronological release in GitHub (#3164)
+
+-   Add IP Ranges Metadata ETL task (#3146)
+
+## 3.56.0 (2022-04-07)
+
+Changes
+
+-   Added support for Lightning radiobuttons in the Robot keyword input form data. (#3142)
+
+Issues Closed
+
+-   Fixed an issue where CumulusCI was incorrectly merging task option overrides. (#3145)
+
 ## 3.55.0 (2022-03-24)
 
 Changes
@@ -5265,3 +5377,7 @@ Resolving a few issues from beta77:
 ## 2.0.0-alpha1 (2016-10-21)
 
 -   First release on PyPI.
+
+```
+
+```
