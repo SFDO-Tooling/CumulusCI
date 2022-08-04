@@ -301,14 +301,19 @@ def get_latest_prerelease(repo: Repository) -> Optional[Release]:
     ).substitute(dict(owner=repo.owner, name=repo.name))
 
     session: GitHubSession = repo.session
-    url: str = session.build_url("graphql")
+    # HACK: This is a kludgy workaround because GitHub Enterprise Server
+    # base_urls in github3.py end in `/api/v3`.
+    host = (
+        session.base_url[: -len("/v3")]
+        if session.base_url.endswith("/v3")
+        else session.base_url
+    )
+    url: str = f"{host}/graphql"
     response: Response = session.request("POST", url, json={"query": QUERY})
     response_dict: dict = response.json()
 
-    release_tags = response_dict["data"]["repository"]["releases"]["nodes"]
-    if release_tags:
-        release = repo.release_from_tag(release_tags[0]["tagName"])
-        return release
+    if release_tags := response_dict["data"]["repository"]["releases"]["nodes"]:
+        return repo.release_from_tag(release_tags[0]["tagName"])
 
 
 def find_previous_release(repo, prefix=None):

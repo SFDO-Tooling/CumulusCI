@@ -824,10 +824,19 @@ class TestGithub(GithubApiTestMixin):
         browser_open.assert_called_with("https://github.com/login/device")
 
     @responses.activate
-    def test_get_latest_prerelease(self):
+    @pytest.mark.parametrize(
+        ("base_url", "endpoint"),
+        (
+            ("https://api.github.com", "https://api.github.com/graphql"),
+            (
+                "https://github.enterprise.server/api/v3",
+                "https://github.enterprise.server/api/graphql",
+            ),
+        ),
+    )
+    def test_get_latest_prerelease(self, base_url, endpoint):
         expected_tag = "beta/1.0-Beta_1"
         query_result = self._get_expected_prerelease_tag_gql(expected_tag)
-        endpoint = "https://api.github.com/graphql"
 
         responses.add(
             "POST",
@@ -837,7 +846,7 @@ class TestGithub(GithubApiTestMixin):
 
         repo: Repository = mock.MagicMock()
         repo.session = mock.MagicMock()
-        repo.session.build_url.return_value = endpoint
+        repo.session.base_url = base_url
         repo.session.request = requests.request
 
         get_latest_prerelease(repo=repo)
