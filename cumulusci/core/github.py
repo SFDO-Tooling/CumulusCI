@@ -10,7 +10,12 @@ from urllib.parse import urlparse
 
 import github3
 from github3 import GitHub, GitHubEnterprise, login
-from github3.exceptions import AuthenticationFailed, ResponseError, TransportError
+from github3.exceptions import (
+    AuthenticationFailed,
+    ConnectionError,
+    ResponseError,
+    TransportError,
+)
 from github3.git import Reference, Tag
 from github3.pulls import ShortPullRequest
 from github3.repos.commit import RepoCommit
@@ -50,7 +55,9 @@ SSO_WARNING = """Results may be incomplete. You have not granted your Personal A
 UNAUTHORIZED_WARNING = """
 Bad credentials. Verify that your personal access token is correct and that you are authorized to access this resource.
 """
-
+SELF_SIGNED_WARNING = """
+There was a problem verifying the SSL Certificate due to a self-signed certificate in the certificate chain. You could try setting CUMULUSCI_SYSTEM_CERTS environment Variable to 'True'. See https://cumulusci.readthedocs.io/en/stable/env-var-reference.html?#cumulusci-system-certs
+"""
 # Prepare request retry policy to be attached to github sessions.
 # 401 is a weird status code to retry, but sometimes it happens spuriously
 # and https://github.community/t5/GitHub-API-Development-and/Random-401-errors-after-using-freshly-generated-installation/m-p/22905 suggests retrying
@@ -419,7 +426,9 @@ def get_version_id_from_tag(repo: Repository, tag_name: str) -> str:
     raise DependencyLookupError(f"Could not find version_id for tag {tag_name}")
 
 
-def format_github3_exception(exc: Union[ResponseError, TransportError]) -> str:
+def format_github3_exception(
+    exc: Union[ResponseError, TransportError, ConnectionError]
+) -> str:
     """Checks github3 exceptions for the most common GitHub authentication
     issues, returning a user-friendly message if found.
 
@@ -443,6 +452,14 @@ def format_github3_exception(exc: Union[ResponseError, TransportError]) -> str:
         scope_error_msg = check_github_scopes(exc)
         sso_error_msg = check_github_sso_auth(exc)
         user_warning = scope_error_msg + sso_error_msg
+
+    self_signed_string = "self signed certificate in certificate chain"
+    is_ssl_error = type(exc) is ConnectionError and self_signed_string in str(
+        exc.exception
+    )
+
+    if is_ssl_error:
+        user_warning = SELF_SIGNED_WARNING
 
     return user_warning
 
@@ -570,6 +587,9 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
     def inner(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        except (ConnectionError) as exc:
+            if error_msg := format_github3_exception(exc):
+                raise GithubApiError(error_msg) from exc
         except (ResponseError, TransportError) as exc:
             if error_msg := format_github3_exception(exc):
                 url = request_url_from_exc(exc)
