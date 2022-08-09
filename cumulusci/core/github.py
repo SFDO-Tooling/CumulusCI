@@ -56,7 +56,7 @@ UNAUTHORIZED_WARNING = """
 Bad credentials. Verify that your personal access token is correct and that you are authorized to access this resource.
 """
 SELF_SIGNED_WARNING = """
-There was a problem verifying the SSL Certificate due to a self-signed certificate in the certificate chain. You could try setting CUMULUSCI_SYSTEM_CERTS Environment Variable to 'True'. See https://cumulusci.readthedocs.io/en/stable/env-var-reference.html?#cumulusci-system-certs
+There was a problem verifying the SSL Certificate due to a certificate authority that isn't trusted or a self-signed certificate in the certificate chain. Try setting CUMULUSCI_SYSTEM_CERTS Environment Variable to 'True'. See https://cumulusci.readthedocs.io/en/stable/env-var-reference.html?#cumulusci-system-certs
 """
 # Prepare request retry policy to be attached to github sessions.
 # 401 is a weird status code to retry, but sometimes it happens spuriously
