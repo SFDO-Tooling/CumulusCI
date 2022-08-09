@@ -453,13 +453,11 @@ def format_github3_exception(
         sso_error_msg = check_github_sso_auth(exc)
         user_warning = scope_error_msg + sso_error_msg
 
-    self_signed_string = "self signed certificate in certificate chain"
-    is_ssl_error = type(exc) is ConnectionError and self_signed_string in str(
-        exc.exception
-    )
-
-    if is_ssl_error:
-        user_warning = SELF_SIGNED_WARNING
+    if isinstance(exc, ConnectionError):
+        if "self signed certificate" in str(exc.exception):
+            user_warning = SELF_SIGNED_WARNING
+        else:
+            user_warning = exc.msg
 
     return user_warning
 
@@ -590,6 +588,8 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
         except (ConnectionError) as exc:
             if error_msg := format_github3_exception(exc):
                 raise GithubApiError(error_msg) from exc
+            else:
+                raise
         except (ResponseError, TransportError) as exc:
             if error_msg := format_github3_exception(exc):
                 url = request_url_from_exc(exc)

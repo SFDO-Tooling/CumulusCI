@@ -17,7 +17,7 @@ from github3.exceptions import (
 from github3.pulls import ShortPullRequest
 from github3.repos.repo import Repository
 from github3.session import AppInstallationTokenAuth
-from requests.exceptions import RequestException, RetryError
+from requests.exceptions import RequestException, RetryError, SSLError
 from requests.models import Response
 
 import cumulusci
@@ -31,6 +31,7 @@ from cumulusci.core.exceptions import (
     ServiceNotConfigured,
 )
 from cumulusci.core.github import (
+    SELF_SIGNED_WARNING,
     SSO_WARNING,
     UNAUTHORIZED_WARNING,
     _determine_github_client,
@@ -635,6 +636,20 @@ class TestGithub(GithubApiTestMixin):
         exc = TransportError(base_exc)
         assert UNAUTHORIZED_WARNING == format_github3_exception(exc)
 
+    def test_format_gh3_self_signed_ssl(self):
+        resp = Response()
+        resp.status_code = 401
+        message = "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain"
+        base_exc = SSLError(message, response=resp)
+        exc = ConnectionError(base_exc)
+        assert SELF_SIGNED_WARNING == format_github3_exception(exc)
+
+        # Test passsthrough of other conenction errors
+        message = "Whatever"
+        base_exc = SSLError(message, response=resp)
+        exc = ConnectionError(base_exc)
+        assert "A connection-level exception occurred:" in format_github3_exception(exc)
+
     def test_format_url_from_exc(self):
         resp = Response()
         resp.status_code = 401
@@ -699,6 +714,26 @@ class TestGithub(GithubApiTestMixin):
             raise TransportError(e)
 
         with pytest.raises(TransportError):
+            test_func()
+
+    @responses.activate
+    def test_catch_common_decorator_connection_error(self):
+
+        mock_rsp = responses.Response(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            body=ConnectionError("self signed certificate"),
+        )
+        responses.add(mock_rsp)
+
+        @catch_common_github_auth_errors
+        def test_func():
+            GitHub().rate_limit()
+
+        with pytest.raises(
+            GithubApiError,
+            match="(self-signed certificate in the certificate chain)",
+        ):
             test_func()
 
     @responses.activate
