@@ -97,7 +97,7 @@ class Publish(BaseMetaDeployTask):
                 plan_name: self.project_config.lookup(f"plans__{plan_name}")
             }
         else:
-            self.plan_configs = self.project_config.plans
+            self.plan_configs = self._sort_plans()
 
         self.labels = read_default_labels(self.labels_path)
 
@@ -161,6 +161,26 @@ class Publish(BaseMetaDeployTask):
             f"Downloading commit {self.commit} of {repo.full_name} from GitHub"
         )
         return download_extract_github(gh, repo_owner, repo_name, ref=self.commit)
+
+    def _sort_plans(self):
+        if not self.project_config.plans:
+            return
+        plans = self.project_config.plans
+        sorted_plans = dict(
+            sorted(
+                plans.items(),
+                key=lambda x: (
+                    x[1]["tier"],
+                    x[1]["order_key"] or 99999,
+                    x[1]["slug"].lower(),
+                ),
+            )
+        )
+
+        for i, (name, plan) in enumerate(sorted_plans.items()):
+            plan["order_key"] = i
+
+        return sorted_plans
 
     def _freeze_steps(self, project_config, plan_config) -> list:
         steps = get_frozen_steps(project_config, plan_config)

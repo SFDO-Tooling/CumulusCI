@@ -5,6 +5,7 @@ import tempfile
 import zipfile
 from base64 import b64encode
 from pathlib import Path
+from typing import Optional
 
 import pytest
 import requests
@@ -95,6 +96,16 @@ def product_model(product_dict):
 @pytest.fixture
 def version_model(version_dict):
     return Version.parse_obj(version_dict)
+
+
+def get_plan(tier: str, order_key: Optional[int], slug: str) -> dict():
+    return {
+        "title": "test plan " + slug,
+        "tier": tier,
+        "order_key": order_key,
+        "slug": slug,
+        "steps": {1: {"flow": "install_prod " + slug}},
+    }
 
 
 class TestBaseMetaDeployTask:
@@ -619,6 +630,40 @@ class TestPublish(GithubApiTestMixin):
             {"slug": "install"},
         )
         assert plantemplate.url == plantemplate_dict["url"]
+
+    def test_sort_plans(self):
+        project_config = create_project_config()
+        project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
+
+        plan_1 = get_plan("primary", 1, "ddd")
+        plan_2 = get_plan("primary", 2, "ccc")
+        plan_3 = get_plan("primary", None, "aaa")
+        plan_4 = get_plan("primary", None, "bbb")
+        plan_5 = get_plan("secondary", 1, "ddd")
+        plan_6 = get_plan("secondary", 2, "ccc")
+        plan_7 = get_plan("secondary", None, "aaa")
+        plan_8 = get_plan("secondary", None, "bbb")
+        plans = {
+            "plan_8": plan_8,
+            "plan_7": plan_7,
+            "plan_6": plan_6,
+            "plan_5": plan_5,
+            "plan_4": plan_4,
+            "plan_3": plan_3,
+            "plan_2": plan_2,
+            "plan_1": plan_1,
+        }
+        project_config.config["plans"] = plans
+        project_config.keychain.set_service(
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
+        )
+        task_config = TaskConfig({"options": {"tag": "release/1.0"}})
+        task = Publish(project_config, task_config)
+        task._init_task()
+        for i in range(0, 7):
+            assert task.plan_configs[f"plan_{i+1}"]["order_key"] == i
 
     def test_freeze_steps__skip(self):
         project_config = create_project_config()
