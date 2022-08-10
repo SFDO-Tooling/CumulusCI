@@ -97,7 +97,7 @@ class Publish(BaseMetaDeployTask):
                 plan_name: self.project_config.lookup(f"plans__{plan_name}")
             }
         else:
-            self.plan_configs = self._sort_plans()
+            self.plan_configs = self.project_config.plans
 
         self.labels = read_default_labels(self.labels_path)
 
@@ -131,7 +131,8 @@ class Publish(BaseMetaDeployTask):
             project_config.set_keychain(self.project_config.keychain)
 
             # Create each plan
-            for plan_name, plan_config in self.plan_configs.items():
+            for i, (plan_name, plan_config) in enumerate(self.plan_configs.items()):
+                plan_config["order_key"] = i
                 steps = self._freeze_steps(project_config, plan_config)
                 plan: MetaDeployPlan = MetaDeployPlan.parse_obj(
                     dict(plan_config, steps=steps)
@@ -162,26 +163,6 @@ class Publish(BaseMetaDeployTask):
         )
         return download_extract_github(gh, repo_owner, repo_name, ref=self.commit)
 
-    def _sort_plans(self):
-        if not self.project_config.plans:
-            return
-        plans = self.project_config.plans
-        sorted_plans = dict(
-            sorted(
-                plans.items(),
-                key=lambda x: (
-                    x[1]["tier"],
-                    x[1]["order_key"] or 99999,
-                    x[1]["slug"].lower(),
-                ),
-            )
-        )
-
-        for i, (name, plan) in enumerate(sorted_plans.items()):
-            plan["order_key"] = i
-
-        return sorted_plans
-
     def _freeze_steps(self, project_config, plan_config) -> list:
         steps = get_frozen_steps(project_config, plan_config)
         self.logger.debug("Prepared steps:\n" + json.dumps(steps, indent=4))
@@ -195,7 +176,9 @@ class Publish(BaseMetaDeployTask):
             product, plan_name, plan_config
         )
 
-        parsed_plan = Plan.parse_obj(self.project_config.config["plans"][plan_name])
+        order_key = plan_config.pop("order_key")
+        parsed_plan = Plan.parse_obj(plan_config)
+        # TODO: clean this up to not use both Plan and MetaDeployPlan
         plan_json = MetaDeployPlan(
             plan_template=plan_template.url,
             is_listed=parsed_plan.is_listed,
@@ -209,6 +192,7 @@ class Publish(BaseMetaDeployTask):
             # Use same AllowedList as the product, if any
             visible_to=product.visible_to,
             preflight_checks=plan_config.get("checks"),
+            order_key=order_key,
         )
 
         # Create Plan

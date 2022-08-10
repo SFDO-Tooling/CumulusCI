@@ -20,6 +20,8 @@ from cumulusci.utils.yaml.safer_loader import load_yaml_data
 
 default_logger = getLogger(__name__)
 
+PLANS_VALIDATOR_ERROR_MESSAGE = "You can only defined one 'primary' Plan and one 'secondary' Plan. All other Plans must be defined as 'additional'. The default tier is 'primary'."
+
 
 #  type aliases
 PythonClassPath = str
@@ -240,8 +242,18 @@ class CumulusCIRoot(CCIDictModel):
             existing_tiers.count(tier) > 1 for tier in ("primary", "secondary")
         )
         if has_duplicate_tiers:
-            raise ValueError("Only one plan can be defined as 'primary' or 'secondary'")
+            raise ValueError(PLANS_VALIDATOR_ERROR_MESSAGE)
         return plans
+
+    @validator("plans")
+    def sort_plans(cls, plans):
+        if not plans:
+            return {}
+        sorted_plans = sorted(
+            plans.items(),
+            key=lambda x: (["primary", "secondary", "additional"].index(x[1].tier),),
+        )
+        return dict(sorted_plans)
 
 
 class CumulusCIFile(CCIDictModel):

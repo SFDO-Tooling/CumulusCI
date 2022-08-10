@@ -5,7 +5,6 @@ import tempfile
 import zipfile
 from base64 import b64encode
 from pathlib import Path
-from typing import Optional
 
 import pytest
 import requests
@@ -96,16 +95,6 @@ def product_model(product_dict):
 @pytest.fixture
 def version_model(version_dict):
     return Version.parse_obj(version_dict)
-
-
-def get_plan(tier: str, order_key: Optional[int], slug: str) -> dict():
-    return {
-        "title": "test plan " + slug,
-        "tier": tier,
-        "order_key": order_key,
-        "slug": slug,
-        "steps": {1: {"flow": "install_prod " + slug}},
-    }
 
 
 class TestBaseMetaDeployTask:
@@ -219,7 +208,21 @@ class TestPublish(GithubApiTestMixin):
                 },
                 "checks": [{"when": "False", "action": "error"}],
                 "allowed_org_providers": ["user", "devhub"],
-            }
+            },
+            "install2": {
+                "title": "Test Install2",
+                "slug": "install2",
+                "tier": "primary",
+                "steps": {
+                    1: {"flow": "install_prod"},
+                    2: {
+                        "task": "util_sleep",
+                        "checks": [{"when": "False", "action": "error"}],
+                    },
+                },
+                "checks": [{"when": "False", "action": "error"}],
+                "allowed_org_providers": ["user", "devhub"],
+            },
         }
         project_config.keychain.set_service(
             "metadeploy",
@@ -327,6 +330,11 @@ class TestPublish(GithubApiTestMixin):
             json={"data": [plantemplate_dict]},
         )
         responses.add(
+            "GET",
+            "https://metadeploy/plantemplates?product=abcdef&name=install2",
+            json={"data": [plantemplate_dict]},
+        )
+        responses.add(
             "POST",
             "https://metadeploy/plans",
             json=simple_plan_dict,
@@ -356,8 +364,15 @@ class TestPublish(GithubApiTestMixin):
         task = Publish(project_config, task_config)
         task()
 
-        body = json.loads(responses.calls[-2].request.body)
+        body = json.loads(responses.calls[-8].request.body)
+
         assert body["supported_orgs"] == "Both"
+        assert body["order_key"] == 0
+        assert body["title"] == "Test Install"
+
+        body2 = json.loads(responses.calls[-2].request.body)
+        assert body2["order_key"] == 1
+        assert body2["title"] == "Test Install2"
 
         steps = body["steps"]
         self.maxDiff = None
@@ -424,6 +439,20 @@ class TestPublish(GithubApiTestMixin):
                 },
                 "title": {
                     "message": "Test Install",
+                    "description": "title of installation plan",
+                },
+            },
+            "plan:install2": {
+                "post_install_message": {
+                    "message": "",
+                    "description": "shown after successful installation (markdown)",
+                },
+                "preflight_message": {
+                    "message": "",
+                    "description": "shown before user starts installation (markdown)",
+                },
+                "title": {
+                    "message": "Test Install2",
                     "description": "title of installation plan",
                 },
             },
@@ -630,40 +659,6 @@ class TestPublish(GithubApiTestMixin):
             {"slug": "install"},
         )
         assert plantemplate.url == plantemplate_dict["url"]
-
-    def test_sort_plans(self):
-        project_config = create_project_config()
-        project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
-
-        plan_1 = get_plan("primary", 1, "ddd")
-        plan_2 = get_plan("primary", 2, "ccc")
-        plan_3 = get_plan("primary", None, "aaa")
-        plan_4 = get_plan("primary", None, "bbb")
-        plan_5 = get_plan("secondary", 1, "ddd")
-        plan_6 = get_plan("secondary", 2, "ccc")
-        plan_7 = get_plan("secondary", None, "aaa")
-        plan_8 = get_plan("secondary", None, "bbb")
-        plans = {
-            "plan_8": plan_8,
-            "plan_7": plan_7,
-            "plan_6": plan_6,
-            "plan_5": plan_5,
-            "plan_4": plan_4,
-            "plan_3": plan_3,
-            "plan_2": plan_2,
-            "plan_1": plan_1,
-        }
-        project_config.config["plans"] = plans
-        project_config.keychain.set_service(
-            "metadeploy",
-            "test_alias",
-            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
-        )
-        task_config = TaskConfig({"options": {"tag": "release/1.0"}})
-        task = Publish(project_config, task_config)
-        task._init_task()
-        for i in range(0, 7):
-            assert task.plan_configs[f"plan_{i+1}"]["order_key"] == i
 
     def test_freeze_steps__skip(self):
         project_config = create_project_config()
