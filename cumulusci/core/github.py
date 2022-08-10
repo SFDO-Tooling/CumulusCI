@@ -51,10 +51,27 @@ UNAUTHORIZED_WARNING = """
 Bad credentials. Verify that your personal access token is correct and that you are authorized to access this resource.
 """
 
+
+class GitHubRety(Retry):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def increment(self, *args, **kwargs):
+        # Check for connnection and fail on SSLerror
+        # SSLCertVerificationError
+        if "error" in kwargs:
+            error = kwargs["error"]
+            error_str = "CERTIFICATE_VERIFY_FAILED"
+            if error_str in str(error):
+                raise error
+        # finally call increment
+        return super().increment(*args, **kwargs)
+
+
 # Prepare request retry policy to be attached to github sessions.
 # 401 is a weird status code to retry, but sometimes it happens spuriously
 # and https://github.community/t5/GitHub-API-Development-and/Random-401-errors-after-using-freshly-generated-installation/m-p/22905 suggests retrying
-retries = Retry(status_forcelist=(401, 502, 503, 504), backoff_factor=0.3)
+retries = GitHubRety(status_forcelist=(401, 502, 503, 504), backoff_factor=0.3)
 adapter = HTTPAdapter(max_retries=retries)
 
 
