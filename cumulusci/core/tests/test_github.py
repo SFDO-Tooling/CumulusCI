@@ -102,7 +102,7 @@ class TestGithub(GithubApiTestMixin):
         )
         return runtime.keychain
 
-    def test_github_api_retries__escape_hatch_SSL_error(self, mock_http_response):
+    def test_github_api_retries__escape_hatch_SSL_error(self):
         gh = get_github_api("TestUser", "TestPass")
         adapter = gh.session.get_adapter("http://")
 
@@ -121,6 +121,8 @@ class TestGithub(GithubApiTestMixin):
                 match="(CERTIFICATE_VERIFY_FAILED)",
             ):
                 gh.octocat("meow")
+
+            assert 1 == _make_request.call_count
 
     def test_github_api_retries(self, mock_http_response):
         gh = get_github_api("TestUser", "TestPass")
