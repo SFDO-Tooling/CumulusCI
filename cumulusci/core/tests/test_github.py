@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from ssl import SSLCertVerificationError
 from unittest import mock
 
 import pytest
@@ -101,6 +102,28 @@ class TestGithub(GithubApiTestMixin):
             ),
         )
         return runtime.keychain
+
+    def test_github_api_retries__escape_hatch_SSL_error(self):
+        gh = get_github_api("TestUser", "TestPass")
+        adapter = gh.session.get_adapter("http://")
+
+        assert 0.3 == adapter.max_retries.backoff_factor
+        assert 502 in adapter.max_retries.status_forcelist
+
+        with mock.patch(
+            "urllib3.connectionpool.HTTPConnectionPool._make_request"
+        ) as _make_request:
+            _make_request.side_effect = SSLCertVerificationError(
+                "SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain"
+            )
+
+            with pytest.raises(
+                ConnectionError,
+                match="(CERTIFICATE_VERIFY_FAILED)",
+            ):
+                gh.octocat("meow")
+
+            assert 1 == _make_request.call_count
 
     def test_github_api_retries(self, mock_http_response):
         gh = get_github_api("TestUser", "TestPass")
