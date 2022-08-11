@@ -457,7 +457,7 @@ def format_github3_exception(
         if "self signed certificate" in str(exc.exception):
             user_warning = SELF_SIGNED_WARNING
         else:
-            user_warning = exc.msg
+            return None  # type: ignore
 
     return user_warning
 

@@ -645,10 +645,9 @@ class TestGithub(GithubApiTestMixin):
         assert SELF_SIGNED_WARNING == format_github3_exception(exc)
 
         # Test passsthrough of other conenction errors
-        message = "Whatever"
-        base_exc = SSLError(message, response=resp)
+        base_exc = SSLError(response=resp)
         exc = ConnectionError(base_exc)
-        assert "A connection-level exception occurred:" in format_github3_exception(exc)
+        assert format_github3_exception(exc) is None
 
     def test_format_url_from_exc(self):
         resp = Response()
