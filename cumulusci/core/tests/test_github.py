@@ -670,7 +670,7 @@ class TestGithub(GithubApiTestMixin):
         # Test passsthrough of other conenction errors
         base_exc = SSLError(response=resp)
         exc = ConnectionError(base_exc)
-        assert format_github3_exception(exc) is None
+        assert format_github3_exception(exc) == ""
 
     def test_format_url_from_exc(self):
         resp = Response()
