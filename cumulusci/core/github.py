@@ -10,7 +10,12 @@ from urllib.parse import urlparse
 
 import github3
 from github3 import GitHub, GitHubEnterprise, login
-from github3.exceptions import AuthenticationFailed, ResponseError, TransportError
+from github3.exceptions import (
+    AuthenticationFailed,
+    ConnectionError,
+    ResponseError,
+    TransportError,
+)
 from github3.git import Reference, Tag
 from github3.pulls import ShortPullRequest
 from github3.repos.commit import RepoCommit
@@ -49,6 +54,9 @@ OAUTH_DEVICE_APP = {
 SSO_WARNING = """Results may be incomplete. You have not granted your Personal Access token access to the following organizations:"""
 UNAUTHORIZED_WARNING = """
 Bad credentials. Verify that your personal access token is correct and that you are authorized to access this resource.
+"""
+SELF_SIGNED_WARNING = """
+There was a problem verifying the SSL Certificate due to a certificate authority that isn't trusted or a self-signed certificate in the certificate chain. Try setting CUMULUSCI_SYSTEM_CERTS Environment Variable to 'True'. See https://cumulusci.readthedocs.io/en/stable/env-var-reference.html?#cumulusci-system-certs
 """
 
 
@@ -436,7 +444,9 @@ def get_version_id_from_tag(repo: Repository, tag_name: str) -> str:
     raise DependencyLookupError(f"Could not find version_id for tag {tag_name}")
 
 
-def format_github3_exception(exc: Union[ResponseError, TransportError]) -> str:
+def format_github3_exception(
+    exc: Union[ResponseError, TransportError, ConnectionError]
+) -> str:
     """Checks github3 exceptions for the most common GitHub authentication
     issues, returning a user-friendly message if found.
 
@@ -460,6 +470,12 @@ def format_github3_exception(exc: Union[ResponseError, TransportError]) -> str:
         scope_error_msg = check_github_scopes(exc)
         sso_error_msg = check_github_sso_auth(exc)
         user_warning = scope_error_msg + sso_error_msg
+
+    if isinstance(exc, ConnectionError):
+        if "self signed certificate" in str(exc.exception):
+            user_warning = SELF_SIGNED_WARNING
+        else:
+            return ""
 
     return user_warning
 
@@ -587,6 +603,11 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
     def inner(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        except (ConnectionError) as exc:
+            if error_msg := format_github3_exception(exc):
+                raise GithubApiError(error_msg) from exc
+            else:
+                raise
         except (ResponseError, TransportError) as exc:
             if error_msg := format_github3_exception(exc):
                 url = request_url_from_exc(exc)
