@@ -1,6 +1,7 @@
 import os
 from io import StringIO
 from pathlib import Path
+from typing import OrderedDict
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -8,7 +9,9 @@ from pydantic import ValidationError
 
 from cumulusci.utils import temporary_dir
 from cumulusci.utils.yaml.cumulusci_yml import (
+    PLANS_VALIDATOR_ERROR_MESSAGE,
     GitHubSourceModel,
+    Plan,
     _validate_files,
     _validate_url,
     cci_safe_load,
@@ -236,7 +239,7 @@ plans:
     tier: primary
     """
     cci_safe_load(StringIO(yaml))
-    assert "Only one plan can be defined as 'primary' or 'secondary'" in caplog.text
+    assert PLANS_VALIDATOR_ERROR_MESSAGE in caplog.text
 
 
 def test_single_primary_plan_implicit(caplog):
@@ -248,7 +251,7 @@ plans:
     slug: implicit_primary
     """
     cci_safe_load(StringIO(yaml))
-    assert "Only one plan can be defined as 'primary' or 'secondary'" in caplog.text
+    assert PLANS_VALIDATOR_ERROR_MESSAGE in caplog.text
 
 
 def test_single_secondary_plan(caplog):
@@ -260,27 +263,76 @@ plans:
     tier: secondary
     """
     cci_safe_load(StringIO(yaml))
-    assert "Only one plan can be defined as 'primary' or 'secondary'" in caplog.text
+    assert PLANS_VALIDATOR_ERROR_MESSAGE in caplog.text
 
 
-def test_multiple_additional_plan(caplog):
+def test_multiple_additional_plans_out_of_order(caplog):
     yaml = """
 plans:
-  first:
-    slug: implicit_primary
-  second:
-    tier: secondary
   third:
     tier: additional
+  second:
+    tier: secondary
   fourth:
     tier: additional
+  first:
+    slug: implicit_primary
     """
-    parsed_yaml: dict = cci_safe_load(StringIO(yaml))
-    expected: dict = {
-        "first": {"slug": "implicit_primary"},
-        "second": {"tier": "secondary"},
-        "third": {"tier": "additional"},
-        "fourth": {"tier": "additional"},
+    result = parse_from_yaml(StringIO(yaml))
+
+    expected: OrderedDict = {
+        "first": Plan(
+            title=None,
+            description=None,
+            tier="primary",
+            slug="implicit_primary",
+            is_listed=True,
+            steps=None,
+            checks=[],
+            error_message=None,
+            post_install_message=None,
+            preflight_message=None,
+            allowed_org_providers=["user"],
+        ),
+        "second": Plan(
+            title=None,
+            description=None,
+            tier="secondary",
+            slug=None,
+            is_listed=True,
+            steps=None,
+            checks=[],
+            error_message=None,
+            post_install_message=None,
+            preflight_message=None,
+            allowed_org_providers=["user"],
+        ),
+        "third": Plan(
+            title=None,
+            description=None,
+            tier="additional",
+            slug=None,
+            is_listed=True,
+            steps=None,
+            checks=[],
+            error_message=None,
+            post_install_message=None,
+            preflight_message=None,
+            allowed_org_providers=["user"],
+        ),
+        "fourth": Plan(
+            title=None,
+            description=None,
+            tier="additional",
+            slug=None,
+            is_listed=True,
+            steps=None,
+            checks=[],
+            error_message=None,
+            post_install_message=None,
+            preflight_message=None,
+            allowed_org_providers=["user"],
+        ),
     }
     assert "" == caplog.text
-    assert expected == parsed_yaml["plans"]
+    assert OrderedDict(expected) == OrderedDict(result["plans"])

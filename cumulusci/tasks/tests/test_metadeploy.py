@@ -208,7 +208,21 @@ class TestPublish(GithubApiTestMixin):
                 },
                 "checks": [{"when": "False", "action": "error"}],
                 "allowed_org_providers": ["user", "devhub"],
-            }
+            },
+            "install2": {
+                "title": "Test Install2",
+                "slug": "install2",
+                "tier": "primary",
+                "steps": {
+                    1: {"flow": "install_prod"},
+                    2: {
+                        "task": "util_sleep",
+                        "checks": [{"when": "False", "action": "error"}],
+                    },
+                },
+                "checks": [{"when": "False", "action": "error"}],
+                "allowed_org_providers": ["user", "devhub"],
+            },
         }
         project_config.keychain.set_service(
             "metadeploy",
@@ -316,6 +330,11 @@ class TestPublish(GithubApiTestMixin):
             json={"data": [plantemplate_dict]},
         )
         responses.add(
+            "GET",
+            "https://metadeploy/plantemplates?product=abcdef&name=install2",
+            json={"data": [plantemplate_dict]},
+        )
+        responses.add(
             "POST",
             "https://metadeploy/plans",
             json=simple_plan_dict,
@@ -345,8 +364,15 @@ class TestPublish(GithubApiTestMixin):
         task = Publish(project_config, task_config)
         task()
 
-        body = json.loads(responses.calls[-2].request.body)
+        body = json.loads(responses.calls[-8].request.body)
+
         assert body["supported_orgs"] == "Both"
+        assert body["order_key"] == 0
+        assert body["title"] == "Test Install"
+
+        body2 = json.loads(responses.calls[-2].request.body)
+        assert body2["order_key"] == 1
+        assert body2["title"] == "Test Install2"
 
         steps = body["steps"]
         self.maxDiff = None
@@ -413,6 +439,20 @@ class TestPublish(GithubApiTestMixin):
                 },
                 "title": {
                     "message": "Test Install",
+                    "description": "title of installation plan",
+                },
+            },
+            "plan:install2": {
+                "post_install_message": {
+                    "message": "",
+                    "description": "shown after successful installation (markdown)",
+                },
+                "preflight_message": {
+                    "message": "",
+                    "description": "shown before user starts installation (markdown)",
+                },
+                "title": {
+                    "message": "Test Install2",
                     "description": "title of installation plan",
                 },
             },

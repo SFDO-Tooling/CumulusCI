@@ -131,7 +131,8 @@ class Publish(BaseMetaDeployTask):
             project_config.set_keychain(self.project_config.keychain)
 
             # Create each plan
-            for plan_name, plan_config in self.plan_configs.items():
+            for i, (plan_name, plan_config) in enumerate(self.plan_configs.items()):
+                plan_config["order_key"] = i
                 steps = self._freeze_steps(project_config, plan_config)
                 plan: MetaDeployPlan = MetaDeployPlan.parse_obj(
                     dict(plan_config, steps=steps)
@@ -175,7 +176,9 @@ class Publish(BaseMetaDeployTask):
             product, plan_name, plan_config
         )
 
-        parsed_plan = Plan.parse_obj(self.project_config.config["plans"][plan_name])
+        order_key = plan_config.pop("order_key")
+        parsed_plan = Plan.parse_obj(plan_config)
+        # TODO: clean this up to not use both Plan and MetaDeployPlan
         plan_json = MetaDeployPlan(
             plan_template=plan_template.url,
             is_listed=parsed_plan.is_listed,
@@ -189,6 +192,7 @@ class Publish(BaseMetaDeployTask):
             # Use same AllowedList as the product, if any
             visible_to=product.visible_to,
             preflight_checks=plan_config.get("checks"),
+            order_key=order_key,
         )
 
         # Create Plan
