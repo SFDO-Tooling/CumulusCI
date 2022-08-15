@@ -20,7 +20,7 @@ from cumulusci.utils.yaml.safer_loader import load_yaml_data
 
 default_logger = getLogger(__name__)
 
-PLANS_VALIDATOR_ERROR_MESSAGE = "You can only defined one 'primary' Plan and one 'secondary' Plan. All other Plans must be defined as 'additional'. The default tier is 'primary'."
+PLANS_VALIDATOR_ERROR_MESSAGE = "You can only define one 'primary' Plan and one 'secondary' Plan. All other Plans must be defined as 'additional'. The default tier is 'primary'."
 
 
 #  type aliases
