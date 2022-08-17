@@ -13,7 +13,9 @@ def func(mapping_steps: T.List[MappingStep], depmap: "DependencyMap") -> T.List[
 It should be idempotent and a pure function (don't mutate arguments).
 
 Ideally the output should be as similar to the input as possible (i.e.
-change what you need to change and leave the rest as it was)
+change what you need to change and leave the rest as it was). In particular,
+the order of the input steps should be preserved unless reordering them
+is the specific task of the transform.
 """
 
 from cumulusci.tasks.bulkdata.generate_mapping_utils.dependency_map import DependencyMap
