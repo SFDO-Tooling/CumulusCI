@@ -238,9 +238,11 @@ class MappingStep(CCIDictModel):
     @validator("oid_as_pk")
     @classmethod
     def oid_as_pk_is_deprecated(cls, v):
-        raise ValueError(
-            "oid_as_pk is no longer supported. Include the Id field if desired."
-        )
+        if v:
+            raise ValueError(
+                "oid_as_pk is no longer supported. Include the Id field if desired."
+            )
+        return v
 
     @validator("fields_", pre=True)
     @classmethod

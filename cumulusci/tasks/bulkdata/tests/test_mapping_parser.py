@@ -1174,6 +1174,34 @@ class TestMappingLookup:
         assert mapping["Insert Accounts"].action.value == "insert"
         assert mapping["Insert Accounts"].batch_size == 50
 
+    def test_oid_as_pk__raises(self):
+        with pytest.raises(ValueError):
+            parse_from_yaml(
+                StringIO(
+                    (
+                        """Insert Accounts:
+                            sf_object: account
+                            oid_as_pk: True
+                            fields:
+                                - name"""
+                    )
+                )
+            )
+
+    def test_oid_as_pk__false(self):
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    """Insert Accounts:
+                            sf_object: account
+                            oid_as_pk: False
+                            fields:
+                                - name"""
+                )
+            )
+        )
+        assert not mapping["Insert Accounts"].oid_as_pk
+
 
 class TestUpsertKeyValidations:
     def test_upsert_key_wrong_type(self):
