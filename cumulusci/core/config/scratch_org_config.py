@@ -1,7 +1,6 @@
 import datetime
 import json
 import os
-import re
 
 from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
 from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
@@ -71,37 +70,48 @@ class ScratchOrgConfig(SfdxOrgConfig):
         args = self._build_org_create_args()
         extra_args = os.environ.get("SFDX_ORG_CREATE_ARGS", "")
         p = sfdx(
-            f"force:org:create {extra_args}",
+            f"force:org:create --json {extra_args}",
             args=args,
             username=None,
             log_note="Creating scratch org",
         )
+        stdout = p.stdout_text.read()
+        stderr = p.stderr_text.read()
 
-        stderr = [line.strip() for line in p.stderr_text]
-        stdout = [line.strip() for line in p.stdout_text]
-
-        if p.returncode:
-            message = f"{FAILED_TO_CREATE_SCRATCH_ORG}: \n{nl.join(stdout)}\n{nl.join(stderr)}"
+        def raise_error():
+            message = f"{FAILED_TO_CREATE_SCRATCH_ORG}: \n{stdout}\n{stderr}"
             raise ScratchOrgException(message)
 
-        re_obj = re.compile("Successfully created scratch org: (.+), username: (.+)")
-        username = None
-        for line in stdout:
-            match = re_obj.search(line)
-            if match:
-                self.config["org_id"] = match.group(1)
-                self.config["username"] = username = match.group(2)
-            self.logger.info(line)
-        for line in stderr:
-            self.logger.error(line)
+        if p.returncode:
+            raise_error()
+        try:
+            result = json.loads(stdout)
+        except json.decoder.JSONDecodeError:
+            raise_error()
 
-        if username is None:
+        if (
+            not (res := result.get("result"))
+            or ("username" not in res)
+            or ("orgId" not in res)
+        ):
+            raise_error()
+
+        if res["username"] is None:
             raise ScratchOrgException(
                 "SFDX claimed to be successful but there was no username "
                 "in the output...maybe there was a gack?"
             )
 
+        self.config["org_id"] = res["orgId"]
+        self.config["username"] = res["username"]
+
         self.config["date_created"] = datetime.datetime.utcnow()
+
+        self.logger.error(stderr)
+
+        self.logger.info(
+            f"Created: OrgId: {self.config['org_id']}, Username:{self.config['username']}"
+        )
 
         if self.config.get("set_password"):
             self.generate_password()
