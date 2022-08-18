@@ -124,8 +124,7 @@ Non-lightning based form - radiobutton
     [Documentation]  Verify we can set a plain non-lightning radiobutton
 
     [Setup]     Run keywords
-    ...  Skip if  "firefox" in $browser
-    ...  AND  Go to My Email Settings
+    ...  Go to My Email Settings
     ...  AND  Select frame  //div[@class="setupcontent"]//iframe
     [Teardown]  Unselect frame
 
