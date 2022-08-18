@@ -107,8 +107,10 @@ class ScratchOrgConfig(SfdxOrgConfig):
 
         self.config["date_created"] = datetime.datetime.utcnow()
 
+        self.logger.error(stderr)
+
         self.logger.info(
-            f"OrgId: {self.config['org_id']}, Username:{self.config['username']}"
+            f"Created: OrgId: {self.config['org_id']}, Username:{self.config['username']}"
         )
 
         if self.config.get("set_password"):
