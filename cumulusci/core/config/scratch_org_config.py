@@ -84,8 +84,10 @@ class ScratchOrgConfig(SfdxOrgConfig):
 
         if p.returncode:
             raise_error()
-
-        result = json.loads(stdout)
+        try:
+            result = json.loads(stdout)
+        except json.decoder.JSONDecodeError:
+            raise_error()
 
         if (
             not (res := result.get("result"))
@@ -93,20 +95,21 @@ class ScratchOrgConfig(SfdxOrgConfig):
             or ("orgId" not in res)
         ):
             raise_error()
-        else:
-            self.config["org_id"] = res["orgId"]
-            self.config["username"] = res["username"]
-            self.logger.info(
-                f"OrgId: {self.config['org_id']}, Username:{self.config['username']}"
-            )
 
-        if self.config["username"] is None:
+        if res["username"] is None:
             raise ScratchOrgException(
                 "SFDX claimed to be successful but there was no username "
                 "in the output...maybe there was a gack?"
             )
 
+        self.config["org_id"] = res["orgId"]
+        self.config["username"] = res["username"]
+
         self.config["date_created"] = datetime.datetime.utcnow()
+
+        self.logger.info(
+            f"OrgId: {self.config['org_id']}, Username:{self.config['username']}"
+        )
 
         if self.config.get("set_password"):
             self.generate_password()
