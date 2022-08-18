@@ -46,3 +46,4 @@ pabot_results/
 large_cassettes/
 github_release_notes.html
 tmp
+pytestdebug.log
