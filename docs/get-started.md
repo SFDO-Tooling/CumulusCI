@@ -14,10 +14,6 @@ module on Trailhead for a step-by-step walkthrough.
 
 ### On macOS
 
-[Homebrew](https://brew.sh/) is a prerequisite for installing CumulusCI
-on macOS. Follow the instructions on the Homebrew website to install
-Homebrew before continuing.
-
 #### Install via `pipx`
 
 `pipx` ensures that CumulusCI and its dependencies are installed into
