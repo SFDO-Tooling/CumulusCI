@@ -94,7 +94,7 @@ would need to be provided in the following format:
 
 ### GitHub Enterprise Server considerations
 
-The use of [GitHub environemnt variables](env-var-reference) is supported when connecting to a repository a GitHub Enterprise Server.
+The use of [GitHub environment variables](env-var-reference) is supported when connecting to a repository a GitHub Enterprise Server.
 
 The `GitHubEnterprise` client is selected automatically based on the repository configuration in the `cumulusci.yml` file. When the `repo_url` is NOT GitHub.com an attempt will be made to connect to the base domain in `repo_url`. The [GitHub environemnt variables](env-var-reference) are then used to authorize.
 
@@ -105,7 +105,7 @@ CUMULUSCI_SERVICE_github='{"username": "jdoe", "email": "jane.doe@some.biz", "to
 CUMULUSCI_SERVICE_github_enterprise`='{"username": "jdoe", "email": "jane.doe@some.biz", "repo_domain":"git.some.biz", "token": "<enterprise_personal_access_token>"}'
 ```
 
-When connecting to repositories on GitHub.com or GitHub Enterprise Server, the service configuration for authorization is selected automatically by matching the `repo_domain` field to the repository domain. When a reposiroty domain is `github.com` the `github` service will be used.
+When connecting to repositories on GitHub.com or GitHub Enterprise Server, the service configuration for authorization is selected automatically by matching the `repo_domain` field to the repository domain. When a repository domain is `github.com` the `github` service will be used.
 
 (register-persistent-orgs)=
 
