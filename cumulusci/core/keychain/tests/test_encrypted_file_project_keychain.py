@@ -27,7 +27,9 @@ from cumulusci.core.exceptions import (
     CumulusCIException,
     CumulusCIUsageError,
     KeychainKeyNotFound,
+    OrgCannotBeLoaded,
     OrgNotFound,
+    ServiceCannotBeLoaded,
     ServiceNotConfigured,
     ServiceNotValid,
 )
@@ -270,6 +272,28 @@ class TestEncryptedFileProjectKeychain:
         actual_config = keychain.get_org("devhub")
         assert actual_config.config == org_config.config
 
+    def test_load_orgs_from_environment__empty_throws_error(self, keychain, org_config):
+        env = EnvironmentVarGuard()
+        with EnvironmentVarGuard() as env:
+            env.set(
+                f"{keychain.env_org_var_prefix}dev",
+                "",
+            )
+            with pytest.raises(OrgCannotBeLoaded):
+                keychain._load_orgs_from_environment()
+
+    def test_load_orgs_from_environment__invalid_json_throws_error(
+        self, keychain, org_config
+    ):
+        env = EnvironmentVarGuard()
+        with EnvironmentVarGuard() as env:
+            env.set(
+                f"{keychain.env_org_var_prefix}dev",
+                "['foo',]",
+            )
+            with pytest.raises(OrgCannotBeLoaded):
+                keychain._load_orgs_from_environment()
+
     #######################################
     #              Services               #
     #######################################
@@ -331,6 +355,28 @@ class TestEncryptedFileProjectKeychain:
             keychain._load_services_from_environment()
 
         assert 1 == 1
+
+    def test_load_services_from_env__empty_throws_error(self, keychain):
+        service_prefix = EncryptedFileProjectKeychain.env_service_var_prefix
+        env = EnvironmentVarGuard()
+        with EnvironmentVarGuard() as env:
+            env.set(
+                f"{service_prefix}github",
+                "",
+            )
+            with pytest.raises(ServiceCannotBeLoaded):
+                keychain._load_services_from_environment()
+
+    def test_load_services_from_env__invalid_json_throws_error(self, keychain):
+        service_prefix = EncryptedFileProjectKeychain.env_service_var_prefix
+        env = EnvironmentVarGuard()
+        with EnvironmentVarGuard() as env:
+            env.set(
+                f"{service_prefix}github",
+                "['foo',]",
+            )
+            with pytest.raises(ServiceCannotBeLoaded):
+                keychain._load_services_from_environment()
 
     def test_get_service__built_in_connected_app(self, keychain):
         built_in_connected_app = keychain.get_service("connected_app")

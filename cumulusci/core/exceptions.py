@@ -62,6 +62,12 @@ class ServiceNotConfigured(CumulusCIUsageError):
     pass
 
 
+class ServiceCannotBeLoaded(CumulusCIUsageError):
+    """Raised when a service cannot be decrypted or unpickled"""
+
+    pass
+
+
 class ServiceNotValid(CumulusCIUsageError):
     """Raised when no service configuration could be found by a given name in the project configuration"""
 
