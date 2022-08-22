@@ -112,6 +112,10 @@ Before you submit a pull request, check that it meets these guidelines:
 
 ## Testing CumulusCI
 
+Start by familiarizing yourself with the
+[philosophy of testing in CumulusCI](testing-principles.md). That will
+help you understand which features below to use under which circumstances.
+
 ### Org-reliant Automated Tests
 
 Some tests are marked `@pytest.mark.vcr()` which means that they can
