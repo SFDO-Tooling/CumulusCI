@@ -1189,18 +1189,18 @@ class TestMappingLookup:
             )
 
     def test_oid_as_pk__false(self):
-        with pytest.raises(ValueError):
-            parse_from_yaml(
-                StringIO(
-                    (
-                        """Insert Accounts:
+        result = parse_from_yaml(
+            StringIO(
+                (
+                    """Insert Accounts:
                             sf_object: account
                             oid_as_pk: False
                             fields:
                                 - name"""
-                    )
                 )
             )
+        )
+        assert result["Insert Accounts"].oid_as_pk is False
 
 
 class TestUpsertKeyValidations:
