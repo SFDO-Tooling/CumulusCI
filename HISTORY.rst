@@ -2,6 +2,20 @@
 History
 =======
 
+3.64.0 (2022-08-18)
+-------------------
+
+Changes 🎉
+~~~~~~~~~~
+
+* Support for upcoming Salesforce 240 Release in Robot by @boakley (#3321)
+
+Issues Fixed 🩴
+~~~~~~~~~~~~~~~~
+
+* Fix crash with unusual Unicode characters in metadata on Windows running ``update_package_xml`` by @prescod (#3323)
+* Fix Scratch org creation in latest sfdx by @prescod (#3334)
+
 3.63.0 (2022-08-04)
 -------------------
 

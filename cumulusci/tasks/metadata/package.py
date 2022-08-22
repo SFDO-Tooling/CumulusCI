@@ -53,7 +53,9 @@ class PackageXmlGenerator(object):
         uninstall_class=None,
         types=None,
     ):
-        with open(__location__ + "/metadata_map.yml", "r") as f_metadata_map:
+        with open(
+            __location__ + "/metadata_map.yml", "r", encoding="utf-8"
+        ) as f_metadata_map:
             self.metadata_map = yaml.safe_load(f_metadata_map)
         self.directory = directory
         self.api_version = api_version
@@ -150,7 +152,7 @@ class BaseMetadataParser(object):
             __location__, "..", "..", "files", "delete_excludes.txt"
         )
         excludes = []
-        with open(filename, "r") as f:
+        with open(filename, "r", encoding="utf-8") as f:
             for line in f:
                 excludes.append(line.strip())
         return excludes
@@ -440,5 +442,5 @@ class UpdatePackageXml(BaseTask):
             "Generating {} from metadata in {}".format(output, self.options.get("path"))
         )
         package_xml = self.package_xml()
-        with open(self.options.get("output", output), mode="w") as f:
+        with open(self.options.get("output", output), mode="w", encoding="utf-8") as f:
             f.write(package_xml)
