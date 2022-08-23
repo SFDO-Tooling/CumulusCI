@@ -39,7 +39,6 @@ class Cumulusci < Formula
   license "BSD-3-Clause"
   head "https://github.com/SFDO-Tooling/CumulusCI.git", branch: "main"
 
-  depends_on "rust" => :build # cryptography -> setuptools-rust
   depends_on "python@3.9"
 
   def install
