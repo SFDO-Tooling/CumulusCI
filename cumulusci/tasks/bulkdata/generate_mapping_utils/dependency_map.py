@@ -8,8 +8,8 @@ from cumulusci.utils.collections import OrderedSet, OrderedSetType
 
 StrDependencyMapping = T.Mapping[str, OrderedSetType[SObjDependency]]
 SObjectRuleDeclaration = (
-    T.Any
-)  # More code relevant to this will be pulled from Snowfakery later
+    "snowfakery.cci_mapping_files.declaration_parser.SObjectRuleDeclaration"
+)
 
 
 class DependencyMap:
@@ -53,10 +53,11 @@ class DependencyMap:
     def get_dependency_order(self):
         """Sort the dependencies to output tables in the right order."""
         if not self._sorted_tables:
-            _remove_person_contact_id(self.dependencies)
+            # SnowfakeryPersonAccounts: Add this back in when Snowfakery is integrated with this code.
+            # _remove_person_contact_id(self.dependencies)
             self._sorted_tables = _compute_dependencies(
                 tuple(self.table_names), self.dependencies
-            )  # TODO: remove tuple casts when algorithm is proven to not mutate
+            )
         return self._sorted_tables
 
 
@@ -139,17 +140,19 @@ def _table_is_free(
     return len(tables_this_table_depends_upon) == 0
 
 
-def _remove_person_contact_id(dependencies: T.Mapping[str, SObjDependency]):
-    """Don't allow relationships between a personcontact and an account to mess
-    up the load order.
+# SnowfakeryPersonAccounts: This code will be enabled when Snowfakery
+# is integrated with this code.
+# def _remove_person_contact_id(dependencies: T.Mapping[str, SObjDependency]):
+#     """Don't allow relationships between a personcontact and an account to mess
+#     up the load order.
 
-    Code adapted from Snowfakery
-    """
-    if "Account" in dependencies:  # pragma: no cover  # TODO: Cover
-        dep_to_person_contact = [
-            dep
-            for dep in dependencies["Account"]
-            if dep.table_name_to.lower() == "personcontact"
-        ]
-        for dep in dep_to_person_contact:
-            dependencies["Account"].remove(dep)
+#     Code adapted from Snowfakery
+#     """
+#     if "Account" in dependencies:
+#         dep_to_person_contact = [
+#             dep
+#             for dep in dependencies["Account"]
+#             if dep.table_name_to.lower() == "personcontact"
+#         ]
+#         for dep in dep_to_person_contact:
+#             dependencies["Account"].remove(dep)

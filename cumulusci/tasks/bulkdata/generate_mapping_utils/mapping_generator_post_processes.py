@@ -9,13 +9,15 @@ def add_after_statements(mappings: dict):
     for idx, (_, mapping) in enumerate(mappings.items()):
         for lookup in mapping.get("lookups", {}).values():
             target_table = lookup["table"]
-            # PersonContacts are not real
-            if target_table == "PersonContact":  # pragma: no cover  # TODO: Cover
-                continue
+            # SnowfakeryPersonAccounts: Add this back in when Snowfakery is integrated with this code.
+            # PersonContacts are not real, so skip them
+            if target_table == "PersonContact":  # pragma: no cover
+                raise NotImplementedError(
+                    "This code is not yet tested for use with Snowfakery and Person Accounts"
+                )
+                # continue
             target_mapping_index = indexed_by_sobject[target_table]
-            if (
-                target_mapping_index.first_instance >= idx
-            ):  # pragma: no cover  # TODO: Cover
+            if target_mapping_index.first_instance >= idx:
                 if not lookup.get("after"):
                     lookup["after"] = target_mapping_index.last_step_name
 
@@ -35,7 +37,7 @@ def _index_by_sobject(mappings):
         sobject = mapping["sf_object"]
         existing_index = indexed_by_sobject.get(sobject)
 
-        if existing_index:  # pragma: no cover  # TODO: Cover
+        if existing_index:
             new_mi = MappingIndex(existing_index.first_instance, mapping_name)
         else:
             new_mi = MappingIndex(idx, mapping_name)

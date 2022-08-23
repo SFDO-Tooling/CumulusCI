@@ -5,6 +5,7 @@ from snowfakery.salesforce import find_record_type_column
 
 from cumulusci.tasks.bulkdata.mapping_parser import MappingStep
 from cumulusci.tasks.bulkdata.step import DataOperationType
+from cumulusci.utils.yaml.model_parser import CCIModel
 
 """A mapping transform is a function with the signature:
 
@@ -30,12 +31,13 @@ def sort_steps(
     return sorted(mapping_steps, key=lambda step: table_order.index(step.sf_object))
 
 
-class _MappingStepSignature(MappingStep):
+class _MappingStepSignature(CCIModel):
     index: int
     sf_object: T.Optional[str]
     filters: T.Optional[T.Tuple[str]] = ()
     soql_filter: T.Optional[str] = None  # soql_filter property
     action: DataOperationType
+    update_key: T.Union[str, T.Tuple[str, ...]] = ()  # only for upserts
 
 
 def merge_matching_steps(
@@ -51,10 +53,11 @@ def merge_matching_steps(
             filters=tuple(step.filters) or None,
             soql_filter=step.soql_filter,
             action=step.action,
+            update_key=step.update_key,
         ),
     )
 
-    new_steps = [_merge_steps(steps) for group, steps in grouped_steps]
+    new_steps = [_merge_steps(steps) for _group, steps in grouped_steps]
     return new_steps
 
 
@@ -122,12 +125,15 @@ def recategorize_lookups(
     return list(map(doit, mapping_steps))
 
 
-def change_person_contact_sf_object(
-    mapping_steps: T.List[MappingStep], depmap: DependencyMap
-) -> T.List[MappingStep]:
-    def doit(mapping_step: MappingStep):
+# SnowfakeryPersonAccounts: This will be turned on when Snowfakery is
+# integrated with this code.
+#
+# def change_person_contact_sf_object(
+#     mapping_steps: T.List[MappingStep], depmap: DependencyMap
+# ) -> T.List[MappingStep]:
+#     def doit(mapping_step: MappingStep):
 
-        if mapping_step.table_name == "PersonContact":
-            mapping_step.sf_object = "Contact"
+#         if mapping_step.table_name == "PersonContact":
+#             mapping_step.sf_object = "Contact"
 
-    return list(map(doit, mapping_steps))
+#     return list(map(doit, mapping_steps))
