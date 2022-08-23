@@ -561,7 +561,14 @@ class TestScratchOrgConfig:
         assert not config.active
 
     def test_create_org(self, Command):
-        out = b"Successfully created scratch org: ORG_ID, username: USERNAME"
+        out = b"""{
+                "status": 0,
+                "result": {
+                    "orgId": "ORG_ID",
+                    "username": "USERNAME"
+                }
+                }
+                """
         Command.return_value = p = mock.Mock(
             stdout=io.BytesIO(out), stderr=io.BytesIO(b""), returncode=0
         )

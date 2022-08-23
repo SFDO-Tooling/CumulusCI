@@ -232,9 +232,7 @@ class TestUpsert:
             relevant_debug_statement = look_for_operation_creation_debug_statement(
                 task.logger.debug.mock_calls
             )
-            assert relevant_debug_statement == str(
-                DataApi.REST
-            ), relevant_debug_statement
+            assert relevant_debug_statement == DataApi.REST, relevant_debug_statement
 
     def _mock_bulk(self, domain):
         responses.add(
@@ -421,9 +419,7 @@ class TestUpsert:
             relevant_debug_statement = look_for_operation_creation_debug_statement(
                 task.logger.debug.mock_calls
             )
-            assert relevant_debug_statement == str(
-                DataApi.BULK
-            ), relevant_debug_statement
+            assert relevant_debug_statement == DataApi.BULK, relevant_debug_statement
 
     def _test_two_upserts_and_check_results__complex(
         self, api, create_task, cumulusci_test_repo_root, sf

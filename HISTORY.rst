@@ -2,6 +2,47 @@
 History
 =======
 
+3.64.0 (2022-08-18)
+-------------------
+
+Changes 🎉
+~~~~~~~~~~
+
+* Support for upcoming Salesforce 240 Release in Robot by @boakley (#3321)
+
+Issues Fixed 🩴
+~~~~~~~~~~~~~~~~
+
+* Fix crash with unusual Unicode characters in metadata on Windows running ``update_package_xml`` by @prescod (#3323)
+* Fix Scratch org creation in latest sfdx by @prescod (#3334)
+
+3.63.0 (2022-08-04)
+-------------------
+
+Changes 🎉
+~~~~~~~~~~~
+* CumulusCI can now validate MetaDeploy plans in cumulusci.yml by @jstvz in (#3298)
+* Sensitive service info is now masked in the `cci service info` command - by @bethbrains in (#3295)
+* Updated documentation for GitHub Actions framework by @davidmreed in (#3302)
+* New MetaData ETL Task for deploying remote site settings - `add_remote_site_settings` by @Br4nd0R in (#3303)
+* New task for deploying remote site settings that are required by OmniStudio - `deploy_omni_studio_site_settings` by @Br4nd0R in (#3303)
+* Added new robot keywords available when using the SalesforcePlaywright library: get current record id, wait until loading is complete and go to record home. These keywords work in a similar fashion to the existing keywords of the same name that are based on Selenium - by @boakley in (#3310)
+
+Issues Fixed 🩴
+~~~~~~~~~~~~~~~~
+* Fixed two issues which prevented the `set_recently_viewed` feature from working by @prescod in (#3305)
+* The GithubIssuesParser class will now fall back if issues are disabled by @davidmreed in (#3293)
+
+3.62.0 (2022-07-21)
+-------------------
+
+Changes 🎉
+~~~~~~~~~~
+- CumulusCI now supports pinning dependencies on other projects by @davidmreed in (#3270)
+- Add extract declarations concept to CumulusCI by @prescod in (#3285)
+- Make ``delete_data`` task freezable by @jstvz in (#3294)
+- Omnistudio vlocity build tool wrapper tasks ``vlocity_pack_export`` and ``vlocity_pack_deploy`` to support datapack export and deployments  by @Br4nd0R in (#3296)
+
 3.61.1 (2022-07-10)
 -------------------
 

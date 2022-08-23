@@ -225,3 +225,62 @@ def test_github_source():
         GitHubSourceModel(github="https://github.com/Test/TestRepo").resolution_strategy
         == "production"
     )
+
+
+def test_single_primary_plan(caplog):
+    yaml = """
+plans:
+  first:
+    tier: primary
+  second:
+    tier: primary
+    """
+    cci_safe_load(StringIO(yaml))
+    assert "Only one plan can be defined as 'primary' or 'secondary'" in caplog.text
+
+
+def test_single_primary_plan_implicit(caplog):
+    yaml = """
+plans:
+  explicit:
+    tier: primary
+  implicit:
+    slug: implicit_primary
+    """
+    cci_safe_load(StringIO(yaml))
+    assert "Only one plan can be defined as 'primary' or 'secondary'" in caplog.text
+
+
+def test_single_secondary_plan(caplog):
+    yaml = """
+plans:
+  first:
+    tier: secondary
+  second:
+    tier: secondary
+    """
+    cci_safe_load(StringIO(yaml))
+    assert "Only one plan can be defined as 'primary' or 'secondary'" in caplog.text
+
+
+def test_multiple_additional_plan(caplog):
+    yaml = """
+plans:
+  first:
+    slug: implicit_primary
+  second:
+    tier: secondary
+  third:
+    tier: additional
+  fourth:
+    tier: additional
+    """
+    parsed_yaml: dict = cci_safe_load(StringIO(yaml))
+    expected: dict = {
+        "first": {"slug": "implicit_primary"},
+        "second": {"tier": "secondary"},
+        "third": {"tier": "additional"},
+        "fourth": {"tier": "additional"},
+    }
+    assert "" == caplog.text
+    assert expected == parsed_yaml["plans"]
