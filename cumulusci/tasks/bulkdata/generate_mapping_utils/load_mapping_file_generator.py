@@ -18,7 +18,7 @@ from cumulusci.utils.collections import OrderedSet, OrderedSetType
 # from ..extract_dataset_utils.extract_yml import ExtractDeclaration
 from .mapping_generator_post_processes import add_after_statements
 
-# Note that the code in this file will be used by Snowfakery, so
+# Note that the code in this file is also used by Snowfakery, so
 # changes need to be coordinated.
 #
 # It is also intended to someday be used by CCI to generate
@@ -62,19 +62,20 @@ def generate_load_mapping_file(
     return mappings_dict
 
     # note that it is entirely possible for e.g.
-    # M=10 input sets to relate to N=3 tables which generate P=7 load steps.
+    # M=10 input mapping steps to relate to N=3 tables which generate P=7 load steps.
     #
     # This invariiant will always hold
     #
     # N <= P <= M
     #
-    # e.g. 10 Outputsets/Templates generating Accounts, Contacts, Opportunities
+    # e.g. 10 Snowfakery Templates generating Accounts, Contacts, Opportunities
     # But Accounts have 5 different update keys and the other two have none.
 
 
 def collect_user_specified_dependencies(
     declarations: T.Iterable[SObjectRuleDeclaration],
 ) -> OrderedSetType[SObjDependency]:
+    """The user can specify load order dependencies."""
     declared_dependencies = [decl for decl in declarations if decl.load_after]
     return OrderedSet(
         [

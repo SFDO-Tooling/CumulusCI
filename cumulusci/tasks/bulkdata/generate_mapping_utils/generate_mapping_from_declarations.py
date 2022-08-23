@@ -43,6 +43,8 @@ def create_load_mapping_file_from_extract_declarations(
 
 
 def _discover_dependendencies(simplified_decls: T.Sequence):
+    """Look at all of the lookups in a set of declarations to determine
+    what depends on what"""
     intertable_dependencies = OrderedSet()
 
     for decl in simplified_decls:
@@ -51,15 +53,6 @@ def _discover_dependendencies(simplified_decls: T.Sequence):
                 SObjDependency(decl.sf_object, tablename, fieldname)
             )
     return intertable_dependencies
-
-
-# def create_extract_mapping_file_from_declarations(
-#     decls: list[ExtractDeclaration], schema: Schema, sf: Salesforce
-# ):
-#     assert decls is not None
-#     simplified_decls = simplify_declarations(decls, schema, sf).values()
-#     mappings = [mapping_decl_for_extract_decl(decl) for decl in simplified_decls]
-#     return dict(pair for pair in mappings if pair)
 
 
 def classify_and_filter_lookups(
@@ -75,6 +68,8 @@ def _add_lookups_to_decl(
     schema: Schema,
     referenceable_tables: T.Sequence[str],
 ) -> SimplifiedExtractDeclarationWithLookups:
+    """Look at every declaration and check whether any of the fields it refers to
+    are actually lookups. If so, synthesize the lookups declarations."""
     sobject_schema_info = schema[decl.sf_object]
     fields, lookups_and_targets = _fields_and_lookups_for_decl(
         decl, sobject_schema_info, referenceable_tables

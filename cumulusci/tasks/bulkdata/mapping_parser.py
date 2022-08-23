@@ -67,6 +67,8 @@ class MappingLookup(CCIDictModel):
         )
 
     class Config:
+        # name is an injected field (from the parent dict)
+        # so don't try to serialize it as part of the model
         fields = {"name": {"exclude": True}}
 
 

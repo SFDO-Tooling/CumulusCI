@@ -55,17 +55,18 @@ class DependencyMap:
         if not self._sorted_tables:
             # SnowfakeryPersonAccounts: Add this back in when Snowfakery is integrated with this code.
             # _remove_person_contact_id(self.dependencies)
-            self._sorted_tables = _compute_dependencies(
+            self._sorted_tables = _sort_by_dependencies(
                 tuple(self.table_names), self.dependencies
             )
         return self._sorted_tables
 
 
-def _compute_dependencies(
+def _sort_by_dependencies(
     table_names: T.Sequence[str],
     dependencies: T.Mapping[str, OrderedSet],
     priority: int = 0,
 ):
+    "Sort tables by dependency relationships."
     sorted_tables = []
     dependencies = dict(dependencies)
 
@@ -85,7 +86,7 @@ def _compute_dependencies(
             # run the algorithm with ONLY the declared/hard
             # dependencies and see if it comes to resolution
 
-            higher_priority_sort = _compute_dependencies_higher_priority(
+            higher_priority_sort = _sort_dependencies_higher_priority(
                 table_names, dependencies, priority
             )
 
@@ -98,11 +99,15 @@ def _compute_dependencies(
     return sorted_tables
 
 
-def _compute_dependencies_higher_priority(
+def _sort_dependencies_higher_priority(
     table_names: T.Iterable[str],
     dependencies: T.Mapping[str, OrderedSet],
     priority: int,
 ):
+    """After a priority-ignoring dependency sort has failed, try sorting ONLY
+    on that subset of dependencies marked with a higher priority. This function
+    is mututally recursive with `_sort_by_dependencies` so it will ratchet
+    up the priority potentially multiple times."""
     relevant_dependencies = (
         dep.priority
         for depset in dependencies.values()
@@ -112,7 +117,7 @@ def _compute_dependencies_higher_priority(
     lowest_priority_dependency = min(relevant_dependencies, default=None)
 
     if lowest_priority_dependency is not None:
-        return _compute_dependencies(
+        return _sort_by_dependencies(
             table_names, dependencies, lowest_priority_dependency
         )
 
