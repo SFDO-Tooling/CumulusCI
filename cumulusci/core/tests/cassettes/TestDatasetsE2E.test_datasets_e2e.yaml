@@ -1,0 +1,260 @@
+version: 1
+interactions:
+    - &id009
+      request: &id005
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+count%28Id%29+from+Account
+          body: null
+          headers: &id001
+              Request-Headers:
+                  - Elided
+      response:
+          status: &id002
+              code: 200
+              message: OK
+          headers: &id003
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          body:
+              string: "{\n  \"totalSize\" : 1,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"AggregateResult\"\n    },\n  \
+                  \  \"expr0\" : 6\n  } ]\n}"
+    - &id006
+      include_file: GET_sobjects_Organization.yaml
+    - &id004
+      request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/limits/recordCount?sObjects=Account
+          body: null
+          headers: *id001
+      response:
+          status: *id002
+          headers: *id003
+          body:
+              string:
+                  "{\n  \"sObjects\" : [ {\n    \"count\" : 1,\n    \"name\" : \"Account\"\
+                  \n  } ]\n}"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=SELECT+Id%2C+AccountNumber%2C+AccountSource%2C+AnnualRevenue%2C+BillingCity%2C+BillingCountry%2C+BillingGeocodeAccuracy%2C+BillingLatitude%2C+BillingLongitude%2C+BillingPostalCode%2C+BillingState%2C+BillingStreet%2C+CleanStatus%2C+DunsNumber%2C+Fax%2C+Industry%2C+Jigsaw%2C+NaicsCode%2C+NaicsDesc%2C+Name%2C+NumberOfEmployees%2C+Ownership%2C+Phone%2C+Rating%2C+ShippingCity%2C+ShippingCountry%2C+ShippingGeocodeAccuracy%2C+ShippingLatitude%2C+ShippingLongitude%2C+ShippingPostalCode%2C+ShippingState%2C+ShippingStreet%2C+Sic%2C+SicDesc%2C+Site%2C+TickerSymbol%2C+Tradestyle%2C+Type%2C+Website%2C+YearStarted%2C+ParentId+FROM+Account+WHERE+Name+%21%3D+%27Sample+Account+for+Entitlements%27
+          body: null
+          headers: *id001
+      response:
+          status: *id002
+          headers: *id003
+          body:
+              string: "{\n  \"totalSize\" : 6,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Account/0018D00000H55iKQAR\"\n    },\n    \"\
+                  Id\" : \"0018D00000H55iKQAR\",\n    \"AccountNumber\" : null,\n    \"AccountSource\"\
+                  \ : null,\n    \"AnnualRevenue\" : null,\n    \"BillingCity\" : null,\n  \
+                  \  \"BillingCountry\" : null,\n    \"BillingGeocodeAccuracy\" : null,\n  \
+                  \  \"BillingLatitude\" : null,\n    \"BillingLongitude\" : null,\n    \"BillingPostalCode\"\
+                  \ : null,\n    \"BillingState\" : null,\n    \"BillingStreet\" : null,\n \
+                  \   \"CleanStatus\" : \"Pending\",\n    \"DunsNumber\" : null,\n    \"Fax\"\
+                  \ : null,\n    \"Industry\" : null,\n    \"Jigsaw\" : null,\n    \"NaicsCode\"\
+                  \ : null,\n    \"NaicsDesc\" : null,\n    \"Name\" : \"Account 5\",\n    \"\
+                  NumberOfEmployees\" : null,\n    \"Ownership\" : null,\n    \"Phone\" : null,\n\
+                  \    \"Rating\" : null,\n    \"ShippingCity\" : null,\n    \"ShippingCountry\"\
+                  \ : null,\n    \"ShippingGeocodeAccuracy\" : null,\n    \"ShippingLatitude\"\
+                  \ : null,\n    \"ShippingLongitude\" : null,\n    \"ShippingPostalCode\" :\
+                  \ null,\n    \"ShippingState\" : null,\n    \"ShippingStreet\" : null,\n \
+                  \   \"Sic\" : null,\n    \"SicDesc\" : null,\n    \"Site\" : null,\n    \"\
+                  TickerSymbol\" : null,\n    \"Tradestyle\" : null,\n    \"Type\" : null,\n\
+                  \    \"Website\" : null,\n    \"YearStarted\" : null,\n    \"ParentId\" :\
+                  \ null\n  }, {\n    \"attributes\" : {\n      \"type\" : \"Account\",\n  \
+                  \    \"url\" : \"/services/data/vxx.0/sobjects/Account/0018D00000H55iAQAR\"\
+                  \n    },\n    \"Id\" : \"0018D00000H55iAQAR\",\n    \"AccountNumber\" : null,\n\
+                  \    \"AccountSource\" : null,\n    \"AnnualRevenue\" : null,\n    \"BillingCity\"\
+                  \ : null,\n    \"BillingCountry\" : null,\n    \"BillingGeocodeAccuracy\"\
+                  \ : null,\n    \"BillingLatitude\" : null,\n    \"BillingLongitude\" : null,\n\
+                  \    \"BillingPostalCode\" : null,\n    \"BillingState\" : null,\n    \"BillingStreet\"\
+                  \ : null,\n    \"CleanStatus\" : \"Pending\",\n    \"DunsNumber\" : null,\n\
+                  \    \"Fax\" : null,\n    \"Industry\" : null,\n    \"Jigsaw\" : null,\n \
+                  \   \"NaicsCode\" : null,\n    \"NaicsDesc\" : null,\n    \"Name\" : \"Account\
+                  \ 3\",\n    \"NumberOfEmployees\" : null,\n    \"Ownership\" : null,\n   \
+                  \ \"Phone\" : null,\n    \"Rating\" : null,\n    \"ShippingCity\" : null,\n\
+                  \    \"ShippingCountry\" : null,\n    \"ShippingGeocodeAccuracy\" : null,\n\
+                  \    \"ShippingLatitude\" : null,\n    \"ShippingLongitude\" : null,\n   \
+                  \ \"ShippingPostalCode\" : null,\n    \"ShippingState\" : null,\n    \"ShippingStreet\"\
+                  \ : null,\n    \"Sic\" : null,\n    \"SicDesc\" : null,\n    \"Site\" : null,\n\
+                  \    \"TickerSymbol\" : null,\n    \"Tradestyle\" : null,\n    \"Type\" :\
+                  \ null,\n    \"Website\" : null,\n    \"YearStarted\" : null,\n    \"ParentId\"\
+                  \ : null\n  }, {\n    \"attributes\" : {\n      \"type\" : \"Account\",\n\
+                  \      \"url\" : \"/services/data/vxx.0/sobjects/Account/0018D00000H55hqQAB\"\
+                  \n    },\n    \"Id\" : \"0018D00000H55hqQAB\",\n    \"AccountNumber\" : null,\n\
+                  \    \"AccountSource\" : null,\n    \"AnnualRevenue\" : null,\n    \"BillingCity\"\
+                  \ : null,\n    \"BillingCountry\" : null,\n    \"BillingGeocodeAccuracy\"\
+                  \ : null,\n    \"BillingLatitude\" : null,\n    \"BillingLongitude\" : null,\n\
+                  \    \"BillingPostalCode\" : null,\n    \"BillingState\" : null,\n    \"BillingStreet\"\
+                  \ : null,\n    \"CleanStatus\" : \"Pending\",\n    \"DunsNumber\" : null,\n\
+                  \    \"Fax\" : null,\n    \"Industry\" : null,\n    \"Jigsaw\" : null,\n \
+                  \   \"NaicsCode\" : null,\n    \"NaicsDesc\" : null,\n    \"Name\" : \"Account\
+                  \ 0\",\n    \"NumberOfEmployees\" : null,\n    \"Ownership\" : null,\n   \
+                  \ \"Phone\" : null,\n    \"Rating\" : null,\n    \"ShippingCity\" : null,\n\
+                  \    \"ShippingCountry\" : null,\n    \"ShippingGeocodeAccuracy\" : null,\n\
+                  \    \"ShippingLatitude\" : null,\n    \"ShippingLongitude\" : null,\n   \
+                  \ \"ShippingPostalCode\" : null,\n    \"ShippingState\" : null,\n    \"ShippingStreet\"\
+                  \ : null,\n    \"Sic\" : null,\n    \"SicDesc\" : null,\n    \"Site\" : null,\n\
+                  \    \"TickerSymbol\" : null,\n    \"Tradestyle\" : null,\n    \"Type\" :\
+                  \ null,\n    \"Website\" : null,\n    \"YearStarted\" : null,\n    \"ParentId\"\
+                  \ : null\n  }, {\n    \"attributes\" : {\n      \"type\" : \"Account\",\n\
+                  \      \"url\" : \"/services/data/vxx.0/sobjects/Account/0018D00000H55hvQAB\"\
+                  \n    },\n    \"Id\" : \"0018D00000H55hvQAB\",\n    \"AccountNumber\" : null,\n\
+                  \    \"AccountSource\" : null,\n    \"AnnualRevenue\" : null,\n    \"BillingCity\"\
+                  \ : null,\n    \"BillingCountry\" : null,\n    \"BillingGeocodeAccuracy\"\
+                  \ : null,\n    \"BillingLatitude\" : null,\n    \"BillingLongitude\" : null,\n\
+                  \    \"BillingPostalCode\" : null,\n    \"BillingState\" : null,\n    \"BillingStreet\"\
+                  \ : null,\n    \"CleanStatus\" : \"Pending\",\n    \"DunsNumber\" : null,\n\
+                  \    \"Fax\" : null,\n    \"Industry\" : null,\n    \"Jigsaw\" : null,\n \
+                  \   \"NaicsCode\" : null,\n    \"NaicsDesc\" : null,\n    \"Name\" : \"Account\
+                  \ 1\",\n    \"NumberOfEmployees\" : null,\n    \"Ownership\" : null,\n   \
+                  \ \"Phone\" : null,\n    \"Rating\" : null,\n    \"ShippingCity\" : null,\n\
+                  \    \"ShippingCountry\" : null,\n    \"ShippingGeocodeAccuracy\" : null,\n\
+                  \    \"ShippingLatitude\" : null,\n    \"ShippingLongitude\" : null,\n   \
+                  \ \"ShippingPostalCode\" : null,\n    \"ShippingState\" : null,\n    \"ShippingStreet\"\
+                  \ : null,\n    \"Sic\" : null,\n    \"SicDesc\" : null,\n    \"Site\" : null,\n\
+                  \    \"TickerSymbol\" : null,\n    \"Tradestyle\" : null,\n    \"Type\" :\
+                  \ null,\n    \"Website\" : null,\n    \"YearStarted\" : null,\n    \"ParentId\"\
+                  \ : null\n  }, {\n    \"attributes\" : {\n      \"type\" : \"Account\",\n\
+                  \      \"url\" : \"/services/data/vxx.0/sobjects/Account/0018D00000H55iFQAR\"\
+                  \n    },\n    \"Id\" : \"0018D00000H55iFQAR\",\n    \"AccountNumber\" : null,\n\
+                  \    \"AccountSource\" : null,\n    \"AnnualRevenue\" : null,\n    \"BillingCity\"\
+                  \ : null,\n    \"BillingCountry\" : null,\n    \"BillingGeocodeAccuracy\"\
+                  \ : null,\n    \"BillingLatitude\" : null,\n    \"BillingLongitude\" : null,\n\
+                  \    \"BillingPostalCode\" : null,\n    \"BillingState\" : null,\n    \"BillingStreet\"\
+                  \ : null,\n    \"CleanStatus\" : \"Pending\",\n    \"DunsNumber\" : null,\n\
+                  \    \"Fax\" : null,\n    \"Industry\" : null,\n    \"Jigsaw\" : null,\n \
+                  \   \"NaicsCode\" : null,\n    \"NaicsDesc\" : null,\n    \"Name\" : \"Account\
+                  \ 4\",\n    \"NumberOfEmployees\" : null,\n    \"Ownership\" : null,\n   \
+                  \ \"Phone\" : null,\n    \"Rating\" : null,\n    \"ShippingCity\" : null,\n\
+                  \    \"ShippingCountry\" : null,\n    \"ShippingGeocodeAccuracy\" : null,\n\
+                  \    \"ShippingLatitude\" : null,\n    \"ShippingLongitude\" : null,\n   \
+                  \ \"ShippingPostalCode\" : null,\n    \"ShippingState\" : null,\n    \"ShippingStreet\"\
+                  \ : null,\n    \"Sic\" : null,\n    \"SicDesc\" : null,\n    \"Site\" : null,\n\
+                  \    \"TickerSymbol\" : null,\n    \"Tradestyle\" : null,\n    \"Type\" :\
+                  \ null,\n    \"Website\" : null,\n    \"YearStarted\" : null,\n    \"ParentId\"\
+                  \ : null\n  }, {\n    \"attributes\" : {\n      \"type\" : \"Account\",\n\
+                  \      \"url\" : \"/services/data/vxx.0/sobjects/Account/0018D00000H55i0QAB\"\
+                  \n    },\n    \"Id\" : \"0018D00000H55i0QAB\",\n    \"AccountNumber\" : null,\n\
+                  \    \"AccountSource\" : null,\n    \"AnnualRevenue\" : null,\n    \"BillingCity\"\
+                  \ : null,\n    \"BillingCountry\" : null,\n    \"BillingGeocodeAccuracy\"\
+                  \ : null,\n    \"BillingLatitude\" : null,\n    \"BillingLongitude\" : null,\n\
+                  \    \"BillingPostalCode\" : null,\n    \"BillingState\" : null,\n    \"BillingStreet\"\
+                  \ : null,\n    \"CleanStatus\" : \"Pending\",\n    \"DunsNumber\" : null,\n\
+                  \    \"Fax\" : null,\n    \"Industry\" : null,\n    \"Jigsaw\" : null,\n \
+                  \   \"NaicsCode\" : null,\n    \"NaicsDesc\" : null,\n    \"Name\" : \"Account\
+                  \ 2\",\n    \"NumberOfEmployees\" : null,\n    \"Ownership\" : null,\n   \
+                  \ \"Phone\" : null,\n    \"Rating\" : null,\n    \"ShippingCity\" : null,\n\
+                  \    \"ShippingCountry\" : null,\n    \"ShippingGeocodeAccuracy\" : null,\n\
+                  \    \"ShippingLatitude\" : null,\n    \"ShippingLongitude\" : null,\n   \
+                  \ \"ShippingPostalCode\" : null,\n    \"ShippingState\" : null,\n    \"ShippingStreet\"\
+                  \ : null,\n    \"Sic\" : null,\n    \"SicDesc\" : null,\n    \"Site\" : null,\n\
+                  \    \"TickerSymbol\" : null,\n    \"Tradestyle\" : null,\n    \"Type\" :\
+                  \ null,\n    \"Website\" : null,\n    \"YearStarted\" : null,\n    \"ParentId\"\
+                  \ : null\n  } ]\n}"
+    - &id007
+      include_file: GET_sobjects_Global_describe.yaml
+    - *id004
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=SELECT+Id+FROM+Account
+          body: null
+          headers: *id001
+      response:
+          status: *id002
+          headers: *id003
+          body:
+              string: "{\n  \"totalSize\" : 6,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Account/0018D00000H55hqQAB\"\n    },\n    \"\
+                  Id\" : \"0018D00000H55hqQAB\"\n  }, {\n    \"attributes\" : {\n      \"type\"\
+                  \ : \"Account\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Account/0018D00000H55hvQAB\"\
+                  \n    },\n    \"Id\" : \"0018D00000H55hvQAB\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Account/0018D00000H55i0QAB\"\
+                  \n    },\n    \"Id\" : \"0018D00000H55i0QAB\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Account/0018D00000H55iAQAR\"\
+                  \n    },\n    \"Id\" : \"0018D00000H55iAQAR\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Account/0018D00000H55iFQAR\"\
+                  \n    },\n    \"Id\" : \"0018D00000H55iFQAR\"\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Account\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Account/0018D00000H55iKQAR\"\
+                  \n    },\n    \"Id\" : \"0018D00000H55iKQAR\"\n  } ]\n}"
+    - &id008
+      include_file: GET_sobjects_Account_describe.yaml
+    - request:
+          method: DELETE
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects?ids=0018D00000H55hqQAB,0018D00000H55hvQAB,0018D00000H55i0QAB,0018D00000H55iAQAR,0018D00000H55iFQAR,0018D00000H55iKQAR
+          body: null
+          headers: *id001
+      response:
+          status: *id002
+          headers: *id003
+          body:
+              string:
+                  "[ {\n  \"id\" : \"0018D00000H55hqQAB\",\n  \"success\" : true,\n  \"\
+                  errors\" : [ ]\n}, {\n  \"id\" : \"0018D00000H55hvQAB\",\n  \"success\" :\
+                  \ true,\n  \"errors\" : [ ]\n}, {\n  \"id\" : \"0018D00000H55i0QAB\",\n  \"\
+                  success\" : true,\n  \"errors\" : [ ]\n}, {\n  \"id\" : \"0018D00000H55iAQAR\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ]\n}, {\n  \"id\" : \"0018D00000H55iFQAR\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ]\n}, {\n  \"id\" : \"0018D00000H55iKQAR\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ]\n} ]"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/limits/recordCount?sObjects=Contact
+          body: null
+          headers: *id001
+      response:
+          status: *id002
+          headers: *id003
+          body:
+              string: "{\n  \"sObjects\" : [ ]\n}"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=SELECT+Id+FROM+Contact
+          body: null
+          headers: *id001
+      response:
+          status: *id002
+          headers: *id003
+          body:
+              string: "{\n  \"totalSize\" : 0,\n  \"done\" : true,\n  \"records\" : [ ]\n}"
+    - request: *id005
+      response:
+          status: *id002
+          headers: *id003
+          body:
+              string: "{\n  \"totalSize\" : 1,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"AggregateResult\"\n    },\n  \
+                  \  \"expr0\" : 0\n  } ]\n}"
+    - *id006
+    - *id007
+    - *id008
+    - *id008
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite/sobjects
+          body:
+              '{"allOrNone": false, "records": [{"CleanStatus": "Pending", "Name": "Account
+              5", "attributes": {"type": "Account"}}, {"CleanStatus": "Pending", "Name": "Account
+              3", "attributes": {"type": "Account"}}, {"CleanStatus": "Pending", "Name": "Account
+              0", "attributes": {"type": "Account"}}, {"CleanStatus": "Pending", "Name": "Account
+              1", "attributes": {"type": "Account"}}, {"CleanStatus": "Pending", "Name": "Account
+              4", "attributes": {"type": "Account"}}, {"CleanStatus": "Pending", "Name": "Account
+              2", "attributes": {"type": "Account"}}]}'
+          headers: *id001
+      response:
+          status: *id002
+          headers: *id003
+          body:
+              string:
+                  "[ {\n  \"id\" : \"0018D00000H55iUQAR\",\n  \"success\" : true,\n  \"\
+                  errors\" : [ ]\n}, {\n  \"id\" : \"0018D00000H55iVQAR\",\n  \"success\" :\
+                  \ true,\n  \"errors\" : [ ]\n}, {\n  \"id\" : \"0018D00000H55iWQAR\",\n  \"\
+                  success\" : true,\n  \"errors\" : [ ]\n}, {\n  \"id\" : \"0018D00000H55iXQAR\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ]\n}, {\n  \"id\" : \"0018D00000H55iYQAR\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ]\n}, {\n  \"id\" : \"0018D00000H55iZQAR\"\
+                  ,\n  \"success\" : true,\n  \"errors\" : [ ]\n} ]"
+    - *id008
+    - *id007
+    - *id009

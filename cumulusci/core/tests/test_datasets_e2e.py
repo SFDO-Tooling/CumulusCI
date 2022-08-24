@@ -1,10 +1,15 @@
 import time
 from shutil import rmtree
+from unittest.mock import patch
 
 import pytest
 
 from cumulusci.core.datasets import Dataset
-from cumulusci.salesforce_api.org_schema import Filters, get_org_schema
+from cumulusci.salesforce_api.org_schema import Filters
+from cumulusci.tasks.bulkdata.extract_dataset_utils.tests.test_synthesize_extract_declarations import (
+    _fake_get_org_schema,
+    describe_for,
+)
 from cumulusci.tasks.bulkdata.tests.integration_test_utils import ensure_accounts
 
 ensure_accounts = ensure_accounts
@@ -23,26 +28,48 @@ class Timer:
 @pytest.mark.vcr()
 class TestDatasetsE2E:
     def test_datasets_e2e(
-        self, sf, project_config, org_config, delete_data_from_org, ensure_accounts
+        self,
+        sf,
+        project_config,
+        org_config,
+        delete_data_from_org,
+        ensure_accounts,
+        run_code_without_recording,
     ):
         timer = Timer()
         timer.checkpoint("Started")
-        with get_org_schema(
-            sf,
+        object_counts = {"Account": 6, "Contact": 1, "Opportunity": 5}
+        obj_describes = (
+            describe_for("Account"),
+            describe_for("Contact"),
+            describe_for("Opportunity"),
+        )
+
+        with patch.object(
+            type(org_config), "is_person_accounts_enabled", False
+        ), _fake_get_org_schema(
             org_config,
+            obj_describes,
+            object_counts,
             include_counts=True,
             filters=[Filters.extractable, Filters.createable],
-            included_objects=["Account", "Schema", "Contact", "Opportunity"],
-        ) as schema, ensure_accounts(6), Dataset(
-            "foo", project_config, org_config, sf, schema=schema
+            included_objects=["Account", "Contact", "Opportunity"],
+        ) as schema, ensure_accounts(
+            6
+        ), Dataset(
+            "foo", project_config, sf, org_config, schema=schema
         ) as dataset:
             timer.checkpoint("In Dataset")
             if dataset.path.exists():
                 rmtree(dataset.path)
 
-            self.demo_dataset(dataset, timer, sf, delete_data_from_org)
+            self.demo_dataset(
+                dataset, timer, sf, delete_data_from_org, run_code_without_recording
+            )
 
-    def demo_dataset(self, dataset, timer, sf, delete_data_from_org):
+    def demo_dataset(
+        self, dataset, timer, sf, delete_data_from_org, run_code_without_recording
+    ):
         def count(sobject):
             return sf.query(f"select count(Id) from {sobject}")["records"][0]["expr0"]
 
@@ -57,14 +84,12 @@ class TestDatasetsE2E:
         objs = dataset.read_schema_subset()
         timer.checkpoint("Read Subset")
 
-        for objname, fields in objs.items():
-            for field in fields:
-                # print(objname, field)
-                ...
-
         # Save a similar datastructure back to the file system
         objs = {"Account": objs["Account"]}
         objs["Account"].remove("Description")
+        objs["Account"].remove("History__c")
+        objs["Account"].remove("ns__Description__c")
+        objs["Account"].remove("Primary_Contact__c")
         dataset.update_schema_subset(objs)
         timer.checkpoint("Updated Subset")
 
@@ -75,14 +100,17 @@ class TestDatasetsE2E:
         timer.checkpoint("Read selected")
 
         # Run an extract to the filesystem
-        dataset.extract()
+        with patch("cumulusci.tasks.bulkdata.extract.validate_and_inject_mapping"):
+            dataset.extract()
         timer.checkpoint("Extract")
 
-        delete_data_from_org(
-            [
-                "Account",
-                "Contact",
-            ]
+        run_code_without_recording(
+            lambda: delete_data_from_org(
+                [
+                    "Account",
+                    "Contact",
+                ]
+            )
         )
         timer.checkpoint("Deleted")
 
@@ -93,25 +121,29 @@ class TestDatasetsE2E:
         assert count("Account") == 6
         timer.checkpoint("Verified")
 
-    def test_org_schema(self, sf, org_config):
-        with get_org_schema(
-            sf,
-            org_config,
-            include_counts=True,
-            filters=[Filters.extractable, Filters.createable],
-        ) as schema:
-            for obj in schema.sobjects:
-                for fieldname, field in obj.fields.items():
-                    if field.createable:
-                        # print(obj.name, fieldname)
-                        ...
-
     def test_datasets_extract_standard_objects(
         self, sf, project_config, org_config, delete_data_from_org, ensure_accounts
     ):
         timer = Timer()
         timer.checkpoint("Started")
-        with Dataset("bar", project_config, org_config, sf) as dataset:
+        object_counts = {"Account": 6, "Contact": 1, "Opportunity": 5}
+        obj_describes = (
+            describe_for("Account"),
+            describe_for("Contact"),
+            describe_for("Opportunity"),
+        )
+        with patch.object(type(org_config), "is_person_accounts_enabled", False), patch(
+            "cumulusci.core.datasets.get_org_schema",
+            lambda _sf, org_config, **kwargs: _fake_get_org_schema(
+                org_config,
+                obj_describes,
+                object_counts,
+                included_objects=["Account", "Contact", "Opportunity"],
+                **kwargs,
+            ),
+        ), ensure_accounts(6), Dataset(
+            "bar", project_config, sf, org_config
+        ) as dataset:
             timer.checkpoint("In Dataset")
             if dataset.path.exists():
                 rmtree(dataset.path)
@@ -123,11 +155,6 @@ class TestDatasetsE2E:
             # Datastructure like {"Account": ["Name", "Description"]}
             objs = dataset.read_schema_subset()
             timer.checkpoint("Read Subset")
-
-            for objname, fields in objs.items():
-                for field in fields:
-                    # print(objname, field)
-                    ...
 
             # Save a similar datastructure back to the file system
             objs = {

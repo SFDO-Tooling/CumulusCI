@@ -32,8 +32,8 @@ from cumulusci.tasks.bulkdata.load import LoadData
 class Dataset:
     name: str
     project_config: BaseProjectConfig
-    org_config: OrgConfig  # TODO: Swap these two
     sf: Salesforce
+    org_config: OrgConfig
     schema: Schema = None
 
     @property
