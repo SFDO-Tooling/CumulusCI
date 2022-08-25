@@ -15,6 +15,7 @@ from rich.console import Console
 import cumulusci
 from cumulusci.cli import cci
 from cumulusci.cli.tests.utils import run_click_command
+from cumulusci.cli.utils import get_installed_version
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.utils import temporary_dir
@@ -417,6 +418,7 @@ def test_version__latest(capsys):
 
 
 @mock.patch("cumulusci.cli.cci.warn_if_no_long_paths")
+@mock.patch("cumulusci.cli.cci.get_latest_final_version", get_installed_version)
 def test_version__win_path_warning(warn_if):
     run_click_command(cci.version)
     warn_if.assert_called_once()
