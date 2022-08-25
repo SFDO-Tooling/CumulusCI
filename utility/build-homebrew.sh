@@ -21,7 +21,9 @@ echo " "
 echo "=> Compiling pip requirements including hashes..."
 echo " "
 echo "cumulusci==$PACKAGE_VERSION" > "$REQS_IN_FILE"
-pip-compile "$REQS_IN_FILE" -o "$REQS_FILE" --generate-hashes
+# For a longish thread on why `allow-unsafe`, see https://github.com/pypa/pip/issues/6459
+# Here, we're adding it to collect setuptools-rust for the cryptography library.
+pip-compile "$REQS_IN_FILE" -o "$REQS_FILE" --generate-hashes --allow-unsafe
 
 echo " "
 echo "=> Writing Homebrew Formula to ${OUT_FILE}..."
@@ -34,7 +36,8 @@ class Cumulusci < Formula
   homepage "https://github.com/SFDO-Tooling/CumulusCI"
   url $PACKAGE_URL
   sha256 $PACKAGE_SHA
-  head "https://github.com/SFDO-Tooling/CumulusCI.git"
+  license "BSD-3-Clause"
+  head "https://github.com/SFDO-Tooling/CumulusCI.git", branch: "main"
 
   depends_on "python@3.9"
 
@@ -48,7 +51,8 @@ $(cat "$REQS_FILE")
 REQS
 
     File.write("requirements.txt", reqs)
-    system "python3", "-m", "pip", "install", "-r", "requirements.txt", "--require-hashes", "--no-deps", "--ignore-installed", "--prefix", libexec
+    ## Python@3.9 no longer includes python3 https://github.com/Homebrew/homebrew-core/pull/107517
+    system "python3.9", "-m", "pip", "install", "-r", "requirements.txt", "--require-hashes", "--no-deps", "--ignore-installed", "--prefix", libexec
 
     bin.install Dir["#{libexec}/bin/cci"]
     bin.install Dir["#{libexec}/bin/snowfakery"]
