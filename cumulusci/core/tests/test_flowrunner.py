@@ -779,16 +779,18 @@ def include_fake_project(self: BaseProjectConfig, _spec) -> BaseProjectConfig:
 def test_cross_project_tasks(get_tempfile_logger):
     # get_tempfile_logger doesn't clean up after itself which breaks other tests
     get_tempfile_logger.return_value = mock.Mock(), ""
-    cci.main(
-        [
-            "cci",
-            "task",
-            "run",
-            "local_fake_2:example_task",
-        ]
-    )
-    # captured = capsys.readouterr()
-    # assert "Called _run_task" in captured.out
+    with mock.patch("cumulusci.core.debug._DEBUG_MODE", get=lambda: True), mock.patch(
+        "logging.Logger.info", wraps=lambda data: print(data)
+    ) as out:
+        cci.main(
+            [
+                "cci",
+                "task",
+                "run",
+                "local_fake_2:example_task",
+            ]
+        )
+    assert "Called _run_task 2 !" in str(out.mock_calls)
 
 
 class TestCrossRepoFlow:

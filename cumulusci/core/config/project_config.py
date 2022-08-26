@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Union
 
 from cumulusci.core.config.base_config import BaseConfig
+from cumulusci.core.debug import get_debug_mode
 from cumulusci.core.versions import PackageVersionNumber
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
@@ -602,7 +603,12 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             # https://stackoverflow.com/a/2700924/113477
             directory = str(Path(project_config.repo_root) / "tasks")
             if directory not in tasks.__path__:
+                self.logger.info(f"Adding {directory} to tasks.__path__")
                 tasks.__path__.append(directory)
+            if get_debug_mode():
+                self.logger.info(
+                    f"After importing {spec}:  tasks.__path__ {tasks.__path__}"
+                )
 
         return project_config
 
