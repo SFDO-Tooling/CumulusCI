@@ -4,6 +4,7 @@
 FAILED_TO_CREATE_SCRATCH_ORG = "Failed to create scratch org"
 
 from cumulusci.core.config.base_config import BaseConfig
+from cumulusci.core.utils import import_global
 
 
 class ConnectedAppOAuthConfig(BaseConfig):
@@ -65,7 +66,8 @@ class TaskConfig(BaseConfig):
     checks: list
     project_config: "BaseProjectConfig"
 
-    pass
+    def get_class(self):
+        return import_global(self.class_path)
 
 
 from cumulusci.core.config.base_task_flow_config import BaseTaskFlowConfig

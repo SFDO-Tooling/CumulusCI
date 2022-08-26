@@ -1,10 +1,13 @@
 import logging
+from pathlib import Path
 from unittest import mock
 
 import pytest
 
 import cumulusci
+from cumulusci.cli import cci
 from cumulusci.core.config import FlowConfig, OrgConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.exceptions import (
     FlowConfigError,
     FlowInfiniteLoopError,
@@ -16,9 +19,11 @@ from cumulusci.core.flowrunner import (
     StepSpec,
     TaskRunner,
 )
+from cumulusci.core.source.local_folder import LocalFolderSource
 from cumulusci.core.tasks import BaseTask
 from cumulusci.core.tests.utils import MockLoggingHandler
 from cumulusci.tests.util import create_project_config
+from cumulusci.utils.yaml.cumulusci_yml import LocalFolderSourceModel
 
 ORG_ID = "00D000000000001"
 
@@ -747,3 +752,44 @@ def test_log_options__options_is_list__sensitive(task_runner, task_options_sensi
 
     task.logger.info.assert_any_call("  color:")
     task.logger.info.assert_any_call("    - ********")
+
+
+def include_fake_project(self: BaseProjectConfig, _spec) -> BaseProjectConfig:
+    # cumulusci/core/source/local_folder.py
+    source = LocalFolderSource(
+        self,
+        LocalFolderSourceModel(path=Path("cumulusci/core/tests/fake_remote_repo/")),
+    )
+    project = source.fetch()
+    return project
+
+
+def test_cross_project_tasks(self, capsys):
+    with mock.patch(
+        "cumulusci.core.config.project_config.BaseProjectConfig.include_source",
+        include_fake_project,
+    ):
+        cci.main(
+            [
+                "cci",
+                "task",
+                "run",
+                "ccitest:example_task",
+            ]
+        )
+        captured = capsys.readouterr()
+        assert "Called _run_task" in captured.out
+
+
+class TestCrossRepoFlow:
+    @pytest.mark.slow()
+    def test_cross_project_tasks_2_repos_same_flow(self, capsys, org_config, runtime):
+        # cci.main(
+        #     ["cci", "flow", "run", "test_cross_project_custom_tasks", "--org", "qa"]
+        # )
+        coordinator = runtime.get_flow("test_cross_project_custom_tasks", options=())
+        coordinator.logger = mock.Mock()
+        coordinator.run(org_config)
+        out = str(coordinator.logger.mock_calls)
+        assert "Called _run_task" in out
+        assert "Called _run_task 2 !!!" in out

@@ -2,6 +2,7 @@ import json
 import os
 import pathlib
 import re
+import sys
 from configparser import ConfigParser
 from contextlib import contextmanager
 from distutils.version import LooseVersion
@@ -10,6 +11,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Union
 
+import tasks
 from cumulusci.core.config.base_config import BaseConfig
 from cumulusci.core.versions import PackageVersionNumber
 
@@ -590,6 +592,9 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             project_config.set_keychain(self.keychain)
             project_config.source = source
             self.included_sources[spec] = project_config
+            # https://stackoverflow.com/a/2700924/113477
+            tasks.__path__.append(str(Path(project_config.repo_root) / "tasks"))
+            sys.path.append(project_config.repo_root)
 
         return project_config
 

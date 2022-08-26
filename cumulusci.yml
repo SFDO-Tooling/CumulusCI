@@ -8,6 +8,8 @@ sources:
     ccitest:
         github: https://github.com/SFDO-Tooling/CumulusCI-Test
         branch: main
+    local_fake_2:
+        path: cumulusci/core/tests/fake_remote_repo_2
 
 tasks:
     robot:
@@ -159,6 +161,14 @@ flows:
         steps:
             1:
                 task: None
+
+    test_cross_project_custom_tasks:
+        steps:
+            1:
+                task: ccitest:example_task
+
+            2:
+                task: local_fake_2:example_task
 
     test_upserts_snowfakery:
         steps:

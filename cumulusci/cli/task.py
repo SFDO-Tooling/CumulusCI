@@ -7,7 +7,6 @@ from rst2ansi import rst2ansi
 
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import CumulusCIUsageError
-from cumulusci.core.utils import import_global
 from cumulusci.utils import doc_task
 
 from .runtime import pass_runtime
@@ -83,6 +82,7 @@ def task_doc(runtime, project=False, write=False):
         if name not in selected_tasks:
             continue
         task_config = TaskConfig(task_config_dict)
+        task_config.project_config = runtime.project_config
         doc = doc_task(name, task_config)
         result += [doc, ""]
     result = "\n".join(result)
@@ -144,7 +144,7 @@ class RunTaskCommand(click.MultiCommand):
         if "options" not in task_config.config:
             task_config.config["options"] = {}
 
-        task_class = import_global(task_config.class_path)
+        task_class = task_config.get_class()
         task_options = task_class.task_options
 
         params = self._get_default_command_options(task_class.salesforce_task)

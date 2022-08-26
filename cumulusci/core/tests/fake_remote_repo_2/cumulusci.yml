@@ -1,0 +1,7 @@
+project:
+    name: Local-Fake-2
+
+tasks:
+    example_task:
+        description: An example project-level task that does nothing
+        class_path: tasks.example_2.ExampleTask
