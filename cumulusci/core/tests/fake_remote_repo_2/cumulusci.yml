@@ -8,7 +8,7 @@ tasks:
 
     example_task:
         description: An example project-level task that does nothing
-        class_path: tasks.example.ExampleTask
+        class_path: tasks.example_2.ExampleTask
 
     example_task_nested:
         description: An example project-level task a directory down
