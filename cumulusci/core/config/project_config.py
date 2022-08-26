@@ -3,6 +3,7 @@ import os
 import pathlib
 import re
 import sys
+import types
 from configparser import ConfigParser
 from contextlib import contextmanager
 from distutils.version import LooseVersion
@@ -11,7 +12,6 @@ from itertools import chain
 from pathlib import Path
 from typing import Union
 
-import tasks
 from cumulusci.core.config.base_config import BaseConfig
 from cumulusci.core.versions import PackageVersionNumber
 
@@ -43,6 +43,13 @@ from cumulusci.utils.yaml.cumulusci_yml import (
     LocalFolderSourceModel,
     cci_safe_load,
 )
+
+sys.modules.setdefault(
+    "tasks", types.ModuleType("tasks", "Synthetic package for all repo tasks")
+)
+import tasks
+
+tasks.__path__ = []
 
 
 class ProjectConfigPropertiesMixin(BaseConfig):
@@ -593,8 +600,11 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             project_config.source = source
             self.included_sources[spec] = project_config
             # https://stackoverflow.com/a/2700924/113477
-            tasks.__path__.append(str(Path(project_config.repo_root) / "tasks"))
-            sys.path.append(project_config.repo_root)
+            directory = str(Path(project_config.repo_root) / "tasks")
+            if directory not in tasks.__path__:
+                tasks.__path__.append(directory)
+            if project_config.repo_root and project_config.repo_root not in sys.path:
+                sys.path.append(project_config.repo_root)
 
         return project_config
 

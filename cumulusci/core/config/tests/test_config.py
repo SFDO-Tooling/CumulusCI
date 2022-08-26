@@ -670,6 +670,7 @@ class TestBaseProjectConfig:
     @mock.patch("cumulusci.core.config.project_config.GitHubSource")
     def test_include_source__github(self, source):
         source.return_value = expected_result = mock.Mock()
+        expected_result.fetch.return_value.repo_root = "/whatever"
         universal_config = UniversalConfig()
         project_config = BaseProjectConfig(universal_config)
         other_config = project_config.include_source(
