@@ -603,8 +603,6 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             directory = str(Path(project_config.repo_root) / "tasks")
             if directory not in tasks.__path__:
                 tasks.__path__.append(directory)
-            if project_config.repo_root and project_config.repo_root not in sys.path:
-                sys.path.append(project_config.repo_root)
 
         return project_config
 

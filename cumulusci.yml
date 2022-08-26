@@ -170,6 +170,9 @@ flows:
             2:
                 task: local_fake_2:example_task
 
+            3:
+                task: local_fake_2:example_task_nested
+
     test_upserts_snowfakery:
         steps:
             1:

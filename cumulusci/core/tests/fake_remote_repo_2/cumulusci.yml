@@ -1,7 +1,15 @@
 project:
-    name: Local-Fake-2
+    name: CumulusCI-Test-Local-Fake
 
 tasks:
+    preflight:
+        description: returns static preflight result
+        class_path: tasks.example.StaticPreflightTask
+
     example_task:
         description: An example project-level task that does nothing
-        class_path: tasks.example_2.ExampleTask
+        class_path: tasks.example.ExampleTask
+
+    example_task_nested:
+        description: An example project-level task a directory down
+        class_path: tasks.directory.example.ExampleTask2
