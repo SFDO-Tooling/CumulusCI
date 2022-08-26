@@ -35,6 +35,7 @@ class Dataset:
     sf: Salesforce
     org_config: OrgConfig
     schema: Schema = None
+    initialized = False
 
     @property
     def path(self) -> Path:
@@ -58,6 +59,7 @@ class Dataset:
             self.schema = self.schema_context.__enter__(*args, **kwargs)
         else:
             self.schema_context = None
+        self.initialized = True
         return self
 
     def __exit__(self, *args, **kwargs):
@@ -65,6 +67,10 @@ class Dataset:
             self.schema_context.__exit__(*args, **kwargs)
 
     def create(self):
+        assert (
+            self.initialized
+        ), "You must open this context manager. e.g. `with Dataset() as dataset`"
+
         if not self.path.exists():
             self.path.mkdir()
 
@@ -79,7 +85,7 @@ class Dataset:
             self.sf,
             self.org_config,
             include_counts=True,
-            filters=[Filters.extractable, Filters.createable],
+            filters=[Filters.extractable, Filters.createable, Filters.populated],
         )
 
     def _save_load_mapping(self, decls: T.Sequence[ExtractDeclaration]) -> None:
