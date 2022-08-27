@@ -8,6 +8,7 @@ class LocalFolderSource:
         self.project_config = project_config
         self.spec = spec
         self.path = spec.path
+        self.location = self.path
 
     def __repr__(self):
         return f"<LocalFolderSource {str(self)}>"

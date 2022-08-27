@@ -7,6 +7,7 @@ class NullSource:
 
     frozenspec = None
     allow_remote_code = True
+    location = None
 
     def __str__(self):
         return "current folder"

@@ -12,8 +12,8 @@ sources:
     local_fake_2:
         path: cumulusci/core/tests/fake_remote_repo_2
         allow_remote_code: True
-    disallowed_local_fake:
-        path: cumulusci/core/tests/fake_remote_repo_2
+    disallowed_repo:
+        path: cumulusci/core/tests/untrusted_repo_parent
 
 tasks:
     robot:

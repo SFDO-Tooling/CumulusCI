@@ -604,13 +604,21 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             project_config.set_keychain(self.keychain)
             project_config.source = source
             self.included_sources[spec] = project_config
-            if self.allow_remote_code and spec.allow_remote_code:
+
+            # If I can't load remote code, make sure that my
+            # included repos can't either.
+            if not self.allow_remote_code:
+                spec.allow_remote_code = False
+            else:
                 project_config._add_tasks_directory_to_python_path()
 
         return project_config
 
     def _add_tasks_directory_to_python_path(self):
         # https://stackoverflow.com/a/2700924/113477
+        if not self.allow_remote_code:
+            return False
+
         directory = str(Path(self.repo_root) / "tasks")
         if directory not in tasks.__path__:
             self.logger.debug(f"Adding {directory} to tasks.__path__")

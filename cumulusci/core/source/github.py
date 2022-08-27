@@ -21,6 +21,7 @@ class GitHubSource:
         self.project_config = project_config
         self.spec = spec
         self.url = spec.github
+        self.location = self.url
         if self.url.endswith(".git"):
             self.url = self.url[:-4]
 
