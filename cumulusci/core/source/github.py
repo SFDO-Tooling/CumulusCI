@@ -168,3 +168,7 @@ class GitHubSource:
             "commit": self.commit,
             "description": self.description,
         }
+
+    @property
+    def allow_remote_code(self) -> bool:
+        return self.spec.allow_remote_code

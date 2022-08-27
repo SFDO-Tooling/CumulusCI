@@ -132,6 +132,11 @@ tasks:
         group: projectName
 ```
 
+This task will be accessible directly to this project. It will also
+be accessible to any other project that adds this as a source
+(see [](tasks-and-flows-from-a-different-project)) with
+`allow_remote_code: True`.
+
 (use-variables-for-task-options)=
 
 ### Use Variables for Task Options
@@ -473,6 +478,17 @@ flows:
 
 This flow uses NPSP's `install_prod` flow to install NPSP as a managed
 package, and then run this project's own `dev_org` flow.
+
+If the flow uses tasks that are implemented in custom Python code
+(see XXX)
+then you must instruct CumulusCI to allow that code to run:
+
+```yaml
+sources:
+    eda:
+        github: https://github.com/SalesforceFoundation/EDA
+        allow_remote_code: True
+```
 
 (scratch-org-configurations)=
 

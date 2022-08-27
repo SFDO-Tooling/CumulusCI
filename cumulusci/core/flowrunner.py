@@ -67,9 +67,11 @@ from operator import attrgetter
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 
 from cumulusci.core.config import FlowConfig, TaskConfig
-from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
-
-# TODO: define exception types: flowfailure, taskimporterror, etc?
+from cumulusci.core.exceptions import (
+    FlowConfigError,
+    FlowInfiniteLoopError,
+    TaskImportError,
+)
 
 RETURN_VALUE_OPTION_PREFIX = "^^"
 
@@ -599,8 +601,8 @@ class FlowCoordinator(object):
             # get implementation class. raise/fail if it doesn't exist, because why continue
             try:
                 task_class = task_config.get_class()
-            except (ImportError, AttributeError):
-                raise FlowConfigError(f"Task named {name} has bad classpath")
+            except (ImportError, AttributeError, TaskImportError) as e:
+                raise FlowConfigError(f"Task named {name} has bad classpath, {e}")
 
             visited_steps.append(
                 StepSpec(

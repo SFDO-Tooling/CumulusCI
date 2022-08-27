@@ -28,3 +28,7 @@ class LocalFolderSource:
     @property
     def frozenspec(self):
         raise NotImplementedError("Cannot construct frozenspec for local folder")
+
+    @property
+    def allow_remote_code(self) -> bool:
+        return self.spec.allow_remote_code

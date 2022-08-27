@@ -4,6 +4,7 @@
 FAILED_TO_CREATE_SCRATCH_ORG = "Failed to create scratch org"
 
 from cumulusci.core.config.base_config import BaseConfig
+from cumulusci.core.exceptions import TaskImportError
 from cumulusci.core.utils import import_global
 
 
@@ -66,8 +67,30 @@ class TaskConfig(BaseConfig):
     checks: list
     project_config: "BaseProjectConfig"
 
+    # TODO: What if an intermediate repo "allows" a downstream repo?
+    #       Only the top repo should be allowed to do so.
+
     def get_class(self):
-        return import_global(self.class_path)
+        try:
+            return import_global(self.class_path)
+        except ModuleNotFoundError as e:
+            message = "Cannot load Python class for task:\n" + str(e)
+            if not self.source.allow_remote_code:
+                message += "\n".join(
+                    (
+                        "",
+                        str(self.source),
+                        "is not an approved source for running third party Python code.",
+                        "If this task is custom Python, that would explain the problem.",
+                        "Otherwise, it might just be a mistyped `class_name`.",
+                        "More info: https://cumulusci.readthedocs.io/en/stable/config.html?highlight=sources#tasks-and-flows-from-a-different-project",
+                    )
+                )
+            raise TaskImportError(message) from e
+
+    @property
+    def source(self):
+        return self.project_config.source
 
 
 from cumulusci.core.config.base_task_flow_config import BaseTaskFlowConfig

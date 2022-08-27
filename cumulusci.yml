@@ -8,7 +8,11 @@ sources:
     ccitest:
         github: https://github.com/SFDO-Tooling/CumulusCI-Test
         branch: main
+        allow_remote_code: True
     local_fake_2:
+        path: cumulusci/core/tests/fake_remote_repo_2
+        allow_remote_code: True
+    disallowed_local_fake:
         path: cumulusci/core/tests/fake_remote_repo_2
 
 tasks:

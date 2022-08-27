@@ -488,6 +488,10 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             config = json.load(f)
         return config
 
+    @property
+    def allow_remote_code(self) -> bool:
+        return self.source.allow_remote_code
+
     def get_tag_for_version(self, prefix, version):
         """Given a prefix and version, returns the appropriate tag name to use."""
         try:
@@ -600,17 +604,21 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             project_config.set_keychain(self.keychain)
             project_config.source = source
             self.included_sources[spec] = project_config
-            # https://stackoverflow.com/a/2700924/113477
-            directory = str(Path(project_config.repo_root) / "tasks")
-            if directory not in tasks.__path__:
-                self.logger.info(f"Adding {directory} to tasks.__path__")
-                tasks.__path__.append(directory)
-            if get_debug_mode():
-                self.logger.info(
-                    f"After importing {spec}:  tasks.__path__ {tasks.__path__}"
-                )
+            if self.allow_remote_code and spec.allow_remote_code:
+                project_config._add_tasks_directory_to_python_path()
 
         return project_config
+
+    def _add_tasks_directory_to_python_path(self):
+        # https://stackoverflow.com/a/2700924/113477
+        directory = str(Path(self.repo_root) / "tasks")
+        if directory not in tasks.__path__:
+            self.logger.debug(f"Adding {directory} to tasks.__path__")
+            tasks.__path__.append(directory)
+        if get_debug_mode():
+            self.logger.debug(
+                f"After importing {self.source.spec}:  tasks.__path__ {tasks.__path__}"
+            )
 
     def construct_subproject_config(self, **kwargs):
         """Construct another project config for an external source"""
