@@ -135,7 +135,7 @@ def _expand_group_sobject_declaration(decl: ExtractDeclaration, schema: Schema):
         assert 0, decl.group_type
 
     matching_objects = [
-        obj["name"] for obj in schema.sobjects if matches_obj(obj) and obj.count > 1
+        obj["name"] for obj in schema.sobjects if matches_obj(obj) and obj.count >= 1
     ]
     decls = [
         synthesize_declaration_for_sobject(obj, decl.fields, schema[obj].fields)

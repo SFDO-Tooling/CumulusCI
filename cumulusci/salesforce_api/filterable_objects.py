@@ -7,6 +7,8 @@ NOT_COUNTABLE = (
     "IdeaComment",  # you must filter using the following syntax: CommunityId = [single ID],
     "Vote",  # you must filter using the following syntax: ParentId = [single ID],
     "RecordActionHistory",  # Gack: 1133111327-118855 (1126216936)
+    "DashboardSnapshotResults",  # Gack: 1198622208-46932 (1126216936)
+    "RecordRecommendation",  # Implementation restriction: RecordRecommendation requires a filter on TargetSobjectType or TargetId or RecordRecommendationId
 )
 
 
