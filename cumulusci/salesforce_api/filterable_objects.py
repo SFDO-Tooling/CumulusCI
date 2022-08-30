@@ -33,6 +33,7 @@ NOT_EXTRACTABLE = NOT_COUNTABLE + (
     "PermissionSetGroupComponent",
     "PermissionSetLicenseAssign",
     "PermissionSetTabSetting",
+    "Profile",
     "User",
     "UserAppInfo",
     "UserAppMenuCustomization",
