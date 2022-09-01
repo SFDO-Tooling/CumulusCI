@@ -156,7 +156,7 @@ jobs:
                     -o suites cumulusci/robotframework/tests/salesforce \
                     -o exclude no-browser \
                     -o vars ${{ matrix.browser }} \
-                    --processes 64
+                    --processes 16
             - name: Delete scratch org
               if: always()
               run: |
