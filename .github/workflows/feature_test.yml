@@ -109,7 +109,7 @@ jobs:
                   path: robot/CumulusCI/results
     robot_ui:
         name: "Robot: ${{ matrix.job-name }}"
-        runs-on: sfdc-ubuntu-latest
+        runs-on: sfdo-iron-giant
         strategy:
             fail-fast: false
             matrix:
@@ -156,6 +156,7 @@ jobs:
                     -o suites cumulusci/robotframework/tests/salesforce \
                     -o exclude no-browser \
                     -o vars ${{ matrix.browser }}
+                    --processes 64
             - name: Delete scratch org
               if: always()
               run: |
