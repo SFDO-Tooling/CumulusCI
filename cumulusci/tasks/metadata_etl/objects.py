@@ -26,8 +26,7 @@ class SetObjectSettings(MetadataSingleEntityTransformTask):
         "disable": {
             "description": f"Array of object settings to disable. Uses the setting name.  Available values: {OBJ_SETTINGS_STR}"
         },
-        # Only include api_names option since namespace injection isn't supported
-        **{"api_names": MetadataSingleEntityTransformTask.task_options["api_names"]},
+        **MetadataSingleEntityTransformTask.task_options,
     }
 
     def _init_options(self, kwargs):
@@ -57,9 +56,14 @@ class SetObjectSettings(MetadataSingleEntityTransformTask):
 
     def _transform_entity(self, metadata: MetadataElement, api_name: str):
         for setting in self.options["enable"]:
-            elem = metadata.find("enable" + setting)
-            elem.text = "true"
+            self._apply_setting(metadata, setting, True)
         for setting in self.options["disable"]:
-            elem = metadata.find("enable" + setting)
-            elem.text = "false"
+            self._apply_setting(metadata, setting, False)
         return metadata
+
+    def _apply_setting(self, metadata: MetadataElement, setting: str, enable: bool):
+        name = f"enable{setting}"
+        elem = metadata.find(name)
+        if elem is None:
+            elem = metadata.append(name)
+        elem.text = "true" if enable else "false"
