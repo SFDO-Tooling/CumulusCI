@@ -598,7 +598,7 @@ def validate_and_inject_mapping(
         raise BulkDataException(
             "One or more schema or permissions errors blocked the operation.\n"
             "If you would like to attempt the load regardless, you can specify "
-            "'-o drop_missing_schema True' on the command."
+            "'--drop_missing_schema True' on the command."
         )
 
     if drop_missing:
