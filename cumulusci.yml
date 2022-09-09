@@ -11,7 +11,7 @@ sources:
 
     omni:
         github: https://github.com/SalesforceFoundation/omni-cci
-        branch: feature/omnistudio-post-installation-updated
+        branch: main
 
 tasks:
     robot:
