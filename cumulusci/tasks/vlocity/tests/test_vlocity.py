@@ -5,6 +5,8 @@ import pytest
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
+from cumulusci.core.exceptions import CommandException
+from cumulusci.core.utils import import_global
 from cumulusci.tasks.vlocity.exceptions import BuildToolMissingError
 from cumulusci.tasks.vlocity.vlocity import (
     BUILD_TOOL_MISSING_ERROR,
@@ -48,31 +50,31 @@ vlocity_test_cases = [
         scratch_org_config,
         VlocityRetrieveTask,
         None,
-        f"vlocity packExport -job vlocity.yaml --json -sfdx.username '{username}'",
+        f"vlocity packExport -job vlocity.yaml -sfdx.username '{username}'",
     ),
     (
         persistent_org_config,
         VlocityRetrieveTask,
         None,
-        f"vlocity packExport -job vlocity.yaml --json -sf.accessToken '{access_token}' -sf.instanceUrl '{instance_url}'",
+        f"vlocity packExport -job vlocity.yaml -sf.accessToken '{access_token}' -sf.instanceUrl '{instance_url}'",
     ),
     (
         scratch_org_config,
         VlocityDeployTask,
         None,
-        f"vlocity packDeploy -job vlocity.yaml --json -sfdx.username '{username}'",
+        f"vlocity packDeploy -job vlocity.yaml -sfdx.username '{username}'",
     ),
     (
         persistent_org_config,
         VlocityDeployTask,
         None,
-        f"vlocity packDeploy -job vlocity.yaml --json -sf.accessToken '{access_token}' -sf.instanceUrl '{instance_url}'",
+        f"vlocity packDeploy -job vlocity.yaml -sf.accessToken '{access_token}' -sf.instanceUrl '{instance_url}'",
     ),
     (
         persistent_org_config,
         VlocityDeployTask,
         "foo=bar",
-        f"vlocity packDeploy -job vlocity.yaml --json -sf.accessToken '{access_token}' -sf.instanceUrl '{instance_url}' foo=bar",
+        f"vlocity packDeploy -job vlocity.yaml -sf.accessToken '{access_token}' -sf.instanceUrl '{instance_url}' foo=bar",
     ),
 ]
 
@@ -143,3 +145,31 @@ def test_deploy_omni_studio_site_settings(
     )
     actual_urls = set([r.url for r in records])
     assert expected_urls == actual_urls
+
+
+@pytest.mark.needs_org()
+@pytest.mark.slow()
+def test_vlocity_integration(project_config, create_task, caplog):
+    task_config = project_config.get_task("omni:test_success")
+    task_class = import_global(task_config.class_path)
+    task = create_task(
+        task_class, task_config.options, project_config=task_config.project_config
+    )
+    try:
+        task()
+        assert task.return_values["returncode"] == 0
+    except Exception:
+        print(caplog.records)
+        raise
+
+
+@pytest.mark.needs_org()
+@pytest.mark.slow()
+def test_vlocity_integration__error_handling(project_config, create_task, caplog):
+    task_config = project_config.get_task("omni:test_failure")
+    task_class = import_global(task_config.class_path)
+    task = create_task(
+        task_class, task_config.options, project_config=task_config.project_config
+    )
+    with pytest.raises(CommandException):
+        task()

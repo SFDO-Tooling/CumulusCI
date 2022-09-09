@@ -9,6 +9,10 @@ sources:
         github: https://github.com/SFDO-Tooling/CumulusCI-Test
         branch: main
 
+    omni:
+        github: https://github.com/SalesforceFoundation/omni-cci
+        branch: feature/omnistudio-post-installation-updated
+
 tasks:
     robot:
         options:
@@ -216,3 +220,6 @@ orgs:
 
         person_accounts:
             config_file: orgs/person_accounts.json
+
+        omni:
+            config_file: orgs/omni.json
