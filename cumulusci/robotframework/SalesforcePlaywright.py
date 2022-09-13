@@ -106,7 +106,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         )
         page_details = self.browser.new_page(login_url)
 
-        self.browser.wait_until_network_is_idle()
+        self.browser.wait_until_network_is_idle("15 seconds")
 
         return browser_id, context_id, page_details
 
