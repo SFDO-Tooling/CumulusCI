@@ -1,3 +1,4 @@
+import json
 import os
 import shlex
 import subprocess
@@ -201,6 +202,17 @@ class Robot(BaseSalesforceTask):
             prefix, _, path = path.rpartition(":")
             if prefix in source_paths:
                 self.options["suites"][i] = os.path.join(source_paths[prefix], path)
+
+        # this is necessary so that javascript-based keywords have access
+        # to at least some of the org info
+        org_info = json.dumps(
+            {
+                "name": self.org_config.name,
+                "instance_url": self.org_config.instance_url,
+                "org_id": self.org_config.org_id,
+            }
+        )
+        os.environ["CCI_ORG_INFO"] = org_info
 
         if self.options["processes"] > 1:
             # Since pabot runs multiple robot processes, and because
