@@ -20,6 +20,7 @@ from cumulusci.utils.xml import lxml_parse_string
 DEFAULT_BULK_BATCH_SIZE = 10_000
 DEFAULT_REST_BATCH_SIZE = 200
 MAX_REST_BATCH_SIZE = 200
+csv.field_size_limit(2**27)  # 128 MB
 
 
 class DataOperationType(Enum):
