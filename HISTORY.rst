@@ -2,14 +2,13 @@
 History
 =======
 
-3.65.0 (2022-09-08)
+3.65.0 (2022-09-16)
 -------------------
 
 Changes 🎉
 ~~~~~~~~~~
-* Specify Python minor version in homebrew formula by ``@jstvz`` in (#3344)
-* Add Dataset abstraction to CCI internals (not user facing) by ``@prescod`` in (#3346)
-* Add Git2Gus configuration file by ``@jstvz`` in (#3350)
+
+* Improve logging and add error handling for Vlocity tasks by @prescod in (#3357)
 
 3.64.0 (2022-08-18)
 -------------------
