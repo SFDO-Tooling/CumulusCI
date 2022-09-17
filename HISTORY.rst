@@ -2,6 +2,14 @@
 History
 =======
 
+3.65.0 (2022-09-16)
+-------------------
+
+Changes 🎉
+~~~~~~~~~~
+
+* Improve logging and add error handling for Vlocity tasks by @prescod in (#3357)
+
 3.64.0 (2022-08-18)
 -------------------
 
