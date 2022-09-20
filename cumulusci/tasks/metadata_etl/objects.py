@@ -47,10 +47,9 @@ class SetObjectSettings(MetadataSingleEntityTransformTask):
             if setting not in OBJ_SETTINGS:
                 invalid.append(setting)
         if invalid:
+            invalid_settings = ", ".join(invalid)
             raise TaskOptionsError(
-                "Invalid settings: {}.  Valid settings are: ".format(
-                    ", ".join(invalid), OBJ_SETTINGS_STR
-                )
+                f"Invalid settings: {invalid_settings}.  Valid settings are: {OBJ_SETTINGS_STR}"
             )
         return settings
 
