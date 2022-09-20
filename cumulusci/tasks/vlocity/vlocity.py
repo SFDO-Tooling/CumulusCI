@@ -1,3 +1,4 @@
+import sys
 from abc import ABC
 from typing import Final
 
@@ -34,6 +35,10 @@ class VlocityBaseTask(Command, BaseSalesforceTask):
         "extra": {"description": "Any extra arguments to pass to the vlocity CLI"},
     }
 
+    def _init_options(self, kwargs):
+        kwargs.setdefault("interactive", sys.stdout.isatty())
+        return super()._init_options(kwargs)
+
     def _init_task(self):
         tool_exists = self._vlocity_build_tool_exists()
         if not tool_exists:
@@ -69,7 +74,7 @@ class VlocitySimpleJobTask(VlocityBaseTask, ABC):
         username: str = self.org_config.username
         job_file: str = self.options.get("job_file")
 
-        command: str = f"{self.command_keyword} -job {job_file} --json"
+        command: str = f"{self.command_keyword} -job {job_file}"
 
         if isinstance(self.org_config, ScratchOrgConfig):
             command = f"{command} -sfdx.username '{username}'"
@@ -101,7 +106,7 @@ class OmniStudioDeployRemoteSiteSettings(AddRemoteSiteSettings):
 
     task_options: dict = {
         "namespace": {
-            "description": "The namespace to inject into RemoteSiteSettings.url values. Defaults to '{OMNI_NAMESPACE}'."
+            "description": f"The namespace to inject into RemoteSiteSettings.url values. Defaults to '{OMNI_NAMESPACE}'."
         }
     }
 
