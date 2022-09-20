@@ -125,16 +125,15 @@ Non-lightning based form - radiobutton
 
     [Setup]     Run keywords
     ...  Go to My Email Settings
-    ...  AND  Select frame  //div[@class="setupcontent"]//iframe
+    ...  AND  Select frame                   //div[@class="setupcontent"]//iframe
+    ...  AND  Select radio button            use_external_email  1
+    ...  AND  Radio button should be set to  use_external_email  1
     [Teardown]  Unselect frame
 
     # The settings page is just about the only page I could find
     # with old school non-lightning radiobuttons
     # Thankfully, I can use built-in keywords to validate that
     # the radiobuttons have actually bet set.
-
-    # make sure it is set to 1
-    Select radio button  use_external_email  1
 
     # then try to use our keyword to set it
     Input form data
