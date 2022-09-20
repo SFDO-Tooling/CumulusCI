@@ -237,7 +237,9 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         try:
             org_config = json.loads(value)
         except Exception as e:
-            raise OrgCannotBeLoaded(f"Could not parse {env_var_name} as JSON")
+            raise OrgCannotBeLoaded(
+                f"Could not parse {env_var_name} as JSON becase {e}"
+            )
         org_name = env_var_name[len(self.env_org_var_prefix) :].lower()
         if org_config.get("scratch"):
             org_config = scratch_org_factory(
@@ -672,7 +674,9 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         try:
             service_config = json.loads(value)
         except Exception as e:
-            raise ServiceCannotBeLoaded(f"Could not parse {env_var_name} as JSON")
+            raise ServiceCannotBeLoaded(
+                f"Could not parse {env_var_name} as JSON because {e}"
+            )
         service_config = ServiceConfig(json.loads(value))
         service_type, service_name = self._get_env_service_type_and_name(env_var_name)
         self.set_service(service_type, service_name, service_config, save=False)

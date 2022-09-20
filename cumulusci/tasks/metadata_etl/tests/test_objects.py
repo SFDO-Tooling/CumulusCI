@@ -1,9 +1,6 @@
-from datetime import datetime
-from unittest import mock
-
 import pytest
 
-from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl import SetObjectSettings
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.utils.xml import metadata_tree
@@ -32,7 +29,7 @@ CUSTOMOBJECT_SETTINGS_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 class TestSetObjectSettings:
     def test_options__require_enable_or_disable(self):
         with pytest.raises(TaskOptionsError) as e:
-            task = create_task(
+            create_task(
                 SetObjectSettings,
                 {
                     "api_names": "Test__c",
@@ -45,7 +42,7 @@ class TestSetObjectSettings:
 
     def test_options__invalid_setting(self):
         with pytest.raises(TaskOptionsError) as e:
-            task = create_task(
+            create_task(
                 SetObjectSettings,
                 {
                     "api_names": "Test__c",
@@ -56,7 +53,7 @@ class TestSetObjectSettings:
 
     def test_options__invalid_settings(self):
         with pytest.raises(TaskOptionsError) as e:
-            task = create_task(
+            create_task(
                 SetObjectSettings,
                 {
                     "api_names": "Test__c",
