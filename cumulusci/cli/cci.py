@@ -190,7 +190,7 @@ class VersionString(str):
 
 
 @click.group("main", help="")
-@click.version_option(callback=VersionString())
+@click.version_option(message=VersionString())
 def cli():
     """Top-level `click` command group."""
 

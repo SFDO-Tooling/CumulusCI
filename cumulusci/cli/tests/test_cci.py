@@ -516,9 +516,6 @@ def mock_validate_debug(value):
     return _run_task
 
 
-from unittest import mock
-
-
 @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
 @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
 @mock.patch("cumulusci.cli.cci.init_logger")
