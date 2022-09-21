@@ -4,7 +4,10 @@ from Browser import SupportedBrowsers
 
 from cumulusci.robotframework.base_library import BaseLibrary
 from cumulusci.robotframework.faker_mixin import FakerMixin
-from cumulusci.robotframework.utils import WAIT_FOR_AURA_SCRIPT
+from cumulusci.robotframework.utils import (
+    WAIT_FOR_AURA_SCRIPT,
+    capture_screenshot_on_error,
+)
 
 
 class SalesforcePlaywright(FakerMixin, BaseLibrary):
@@ -88,10 +91,6 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
             else self.cumulusci.login_url()
         )
 
-        # browser's (or robot's?) automatic type conversion doesn't
-        # seem to work when calling the function directly, so we have
-        # to pass the enum rather than string representation of the
-        # browser. _sigh_
         if record_video:
             # ugh. the "dir" value must be non-empty, and will be treated as
             # a folder name under the browser/video folder. using "../video"
@@ -106,10 +105,10 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         )
         page_details = self.browser.new_page(login_url)
 
-        self.browser.wait_until_network_is_idle()
-
+        self.wait_until_loading_is_complete()
         return browser_id, context_id, page_details
 
+    @capture_screenshot_on_error
     def wait_until_loading_is_complete(self, locator=None):
         """Wait for a lightning page to load.
 
@@ -127,14 +126,14 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
             if locator is None
             else locator
         )
-        try:
-            self.browser.get_element(locator)
-            self.browser.execute_javascript(function=WAIT_FOR_AURA_SCRIPT)
-            self.browser.wait_until_network_is_idle()
+        self.browser.get_element(locator)
+        self.browser.execute_javascript(function=WAIT_FOR_AURA_SCRIPT)
 
-        except Exception:
-            try:
-                self.browser.take_screenshot()
-            except Exception as e:
-                self.builtin.warn("unable to capture screenshot: {}".format(str(e)))
-            raise
+        # this seems to fail once in a while for an unknown reason, so we'll
+        # try twice. This seems to be more effective than calling the
+        # function once and waiting 30 seconds.
+        try:
+            self.browser.wait_until_network_is_idle("15 seconds")
+        except Exception as e:
+            self.builtin.log(f"caught error waiting for idle: {e}", "WARN")
+            self.browser.wait_until_network_is_idle("15 seconds")
