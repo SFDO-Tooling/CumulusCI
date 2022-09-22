@@ -150,13 +150,13 @@ def get_github_api_for_repo(keychain, repo_url, session=None):
 def get_auth_from_service(host, keychain) -> tuple:
     """
     Given a host extracted from a repo_url, returns the username and token for
-    the first service with a matching repo_domain
+    the first service with a matching server_domain
     """
     if host is None or host == "None" or "github.com" in host:
         service_config = keychain.get_service("github")
     else:
         services = keychain.get_services_for_type("github_enterprise")
-        service_by_host = {service.repo_domain: service for service in services}
+        service_by_host = {service.server_domain: service for service in services}
 
         # Check when connecting to server, but not when creating new service as this would always catch
         if list(service_by_host.keys()).count(host) == 0:
