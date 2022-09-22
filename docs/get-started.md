@@ -256,7 +256,7 @@ $ cci service connect github_enterprise enterprise --token <access token> --user
 
 #### Limitations of _GitHub Enterprise Server Support_
 
-The GitHub Enterprise Server Support feature only allows one `github_enterprise` service to be configured per repository domain. This means the access token you are using must have permission to access all required resources at a given repository location.
+The GitHub Enterprise Server service only allows one `github_enterprise` service to be configured per server domain. This means the access token you are using must have permission to access all required resources at a given repository location.
 
 (work-on-an-existing-cumulusci-project)=
 
