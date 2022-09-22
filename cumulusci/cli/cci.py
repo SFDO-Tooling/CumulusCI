@@ -193,7 +193,7 @@ def version_info_wrapper(
 
 
 @click.group("main", help="")
-@click.option(
+@click.option(  # based on https://click.palletsprojects.com/en/8.1.x/options/#callbacks-and-eager-options
     "--version",
     is_flag=True,
     expose_value=False,
