@@ -97,7 +97,7 @@ class TestGithub(GithubApiTestMixin):
                     "username": "testusername",
                     "email": "test@domain.com",
                     "token": "ATOKEN",
-                    "repo_domain": "git.enterprise.domain.com",
+                    "server_domain": "git.enterprise.domain.com",
                 }
             ),
         )
@@ -233,7 +233,7 @@ class TestGithub(GithubApiTestMixin):
                     "username": "testusername2",
                     "email": "test2@domain.com",
                     "token": "ATOKEN2",
-                    "repo_domain": "git.enterprise.domain.com",
+                    "server_domain": "git.enterprise.domain.com",
                 }
             ),
         )

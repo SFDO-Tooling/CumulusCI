@@ -353,14 +353,14 @@ class TestBaseProjectConfig:
         config._repo_info = {"root": "."}
         assert config.repo_root == "."
 
-    def test_repo_domain_from_repo_info(self):
+    def test_server_domain_from_repo_info(self):
         config = BaseProjectConfig(UniversalConfig())
-        assert config.repo_domain == "github.com"
+        assert config.server_domain == "github.com"
 
-    def test_repo_domain_no_repo_root(self):
+    def test_server_domain_no_repo_root(self):
         config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
-            assert config.repo_domain is None
+            assert config.server_domain is None
 
     def test_repo_name_from_repo_info(self):
         config = BaseProjectConfig(UniversalConfig())
