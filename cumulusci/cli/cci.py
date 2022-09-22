@@ -183,14 +183,24 @@ def display_release_notes_link(latest_version: str) -> None:
     )
 
 
-class VersionString(str):
-    def __mod__(self, dict):
-        show_version_info()
-        return ""
+def version_info_wrapper(
+    ctx: click.Context, param: click.Parameter, value: bool
+) -> None:
+    if not value:
+        return
+    show_version_info()
+    ctx.exit()
 
 
 @click.group("main", help="")
-@click.version_option(message=VersionString())
+@click.option(
+    "--version",
+    is_flag=True,
+    expose_value=False,
+    is_eager=True,
+    help="Show the version and exit.",
+    callback=version_info_wrapper,
+)
 def cli():
     """Top-level `click` command group."""
 
