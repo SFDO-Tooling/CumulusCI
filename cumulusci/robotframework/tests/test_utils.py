@@ -6,11 +6,21 @@ from unittest import mock
 import cumulusci.robotframework.utils as robot_utils
 from cumulusci.utils import touch
 
+mock_SeleniumLibrary = mock.Mock()
+
+
+class MockBuiltIn:
+    get_library_instance = mock.Mock(
+        return_value={"SeleniumLibrary": mock_SeleniumLibrary}
+    )
+
+
+robot_utils.BuiltIn = MockBuiltIn
+
 
 class TestRobotframeworkUtils:
     def setup_method(self):
-        robot_utils.BuiltIn = mock.Mock(name="BuiltIn")
-        self.mock_selib = robot_utils.BuiltIn().get_library_instance("SeleniumLibrary")
+        mock_SeleniumLibrary.reset_mock()
 
     def test_screenshot_decorator_fail(self):
         """Verify that the decorator will capture a screenshot on keyword failure"""
@@ -23,7 +33,7 @@ class TestRobotframeworkUtils:
             example_function()
         except Exception:
             pass
-        self.mock_selib.failure_occurred.assert_called_once()
+        mock_SeleniumLibrary.capture_page_screenshot.assert_called_once()
 
     def test_screenshot_decorator_pass(self):
         """Verify that decorator does NOT capture screenshot on keyword success"""
@@ -33,7 +43,8 @@ class TestRobotframeworkUtils:
             return True
 
         example_function()
-        self.mock_selib.failure_occurred.assert_not_called()
+
+        mock_SeleniumLibrary.capture_page_screenshot.assert_not_called()
 
 
 class TestGetLocatorModule:
