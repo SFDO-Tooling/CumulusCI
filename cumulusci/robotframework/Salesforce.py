@@ -198,6 +198,7 @@ class Salesforce(FakerMixin, BaseLibrary):
             self.wait_for_aura()
         raise AssertionError(f"Timed out waiting for related list '{heading}' to load.")
 
+    @capture_screenshot_on_error
     def click_related_list_button(self, heading, button_title):
         """Clicks a button in the heading of a related list.
 
@@ -245,6 +246,7 @@ class Salesforce(FakerMixin, BaseLibrary):
         self._jsclick(locator)
         self.wait_until_loading_is_complete()
 
+    @capture_screenshot_on_error
     def close_modal(self):
         """Closes the open modal"""
         locator = lex_locators["modal"]["close"]
@@ -289,6 +291,7 @@ class Salesforce(FakerMixin, BaseLibrary):
                 return oid_match.group(2)
         raise AssertionError("Could not parse record id from url: {}".format(url))
 
+    @capture_screenshot_on_error
     def field_value_should_be(self, label, expected_value):
         """Verify that the form field for the given label is the expected value
 
@@ -299,6 +302,7 @@ class Salesforce(FakerMixin, BaseLibrary):
         value = self.get_field_value(label)
         self.builtin.should_be_equal(value, expected_value)
 
+    @capture_screenshot_on_error
     def get_field_value(self, label):
         """Return the current value of a form field based on the field label"""
         api_version = int(float(self.salesforce_api.get_latest_api_version()))
@@ -467,6 +471,7 @@ class Salesforce(FakerMixin, BaseLibrary):
                 )
                 raise
 
+    @capture_screenshot_on_error
     def populate_field(self, name, value):
         """Enters a value into an input or textarea field.
 
@@ -478,6 +483,7 @@ class Salesforce(FakerMixin, BaseLibrary):
         locator = self._get_input_field_locator(name)
         self._populate_field(locator, value)
 
+    @capture_screenshot_on_error
     def populate_lookup_field(self, name, value):
         """Enters a value into a lookup field."""
         input_locator = self._get_input_field_locator(name)
@@ -632,33 +638,27 @@ class Salesforce(FakerMixin, BaseLibrary):
             error="Expected to see a modal window, but didn't",
         )
 
+    @capture_screenshot_on_error
     def wait_until_modal_is_closed(self):
         """Wait for modal to close"""
         self.selenium.wait_until_page_does_not_contain_element(
             lex_locators["modal"]["is_open"], timeout=15
         )
 
+    @capture_screenshot_on_error
     def wait_until_loading_is_complete(self, locator=None):
         """Wait for LEX page to load.
 
         (We're actually waiting for the actions ribbon to appear.)
         """
         locator = lex_locators["body"] if locator is None else locator
-        try:
-            self.selenium.wait_until_page_contains_element(locator)
-            self.wait_for_aura()
-            # this knowledge article recommends waiting a second. I don't
-            # like it, but it seems to help. We should do a wait instead,
-            # but I can't figure out what to wait on.
-            # https://help.salesforce.com/articleView?id=000352057&language=en_US&mode=1&type=1
-            time.sleep(1)
-
-        except Exception:
-            try:
-                self.selenium.capture_page_screenshot()
-            except Exception as e:
-                self.builtin.warn("unable to capture screenshot: {}".format(str(e)))
-            raise
+        self.selenium.wait_until_page_contains_element(locator)
+        self.wait_for_aura()
+        # this knowledge article recommends waiting a second. I don't
+        # like it, but it seems to help. We should do a wait instead,
+        # but I can't figure out what to wait on.
+        # https://help.salesforce.com/articleView?id=000352057&language=en_US&mode=1&type=1
+        time.sleep(1)
 
     @capture_screenshot_on_error
     def wait_until_salesforce_is_ready(self, locator=None, timeout=None, interval=5):
