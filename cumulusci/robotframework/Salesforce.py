@@ -228,6 +228,7 @@ class Salesforce(FakerMixin, BaseLibrary):
             )
         self.wait_until_loading_is_complete()
 
+    @capture_screenshot_on_error
     def click_related_item_popup_link(self, heading, title, link):
         """Clicks a link in the popup menu for a related list item.
 
@@ -252,6 +253,7 @@ class Salesforce(FakerMixin, BaseLibrary):
         locator = lex_locators["modal"]["close"]
         self._jsclick(locator)
 
+    @capture_screenshot_on_error
     def current_app_should_be(self, app_name):
         """Validates the currently selected Salesforce App"""
         locator = lex_locators["app_launcher"]["current_app"].format(app_name)
@@ -305,19 +307,10 @@ class Salesforce(FakerMixin, BaseLibrary):
     @capture_screenshot_on_error
     def get_field_value(self, label):
         """Return the current value of a form field based on the field label"""
-        api_version = int(float(self.salesforce_api.get_latest_api_version()))
 
         locator = self._get_input_field_locator(label)
-        if api_version >= 51:
-            # this works for both First Name (input) and Account Name (picklist)
-            value = self.selenium.get_value(locator)
-        else:
-            # older releases it's a bit more complex
-            element = self.selenium.get_webelement(locator)
-            if element.get_attribute("role") == "combobox":
-                value = self.selenium.get_text(f"sf:object.field_lookup_value:{label}")
-            else:
-                value = self.selenium.get_value(f"sf:object.field:{label}")
+        # this works for both First Name (input) and Account Name (picklist)
+        value = self.selenium.get_value(locator)
 
         return value
 
