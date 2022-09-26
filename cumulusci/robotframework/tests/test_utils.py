@@ -22,6 +22,18 @@ class TestRobotframeworkUtils:
     def setup_method(self):
         mock_SeleniumLibrary.reset_mock()
 
+    def test_screenshot_decorator_return(self):
+        """Verify that the decorator will return what the decorated function returns"""
+
+        @robot_utils.capture_screenshot_on_error
+        def example_function():
+            return "the return value"
+
+        result = example_function()
+
+        mock_SeleniumLibrary.capture_page_screenshot.assert_not_called()
+        assert result == "the return value"
+
     def test_screenshot_decorator_fail(self):
         """Verify that the decorator will capture a screenshot on keyword failure"""
 

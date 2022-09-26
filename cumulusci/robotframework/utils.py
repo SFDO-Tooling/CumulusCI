@@ -228,7 +228,7 @@ def capture_screenshot_on_error(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         except Exception:
             safe_screenshot()
             raise
