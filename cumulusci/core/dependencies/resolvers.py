@@ -1,9 +1,12 @@
 import abc
 import itertools
 from enum import Enum
-from typing import Callable, Iterable, List, Optional, Tuple
+from typing import Callable, Iterable, List, Optional, Tuple, Union
 
 from github3.exceptions import NotFoundError
+from github3.repos.branch import Branch
+from github3.repos.commit import RepoCommit, ShortCommit
+from github3.repos.repo import Repository
 
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.dependencies import (
@@ -26,7 +29,6 @@ from cumulusci.core.dependencies.github import (
 from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
 from cumulusci.core.github import (
     find_latest_release,
-    find_repo_commit_status_context,
     find_repo_feature_prefix,
     get_version_id_from_commit,
 )
@@ -46,9 +48,11 @@ class DependencyResolutionStrategy(str, Enum):
     COMMIT_STATUS_EXACT_BRANCH = "commit_status_exact_branch"
     COMMIT_STATUS_RELEASE_BRANCH = "commit_status_release_branch"
     COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH = "commit_status_previous_release_branch"
+    COMMIT_STATUS_DEFAULT_BRANCH = "commit_status_default_branch"
     UNLOCKED_EXACT_BRANCH = "unlocked_exact_branch"
     UNLOCKED_RELEASE_BRANCH = "unlocked_release_branch"
     UNLOCKED_PREVIOUS_RELEASE_BRANCH = "unlocked_previous_release_branch"
+    UNLOCKED_DEFAULT_BRANCH = "unlocked_default_branch"
     BETA_RELEASE_TAG = "latest_beta"
     RELEASE_TAG = "latest_release"
     UNMANAGED_HEAD = "unmanaged"
@@ -199,111 +203,91 @@ class GitHubUnmanagedHeadResolver(Resolver):
         return (repo.branch(repo.default_branch).commit.sha, None)
 
 
-class GitHubReleaseBranchResolver(Resolver, abc.ABC):
-    """Abstract base class for resolvers that use commit statuses on release branches to find refs."""
+def get_release_id(context: BaseProjectConfig) -> int:
+    """Detect a release id (like NNN in feature/NNN__some_branch)
+    in the current branch and return it as an integer."""
+    if not context.repo_branch or not context.project__git__prefix_feature:
+        raise DependencyResolutionError(
+            "Cannot get current branch or feature branch prefix"
+        )
+    release_id = get_release_identifier(
+        context.repo_branch, context.project__git__prefix_feature
+    )
+    if not release_id:
+        raise DependencyResolutionError("Cannot get current release identifier")
 
-    commit_status_context = "2gp_context"
-    commit_status_default = "Build Feature Test Package"
+    return int(release_id)
+
+
+def locate_commit_status_package_id(
+    remote_repo: Repository, release_branch: Branch, context_2gp: str
+) -> Tuple[Optional[str], Optional[Union[RepoCommit, ShortCommit]]]:
+    """Given a branch on a remote repo, walk the first 5 commits looking
+    for a commit status equal to context_2gp and attempt to parse a
+    package version id from the commit status detail."""
+    version_id = None
+    count = 0
+    commit = release_branch.commit
+    while version_id is None and count < 5:
+        version_id = get_version_id_from_commit(remote_repo, commit.sha, context_2gp)
+        if version_id:
+            break
+        count += 1
+        if commit.parents:
+            commit = remote_repo.commit(commit.parents[0]["sha"])
+        else:
+            commit = None
+            break
+
+    return version_id, commit
+
+
+def get_remote_context(
+    repo: Repository, commit_status_context: str, default_context: str
+) -> str:
+    config = get_remote_project_config(repo, repo.default_branch)
+    return config.lookup(f"project__git__{commit_status_context}") or default_context
+
+
+class GitHubCommitStatusPackageResolver(Resolver, abc.ABC):
+    """Abstract base class for resolvers that use commit statuses to find packages."""
+
+    commit_status_context = ""
+    commit_status_default = ""
 
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
         return self.is_valid_repo_context(context) and isinstance(
             dep, BaseGitHubDependency
         )
 
-    def get_release_id(self, context: BaseProjectConfig) -> int:
-        if not context.repo_branch or not context.project__git__prefix_feature:
-            raise DependencyResolutionError(
-                "Cannot get current branch or feature branch prefix"
-            )
-        release_id = get_release_identifier(
-            context.repo_branch, context.project__git__prefix_feature
-        )
-        if not release_id:
-            raise DependencyResolutionError("Cannot get current release identifier")
+    def is_valid_repo_context(self, context: BaseProjectConfig) -> bool:
+        return bool(context.repo_branch and context.project__git__prefix_feature)
 
-        return int(release_id)
-
-    def is_valid_repo_context(self, context) -> bool:
-        return (
-            context.repo_branch
-            and context.project__git__prefix_feature
-            and is_release_branch_or_child(
-                context.repo_branch, context.project__git__prefix_feature
-            )
-        )
-
-    def locate_commit_status_package_id(self, remote_repo, release_branch, context_2gp):
-        version_id = None
-        count = 0
-        commit = release_branch.commit
-        while version_id is None and count < 5:
-            version_id = get_version_id_from_commit(
-                remote_repo, commit.sha, context_2gp
-            )
-            if version_id:
-                break
-            count += 1
-            if commit.parents:
-                commit = remote_repo.commit(commit.parents[0]["sha"])
-            else:
-                commit = None
-                break
-
-        return version_id, commit
-
-
-class GitHubReleaseBranchCommitStatusResolver(GitHubReleaseBranchResolver):
-    """Resolver that identifies a ref by finding a beta package version
-    in a commit status on a `feature/NNN` release branch."""
-
-    name = "GitHub Release Branch Commit Status Resolver"
-    branch_depth = 1
+    def get_branches(
+        self,
+        dep: BaseGitHubDependency,
+        context: BaseProjectConfig,
+    ) -> list[Branch]:
+        ...
 
     def resolve(
         self, dep: BaseGitHubDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
-
-        release_id = self.get_release_id(context)
         repo = context.get_repo_from_url(dep.github)
-        if not repo:
-            raise DependencyResolutionError(
-                f"Unable to access GitHub repository for {dep.github}"
-            )
-
-        try:
-            remote_branch_prefix = find_repo_feature_prefix(repo)
-            remote_2gp_context = find_repo_commit_status_context(
-                repo, self.commit_status_context, self.commit_status_default
-            )
-        except Exception:
-            context.logger.info(
-                f"Could not find feature branch prefix or commit-status context for {repo.clone_url}. Unable to resolve packages."
-            )
-            return (None, None)
-
-        # We will check at least the release branch corresponding to our release id.
-        # We may be configured to check backwards on release branches.
-        release_branch = None
-        for i in range(0, self.branch_depth):
-            try:
-                remote_matching_branch = construct_release_branch_name(
-                    remote_branch_prefix, str(release_id - i)
-                )
-
-                release_branch = repo.branch(remote_matching_branch)
-            except NotFoundError:
-                pass
-
-        if release_branch:
-            version_id, commit = self.locate_commit_status_package_id(
+        remote_context = get_remote_context(
+            repo, self.commit_status_context, self.commit_status_default
+        )
+        branches = self.get_branches(dep, context)
+        for branch in branches:
+            version_id, commit = locate_commit_status_package_id(
                 repo,
-                release_branch,
-                remote_2gp_context,
+                branch,
+                remote_context,
             )
 
-            if version_id:
+            if version_id and commit:
                 context.logger.info(
-                    f"Located package version {version_id} for release {release_id} on {repo.clone_url} at commit {release_branch.commit.sha}"
+                    f"Located package version {version_id} on branch {branch.name} on {repo.clone_url} at commit {branch.commit.sha}"
                 )
                 package_config = get_remote_project_config(repo, commit.sha)
                 package_name, _ = get_package_data(package_config)
@@ -312,48 +296,33 @@ class GitHubReleaseBranchCommitStatusResolver(GitHubReleaseBranchResolver):
                     version_id=version_id, package_name=package_name
                 )
 
+        branch_names = ", ".join([branch.name for branch in branches])
         context.logger.warn(
-            f"No package version located for release {release_id} on {repo.clone_url}."
+            f"No package version located on branches {branch_names} on {repo.clone_url}."
         )
         return (None, None)
 
 
-class GitHubReleaseBranchUnlockedResolver(GitHubReleaseBranchCommitStatusResolver):
-    name = "GitHub Release Branch Unlocked Commit Status Resolver"
-    commit_status_context = "unlocked_context"
-    commit_status_default = "Build Unlocked Test Package"
+class GitHubReleaseBranchResolver(GitHubCommitStatusPackageResolver, abc.ABC):
+    """Abstract base class for resolvers that use commit statuses on release branches to find refs."""
 
+    branch_offset_start = 0
+    branch_offset_end = 0
 
-class GitHubPreviousReleaseBranchCommitStatusResolver(
-    GitHubReleaseBranchCommitStatusResolver
-):
-    """Resolver that identifies a ref by finding a beta package version
-    in a commit status on a `feature/NNN` release branch that is earlier
-    than the matching local release branch."""
+    def is_valid_repo_context(self, context: BaseProjectConfig) -> bool:
+        return bool(
+            super().is_valid_repo_context(context)
+            and is_release_branch_or_child(
+                context.repo_branch, context.project__git__prefix_feature  # type: ignore
+            )
+        )
 
-    name = "GitHub Previous Release Branch Commit Status Resolver"
-    branch_depth = 3
-
-
-class GitHubPreviousReleaseBranchUnlockedResolver(
-    GitHubPreviousReleaseBranchCommitStatusResolver
-):
-    name = "GitHub Previous Release Branch Unlocked Commit Status Resolver"
-    commit_status_context = "unlocked_context"
-    commit_status_default = "Build Unlocked Test Package"
-
-
-class GitHubReleaseBranchExactMatchCommitStatusResolver(GitHubReleaseBranchResolver):
-    """Resolver that identifies a ref by finding a beta package version
-    in a commit status on a branch whose name matches the local branch."""
-
-    name = "GitHub Exact-Match Commit Status Resolver"
-
-    def resolve(
-        self, dep: BaseGitHubDependency, context: BaseProjectConfig
-    ) -> Tuple[Optional[str], Optional[StaticDependency]]:
-        release_id = self.get_release_id(context)
-
+    def get_branches(
+        self,
+        dep: BaseGitHubDependency,
+        context: BaseProjectConfig,
+    ) -> list[Branch]:
+        release_id = get_release_id(context)
         repo = context.get_repo_from_url(dep.github)
         if not repo:
             raise DependencyResolutionError(
@@ -362,14 +331,96 @@ class GitHubReleaseBranchExactMatchCommitStatusResolver(GitHubReleaseBranchResol
 
         try:
             remote_branch_prefix = find_repo_feature_prefix(repo)
-            remote_2gp_context = find_repo_commit_status_context(
-                repo, self.commit_status_context, self.commit_status_default
+        except Exception:
+            context.logger.info(
+                f"Could not find feature branch prefix or commit-status context for {repo.clone_url}. Unable to resolve packages."
             )
+            return []
+
+        # We will check at least the release branch corresponding to our release id.
+        # We may be configured to check backwards on release branches.
+        release_branches = []
+        for i in range(self.branch_offset_start, self.branch_offset_end):
+            try:
+                remote_matching_branch = construct_release_branch_name(
+                    remote_branch_prefix, str(release_id - i)
+                )
+
+                release_branches.append(repo.branch(remote_matching_branch))
+            except NotFoundError:
+                pass
+
+        return release_branches
+
+
+class GitHubReleaseBranchCommitStatusResolver(GitHubReleaseBranchResolver):
+    """Resolver that identifies a ref by finding a beta 2GP package version
+    in a commit status on a `feature/NNN` release branch."""
+
+    name = "GitHub Release Branch Commit Status Resolver"
+    commit_status_context = "2gp_context"
+    commit_status_default = "Build Feature Test Package"
+    branch_offset_start = 0
+    branch_offset_end = 1
+
+
+class GitHubReleaseBranchUnlockedResolver(GitHubReleaseBranchResolver):
+    """Resolver that identifies a ref by finding an unlocked package version
+    in a commit status on a `feature/NNN` release branch."""
+
+    name = "GitHub Release Branch Unlocked Commit Status Resolver"
+    commit_status_context = "unlocked_context"
+    commit_status_default = "Build Unlocked Test Package"
+    branch_offset_start = 0
+    branch_offset_end = 1
+
+
+class GitHubPreviousReleaseBranchCommitStatusResolver(GitHubReleaseBranchResolver):
+    """Resolver that identifies a ref by finding a beta 2GP package version
+    in a commit status on a `feature/NNN` release branch that is earlier
+    than the matching local release branch."""
+
+    name = "GitHub Previous Release Branch Commit Status Resolver"
+    commit_status_context = "2gp_context"
+    commit_status_default = "Build Feature Test Package"
+    branch_offset_start = 1
+    branch_offset_end = 3
+
+
+class GitHubPreviousReleaseBranchUnlockedResolver(GitHubReleaseBranchResolver):
+    """Resolver that identifies a ref by finding an unlocked package version
+    in a commit status on a `feature/NNN` release branch that is earlier
+    than the matching local release branch."""
+
+    name = "GitHub Previous Release Branch Unlocked Commit Status Resolver"
+    commit_status_context = "unlocked_context"
+    commit_status_default = "Build Unlocked Test Package"
+    branch_offset_start = 1
+    branch_offset_end = 3
+
+
+class GitHubExactMatchCommitStatusResolver(GitHubCommitStatusPackageResolver, abc.ABC):
+    """Abstract base class for resolvers that identify a ref by finding a package version
+    in a commit status on a branch whose name matches the local branch."""
+
+    def get_branches(
+        self,
+        dep: BaseGitHubDependency,
+        context: BaseProjectConfig,
+    ) -> list[Branch]:
+        repo = context.get_repo_from_url(dep.github)
+        if not repo:
+            raise DependencyResolutionError(
+                f"Unable to access GitHub repository for {dep.github}"
+            )
+
+        try:
+            remote_branch_prefix = find_repo_feature_prefix(repo)
         except Exception:
             context.logger.info(
                 f"Could not find feature branch prefix or commit-status context for {repo.clone_url}. Unable to resolve package."
             )
-            return (None, None)
+            return []
 
         # Attempt exact match
         try:
@@ -379,51 +430,74 @@ class GitHubReleaseBranchExactMatchCommitStatusResolver(GitHubReleaseBranchResol
             release_branch = repo.branch(f"{remote_branch_prefix}{branch}")
         except Exception:
             context.logger.info(f"Exact-match branch not found for {repo.clone_url}.")
-            return (None, None)
+            return []
 
-        version_id, commit = self.locate_commit_status_package_id(
-            repo,
-            release_branch,
-            remote_2gp_context,
-        )
-
-        if version_id:
-            context.logger.info(
-                f"Located package version {version_id} for release {release_id} on {repo.clone_url} at commit {release_branch.commit.sha}"
-            )
-
-            package_config = get_remote_project_config(repo, commit.sha)
-            package_name, _ = get_package_data(package_config)
-
-            return commit.sha, PackageVersionIdDependency(
-                version_id=version_id, package_name=package_name
-            )
-
-        context.logger.warn(
-            f"No package version located for release {release_id} on {repo.clone_url}."
-        )
-        return (None, None)
+        return [release_branch]
 
 
-class GitHubReleaseBranchExactMatchUnlockedCommitStatusResolver(
-    GitHubReleaseBranchExactMatchCommitStatusResolver
+class GitHubExactMatch2GPResolver(GitHubExactMatchCommitStatusResolver):
+    """Resolver that identifies a ref by finding a 2GP package version
+    in a commit status on a branch whose name matches the local branch."""
+
+    name = "GitHub Exact-Match Commit Status Resolver"
+    commit_status_context = "2gp_context"
+    commit_status_default = "Build Feature Test Package"
+
+
+class GitHubExactMatchUnlockedCommitStatusResolver(
+    GitHubExactMatchCommitStatusResolver
 ):
+    """Resolver that identifies a ref by finding an unlocked package version
+    in a commit status on a branch whose name matches the local branch."""
+
     name = "GitHub Exact-Match Unlocked Commit Status Resolver"
+    commit_status_context = "unlocked_context"
+    commit_status_default = "Build Unlocked Test Package"
+
+
+class GitHubDefaultBranchCommitStatusResolver(
+    GitHubCommitStatusPackageResolver, abc.ABC
+):
+    """Abstract base class for resolvers that identify a ref by finding a beta package version
+    in a commit status on the repo's default branch."""
+
+    def get_branches(
+        self,
+        dep: BaseGitHubDependency,
+        context: BaseProjectConfig,
+    ) -> list[Branch]:
+        repo = context.get_repo_from_url(dep.github)
+
+        return [repo.default_branch]
+
+
+class GitHubDefaultBranch2GPResolver(GitHubDefaultBranchCommitStatusResolver):
+    name = "GitHub Default Branch Commit Status Resolver"
+    commit_status_context = "2gp_context"
+    commit_status_default = "Build Feature Test Package"
+
+
+class GitHubDefaultBranchUnlockedCommitStatusResolver(
+    GitHubDefaultBranchCommitStatusResolver
+):
+    name = "GitHub Default Branch Unlocked Commit Status Resolver"
     commit_status_context = "unlocked_context"
     commit_status_default = "Build Unlocked Test Package"
 
 
 RESOLVER_CLASSES = {
     DependencyResolutionStrategy.STATIC_TAG_REFERENCE: GitHubTagResolver,
-    DependencyResolutionStrategy.COMMIT_STATUS_EXACT_BRANCH: GitHubReleaseBranchExactMatchCommitStatusResolver,
+    DependencyResolutionStrategy.COMMIT_STATUS_EXACT_BRANCH: GitHubExactMatch2GPResolver,
     DependencyResolutionStrategy.COMMIT_STATUS_RELEASE_BRANCH: GitHubReleaseBranchCommitStatusResolver,
     DependencyResolutionStrategy.COMMIT_STATUS_PREVIOUS_RELEASE_BRANCH: GitHubPreviousReleaseBranchCommitStatusResolver,
+    DependencyResolutionStrategy.COMMIT_STATUS_DEFAULT_BRANCH: GitHubDefaultBranch2GPResolver,
     DependencyResolutionStrategy.BETA_RELEASE_TAG: GitHubBetaReleaseTagResolver,
     DependencyResolutionStrategy.RELEASE_TAG: GitHubReleaseTagResolver,
     DependencyResolutionStrategy.UNMANAGED_HEAD: GitHubUnmanagedHeadResolver,
-    DependencyResolutionStrategy.UNLOCKED_EXACT_BRANCH: GitHubReleaseBranchExactMatchUnlockedCommitStatusResolver,
+    DependencyResolutionStrategy.UNLOCKED_EXACT_BRANCH: GitHubExactMatchUnlockedCommitStatusResolver,
     DependencyResolutionStrategy.UNLOCKED_RELEASE_BRANCH: GitHubReleaseBranchUnlockedResolver,
     DependencyResolutionStrategy.UNLOCKED_PREVIOUS_RELEASE_BRANCH: GitHubPreviousReleaseBranchUnlockedResolver,
+    DependencyResolutionStrategy.UNLOCKED_DEFAULT_BRANCH: GitHubDefaultBranchUnlockedCommitStatusResolver,
 }
 
 

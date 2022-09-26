@@ -19,8 +19,8 @@ from cumulusci.core.dependencies.dependencies import (
 from cumulusci.core.dependencies.resolvers import (
     DependencyResolutionStrategy,
     GitHubBetaReleaseTagResolver,
+    GitHubExactMatchCommitStatusResolver,
     GitHubReleaseBranchCommitStatusResolver,
-    GitHubReleaseBranchExactMatchCommitStatusResolver,
     GitHubReleaseBranchResolver,
     GitHubReleaseTagResolver,
     GitHubTagResolver,
@@ -472,12 +472,12 @@ class TestGitHubReleaseBranchCommitStatusResolver:
         assert resolver.resolve(dep, project_config) == (None, None)
 
 
-class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
+class TestGitHubExactMatchCommitStatusResolver:
     def test_exact_branch_resolver(self, project_config):
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatchCommitStatusResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
         )
@@ -494,7 +494,7 @@ class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatchCommitStatusResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/NonexistentRepo"
         )
@@ -514,7 +514,7 @@ class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatchCommitStatusResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
         )
@@ -524,7 +524,7 @@ class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/290__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatchCommitStatusResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
         )
@@ -535,7 +535,7 @@ class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/232"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatchCommitStatusResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPMissingRepo"
         )
