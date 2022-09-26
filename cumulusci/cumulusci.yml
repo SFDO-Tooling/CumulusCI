@@ -1344,7 +1344,7 @@ services:
             email:
                 description: The email address to used by GitHub tasks when an operation requires an email address.
                 required: True
-            repo_domain:
+            server_domain:
                 description: "GitHub Enterprise domain (Example: git.ent.domain.com)."
                 required: True
             token:

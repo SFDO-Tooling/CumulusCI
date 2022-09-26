@@ -102,10 +102,10 @@ If your use case requires dependencies on a different server, for example, upstr
 
 ```console
 CUMULUSCI_SERVICE_github='{"username": "jdoe", "email": "jane.doe@some.biz", "token": "<personal_access_token>"}'
-CUMULUSCI_SERVICE_github_enterprise`='{"username": "jdoe", "email": "jane.doe@some.biz", "repo_domain":"git.some.biz", "token": "<enterprise_personal_access_token>"}'
+CUMULUSCI_SERVICE_github_enterprise`='{"username": "jdoe", "email": "jane.doe@some.biz", "server_domain":"git.some.biz", "token": "<enterprise_personal_access_token>"}'
 ```
 
-When connecting to repositories on GitHub.com or GitHub Enterprise Server, the service configuration for authorization is selected automatically by matching the `repo_domain` field to the repository domain. When a repository domain is `github.com` the `github` service will be used.
+When connecting to repositories on GitHub.com or GitHub Enterprise Server, the service configuration for authorization is selected automatically by matching the `server_domain` field to the repository domain. When a repository domain is `github.com` the `github` service will be used.
 
 (register-persistent-orgs)=
 

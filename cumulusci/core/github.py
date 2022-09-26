@@ -150,13 +150,13 @@ def get_github_api_for_repo(keychain, repo_url, session=None):
 def get_auth_from_service(host, keychain) -> tuple:
     """
     Given a host extracted from a repo_url, returns the username and token for
-    the first service with a matching repo_domain
+    the first service with a matching server_domain
     """
     if host is None or host == "None" or "github.com" in host:
         service_config = keychain.get_service("github")
     else:
         services = keychain.get_services_for_type("github_enterprise")
-        service_by_host = {service.repo_domain: service for service in services}
+        service_by_host = {service.server_domain: service for service in services}
 
         # Check when connecting to server, but not when creating new service as this would always catch
         if list(service_by_host.keys()).count(host) == 0:
@@ -175,7 +175,7 @@ def get_auth_from_service(host, keychain) -> tuple:
 def validate_gh_enterprise(host: str, keychain) -> None:
     services = keychain.get_services_for_type("github_enterprise")
     if services:
-        hosts = [service.repo_domain for service in services]
+        hosts = [service.server_domain for service in services]
         if hosts.count(host) > 1:
             raise GithubException(
                 f"More than one Github Enterprise service configured for domain {host}."
@@ -185,12 +185,12 @@ def validate_gh_enterprise(host: str, keychain) -> None:
 def validate_service(options: dict, keychain) -> dict:
     username = options["username"]
     token = options["token"]
-    # Github service doesn't have "repo_domain",
-    repo_domain = options.get("repo_domain", None)
+    # Github service doesn't have "server_domain",
+    server_domain = options.get("server_domain", None)
 
-    gh = _determine_github_client(repo_domain, {"token": token})
+    gh = _determine_github_client(server_domain, {"token": token})
     if type(gh) == GitHubEnterprise:
-        validate_gh_enterprise(repo_domain, keychain)
+        validate_gh_enterprise(server_domain, keychain)
     try:
         authed_user = gh.me()
         auth_login = authed_user.login
