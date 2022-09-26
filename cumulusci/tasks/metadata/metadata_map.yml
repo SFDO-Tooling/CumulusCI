@@ -10,6 +10,10 @@ actionPlanTemplates:
     - type: ActionPlanTemplate
       class: MetadataFilenameParser
       extension: apt
+aiApplicationConfigs:
+    - type: AIApplicationConfig
+      class: MetadataFilenameParser
+      extension: aiapplicationconfig
 analyticSnapshots:
     - type: AnalyticSnapshot
       class: MetadataFilenameParser

@@ -14,7 +14,7 @@ babel==2.10.3
     # via sphinx
 beautifulsoup4==4.11.1
     # via furo
-black==22.6.0
+black==22.8.0
     # via -r requirements/dev.in
 bleach==5.0.1
     # via readme-renderer
@@ -49,11 +49,11 @@ coverage[toml]==6.4.4
     #   pytest-cov
 coveralls==3.3.1
     # via -r requirements/dev.in
-cryptography==37.0.4
+cryptography==38.0.1
     # via
     #   -c requirements/prod.txt
     #   secretstorage
-distlib==0.3.5
+distlib==0.3.6
     # via virtualenv
 docopt==0.6.2
     # via coveralls
@@ -83,7 +83,7 @@ google-auth==1.35.0
     #   myst
 google-auth-oauthlib==0.5.2
     # via myst
-identify==2.5.3
+identify==2.5.5
     # via pre-commit
 idna==3.3
     # via
@@ -114,7 +114,7 @@ jinja2==2.11.3
     #   -c requirements/prod.txt
     #   myst-parser
     #   sphinx
-jsonschema==4.12.1
+jsonschema==4.16.0
     # via -r requirements/dev.in
 keyring==23.0.1
     # via
@@ -144,14 +144,14 @@ myst-parser==0.18.0
     # via -r requirements/dev.in
 nodeenv==1.7.0
     # via pre-commit
-oauthlib==3.2.0
+oauthlib==3.2.1
     # via requests-oauthlib
 packaging==21.3
     # via
     #   pytest
     #   sphinx
     #   tox
-pathspec==0.9.0
+pathspec==0.10.1
     # via black
 pkginfo==1.8.3
     # via twine
@@ -223,7 +223,7 @@ pyyaml==6.0
     #   myst-parser
     #   pre-commit
     #   vcrpy
-readme-renderer==36.0
+readme-renderer==37.1
     # via twine
 requests==2.27.1
     # via
@@ -291,15 +291,14 @@ tenacity==6.3.1
 testfixtures==7.0.0
     # via -r requirements/dev.in
 toml==0.10.2
-    # via
-    #   pre-commit
-    #   tox
+    # via pre-commit
 tomli==2.0.1
     # via
     #   black
     #   coverage
     #   pytest
-tox==3.25.1
+    #   tox
+tox==3.26.0
     # via -r requirements/dev.in
 twine==4.0.1
     # via -r requirements/dev.in
@@ -318,11 +317,11 @@ urllib3==1.26.9
     #   requests
     #   responses
     #   twine
-vcrpy==4.2.0
+vcrpy==4.2.1
     # via
     #   -r requirements/dev.in
     #   pytest-vcr
-virtualenv==20.16.3
+virtualenv==20.16.5
     # via
     #   pre-commit
     #   tox
