@@ -20,12 +20,12 @@ class CommitDir(object):
         if not logger:
             logger = logging.getLogger(os.path.basename(__file__))
         self.logger = logger
-        self.author = author if author else {}
+        self.author = author or {}
 
     def _validate_dirs(self, local_dir, repo_dir):
         local_dir = os.path.abspath(local_dir)
         if not os.path.isdir(local_dir):
-            raise GithubException("Not a dir: {}".format(local_dir))
+            raise GithubException(f"Not a dir: {local_dir}")
         # do not use os.path because repo_dir is not local
         if repo_dir is None:
             repo_dir = ""
@@ -57,8 +57,7 @@ class CommitDir(object):
         self.new_tree_list = [item for item in self.new_tree_list if item]
         self._add_new_files_to_tree(self.new_tree_list)
 
-        tree_unchanged = self._summarize_changes(self.new_tree_list)
-        if tree_unchanged:
+        if tree_unchanged := self._summarize_changes(self.new_tree_list):
             self.logger.warning("No changes found, aborting commit")
             return self.parent_commit
 
@@ -69,7 +68,7 @@ class CommitDir(object):
 
     def _set_git_data(self, branch):
         # get ref to branch HEAD
-        self.head = self.repo.ref("heads/{}".format(branch))
+        self.head = self.repo.ref(f"heads/{branch}")
 
         # get commit pointed to by HEAD
         self.parent_commit = self.repo.git_commit(self.head.object.sha)
@@ -94,9 +93,7 @@ class CommitDir(object):
     def _create_new_tree_item(self, item):
         if not item["path"].startswith(self.repo_dir):
             # outside target dir in repo - keep in tree
-            self.logger.debug(
-                "Unchanged (outside target path): {}".format(item["path"])
-            )
+            self.logger.debug(f'Unchanged (outside target path): {item["path"]}')
             return item
 
         local_file, content = self._read_item_content(item)
@@ -106,11 +103,11 @@ class CommitDir(object):
             self.logger.debug(f"Delete: {item['path']}")
             return content
         elif self._item_changed(item, content):
-            self.logger.debug("Update: {}".format(local_file))
+            self.logger.debug(f"Update: {local_file}")
             blob_sha = self._create_blob(content, local_file)
             new_item["sha"] = blob_sha
         else:
-            self.logger.debug("Unchanged: {}".format(item["path"]))
+            self.logger.debug(f'Unchanged: {item["path"]}')
         return new_item
 
     def _add_new_files_to_tree(self, new_tree_list):
@@ -128,15 +125,14 @@ class CommitDir(object):
                     if local_file_subpath not in new_tree_target_subpaths:
                         with io.open(local_file, "rb") as f:
                             content = f.read()
-                        repo_path = (self.repo_dir + "/") if self.repo_dir else ""
+                        repo_path = f"{self.repo_dir}/" if self.repo_dir else ""
                         new_item = {
-                            "path": "{}{}".format(
-                                repo_path, local_file_subpath.replace(os.sep, "/")
-                            ),
+                            "path": f'{repo_path}{local_file_subpath.replace(os.sep, "/")}',
                             "mode": "100644",
                             "type": "blob",
                             "sha": self._create_blob(content, local_file),
                         }
+
                         new_tree_list.append(new_item)
 
     def _summarize_changes(self, new_tree_list):
@@ -150,12 +146,12 @@ class CommitDir(object):
                 continue
             old_tree_list.append(item)
             if item["path"] not in new_paths:
-                self.logger.warning("Delete:\t{}".format(item["path"]))
+                self.logger.warning(f'Delete:\t{item["path"]}')
             elif item["sha"] not in new_shas:
-                self.logger.info("Update:\t{}".format(item["path"]))
+                self.logger.info(f'Update:\t{item["path"]}')
         for item in new_tree_list:
             if item["path"] not in old_paths:
-                self.logger.info("Add:\t{}".format(item["path"]))
+                self.logger.info(f'Add:\t{item["path"]}')
         return new_tree_list == old_tree_list
 
     def _create_tree(self, new_tree_list):
@@ -171,9 +167,8 @@ class CommitDir(object):
 
     def _create_commit(self, commit_message, new_tree):
         if commit_message is None:
-            commit_message = "Commit dir {} to {}/{}/{} via CumulusCI".format(
-                self.local_dir, self.repo.owner, self.repo.name, self.repo_dir
-            )
+            commit_message = f"Commit dir {self.local_dir} to {self.repo.owner}/{self.repo.name}/{self.repo_dir} via CumulusCI"
+
         new_commit = None
         if self.dry_run:
             self.logger.info("[dry_run] Skipping creation of new commit")
@@ -221,12 +216,12 @@ class CommitDir(object):
     def _create_blob(self, content, local_file):
         if self.dry_run:
             self.logger.info(
-                "[dry_run] Skipping creation of "
-                + "blob for new file: {}".format(local_file)
+                f"[dry_run] Skipping creation of blob for new file: {local_file}"
             )
+
             blob_sha = None
         else:
-            self.logger.info("Creating blob for new file: {}".format(local_file))
+            self.logger.info(f"Creating blob for new file: {local_file}")
             try:
                 content = content.decode("utf-8")
                 blob_sha = self.repo.create_blob(content, "utf-8")
@@ -235,5 +230,5 @@ class CommitDir(object):
                 blob_sha = self.repo.create_blob(content.decode("utf-8"), "base64")
             if not blob_sha:
                 raise GithubException("Failed to create blob")
-        self.logger.debug("Blob created: {}".format(blob_sha))
+        self.logger.debug(f"Blob created: {blob_sha}")
         return blob_sha
