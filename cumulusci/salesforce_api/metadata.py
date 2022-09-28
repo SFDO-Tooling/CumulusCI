@@ -13,7 +13,7 @@ import io
 import re
 import time
 from collections import defaultdict
-from xml.dom.minidom import parseString
+from defusedxml.minidom import parseString
 from xml.sax.saxutils import escape
 from zipfile import ZipFile
 
