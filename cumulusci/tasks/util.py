@@ -2,6 +2,7 @@ import glob
 import os
 import shutil
 import time
+
 from defusedxml.minidom import parse
 
 from cumulusci.core.exceptions import TaskOptionsError
