@@ -38,17 +38,12 @@ Playwright is based on Node.js. If you don't already have Node.js
 installed, you can find a Node.js installer for your platform on the
 [Node.js downloads page](https://nodejs.org/en/download/).
 
-::: warning
-::: title
-Warning
-:::
-
+```{important}
 You must have Node.js installed before continuing with these
 instructions.
-:::
+```
 
-Step 2: Run the Playwright installation command
-\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^
+### Step 2: Run the Playwright installation command
 
 Installing the browser library requires a couple of manual steps, which
 we've automated in a single script. This script does three things:
@@ -58,15 +53,11 @@ we've automated in a single script. This script does three things:
 -   it downloads and installs the Node.js modules and drivers for
     playwright.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 The installation of Playwright contains drivers for all supported
 browsers, so there's no need to manually install drivers such as
 ChromeDriver. It works right out of the box!
-:::
+```
 
 Before you run the script, make sure your working directory is at the
 root of your repository. You can then run the script with the following
@@ -76,14 +67,10 @@ command:
 $ cci robot install_playwright
 ```
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 You can use the `--dry_run` (or `-n`) option to see what the command
-will do without actually installing anything.
-:::
+will do without actually installing.
+```
 
 ## Running an example test
 
