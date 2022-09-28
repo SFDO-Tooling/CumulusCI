@@ -46,7 +46,11 @@ def lxml_parse_string(string: str) -> lxml_etree._ElementTree:
     Use this if you need advanced xpath and parent-pointer features.
     Otherwise prefer elementree_parse_string for performance and simplicity reasons."""
 
-    return lxml_etree.ElementTree(lxml_etree.fromstring(string))
+    parser = lxml_etree.XMLParser(
+        resolve_entities=False, load_dtd=False, no_network=True
+    )
+    # tree = lxml_etree.parse(string, parser=parser)
+    return lxml_etree.ElementTree(lxml_etree.fromstring(string, parser=parser))
 
 
 def remove_xml_element_file(name: str, path: T.Union[str, Path]):
