@@ -4,7 +4,6 @@
 #
 #    pip-compile requirements/dev.in
 #
---extra-index-url https://ops0-artifactrepo1-0-prd.data.sfdc.net/artifactory/api/pypi/python-certified/simple/
 
 alabaster==0.7.12
     # via sphinx

@@ -4,7 +4,6 @@
 #
 #    pip-compile requirements/prod.in
 #
---extra-index-url https://ops0-artifactrepo1-0-prd.data.sfdc.net/artifactory/api/pypi/python-certified/simple/
 
 appdirs==1.4.4
     # via fs
