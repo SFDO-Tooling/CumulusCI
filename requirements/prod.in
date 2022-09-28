@@ -5,7 +5,7 @@ docutils<0.17
 Faker
 fs
 github3.py
-jinja2<3
+jinja2
 keyring<=23.0.1
 lxml
 MarkupSafe

@@ -20,17 +20,13 @@ bleach==5.0.1
     # via readme-renderer
 cachetools==4.2.4
     # via google-auth
-certifi==2021.10.8
+certifi==2022.9.24
     # via
     #   -c requirements/prod.txt
     #   requests
-cffi==1.15.1
-    # via
-    #   -c requirements/prod.txt
-    #   cryptography
 cfgv==3.3.1
     # via pre-commit
-charset-normalizer==2.0.12
+charset-normalizer==2.1.1
     # via
     #   -c requirements/prod.txt
     #   requests
@@ -49,10 +45,6 @@ coverage[toml]==6.4.4
     #   pytest-cov
 coveralls==3.3.1
     # via -r requirements/dev.in
-cryptography==38.0.1
-    # via
-    #   -c requirements/prod.txt
-    #   secretstorage
 distlib==0.3.6
     # via virtualenv
 docopt==0.6.2
@@ -65,7 +57,7 @@ docutils==0.16
     #   sphinx
 factory-boy==3.2.1
     # via -r requirements/dev.in
-faker==12.3.3
+faker==15.0.0
     # via
     #   -c requirements/prod.txt
     #   factory-boy
@@ -75,17 +67,17 @@ filelock==3.8.0
     #   virtualenv
 flake8==3.9.2
     # via -r requirements/dev.in
-furo==2022.6.21
+furo==2022.9.15
     # via -r requirements/dev.in
 google-auth==1.35.0
     # via
     #   google-auth-oauthlib
     #   myst
-google-auth-oauthlib==0.5.2
+google-auth-oauthlib==0.5.3
     # via myst
 identify==2.5.5
     # via pre-commit
-idna==3.3
+idna==3.4
     # via
     #   -c requirements/prod.txt
     #   requests
@@ -104,12 +96,7 @@ iniconfig==1.1.1
     # via pytest
 isort==5.10.1
     # via -r requirements/dev.in
-jeepney==0.8.0
-    # via
-    #   -c requirements/prod.txt
-    #   keyring
-    #   secretstorage
-jinja2==2.11.3
+jinja2==3.1.2
     # via
     #   -c requirements/prod.txt
     #   myst-parser
@@ -124,13 +111,13 @@ markdown-it-py==2.1.0
     # via
     #   mdit-py-plugins
     #   myst-parser
-markupsafe==2.0.1
+markupsafe==2.1.1
     # via
     #   -c requirements/prod.txt
     #   jinja2
 mccabe==0.6.1
     # via flake8
-mdit-py-plugins==0.3.0
+mdit-py-plugins==0.3.1
     # via myst-parser
 mdurl==0.1.2
     # via markdown-it-py
@@ -140,7 +127,7 @@ mypy-extensions==0.4.3
     # via black
 myst==1.0.4
     # via -r requirements/dev.in
-myst-parser==0.18.0
+myst-parser==0.18.1
     # via -r requirements/dev.in
 nodeenv==1.7.0
     # via pre-commit
@@ -179,10 +166,6 @@ pyasn1-modules==0.2.8
     # via google-auth
 pycodestyle==2.7.0
     # via flake8
-pycparser==2.21
-    # via
-    #   -c requirements/prod.txt
-    #   cffi
 pyflakes==2.3.1
     # via flake8
 pygments==2.13.0
@@ -202,7 +185,7 @@ pytest==7.0.1
     #   pytest-cov
     #   pytest-random-order
     #   pytest-vcr
-pytest-cov==3.0.0
+pytest-cov==4.0.0
     # via -r requirements/dev.in
 pytest-random-order==1.0.4
     # via -r requirements/dev.in
@@ -223,9 +206,9 @@ pyyaml==6.0
     #   myst-parser
     #   pre-commit
     #   vcrpy
-readme-renderer==37.1
+readme-renderer==37.2
     # via twine
-requests==2.27.1
+requests==2.28.1
     # via
     #   -c requirements/prod.txt
     #   coveralls
@@ -249,10 +232,6 @@ rich==12.5.1
     #   twine
 rsa==4.9
     # via google-auth
-secretstorage==3.3.3
-    # via
-    #   -c requirements/prod.txt
-    #   keyring
 six==1.16.0
     # via
     #   -c requirements/prod.txt
@@ -266,7 +245,7 @@ snowballstemmer==2.2.0
     # via sphinx
 soupsieve==2.3.2.post1
     # via beautifulsoup4
-sphinx==5.1.1
+sphinx==5.2.2
     # via
     #   -r requirements/dev.in
     #   furo
@@ -304,13 +283,13 @@ twine==4.0.1
     # via -r requirements/dev.in
 typeguard==2.13.3
     # via -r requirements/dev.in
-typing-extensions==4.2.0
+typing-extensions==4.3.0
     # via
     #   -c requirements/prod.txt
     #   black
     #   myst-parser
     #   rich
-urllib3==1.26.9
+urllib3==1.26.12
     # via
     #   -c requirements/prod.txt
     #   myst
