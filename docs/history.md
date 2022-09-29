@@ -18,13 +18,11 @@ Issues Fixed 🩴
 -   A bug that prevented keywords decorated with `@capture_screenshot_on_failure` from returning a value has been fixed. (#3370)
 -   Fixed a bug where requests were not being logged while running tasks or flows with the `--debug` flag. (#3371)
 
-
 ## 3.65.0 (2022-09-16)
 
 Changes 🎉
 
 -   Improve logging and add error handling for Vlocity tasks by \@prescod in (#3357)
-
 
 ## 3.64.0 (2022-08-18)
 
@@ -36,7 +34,6 @@ Issues Fixed 🩴
 
 -   Fix crash with unusual Unicode characters in metadata on Windows running `update_package_xml` by \@prescod (#3323)
 -   Fix Scratch org creation in latest sfdx by \@prescod (#3334)
-
 
 ## 3.63.0 (2022-08-04)
 
