@@ -8,7 +8,7 @@ History
 Changes 🎉
 ~~~~~~~~~~
 * New Metadata ETL task ``set_object_settings`` to enable and disable settings on standard and custom objects (thanks @jlantz) (#3364)
-* For robot tests on the firefox profile now accept all cookies to prevent lightning pages from failing to render due to cross-domain cookies. (#3366)
+* For Robot tests on the Firefox profile, we now accept all cookies to prevent lightning pages from failing to render due to cross-domain cookies. (#3366)
 * Improved the method that playwright-based tests use to wait for the browser to initialize (#3366)
 * The following Robot Framework keywords now automatically generate screenshots on failure: ``Click related list button``, ``Click related item popup link``, ``Close modal``, ``Current app should be``, ``Field value should be``, ``Get field value``, ``Populate field``, ``Populate lookup field``, and ``Wait until modal is closed``. (#3370)
 * CumulusCI now supports the following Metadata type: ``AIApplicationConfig`` (#3368)
