@@ -49,7 +49,6 @@ def lxml_parse_string(string: str) -> lxml_etree._ElementTree:
     parser = lxml_etree.XMLParser(
         resolve_entities=False, load_dtd=False, no_network=True
     )
-    # tree = lxml_etree.parse(string, parser=parser)
     return lxml_etree.ElementTree(lxml_etree.fromstring(string, parser=parser))
 
 
