@@ -205,14 +205,23 @@ class Robot(BaseSalesforceTask):
 
         # this is necessary so that javascript-based keywords have access
         # to at least some of the org info
-        org_info = json.dumps(
+        cci_context = json.dumps(
             {
-                "name": self.org_config.name,
-                "instance_url": self.org_config.instance_url,
-                "org_id": self.org_config.org_id,
+                "config": {
+                    "repo_name": self.project_config.repo_name,
+                    "repo_root": self.project_config.repo_root,
+                },
+                "org": {
+                    "name": self.org_config.name,
+                    "instance_url": self.org_config.instance_url,
+                    "org_id": self.org_config.org_id,
+                },
             }
         )
-        os.environ["CCI_ORG_INFO"] = org_info
+        os.environ["CCI_CONTEXT"] = cci_context
+        os.environ[
+            "NODE_PATH"
+        ] = "/Users/boakley/dev/CumulusCI/cumulusci/robotframework/node_modules/"
 
         if self.options["processes"] > 1:
             # Since pabot runs multiple robot processes, and because
