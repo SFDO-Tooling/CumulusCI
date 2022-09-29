@@ -1386,3 +1386,66 @@ class TestGetOperationFunctions:
                 api=42,
                 volume=1,
             )
+
+    def test_cleanup_date_strings__insert(self):
+        """Empty date strings should be removed from INSERT operations"""
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        context.sf.Test__c.describe = lambda: {
+            "name": "Test__c",
+            "fields": [
+                {"name": "Birthdate", "type": "date"},
+                {"name": "IsHappy", "type": "boolean"},
+                {"name": "Name", "type": "string"},
+            ],
+        }
+
+        step = get_dml_operation(
+            sobject="Test__c",
+            operation=DataOperationType.INSERT,
+            fields=["Birthdate", "IsHappy", "Name"],
+            api_options={},
+            context=context,
+            api=DataApi.REST,
+            volume=1,
+        )
+        json_out = step._record_to_json(["", "", "Bill"])
+        assert json_out == {
+            "IsHappy": False,
+            "Name": "Bill",
+            "attributes": {"type": "Test__c"},
+        }, json_out
+        # Empty dates (and other fields) should be filtered out of INSERTs
+        assert "BirthDate" not in json_out  # just for emphasis
+
+    def test_cleanup_date_strings__upsert(self):
+        """Empty date strings should be NULLED for UPSERT operations"""
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        context.sf.Test__c.describe = lambda: {
+            "name": "Test__c",
+            "fields": [
+                {"name": "Birthdate", "type": "date"},
+                {"name": "IsHappy", "type": "boolean"},
+                {"name": "Name", "type": "string"},
+            ],
+        }
+
+        step = get_dml_operation(
+            sobject="Test__c",
+            operation=DataOperationType.UPSERT,
+            fields=["Birthdate", "IsHappy", "Name"],
+            api_options={},
+            context=context,
+            api=DataApi.REST,
+            volume=1,
+        )
+        # Empty dates (and other fields) should be NULLED in UPSERTs
+        # Booleans become False for backwards-compatibility reasons.
+        json_out = step._record_to_json(["", "", "Bill"])
+        assert json_out == {
+            "Birthdate": None,
+            "IsHappy": False,
+            "Name": "Bill",
+            "attributes": {"type": "Test__c"},
+        }, json_out

@@ -466,29 +466,31 @@ class RestApiDmlOperation(BaseDmlOperation):
             self.api_options["batch_size"], MAX_REST_BATCH_SIZE
         )
 
+    def _record_to_json(self, rec):
+        result = dict(zip(self.fields, rec))
+        for boolean_field in self.boolean_fields:
+            try:
+                result[boolean_field] = process_bool_arg(result[boolean_field] or False)
+            except TypeError as e:
+                raise BulkDataException(e)
+
+        # Remove empty fields (different semantics in REST API)
+        # We do this for insert only - on update, any fields set to `null`
+        # are meant to be blanked out.
+        if self.operation is DataOperationType.INSERT:
+            result = {
+                k: result[k]
+                for k in result
+                if result[k] is not None and result[k] != ""
+            }
+        elif self.operation in (DataOperationType.UPDATE, DataOperationType.UPSERT):
+            result = {k: (result[k] if result[k] != "" else None) for k in result}
+
+        result["attributes"] = {"type": self.sobject}
+        return result
+
     def load_records(self, records):
-        def _convert(rec):
-            result = dict(zip(self.fields, rec))
-            for boolean_field in self.boolean_fields:
-                try:
-                    result[boolean_field] = process_bool_arg(
-                        result[boolean_field] or False
-                    )
-                except TypeError as e:
-                    raise BulkDataException(e)
-
-            # Remove empty fields (different semantics in REST API)
-            # We do this for insert only - on update, any fields set to `null`
-            # are meant to be blanked out.
-            if self.operation is DataOperationType.INSERT:
-                result = {
-                    k: result[k]
-                    for k in result
-                    if result[k] is not None and result[k] != ""
-                }
-
-            result["attributes"] = {"type": self.sobject}
-            return result
+        """Load, update, upsert or delete records into the org"""
 
         self.results = []
         method = {
@@ -501,7 +503,9 @@ class RestApiDmlOperation(BaseDmlOperation):
         update_key = self.api_options.get("update_key")
         for chunk in iterate_in_chunks(self.api_options.get("batch_size"), records):
             if self.operation is DataOperationType.DELETE:
-                url_string = "?ids=" + ",".join(_convert(rec)["Id"] for rec in chunk)
+                url_string = "?ids=" + ",".join(
+                    self._record_to_json(rec)["Id"] for rec in chunk
+                )
                 json = None
             else:
                 if update_key:
@@ -509,7 +513,10 @@ class RestApiDmlOperation(BaseDmlOperation):
                     url_string = f"/{self.sobject}/{update_key}"
                 else:
                     url_string = ""
-                json = {"allOrNone": False, "records": [_convert(rec) for rec in chunk]}
+                json = {
+                    "allOrNone": False,
+                    "records": [self._record_to_json(rec) for rec in chunk],
+                }
 
             self.results.extend(
                 self.sf.restful(
