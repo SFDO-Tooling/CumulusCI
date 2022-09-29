@@ -7,6 +7,7 @@ fs
 github3.py
 jinja2
 keyring<=23.0.1
+defusedxml
 lxml
 MarkupSafe
 psutil
@@ -31,4 +32,3 @@ simple-salesforce==1.11.4
 snowfakery
 SQLAlchemy
 xmltodict
-
