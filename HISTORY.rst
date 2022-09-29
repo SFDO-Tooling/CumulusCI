@@ -17,7 +17,7 @@ Changes 🎉
 
 Issues Fixed 🩴
 ~~~~~~~~~~~~~~~~
-* A failure when calling capture page screenshot no longer causes a robot test to fail (#3366)
+* A failure when calling ``capture page screenshot`` no longer causes a Robot test to fail (#3366)
 * Fixed an issue where the ``cci --version`` command failed to output the current version (#3367)
 * A bug that prevented keywords decorated with ``@capture_screenshot_on_failure`` from returning a value has been fixed. (#3370)
 * Fixed a bug where requests were not being logged while running tasks or flows with the ``--debug`` flag. (#3371)
