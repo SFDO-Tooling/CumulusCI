@@ -20,13 +20,13 @@ Validate cci context in javascript keyword
     ...  instance_url  ${cci.org.instance_url}
     ...  org_id        ${cci.org.org_id}
 
-    ${expected config info}=  Create dictionary
+    ${expected project_config info}=  Create dictionary
     ...  repo_name     ${cci.project_config.repo_name}
     ...  repo_root     ${cci.project_config.repo_root}
 
     ${expected context}=  Create dictionary
-    ...  org           ${expected org info}
-    ...  config        ${expected config info}
+    ...  org             ${expected org info}
+    ...  project_config  ${expected project_config info}
 
     ${context}=  get cci context
 

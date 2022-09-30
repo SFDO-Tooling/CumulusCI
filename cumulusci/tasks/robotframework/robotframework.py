@@ -207,7 +207,7 @@ class Robot(BaseSalesforceTask):
         # to at least some of the org info
         cci_context = json.dumps(
             {
-                "config": {
+                "project_config": {
                     "repo_name": self.project_config.repo_name,
                     "repo_root": self.project_config.repo_root,
                 },

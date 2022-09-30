@@ -214,7 +214,7 @@ returns data that looks like the following:
 
 ```json
 {
-    "config": {
+    "project_config": {
         "repo_name": "Food-Bank",
         "repo_root": "/projects/Food-Bank"
     },
@@ -236,14 +236,14 @@ async function hello_javascript() {
     return "Hello, Javascript!";
 }
 
-async function get_root_url() {
+async function get_instance_url() {
     return cci.org.instance_url;
 }
 
 exports.__esModule = true;
 module.exports = {
     hello_javascript,
-    get_root_url,
+    get_instance_url,
 };
 ```
 
