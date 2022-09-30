@@ -180,6 +180,13 @@ def _dict_to_xml(d: dict) -> str:
             pass
         elif isinstance(v, bool):
             v = str(v).lower()
+        elif isinstance(v, list):
+            for li in v:
+                if not isinstance(li, dict):
+                    raise TypeError(f"Unexpected list item type {type(v)} for {k}")
+                li_xml = textwrap.indent(_dict_to_xml(li), "    ") + "\n"
+                items.append(f"<{k}>\n{li_xml}</{k}>")
+            continue
         else:
             raise TypeError(f"Unexpected type {type(v)} for {k}")
         items.append(f"<{k}>{v}</{k}>")

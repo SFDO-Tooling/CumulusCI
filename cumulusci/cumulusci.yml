@@ -552,6 +552,10 @@ tasks:
         class_path: cumulusci.tasks.metadata_etl.SetDuplicateRuleStatus
         options:
             namespace_inject: $project_config.project__package__namespace
+    set_object_settings:
+        description: Enable and disable object level settings on standard and custom objects
+        class_path: cumulusci.tasks.metadata_etl.SetObjectSettings
+        group: Metadata Transformations
     set_organization_wide_defaults:
         group: Metadata Transformations
         description: Sets the Organization-Wide Defaults for specific sObjects, and waits for sharing recalculation to complete.
