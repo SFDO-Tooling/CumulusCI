@@ -1,10 +1,10 @@
-var cci = require("cumulusci")
+var cci = require("cumulusci");
 
 async function get_cci_context() {
-    return cci
+    return cci;
 }
 
 exports.__esModule = true;
 module.exports = {
-    get_cci_context
-}
+    get_cci_context,
+};

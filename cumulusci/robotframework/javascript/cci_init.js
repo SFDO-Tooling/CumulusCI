@@ -2,38 +2,37 @@
    parameter when the library is imported.
 
    This file will import all modules in the robot/<project
-   name>/node_modules folder. The code in this file is dependent on an
+   name>/javascript folder. The code in this file is dependent on an
    environment variable named CCI_CONTEXT, which is initialized by the
    robot task.
 */
 
-const fs = require('fs')
+const fs = require("fs");
 
-var cumulusci = require('cumulusci');
-var cci_context = JSON.parse(process.env.CCI_CONTEXT)
-cumulusci.project_config = cci_context.project_config
-cumulusci.org = cci_context.org
+var cumulusci = require("cumulusci");
+var cci_context = JSON.parse(process.env.CCI_CONTEXT);
+cumulusci.project_config = cci_context.project_config;
+cumulusci.org = cci_context.org;
 
 // This is where each project should store their keywords.
 // Maybe in the future this should be configurable, but for
 // now it's not.
-var node_modules_dir =
+var javascript_dir =
     cci_context.project_config.repo_root +
     "/robot/" +
     cci_context.project_config.repo_name +
-    "/node_modules";
+    "/javascript";
 
-if (fs.existsSync(node_modules_dir)) {
+if (fs.existsSync(javascript_dir)) {
     // Should I put this in a try/catch? If I don't, we get a slightly
     // useful stacktrace in the log, though it's a python stacktrace
     // rather than a javascript one.
     exports.__esModule = true;
     module.exports = {
-        ...require(node_modules_dir),
-        ...require('cumulusci'),
-    }
-
+        ...require(javascript_dir),
+        ...require("cumulusci"),
+    };
 } else {
     // this will show up in playwright-log.txt, alongside log.html
-    console.info(`no javascript keyword folder found: ${node_modules_dir}`)
+    console.info(`no javascript keyword folder found: ${javascript_dir}`);
 }

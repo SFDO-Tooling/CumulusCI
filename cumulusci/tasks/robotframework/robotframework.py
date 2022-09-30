@@ -221,7 +221,7 @@ class Robot(BaseSalesforceTask):
         os.environ["CCI_CONTEXT"] = cci_context
         os.environ[
             "NODE_PATH"
-        ] = "/Users/boakley/dev/CumulusCI/cumulusci/robotframework/node_modules/"
+        ] = "/Users/boakley/dev/CumulusCI/cumulusci/robotframework/javascript/"
 
         if self.options["processes"] > 1:
             # Since pabot runs multiple robot processes, and because

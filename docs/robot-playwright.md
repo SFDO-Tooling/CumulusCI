@@ -165,15 +165,15 @@ in the [Browser library documentation](https://marketsquare.github.io/robotframe
 When you import SalesforcePlaywright.robot into a test, it will import
 the Browser library and pass it the name of a small bootstrap
 javascript file. This bootstrap file will import the file
-`robot/<ProjectName>/node_modules/index.js`, exposing the exported
+`robot/<ProjectName>/javascript/index.js`, exposing the exported
 functions as keywords.
 
 ### Example
 
 Who doesn't love a good "Hello, world" example? Start by creating the
-`node_modules` folder in your robot folder. For example, if your
+`javascript` folder in your robot folder. For example, if your
 project is named Food-Bank, you should create a folder named
-`robot/Food-Bank/node_modules`.
+`robot/Food-Bank/javascript`.
 
 In that folder, create a file named `keywords.js` with the following
 content:
