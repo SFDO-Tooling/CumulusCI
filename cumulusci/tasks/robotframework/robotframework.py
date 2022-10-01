@@ -9,6 +9,7 @@ from robot import pythonpathsetter
 from robot import run as robot_run
 from robot.testdoc import testdoc
 
+import cumulusci.robotframework
 from cumulusci.core.exceptions import (
     NamespaceNotFoundError,
     RobotTestFailure,
@@ -219,9 +220,9 @@ class Robot(BaseSalesforceTask):
             }
         )
         os.environ["CCI_CONTEXT"] = cci_context
-        os.environ[
-            "NODE_PATH"
-        ] = "/Users/boakley/dev/CumulusCI/cumulusci/robotframework/javascript/"
+        os.environ["NODE_PATH"] = str(
+            Path(cumulusci.robotframework.__path__[0]) / "javascript"
+        )
 
         if self.options["processes"] > 1:
             # Since pabot runs multiple robot processes, and because
