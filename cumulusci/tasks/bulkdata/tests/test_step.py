@@ -1418,8 +1418,11 @@ class TestGetOperationFunctions:
         # Empty dates (and other fields) should be filtered out of INSERTs
         assert "BirthDate" not in json_out  # just for emphasis
 
-    def test_cleanup_date_strings__upsert(self):
-        """Empty date strings should be NULLED for UPSERT operations"""
+    @pytest.mark.parametrize(
+        "operation", ((DataOperationType.UPSERT, DataOperationType.UPDATE))
+    )
+    def test_cleanup_date_strings__upsert_update(self, operation):
+        """Empty date strings should be NULLED for UPSERT and UPDATE operations"""
         context = mock.Mock()
         context.sf.sf_version = "42.0"
         context.sf.Test__c.describe = lambda: {
@@ -1433,7 +1436,7 @@ class TestGetOperationFunctions:
 
         step = get_dml_operation(
             sobject="Test__c",
-            operation=DataOperationType.UPSERT,
+            operation=operation,
             fields=["Birthdate", "IsHappy", "Name"],
             api_options={},
             context=context,

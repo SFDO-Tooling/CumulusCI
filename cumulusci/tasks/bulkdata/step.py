@@ -614,6 +614,7 @@ def get_dml_operation(
     or if the operation is HARD_DELETE, which is only available for Bulk)."""
 
     context.logger.debug(f"Creating {operation} Operation for {sobject} using {api}")
+    assert isinstance(operation, DataOperationType)
 
     # REST Collections requires 42.0.
     api_version = float(context.sf.sf_version)
