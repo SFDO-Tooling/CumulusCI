@@ -1259,7 +1259,7 @@ class TestOrgConfig:
         SalesforceError(None, None, None, None),
     ]
 
-    @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.salesforce_client")
     def test_installed_packages(self, sf):
         config = OrgConfig({}, "test")
         sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
@@ -1300,7 +1300,7 @@ class TestOrgConfig:
         assert config.installed_packages == expected
         sf.restful.assert_called()
 
-    @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.salesforce_client")
     def test_has_minimum_package_version(self, sf):
         config = OrgConfig({}, "test")
         sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
