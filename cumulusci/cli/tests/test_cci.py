@@ -514,3 +514,28 @@ def mock_validate_debug(value):
         assert bool(self.debug_mode) == bool(value)
 
     return _run_task
+
+
+@mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+@mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+@mock.patch("cumulusci.cli.cci.init_logger")
+@mock.patch("cumulusci.cli.cci.check_latest_version")
+@mock.patch("cumulusci.cli.cci.CliRuntime")
+@mock.patch("cumulusci.cli.cci.show_version_info")
+def test_dash_dash_version(
+    show_version_info,
+    CliRuntime,
+    check_latest_version,
+    init_logger,
+    get_tempfile_logger,
+    tee,
+):
+    get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
+    cci.main(["cci", "--help"])
+    assert len(show_version_info.mock_calls) == 0
+
+    cci.main(["cci", "version"])
+    assert len(show_version_info.mock_calls) == 1
+
+    cci.main(["cci", "--version"])
+    assert len(show_version_info.mock_calls) == 2
