@@ -28,9 +28,7 @@ class TestBaseSalesforceTask:
         self.org_config = OrgConfig({}, "test", keychain=self.project_config.keychain)
 
     def test_run_task(self):
-        with mock.patch(
-            "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials"
-        ):
+        with mock.patch("cumulusci.core.tasks.BaseSalesforceTask._update_credentials"):
             task = BaseSalesforceTask(
                 self.project_config, self.task_config, self.org_config
             )
