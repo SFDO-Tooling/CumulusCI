@@ -1,3 +1,4 @@
+import sys
 from abc import ABC
 from typing import Final
 
@@ -6,6 +7,10 @@ import sarge
 from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.tasks.command import Command
+from cumulusci.tasks.metadata_etl.remote_site_settings import (
+    AddRemoteSiteSettings,
+    RSSOptions,
+)
 from cumulusci.tasks.vlocity.exceptions import BuildToolMissingError
 
 CLI_KEYWORD = "vlocity"
@@ -13,6 +18,10 @@ BUILD_TOOL_MISSING_ERROR = (
     "This task requires the Vlocity Build CLI tool which is not currently installed on this system. "
     "For information on installing this tool visit: https://github.com/vlocityinc/vlocity_build#vlocity-build"
 )
+VF_RSS_NAME = "OmniStudioVisualforce"
+VF_LEGACY_RSS_NAME = "OmniStudioLegacyVisualforce"
+LWC_RSS_NAME = "OmniStudioLightning"
+OMNI_NAMESPACE = "omnistudio"
 
 
 class VlocityBaseTask(Command, BaseSalesforceTask):
@@ -25,6 +34,10 @@ class VlocityBaseTask(Command, BaseSalesforceTask):
         },
         "extra": {"description": "Any extra arguments to pass to the vlocity CLI"},
     }
+
+    def _init_options(self, kwargs):
+        kwargs.setdefault("interactive", sys.stdout.isatty())
+        return super()._init_options(kwargs)
 
     def _init_task(self):
         tool_exists = self._vlocity_build_tool_exists()
@@ -61,7 +74,7 @@ class VlocitySimpleJobTask(VlocityBaseTask, ABC):
         username: str = self.org_config.username
         job_file: str = self.options.get("job_file")
 
-        command: str = f"{self.command_keyword} -job {job_file} --json"
+        command: str = f"{self.command_keyword} -job {job_file}"
 
         if isinstance(self.org_config, ScratchOrgConfig):
             command = f"{command} -sfdx.username '{username}'"
@@ -84,3 +97,52 @@ class VlocityDeployTask(VlocitySimpleJobTask):
     """Runs a `vlocity packDeploy` command with a given user and job file"""
 
     command_keyword: Final[str] = "packDeploy"
+
+
+class OmniStudioDeployRemoteSiteSettings(AddRemoteSiteSettings):
+    """Deploys remote site settings needed for OmniStudio.
+    This cannot be configured in cumulusci/cumulusci.yml because
+    the values for the 'url' field are dynamic."""
+
+    task_options: dict = {
+        "namespace": {
+            "description": f"The namespace to inject into RemoteSiteSettings.url values. Defaults to '{OMNI_NAMESPACE}'."
+        }
+    }
+
+    def _get_options(self) -> RSSOptions:
+        namespace = self.options.get("namespace") or OMNI_NAMESPACE
+
+        visualforce_url: str = self.org_config.instance_url.replace(
+            ".my.salesforce.com",
+            f"--{namespace}.{self.org_config.instance_name}.visual.force.com",
+        )
+        legacy_visualforce_url: str = self.org_config.instance_url.replace(
+            ".my.salesforce.com",
+            f"--{namespace}.vf.force.com",
+        )
+        lightning_url: str = self.org_config.instance_url.replace(
+            ".my.salesforce.com", ".lightning.force.com"
+        )
+
+        self.options = {
+            **self.options,
+            "records": [
+                {
+                    "full_name": VF_RSS_NAME,
+                    "url": visualforce_url,
+                    "is_active": True,
+                },
+                {
+                    "full_name": VF_LEGACY_RSS_NAME,
+                    "url": legacy_visualforce_url,
+                    "is_active": True,
+                },
+                {
+                    "full_name": LWC_RSS_NAME,
+                    "url": lightning_url,
+                    "is_active": True,
+                },
+            ],
+        }
+        return super()._get_options()

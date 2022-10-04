@@ -37,7 +37,7 @@ def parse(source):
 
     """
     if hasattr(source, "open"):  # for pathlib.Path objects
-        with source.open() as stream:
+        with source.open(encoding="utf-8") as stream:
             doc = lxml_parse_file(stream)
     else:
         doc = lxml_parse_file(source)

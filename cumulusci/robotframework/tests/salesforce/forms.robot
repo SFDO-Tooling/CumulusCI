@@ -81,25 +81,26 @@ Non-lightning based form - checkbox
     ...  e.g.: <input type="checkbox">
 
     [Setup]  Run keywords
-    ...  Go to page                  Home    ServiceCrewMember
+    ...  Go to page                  Home    Campaign
     ...  AND  Click Object Button    New
-    ...  AND  Wait for modal         New     ServiceCrewMember
-    [Teardown]   Click modal button  Cancel
+    ...  AND  Wait for modal         New     Campaign
+    [Teardown]  Click modal button   Cancel
 
     # first, let's make sure that the keyword returns an element
     # that is a plain html input element
-    ${element}=      Get webelement       label:Leader
+    ${element}=      Get webelement       label:Active
     Should be equal  ${element.tag_name}  input
+    ...  Expected to find an <input> element but did not.
 
     # next, set the checkbox and assert it is checked
     Input form data
-    ...  Leader    checked
-    Checkbox should be selected      label:Leader
+    ...  Active    checked
+    Checkbox should be selected      label:Active
 
     # finally, unset it and assert it is unchecked
     Input form data
-    ...  Leader    unchecked
-    Checkbox should not be selected      label:Leader
+    ...  Active    unchecked
+    Checkbox should not be selected      label:Active
 
 Lightning based form - radiobutton
     [Documentation]
@@ -123,18 +124,16 @@ Non-lightning based form - radiobutton
     [Documentation]  Verify we can set a plain non-lightning radiobutton
 
     [Setup]     Run keywords
-    ...  Skip if  "firefox" in $browser
-    ...  AND  Go to My Email Settings
-    ...  AND  Select frame  //div[@class="setupcontent"]//iframe
+    ...  Go to My Email Settings
+    ...  AND  Select frame                   //div[@class="setupcontent"]//iframe
+    ...  AND  Select radio button            use_external_email  1
+    ...  AND  Radio button should be set to  use_external_email  1
     [Teardown]  Unselect frame
 
     # The settings page is just about the only page I could find
     # with old school non-lightning radiobuttons
     # Thankfully, I can use built-in keywords to validate that
     # the radiobuttons have actually bet set.
-
-    # make sure it is set to 1
-    Select radio button  use_external_email  1
 
     # then try to use our keyword to set it
     Input form data

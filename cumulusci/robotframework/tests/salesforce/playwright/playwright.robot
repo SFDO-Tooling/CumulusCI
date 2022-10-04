@@ -17,7 +17,7 @@ Go to user profile
 
 Go to contacts home
     Click            button:has-text("App Launcher")
-    Fill text        input[placeholder='Search apps and items...']  Contacts
+    Type text        input[placeholder='Search apps and items...']  Contacts
     Click            one-app-launcher-menu-item:has-text("Contacts")
 
     Wait until network is idle

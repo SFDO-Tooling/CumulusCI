@@ -29,6 +29,12 @@ def pytest_addoption(parser, pluginmanager):
         default=False,
         help="Replace VCR files.",
     )
+    parser.addoption(
+        "--opt-in",
+        action="store_true",
+        default=False,
+        help="disable custom_skip marks",
+    )
 
 
 def pytest_configure(config):
@@ -38,6 +44,7 @@ def pytest_configure(config):
         "large_vcr(): a network-based test that generates VCR cassettes too large for version control. Use --org to generate them locally.",
         "needs_org(): a test that needs an org (or at least access to the network) but should not attempt to store VCR cassettes",
         "org_shape(org_name, init_flow): a test that needs a particular org shape",
+        "opt_in(): a test that is 'off' by default (perhaps because it depends on some setup)",
     ]
 
     for marker in markers:
@@ -157,6 +164,9 @@ def vcr_cassette_name_for_item(item):
 
 
 def classify_and_modify_test(item, marker_names):
+    if "opt_in" in marker_names and not item.config.getoption("--opt-in"):
+        pytest.skip("Skip by default turned on")
+
     if "slow" in marker_names:
         if not item.config.getoption("--run-slow-tests"):
             pytest.skip("slow: test requires --run-slow-tests")
@@ -275,18 +285,23 @@ def _create_org(org_name: str, config_name: str, flow_name: str = None):
         org = None
     if org:
         cleanup_org_shapes([org_name])
-    org_scratch.callback.__wrapped__(
-        runtime,
-        config_name,
-        org_name,
-        default=False,
-        devhub=None,
-        days=1,
-        no_password=False,
-    )
-    org, org_config = runtime.get_org(org_name)
+    try:
+        org_scratch.callback.__wrapped__(
+            runtime,
+            config_name,
+            org_name,
+            default=False,
+            devhub=None,
+            days=1,
+            no_password=False,
+        )
+        org, org_config = runtime.get_org(org_name)
 
-    if flow_name:
-        coordinator = runtime.get_flow(flow_name)
-        coordinator.run(org_config)
+        if flow_name:
+            coordinator = runtime.get_flow(flow_name)
+            coordinator.run(org_config)
+    except Exception:
+        if runtime.get_org(org_name, fail_if_missing=False):
+            org_scratch_delete.callback.__wrapped__(runtime, org_name)
+        raise
     return org_config

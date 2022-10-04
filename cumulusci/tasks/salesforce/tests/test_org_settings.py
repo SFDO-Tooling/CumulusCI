@@ -26,10 +26,20 @@ class TestDeployOrgSettings:
                         "settings": {
                             "orgPreferenceSettings": {"s1DesktopEnabled": True},
                             "otherSettings": {
-                                "nested": {
+                                "nestedDict": {
                                     "boolValue": True,
                                     "stringValue": "string",
                                 },
+                                "nestedList": [
+                                    {
+                                        "boolValue": True,
+                                        "stringValue": "foo",
+                                    },
+                                    {
+                                        "boolValue": False,
+                                        "stringValue": "bar",
+                                    },
+                                ],
                             },
                         },
                     },
@@ -69,10 +79,18 @@ class TestDeployOrgSettings:
             readtext(zf, "settings/Other.settings")
             == """<?xml version="1.0" encoding="UTF-8"?>
 <OtherSettings xmlns="http://soap.sforce.com/2006/04/metadata">
-    <nested>
+    <nestedDict>
         <boolValue>true</boolValue>
         <stringValue>string</stringValue>
-    </nested>
+    </nestedDict>
+    <nestedList>
+        <boolValue>true</boolValue>
+        <stringValue>foo</stringValue>
+    </nestedList>
+    <nestedList>
+        <boolValue>false</boolValue>
+        <stringValue>bar</stringValue>
+    </nestedList>
 </OtherSettings>"""
         )
 
@@ -252,7 +270,27 @@ class TestDeployOrgSettings:
                     {
                         "settings": {
                             "otherSettings": {
-                                "list": [],
+                                "none": None,
+                            },
+                        },
+                    },
+                    f,
+                )
+            path = os.path.join(d, "dev.json")
+            task_options = {"definition_file": path, "api_version": "48.0"}
+            task = create_task(DeployOrgSettings, task_options)
+            task.api_class = Mock()
+            with pytest.raises(TypeError):
+                task()
+
+    def test_run_task_bad_nested_list_settings_type(self):
+        with temporary_dir() as d:
+            with open("dev.json", "w") as f:
+                json.dump(
+                    {
+                        "settings": {
+                            "otherSettings": {
+                                "nestedList": ["foo"],
                             },
                         },
                     },

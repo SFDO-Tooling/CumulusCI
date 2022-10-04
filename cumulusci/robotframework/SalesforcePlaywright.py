@@ -1,9 +1,16 @@
+import re
+
 from Browser import SupportedBrowsers
 
 from cumulusci.robotframework.base_library import BaseLibrary
+from cumulusci.robotframework.faker_mixin import FakerMixin
+from cumulusci.robotframework.utils import (
+    WAIT_FOR_AURA_SCRIPT,
+    capture_screenshot_on_error,
+)
 
 
-class SalesforcePlaywright(BaseLibrary):
+class SalesforcePlaywright(FakerMixin, BaseLibrary):
     ROBOT_LIBRARY_SCOPE = "Suite"
 
     def __init__(self):
@@ -15,6 +22,29 @@ class SalesforcePlaywright(BaseLibrary):
         if self._browser is None:
             self._browser = self.builtin.get_library_instance("Browser")
         return self._browser
+
+    def get_current_record_id(self):
+        """Parses the current url to get the object id of the current record.
+        This expects the url to contain an id that matches [a-zA-Z0-9]{15,18}
+        """
+        OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
+        url = self.browser.execute_javascript("window.location.href")
+        for part in url.split("/"):
+            oid_match = re.match(OID_REGEX, part)
+            if oid_match is not None:
+                return oid_match.group(2)
+        raise AssertionError("Could not parse record id from url: {}".format(url))
+
+    def go_to_record_home(self, obj_id):
+        """Navigates to the Home view of a Salesforce Object
+
+        After navigating, this will wait until the slds-page-header_record-home
+        div can be found on the page.
+        """
+        url = self.cumulusci.org.lightning_base_url
+        url = "{}/lightning/r/{}/view".format(url, obj_id)
+        self.browser.go_to(url)
+        self.wait_until_loading_is_complete("div.slds-page-header_record-home")
 
     def delete_records_and_close_browser(self):
         """This will close all open browser windows and then delete
@@ -61,10 +91,6 @@ class SalesforcePlaywright(BaseLibrary):
             else self.cumulusci.login_url()
         )
 
-        # browser's (or robot's?) automatic type conversion doesn't
-        # seem to work when calling the function directly, so we have
-        # to pass the enum rather than string representation of the
-        # browser. _sigh_
         if record_video:
             # ugh. the "dir" value must be non-empty, and will be treated as
             # a folder name under the browser/video folder. using "../video"
@@ -79,6 +105,35 @@ class SalesforcePlaywright(BaseLibrary):
         )
         page_details = self.browser.new_page(login_url)
 
-        self.browser.wait_until_network_is_idle()
-
+        self.wait_until_loading_is_complete()
         return browser_id, context_id, page_details
+
+    @capture_screenshot_on_error
+    def wait_until_loading_is_complete(self, locator=None):
+        """Wait for a lightning page to load.
+
+        By default this keyword will wait for any element with the
+        class 'slds-template__container', but a different locator can
+        be provided.
+
+        In addition to waiting for the element, it will also wait for
+        any pending aura events, and it also calls the Browser keyword
+        `Wait until network is idle`.
+
+        """
+        locator = (
+            "//div[contains(@class, 'slds-template__container')]/*"
+            if locator is None
+            else locator
+        )
+        self.browser.get_element(locator)
+        self.browser.execute_javascript(function=WAIT_FOR_AURA_SCRIPT)
+
+        # this seems to fail once in a while for an unknown reason, so we'll
+        # try twice. This seems to be more effective than calling the
+        # function once and waiting 30 seconds.
+        try:
+            self.browser.wait_until_network_is_idle("15 seconds")
+        except Exception as e:
+            self.builtin.log(f"caught error waiting for idle: {e}", "WARN")
+            self.browser.wait_until_network_is_idle("15 seconds")
