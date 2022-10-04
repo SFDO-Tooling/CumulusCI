@@ -27,7 +27,7 @@ def create_task(task_class, options=None, project_config=None, org_config=None):
         options = {}
     task_config = TaskConfig({"options": options})
     with mock.patch(
-        "cumulusci.tasks.salesforce.BaseSalesforceTask._get_client_name",
+        "cumulusci.core.tasks.BaseSalesforceTask._get_client_name",
         return_value="ccitests",
     ):
         return task_class(project_config, task_config, org_config)
