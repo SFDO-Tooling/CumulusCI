@@ -2,6 +2,35 @@
 History
 =======
 
+3.66.0 (2022-09-29)
+-------------------
+
+Changes 🎉
+~~~~~~~~~~
+* New Metadata ETL task ``set_object_settings`` to enable and disable settings on standard and custom objects (thanks @jlantz) (#3364)
+* For Robot tests on the Firefox profile, we now accept all cookies to prevent lightning pages from failing to render due to cross-domain cookies. (#3366)
+* Improved the method that playwright-based tests use to wait for the browser to initialize (#3366)
+* The following Robot Framework keywords now automatically generate screenshots on failure: ``Click related list button``, ``Click related item popup link``, ``Close modal``, ``Current app should be``, ``Field value should be``, ``Get field value``, ``Populate field``, ``Populate lookup field``, and ``Wait until modal is closed``. (#3370)
+* CumulusCI now supports the following Metadata type: ``AIApplicationConfig`` (#3368)
+* CumulusCI now supports the following types from `Net Zero Cloud's Tooling API <https://developer.salesforce.com/docs/atlas.en-us.netzero_cloud_dev_guide.meta/netzero_cloud_dev_guide/netzero_cloud_tooling_api_parent.htm>`__: ``BldgEnrgyIntensityCnfg``, ``StnryAssetEnvSrcCnfg``, ``VehicleAssetEmssnSrcCnfg``. (#3372)
+
+
+Issues Fixed 🩴
+~~~~~~~~~~~~~~~~
+* A failure when calling ``capture page screenshot`` no longer causes a Robot test to fail (#3366)
+* Fixed an issue where the ``cci --version`` command failed to output the current version (#3367)
+* A bug that prevented keywords decorated with ``@capture_screenshot_on_failure`` from returning a value has been fixed. (#3370)
+* Fixed a bug where requests were not being logged while running tasks or flows with the ``--debug`` flag. (#3371)
+
+
+3.65.0 (2022-09-16)
+-------------------
+
+Changes 🎉
+~~~~~~~~~~
+
+* Improve logging and add error handling for Vlocity tasks by @prescod in (#3357)
+
 3.64.0 (2022-08-18)
 -------------------
 

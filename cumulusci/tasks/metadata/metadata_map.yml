@@ -10,6 +10,10 @@ actionPlanTemplates:
     - type: ActionPlanTemplate
       class: MetadataFilenameParser
       extension: apt
+aiApplicationConfigs:
+    - type: AIApplicationConfig
+      class: MetadataFilenameParser
+      extension: aiapplicationconfig
 analyticSnapshots:
     - type: AnalyticSnapshot
       class: MetadataFilenameParser
@@ -78,6 +82,10 @@ briefcaseDefinitions:
     - type: BriefcaseDefinition
       class: MetadataFilenameParser
       extension: briefcaseDefinition
+buildingEnergyIntensityConfigs:
+    - type: BldgEnrgyIntensityCnfg
+      class: MetadataFilenameParser
+      extension: buildingEnergyIntensityConfig
 businessProcessGroups:
     - type: BusinessProcessGroup
       class: MetadataFilenameParser
@@ -719,6 +727,10 @@ staticresources:
     - type: StaticResource
       class: MetadataFilenameParser
       extension: resource
+stationaryAssetEnvSourceConfigs:
+    - type: StnryAssetEnvSrcCnfg
+      class: MetadataFilenameParser
+      extension: stationaryAssetEnvSourceConfig
 synonymDictionaries:
     - type: SynonymDictionary
       class: MetadataFilenameParser
@@ -755,6 +767,10 @@ userCriteria:
     - type: UserCriteria
       class: MetadataFilenameParser
       extension: userCriteria
+vehicleAssetEmssnSourceConfigs:
+    - type: VehicleAssetEmssnSrcCnfg
+      class: MetadataFilenameParser
+      extension: vehicleAssetEmssnSourceConfig
 viewdefinitions:
     - type: ViewDefinition
       class: MetadataFilenameParser

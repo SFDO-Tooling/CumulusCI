@@ -2,7 +2,8 @@ import glob
 import os
 import shutil
 import time
-from xml.dom.minidom import parse
+
+from defusedxml.minidom import parse
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.tasks import BaseTask
