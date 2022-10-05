@@ -180,12 +180,17 @@ content:
 
 ```javascript
 // keywords.js
-async function hello_javascript() {
+function hello_javascript() {
     return "Hello, JavaScript!";
 }
 
 exports.__esModule = true;
 module.exports = { hello_javascript };
+```
+
+```{note}
+The Browser documentation for [writing keywords in javascript](https://marketsquare.github.io/robotframework-browser/Browser.html#Extending%20Browser%20library%20with%20a%20JavaScript%20module) uses async functions
+in all of the examples, but async functions are not strictly required.
 ```
 
 Next, create a file named `index.js` in the same folder. This file
@@ -232,11 +237,11 @@ the `keywords.js` file to look like the following example.
 ```javascript
 var cci = require("cumulusci");
 
-async function hello_javascript() {
+function hello_javascript() {
     return "Hello, Javascript!";
 }
 
-async function get_instance_url() {
+function get_instance_url() {
     return cci.org.instance_url;
 }
 

@@ -1,6 +1,6 @@
 let cci = require("cumulusci");
 
-async function get_cci_context() {
+function get_cci_context() {
     return cci;
 }
 
