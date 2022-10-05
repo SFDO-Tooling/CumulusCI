@@ -145,13 +145,13 @@ the user profile. Playwright locators are often much easier to write
 than Selenium locators, which translates to tests and keywords that
 don't have to be tweaked when the page markup changes.
 
-## Writing keywords in Javascript
+## Writing keywords in JavaScript
 
-At its core, playwright is built on node.js, which makes it possible
-to write keywords in Javascript. This is enabled by providing the path
-to a javascript library when the Browser library is
+At its core, Playwright is built on Node.js, which makes it possible
+to write keywords in JavaScript. This is enabled by providing the path
+to a JavaScript library when the Browser library is
 imported. CumulusCI comes with a small bootstrap file which will
-import a node module which itself can import any number of other
+import a Node module from your project, which itself can import any number of other
 modules.
 
 ```{tip}
@@ -160,18 +160,18 @@ https://marketsquare.github.io/robotframework-browser/Browser.html#Extending%20B
 in the [Browser library documentation](https://marketsquare.github.io/robotframework-browser/Browser.html).
 ```
 
-### Creating a keyword file in javascript
+### Creating a keyword file in JavaScript
 
-When you import SalesforcePlaywright.robot into a test, it will import
+When you import `SalesforcePlaywright.robot` into a test, it will import
 the Browser library and pass it the name of a small bootstrap
-javascript file. This bootstrap file will import the file
+JavaScript file. This bootstrap file will import the file
 `robot/<ProjectName>/javascript/index.js`, exposing the exported
 functions as keywords.
 
 ### Example
 
 Who doesn't love a good "Hello, world" example? Start by creating the
-`javascript` folder in your robot folder. For example, if your
+`javascript` folder in your `robot` folder. For example, if your
 project is named Food-Bank, you should create a folder named
 `robot/Food-Bank/javascript`.
 
@@ -181,7 +181,7 @@ content:
 ```javascript
 // keywords.js
 async function hello_javascript() {
-    return "Hello, Javascript!";
+    return "Hello, JavaScript!";
 }
 
 exports.__esModule = true;
@@ -203,11 +203,11 @@ module.exports = {
 
 ### Getting CumulusCI test context
 
-CumumlusCI comes with a node module named `cumulusci` which give
+CumumlusCI comes with a node module named `cumulusci` which provides
 access to information about the repository and org.
 
-Lets extend our earlier example to include a keyword for getting the
-instance url of the org under test.
+Let's extend our earlier example to include a keyword for getting the
+instance URL of the org under test.
 
 The first step is to import the `cumulusci` module. This module
 returns data that looks like the following:
