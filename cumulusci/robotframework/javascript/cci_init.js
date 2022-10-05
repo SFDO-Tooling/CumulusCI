@@ -9,19 +9,15 @@
 
 const fs = require("fs");
 
-var cumulusci = require("cumulusci");
-var cci_context = JSON.parse(process.env.CCI_CONTEXT);
+let cumulusci = require("cumulusci");
+let cci_context = JSON.parse(process.env.CCI_CONTEXT);
 cumulusci.project_config = cci_context.project_config;
 cumulusci.org = cci_context.org;
 
 // This is where each project should store their keywords.
 // Maybe in the future this should be configurable, but for
 // now it's not.
-var javascript_dir =
-    cci_context.project_config.repo_root +
-    "/robot/" +
-    cci_context.project_config.repo_name +
-    "/javascript";
+let javascript_dir = `${cci_context.project_config.repo_root}/robot/${cci_context.project_config.repo_name}/javascript`;
 
 if (fs.existsSync(javascript_dir)) {
     // Should I put this in a try/catch? If I don't, we get a slightly
