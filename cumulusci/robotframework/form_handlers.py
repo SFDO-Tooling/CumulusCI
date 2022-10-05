@@ -194,18 +194,16 @@ class LightningLookupHandler(BaseFormHandler):
     tags = ["lightning-lookup", "lightning-grouped-combobox"]
 
     def set(self, value):
-        wait = 5
+        wait = 10
         # I wonder if I should/could anchor this to the element
         # instead of searching the whole document?
-        value_locator = f'//div[@role="listbox"]//*[.="{value}"]'
+        value_locator = f'//lightning-base-combobox-formatted-text[@title="{value}"]'
         self.element.click()
         self.input_element.send_keys(value)
         try:
             self.selenium.wait_until_element_is_visible(value_locator, wait)
             self.selenium.click_element(value_locator)
         except Exception:
-            # *sigh* this still fails randomly even though
-            # I can see the dadgum item in the dropdown.
             raise TimeoutException(
                 f"Lookup value '{value}' for '{self.locator}' not found after {wait} seconds"
             )

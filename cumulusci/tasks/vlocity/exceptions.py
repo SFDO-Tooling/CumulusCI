@@ -1,0 +1,2 @@
+class BuildToolMissingError(Exception):
+    pass

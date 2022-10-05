@@ -7,6 +7,12 @@ This section outlines how to setup services and orgs that can be defined
 in a particular environment such that they will be recognized by
 CumulusCI.
 
+If you're working in GitHub Actions, you can take advantage of our
+[GitHub Actions framework](github-actions) to streamline your setup
+process. You'll need the information in this document only if you wish
+to use an alternate authorization strategy or configure additional
+services.
+
 (register-environment-services)=
 
 ## Register Environment Services
@@ -88,10 +94,24 @@ would need to be provided in the following format:
 
 ## Register Persistent Orgs
 
-Certain builds may require working with one or more persistent orgs.
-Using the JWT flow for authentication is the recommended approach when
-running CumulusCI headlessly for continuous integration with an existing
-org.
+### SFDX Auth URL Authorization
+
+CumulusCI can import persistent org authorization from the SFDX CLI.
+This capability allows you to store the SFDX auth URL for an org in
+your CI system's secret storage, import it into the SFDX keychain,
+and then use it directly from CumulusCI.
+
+To do so, follow these steps.
+
+1. Retrieve your auth URL.
+1. Authorize the org using `sfdx auth:sfdxurl:store`.
+1. Run `cci org import <org name> <org name>`.
+
+### JWT Flow Authorization
+
+Using JWT authorization provides you with the greatest control over access
+to your persistent org. This approach uses a Connected App and digital certificate,
+which you control and can rotate as desired.
 
 First, you need a Connected App that is configured with a certificate in
 the "Use digital signatures" setting in its OAuth settings. You can

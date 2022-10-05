@@ -183,8 +183,24 @@ def display_release_notes_link(latest_version: str) -> None:
     )
 
 
+def version_info_wrapper(
+    ctx: click.Context, param: click.Parameter, value: bool
+) -> None:
+    if not value:
+        return
+    show_version_info()
+    ctx.exit()
+
+
 @click.group("main", help="")
-@click.version_option(show_version_info, message="")
+@click.option(  # based on https://click.palletsprojects.com/en/8.1.x/options/#callbacks-and-eager-options
+    "--version",
+    is_flag=True,
+    expose_value=False,
+    is_eager=True,
+    help="Show the version and exit.",
+    callback=version_info_wrapper,
+)
 def cli():
     """Top-level `click` command group."""
 
