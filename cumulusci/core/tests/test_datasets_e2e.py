@@ -67,6 +67,9 @@ class TestDatasetsE2E:
                 dataset, timer, sf, delete_data_from_org, run_code_without_recording
             )
 
+            if dataset.path.exists():
+                rmtree(dataset.path)
+
     def demo_dataset(
         self, dataset, timer, sf, delete_data_from_org, run_code_without_recording
     ):
@@ -168,3 +171,6 @@ class TestDatasetsE2E:
             # Run an extract to the filesystem
             dataset.extract()
             timer.checkpoint("Extract")
+
+            if dataset.path.exists():
+                rmtree(dataset.path)
