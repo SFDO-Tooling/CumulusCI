@@ -261,14 +261,8 @@ class TestLoadData:
     def test_init_options__missing_input(self):
         t = _make_task(LoadData, {"options": {}})
 
-        assert t.options["sql_path"].replace("\\", "/") == "datasets/sample.sql", (
-            t.options["sql_path"],
-            type(t.options["sql_path"]),
-        )
-        assert t.options["mapping"].replace("\\", "/") == "datasets/mapping.yml", (
-            t.options["mapping"],
-            type(t.options["mapping"]),
-        )
+        assert t.options["sql_path"] == "datasets/sample.sql"
+        assert t.options["mapping"] == "datasets/mapping.yml"
 
     def test_init_options__bulk_mode(self):
         t = _make_task(

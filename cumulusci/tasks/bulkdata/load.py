@@ -149,13 +149,13 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         org_shape = self.org_config.lookup("config_name") if self.org_config else None
         if not org_shape:
             return None  # persistent org
-        dataset_folder = Path("datasets", org_shape)
-        if dataset_folder.exists():
+        dataset_folder = f"datasets/{org_shape}"
+        if Path(dataset_folder).exists():
             # check for dataset.sql and mapping.yml
-            mapping_path = Path(dataset_folder, f"{org_shape}.mapping.yml")
-            dataset_path = Path(dataset_folder, f"{org_shape}.dataset.sql")
-            if mapping_path.exists() and dataset_path.exists():
-                return (str(mapping_path), str(dataset_path))
+            mapping_path = f"{dataset_folder}/{org_shape}.mapping.yml"
+            dataset_path = f"{dataset_folder}/{org_shape}.dataset.sql"
+            if Path(mapping_path).exists() and Path(dataset_path).exists():
+                return (mapping_path, dataset_path)
             else:
                 self.logger.warning(
                     f"Found datasets/{org_shape} but it did not contain {org_shape}.mapping.yml and {org_shape}.dataset.yml."
@@ -163,10 +163,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         return None
 
     def _find_default_dataset(self) -> T.Optional[T.Tuple[str, str]]:
-        dataset_path = Path("datasets/sample.sql")
-        mapping_path = Path("datasets/mapping.yml")
-        if dataset_path.exists() and mapping_path.exists():
-            return (str(mapping_path), str(dataset_path))
+        dataset_path = "datasets/sample.sql"
+        mapping_path = "datasets/mapping.yml"
+        if Path(dataset_path).exists() and Path(mapping_path).exists():
+            return (mapping_path, dataset_path)
         return None
 
     def _run_task(self):
