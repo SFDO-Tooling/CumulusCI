@@ -26,9 +26,11 @@ from cumulusci.core.dependencies.resolvers import (
     GitHubTagResolver,
     GitHubUnmanagedHeadResolver,
     dependency_filter_ignore_deps,
+    get_release_id,
     get_resolver,
     get_resolver_stack,
     get_static_dependencies,
+    locate_commit_status_package_id,
 )
 from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
 
@@ -365,7 +367,7 @@ class TestGitHubReleaseBranchResolver:
         pc.repo_info["branch"] = "feature/232__test"
         pc.project__git["prefix_feature"] = "feature/"
 
-        assert ConcreteGitHubReleaseBranchResolver().get_release_id(pc) == 232
+        assert get_release_id(pc) == 232
 
     def test_get_release_id__not_release_branch(self):
         pc = BaseProjectConfig(UniversalConfig())
@@ -375,7 +377,7 @@ class TestGitHubReleaseBranchResolver:
             repo_branch.return_value = None
 
             with pytest.raises(DependencyResolutionError) as e:
-                ConcreteGitHubReleaseBranchResolver().get_release_id(pc)
+                get_release_id(pc)
 
             assert "Cannot get current branch" in str(e)
 
@@ -388,13 +390,13 @@ class TestGitHubReleaseBranchResolver:
             pc.project__git["prefix_feature"] = "feature/"
 
             with pytest.raises(DependencyResolutionError) as e:
-                ConcreteGitHubReleaseBranchResolver().get_release_id(pc)
+                get_release_id(pc)
 
             assert "Cannot get current release identifier" in str(e)
 
     def test_locate_commit_status_package_id__not_found_with_parent(self, github):
         repo = github.repository("SFDO-Tooling", "TwoGPMissingRepo")
-        assert ConcreteGitHubReleaseBranchResolver().locate_commit_status_package_id(
+        assert locate_commit_status_package_id(
             repo, repo.branch("feature/232"), "Build Feature Test Package"
         ) == (None, None)
 

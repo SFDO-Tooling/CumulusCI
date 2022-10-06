@@ -263,6 +263,7 @@ class GitHubCommitStatusPackageResolver(Resolver, abc.ABC):
     def is_valid_repo_context(self, context: BaseProjectConfig) -> bool:
         return bool(context.repo_branch and context.project__git__prefix_feature)
 
+    @abc.abstractmethod
     def get_branches(
         self,
         dep: BaseGitHubDependency,
