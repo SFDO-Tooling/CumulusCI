@@ -32,7 +32,7 @@ cryptography==38.0.1
     #   pyjwt
 defusedxml==0.7.1
     # via -r requirements/prod.in
-docutils==0.16
+docutils>=0.16
     # via -r requirements/prod.in
 faker==15.0.0
     # via
