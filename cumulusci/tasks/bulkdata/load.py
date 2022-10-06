@@ -133,7 +133,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             return
         self.has_dataset = True
 
-    def _find_matching_dataset(self) -> T.Optional[tuple[str, str]]:
+    def _find_matching_dataset(self) -> T.Optional[T.Tuple[str, str]]:
         org_shape = self.org_config.lookup("config_name")
         if not org_shape:
             return None  # persistent org
@@ -150,7 +150,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 )
         return None
 
-    def _find_default_dataset(self) -> T.Optional[tuple[str, str]]:
+    def _find_default_dataset(self) -> T.Optional[T.Tuple[str, str]]:
         dataset_path = Path("datasets/sample.sql")
         mapping_path = Path("datasets/mapping.yml")
         if dataset_path.exists() and mapping_path.exists():
