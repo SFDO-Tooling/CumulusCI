@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import abc
 import functools
 import io
@@ -9,7 +7,7 @@ import zipfile
 from logging import Logger
 from zipfile import ZipFile
 
-from pydantic import BaseModel
+from pydantic import BaseModel, root_validator
 
 from cumulusci.utils import (
     cd,
@@ -35,6 +33,56 @@ class SourceTransform(abc.ABC):
     @abc.abstractmethod
     def process(self, zf: ZipFile, logger: Logger) -> ZipFile:
         ...
+
+
+class SourceTransformSpec(BaseModel):
+    transform: str
+    options: T.Optional[dict]
+
+    def parsed_options(self) -> T.Optional[BaseModel]:
+        transform_cls = get_available_transforms()[self.transform]
+        if transform_cls.options_model:
+            return transform_cls.options_model.parse_obj(self.options or {})
+
+        return None
+
+    @root_validator
+    def validate_spec(cls, values):
+        transform = values.get("transform")
+        if transform not in get_available_transforms():
+            raise ValueError(f"Transform {transform} is not valid")
+
+        transform_cls = get_available_transforms()[transform]
+
+        if transform_cls.options_model:
+            transform_cls.options_model.parse_obj(values.get("options"))
+
+        return values
+
+    def as_transform(self) -> SourceTransform:
+        transform_cls = get_available_transforms()[self.transform]
+        if transform_cls.options_model:
+            return transform_cls(self.parsed_options())  # type: ignore
+        else:
+            return transform_cls()
+
+
+class SourceTransformList(BaseModel):
+    __root__: T.List[SourceTransformSpec]
+
+    @root_validator(pre=True)
+    def validate_spec_list(cls, values):
+        values["__root__"] = [
+            {"transform": s} if isinstance(s, str) else s for s in values["__root__"]
+        ]
+
+        return values
+
+    def as_transforms(self) -> T.List[SourceTransform]:
+        return [
+            get_available_transforms()[t]() if isinstance(t, str) else t.as_transform()
+            for t in self.__root__
+        ]
 
 
 class NamespaceInjectionOptions(BaseModel):

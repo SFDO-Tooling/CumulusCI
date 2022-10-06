@@ -1,8 +1,14 @@
 import pathlib
-from typing import Optional
+from typing import List, Optional
+
+from pydantic import ValidationError
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.sfdx import convert_sfdx_source
+from cumulusci.core.source_transforms.transforms import (
+    SourceTransform,
+    SourceTransformList,
+)
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
@@ -45,9 +51,14 @@ class Deploy(BaseSalesforceMetadataApiTask):
         "clean_meta_xml": {
             "description": "Defaults to True which strips the <packageVersions/> element from all meta.xml files.  The packageVersion element gets added automatically by the target org and is set to whatever version is installed in the org.  To disable this, set this option to False"
         },
+        "transforms": {
+            "description": "Apply source transforms before deploying. See the CumulusCI documentation for details on how to specify transforms."
+        },
     }
 
     namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+
+    transforms: List[SourceTransform] = []
 
     def _init_options(self, kwargs):
         super(Deploy, self)._init_options(kwargs)
@@ -75,6 +86,17 @@ class Deploy(BaseSalesforceMetadataApiTask):
             self.options.get("namespace_inject")
             or self.project_config.project__package__namespace
         )
+
+        if "transforms" in self.options:
+            try:
+                self.transforms = SourceTransformList.parse_obj(
+                    self.options["transforms"]
+                ).as_transforms()
+            except ValidationError as e:
+                raise TaskOptionsError(
+                    "The transform spec is not valid. See CumulusCI documentation for details of how to specify transforms. "
+                    f"The validation error was {str(e)}"
+                )
 
     def _get_api(self, path=None):
         if not path:
@@ -106,7 +128,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
             return process_bool_arg(self.options.get("namespaced_org", False))
         return bool(ns) and ns == self.org_config.namespace
 
-    def _get_package_zip(self, path):
+    def _get_package_zip(self, path) -> Optional[str]:
         assert path, f"Path should be specified for {self.__class__.name}"
         if not pathlib.Path(path).exists():
             self.logger.warning(f"{path} not found.")
@@ -124,15 +146,19 @@ class Deploy(BaseSalesforceMetadataApiTask):
         package_zip = None
         with convert_sfdx_source(path, None, self.logger) as src_path:
             package_zip = MetadataPackageZipBuilder(
-                path=src_path, options=options, logger=self.logger
+                path=src_path,
+                options=options,
+                logger=self.logger,
+                transforms=self.transforms,
             )
 
+        # If the package is empty, do nothing.
         if not package_zip.zf.namelist():
             return
         return package_zip.as_base64()
 
     def freeze(self, step):
-        steps = super(Deploy, self).freeze(step)
+        steps = super().freeze(step)
         for step in steps:
             if step["kind"] == "other":
                 step["kind"] = "metadata"
