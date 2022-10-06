@@ -1,4 +1,3 @@
-import functools
 import html
 import io
 import logging
@@ -10,22 +9,14 @@ from typing import Optional
 from xml.sax.saxutils import escape
 
 from cumulusci.core.source_transforms.transforms import (
+    BundleStaticResourcesOptions,
+    BundleStaticResourcesTransform,
     CleanMetaXMLTransform,
     NamespaceInjectionOptions,
     NamespaceInjectionTransform,
     RemoveFeatureParametersTransform,
     SourceTransform,
 )
-from cumulusci.utils import (
-    cd,
-    inject_namespace,
-    process_text_in_zipfile,
-    strip_namespace,
-    temporary_dir,
-    tokenize_namespace,
-    zip_clean_metaxml,
-)
-from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.ziputils import hash_zipfile_contents
 
 INSTALLED_PACKAGE_PACKAGE_XML = """<?xml version="1.0" encoding="utf-8"?>
@@ -172,79 +163,26 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         self.zf = zipfile.ZipFile(fp, "r")
 
         # Default transforms (backwards-compatible)
+        # Namespace injection
         self.zf = NamespaceInjectionTransform(
             NamespaceInjectionOptions(**self.options)
         ).process(self.zf, self.logger)
+        # -meta.xml cleaning
         if self.options.get("clean_meta_xml", True):
             self.zf = CleanMetaXMLTransform().process(self.zf, self.logger)
-        self._bundle_staticresources()
+        # Static resource bundling
+        relpath = self.options.get("static_resource_path")
+        if relpath and os.path.exists(relpath):
+            self.zf = BundleStaticResourcesTransform(
+                BundleStaticResourcesOptions(static_resource_path=relpath)
+            ).process(self.zf, self.logger)
+        # Feature Parameter stripping (Unlocked Packages only)
         if self.options.get("package_type") == "Unlocked":
             self.zf = RemoveFeatureParametersTransform().process(self.zf, self.logger)
 
+        # User-specified transforms
         for t in self.transforms:
             self.zf = t.process(self.zf, self.logger)
-
-    def _bundle_staticresources(self):
-        relpath = self.options.get("static_resource_path")
-        if not relpath or not os.path.exists(relpath):
-            return
-        path = os.path.realpath(relpath)
-
-        # Copy existing files to new zipfile
-        zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-        for name in self.zf.namelist():
-            if name == "package.xml":
-                package_xml = self.zf.open(name)
-            else:
-                content = self.zf.read(name)
-                zip_dest.writestr(name, content)
-
-        # Build static resource bundles and add to package
-        with temporary_dir():
-            os.mkdir("staticresources")
-            bundles = []
-            for name in os.listdir(path):
-                bundle_relpath = os.path.join(relpath, name)
-                bundle_path = os.path.join(path, name)
-                if not os.path.isdir(bundle_path):
-                    continue
-                self.logger.info(
-                    "Zipping {} to add to staticresources".format(bundle_relpath)
-                )
-
-                # Add resource-meta.xml file
-                meta_name = "{}.resource-meta.xml".format(name)
-                meta_path = os.path.join(path, meta_name)
-                with open(meta_path, "rb") as f:
-                    zip_dest.writestr("staticresources/{}".format(meta_name), f.read())
-
-                # Add bundle
-                zip_path = os.path.join("staticresources", "{}.resource".format(name))
-                with open(zip_path, "wb") as bundle_fp:
-                    bundle_zip = zipfile.ZipFile(bundle_fp, "w", zipfile.ZIP_DEFLATED)
-                    with cd(bundle_path):
-                        for root, dirs, files in os.walk("."):
-                            for f in files:
-                                resource_file = os.path.join(root, f)
-                                bundle_zip.write(resource_file)
-                    bundle_zip.close()
-                zip_dest.write(zip_path)
-                bundles.append(name)
-
-        # Update package.xml
-        Package = metadata_tree.parse(package_xml)
-        sections = Package.findall("types", name="StaticResource")
-        section = sections[0] if sections else None
-        if not section:
-            section = Package.append("types")
-            section.append("name", text="StaticResource")
-        for name in bundles:
-            section.insert_before(section.find("name"), tag="members", text=name)
-        package_xml = Package.tostring(xml_declaration=True)
-        zip_dest.writestr("package.xml", package_xml)
-
-        self.zf.close()
-        self.zf = zip_dest
 
 
 class CreatePackageZipBuilder(BasePackageZipBuilder):
