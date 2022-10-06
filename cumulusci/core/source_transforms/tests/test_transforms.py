@@ -1,10 +1,11 @@
 import io
+import pathlib
 import typing as T
 import zipfile
-from re import L
 from zipfile import ZipFile
 
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
+from cumulusci.utils import cd, temporary_dir
 
 
 class ZipFileSpec:
@@ -232,3 +233,87 @@ def test_remove_feature_parameters__inactive():
         )
         == builder.zf
     )
+
+
+def test_bundle_static_resources():
+    xml_data = """<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>TestPackage</fullName>
+    <types>
+        <members>MyClass</members>
+        <name>ApexClass</name>
+    </types>
+    <version>43.0</version>
+</Package>
+"""
+
+    xml_data_with_statics = """<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>TestPackage</fullName>
+    <types>
+        <members>MyClass</members>
+        <name>ApexClass</name>
+    </types>
+    <types>
+        <members>foo</members>
+        <members>bar</members>
+        <name>StaticResource</name>
+    </types>
+    <version>43.0</version>
+</Package>
+"""
+
+    with temporary_dir() as td_path:
+        # Construct a directory with zippable Static Resource data
+        # Because of how the static resource bundling works, this needs
+        # to be a real filesystem directory.
+
+        td = pathlib.Path(td_path)
+
+        statics_dir = td / "statics"
+        statics_dir.mkdir()
+        (statics_dir / "foo.resource-meta.xml").write_text("foo")
+        (statics_dir / "bar.resource-meta.xml").write_text("bar")
+        (statics_dir / "foo").mkdir()
+        (statics_dir / "foo" / "foo.html").write_text("foo html")
+        (statics_dir / "bar").mkdir()
+        (statics_dir / "bar" / "bar.html").write_text("bar html")
+
+        # Create zipfiles of the two static resources so that we have
+        # binary data to validate against.
+
+        foo_io = io.BytesIO()
+        foo_zipfile = zipfile.ZipFile(foo_io, "w", zipfile.ZIP_DEFLATED)
+        with cd((statics_dir / "foo")):
+            foo_zipfile.write("foo.html")
+        foo_zipfile.close()
+        foo_bytes = foo_io.getvalue()
+
+        bar_io = io.BytesIO()
+        bar_zipfile = zipfile.ZipFile(bar_io, "w", zipfile.ZIP_DEFLATED)
+        with cd((statics_dir / "bar")):
+            bar_zipfile.write("bar.html")
+        bar_zipfile.close()
+        bar_bytes = bar_io.getvalue()
+
+        builder = MetadataPackageZipBuilder.from_zipfile(
+            ZipFileSpec(
+                {
+                    "package.xml": xml_data,
+                    "classes/MyClass.cls": "blah",
+                }
+            ).as_zipfile(),
+            options={"static_resource_path": str(statics_dir)},
+        )
+
+        compare_spec = ZipFileSpec(
+            {
+                "staticresources/foo.resource": foo_bytes,
+                "staticresources/foo.resource-meta.xml": "foo",
+                "staticresources/bar.resource": bar_bytes,
+                "staticresources/bar.resource-meta.xml": "bar",
+                "package.xml": xml_data_with_statics,
+                "classes/MyClass.cls": "blah",
+            }
+        )
+        assert compare_spec == builder.zf
