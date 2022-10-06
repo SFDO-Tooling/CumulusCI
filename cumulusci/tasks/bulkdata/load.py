@@ -85,6 +85,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         "set_recently_viewed": {
             "description": "By default, the first 1000 records inserted via the Bulk API will be set as recently viewed. If fewer than 1000 records are inserted, existing objects of the same type being inserted will also be set as recently viewed.",
         },
+        "org_shape_match_only": {
+            "description": "When True, all path options are ignored and only a dataset matching the org shape name will be loaded. Defaults to False."
+        },
     }
     row_warning_limit = 10
 
@@ -114,6 +117,14 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         )
 
     def _init_dataset(self):
+        org_shape_match_only = process_bool_arg(
+            self.options.get("org_shape_match_only", False)
+        )
+        if org_shape_match_only:
+            self.options["mapping"] = None
+            self.options["sql_path"] = None
+            self.options["database_url"] = None
+
         self.options.setdefault("database_url", None)
         if self.options.get("database_url"):
             # prefer database_url if it's set
@@ -123,7 +134,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         elif self.options.get("mapping"):
             self.options.setdefault("sql_path", "datasets/sample.sql")
         elif found_dataset := (
-            self._find_matching_dataset() or self._find_default_dataset()
+            self._find_matching_dataset()
+            or (self._find_default_dataset() if not org_shape_match_only else None)
         ):  # didn't get either database_url or sql_path
             mapping_path, dataset_path = found_dataset
             self.options["mapping"] = mapping_path

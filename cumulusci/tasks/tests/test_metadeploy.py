@@ -277,7 +277,7 @@ class TestPublish(GithubApiTestMixin):
 
         steps = body["steps"]
         self.maxDiff = None
-        print(steps)
+
         assert [
             {
                 "name": "Install Test Product 1.0",
@@ -322,7 +322,10 @@ class TestPublish(GithubApiTestMixin):
                 "task_class": "cumulusci.tasks.bulkdata.LoadData",
                 "task_config": {
                     "options": {
+                        "org_shape_match_only": True,
                         "ignore_row_errors": False,
+                        "mapping": None,
+                        "sql_path": None,
                         "database_url": None,
                         "inject_namespaces": True,
                         "drop_missing_schema": False,
@@ -362,6 +365,10 @@ class TestPublish(GithubApiTestMixin):
                 },
                 "Update Admin Profile": {
                     "message": "Update Admin Profile",
+                    "description": "title of installation step",
+                },
+                "load_dataset": {
+                    "message": "load_dataset",
                     "description": "title of installation step",
                 },
                 "util_sleep": {
