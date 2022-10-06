@@ -201,7 +201,10 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
             new_zipfile = t.process(self.zf, self.logger)
             if new_zipfile != self.zf:
                 # Ensure that zipfiles are closed (in case they're filesystem resources)
-                self.zf.close()
+                try:
+                    self.zf.close()
+                except ValueError:  # Attempt to close a closed ZF (on Windows)
+                    pass
                 self.zf = new_zipfile
 
 

@@ -5,6 +5,16 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from zipfile import ZipFile
 
+import pytest
+from pydantic import ValidationError
+
+from cumulusci.core.source_transforms.transforms import (
+    CleanMetaXMLTransform,
+    NamespaceInjectionTransform,
+    RemoveFeatureParametersTransform,
+    SourceTransformList,
+    SourceTransformSpec,
+)
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
 from cumulusci.utils import temporary_dir
 
@@ -342,3 +352,38 @@ def test_bundle_static_resources():
         zf = ZipFile(fp, "r")  # type: ignore
 
         assert compare_spec == zf
+
+
+def test_source_transform_parsing():
+    tl = SourceTransformList.parse_obj(
+        [
+            "clean_meta_xml",
+            {"transform": "inject_namespace", "options": {"namespace_tokenize": "foo"}},
+            {"transform": "remove_feature_parameters"},
+        ]
+    )
+
+    assert len(tl.__root__) == 3
+    assert isinstance(tl.__root__[0], SourceTransformSpec)
+    assert isinstance(tl.__root__[1], SourceTransformSpec)
+    assert tl.__root__[1].parsed_options() is not None
+    assert isinstance(tl.__root__[2], SourceTransformSpec)
+    assert tl.__root__[2].parsed_options() is None
+
+    tf = tl.as_transforms()
+
+    assert isinstance(tf[0], CleanMetaXMLTransform)
+    assert isinstance(tf[1], NamespaceInjectionTransform)
+    assert isinstance(tf[2], RemoveFeatureParametersTransform)
+    assert tf[1].options.namespace_tokenize == "foo"
+
+
+def test_source_transform_parsing__bad_transform():
+    with pytest.raises(ValidationError) as e:
+        SourceTransformList.parse_obj(
+            [
+                "destroy_the_things",
+            ]
+        )
+
+        assert "destroy_the_things is not valid" in str(e)
