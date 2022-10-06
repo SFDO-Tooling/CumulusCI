@@ -297,6 +297,7 @@ class TestLoadData:
 
         assert t.options["database_url"] == "file:///test.db"
         assert t.options["sql_path"] is None
+        assert t.has_dataset is True
 
     def test_init_options__sql_path_and_mapping(self):
         t = _make_task(
@@ -304,14 +305,15 @@ class TestLoadData:
             {
                 "options": {
                     "sql_path": "datasets/test.sql",
-                    "mapping": "datasets/mapping.yml",
+                    "mapping": "datasets/test.yml",
                 }
             },
         )
 
         assert t.options["sql_path"] == "datasets/test.sql"
-        assert t.options["mapping"] == "datasets/mapping.yml"
+        assert t.options["mapping"] == "datasets/test.yml"
         assert t.options["database_url"] is None
+        assert t.has_dataset is True
 
     def test_init_options__org_shape_match_only__true(self):
         dataset_path = "datasets/dev/dev.dataset.sql"
@@ -339,6 +341,7 @@ class TestLoadData:
             assert t.options["sql_path"] == dataset_path
             assert t.options["mapping"] == mapping_path
             assert t.options["database_url"] is None
+            assert t.has_dataset is True
 
     def test_init_options__org_shape_match_only__false(self):
         """Matching paths exist but we do not use them."""
@@ -367,6 +370,7 @@ class TestLoadData:
             assert t.options["sql_path"] == "datasets/test.sql"
             assert t.options["mapping"] == "datasets/mapping.yml"
             assert t.options["database_url"] is None
+            assert t.has_dataset is True
 
     def test_init_options__sql_path_no_mapping(self):
         t = _make_task(LoadData, {"options": {"sql_path": "datasets/test.sql"}})
@@ -374,6 +378,7 @@ class TestLoadData:
         assert t.options["sql_path"] == "datasets/test.sql"
         assert t.options["mapping"] == "datasets/mapping.yml"
         assert t.options["database_url"] is None
+        assert t.has_dataset is True
 
     def test_init_options__mapping_no_sql_path(self):
         t = _make_task(LoadData, {"options": {"mapping": "datasets/test.yml"}})
@@ -381,6 +386,7 @@ class TestLoadData:
         assert t.options["sql_path"] == "datasets/sample.sql"
         assert t.options["mapping"] == "datasets/test.yml"
         assert t.options["database_url"] is None
+        assert t.has_dataset is True
 
     def test_init_datasets__matching_dataset(self):
         dataset_path = "datasets/dev/dev.dataset.sql"
@@ -396,6 +402,7 @@ class TestLoadData:
             t = _make_task(LoadData, {}, org_config=org_config)
             assert t.options["sql_path"] == dataset_path
             assert t.options["mapping"] == mapping_path
+            assert t.has_dataset is True
 
     def test_init_datasets__matching_dataset_dir__missing_dataset_path(self, caplog):
         caplog.set_level(logging.WARNING)
@@ -416,6 +423,7 @@ class TestLoadData:
                 f"Found datasets/{org_shape} but it did not contain {org_shape}.mapping.yml and {org_shape}.dataset.yml."
                 in caplog.text
             )
+            assert t.has_dataset is False
 
     def test_init_datasets__matching_dataset_dir__missing_mapping_path(self, caplog):
         caplog.set_level(logging.WARNING)
@@ -436,6 +444,7 @@ class TestLoadData:
                 f"Found datasets/{org_shape} but it did not contain {org_shape}.mapping.yml and {org_shape}.dataset.yml."
                 in caplog.text
             )
+            assert t.has_dataset is False
 
     def test_init_datasets__no_matching_dataset__use_default(self):
         dataset_path = "datasets/sample.sql"
@@ -451,6 +460,7 @@ class TestLoadData:
             t = _make_task(LoadData, {}, org_config=org_config)
             assert t.options["sql_path"] == "datasets/sample.sql"
             assert t.options["mapping"] == "datasets/mapping.yml"
+            assert t.has_dataset is True
 
     def test_init_datasets__no_matching_dataset__skip_default(self):
         dataset_path = "datasets/sample.sql"

@@ -117,10 +117,21 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         )
 
     def _init_dataset(self):
-        org_shape_match_only = process_bool_arg(
+        """Find the dataset paths to use with the following sequence:
+        1. If `org_shape_match_only` is True (defaults False),
+           unset any other path options that may have been supplied.
+        2. Prefer a supplied `database_url`.
+        3. If `sql_path` was supplied, but not `mapping`, use default `mapping` value.
+        4. If `mapping` was supplied, but not `sql_path`, use default `sql_path` value.
+        5. If no path options were supplied, look for a dataset matching the org shape.
+        6. If no matching dataset was found AND `org_shape_match_only` is False,
+           look for a dataset with the default `mapping` and `sql_path` values
+           (as previously defaulted in the standard library yml).
+        """
+        self.options["org_shape_match_only"] = process_bool_arg(
             self.options.get("org_shape_match_only", False)
         )
-        if org_shape_match_only:
+        if self.options["org_shape_match_only"]:
             self.options["mapping"] = None
             self.options["sql_path"] = None
             self.options["database_url"] = None
@@ -134,8 +145,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         elif self.options.get("mapping"):
             self.options.setdefault("sql_path", "datasets/sample.sql")
         elif found_dataset := (
-            self._find_matching_dataset()
-            or (self._find_default_dataset() if not org_shape_match_only else None)
+            self._find_matching_dataset() or self._find_default_dataset()
         ):  # didn't get either database_url or sql_path
             mapping_path, dataset_path = found_dataset
             self.options["mapping"] = mapping_path
@@ -163,6 +173,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         return None
 
     def _find_default_dataset(self) -> T.Optional[T.Tuple[str, str]]:
+        if self.options["org_shape_match_only"]:
+            return None
         dataset_path = "datasets/sample.sql"
         mapping_path = "datasets/mapping.yml"
         if Path(dataset_path).exists() and Path(mapping_path).exists():
