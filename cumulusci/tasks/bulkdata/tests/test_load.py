@@ -55,12 +55,12 @@ class FakePath:
 
 class FakePathFileSystem:
     def __init__(self, existing_paths):
-        self.paths = existing_paths
+        self.paths = [Path(path) for path in existing_paths]
 
     def __call__(self, *filename):
         filename_parts = [str(el) for el in filename]
         real_filename = str(Path(*filename_parts))
-        return FakePath(real_filename, (real_filename in self.paths))
+        return FakePath(real_filename, (Path(real_filename) in self.paths))
 
 
 class TestLoadData:
