@@ -6,8 +6,16 @@ import os
 import pathlib
 import zipfile
 from base64 import b64encode
+from typing import Optional
 from xml.sax.saxutils import escape
 
+from cumulusci.core.source_transforms.transforms import (
+    CleanMetaXMLTransform,
+    NamespaceInjectionOptions,
+    NamespaceInjectionTransform,
+    RemoveFeatureParametersTransform,
+    SourceTransform,
+)
 from cumulusci.utils import (
     cd,
     inject_namespace,
@@ -66,36 +74,38 @@ class BasePackageZipBuilder(object):
     def _write_file(self, path, content):
         self.zf.writestr(path, content)
 
-    def as_bytes(self):
+    def as_bytes(self) -> bytes:
         fp = self.zf.fp
         self.zf.close()
         value = fp.getvalue()
         fp.close()
         return value
 
-    def as_base64(self):
+    def as_base64(self) -> str:
         return b64encode(self.as_bytes()).decode("utf-8")
 
-    def as_hash(self):
+    def as_hash(self) -> str:
         return hash_zipfile_contents(self.zf)
 
-    def __call__(self):
+    def __call__(self) -> str:
         # for backwards compatibility
         return self.as_base64()
 
 
 class MetadataPackageZipBuilder(BasePackageZipBuilder):
-    """Build a package zip from a metadata folder. The specified
-    zipfile or path must be in Metadata API format."""
+    """Build a package zip from a metadata folder in either Metadata API or Salesforce DX format."""
+
+    transforms: list[SourceTransform] = []
 
     def __init__(
         self,
         *,
         path=None,
-        zf: zipfile.ZipFile = None,
+        zf: Optional[zipfile.ZipFile] = None,
         options=None,
         logger=None,
         name=None,
+        transforms: Optional[list[SourceTransform]] = None,
     ):
         self.options = options or {}
         self.logger = logger or DEFAULT_LOGGER
@@ -106,11 +116,13 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
             self._open_zip()
         if path is not None:
             self._add_files_to_package(path)
+        if transforms:
+            self.transforms = transforms
 
         self._process()
 
     @classmethod
-    def from_zipfile(cls, zf, *, path=None, options=None, logger=None):
+    def from_zipfile(cls, zf: zipfile.ZipFile, *, path=None, options=None, logger=None):
         """Start with an existing zipfile rather than a filesystem folder."""
         return cls(zf=zf, path=path, options=options, logger=logger)
 
@@ -125,7 +137,7 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         Walks through all directories and files in path,
         filtering using _include_directory and _include_file
         """
-        for root, dirs, files in os.walk(path):
+        for root, _, files in os.walk(path):
             root_parts = pathlib.Path(root).relative_to(path).parts
             if self._include_directory(root_parts):
                 for f in files:
@@ -159,67 +171,18 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         self.zf.close()
         self.zf = zipfile.ZipFile(fp, "r")
 
-        self._process_namespace_tokens()
-        self._clean_meta_xml()
+        # Default transforms (backwards-compatible)
+        self.zf = NamespaceInjectionTransform(
+            NamespaceInjectionOptions(**self.options)
+        ).process(self.zf, self.logger)
+        if self.options.get("clean_meta_xml", True):
+            self.zf = CleanMetaXMLTransform().process(self.zf, self.logger)
         self._bundle_staticresources()
-        self._remove_feature_parameters()
+        if self.options.get("package_type") == "Unlocked":
+            self.zf = RemoveFeatureParametersTransform().process(self.zf, self.logger)
 
-    def _process_namespace_tokens(self):
-        zipf = self.zf
-        if self.options.get("namespace_tokenize"):
-            self.logger.info(
-                f"Tokenizing namespace prefix {self.options['namespace_tokenize']}__"
-            )
-            zipf = process_text_in_zipfile(
-                zipf,
-                functools.partial(
-                    tokenize_namespace,
-                    namespace=self.options["namespace_tokenize"],
-                    logger=self.logger,
-                ),
-            )
-        if self.options.get("namespace_inject"):
-            managed = not self.options.get("unmanaged", True)
-            if managed:
-                self.logger.info(
-                    "Replacing namespace tokens from metadata with namespace prefix  "
-                    f"{self.options['namespace_inject']}__"
-                )
-            else:
-                self.logger.info(
-                    "Stripping namespace tokens from metadata for unmanaged deployment"
-                )
-            zipf = process_text_in_zipfile(
-                zipf,
-                functools.partial(
-                    inject_namespace,
-                    namespace=self.options["namespace_inject"],
-                    managed=managed,
-                    namespaced_org=self.options.get("namespaced_org", False),
-                    logger=self.logger,
-                ),
-            )
-        if self.options.get("namespace_strip"):
-            self.logger.info("Stripping namespace tokens from metadata")
-            zipf = process_text_in_zipfile(
-                zipf,
-                functools.partial(
-                    strip_namespace,
-                    namespace=self.options["namespace_strip"],
-                    logger=self.logger,
-                ),
-            )
-        self.zf = zipf
-
-    def _clean_meta_xml(self):
-        if not self.options.get("clean_meta_xml", True):
-            return
-        self.logger.info(
-            "Cleaning meta.xml files of packageVersion elements for deploy"
-        )
-        zf = zip_clean_metaxml(self.zf)
-        self.zf.close()
-        self.zf = zf
+        for t in self.transforms:
+            self.zf = t.process(self.zf, self.logger)
 
     def _bundle_staticresources(self):
         relpath = self.options.get("static_resource_path")
@@ -279,42 +242,6 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
             section.insert_before(section.find("name"), tag="members", text=name)
         package_xml = Package.tostring(xml_declaration=True)
         zip_dest.writestr("package.xml", package_xml)
-
-        self.zf.close()
-        self.zf = zip_dest
-
-    def _remove_feature_parameters(self):
-        # Remove feature parameters from unlocked packages only
-        if self.options.get("package_type") != "Unlocked":
-            return
-
-        # Copy existing files to new zipfile
-        package_xml = None
-        zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
-        for name in self.zf.namelist():
-            if name == "package.xml":
-                package_xml = self.zf.open(name)
-            elif name.startswith("featureParameters/"):
-                # skip feature parameters
-                self.logger.info(f"Skipping {name} in unlocked package")
-                continue
-            else:
-                content = self.zf.read(name)
-                zip_dest.writestr(name, content)
-
-        # Remove from package.xml
-        if package_xml is not None:
-            Package = metadata_tree.parse(package_xml)
-            for mdtype in (
-                "FeatureParameterInteger",
-                "FeatureParameterBoolean",
-                "FeatureParameterDate",
-            ):
-                section = Package.find("types", name=mdtype)
-                if section is not None:
-                    Package.remove(section)
-            package_xml = Package.tostring(xml_declaration=True)
-            zip_dest.writestr("package.xml", package_xml)
 
         self.zf.close()
         self.zf = zip_dest

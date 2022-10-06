@@ -3,6 +3,7 @@ from typing import Optional
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.sfdx import convert_sfdx_source
+from cumulusci.core.source_transforms.transforms import SourceTransform
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiDeploy
 from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
@@ -48,6 +49,8 @@ class Deploy(BaseSalesforceMetadataApiTask):
     }
 
     namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+
+    source_transforms: list[SourceTransform] = []
 
     def _init_options(self, kwargs):
         super(Deploy, self)._init_options(kwargs)
@@ -106,7 +109,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
             return process_bool_arg(self.options.get("namespaced_org", False))
         return bool(ns) and ns == self.org_config.namespace
 
-    def _get_package_zip(self, path):
+    def _get_package_zip(self, path) -> Optional[str]:
         assert path, f"Path should be specified for {self.__class__.name}"
         if not pathlib.Path(path).exists():
             self.logger.warning(f"{path} not found.")
@@ -127,6 +130,7 @@ class Deploy(BaseSalesforceMetadataApiTask):
                 path=src_path, options=options, logger=self.logger
             )
 
+        # If the package is empty, do nothing.
         if not package_zip.zf.namelist():
             return
         return package_zip.as_base64()
