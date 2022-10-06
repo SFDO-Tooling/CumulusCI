@@ -2,6 +2,7 @@ import tempfile
 import typing as T
 from collections import defaultdict
 from contextlib import contextmanager
+from pathlib import Path
 from unittest.mock import MagicMock
 
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, func, inspect
@@ -93,15 +94,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.options["ignore_row_errors"] = process_bool_arg(
             self.options.get("ignore_row_errors") or False
         )
-        if self.options.get("database_url"):
-            # prefer database_url if it's set
-            self.options["sql_path"] = None
-        elif self.options.get("sql_path"):
-            self.options["database_url"] = None
-        else:
-            raise TaskOptionsError(
-                "You must set either the database_url or sql_path option."
-            )
+        self._init_dataset()
         self.reset_oids = self.options.get("reset_oids", True)
         self.bulk_mode = (
             self.options.get("bulk_mode") and self.options.get("bulk_mode").title()
@@ -120,7 +113,61 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self.options.get("set_recently_viewed", True)
         )
 
+    def _init_dataset(self):
+        self.options.setdefault("database_url", None)
+        if self.options.get("database_url"):
+            # prefer database_url if it's set
+            self.options["sql_path"] = None
+        elif self.options.get("sql_path"):
+            self.options.setdefault("mapping", "datasets/mapping.yml")
+        elif self.options.get("mapping"):
+            self.options.setdefault("sql_path", "datasets/sample.sql")
+        elif found_dataset := (
+            self._find_matching_dataset() or self._find_default_dataset()
+        ):  # didn't get either database_url or sql_path
+            mapping_path, dataset_path = found_dataset
+            self.options["mapping"] = mapping_path
+            self.options["sql_path"] = dataset_path
+        else:
+            self.has_dataset = False
+            return
+        self.has_dataset = True
+
+    def _find_matching_dataset(self) -> T.Optional[tuple[str, str]]:
+        org_shape = self.org_config.lookup("config_name")
+        if not org_shape:
+            return None  # persistent org
+        dataset_folder = Path("datasets", org_shape)
+        if dataset_folder.exists():
+            # check for dataset.sql and mapping.yml
+            mapping_path = Path(dataset_folder, f"{org_shape}.mapping.yml")
+            dataset_path = Path(dataset_folder, f"{org_shape}.dataset.sql")
+            if mapping_path.exists() and dataset_path.exists():
+                return (str(mapping_path), str(dataset_path))
+            else:
+                self.logger.warning(
+                    f"Found datasets/{org_shape} but it did not contain {org_shape}.mapping.yml and {org_shape}.dataset.yml."
+                )
+        return None
+
+    def _find_default_dataset(self) -> T.Optional[tuple[str, str]]:
+        dataset_path = Path("datasets/sample.sql")
+        mapping_path = Path("datasets/mapping.yml")
+        if dataset_path.exists() and mapping_path.exists():
+            return (str(mapping_path), str(dataset_path))
+        return None
+
     def _run_task(self):
+        if not self.has_dataset:
+            if org_shape := self.org_config.lookup("config_name"):
+                self.logger.info(
+                    f"No data will be loaded because there was no dataset found matching your org shape name ('{org_shape}')."
+                )
+            else:
+                self.logger.info(
+                    "No data will be loaded because this is a persistent org and no dataset was specified."
+                )
+            return
         self._init_mapping()
         with self._init_db():
             self._expand_mapping()

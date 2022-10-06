@@ -664,9 +664,6 @@ tasks:
     load_dataset:
         description: Load a sample dataset using the bulk API.
         class_path: cumulusci.tasks.bulkdata.LoadData
-        options:
-            mapping: "datasets/mapping.yml"
-            sql_path: "datasets/sample.sql"
         group: "Data Operations"
     load_custom_settings:
         description: Load Custom Settings specified in a YAML file to the target org
@@ -798,6 +795,8 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
+            90:
+                task: load_dataset
     config_managed:
         group: Post-Install Configuration
         description: Configure an org for use after the managed package has been installed.
@@ -806,6 +805,8 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
+            90:
+                task: load_dataset
     config_packaging:
         group: Post-Install Configuration
         description: Configure packaging org for upload after package metadata is deployed
@@ -820,6 +821,8 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
+            90:
+                task: load_dataset
     config_regression:
         group: Post-Install Configuration
         description: Configure an org for QA regression after the package is installed
