@@ -134,7 +134,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.has_dataset = True
 
     def _find_matching_dataset(self) -> T.Optional[T.Tuple[str, str]]:
-        org_shape = self.org_config.lookup("config_name")
+        org_shape = self.org_config.lookup("config_name") if self.org_config else None
         if not org_shape:
             return None  # persistent org
         dataset_folder = Path("datasets", org_shape)

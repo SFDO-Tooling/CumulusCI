@@ -277,31 +277,31 @@ class TestPublish(GithubApiTestMixin):
 
         steps = body["steps"]
         self.maxDiff = None
+        print(steps)
         assert [
             {
-                "is_required": True,
-                "kind": "managed",
                 "name": "Install Test Product 1.0",
+                "kind": "managed",
+                "is_required": True,
                 "path": "install_prod.install_managed",
-                "source": None,
                 "step_num": "1/2",
                 "task_class": "cumulusci.tasks.salesforce.InstallPackageVersion",
                 "task_config": {
                     "options": {
-                        "namespace": "ns",
                         "version": "1.0",
+                        "namespace": "ns",
                         "interactive": False,
                         "base_package_url_format": "{}",
                     },
                     "checks": [],
                 },
+                "source": None,
             },
             {
-                "is_required": True,
-                "kind": "metadata",
                 "name": "Update Admin Profile",
+                "kind": "metadata",
+                "is_required": True,
                 "path": "install_prod.config_managed.update_admin_profile",
-                "source": None,
                 "step_num": "1/3/2",
                 "task_class": "cumulusci.tasks.salesforce.ProfileGrantAllAccess",
                 "task_config": {
@@ -311,6 +311,26 @@ class TestPublish(GithubApiTestMixin):
                     },
                     "checks": [],
                 },
+                "source": None,
+            },
+            {
+                "name": "load_dataset",
+                "kind": "other",
+                "is_required": True,
+                "path": "install_prod.config_managed.load_dataset",
+                "step_num": "1/3/90",
+                "task_class": "cumulusci.tasks.bulkdata.LoadData",
+                "task_config": {
+                    "options": {
+                        "ignore_row_errors": False,
+                        "database_url": None,
+                        "inject_namespaces": True,
+                        "drop_missing_schema": False,
+                        "set_recently_viewed": True,
+                    },
+                    "checks": [],
+                },
+                "source": None,
             },
             {
                 "name": "util_sleep",
