@@ -5,10 +5,12 @@ import os
 import typing as T
 import zipfile
 from logging import Logger
+from pathlib import Path
 from zipfile import ZipFile
 
 from pydantic import BaseModel, root_validator
 
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.utils import (
     cd,
     inject_namespace,
@@ -276,6 +278,63 @@ class BundleStaticResourcesTransform(SourceTransform):
         return zip_dest
 
 
+class FindReplaceBaseSpec(BaseModel, abc.ABC):
+    find: str
+    paths: T.Optional[T.List[Path]] = None
+
+    @abc.abstractmethod
+    def get_replace_string(self) -> str:
+        ...
+
+
+class FindReplaceSpec(FindReplaceBaseSpec):
+    replace: str
+
+    def get_replace_string(self) -> str:
+        return self.replace
+
+
+class FindReplaceEnvSpec(FindReplaceBaseSpec):
+    replace_env: str
+
+    def get_replace_string(self) -> str:
+        try:
+            return os.environ[self.replace_env]
+        except KeyError:
+            raise TaskOptionsError(
+                f"Transform {FindReplaceTransform.identifier} could not get replacement value from environment variable {self.replace_env}"
+            )
+
+
+class FindReplaceTransformOptions(BaseModel):
+    patterns: T.List[T.Union[FindReplaceSpec, FindReplaceEnvSpec]]
+
+
+class FindReplaceTransform(SourceTransform):
+    """Source transform that applies one or more find-and-replace patterns."""
+
+    options_model = FindReplaceTransformOptions
+    options: FindReplaceTransformOptions
+
+    identifier = "find_replace"
+
+    def __init__(self, options: FindReplaceTransformOptions):
+        self.options = options
+
+    def process(self, zf: ZipFile, logger: Logger) -> ZipFile:
+        def process_file(filename: str, content: str) -> T.Tuple[str, str]:
+            path = Path(filename)
+            for spec in self.options.patterns:
+                if not spec.paths or any(
+                    parent in path.parents for parent in spec.paths
+                ):
+                    content = content.replace(spec.find, spec.get_replace_string())
+
+            return (filename, content)
+
+        return process_text_in_zipfile(zf, process_file)
+
+
 def get_available_transforms() -> T.Dict[str, T.Type[SourceTransform]]:
     """Get a mapping of identifiers (usable in cumulusci.yml) to transform classes"""
     return {
@@ -285,5 +344,6 @@ def get_available_transforms() -> T.Dict[str, T.Type[SourceTransform]]:
             NamespaceInjectionTransform,
             RemoveFeatureParametersTransform,
             BundleStaticResourcesTransform,
+            FindReplaceTransform,
         ]
     }

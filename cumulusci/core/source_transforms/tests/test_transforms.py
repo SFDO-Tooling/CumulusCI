@@ -1,15 +1,19 @@
 import io
-import pathlib
+import os
 import typing as T
 import zipfile
 from pathlib import Path, PurePosixPath
+from unittest import mock
 from zipfile import ZipFile
 
 import pytest
 from pydantic import ValidationError
 
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.source_transforms.transforms import (
     CleanMetaXMLTransform,
+    FindReplaceTransform,
+    FindReplaceTransformOptions,
     NamespaceInjectionTransform,
     RemoveFeatureParametersTransform,
     SourceTransformList,
@@ -308,7 +312,7 @@ def test_bundle_static_resources():
         # Because of how the static resource bundling works, this needs
         # to be a real filesystem directory.
 
-        td = pathlib.Path(td_path)
+        td = Path(td_path)
 
         statics_dir = td / "statics"
         statics_dir.mkdir()
@@ -352,6 +356,143 @@ def test_bundle_static_resources():
         zf = ZipFile(fp, "r")  # type: ignore
 
         assert compare_spec == zf
+
+
+def test_find_replace_static():
+    builder = MetadataPackageZipBuilder.from_zipfile(
+        ZipFileSpec(
+            {
+                Path("Foo.cls"): "System.debug('blah');",
+            }
+        ).as_zipfile(),
+        transforms=[
+            FindReplaceTransform(
+                FindReplaceTransformOptions.parse_obj(
+                    {"patterns": [{"find": "bl", "replace": "ye"}]}
+                )
+            )
+        ],
+    )
+
+    assert (
+        ZipFileSpec(
+            {
+                Path("Foo.cls"): "System.debug('yeah');",
+            }
+        )
+        == builder.zf
+    )
+
+
+def test_find_replace_environ():
+    with mock.patch.dict(os.environ, {"INSERT_TEXT": "ye"}):
+        builder = MetadataPackageZipBuilder.from_zipfile(
+            ZipFileSpec(
+                {
+                    Path("Foo.cls"): "System.debug('blah');",
+                }
+            ).as_zipfile(),
+            transforms=[
+                FindReplaceTransform(
+                    FindReplaceTransformOptions.parse_obj(
+                        {"patterns": [{"find": "bl", "replace_env": "INSERT_TEXT"}]}
+                    )
+                )
+            ],
+        )
+
+        assert (
+            ZipFileSpec(
+                {
+                    Path("Foo.cls"): "System.debug('yeah');",
+                }
+            )
+            == builder.zf
+        )
+
+
+def test_find_replace_environ__not_found():
+    assert "INSERT_TEXT" not in os.environ
+    with pytest.raises(TaskOptionsError):
+        MetadataPackageZipBuilder.from_zipfile(
+            ZipFileSpec(
+                {
+                    Path("Foo.cls"): "System.debug('blah');",
+                }
+            ).as_zipfile(),
+            transforms=[
+                FindReplaceTransform(
+                    FindReplaceTransformOptions.parse_obj(
+                        {"patterns": [{"find": "bl", "replace_env": "INSERT_TEXT"}]}
+                    )
+                )
+            ],
+        )
+
+
+def test_find_replace_filtered():
+    builder = MetadataPackageZipBuilder.from_zipfile(
+        ZipFileSpec(
+            {
+                Path("classes") / "Foo.cls": "System.debug('blah');",
+                Path("Bar.cls"): "System.debug('blah');",
+            }
+        ).as_zipfile(),
+        transforms=[
+            FindReplaceTransform(
+                FindReplaceTransformOptions.parse_obj(
+                    {
+                        "patterns": [
+                            {"find": "bl", "replace": "ye", "paths": ["classes"]}
+                        ]
+                    }
+                )
+            )
+        ],
+    )
+
+    assert (
+        ZipFileSpec(
+            {
+                Path("classes") / "Foo.cls": "System.debug('yeah');",
+                Path("Bar.cls"): "System.debug('blah');",
+            }
+        )
+        == builder.zf
+    )
+
+
+def test_find_replace_multiple():
+    builder = MetadataPackageZipBuilder.from_zipfile(
+        ZipFileSpec(
+            {
+                Path("classes") / "Foo.cls": "System.debug('blah');",
+                Path("Bar.cls"): "System.debug('blah');",
+            }
+        ).as_zipfile(),
+        transforms=[
+            FindReplaceTransform(
+                FindReplaceTransformOptions.parse_obj(
+                    {
+                        "patterns": [
+                            {"find": "bl", "replace": "ye", "paths": ["classes"]},
+                            {"find": "ye", "replace": "ha"},
+                        ]
+                    }
+                )
+            )
+        ],
+    )
+
+    assert (
+        ZipFileSpec(
+            {
+                Path("classes") / "Foo.cls": "System.debug('haah');",
+                Path("Bar.cls"): "System.debug('blah');",
+            }
+        )
+        == builder.zf
+    )
 
 
 def test_source_transform_parsing():
