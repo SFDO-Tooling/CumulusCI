@@ -10,7 +10,7 @@ on:
 jobs:
     publish-to-pypi:
         name: Publish new release to PyPI
-        runs-on: ubuntu-18.04
+        runs-on: sfdc-ubuntu-latest
         steps:
             - uses: actions/checkout@main
             - name: Set up Python 3.8

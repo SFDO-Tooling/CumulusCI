@@ -21,6 +21,10 @@ Datasets are stored in the `datasets/` folder within a repository by
 default. Projects created with a recent version of CumulusCI ship with
 this directory in place.
 
+If `load_dataset` is called without any path options, it will automatically use a dataset that matches the org shape, if one exists. For example, a `dev` org will automatically use a dataset that exists at `datasets/dev/`. Within that folder, two files must exist, also matching the org shape name: `dev.mapping.yml` and `dev.dataset.sql`, in this example. If the directory or files do not exist and no paths options were specified, the task will look for `datasets/mapping.yml` and `datasets/dataset.sql` by default. When the `org_shape_match_only` option is `True`, this overrides any path options and default files and looks _only_ for a dataset directory that matches the org shape name. The `org_shape_match_only` option defaults to `False`.
+
+In addition, `load_dataset` is included in `config_dev`, `config_qa`, and `config_managed`, so it is automatically called when running most org setup flows. In this context, it runs with `org_shape_match_only` set to `True`, to avoid double loading for backwards compatibility with customer flows that are already customized to call `load_dataset`.
+
 ## The Lifecycle of a Dataset
 
 A dataset starts with a definition: which objects, and which fields, are
