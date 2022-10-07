@@ -1,6 +1,9 @@
 import re
+import time
 
 from Browser import SupportedBrowsers
+from Browser.utils.data_types import KeyAction, PageLoadStates
+from robot.utils import timestr_to_secs
 
 from cumulusci.robotframework.base_library import BaseLibrary
 from cumulusci.robotframework.faker_mixin import FakerMixin
@@ -54,7 +57,9 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         self.browser.close_browser("ALL")
         self.salesforce_api.delete_session_records()
 
-    def open_test_browser(self, size=None, useralias=None, record_video=None):
+    def open_test_browser(
+        self, size=None, useralias=None, wait=True, record_video=None
+    ):
         """Open a new Playwright browser, context, and page to the default org.
 
         The return value is a tuple of the browser id, context id, and page details
@@ -71,6 +76,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         This keyword automatically calls the browser keyword `Wait until network is idle`.
         """
 
+        wait = self.builtin.convert_to_boolean(wait)
         default_size = self.builtin.get_variable_value(
             "${DEFAULT BROWSER SIZE}", "1280x1024"
         )
@@ -105,11 +111,12 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         )
         page_details = self.browser.new_page(login_url)
 
-        self.wait_until_loading_is_complete()
+        if wait:
+            self.wait_until_salesforce_is_ready(login_url)
         return browser_id, context_id, page_details
 
     @capture_screenshot_on_error
-    def wait_until_loading_is_complete(self, locator=None):
+    def wait_until_loading_is_complete(self, locator=None, timeout="15 seconds"):
         """Wait for a lightning page to load.
 
         By default this keyword will wait for any element with the
@@ -126,14 +133,83 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
             if locator is None
             else locator
         )
-        self.browser.get_element(locator)
+        self.browser.get_elements(locator)
         self.browser.execute_javascript(function=WAIT_FOR_AURA_SCRIPT)
 
         # this seems to fail once in a while for an unknown reason, so we'll
         # try twice. This seems to be more effective than calling the
-        # function once and waiting 30 seconds.
+        # function once for a longer timeout
         try:
-            self.browser.wait_until_network_is_idle("15 seconds")
+            self.browser.wait_until_network_is_idle(timeout)
         except Exception as e:
-            self.builtin.log(f"caught error waiting for idle: {e}", "WARN")
-            self.browser.wait_until_network_is_idle("15 seconds")
+            self.builtin.log(f"caught error waiting for idle: {e}", "DEBUG")
+            self.browser.wait_until_network_is_idle(timeout)
+
+    @capture_screenshot_on_error
+    def wait_until_salesforce_is_ready(
+        self, login_url, locator=None, timeout="30 seconds"
+    ):
+        """Attempt to wait until we land on a lightning page
+
+        In addition to waiting for a lightning page, this keyword will
+        also attempt to wait until there are no more pending ajax
+        requests.
+
+        The timeout parameter is taken as a rough guideline. This
+        keyword will actually wait for half of the timeout before
+        starting checks for edge cases.
+
+        """
+
+        timeout_seconds = timestr_to_secs(timeout)
+        start_time = time.time()
+
+        locator = locator if locator else "div.slds-template__container"
+        expected_url = rf"/{self.cumulusci.org.lightning_base_url}\/lightning\/.*/"
+
+        while True:
+            try:
+                # only wait for half of the timeout before doing some additional
+                # checks. This seems to work better than one long timeout.
+                self.browser.wait_for_navigation(
+                    expected_url, timeout_seconds // 2, PageLoadStates.networkidle
+                )
+                self.wait_until_loading_is_complete(locator)
+                # No errors? We're golden.
+                break
+
+            except Exception:
+                # dang. Maybe we landed somewhere unexpected?
+                if self._check_for_classic():
+                    continue
+
+                if time.time() - start_time > timeout_seconds:
+                    self.browser.take_screenshot()
+                    raise Exception("Timed out waiting for a lightning page")
+
+            # If at first you don't succeed, ...
+            self.browser.go_to(login_url)
+
+    def _check_for_classic(self):
+        """Switch to lightning if we land on a classic page
+
+        This seems to happen randomly, causing tests to fail
+        catastrophically. The idea is to detect such a case and
+        auto-click the "switch to lightning" link
+
+        """
+        try:
+            self.browser.get_element("a.switch-to-lightning")
+            self.builtin.log(
+                "It appears we are on a classic page; attempting to switch to lightning",
+                "WARN",
+            )
+            # just in case there's a modal present we'll try simulating
+            # the escape key. Then, click on the switch-to-lightning link
+            self.browser.keyboard_key(KeyAction.press, "Escape")
+            self.builtin.sleep("1 second")
+            self.browser.click("a.switch-to-lightning")
+            return True
+
+        except (AssertionError):
+            return False
