@@ -353,6 +353,15 @@ class TestBaseProjectConfig:
         config._repo_info = {"root": "."}
         assert config.repo_root == "."
 
+    def test_server_domain_from_repo_info(self):
+        config = BaseProjectConfig(UniversalConfig())
+        assert config.server_domain == "github.com"
+
+    def test_server_domain_no_repo_root(self):
+        config = BaseProjectConfig(UniversalConfig())
+        with temporary_dir():
+            assert config.server_domain is None
+
     def test_repo_name_from_repo_info(self):
         config = BaseProjectConfig(UniversalConfig())
         config._repo_info = {"name": "CumulusCI"}
@@ -460,7 +469,9 @@ class TestBaseProjectConfig:
         assert config.get_repo_from_url("https://github.com/Test/TestRepo") == (
             config.get_github_api.return_value.repository.return_value
         )
-        config.get_github_api.assert_called_once_with("Test", "TestRepo")
+        config.get_github_api.assert_called_once_with(
+            "https://github.com/Test/TestRepo"
+        )
         config.get_github_api.return_value.repository.assert_called_once_with(
             "Test", "TestRepo"
         )
