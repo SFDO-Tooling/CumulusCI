@@ -1348,6 +1348,23 @@ services:
                 default_factory: cumulusci.core.github.get_oauth_device_flow_token
                 sensitive: True
         validator: cumulusci.core.github.validate_service
+    github_enterprise:
+        description: Configure connection for GitHub Enterprise Server
+        attributes:
+            username:
+                description: The GitHub Enterprise username to use for tasks.
+                required: True
+            email:
+                description: The email address to used by GitHub tasks when an operation requires an email address.
+                required: True
+            server_domain:
+                description: "GitHub Enterprise domain (Example: git.ent.domain.com)."
+                required: True
+            token:
+                description: Personal Access Token
+                required: True
+                sensitive: True
+        validator: cumulusci.core.github.validate_service
     marketing_cloud:
         description: Configure a connection to a Marketing Cloud instance
         class_path: cumulusci.core.config.marketing_cloud_service_config.MarketingCloudServiceConfig

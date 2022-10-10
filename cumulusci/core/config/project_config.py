@@ -37,7 +37,7 @@ from cumulusci.core.github import (
 from cumulusci.core.source import GitHubSource, LocalFolderSource, NullSource
 from cumulusci.core.utils import merge_config
 from cumulusci.utils.fileutils import open_fs_resource
-from cumulusci.utils.git import current_branch, git_path, split_repo_url
+from cumulusci.utils.git import current_branch, git_path, parse_repo_url, split_repo_url
 from cumulusci.utils.yaml.cumulusci_yml import (
     GitHubSourceModel,
     LocalFolderSourceModel,
@@ -233,6 +233,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                 self.logger.info(
                     "CUMULUSCI_REPO_URL found, using its value as the repo url, owner, and name"
                 )
+
             url_info = {}
             url_info["owner"], url_info["name"] = split_repo_url(repo_url)
             url_info["url"] = repo_url
@@ -299,6 +300,20 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                 return str(path)
 
     @property
+    def server_domain(self) -> Optional[str]:
+        domain = self.repo_info.get("domain")
+
+        if domain:
+            return domain
+
+        if not self.repo_root:
+            return
+
+        url_line = self.git_config_remote_origin_url()
+        if url_line:
+            return parse_repo_url(url_line)[2]
+
+    @property
     def repo_name(self):
         name = self.repo_info.get("name")
         if name:
@@ -333,6 +348,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             return
 
         url_line = self.git_config_remote_origin_url()
+
         if url_line:
             return split_repo_url(url_line)[0]
 
@@ -382,13 +398,11 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                         ):
                             return parts[0]
 
-    def get_github_api(self, owner=None, repo=None):
-        return get_github_api_for_repo(
-            self.keychain, owner or self.repo_owner, repo or self.repo_name
-        )
+    def get_github_api(self, url=None):
+        return get_github_api_for_repo(self.keychain, url or self.repo_url)
 
     def get_repo(self):
-        repo = self.get_github_api(self.repo_owner, self.repo_name).repository(
+        repo = self.get_github_api(self.repo_url).repository(
             self.repo_owner, self.repo_name
         )
         if repo is None:
@@ -510,7 +524,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     @catch_common_github_auth_errors
     def get_repo_from_url(self, url) -> Optional[Repository]:
         owner, name = split_repo_url(url)
-        return self.get_github_api(owner, name).repository(owner, name)
+        return self.get_github_api(url).repository(owner, name)
 
     def get_task(self, name):
         """Get a TaskConfig by task name

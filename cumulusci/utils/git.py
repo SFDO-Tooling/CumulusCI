@@ -1,4 +1,5 @@
 import pathlib
+import re
 from typing import Any, Optional, Tuple
 
 
@@ -53,14 +54,33 @@ def construct_release_branch_name(prefix: str, release_identifier: str) -> str:
 
 
 def split_repo_url(url: str) -> Tuple[str, str]:
-    url_parts = url.rstrip("/").split("/")
+    owner, name, _ = parse_repo_url(url)
+    return (owner, name)
+
+
+def parse_repo_url(url: str) -> Tuple[str, str, str]:
+    """Parses a given Github URI into Owner, Repo Name, and Host
+
+    Parameters
+    ----------
+    url: str
+        A github URI. Examples: ["https://github.com/owner/repo/","https://github.com/owner/repo.git","git@github.com:owner/repo.git", "https://api.github.com/repos/owner/repo_name/"]
+
+    Returns
+    -------
+    Tuple: (str, str, str)
+        Returns (owner, name, host)
+    """
+    url_parts = re.split("/|@|:", url.rstrip("/"))
 
     name = url_parts[-1]
     if name.endswith(".git"):
         name = name[:-4]
 
     owner = url_parts[-2]
-    # if it's an ssh url we might need to get rid of git@github.com
-    owner = owner.split(":")[-1]
 
-    return (owner, name)
+    host = url_parts[-3]
+    # Need to consider "https://api.github.com/repos/owner/repo/" pattern
+    if "http" in url_parts[0] and len(url_parts) > 6:
+        host = url_parts[-4]
+    return (owner, name, host)
