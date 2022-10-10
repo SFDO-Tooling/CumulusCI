@@ -125,8 +125,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         be provided.
 
         In addition to waiting for the element, it will also wait for
-        any pending aura events, and it also calls the Browser keyword
-        `Wait until network is idle`.
+        any pending aura events to finish.
 
         """
         locator = (
