@@ -164,7 +164,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         timeout_seconds = timestr_to_secs(timeout)
         start_time = time.time()
 
-        locator = locator if locator else "div.slds-template__container"
+        locator = locator or "div.slds-template__container"
         expected_url = rf"/{self.cumulusci.org.lightning_base_url}\/lightning\/.*/"
 
         while True:
