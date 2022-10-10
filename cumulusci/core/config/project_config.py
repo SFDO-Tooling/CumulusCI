@@ -8,7 +8,9 @@ from distutils.version import LooseVersion
 from io import StringIO
 from itertools import chain
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
+
+from github3.repos.repo import Repository
 
 from cumulusci.core.config.base_config import BaseConfig
 from cumulusci.core.versions import PackageVersionNumber
@@ -506,7 +508,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             )
 
     @catch_common_github_auth_errors
-    def get_repo_from_url(self, url):
+    def get_repo_from_url(self, url) -> Optional[Repository]:
         owner, name = split_repo_url(url)
         return self.get_github_api(owner, name).repository(owner, name)
 

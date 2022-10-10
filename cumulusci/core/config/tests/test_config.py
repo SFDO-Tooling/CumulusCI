@@ -191,6 +191,7 @@ class DummyRepository(mock.Mock):
     def branch(self, name):
         branch = mock.Mock()
         branch.commit.sha = "commit_sha"
+        branch.name = name
         return branch
 
     def tag(self, sha):

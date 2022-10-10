@@ -58,7 +58,7 @@ class DependencyResolutionStrategy(str, Enum):
     UNMANAGED_HEAD = "unmanaged"
 
 
-class Resolver(abc.ABC):
+class AbstractResolver(abc.ABC):
     """Abstract base class for dependency resolution strategies."""
 
     name = "Resolver"
@@ -77,7 +77,7 @@ class Resolver(abc.ABC):
         return self.name
 
 
-class GitHubTagResolver(Resolver):
+class GitHubTagResolver(AbstractResolver):
     """Resolver that identifies a ref by a specific GitHub tag."""
 
     name = "GitHub Tag Resolver"
@@ -129,7 +129,7 @@ class GitHubTagResolver(Resolver):
             raise DependencyResolutionError(f"No release found for tag {dep.tag}")
 
 
-class GitHubReleaseTagResolver(Resolver):
+class GitHubReleaseTagResolver(AbstractResolver):
     """Resolver that identifies a ref by finding the latest GitHub release."""
 
     name = "GitHub Release Resolver"
@@ -188,7 +188,7 @@ class GitHubBetaReleaseTagResolver(GitHubReleaseTagResolver):
     include_beta = True
 
 
-class GitHubUnmanagedHeadResolver(Resolver):
+class GitHubUnmanagedHeadResolver(AbstractResolver):
     """Resolver that identifies a ref by finding the latest commit on the main branch."""
 
     name = "GitHub Unmanaged Resolver"
@@ -249,7 +249,7 @@ def get_remote_context(
     return config.lookup(f"project__git__{commit_status_context}") or default_context
 
 
-class GitHubCommitStatusPackageResolver(Resolver, abc.ABC):
+class AbstractGitHubCommitStatusPackageResolver(AbstractResolver, abc.ABC):
     """Abstract base class for resolvers that use commit statuses to find packages."""
 
     commit_status_context = ""
@@ -274,11 +274,13 @@ class GitHubCommitStatusPackageResolver(Resolver, abc.ABC):
     def resolve(
         self, dep: BaseGitHubDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
+        branches = self.get_branches(dep, context)
+
+        # We know `repo` is not None because `get_branches()` will raise in that case.
         repo = context.get_repo_from_url(dep.github)
         remote_context = get_remote_context(
             repo, self.commit_status_context, self.commit_status_default
         )
-        branches = self.get_branches(dep, context)
         for branch in branches:
             version_id, commit = locate_commit_status_package_id(
                 repo,
@@ -304,7 +306,9 @@ class GitHubCommitStatusPackageResolver(Resolver, abc.ABC):
         return (None, None)
 
 
-class GitHubReleaseBranchResolver(GitHubCommitStatusPackageResolver, abc.ABC):
+class AbstractGitHubReleaseBranchResolver(
+    AbstractGitHubCommitStatusPackageResolver, abc.ABC
+):
     """Abstract base class for resolvers that use commit statuses on release branches to find refs."""
 
     branch_offset_start = 0
@@ -354,7 +358,7 @@ class GitHubReleaseBranchResolver(GitHubCommitStatusPackageResolver, abc.ABC):
         return release_branches
 
 
-class GitHubReleaseBranchCommitStatusResolver(GitHubReleaseBranchResolver):
+class GitHubReleaseBranchCommitStatusResolver(AbstractGitHubReleaseBranchResolver):
     """Resolver that identifies a ref by finding a beta 2GP package version
     in a commit status on a `feature/NNN` release branch."""
 
@@ -365,7 +369,7 @@ class GitHubReleaseBranchCommitStatusResolver(GitHubReleaseBranchResolver):
     branch_offset_end = 1
 
 
-class GitHubReleaseBranchUnlockedResolver(GitHubReleaseBranchResolver):
+class GitHubReleaseBranchUnlockedResolver(AbstractGitHubReleaseBranchResolver):
     """Resolver that identifies a ref by finding an unlocked package version
     in a commit status on a `feature/NNN` release branch."""
 
@@ -376,7 +380,9 @@ class GitHubReleaseBranchUnlockedResolver(GitHubReleaseBranchResolver):
     branch_offset_end = 1
 
 
-class GitHubPreviousReleaseBranchCommitStatusResolver(GitHubReleaseBranchResolver):
+class GitHubPreviousReleaseBranchCommitStatusResolver(
+    AbstractGitHubReleaseBranchResolver
+):
     """Resolver that identifies a ref by finding a beta 2GP package version
     in a commit status on a `feature/NNN` release branch that is earlier
     than the matching local release branch."""
@@ -388,7 +394,7 @@ class GitHubPreviousReleaseBranchCommitStatusResolver(GitHubReleaseBranchResolve
     branch_offset_end = 3
 
 
-class GitHubPreviousReleaseBranchUnlockedResolver(GitHubReleaseBranchResolver):
+class GitHubPreviousReleaseBranchUnlockedResolver(AbstractGitHubReleaseBranchResolver):
     """Resolver that identifies a ref by finding an unlocked package version
     in a commit status on a `feature/NNN` release branch that is earlier
     than the matching local release branch."""
@@ -400,7 +406,9 @@ class GitHubPreviousReleaseBranchUnlockedResolver(GitHubReleaseBranchResolver):
     branch_offset_end = 3
 
 
-class GitHubExactMatchCommitStatusResolver(GitHubCommitStatusPackageResolver, abc.ABC):
+class AbstractGitHubExactMatchCommitStatusResolver(
+    AbstractGitHubCommitStatusPackageResolver, abc.ABC
+):
     """Abstract base class for resolvers that identify a ref by finding a package version
     in a commit status on a branch whose name matches the local branch."""
 
@@ -436,7 +444,7 @@ class GitHubExactMatchCommitStatusResolver(GitHubCommitStatusPackageResolver, ab
         return [release_branch]
 
 
-class GitHubExactMatch2GPResolver(GitHubExactMatchCommitStatusResolver):
+class GitHubExactMatch2GPResolver(AbstractGitHubExactMatchCommitStatusResolver):
     """Resolver that identifies a ref by finding a 2GP package version
     in a commit status on a branch whose name matches the local branch."""
 
@@ -446,7 +454,7 @@ class GitHubExactMatch2GPResolver(GitHubExactMatchCommitStatusResolver):
 
 
 class GitHubExactMatchUnlockedCommitStatusResolver(
-    GitHubExactMatchCommitStatusResolver
+    AbstractGitHubExactMatchCommitStatusResolver
 ):
     """Resolver that identifies a ref by finding an unlocked package version
     in a commit status on a branch whose name matches the local branch."""
@@ -456,8 +464,8 @@ class GitHubExactMatchUnlockedCommitStatusResolver(
     commit_status_default = "Build Unlocked Test Package"
 
 
-class GitHubDefaultBranchCommitStatusResolver(
-    GitHubCommitStatusPackageResolver, abc.ABC
+class AbstractGitHubDefaultBranchCommitStatusResolver(
+    AbstractGitHubCommitStatusPackageResolver, abc.ABC
 ):
     """Abstract base class for resolvers that identify a ref by finding a beta package version
     in a commit status on the repo's default branch."""
@@ -469,17 +477,17 @@ class GitHubDefaultBranchCommitStatusResolver(
     ) -> list[Branch]:
         repo = context.get_repo_from_url(dep.github)
 
-        return [repo.default_branch]
+        return [repo.branch(repo.default_branch)]
 
 
-class GitHubDefaultBranch2GPResolver(GitHubDefaultBranchCommitStatusResolver):
+class GitHubDefaultBranch2GPResolver(AbstractGitHubDefaultBranchCommitStatusResolver):
     name = "GitHub Default Branch Commit Status Resolver"
     commit_status_context = "2gp_context"
     commit_status_default = "Build Feature Test Package"
 
 
 class GitHubDefaultBranchUnlockedCommitStatusResolver(
-    GitHubDefaultBranchCommitStatusResolver
+    AbstractGitHubDefaultBranchCommitStatusResolver
 ):
     name = "GitHub Default Branch Unlocked Commit Status Resolver"
     commit_status_context = "unlocked_context"
@@ -507,7 +515,7 @@ RESOLVER_CLASSES = {
 
 def get_resolver(
     strategy: DependencyResolutionStrategy, dependency: DynamicDependency
-) -> Optional[Resolver]:
+) -> Optional[AbstractResolver]:
     """Return an instance of a resolver class capable of applying the specified
     resolution strategy to the dependency."""
     # This will be fleshed out when further types of DynamicDependency are added.

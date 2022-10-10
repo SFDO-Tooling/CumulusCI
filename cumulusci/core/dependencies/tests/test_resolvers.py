@@ -17,11 +17,12 @@ from cumulusci.core.dependencies.dependencies import (
     UnmanagedGitHubRefDependency,
 )
 from cumulusci.core.dependencies.resolvers import (
+    AbstractGitHubReleaseBranchResolver,
     DependencyResolutionStrategy,
     GitHubBetaReleaseTagResolver,
-    GitHubExactMatchCommitStatusResolver,
+    GitHubDefaultBranch2GPResolver,
+    GitHubExactMatch2GPResolver,
     GitHubReleaseBranchCommitStatusResolver,
-    GitHubReleaseBranchResolver,
     GitHubReleaseTagResolver,
     GitHubTagResolver,
     GitHubUnmanagedHeadResolver,
@@ -328,7 +329,7 @@ class TestGitHubUnmanagedHeadResolver:
         assert resolver.resolve(dep, project_config) == ("commit_sha", None)
 
 
-class ConcreteGitHubReleaseBranchResolver(GitHubReleaseBranchResolver):
+class ConcreteGitHubReleaseBranchResolver(AbstractGitHubReleaseBranchResolver):
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
@@ -474,12 +475,12 @@ class TestGitHubReleaseBranchCommitStatusResolver:
         assert resolver.resolve(dep, project_config) == (None, None)
 
 
-class TestGitHubExactMatchCommitStatusResolver:
+class TestGitHubExactMatch2GPResolver:
     def test_exact_branch_resolver(self, project_config):
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
         )
@@ -496,7 +497,7 @@ class TestGitHubExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/NonexistentRepo"
         )
@@ -516,7 +517,7 @@ class TestGitHubExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
         )
@@ -526,7 +527,7 @@ class TestGitHubExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/290__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
         )
@@ -537,7 +538,38 @@ class TestGitHubExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/232"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/TwoGPMissingRepo"
+        )
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (None, None)
+
+
+class TestGitHubDefaultBranch2GPResolver:
+    def test_default_branch_resolver(self, project_config):
+        project_config.repo_branch = "feature/299__test"
+        project_config.project__git__prefix_feature = "feature/"
+
+        resolver = GitHubDefaultBranch2GPResolver()
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/TwoGPRepo"
+        )
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (
+            "main_sha",
+            PackageVersionIdDependency(
+                version_id="04t000000000005", package_name="CumulusCI-2GP-Test"
+            ),
+        )
+
+    def test_commit_status_not_found(self, project_config):
+        project_config.repo_branch = "feature/299"
+        project_config.project__git__prefix_feature = "feature/"
+
+        resolver = GitHubDefaultBranch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPMissingRepo"
         )
