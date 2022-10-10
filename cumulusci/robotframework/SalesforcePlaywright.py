@@ -136,15 +136,10 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         )
         self.browser.get_elements(locator)
         self.browser.execute_javascript(function=WAIT_FOR_AURA_SCRIPT)
-
-        # this seems to fail once in a while for an unknown reason, so we'll
-        # try twice. This seems to be more effective than calling the
-        # function once for a longer timeout
-        try:
-            self.browser.wait_until_network_is_idle(timeout)
-        except Exception as e:
-            self.builtin.log(f"caught error waiting for idle: {e}", "DEBUG")
-            self.browser.wait_until_network_is_idle(timeout)
+        # An old knowledge article recommends waiting a second. I don't
+        # like it, but it seems to help. We should do a wait instead,
+        # but I can't figure out what to wait on.
+        time.sleep(1)
 
     @capture_screenshot_on_error
     def wait_until_salesforce_is_ready(
@@ -214,3 +209,12 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
 
         except (AssertionError):
             return False
+
+    def breakpoint(self):
+        """Serves as a breakpoint for the robot debugger
+
+        Note: this keyword is a no-op unless the ``robot_debug`` option for
+        the task has been set to ``true``. Unless the option has been
+        set, this keyword will have no effect on a running test.
+        """
+        return None
