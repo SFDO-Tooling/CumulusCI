@@ -569,7 +569,7 @@ named, ordered lists of resolvers to apply. When CumulusCI applies a
 resolution strategy to a dependency, it applies each resolver from top
 to bottom until a resolver succeeds in resolving the dependency.
 
-Three resolution strategies are provided in the CumulusCI standard
+Four resolution strategies are provided in the CumulusCI standard
 library:
 
 > -   `latest_release`, which will attempt to resolve to the latest
@@ -577,12 +577,15 @@ library:
 > -   `include_beta`, which will attempt to resolve to the latest beta,
 >     if any, or managed release of a managed package project.
 > -   `commit_status`, which will resolve to second-generation package
->     betas created on feature branches, if any, before falling back to
->     managed package releases. This strategy is used only in the
->     `qa_org_2gp` and `ci_feature_2gp` flows.
-
-The complete list of steps taken by each resolution strategy is given
-below.
+>     betas created on feature branches, if any, or the main branch,
+>     before falling back to managed package releases. This strategy
+>     is used only in the `qa_org_2gp` and `ci_feature_2gp` flows.
+> -   `unlocked`, which will resolve to unlocked package betas
+>     created on feature branches, if any, or the main branch.
+>     This strategy does _not_ fall back to managed package releases,
+>     and is used in the `qa_org_unlocked` flow.
+>     The complete list of steps taken by each resolution strategy is given
+>     below.
 
 Each flow that resolves dependencies selects a resolution strategy that
 meets its needs. Two aliases, `production`, and `preproduction`, are
@@ -609,6 +612,38 @@ dependencies, if present.
 
 The standard resolution strategies execute the following steps to
 resolve a dependency:
+
+**latest_release**:
+
+This resolution strategy is suitable for any build for products that
+wish to consume production releases of their dependencies during
+development and testing. It is also suitable for production flows (such
+as `install_prod` or a MetaDeploy installer flow) for all products.
+
+-   If a `tag` is present, use the commit for that tag, and any package
+    version found there. (Resolver: `tag`)
+-   Identify the most recent production package release via the GitHub
+    Releases section. If located, use that package and commit.
+    (Resolver: `latest_release`)
+-   Use the most recent commit on the repository's main branch as an
+    unmanaged dependency. (Resolver: `unmanaged`)
+
+**include_beta**:
+
+This resolution strategy is suitable for any pre-production build for
+products that wish to consume beta releases of their dependencies during
+development and testing.
+
+-   If a `tag` is present, use the commit for that tag, and any package
+    version found there. (Resolver: `tag`)
+-   Identify the most recent beta package release via the GitHub
+    Releases section. If located, use that package and commit.
+    (Resolver: `latest_beta`)
+-   Identify the most recent production package release via the GitHub
+    Releases section. If located, use that package and commit.
+    (Resolver: `latest_release`)
+-   Use the most recent commit on the repository's main branch as an
+    unmanaged dependency. (Resolver: `unmanaged`)
 
 **commit_status**:
 
@@ -641,6 +676,9 @@ utilize a release branch model and build second-generation package betas
 >     Id for any of the first five commits on that branch, use that
 >     commit and package. (Resolver:
 >     `commit_status_previous_release_branch`)
+> -   If a commit status contains a beta package Id for any of the first
+>     five commits on the default branch, use that commit and package.
+>     (Resolver: `commit_status_default_branch`)
 > -   Identify the most recent beta package release via the GitHub
 >     Releases section. If located, use that package and commit.
 >     (Resolver: `latest_beta`)
@@ -650,37 +688,40 @@ utilize a release branch model and build second-generation package betas
 > -   Use the most recent commit on the repository's main branch as an
 >     unmanaged dependency. (Resolver: `unmanaged`)
 
-**include_beta**:
+**unlocked**:
 
-This resolution strategy is suitable for any pre-production build for
-products that wish to consume beta releases of their dependencies during
-development and testing.
+This resolution strategy is suitable for feature builds on products that
+utilize a release branch model and build unlocked package betas
+(using the `build_unlocked_test_package` flow) on each commit. It is
+also suitable for use cases where a persistent org and Unlocked
+Package versions are used for ongoing QA.
 
--   If a `tag` is present, use the commit for that tag, and any package
-    version found there. (Resolver: `tag`)
--   Identify the most recent beta package release via the GitHub
-    Releases section. If located, use that package and commit.
-    (Resolver: `latest_beta`)
--   Identify the most recent production package release via the GitHub
-    Releases section. If located, use that package and commit.
-    (Resolver: `latest_release`)
--   Use the most recent commit on the repository's main branch as an
-    unmanaged dependency. (Resolver: `unmanaged`)
-
-**latest_release**:
-
-This resolution strategy is suitable for any build for products that
-wish to consume production releases of their dependencies during
-development and testing. It is also suitable for production flows (such
-as `install_prod` or a MetaDeploy installer flow) for all products.
-
--   If a `tag` is present, use the commit for that tag, and any package
-    version found there. (Resolver: `tag`)
--   Identify the most recent production package release via the GitHub
-    Releases section. If located, use that package and commit.
-    (Resolver: `latest_release`)
--   Use the most recent commit on the repository's main branch as an
-    unmanaged dependency. (Resolver: `unmanaged`)
+> -   If the current branch is a release branch (`feature/NNN`, where
+>     `feature/` is the feature branch prefix and `NNN` is any integer)
+>     or a child branch of a release branch, locate a branch with the
+>     same name in the dependency repository. If a commit status
+>     contains a beta package Id for any of the first five commits on
+>     that branch, use that commit and package. (Resolver:
+>     `unlocked_exact_branch`)
+> -   If the current branch is a release branch (`feature/NNN`, where
+>     `feature/` is the feature branch prefix and `NNN` is any integer)
+>     or a child branch of a release branch, locate a matching release
+>     branch (`feature/NNN`) in the dependency repository. If a commit
+>     status contains a beta package Id for any of the first five
+>     commits on that branch, use that commit and package. (Resolver:
+>     `unlocked_release_branch`)
+> -   If the current branch is a release branch (`feature/NNN`, where
+>     `feature/` is the feature branch prefix and `NNN` is any integer)
+>     or a child branch of a release branch, locate a branch for either
+>     of the two previous releases (e.g., `feature/230` in this
+>     repository would search `feature/229` and `feature/228`) in the
+>     dependency repository. If a commit status contains a beta package
+>     Id for any of the first five commits on that branch, use that
+>     commit and package. (Resolver:
+>     `unlocked_previous_release_branch`)
+> -   If a commit status contains a beta package Id for any of the first
+>     five commits on the default branch, use that commit and package.
+>     (Resolver: `unlocked_default_branch`)
 
 #### Customizing Resolution Strategies
 
