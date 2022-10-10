@@ -290,7 +290,7 @@ class AbstractGitHubCommitStatusPackageResolver(AbstractResolver, abc.ABC):
 
             if version_id and commit:
                 context.logger.info(
-                    f"Located package version {version_id} on branch {branch.name} on {repo.clone_url} at commit {branch.commit.sha}"
+                    f"{self.name} located package version {version_id} on branch {branch.name} on {repo.clone_url} at commit {branch.commit.sha}"
                 )
                 package_config = get_remote_project_config(repo, commit.sha)
                 package_name, _ = get_package_data(package_config)
@@ -299,9 +299,8 @@ class AbstractGitHubCommitStatusPackageResolver(AbstractResolver, abc.ABC):
                     version_id=version_id, package_name=package_name
                 )
 
-        branch_names = ", ".join([branch.name for branch in branches])
         context.logger.warn(
-            f"No package version located on branches {branch_names} on {repo.clone_url}."
+            f"{self.name} did not locate package package version on {repo.clone_url}."
         )
         return (None, None)
 
@@ -346,13 +345,13 @@ class AbstractGitHubReleaseBranchResolver(
         # We may be configured to check backwards on release branches.
         release_branches = []
         for i in range(self.branch_offset_start, self.branch_offset_end):
+            remote_matching_branch = construct_release_branch_name(
+                remote_branch_prefix, str(release_id - i)
+            )
             try:
-                remote_matching_branch = construct_release_branch_name(
-                    remote_branch_prefix, str(release_id - i)
-                )
-
                 release_branches.append(repo.branch(remote_matching_branch))
             except NotFoundError:
+                context.logger.info(f"Remote branch {remote_matching_branch} not found")
                 pass
 
         return release_branches
