@@ -268,7 +268,7 @@ class AbstractGitHubCommitStatusPackageResolver(AbstractResolver, abc.ABC):
         self,
         dep: BaseGitHubDependency,
         context: BaseProjectConfig,
-    ) -> list[Branch]:
+    ) -> List[Branch]:
         ...
 
     def resolve(
@@ -326,7 +326,7 @@ class AbstractGitHubReleaseBranchResolver(
         self,
         dep: BaseGitHubDependency,
         context: BaseProjectConfig,
-    ) -> list[Branch]:
+    ) -> List[Branch]:
         release_id = get_release_id(context)
         repo = context.get_repo_from_url(dep.github)
         if not repo:
@@ -416,7 +416,7 @@ class AbstractGitHubExactMatchCommitStatusResolver(
         self,
         dep: BaseGitHubDependency,
         context: BaseProjectConfig,
-    ) -> list[Branch]:
+    ) -> List[Branch]:
         repo = context.get_repo_from_url(dep.github)
         if not repo:
             raise DependencyResolutionError(
@@ -474,7 +474,7 @@ class AbstractGitHubDefaultBranchCommitStatusResolver(
         self,
         dep: BaseGitHubDependency,
         context: BaseProjectConfig,
-    ) -> list[Branch]:
+    ) -> List[Branch]:
         repo = context.get_repo_from_url(dep.github)
 
         return [repo.branch(repo.default_branch)]
