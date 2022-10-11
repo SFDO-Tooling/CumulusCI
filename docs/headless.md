@@ -50,6 +50,8 @@ corresponding service types and names:
     the default name of `env`
 -   `CUMULUSCI_SERVICE_github__integration-user` --\> A `github`
     service that will have the name `env-integration-user`
+-   `CUMULUSCI_SERVICE_github_enterprise__enter-user` --\> A `github_enterprise`
+    service that will have the name `env-enter-user`
 -   `CUMULUSCI_SERVICE_connected_app` --\> A `connected_app` service
     with the default name of `env`
 -   `CUMULUSCI_SERVICE_connected_app__sandbox` --\> A `connected_app`
@@ -89,6 +91,21 @@ would need to be provided in the following format:
 
 > The values `<callback_url>`, `<client_id>`, and `<client_secret>`
 > should all be replaced with actual values.
+
+### GitHub Enterprise Server considerations
+
+The use of [GitHub environment variables](env-var-reference) is supported when connecting to a repository a GitHub Enterprise Server.
+
+The `GitHubEnterprise` client is selected automatically based on the repository configuration in the `cumulusci.yml` file. When the `repo_url` is NOT GitHub.com an attempt will be made to connect to the base domain in `repo_url`. The [GitHub environemnt variables](env-var-reference) are then used to authorize.
+
+If your use case requires dependencies on a different server, for example, upstream dependencies reside on GitHub.com but your project repository is stored on a GitHub Enterprise Server do not use [](github-token), instead configure services for GitHub.com and your GitHub Enterprise Server similarly to this example:
+
+```console
+CUMULUSCI_SERVICE_github='{"username": "jdoe", "email": "jane.doe@some.biz", "token": "<personal_access_token>"}'
+CUMULUSCI_SERVICE_github_enterprise`='{"username": "jdoe", "email": "jane.doe@some.biz", "server_domain":"git.some.biz", "token": "<enterprise_personal_access_token>"}'
+```
+
+When connecting to repositories on GitHub.com or GitHub Enterprise Server, the service configuration for authorization is selected automatically by matching the `server_domain` field to the repository domain. When a repository domain is `github.com` the `github` service will be used.
 
 (register-persistent-orgs)=
 

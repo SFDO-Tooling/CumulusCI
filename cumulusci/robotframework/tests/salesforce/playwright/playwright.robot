@@ -12,7 +12,7 @@ Go to user profile
     Click    button:has-text("View profile")
     Click    .profile-card-name .profile-link-label
 
-    Wait until network is idle
+    Wait until loading is complete
     Take screenshot
 
 Go to contacts home
@@ -20,5 +20,5 @@ Go to contacts home
     Type text        input[placeholder='Search apps and items...']  Contacts
     Click            one-app-launcher-menu-item:has-text("Contacts")
 
-    Wait until network is idle
+    Wait until loading is complete
     Take screenshot
