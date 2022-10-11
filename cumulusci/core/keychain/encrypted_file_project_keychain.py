@@ -1,7 +1,6 @@
 import base64
 import json
 import os
-import pickle
 import sys
 import typing as T
 from pathlib import Path
@@ -26,6 +25,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
 from cumulusci.core.utils import import_class, import_global
+from cumulusci.utils.pickle import safe_load_json_or_pickle
 from cumulusci.utils.yaml.cumulusci_yml import ScratchOrg
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
@@ -41,10 +41,6 @@ if sys.platform.startswith("win"):
 
 BS = 16
 backend = default_backend()
-
-
-def pad(s):
-    return s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode("ascii")
 
 
 scratch_org_class = os.environ.get("CUMULUSCI_SCRATCH_ORG_CLASS")
@@ -112,10 +108,10 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         return cipher, iv
 
     def _encrypt_config(self, config):
-        pickled = pickle.dumps(config.config, protocol=2)
-        pickled = pad(pickled)
+        json_obj = json.dumps(config.config).encode("utf-8")
+        encryptor_value = json_obj + (BS - len(json_obj) % BS) * b" "
         cipher, iv = self._get_cipher()
-        return base64.b64encode(iv + cipher.encryptor().update(pickled))
+        return base64.b64encode(iv + cipher.encryptor().update(encryptor_value))
 
     def _decrypt_config(self, config_class, encrypted_config, extra=None, context=None):
         if self.key:
@@ -127,9 +123,9 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             encrypted_config = base64.b64decode(encrypted_config)
             iv = encrypted_config[:16]
             cipher, iv = self._get_cipher(iv)
-            pickled = cipher.decryptor().update(encrypted_config[16:])
+            decrypted = cipher.decryptor().update(encrypted_config[16:])
             try:
-                unpickled = pickle.loads(pickled, encoding="bytes")
+                config_obj = safe_load_json_or_pickle(decrypted)
             except Exception:
                 raise KeychainKeyNotFound(
                     f"Unable to decrypt{' ' + context if context else ''}. "
@@ -137,7 +133,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 )
             # Convert bytes created in Python 2
             config_dict = {}
-            for k, v in unpickled.items():
+            for k, v in config_obj.items():
                 if isinstance(k, bytes):
                     k = k.decode("utf-8")
                 if isinstance(v, bytes):
@@ -165,7 +161,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         if self.key:
             org_bytes = self._encrypt_config(config)
         else:
-            org_bytes = pickle.dumps(config.config)
+            org_bytes = json.dumps(config.config).encode("utf-8")
 
         assert org_bytes is not None, "org_bytes should have a value"
         return org_bytes
@@ -367,7 +363,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"org config ({name})",
             )
         else:
-            config = pickle.loads(config)
+            config = safe_load_json_or_pickle(config)
             org = self._construct_config(OrgConfig, [config, name, self])
 
         return org
@@ -592,7 +588,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         elif self.key and not config_encrypted:
             config = self._encrypt_config(service_config)
         else:
-            config = pickle.dumps(service_config.config)
+            config = json.dumps(service_config.config).encode("utf-8")
 
         self.services[service_type][alias] = config
 
@@ -643,7 +639,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"service config ({service_type}:{alias})",
             )
         else:
-            config = pickle.loads(config)
+            config = safe_load_json_or_pickle(config)
             org = self._construct_config(ConfigClass, [config, alias, self])
 
         return org

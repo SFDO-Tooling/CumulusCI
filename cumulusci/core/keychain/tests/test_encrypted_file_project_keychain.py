@@ -1,7 +1,6 @@
 import datetime
 import json
 import os
-import pickle
 import re
 import sys
 import tempfile
@@ -112,7 +111,7 @@ class TestEncryptedFileProjectKeychain:
 
         filepath = Path(keychain.project_local_dir, "test.org")
         with open(filepath, "rb") as f:
-            assert pickle.load(f) == org_config.config
+            assert json.load(f) == org_config.config
 
     def test_set_org__should_not_save_when_environment_project_keychain_set(
         self, keychain, org_config
