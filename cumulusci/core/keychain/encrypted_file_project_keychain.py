@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import typing as T
+from datetime import date, datetime
 from pathlib import Path
 from shutil import rmtree
 
@@ -25,6 +26,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
 from cumulusci.core.utils import import_class, import_global
+from cumulusci.tasks.bulkdata.dates import date_to_iso, iso_to_datetime
 from cumulusci.utils.pickle import safe_load_json_or_pickle
 from cumulusci.utils.yaml.cumulusci_yml import ScratchOrg
 
@@ -48,6 +50,11 @@ if scratch_org_class:
     scratch_org_factory = import_global(scratch_org_class)  # pragma: no cover
 else:
     scratch_org_factory = ScratchOrgConfig
+
+
+def simplify(x):
+    if isinstance(x, date) or isinstance(x, datetime):
+        return date_to_iso(x)
 
 
 """
@@ -108,7 +115,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         return cipher, iv
 
     def _encrypt_config(self, config):
-        json_obj = json.dumps(config.config).encode("utf-8")
+        json_obj = json.dumps(config.config, default=simplify).encode("utf-8")
         encryptor_value = json_obj + (BS - len(json_obj) % BS) * b" "
         cipher, iv = self._get_cipher()
         return base64.b64encode(iv + cipher.encryptor().update(encryptor_value))
@@ -138,6 +145,8 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                     k = k.decode("utf-8")
                 if isinstance(v, bytes):
                     v = v.decode("utf-8")
+                if k == "date_created":
+                    v = iso_to_datetime(v)
                 config_dict[k] = v
 
         args = [config_dict]
