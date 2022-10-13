@@ -16,6 +16,7 @@ Changes
 -   There is a new Playwright-based keyword `Wait until salesforce is ready`. This keyword is automatically called by the Open Test Browser keyword in the SalesforcePlaywright library. In addition to waiting for the page to be rendered, it will auto attempt to detect a classic page on initial render, and automatically switch to a lightning page if one is detected.(#3387)
 -   CumulusCI now supports the `CustomIndex` metadata type.(#3391)
 -   CumulusCI now supports performing source transformations during the `deploy` task, including find-and-replace of user-defined tokens. (#3383)
+-   Includes [Snowfakery 3.3](https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v3.3.0) with new datetime features and find_record optimization.
 
 Issues Fixed
 
