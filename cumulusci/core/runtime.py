@@ -1,5 +1,6 @@
 import sys
 from abc import abstractmethod
+from typing import Optional
 
 from cumulusci.core.config import BaseProjectConfig, UniversalConfig
 from cumulusci.core.debug import DebugMode, get_debug_mode
@@ -16,8 +17,8 @@ class BaseCumulusCI(object):
     callback_class = FlowCallback
 
     universal_config: UniversalConfig
-    project_config: BaseProjectConfig
-    keychain: BaseProjectKeychain
+    project_config: Optional[BaseProjectConfig]
+    keychain: Optional[BaseProjectKeychain]
     debug_mode: DebugMode
     project_config_error: Exception
 
@@ -95,8 +96,8 @@ class BaseCumulusCI(object):
             self.keychain = self.keychain_cls(self.project_config, keychain_key)
             self.project_config.keychain = self.keychain
 
-    def get_flow(self, name, options=None):
-        """Get a primed and readytogo flow coordinator."""
+    def get_flow(self, name: str, options: Optional[dict] = None) -> FlowCoordinator:
+        """Get a primed and ready-to-go flow coordinator."""
         flow_config = self.project_config.get_flow(name)
         callbacks = self.callback_class()
         coordinator = FlowCoordinator(
