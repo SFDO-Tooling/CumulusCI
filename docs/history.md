@@ -6,7 +6,6 @@ Critical Changes
 
 -   CumulusCI now supports GitHub Enterprise. (#3256)
 -   CumulusCI will no longer be supporting installations via `brew`. See our docs for the officially supported install method via pipx.(#3382)
--
 
 Changes
 
