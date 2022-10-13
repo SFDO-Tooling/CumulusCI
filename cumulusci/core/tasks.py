@@ -9,15 +9,20 @@ import re
 import threading
 import time
 from contextlib import nullcontext
+from typing import Any, Callable, Dict, List, Optional
 
 from cumulusci import __version__
-from cumulusci.core.debug import get_debug_mode
+from cumulusci.core.debug import DebugMode, get_debug_mode
 from cumulusci.core.exceptions import (
     ServiceNotConfigured,
     ServiceNotValid,
     TaskOptionsError,
     TaskRequiresSalesforceOrg,
 )
+from cumulusci.core.flowrunner import FlowCoordinator, StepSpec, StepVersion
+from cumulusci.core.config.org_config import OrgConfig
+from cumulusci.core.config import TaskConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.utils import cd
 from cumulusci.utils.logging import redirect_output_to_logger
 
@@ -38,52 +43,61 @@ def stacked_task(task):
         CURRENT_TASK.stack.pop()
 
 
-class BaseTask(object):
+class BaseTask:
     """BaseTask provides the core execution logic for a Task
 
     Subclass BaseTask and provide a `_run_task()` method with your
     code.
     """
 
-    task_docs = ""
-    task_options = {}
-    salesforce_task = False  # Does this task require a salesforce org?
+    task_docs: str = ""
+    task_options: dict = {}
+    salesforce_task: bool = False  # Does this task require a salesforce org?
+    name: Optional[str]
+    stepnum: Optional[StepVersion]
+    result: Any
+    return_values: dict
+    debug_mode: DebugMode
+    logger: logging.Logger
+    options: dict
+
+    poll_complete: bool
+    poll_count: int
+    poll_interval_level: int
+    poll_interval_s: int
 
     def __init__(
         self,
-        project_config,
-        task_config,
-        org_config=None,
-        flow=None,
-        name=None,
-        stepnum=None,
-        logger=None,
+        project_config: BaseProjectConfig,
+        task_config: TaskConfig,
+        org_config: Optional[OrgConfig] = None,
+        flow: Optional[FlowCoordinator] = None,
+        name: Optional[str] = None,
+        stepnum: Optional[StepVersion] = None,
+        logger: Optional[logging.Logger] = None,
         **kwargs,
     ):
         self.project_config = project_config
         self.task_config = task_config
         self.org_config = org_config
-        self.logger = logger
+
         self._reset_poll()
 
         # dict of return_values that can be used by task callers
         self.return_values = {}
-
         # simple result object for introspection, often a return_code
         self.result = None
-
         # the flow for this task execution
         self.flow = flow
-
-        # the tasks name in the flow
+        # the task's name in the flow
         self.name = name
-
-        # the tasks stepnumber in the flow
+        # the task's stepnumber in the flow
         self.stepnum = stepnum
 
         self.debug_mode = get_debug_mode()
-
-        if not self.logger:
+        if logger:
+            self.logger = logger
+        else:
             self._init_logger()
 
         self._init_options(kwargs)
@@ -135,7 +149,7 @@ class BaseTask(object):
         """Override to implement dynamic logic for initializing the task."""
         pass
 
-    def __call__(self):
+    def __call__(self) -> dict:
         if self.salesforce_task and not self.org_config:
             raise TaskRequiresSalesforceOrg(
                 "This task requires a salesforce org. "
@@ -158,7 +172,7 @@ class BaseTask(object):
                     self.result = self._run_task()
                     return self.return_values
 
-    def _run_task(self):
+    def _run_task(self) -> Any:
         """Subclasses should override to provide their implementation"""
         raise NotImplementedError("Subclasses should provide their own implementation")
 
@@ -195,7 +209,7 @@ class BaseTask(object):
     def _try(self):
         raise NotImplementedError("Subclasses should provide their own implementation")
 
-    def _is_retry_valid(self, e):
+    def _is_retry_valid(self, e: Exception) -> bool:
         return True
 
     def _reset_poll(self):
@@ -231,7 +245,7 @@ class BaseTask(object):
                 "Increased polling interval to %d seconds", self.poll_interval_s
             )
 
-    def freeze(self, step):
+    def freeze(self, step: StepSpec) -> List[dict]:
         ui_step = {
             "name": self.task_config.name or self.name,
             "kind": "other",
@@ -274,9 +288,9 @@ class BaseSalesforceTask(BaseTask):
     def _validate_and_inject_namespace_prefixes(
         self,
         should_inject_namespaces: bool,
-        sobjects_to_validate: list,
+        sobjects_to_validate: List[str],
         operation_to_validate: str,
-    ):
+    ) -> List[str]:
         """Perform namespace injection and ensure that we can successfully access all of the selected objects."""
 
         global_describe = {
@@ -309,7 +323,12 @@ class BaseSalesforceTask(BaseTask):
             )
         return sobjects
 
-    def fixup_sobject_name(self, injection_func, sobject, global_describe):
+    def fixup_sobject_name(
+        self,
+        injection_func: Callable[[str], str],
+        sobject: str,
+        global_describe: Dict[str, dict],
+    ) -> str:
         def _is_injectable(element: str) -> bool:
             return element.count("__") == 1
 

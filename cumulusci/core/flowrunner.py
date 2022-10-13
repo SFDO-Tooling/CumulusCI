@@ -56,7 +56,17 @@ import logging
 from collections import defaultdict
 from distutils.version import LooseVersion
 from operator import attrgetter
-from typing import Any, DefaultDict, Dict, Optional, Tuple, Type, List, Union
+from typing import (
+    Any,
+    DefaultDict,
+    Dict,
+    Optional,
+    Tuple,
+    Type,
+    TYPE_CHECKING,
+    List,
+    Union,
+)
 
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 
@@ -65,7 +75,10 @@ from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
 from cumulusci.core.utils import import_global
-from cumulusci.core.tasks import BaseTask
+
+if TYPE_CHECKING:
+    from cumulusci.core.tasks import BaseTask
+
 
 RETURN_VALUE_OPTION_PREFIX = "^^"
 
@@ -99,7 +112,7 @@ class StepSpec:
     task_name: str
     task_config: dict
     task_class: Optional[
-        Type[BaseTask]
+        Type["BaseTask"]
     ]  # None means this step was skipped by setting task: None
     project_config: BaseProjectConfig
     allow_failure: bool
@@ -112,7 +125,7 @@ class StepSpec:
         step_num: StepVersion,
         task_name: str,
         task_config: dict,
-        task_class: Optional[Type[BaseTask]],
+        task_class: Optional[Type["BaseTask"]],
         project_config: BaseProjectConfig,
         allow_failure: bool = False,
         from_flow: Optional[str] = None,
@@ -293,7 +306,7 @@ class TaskRunner:
             exc,
         )
 
-    def _log_options(self, task: BaseTask):
+    def _log_options(self, task: "BaseTask"):
         if not task.task_options:
             task.logger.info("No task options present")
             return
