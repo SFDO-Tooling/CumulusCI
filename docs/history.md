@@ -4,7 +4,7 @@
 
 Critical Changes
 
--   The `get_github_api` method signature changed from `get_github_api(repo: str = None, owner: str = None)` to `get_github_api(url:str = None)`(#3256)
+-   CumulusCI now supports GitHub Enterprise. (#3256)
 -   CumulusCI will no longer be supporting installations via `brew`. See our docs for the officially supported install method via pipx.(#3382)
 -
 
