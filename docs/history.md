@@ -15,6 +15,7 @@ Changes
 -   Updated the dependency resolvers used for commit-status builds (2GP and Unlocked Package parallel testing) to allow resolution to "fall back" from release branches like `feature/240` to the repository's main branch.(#3386)
 -   There is a new Playwright-based keyword `Wait until salesforce is ready`. This keyword is automatically called by the Open Test Browser keyword in the SalesforcePlaywright library. In addition to waiting for the page to be rendered, it will auto attempt to detect a classic page on initial render, and automatically switch to a lightning page if one is detected.(#3387)
 -   CumulusCI now supports the `CustomIndex` metadata type.(#3391)
+- CumulusCI now supports performing source transformations during the `deploy` task, including find-and-replace of user-defined tokens. (#3383)
 
 Issues Fixed
 
