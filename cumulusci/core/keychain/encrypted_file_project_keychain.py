@@ -145,7 +145,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                     k = k.decode("utf-8")
                 if isinstance(v, bytes):
                     v = v.decode("utf-8")
-                if k == "date_created":
+                if v and k == "date_created":
                     v = iso_to_datetime(v)
                 config_dict[k] = v
 
