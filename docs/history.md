@@ -21,7 +21,7 @@ Changes
 Issues Fixed
 
 -   Fixed a bug when using blank dates in upserts and updates.(#3361)
--   Fixed an issue where checking out a repository above a certain size caused timeouts to occur.(#3379)
+-   Fixed an issue where committing changes to a repository above a certain size caused timeouts to occur. (#3379)
 -   CumulusCI now uses the `defusedxml` library to more securely parse xml.(#3375)
 
 ## 3.66.0 (2022-09-29)
