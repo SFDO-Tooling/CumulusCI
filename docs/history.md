@@ -10,7 +10,7 @@ Critical Changes
 
 Changes
 
--   When using playwright instead of Selenium, we now have limited support writing keywords in Javascript. For more information see the topic "Writing keywords in javascript" in the documentation under "Playwright Technology Preview"(#3378)
+-   When using Playwright instead of Selenium, we now have limited support writing keywords in JavasSript. For more information see the topic "Writing keywords in JavaScript" in the documentation under "Playwright Technology Preview". (#3378)
 -   Auto-load dataset matching org shape name(#3384)
 -   Updated the dependency resolvers used for commit-status builds (2GP and Unlocked Package parallel testing) to allow resolution to "fall back" from release branches like `feature/240` to the repository's main branch.(#3386)
 -   There is a new Playwright-based keyword `Wait until salesforce is ready`. This keyword is automatically called by the Open Test Browser keyword in the SalesforcePlaywright library. In addition to waiting for the page to be rendered, it will auto attempt to detect a classic page on initial render, and automatically switch to a lightning page if one is detected.(#3387)
