@@ -1,5 +1,28 @@
 # History
 
+## 3.67.0 (2022-10-13)
+
+Critical Changes
+
+-   CumulusCI now supports GitHub Enterprise. (#3256)
+-   CumulusCI will no longer be supporting installations via `brew`. See our docs for the officially supported install method via pipx.(#3382)
+
+Changes
+
+-   When using Playwright instead of Selenium, we now have limited support for writing keywords in JavaScript. For more information, see the topic "Writing keywords in JavaScript" in the documentation under "Playwright Technology Preview". (#3378)
+-   Auto-load dataset matching org shape name(#3384)
+-   Updated the dependency resolvers used for commit-status builds (2GP and Unlocked Package parallel testing) to allow resolution to "fall back" from release branches like `feature/240` to the repository's main branch.(#3386)
+-   There is a new Playwright-based keyword `Wait until salesforce is ready`. This keyword is automatically called by the Open Test Browser keyword in the SalesforcePlaywright library. In addition to waiting for the page to be rendered, it will auto attempt to detect a classic page on initial render, and automatically switch to a lightning page if one is detected.(#3387)
+-   CumulusCI now supports the `CustomIndex` metadata type.(#3391)
+-   CumulusCI now supports performing source transformations during the `deploy` task, including find-and-replace of user-defined tokens. (#3383)
+-   Includes [Snowfakery 3.3](https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v3.3.0) with new datetime features and find_record optimization.
+
+Issues Fixed
+
+-   Fixed a bug when using blank dates in upserts and updates.(#3361)
+-   Fixed an issue where committing changes to a repository above a certain size caused timeouts to occur. (#3379)
+-   CumulusCI now uses the `defusedxml` library to more securely parse xml.(#3375)
+
 ## 3.66.0 (2022-09-29)
 
 Changes 🎉
