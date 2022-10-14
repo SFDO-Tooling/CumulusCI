@@ -84,13 +84,6 @@ def iso_to_date(s):
     return datetime.strptime(s, "%Y-%m-%d").date()
 
 
-def iso_to_datetime(s):
-    """Convert ISO8601 string to date object"""
-    if isinstance(s, datetime):
-        return s
-    return datetime.strptime(s, "%Y-%m-%d")
-
-
 def _offset_date(target_anchor, current_anchor, this_date):
     """Adjust this_date to be relative to target_anchor instead of current_anchor"""
     return target_anchor + (this_date - current_anchor)

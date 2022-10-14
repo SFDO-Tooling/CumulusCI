@@ -1,7 +1,6 @@
 """Tools for safely saving and loading pickles using an AllowedList"""
 
 import io
-import json
 import pickle
 import typing as T
 import warnings
@@ -43,10 +42,3 @@ class RestrictedUnpickler(pickle.Unpickler):
 def restricted_loads(data):
     """Helper function analogous to pickle.loads()."""
     return RestrictedUnpickler(io.BytesIO(data)).load()
-
-
-def safe_load_json_or_pickle(data):
-    try:
-        return json.loads(data)
-    except ValueError:
-        return restricted_loads(data)

@@ -26,8 +26,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
 from cumulusci.core.utils import import_class, import_global
-from cumulusci.tasks.bulkdata.dates import date_to_iso, iso_to_datetime
-from cumulusci.utils.pickle import safe_load_json_or_pickle
+from cumulusci.utils.pickle import restricted_loads
 from cumulusci.utils.yaml.cumulusci_yml import ScratchOrg
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
@@ -52,9 +51,26 @@ else:
     scratch_org_factory = ScratchOrgConfig
 
 
-def simplify(x):
-    if isinstance(x, date) or isinstance(x, datetime):
-        return date_to_iso(x)
+def load_dates(x):
+    if isinstance(x, datetime):
+        return {"$type": "datetime", "$value": x.isoformat()}
+    elif isinstance(x, date):
+        return {"$type": "date", "$value": x.isoformat()}
+
+
+def extract_dates(x):
+    if "$type" in x and x["$type"] == "date":
+        return date.fromisoformat(x["$value"])
+    if "$type" in x and x["$type"] == "datetime":
+        return datetime.fromisoformat(x["$value"])
+    return x
+
+
+def safe_load_json_or_pickle(data):
+    try:
+        return json.loads(data, object_hook=extract_dates)
+    except ValueError:
+        return restricted_loads(data)
 
 
 """
@@ -115,7 +131,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         return cipher, iv
 
     def _encrypt_config(self, config):
-        json_obj = json.dumps(config.config, default=simplify).encode("utf-8")
+        json_obj = json.dumps(config.config, default=load_dates).encode("utf-8")
         encryptor_value = json_obj + (BS - len(json_obj) % BS) * b" "
         cipher, iv = self._get_cipher()
         return base64.b64encode(iv + cipher.encryptor().update(encryptor_value))
@@ -133,11 +149,11 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             decrypted = cipher.decryptor().update(encrypted_config[16:])
             try:
                 config_obj = safe_load_json_or_pickle(decrypted)
-            except Exception:
+            except Exception as exc:
                 raise KeychainKeyNotFound(
                     f"Unable to decrypt{' ' + context if context else ''}. "
                     "It was probably stored using a different CUMULUSCI_KEY."
-                )
+                ) from exc
             # Convert bytes created in Python 2
             config_dict = {}
             for k, v in config_obj.items():
@@ -145,8 +161,6 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                     k = k.decode("utf-8")
                 if isinstance(v, bytes):
                     v = v.decode("utf-8")
-                if v and k == "date_created":
-                    v = iso_to_datetime(v)
                 config_dict[k] = v
 
         args = [config_dict]

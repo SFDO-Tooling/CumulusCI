@@ -73,11 +73,20 @@ class TestEncryptedFileProjectKeychain:
     #               Orgs                  #
     #######################################
 
-    def test_set_and_get_org__global(self, keychain, org_config):
+    def test_set_and_get_org_with_dates__global(self, keychain, org_config):
         org_config.global_org = True
+
+        custom_datetime = datetime.datetime.now()
+        custom_date = datetime.datetime.now().date()
+        org_config.config["custom_datetime"] = custom_datetime
+        org_config.config["custom_date"] = custom_date
+
         keychain.set_org(org_config, True)
         assert list(keychain.orgs.keys()) == ["test"]
-        assert keychain.get_org("test").config == org_config.config
+        config = keychain.get_org("test").config
+        assert config == org_config.config
+        assert config["custom_datetime"] == custom_datetime
+        assert config["custom_date"] == custom_date
 
     def test_get_org__with_config_properly_overridden(
         self, keychain, scratch_org_config
