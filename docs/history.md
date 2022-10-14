@@ -4,7 +4,7 @@
 
 Issues Fixed
 
--   added some files that were missing from the 3.67.0 release
+-   We added some javascript files that were missing from the 3.67.0 release
 
 ## 3.67.0 (2022-10-13)
 
