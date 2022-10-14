@@ -1,5 +1,11 @@
 # History
 
+## 3.67.1 (2022-10-14)
+
+Issues Fixed
+
+-   added some files that were missing from the 3.67.0 release
+
 ## 3.67.0 (2022-10-13)
 
 Critical Changes
