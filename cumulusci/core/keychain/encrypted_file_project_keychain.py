@@ -61,6 +61,7 @@ def extract_dates(x):
 
 def safe_load_json_or_pickle(data):
     try:
+        print(data)
         return json.loads(data, object_hook=extract_dates)
     except ValueError:
         return restricted_loads(data)
