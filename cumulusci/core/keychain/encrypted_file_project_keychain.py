@@ -34,7 +34,7 @@ DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
 # The file permissions that we want set on all
 # .org and .service files. Equivalent to -rw-------
 SERVICE_ORG_FILE_MODE = 0o600
-OS_FILE_FLAGS = os.O_WRONLY | os.O_CREAT
+OS_FILE_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
 if sys.platform.startswith("win"):
     # O_BINARY only available on Windows
     OS_FILE_FLAGS |= os.O_BINARY
