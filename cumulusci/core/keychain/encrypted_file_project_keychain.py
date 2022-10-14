@@ -51,13 +51,6 @@ else:
     scratch_org_factory = ScratchOrgConfig
 
 
-def load_dates(x):
-    if isinstance(x, datetime):
-        return {"$type": "datetime", "$value": x.isoformat()}
-    elif isinstance(x, date):
-        return {"$type": "date", "$value": x.isoformat()}
-
-
 def extract_dates(x):
     if "$type" in x and x["$type"] == "date":
         return date.fromisoformat(x["$value"])
@@ -131,7 +124,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         return cipher, iv
 
     def _encrypt_config(self, config):
-        json_obj = json.dumps(config.config, default=load_dates).encode("utf-8")
+        json_obj = config._serialize()
         encryptor_value = json_obj + (BS - len(json_obj) % BS) * b" "
         cipher, iv = self._get_cipher()
         return base64.b64encode(iv + cipher.encryptor().update(encryptor_value))
@@ -184,7 +177,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         if self.key:
             org_bytes = self._encrypt_config(config)
         else:
-            org_bytes = json.dumps(config.config).encode("utf-8")
+            org_bytes = config._serialize()
 
         assert org_bytes is not None, "org_bytes should have a value"
         return org_bytes
@@ -611,7 +604,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         elif self.key and not config_encrypted:
             config = self._encrypt_config(service_config)
         else:
-            config = json.dumps(service_config.config).encode("utf-8")
+            config = service_config._serialize()
 
         self.services[service_type][alias] = config
 
