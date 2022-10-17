@@ -11,6 +11,7 @@ on:
 env:
     COVERALLS_PARALLEL: true
     COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+    FORCE_COLOR: 1 # Enable color output for pytest, pip, etc.
 
 jobs:
     lint:
