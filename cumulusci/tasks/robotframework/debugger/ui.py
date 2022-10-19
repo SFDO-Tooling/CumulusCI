@@ -10,8 +10,6 @@ from robot.libraries.BuiltIn import BuiltIn
 
 from cumulusci.cli.ui import CliTable
 
-builtin = BuiltIn()
-
 # this is code we use to inject a style into the DOM
 js_initialize_highlight = """
     if (!window.rdbInitialized) {
@@ -58,7 +56,7 @@ class DebuggerCli(cmd.Cmd, object):
         # fast enough, and this way it should work even if the user
         # is testing a suite with some playwright and some selenium
         # tests
-        libraries = builtin.get_library_instance(all=True)
+        libraries = self.builtin.get_library_instance(all=True)
         if "SeleniumLibrary" in libraries:
             return SeleniumProxy(libraries["SeleniumLibrary"])
         elif "Browser" in libraries:
