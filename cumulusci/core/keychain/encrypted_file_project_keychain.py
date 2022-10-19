@@ -52,10 +52,11 @@ else:
 
 
 def extract_dates(x):
-    if "$type" in x and x["$type"] == "date":
+    if x.get("$type") == "date":
         return date.fromisoformat(x["$value"])
-    if "$type" in x and x["$type"] == "datetime":
+    if x.get("$type") == "datetime":
         return datetime.fromisoformat(x["$value"])
+    assert "$type" not in x, f"Unknown $type: {x['$type']}"
     return x
 
 
