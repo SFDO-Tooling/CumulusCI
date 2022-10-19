@@ -743,6 +743,10 @@ tabs:
     - type: CustomTab
       class: MetadataFilenameParser
       extension: tab
+territory2Models:
+    - type: Territory2Model
+      class: MetadataFienameParser
+      extension: territory2Model
 testSuites:
     - type: ApexTestSuite
       class: MetadataFilenameParser
