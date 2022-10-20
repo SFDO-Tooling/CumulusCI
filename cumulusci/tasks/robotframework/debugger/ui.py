@@ -233,15 +233,19 @@ class BrowserProxy:
         init_script = f"() => {{{js_initialize_highlight}}};"
         self.browser.evaluate_javascript(None, init_script)
 
-        self.browser.evaluate_javascript(
-            selector,
-            """(elements) => {
-                for (element of elements) {
-                    element.classList.add('rdbHighlight')
-                }
-            }""",
-            all_elements=True,
-        )
+        elements = self.browser.get_elements(selector)
+        if elements:
+            self.browser.evaluate_javascript(
+                selector,
+                """(elements) => {
+                    console.log("elements:", elements);
+                    for (element of elements) {
+                        element.classList.add('rdbHighlight')
+                    }
+                }""",
+                all_elements=True,
+            )
+        print(f"{len(elements)} elements found")
 
     def restore_element_style(self):
         """Remove the style added by `highlight_elements`"""
