@@ -110,11 +110,43 @@ def test_vlocity_build_tool_missing(project_config):
             task._init_task()
 
 
-namespace = "cci"
+namespace = "omnistudio"
 test_cases = [
     (TaskConfig(config={}), OMNI_NAMESPACE),
     (TaskConfig(config={"options": {"namespace": namespace}}), namespace),
 ]
+
+
+@pytest.mark.parametrize("task_config,expected_namespace", test_cases)
+def test_deploy_omni_studio_site_settings_scratch(
+    project_config, task_config, expected_namespace
+):
+    org_config = mock.Mock(
+        installed_packages=[],
+        instance_url="https://inspiration-velocity-34802-dev-ed.scratch.my.salesforce.com/",
+        instance_name="CS28",
+        scratch=True,
+    )
+
+    task = OmniStudioDeployRemoteSiteSettings(project_config, task_config, org_config)
+    rss_options = task._get_options()
+    records = rss_options.records
+
+    expected_site_names = set([VF_RSS_NAME, VF_LEGACY_RSS_NAME, LWC_RSS_NAME])
+    actual_site_names = set([r.full_name for r in records])
+    assert expected_site_names == actual_site_names
+
+    # when no 'namespace' option is specified, we default to the omni studio namespace
+    expected_urls = set(
+        [
+            f"https://inspiration-velocity-34802-dev-ed--{expected_namespace}.scratch.{org_config.instance_name}.visual.force.com/",
+            "https://inspiration-velocity-34802-dev-ed.scratch.lightning.force.com/",
+            f"https://inspiration-velocity-34802-dev-ed--{expected_namespace}.scratch.vf.force.com/",
+        ]
+    )
+
+    actual_urls = set([r.url for r in records])
+    assert expected_urls == actual_urls
 
 
 @pytest.mark.parametrize("task_config,expected_namespace", test_cases)
