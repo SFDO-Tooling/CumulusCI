@@ -57,14 +57,15 @@ from collections import defaultdict
 from distutils.version import LooseVersion
 from operator import attrgetter
 from typing import (
+    TYPE_CHECKING,
     Any,
     DefaultDict,
     Dict,
+    List,
+    NamedTuple,
     Optional,
     Tuple,
     Type,
-    TYPE_CHECKING,
-    List,
     Union,
 )
 
@@ -160,29 +161,13 @@ class StepSpec:
         )
 
 
-class StepResult:
+class StepResult(NamedTuple):
     step_num: StepVersion
     task_name: str
     path: str
     result: Any
     return_values: Any
     exception: Optional[Exception]
-
-    def __init__(
-        self,
-        step_num: StepVersion,
-        task_name: str,
-        path: str,
-        result: Any,
-        return_values: Any,
-        exception: Optional[Exception],
-    ):
-        self.step_num = step_num
-        self.task_name = task_name
-        self.path = path
-        self.result = result
-        self.return_values = return_values
-        self.exception = exception
 
 
 class FlowCallback:
