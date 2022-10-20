@@ -7,6 +7,7 @@ import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.flowrunner import StepSpec
+from cumulusci.core.source_transforms.transforms import CleanMetaXMLTransform
 from cumulusci.tasks.salesforce import Deploy
 from cumulusci.utils import temporary_dir, touch
 
@@ -166,6 +167,30 @@ class TestDeploy:
                     "unmanaged": False,
                 },
             )
+
+    def test_init_options__transforms(self):
+        d = create_task(
+            Deploy,
+            {
+                "path": "src",
+                "transforms": ["clean_meta_xml"],
+            },
+        )
+
+        assert len(d.transforms) == 1
+        assert isinstance(d.transforms[0], CleanMetaXMLTransform)
+
+    def test_init_options__bad_transforms(self):
+        with pytest.raises(TaskOptionsError) as e:
+            create_task(
+                Deploy,
+                {
+                    "path": "src",
+                    "transforms": [{}],
+                },
+            )
+
+            assert "transform spec is not valid" in str(e)
 
     def test_freeze_sets_kind(self):
         task = create_task(

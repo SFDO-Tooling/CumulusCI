@@ -17,18 +17,21 @@ from cumulusci.core.dependencies.dependencies import (
     UnmanagedGitHubRefDependency,
 )
 from cumulusci.core.dependencies.resolvers import (
+    AbstractGitHubReleaseBranchResolver,
     DependencyResolutionStrategy,
     GitHubBetaReleaseTagResolver,
+    GitHubDefaultBranch2GPResolver,
+    GitHubExactMatch2GPResolver,
     GitHubReleaseBranchCommitStatusResolver,
-    GitHubReleaseBranchExactMatchCommitStatusResolver,
-    GitHubReleaseBranchResolver,
     GitHubReleaseTagResolver,
     GitHubTagResolver,
     GitHubUnmanagedHeadResolver,
     dependency_filter_ignore_deps,
+    get_release_id,
     get_resolver,
     get_resolver_stack,
     get_static_dependencies,
+    locate_commit_status_package_id,
 )
 from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
 
@@ -326,7 +329,7 @@ class TestGitHubUnmanagedHeadResolver:
         assert resolver.resolve(dep, project_config) == ("commit_sha", None)
 
 
-class ConcreteGitHubReleaseBranchResolver(GitHubReleaseBranchResolver):
+class ConcreteGitHubReleaseBranchResolver(AbstractGitHubReleaseBranchResolver):
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
@@ -365,7 +368,7 @@ class TestGitHubReleaseBranchResolver:
         pc.repo_info["branch"] = "feature/232__test"
         pc.project__git["prefix_feature"] = "feature/"
 
-        assert ConcreteGitHubReleaseBranchResolver().get_release_id(pc) == 232
+        assert get_release_id(pc) == 232
 
     def test_get_release_id__not_release_branch(self):
         pc = BaseProjectConfig(UniversalConfig())
@@ -375,7 +378,7 @@ class TestGitHubReleaseBranchResolver:
             repo_branch.return_value = None
 
             with pytest.raises(DependencyResolutionError) as e:
-                ConcreteGitHubReleaseBranchResolver().get_release_id(pc)
+                get_release_id(pc)
 
             assert "Cannot get current branch" in str(e)
 
@@ -388,13 +391,13 @@ class TestGitHubReleaseBranchResolver:
             pc.project__git["prefix_feature"] = "feature/"
 
             with pytest.raises(DependencyResolutionError) as e:
-                ConcreteGitHubReleaseBranchResolver().get_release_id(pc)
+                get_release_id(pc)
 
             assert "Cannot get current release identifier" in str(e)
 
     def test_locate_commit_status_package_id__not_found_with_parent(self, github):
         repo = github.repository("SFDO-Tooling", "TwoGPMissingRepo")
-        assert ConcreteGitHubReleaseBranchResolver().locate_commit_status_package_id(
+        assert locate_commit_status_package_id(
             repo, repo.branch("feature/232"), "Build Feature Test Package"
         ) == (None, None)
 
@@ -472,12 +475,12 @@ class TestGitHubReleaseBranchCommitStatusResolver:
         assert resolver.resolve(dep, project_config) == (None, None)
 
 
-class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
+class TestGitHubExactMatch2GPResolver:
     def test_exact_branch_resolver(self, project_config):
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
         )
@@ -494,7 +497,7 @@ class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/NonexistentRepo"
         )
@@ -514,7 +517,7 @@ class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
         )
@@ -524,7 +527,7 @@ class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/290__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
         )
@@ -535,7 +538,38 @@ class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/232"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/TwoGPMissingRepo"
+        )
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (None, None)
+
+
+class TestGitHubDefaultBranch2GPResolver:
+    def test_default_branch_resolver(self, project_config):
+        project_config.repo_branch = "feature/299__test"
+        project_config.project__git__prefix_feature = "feature/"
+
+        resolver = GitHubDefaultBranch2GPResolver()
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/TwoGPRepo"
+        )
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (
+            "main_sha",
+            PackageVersionIdDependency(
+                version_id="04t000000000005", package_name="CumulusCI-2GP-Test"
+            ),
+        )
+
+    def test_commit_status_not_found(self, project_config):
+        project_config.repo_branch = "feature/299"
+        project_config.project__git__prefix_feature = "feature/"
+
+        resolver = GitHubDefaultBranch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPMissingRepo"
         )

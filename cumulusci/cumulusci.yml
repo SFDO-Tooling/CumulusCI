@@ -664,9 +664,6 @@ tasks:
     load_dataset:
         description: Load a sample dataset using the bulk API.
         class_path: cumulusci.tasks.bulkdata.LoadData
-        options:
-            mapping: "datasets/mapping.yml"
-            sql_path: "datasets/sample.sql"
         group: "Data Operations"
     load_custom_settings:
         description: Load Custom Settings specified in a YAML file to the target org
@@ -798,6 +795,10 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
+            90:
+                task: load_dataset
+                options:
+                    org_shape_match_only: True
     config_managed:
         group: Post-Install Configuration
         description: Configure an org for use after the managed package has been installed.
@@ -806,6 +807,10 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
+            90:
+                task: load_dataset
+                options:
+                    org_shape_match_only: True
     config_packaging:
         group: Post-Install Configuration
         description: Configure packaging org for upload after package metadata is deployed
@@ -820,6 +825,10 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
+            90:
+                task: load_dataset
+                options:
+                    org_shape_match_only: True
     config_regression:
         group: Post-Install Configuration
         description: Configure an org for QA regression after the package is installed
@@ -1356,6 +1365,23 @@ services:
                 default_factory: cumulusci.core.github.get_oauth_device_flow_token
                 sensitive: True
         validator: cumulusci.core.github.validate_service
+    github_enterprise:
+        description: Configure connection for GitHub Enterprise Server
+        attributes:
+            username:
+                description: The GitHub Enterprise username to use for tasks.
+                required: True
+            email:
+                description: The email address to used by GitHub tasks when an operation requires an email address.
+                required: True
+            server_domain:
+                description: "GitHub Enterprise domain (Example: git.ent.domain.com)."
+                required: True
+            token:
+                description: Personal Access Token
+                required: True
+                sensitive: True
+        validator: cumulusci.core.github.validate_service
     marketing_cloud:
         description: Configure a connection to a Marketing Cloud instance
         class_path: cumulusci.core.config.marketing_cloud_service_config.MarketingCloudServiceConfig
@@ -1453,11 +1479,13 @@ project:
                 - unlocked_exact_branch
                 - unlocked_release_branch
                 - unlocked_previous_release_branch
+                - unlocked_default_branch
             commit_status:
                 - tag
                 - commit_status_exact_branch
                 - commit_status_release_branch
                 - commit_status_previous_release_branch
+                - commit_status_default_branch
                 - latest_beta
                 - latest_release
                 - unmanaged

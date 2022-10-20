@@ -217,7 +217,20 @@ def github():
         },
         releases=[DummyRelease("release/1.0", "1.0")],
         commits={
-            "main_sha": mock.Mock(sha="main_sha"),
+            "main_sha": mock.Mock(
+                sha="main_sha",
+                status=mock.Mock(
+                    return_value=mock.Mock(
+                        statuses=[
+                            mock.Mock(
+                                state="success",
+                                context="Nonstandard Package Status",
+                                description="version_id: 04t000000000005",
+                            )
+                        ]
+                    )
+                ),
+            ),
             "feature/232_sha": mock.Mock(
                 sha="feature/232_sha",
                 parents=[{"sha": "parent_sha"}],
@@ -276,7 +289,11 @@ def github():
         },
         releases=[],
         commits={
-            "main_sha": mock.Mock(sha="main_sha"),
+            "main_sha": mock.Mock(
+                sha="main_sha",
+                parents=[],
+                status=mock.Mock(return_value=mock.Mock(statuses=[])),
+            ),
             "feature/232_sha": mock.Mock(
                 sha="feature/232_sha",
                 parents=[{"sha": "parent_sha"}],
@@ -293,6 +310,7 @@ def github():
     def branch(which_repo, which_branch):
         branch = mock.Mock()
         branch.commit = which_repo.commit(f"{which_branch}_sha")
+        branch.name = which_branch
         return branch
 
     TWO_GP_REPO.branch = mock.Mock(wraps=functools.partial(branch, TWO_GP_REPO))

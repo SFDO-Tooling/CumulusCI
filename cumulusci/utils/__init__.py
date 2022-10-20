@@ -30,7 +30,12 @@ META_XML_CLEAN_DIRS = ("classes/", "triggers/", "pages/", "aura/", "components/"
 API_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 DATETIME_LEN = len("2018-08-07T16:00:56.000")
 
-BREW_UPDATE_CMD = "brew upgrade cumulusci"
+BREW_DEPRECATION_MSG = (
+    "It looks like you have installed CumulusCI using brew."
+    "This method of installation is no longer supported."
+    "Please use the following to install CumulusCI with pipx:\n"
+    "brew uninstall cumulusci\nbrew install pipx\npipx ensurepath\npipx install cumulusci"
+)
 PIP_UPDATE_CMD = "pip install --upgrade cumulusci"
 PIPX_UPDATE_CMD = "pipx upgrade cumulusci"
 
@@ -592,15 +597,12 @@ def random_alphanumeric_underscore(length):
 
 
 def get_cci_upgrade_command():
-    commands_by_path = {
-        "cellar": BREW_UPDATE_CMD,
-        "linuxbrew": BREW_UPDATE_CMD,
-        "pipx": PIPX_UPDATE_CMD,
-    }
-    for path, cmd in commands_by_path.items():
+    deprecated_install_paths = ["cellar", "linuxbrew"]
+    for path in deprecated_install_paths:
         if path in CUMULUSCI_PATH.lower():
-            return cmd
-    return PIP_UPDATE_CMD
+            return BREW_DEPRECATION_MSG
+
+    return PIPX_UPDATE_CMD if "pipx" in CUMULUSCI_PATH.lower() else PIP_UPDATE_CMD
 
 
 def convert_to_snake_case(content):

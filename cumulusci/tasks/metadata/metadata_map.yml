@@ -174,6 +174,10 @@ customHelpMenuSections:
     - type: CustomHelpMenuSection
       class: MetadataFilenameParser
       extension: customHelpMenuSection
+customindex:
+    - type: CustomIndex
+      class: MetadataFilenameParser
+      extension: indx
 customMetadata:
     - type: CustomMetadata
       class: MetadataFilenameParser
@@ -650,6 +654,10 @@ roles:
     - type: Role
       class: MetadataFilenameParser
       extension: role
+rules:
+    - type: Territory2Rule
+      class: MetadataFilenameParser
+      extension: territory2Rule
 s3DataConnectors:
     - type: DataConnectorS3
       class: MetadataFilenameParser
@@ -739,6 +747,18 @@ tabs:
     - type: CustomTab
       class: MetadataFilenameParser
       extension: tab
+territories:
+    - type: Territory2
+      class: MetadataFilenameParser
+      extension: territory2
+territory2Models:
+    - type: Territory2Model
+      class: MetadataFilenameParser
+      extension: territory2Model
+territory2Types:
+    - type: Territory2Type
+      class: MetadataFilenameParser
+      extension: territory2Types
 testSuites:
     - type: ApexTestSuite
       class: MetadataFilenameParser

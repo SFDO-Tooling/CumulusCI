@@ -584,15 +584,15 @@ Options\n------------------------------------------\n\n
             pass
         assert 4 == logger.info.call_count
 
-    def test_util__sets_homebrew_upgrade_cmd(self):
+    def test_util__sets_homebrew_deprecation_msg(self):
         utils.CUMULUSCI_PATH = "/usr/local/Cellar/cumulusci/2.1.2"
         upgrade_cmd = utils.get_cci_upgrade_command()
-        assert utils.BREW_UPDATE_CMD == upgrade_cmd
+        assert utils.BREW_DEPRECATION_MSG == upgrade_cmd
 
-    def test_util__sets_linuxbrew_upgrade_cmd(self):
+    def test_util__sets_linuxbrew_deprecation_msg(self):
         utils.CUMULUSCI_PATH = "/home/linuxbrew/.linuxbrew/cumulusci/2.1.2"
         upgrade_cmd = utils.get_cci_upgrade_command()
-        assert utils.BREW_UPDATE_CMD == upgrade_cmd
+        assert utils.BREW_DEPRECATION_MSG == upgrade_cmd
 
     def test_util__sets_pip_upgrade_cmd(self):
         utils.CUMULUSCI_PATH = "/usr/local/pip-path/cumulusci/2.1.2"

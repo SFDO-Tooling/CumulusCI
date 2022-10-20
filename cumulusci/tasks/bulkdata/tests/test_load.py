@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import os
 import random
 import shutil
@@ -33,10 +34,33 @@ from cumulusci.tasks.bulkdata.tests.utils import (
 )
 from cumulusci.tests.util import (
     CURRENT_SF_API_VERSION,
+    DummyOrgConfig,
     assert_max_memory_usage,
     mock_describe_calls,
 )
 from cumulusci.utils import temporary_dir
+
+
+class FakePath:
+    def __init__(self, real_path, does_exist):
+        self.does_exist = does_exist
+        self.real_path = real_path
+
+    def exists(self):
+        return self.does_exist
+
+    def __str__(self):
+        return self.real_path
+
+
+class FakePathFileSystem:
+    def __init__(self, existing_paths):
+        self.paths = [Path(path) for path in existing_paths]
+
+    def __call__(self, *filename):
+        filename_parts = [str(el) for el in filename]
+        real_filename = str(Path(*filename_parts))
+        return FakePath(real_filename, (Path(real_filename) in self.paths))
 
 
 class TestLoadData:
@@ -235,8 +259,10 @@ class TestLoadData:
         ]
 
     def test_init_options__missing_input(self):
-        with pytest.raises(TaskOptionsError):
-            _make_task(LoadData, {"options": {}})
+        t = _make_task(LoadData, {"options": {}})
+
+        assert t.options["sql_path"] == "datasets/sample.sql"
+        assert t.options["mapping"] == "datasets/mapping.yml"
 
     def test_init_options__bulk_mode(self):
         t = _make_task(
@@ -271,14 +297,234 @@ class TestLoadData:
 
         assert t.options["database_url"] == "file:///test.db"
         assert t.options["sql_path"] is None
+        assert t.has_dataset is True
 
-    def test_init_options__sql_path(self):
+    def test_init_options__sql_path_and_mapping(self):
         t = _make_task(
-            LoadData, {"options": {"sql_path": "test.sql", "mapping": "mapping.yml"}}
+            LoadData,
+            {
+                "options": {
+                    "sql_path": "datasets/test.sql",
+                    "mapping": "datasets/test.yml",
+                }
+            },
         )
 
-        assert t.options["sql_path"] == "test.sql"
+        assert t.options["sql_path"] == "datasets/test.sql"
+        assert t.options["mapping"] == "datasets/test.yml"
         assert t.options["database_url"] is None
+        assert t.has_dataset is True
+
+    def test_init_options__org_shape_match_only__true(self):
+        dataset_path = "datasets/dev/dev.dataset.sql"
+        mapping_path = "datasets/dev/dev.mapping.yml"
+        fake_paths = FakePathFileSystem([mapping_path, dataset_path, "datasets/dev"])
+        with mock.patch("cumulusci.tasks.bulkdata.load.Path", fake_paths):
+            org_config = DummyOrgConfig(
+                {
+                    "config_name": "dev",
+                },
+                "test",
+            )
+            t = _make_task(
+                LoadData,
+                {
+                    "options": {
+                        "sql_path": "datasets/test.sql",
+                        "mapping": "datasets/mapping.yml",
+                        "org_shape_match_only": True,
+                    }
+                },
+                org_config,
+            )
+
+            assert t.options["sql_path"] == dataset_path
+            assert t.options["mapping"] == mapping_path
+            assert t.options["database_url"] is None
+            assert t.has_dataset is True
+
+    def test_init_options__org_shape_match_only__false(self):
+        """Matching paths exist but we do not use them."""
+        dataset_path = "datasets/dev/dev.dataset.sql"
+        mapping_path = "datasets/dev/dev.mapping.yml"
+        fake_paths = FakePathFileSystem([mapping_path, dataset_path, "datasets/dev"])
+        with mock.patch("cumulusci.tasks.bulkdata.load.Path", fake_paths):
+            org_config = DummyOrgConfig(
+                {
+                    "config_name": "dev",
+                },
+                "test",
+            )
+            t = _make_task(
+                LoadData,
+                {
+                    "options": {
+                        "sql_path": "datasets/test.sql",
+                        "mapping": "datasets/mapping.yml",
+                        #  "org_shape_match_only": False, DEFAULTED
+                    }
+                },
+                org_config,
+            )
+
+            assert t.options["sql_path"] == "datasets/test.sql"
+            assert t.options["mapping"] == "datasets/mapping.yml"
+            assert t.options["database_url"] is None
+            assert t.has_dataset is True
+
+    def test_init_options__sql_path_no_mapping(self):
+        t = _make_task(LoadData, {"options": {"sql_path": "datasets/test.sql"}})
+
+        assert t.options["sql_path"] == "datasets/test.sql"
+        assert t.options["mapping"] == "datasets/mapping.yml"
+        assert t.options["database_url"] is None
+        assert t.has_dataset is True
+
+    def test_init_options__mapping_no_sql_path(self):
+        t = _make_task(LoadData, {"options": {"mapping": "datasets/test.yml"}})
+
+        assert t.options["sql_path"] == "datasets/sample.sql"
+        assert t.options["mapping"] == "datasets/test.yml"
+        assert t.options["database_url"] is None
+        assert t.has_dataset is True
+
+    def test_init_datasets__matching_dataset(self):
+        dataset_path = "datasets/dev/dev.dataset.sql"
+        mapping_path = "datasets/dev/dev.mapping.yml"
+        fake_paths = FakePathFileSystem([mapping_path, dataset_path, "datasets/dev"])
+        with mock.patch("cumulusci.tasks.bulkdata.load.Path", fake_paths):
+            org_config = DummyOrgConfig(
+                {
+                    "config_name": "dev",
+                },
+                "test",
+            )
+            t = _make_task(LoadData, {}, org_config=org_config)
+            assert t.options["sql_path"] == dataset_path
+            assert t.options["mapping"] == mapping_path
+            assert t.has_dataset is True
+
+    def test_init_datasets__matching_dataset_dir__missing_dataset_path(self, caplog):
+        caplog.set_level(logging.WARNING)
+        mapping_path = "datasets/dev/dev.mapping.yml"
+        fake_paths = FakePathFileSystem([mapping_path, "datasets/dev"])
+        org_shape = "dev"
+        with mock.patch("cumulusci.tasks.bulkdata.load.Path", fake_paths):
+            org_config = DummyOrgConfig(
+                {
+                    "config_name": org_shape,
+                },
+                "test",
+            )
+            t = _make_task(LoadData, {}, org_config=org_config)
+            assert t.options.get("sql_path") is None
+            assert t.options.get("mapping") is None
+            assert (
+                f"Found datasets/{org_shape} but it did not contain {org_shape}.mapping.yml and {org_shape}.dataset.yml."
+                in caplog.text
+            )
+            assert t.has_dataset is False
+
+    def test_init_datasets__matching_dataset_dir__missing_mapping_path(self, caplog):
+        caplog.set_level(logging.WARNING)
+        dataset_path = "datasets/dev/dev.dataset.sql"
+        fake_paths = FakePathFileSystem([dataset_path, "datasets/dev"])
+        org_shape = "dev"
+        with mock.patch("cumulusci.tasks.bulkdata.load.Path", fake_paths):
+            org_config = DummyOrgConfig(
+                {
+                    "config_name": org_shape,
+                },
+                "test",
+            )
+            t = _make_task(LoadData, {}, org_config=org_config)
+            assert t.options.get("sql_path") is None
+            assert t.options.get("mapping") is None
+            assert (
+                f"Found datasets/{org_shape} but it did not contain {org_shape}.mapping.yml and {org_shape}.dataset.yml."
+                in caplog.text
+            )
+            assert t.has_dataset is False
+
+    def test_init_datasets__no_matching_dataset__use_default(self):
+        dataset_path = "datasets/sample.sql"
+        mapping_path = "datasets/mapping.yml"
+        fake_paths = FakePathFileSystem([dataset_path, mapping_path])
+        with mock.patch("cumulusci.tasks.bulkdata.load.Path", fake_paths):
+            org_config = DummyOrgConfig(
+                {
+                    "config_name": "dev",
+                },
+                "test",
+            )
+            t = _make_task(LoadData, {}, org_config=org_config)
+            assert t.options["sql_path"] == "datasets/sample.sql"
+            assert t.options["mapping"] == "datasets/mapping.yml"
+            assert t.has_dataset is True
+
+    def test_init_datasets__no_matching_dataset__skip_default(self):
+        dataset_path = "datasets/sample.sql"
+        mapping_path = "datasets/mapping.yml"
+        fake_paths = FakePathFileSystem([dataset_path, mapping_path])
+        with mock.patch("cumulusci.tasks.bulkdata.load.Path", fake_paths):
+            org_config = DummyOrgConfig(
+                {
+                    "config_name": "dev",
+                },
+                "test",
+            )
+            t = _make_task(
+                LoadData,
+                {
+                    "options": {
+                        "org_shape_match_only": True,
+                    }
+                },
+                org_config=org_config,
+            )
+            assert t.options["sql_path"] is None
+            assert t.options["mapping"] is None
+            assert t.has_dataset is False
+
+    def test_init_datasets__no_matching_dataset_no_load_scratch(self, caplog):
+        caplog.set_level(logging.INFO)
+        fake_paths = FakePathFileSystem([])
+        with mock.patch("cumulusci.tasks.bulkdata.load.Path", fake_paths):
+            org_config = DummyOrgConfig(
+                {
+                    "config_name": "dev",
+                },
+                "test",
+            )
+            t = _make_task(LoadData, {}, org_config=org_config)
+            assert t.has_dataset is False
+            assert t.options.get("sql_path") is None
+            assert t.options.get("mapping") is None
+            t._run_task()
+            assert (
+                "No data will be loaded because there was no dataset found matching your org shape name ('dev')."
+                in caplog.text
+            )
+
+    def test_init_datasets__no_matching_dataset_no_load_persistent(self, caplog):
+        caplog.set_level(logging.INFO)
+        fake_paths = FakePathFileSystem([])
+        with mock.patch("cumulusci.tasks.bulkdata.load.Path", fake_paths):
+            org_config = DummyOrgConfig(
+                {
+                    "config_name": None,
+                },
+                "test",
+            )
+            t = _make_task(LoadData, {}, org_config=org_config)
+            assert t.has_dataset is False
+            assert t.options.get("sql_path") is None
+            assert t.options.get("mapping") is None
+            t._run_task()
+            assert (
+                "No data will be loaded because this is a persistent org and no dataset was specified."
+                in caplog.text
+            )
 
     @mock.patch("cumulusci.tasks.bulkdata.load.validate_and_inject_mapping")
     def test_init_mapping_passes_options_to_validate(self, validate_and_inject_mapping):
