@@ -2,6 +2,7 @@ import enum
 import tempfile
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
+from typing import Any, ClassVar, Dict, Iterable, List, Optional, Set
 from urllib.parse import quote, unquote
 
 from cumulusci.core.config import TaskConfig
@@ -25,8 +26,9 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
     generally subclass BaseMetadataSynthesisTask, BaseMetadataTransformTask,
     or MetadataSingleEntityTransformTask."""
 
-    deploy = False
-    retrieve = False
+    deploy: ClassVar[bool] = False
+    retrieve: ClassVar[bool] = False
+    api_version: str
 
     task_options = {
         "managed": {
@@ -62,6 +64,7 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
             self._init_namespace_injection()
 
     def _init_namespace_injection(self):
+        assert self.org_config
         namespace = (
             self.options.get("namespace_inject")
             or self.project_config.project__package__namespace
@@ -81,7 +84,7 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
                 bool(namespace) and namespace == self.org_config.namespace
             )
 
-    def _inject_namespace(self, text):
+    def _inject_namespace(self, text: str) -> str:
         """Inject the namespace into the given text if running in managed mode."""
         # We might not have an org yet if this is called from _init_options
         # while freezing steps for metadeploy.
@@ -96,11 +99,11 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
         )[1]
 
     @abstractmethod
-    def _get_package_xml_content(self, operation):
+    def _get_package_xml_content(self, operation: MetadataOperation) -> str:
         """Return the textual content of a package.xml for the given operation."""
-        pass
+        ...
 
-    def _generate_package_xml(self, operation):
+    def _generate_package_xml(self, operation: MetadataOperation) -> str:
         """Call _get_package_xml_content() and perform namespace injection if needed"""
         return self._inject_namespace(self._get_package_xml_content(operation))
 
@@ -127,7 +130,7 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
     @abstractmethod
     def _transform(self):
         """Transform the metadata in self.retrieve_dir into self.deploy_dir."""
-        pass
+        ...
 
     def _deploy(self):
         """Deploy metadata from self.deploy_dir"""
@@ -140,7 +143,7 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
         # import is here to avoid an import cycle
         from cumulusci.tasks.salesforce import Deploy
 
-        api = Deploy(
+        api = Deploy(  # type: ignore - Pylance can't handle the dynamic import in tasks.salesforce
             self.project_config,
             TaskConfig(
                 {
@@ -158,7 +161,7 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
 
         return result
 
-    def _post_deploy(self, result):
+    def _post_deploy(self, result: Any):
         """Run any post-deploy logic required, such as waiting for asynchronous
         operations to complete in the target org."""
         pass
@@ -180,12 +183,12 @@ class BaseMetadataSynthesisTask(BaseMetadataETLTask, metaclass=ABCMeta):
 
     deploy = True
 
-    def _generate_package_xml(self, deploy):
+    def _generate_package_xml(self, deploy: MetadataOperation) -> str:
         """Synthesize a package.xml for generated metadata."""
         generator = PackageXmlGenerator(str(self.deploy_dir), self.api_version)
         return generator()
 
-    def _get_package_xml_content(self, operation) -> str:
+    def _get_package_xml_content(self, operation: MetadataOperation) -> str:
         return ""
 
     def _transform(self):
@@ -194,7 +197,7 @@ class BaseMetadataSynthesisTask(BaseMetadataETLTask, metaclass=ABCMeta):
     @abstractmethod
     def _synthesize(self):
         """Create new metadata in self.deploy_dir."""
-        pass
+        ...
 
 
 class BaseMetadataTransformTask(BaseMetadataETLTask, metaclass=ABCMeta):
@@ -205,11 +208,11 @@ class BaseMetadataTransformTask(BaseMetadataETLTask, metaclass=ABCMeta):
     deploy = True
 
     @abstractmethod
-    def _get_entities(self):
+    def _get_entities(self) -> Dict[str, List[str]]:
         """Return a dict of Metadata API entities and API names to be transformed."""
         pass
 
-    def _get_types_package_xml(self):
+    def _get_types_package_xml(self) -> str:
         """Generate package.xml content based on the return value of _get_entities()."""
         base = """    <types>
 {members}
@@ -226,7 +229,7 @@ class BaseMetadataTransformTask(BaseMetadataETLTask, metaclass=ABCMeta):
 
         return types
 
-    def _get_package_xml_content(self, operation):
+    def _get_package_xml_content(self, operation: MetadataOperation) -> str:
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
 {self._get_types_package_xml()}
@@ -236,7 +239,7 @@ class BaseMetadataTransformTask(BaseMetadataETLTask, metaclass=ABCMeta):
 
     @abstractmethod
     def _transform(self):
-        pass
+        ...
 
 
 class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABCMeta):
@@ -244,7 +247,8 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
     instances of a specific metadata entity. Concrete subclasses must set
     `entity` to the Metadata API entity transformed, and implement _transform_entity()."""
 
-    entity = None
+    entity: str
+    api_names: Set[str]
 
     task_options = {
         "api_names": {"description": "List of API names of entities to affect"},
@@ -256,21 +260,23 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
 
         self.api_names = {
             self._inject_namespace(arg)
-            for arg in process_list_arg(self.options.get("api_names", ["*"]))
+            for arg in process_list_arg(self.options.get("api_names", ["*"])) or []
         }
         self.api_names = {
             quote(arg, safe=" ") if arg != "*" else arg for arg in self.api_names
         }
 
-    def _get_entities(self):
+    def _get_entities(self) -> Dict[str, Iterable[str]]:
         return {self.entity: self.api_names}
 
     @abstractmethod
-    def _transform_entity(self, metadata, api_name):
+    def _transform_entity(
+        self, metadata: MetadataElement, api_name: str
+    ) -> Optional[MetadataElement]:
         """Accept an XML element corresponding to the metadata entity with
         the given api_name. Transform the XML and return the version which
         should be deployed, or None to suppress deployment of this entity."""
-        pass
+        ...
 
     def _transform(self):
         # call _transform_entity once per retrieved entity
@@ -278,7 +284,7 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
         # and write the returned metadata into the deploy directory
 
         parser = PackageXmlGenerator(
-            None, self.api_version
+            "", self.api_version
         )  # We'll use it for its metadata_map
         entity_configurations = [
             entry
@@ -334,7 +340,7 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
             try:
                 tree = metadata_tree.parse(str(path))
             except SyntaxError as err:
-                err.filename = path
+                err.filename = str(path)
                 raise err
             transformed_xml = self._transform_entity(tree, unquoted_api_name)
             if transformed_xml:
@@ -417,7 +423,7 @@ After running ``cci task run assign_compact_layout``, the CustomObject metadata 
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        self.entity = self.options.get("metadata_type")
+        self.entity = self.options["metadata_type"]
         self.options["value"] = self._inject_namespace(self.options.get("value"))
 
     def _transform_entity(

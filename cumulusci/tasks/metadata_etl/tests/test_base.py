@@ -13,6 +13,7 @@ from cumulusci.tasks.metadata_etl import (
     MetadataSingleEntityTransformTask,
     UpdateMetadataFirstChildTextTask,
 )
+from cumulusci.tasks.metadata_etl.base import MetadataOperation
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.utils.xml.metadata_tree import fromstring
 
@@ -55,7 +56,7 @@ class TestBaseMetadataETLTask:
 
         task._retrieve()
         api_mock.assert_called_once_with(
-            task, task._generate_package_xml(False), "47.0"
+            task, task._generate_package_xml(MetadataOperation.RETRIEVE), "47.0"
         )
         api_mock.return_value.assert_called_once_with()
         api_mock.return_value.return_value.extractall.assert_called_once_with(
@@ -126,9 +127,9 @@ class TestBaseMetadataSynthesisTask:
             MetadataSynthesisTask,
             {"managed": False, "namespace_inject": "test", "api_version": "47.0"},
         )
-        task.deploy_dir = "test"
+        task.deploy_dir = Path("test")
 
-        result = task._generate_package_xml(True)
+        result = task._generate_package_xml(MetadataOperation.DEPLOY)
         package_mock.assert_called_once_with(str(task.deploy_dir), task.api_version)
         package_mock.return_value.assert_called_once_with()
         assert result == package_mock.return_value.return_value
@@ -153,7 +154,7 @@ class TestBaseMetadataTransformTask:
         }
 
         assert (
-            task._generate_package_xml(False)
+            task._generate_package_xml(MetadataOperation.DEPLOY)
             == """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
@@ -173,6 +174,8 @@ class TestBaseMetadataTransformTask:
 
 
 class ConcreteMetadataSingleEntityTransformTask(MetadataSingleEntityTransformTask):
+    entity = "Test"
+
     def _transform_entity(self, xml_tree, api_name):
         return xml_tree
 
@@ -196,14 +199,14 @@ class TestMetadataSingleEntityTransformTask:
             {"managed": False, "api_version": "47.0", "api_names": "bar,foo"},
         )
 
-        assert task._get_entities() == {None: {"bar", "foo"}}
+        assert task._get_entities() == {"Test": {"bar", "foo"}}
 
         task = create_task(
             ConcreteMetadataSingleEntityTransformTask,
             {"managed": False, "api_version": "47.0"},
         )
 
-        assert task._get_entities() == {None: {"*"}}
+        assert task._get_entities() == {"Test": {"*"}}
 
     def test_transform(self):
         task = create_task(

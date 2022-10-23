@@ -1,4 +1,5 @@
 import os
+from typing import List
 from unittest import mock
 
 import pytest
@@ -113,6 +114,11 @@ EXPECTED_MANAGED = """<?xml version="1.0" encoding="UTF-8"?>
 </Package>"""
 
 
+class ConcreteMetadataParser(BaseMetadataParser):
+    def _parse_item(self, item: str) -> List[str]:
+        return []
+
+
 class TestBaseMetadataParser:
     def test_parse_items__skips_files(self):
         with temporary_dir() as path:
@@ -128,28 +134,23 @@ class TestBaseMetadataParser:
             ):
                 touch(filename)
 
-            parser = BaseMetadataParser("TestMDT", path, "object", delete=True)
+            parser = ConcreteMetadataParser("TestMDT", path, "object", delete=True)
             parser.parse_item = mock.Mock()
             parser.parse_items()
             parser.parse_item.assert_called_once()
 
     def test_check_delete_excludes__not_deleting(self):
-        parser = BaseMetadataParser("TestMDT", None, "object", delete=False)
+        parser = ConcreteMetadataParser("TestMDT", "", "object", delete=False)
         assert not parser.check_delete_excludes("asdf")
 
-    def test_parse_item(self):
-        parser = BaseMetadataParser("TestMDT", None, "object", delete=False)
-        with pytest.raises(NotImplementedError):
-            parser._parse_item("asdf")
-
     def test_render_xml__no_members(self):
-        parser = BaseMetadataParser("TestMDT", None, "object", delete=False)
+        parser = ConcreteMetadataParser("TestMDT", "", "object", delete=False)
         assert parser.render_xml() is None
 
 
 class TestMetadataFilenameParser:
     def test_parse_item(self):
-        parser = MetadataFilenameParser("TestMDT", None, "object", delete=False)
+        parser = MetadataFilenameParser("TestMDT", "", "object", delete=False)
         result = parser._parse_item("Test.object")
         assert ["Test"] == result
 
@@ -257,6 +258,7 @@ class TestMetadataXmlElementParser:
                 "TestMDT", path, "test", delete=False, item_xpath="./sf:test"
             )
             result = parser()
+            assert result
             assert """    <types>
         <members>Test.Test</members>
         <name>TestMDT</name>
@@ -266,7 +268,7 @@ class TestMetadataXmlElementParser:
 
     def test_parser__missing_item_xpath(self):
         with pytest.raises(ParserConfigurationError):
-            parser = MetadataXmlElementParser("TestMDT", None, "test", False)
+            parser = MetadataXmlElementParser("TestMDT", "", "test", False)
             assert parser is not None
 
     def test_parser__missing_name(self):
@@ -305,37 +307,35 @@ class TestCustomLabelsParser:
 
 class TestCustomObjectParser:
     def test_parse_item(self):
-        parser = CustomObjectParser("CustomObject", None, "object", False)
+        parser = CustomObjectParser("CustomObject", "", "object", False)
         assert ["Test__c"] == parser._parse_item("Test__c.object")
 
     def test_parse_item__skips_namespaced(self):
-        parser = CustomObjectParser("CustomObject", None, "object", False)
+        parser = CustomObjectParser("CustomObject", "", "object", False)
         assert [] == parser._parse_item("ns__Object__c.object")
 
     def test_parse_item__skips_standard(self):
-        parser = CustomObjectParser("CustomObject", None, "object", False)
+        parser = CustomObjectParser("CustomObject", "", "object", False)
         assert [] == parser._parse_item("Account.object")
 
 
 class TestRecordTypeParser:
     def test_check_delete_excludes(self):
-        parser = RecordTypeParser(
-            "RecordType", None, "object", True, "./sf:recordTypes"
-        )
+        parser = RecordTypeParser("RecordType", "", "object", True, "./sf:recordTypes")
         assert parser.check_delete_excludes("asdf")
 
 
 class TestBusinessProcessParser:
     def test_check_delete_excludes(self):
         parser = BusinessProcessParser(
-            "BusinessProcess", None, "object", True, "./sf:businessProcesses"
+            "BusinessProcess", "", "object", True, "./sf:businessProcesses"
         )
         assert parser.check_delete_excludes("asdf")
 
 
 class TestDocumentParser:
     def test_parse_subitem(self):
-        parser = DocumentParser("Document", None, None, False)
+        parser = DocumentParser("Document", "", None, False)
         assert ["folder/doc"] == parser._parse_subitem("folder", "doc")
 
 

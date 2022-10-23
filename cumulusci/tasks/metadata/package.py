@@ -1,7 +1,10 @@
+import abc
 import os
 import re
 import urllib.parse
+import xml.etree.ElementTree as etree
 from pathlib import Path
+from typing import Callable, Dict, List, Optional
 
 import yaml
 
@@ -11,7 +14,7 @@ from cumulusci.utils import elementtree_parse_file
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
 
-def metadata_sort_key(name):
+def metadata_sort_key(name: str) -> str:
     sections = []
     for section in re.split("[.|-]", name):
         sections.append(metadata_sort_key_section(section))
@@ -22,7 +25,7 @@ def metadata_sort_key(name):
     return key
 
 
-def metadata_sort_key_section(name):
+def metadata_sort_key_section(name: str) -> str:
     prefix = "5"
     key = name
 
@@ -41,17 +44,29 @@ class MetadataParserMissingError(Exception):
     pass
 
 
-class PackageXmlGenerator(object):
+class PackageXmlGenerator:
+    # `types` is supplied as a list of an unrelated Callable class in cumulusci.tasks.salesforce.sourcetracking
+    # Essentially this is structural subtyping, but since it's a Callable, we don't need a Protocol to type it.
+    types: List[Callable[[], List[str]]]
+    install_class: Optional[str]
+    uninstall_class: Optional[str]
+    managed: bool
+    delete: bool
+    package_name: Optional[str]
+    directory: str
+    api_version: str
+    metadata_map: Dict[str, List[Dict[str, str]]]
+
     def __init__(
         self,
-        directory,
-        api_version,
-        package_name=None,
-        managed=None,
-        delete=None,
-        install_class=None,
-        uninstall_class=None,
-        types=None,
+        directory: str,
+        api_version: str,
+        package_name: Optional[str] = None,
+        managed: bool = False,
+        delete: bool = False,
+        install_class: Optional[str] = None,
+        uninstall_class: Optional[str] = None,
+        types: Optional[List[Callable[[], List[str]]]] = None,
     ):
         with open(
             __location__ + "/metadata_map.yml", "r", encoding="utf-8"
@@ -96,7 +111,7 @@ class PackageXmlGenerator(object):
                 )
                 self.types.append(parser)
 
-    def render_xml(self):
+    def render_xml(self) -> str:
         lines = []
 
         # Print header
@@ -132,8 +147,17 @@ class PackageXmlGenerator(object):
         return "\n".join(lines)
 
 
-class BaseMetadataParser(object):
-    def __init__(self, metadata_type, directory, extension, delete):
+class BaseMetadataParser(abc.ABC):
+    metadata_type: str
+    directory: str
+    extension: Optional[str]
+    delete: bool
+    members: list
+    delete_excludes: Optional[List[str]]
+
+    def __init__(
+        self, metadata_type: str, directory: str, extension: Optional[str], delete: bool
+    ):
         self.metadata_type = metadata_type
         self.directory = directory
         self.extension = extension
@@ -143,11 +167,11 @@ class BaseMetadataParser(object):
         if self.delete:
             self.delete_excludes = self.get_delete_excludes()
 
-    def __call__(self):
+    def __call__(self) -> Optional[List[str]]:
         self.parse_items()
         return self.render_xml()
 
-    def get_delete_excludes(self):
+    def get_delete_excludes(self) -> List[str]:
         filename = os.path.join(
             __location__, "..", "..", "files", "delete_excludes.txt"
         )
@@ -179,14 +203,14 @@ class BaseMetadataParser(object):
 
             self.parse_item(item)
 
-    def check_delete_excludes(self, item):
+    def check_delete_excludes(self, item: str) -> bool:
         if not self.delete:
             return False
-        if item in self.delete_excludes:
+        if item in self.delete_excludes:  # type: ignore
             return True
         return False
 
-    def parse_item(self, item):
+    def parse_item(self, item: str):
         members = self._parse_item(item)
         if members:
             for member in members:
@@ -194,14 +218,15 @@ class BaseMetadataParser(object):
                 member = member.replace("___NAMESPACE___", "%%%NAMESPACE%%%")
                 self.members.append(member)
 
-    def _parse_item(self, item):
+    @abc.abstractmethod
+    def _parse_item(self, item: str) -> List[str]:
         "Receives a file or directory name and returns a list of members"
-        raise NotImplementedError("Subclasses should implement their parser here")
+        ...
 
-    def strip_extension(self, filename):
+    def strip_extension(self, filename: str) -> str:
         return filename.rsplit(".", 1)[0]
 
-    def render_xml(self):
+    def render_xml(self) -> Optional[List[str]]:
         output = []
         if not self.members:
             return
@@ -217,12 +242,12 @@ class BaseMetadataParser(object):
 
 
 class MetadataFilenameParser(BaseMetadataParser):
-    def _parse_item(self, item):
+    def _parse_item(self, item: str) -> List[str]:
         return [self.strip_extension(item)]
 
 
 class MetadataFolderParser(BaseMetadataParser):
-    def _parse_item(self, item):
+    def _parse_item(self, item: str) -> List[str]:
         members = []
         path = self.directory + "/" + item
 
@@ -243,10 +268,10 @@ class MetadataFolderParser(BaseMetadataParser):
 
         return members
 
-    def check_delete_excludes(self, item):
+    def check_delete_excludes(self, item: str) -> bool:
         return False
 
-    def _parse_subitem(self, item, subitem):
+    def _parse_subitem(self, item: str, subitem: str) -> List[str]:
         return [item + "/" + self.strip_extension(subitem)]
 
 
@@ -260,16 +285,18 @@ class ParserConfigurationError(Exception):
 
 class MetadataXmlElementParser(BaseMetadataParser):
 
-    namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+    namespaces: Dict[str, str] = {"sf": "http://soap.sforce.com/2006/04/metadata"}
+    name_xpath: str
+    item_xpath: str
 
     def __init__(
         self,
-        metadata_type,
-        directory,
-        extension,
-        delete,
-        item_xpath=None,
-        name_xpath=None,
+        metadata_type: str,
+        directory: str,
+        extension: str,
+        delete: bool,
+        item_xpath: Optional[str] = None,
+        name_xpath: Optional[str] = None,
     ):
         super(MetadataXmlElementParser, self).__init__(
             metadata_type, directory, extension, delete
@@ -277,44 +304,42 @@ class MetadataXmlElementParser(BaseMetadataParser):
         if not item_xpath:
             raise ParserConfigurationError("You must provide a value for item_xpath")
         self.item_xpath = item_xpath
-        if not name_xpath:
-            name_xpath = "./sf:fullName"
-        self.name_xpath = name_xpath
+        self.name_xpath = name_xpath or "./sf:fullName"
 
-    def _parse_item(self, item):
+    def _parse_item(self, item: str) -> List[str]:
         root = elementtree_parse_file(self.directory + "/" + item)
         members = []
 
         parent = self.strip_extension(item)
 
-        for item in self.get_item_elements(root):
-            members.append(self.get_item_name(item, parent))
+        for elem in self.get_item_elements(root):
+            members.append(self.get_item_name(elem, parent))
 
         return members
 
-    def check_delete_excludes(self, item):
+    def check_delete_excludes(self, item: str) -> bool:
         return False
 
-    def get_item_elements(self, root):
+    def get_item_elements(self, root: etree.ElementTree) -> List[etree.Element]:
         return root.findall(self.item_xpath, self.namespaces)
 
-    def get_name_elements(self, item):
+    def get_name_elements(self, item: etree.Element) -> List[etree.Element]:
         return item.findall(self.name_xpath, self.namespaces)
 
-    def get_item_name(self, item, parent):
+    def get_item_name(self, item: etree.Element, parent: str) -> str:
         """Returns the value of the first name element found inside of element"""
         names = self.get_name_elements(item)
         if not names:
             raise MissingNameElementError
 
-        name = names[0].text
+        name = names[0].text or ""
         prefix = self.item_name_prefix(parent)
         if prefix:
             name = prefix + name
 
         return name
 
-    def item_name_prefix(self, parent):
+    def item_name_prefix(self, parent: str) -> str:
         return parent + "."
 
 
@@ -322,12 +347,12 @@ class MetadataXmlElementParser(BaseMetadataParser):
 
 
 class CustomLabelsParser(MetadataXmlElementParser):
-    def item_name_prefix(self, parent):
+    def item_name_prefix(self, parent: str) -> str:
         return ""
 
 
 class CustomObjectParser(MetadataFilenameParser):
-    def _parse_item(self, item):
+    def _parse_item(self, item: str) -> List[str]:
         members = []
 
         # Skip namespaced custom objects
@@ -348,19 +373,17 @@ class CustomObjectParser(MetadataFilenameParser):
 
 
 class RecordTypeParser(MetadataXmlElementParser):
-    def check_delete_excludes(self, item):
-        if self.delete:
-            return True
+    def check_delete_excludes(self, item: str) -> bool:
+        return self.delete
 
 
 class BusinessProcessParser(MetadataXmlElementParser):
-    def check_delete_excludes(self, item):
-        if self.delete:
-            return True
+    def check_delete_excludes(self, item: str) -> bool:
+        return self.delete
 
 
 class BundleParser(BaseMetadataParser):
-    def _parse_item(self, item):
+    def _parse_item(self, item: str) -> List[str]:
         members = []
         path = self.directory + "/" + item
 
@@ -375,7 +398,7 @@ class BundleParser(BaseMetadataParser):
 
 
 class LWCBundleParser(BaseMetadataParser):
-    def _parse_item(self, item):
+    def _parse_item(self, item: str) -> List[str]:
         members = []
         path = self.directory + "/" + item
 
@@ -390,7 +413,7 @@ class LWCBundleParser(BaseMetadataParser):
 
 
 class DocumentParser(MetadataFolderParser):
-    def _parse_subitem(self, item, subitem):
+    def _parse_subitem(self, item: str, subitem: str) -> List[str]:
         return [item + "/" + subitem]
 
 
@@ -413,7 +436,7 @@ class UpdatePackageXml(BaseTask):
     }
 
     def _init_options(self, kwargs):
-        super(UpdatePackageXml, self)._init_options(kwargs)
+        super()._init_options(kwargs)
         self.options["managed"] = self.options.get("managed") in (True, "True", "true")
 
     def _init_task(self):
@@ -425,7 +448,7 @@ class UpdatePackageXml(BaseTask):
                 package_name = self.project_config.project__package__name
 
         self.package_xml = PackageXmlGenerator(
-            directory=self.options.get("path"),
+            directory=self.options["path"],
             api_version=self.project_config.project__package__api_version,
             package_name=package_name,
             managed=self.options.get("managed", False),
@@ -438,7 +461,7 @@ class UpdatePackageXml(BaseTask):
         output = self.options.get(
             "output", "{}/package.xml".format(self.options.get("path"))
         )
-        self.logger.info(
+        self.logger.info(  # type: ignore
             "Generating {} from metadata in {}".format(output, self.options.get("path"))
         )
         package_xml = self.package_xml()
