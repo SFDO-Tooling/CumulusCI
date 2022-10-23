@@ -14,7 +14,7 @@ def elementtree_parse_file(path: T.Union[str, Path, T.IO]) -> etree.ElementTree:
     try:
         tree = etree.parse(path)
     except etree.ParseError as err:
-        err.filename = path
+        err.filename = str(path)
         raise err
     return tree
 
@@ -32,7 +32,7 @@ def lxml_parse_file(path: T.Union[str, Path, T.IO]) -> lxml_etree._ElementTree:
             path = str(path)
         tree = lxml_etree.parse(path, parser=parser)
     except etree.ParseError as err:
-        err.filename = path
+        err.filename = str(path)
         raise err
     return tree
 
