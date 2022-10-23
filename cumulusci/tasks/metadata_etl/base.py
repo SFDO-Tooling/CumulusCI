@@ -10,7 +10,12 @@ from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
-from cumulusci.tasks.metadata.package import PackageXmlGenerator
+from cumulusci.tasks.metadata.package import (
+    CustomObjectParser,
+    MetadataFilenameParser,
+    PackageXmlGenerator,
+    get_metadata_map,
+)
 from cumulusci.utils import inject_namespace
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.xml.metadata_tree import MetadataElement
@@ -283,35 +288,23 @@ class MetadataSingleEntityTransformTask(BaseMetadataTransformTask, metaclass=ABC
         # if the entity is an XML file, provide a parsed version
         # and write the returned metadata into the deploy directory
 
-        parser = PackageXmlGenerator(
-            "", self.api_version
-        )  # We'll use it for its metadata_map
-        entity_configurations = [
-            entry
-            for entry in parser.metadata_map
-            if any(
-                [
-                    subentry["type"] == self.entity
-                    for subentry in parser.metadata_map[entry]
-                ]
-            )
-        ]
-        if not entity_configurations:
+        metadata_map = get_metadata_map()
+        entity_configuration = metadata_map.config_for_entity(self.entity)
+        if not entity_configuration:
             raise CumulusCIException(
                 f"Unable to locate configuration for entity {self.entity}"
             )
 
-        configuration = parser.metadata_map[entity_configurations[0]][0]
-        if configuration["class"] not in [
-            "MetadataFilenameParser",
-            "CustomObjectParser",
+        if entity_configuration.parser_class not in [
+            MetadataFilenameParser,
+            CustomObjectParser,
         ]:
             raise CumulusCIException(
                 f"MetadataSingleEntityTransformTask only supports manipulating complete, file-based XML entities (not {self.entity})"
             )
 
-        extension = configuration["extension"]
-        directory = entity_configurations[0]
+        extension = entity_configuration.extension
+        directory = entity_configuration.subdirectory
         source_metadata_dir = self.retrieve_dir / directory
 
         if "*" in self.api_names:

@@ -3,10 +3,13 @@ import os
 import re
 import urllib.parse
 import xml.etree.ElementTree as etree
+from collections import defaultdict
+from functools import lru_cache
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable, DefaultDict, Dict, List, Optional, Type
 
 import yaml
+from pydantic import BaseModel, Field, PrivateAttr
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import elementtree_parse_file
@@ -40,14 +43,79 @@ def metadata_sort_key_section(name: str) -> str:
     return key
 
 
+class RawMetadataMapEntry(BaseModel):
+    entity: str = Field(alias="type")
+    parser_class: str = Field(alias="class")
+    extension: Optional[str] = None
+    options: dict = {}
+
+
+class MetadataMapEntry(BaseModel):
+    entity: str
+    subdirectory: str
+    parser_class: Type["BaseMetadataParser"]
+    extension: Optional[str] = None
+    options: dict
+
+    def get_parser(self, directory: str, delete: bool = False) -> "BaseMetadataParser":
+        return self.parser_class(
+            self.entity,
+            directory + "/" + self.subdirectory,
+            self.extension,
+            delete,
+            **self.options
+        )
+
+
+class MetadataMap(BaseModel):
+    __root__: Dict[str, List[RawMetadataMapEntry]]
+
+    _by_entity: Dict[str, MetadataMapEntry] = PrivateAttr()
+    _by_directory: DefaultDict[str, List[MetadataMapEntry]] = PrivateAttr()
+
+    def cache(self):
+        # Populate the cache dicts from the raw entries
+        self._by_entity = {}
+        self._by_directory = defaultdict(list)
+        for subdir, configs in self.__root__.items():
+            for config in configs:
+                entry = MetadataMapEntry(
+                    entity=config.entity,
+                    parser_class=globals()[
+                        config.parser_class
+                    ],  # TODO: this is fragile and requires all subclasses to be in this module.
+                    extension=config.extension,
+                    subdirectory=subdir,
+                    options=config.options,
+                )
+                self._by_entity[entry.entity] = entry
+                self._by_directory[entry.subdirectory].append(entry)
+
+    def config_for_entity(self, entity: str) -> Optional[MetadataMapEntry]:
+        return self._by_entity.get(entity)
+
+    def configs_for_directory(self, dir: str) -> List[MetadataMapEntry]:
+        return self._by_directory[dir]
+
+
 class MetadataParserMissingError(Exception):
     pass
+
+
+@lru_cache()
+def get_metadata_map() -> MetadataMap:
+    with open(
+        __location__ + "/metadata_map.yml", "r", encoding="utf-8"
+    ) as f_metadata_map:
+        m = MetadataMap.parse_obj(yaml.safe_load(f_metadata_map))
+        m.cache()
+        return m
 
 
 class PackageXmlGenerator:
     # `types` is supplied as a list of an unrelated Callable class in cumulusci.tasks.salesforce.sourcetracking
     # Essentially this is structural subtyping, but since it's a Callable, we don't need a Protocol to type it.
-    types: List[Callable[[], List[str]]]
+    types: List[Callable[[], Optional[List[str]]]]
     install_class: Optional[str]
     uninstall_class: Optional[str]
     managed: bool
@@ -55,7 +123,6 @@ class PackageXmlGenerator:
     package_name: Optional[str]
     directory: str
     api_version: str
-    metadata_map: Dict[str, List[Dict[str, str]]]
 
     def __init__(
         self,
@@ -66,12 +133,8 @@ class PackageXmlGenerator:
         delete: bool = False,
         install_class: Optional[str] = None,
         uninstall_class: Optional[str] = None,
-        types: Optional[List[Callable[[], List[str]]]] = None,
+        types: Optional[List[Callable[[], Optional[List[str]]]]] = None,
     ):
-        with open(
-            __location__ + "/metadata_map.yml", "r", encoding="utf-8"
-        ) as f_metadata_map:
-            self.metadata_map = yaml.safe_load(f_metadata_map)
         self.directory = directory
         self.api_version = api_version
         self.package_name = package_name
@@ -94,22 +157,15 @@ class PackageXmlGenerator:
                 continue
             if item.startswith("."):
                 continue
-            config = self.metadata_map.get(item)
-            if not config:
+            metadata_map = get_metadata_map()
+            configs = metadata_map.configs_for_directory(item)
+            if not configs:
                 raise MetadataParserMissingError(
                     "No parser configuration found for subdirectory %s" % item
                 )
 
-            for parser_config in config:
-                options = parser_config.get("options") or {}
-                parser = globals()[parser_config["class"]](
-                    parser_config["type"],  # Metadata Type
-                    self.directory + "/" + item,  # Directory
-                    parser_config.get("extension", ""),  # Extension
-                    self.delete,  # Parse for deletion?
-                    **options  # Extra kwargs
-                )
-                self.types.append(parser)
+            for parser_config in configs:
+                self.types.append(parser_config.get_parser(self.directory, self.delete))
 
     def render_xml(self) -> str:
         lines = []
