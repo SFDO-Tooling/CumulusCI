@@ -12,6 +12,9 @@ from contextlib import nullcontext
 from typing import Any, Callable, Dict, List, Optional
 
 from cumulusci import __version__
+from cumulusci.core.config import TaskConfig
+from cumulusci.core.config.org_config import OrgConfig
+from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.debug import DebugMode, get_debug_mode
 from cumulusci.core.exceptions import (
     ServiceNotConfigured,
@@ -20,9 +23,6 @@ from cumulusci.core.exceptions import (
     TaskRequiresSalesforceOrg,
 )
 from cumulusci.core.flowrunner import FlowCoordinator, StepSpec, StepVersion
-from cumulusci.core.config.org_config import OrgConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.utils import cd
 from cumulusci.utils.logging import redirect_output_to_logger
 

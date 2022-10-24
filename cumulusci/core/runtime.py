@@ -1,6 +1,6 @@
 import sys
 from abc import abstractmethod
-from typing import Optional
+from typing import Optional, Type
 
 from cumulusci.core.config import BaseProjectConfig, UniversalConfig
 from cumulusci.core.debug import DebugMode, get_debug_mode
@@ -10,7 +10,7 @@ from cumulusci.core.keychain import BaseProjectKeychain
 
 
 # pylint: disable=assignment-from-none
-class BaseCumulusCI(object):
+class BaseCumulusCI:
     universal_config_class = UniversalConfig
     project_config_class = BaseProjectConfig
     keychain_class = BaseProjectKeychain
@@ -38,30 +38,30 @@ class BaseCumulusCI(object):
             self._load_keychain()
 
     @property
-    def universal_config_cls(self):
+    def universal_config_cls(self) -> Type:
         klass = self.get_universal_config_class()
         return klass or self.universal_config_class
 
     @abstractmethod
-    def get_universal_config_class(self):
+    def get_universal_config_class(self) -> Optional[Type]:
         return None
 
     @property
-    def project_config_cls(self):
+    def project_config_cls(self) -> Type:
         klass = self.get_project_config_class()
         return klass or self.project_config_class
 
     @abstractmethod
-    def get_project_config_class(self):
+    def get_project_config_class(self) -> Optional[Type]:
         return None
 
     @property
-    def keychain_cls(self):
+    def keychain_cls(self) -> Type:
         klass = self.get_keychain_class()
         return klass or self.keychain_class
 
     @abstractmethod
-    def get_keychain_class(self):
+    def get_keychain_class(self) -> Optional[Type]:
         return None
 
     @property
@@ -73,7 +73,7 @@ class BaseCumulusCI(object):
         return None
 
     def _add_repo_to_path(self):
-        if self.project_config:
+        if self.project_config and self.project_config.repo_root:
             sys.path.append(self.project_config.repo_root)
 
     def _load_universal_config(self):
@@ -98,6 +98,8 @@ class BaseCumulusCI(object):
 
     def get_flow(self, name: str, options: Optional[dict] = None) -> FlowCoordinator:
         """Get a primed and ready-to-go flow coordinator."""
+        if not self.project_config:
+            raise ProjectConfigNotFound
         flow_config = self.project_config.get_flow(name)
         callbacks = self.callback_class()
         coordinator = FlowCoordinator(
