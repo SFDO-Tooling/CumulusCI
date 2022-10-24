@@ -343,7 +343,7 @@ class BulkApiDmlOperation(BaseDmlOperation, BulkJobMixin):
             self.api_options.get("batch_size") or DEFAULT_BULK_BATCH_SIZE
         )
         self.csv_buff = io.StringIO(newline="")
-        self.csv_writer = csv.writer(self.csv_buff)
+        self.csv_writer = csv.writer(self.csv_buff, quoting=csv.QUOTE_ALL)
 
     def start(self):
         self.job_id = self.bulk.create_job(
