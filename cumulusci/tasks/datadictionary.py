@@ -597,7 +597,7 @@ class GenerateDataDictionary(BaseGithubTask):
 
     def _write_object_results(self, file_handle):
         """Write to the given handle an output CSV containing the data dictionary for sObjects."""
-        writer = csv.writer(file_handle)
+        writer = csv.writer(file_handle, quoting=csv.QUOTE_ALL)
 
         writer.writerow(
             [
@@ -645,7 +645,7 @@ class GenerateDataDictionary(BaseGithubTask):
 
     def _write_field_results(self, file_handle):
         """Write to the given handle an output CSV containing the data dictionary for fields."""
-        writer = csv.writer(file_handle)
+        writer = csv.writer(file_handle, quoting=csv.QUOTE_ALL)
 
         writer.writerow(
             [
