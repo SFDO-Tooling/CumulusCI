@@ -112,7 +112,7 @@ class OmniStudioDeployRemoteSiteSettings(AddRemoteSiteSettings):
 
     def _get_options(self) -> RSSOptions:
         namespace = self.options.get("namespace") or OMNI_NAMESPACE
-        if self.org_config.scratch:
+        if ".scratch.my" in self.org_config.instance_url:
             visualforce_url: str = self.org_config.instance_url.replace(
                 ".scratch.my.salesforce.com",
                 f"--{namespace}.scratch.{self.org_config.instance_name}.visual.force.com",
