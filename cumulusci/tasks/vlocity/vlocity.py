@@ -114,12 +114,12 @@ class OmniStudioDeployRemoteSiteSettings(AddRemoteSiteSettings):
         namespace = self.options.get("namespace") or OMNI_NAMESPACE
 
         visualforce_url: str = self.org_config.instance_url.replace(
-            ".my.salesforce.com",
-            f"--{namespace}.{self.org_config.instance_name}.visual.force.com",
+            ".scratch.my.salesforce.com",
+            f"--{namespace}.scratch.{self.org_config.instance_name}.visual.force.com",
         )
         legacy_visualforce_url: str = self.org_config.instance_url.replace(
-            ".my.salesforce.com",
-            f"--{namespace}.vf.force.com",
+            ".scratch.my.salesforce.com",
+            f"--{namespace}.scratch.vf.force.com",
         )
         lightning_url: str = self.org_config.instance_url.replace(
             ".my.salesforce.com", ".lightning.force.com"

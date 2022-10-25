@@ -110,7 +110,7 @@ def test_vlocity_build_tool_missing(project_config):
             task._init_task()
 
 
-namespace = "cci"
+namespace = "omnistudio"
 test_cases = [
     (TaskConfig(config={}), OMNI_NAMESPACE),
     (TaskConfig(config={"options": {"namespace": namespace}}), namespace),
@@ -123,7 +123,7 @@ def test_deploy_omni_studio_site_settings(
 ):
     org_config = mock.Mock(
         installed_packages=[],
-        instance_url="https://inspiration-velocity-34802-dev-ed.my.salesforce.com/",
+        instance_url="https://inspiration-velocity-34802-dev-ed.scratch.my.salesforce.com/",
         instance_name="CS28",
     )
 
@@ -138,11 +138,12 @@ def test_deploy_omni_studio_site_settings(
     # when no 'namespace' option is specified, we default to the omni studio namespace
     expected_urls = set(
         [
-            "https://inspiration-velocity-34802-dev-ed.lightning.force.com/",
-            f"https://inspiration-velocity-34802-dev-ed--{expected_namespace}.vf.force.com/",
-            f"https://inspiration-velocity-34802-dev-ed--{expected_namespace}.CS28.visual.force.com/",
+            f"https://inspiration-velocity-34802-dev-ed--{expected_namespace}.scratch.{org_config.instance_name}.visual.force.com/",
+            "https://inspiration-velocity-34802-dev-ed.scratch.lightning.force.com/",
+            f"https://inspiration-velocity-34802-dev-ed--{expected_namespace}.scratch.vf.force.com/",
         ]
     )
+
     actual_urls = set([r.url for r in records])
     assert expected_urls == actual_urls
 
