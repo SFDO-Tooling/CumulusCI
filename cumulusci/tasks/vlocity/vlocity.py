@@ -3,8 +3,8 @@ from abc import ABC
 from typing import Final
 
 import sarge
-from cumulusci.core.config import org_config
 
+from cumulusci.core.config import org_config
 from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.tasks.command import Command
