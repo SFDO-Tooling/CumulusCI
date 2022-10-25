@@ -125,6 +125,7 @@ def test_deploy_omni_studio_site_settings(
         installed_packages=[],
         instance_url="https://inspiration-velocity-34802-dev-ed.scratch.my.salesforce.com/",
         instance_name="CS28",
+        scratch=True,
     )
 
     task = OmniStudioDeployRemoteSiteSettings(project_config, task_config, org_config)

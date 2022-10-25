@@ -3,6 +3,7 @@ from abc import ABC
 from typing import Final
 
 import sarge
+from cumulusci.core.config import org_config
 
 from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
 from cumulusci.core.tasks import BaseSalesforceTask
@@ -112,14 +113,22 @@ class OmniStudioDeployRemoteSiteSettings(AddRemoteSiteSettings):
 
     def _get_options(self) -> RSSOptions:
         namespace = self.options.get("namespace") or OMNI_NAMESPACE
-
+        if self.org_config.scratch:
+            visualforce_url: str = self.org_config.instance_url.replace(
+                ".scratch.my.salesforce.com",
+                f"--{namespace}.scratch.{self.org_config.instance_name}.visual.force.com",
+            )
+            legacy_visualforce_url: str = self.org_config.instance_url.replace(
+                ".scratch.my.salesforce.com",
+                f"--{namespace}.scratch.vf.force.com",
+            )
         visualforce_url: str = self.org_config.instance_url.replace(
-            ".scratch.my.salesforce.com",
-            f"--{namespace}.scratch.{self.org_config.instance_name}.visual.force.com",
+            ".my.salesforce.com",
+            f"--{namespace}.{self.org_config.instance_name}.visual.force.com",
         )
         legacy_visualforce_url: str = self.org_config.instance_url.replace(
-            ".scratch.my.salesforce.com",
-            f"--{namespace}.scratch.vf.force.com",
+            ".my.salesforce.com",
+            f"--{namespace}.vf.force.com",
         )
         lightning_url: str = self.org_config.instance_url.replace(
             ".my.salesforce.com", ".lightning.force.com"
