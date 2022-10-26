@@ -66,7 +66,7 @@ class TestGenerateDataDictionary:
 
         assert (
             result
-            == "Object Label,Object API Name,Object Description,Version Introduced,Version Deleted\r\nTest,test__Test__c,Description,Test 1.1,Test 1.2\r\n"
+            == '"Object Label","Object API Name","Object Description","Version Introduced","Version Deleted"\r\n"Test","test__Test__c","Description","Test 1.1","Test 1.2"\r\n'
         )
 
     def test_write_field_results(self):
@@ -152,10 +152,15 @@ class TestGenerateDataDictionary:
         result = f.read()
 
         assert result == (
-            "Object Label,Object API Name,Field Label,Field API Name,Type,Picklist Values,Help Text,Field Description,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
-            "Account,Account,Desc,test__Desc__c,Text,,,,Test 1.2,,,\r\n"
-            "Test Object,test__Test__c,Type,test__Type__c,Picklist,Foo; Bar; New Value,New Help,Description,Test 1.1,Test 1.2,Test 1.2,\r\n"
-            "Test Object,test__Test__c,Account,test__Account__c,Lookup to Account,,Help,Description,Test 1.1,,,Test 1.2\r\n"
+            '"Object Label","Object API Name","Field Label","Field API Name",'
+            '"Type","Picklist Values","Help Text","Field Description","Version Introduced",'
+            '"Version Picklist Values Last Changed","Version Help Text Last Changed",'
+            '"Version Deleted"\r\n"Account","Account","Desc","test__Desc__c","Text",'
+            '"","","","Test 1.2","","",""\r\n"Test Object","test__Test__c","Type",'
+            '"test__Type__c","Picklist","Foo; Bar; New Value","New Help","Description",'
+            '"Test 1.1","Test 1.2","Test 1.2",""\r\n"Test Object","test__Test__c",'
+            '"Account","test__Account__c","Lookup to Account","","Help","Description",'
+            '"Test 1.1","","","Test 1.2"\r\n'
         )
 
     def test_write_field_results__omit_sobjects(self):
@@ -236,9 +241,13 @@ class TestGenerateDataDictionary:
         result = f.read()
 
         assert result == (
-            "Object Label,Object API Name,Field Label,Field API Name,Type,Picklist Values,Help Text,Field Description,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
-            "Test Object,test__Test__c,Type,test__Type__c,Picklist,Foo; Bar; New Value,New Help,Description,Test 1.1,Test 1.2,Test 1.2,\r\n"
-            "Test Object,test__Test__c,Account,test__Account__c,Lookup to Account,,Help,Description,Test 1.1,,,Test 1.2\r\n"
+            '"Object Label","Object API Name","Field Label","Field API Name","Type",'
+            '"Picklist Values","Help Text","Field Description","Version Introduced",'
+            '"Version Picklist Values Last Changed","Version Help Text Last Changed",'
+            '"Version Deleted"\r\n"Test Object","test__Test__c","Type","test__Type__c",'
+            '"Picklist","Foo; Bar; New Value","New Help","Description","Test 1.1","Test 1.2",'
+            '"Test 1.2",""\r\n"Test Object","test__Test__c","Account","test__Account__c",'
+            '"Lookup to Account","","Help","Description","Test 1.1","","","Test 1.2"\r\n'
         )
 
     def test_should_process_object(self):
@@ -1270,14 +1279,14 @@ class TestGenerateDataDictionary:
         m.return_value.write.assert_has_calls(
             [
                 call(
-                    "Object Label,Object API Name,Object Description,Version Introduced,Version Deleted\r\n"
+                    '"Object Label","Object API Name","Object Description","Version Introduced","Version Deleted"\r\n'
                 ),
-                call("Test,test__Test__c,Description,Project 1.1,\r\n"),
+                call('"Test","test__Test__c","Description","Project 1.1",""\r\n'),
                 call(
-                    "Object Label,Object API Name,Field Label,Field API Name,Type,Picklist Values,Help Text,Field Description,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
+                    '"Object Label","Object API Name","Field Label","Field API Name","Type","Picklist Values","Help Text","Field Description","Version Introduced","Version Picklist Values Last Changed","Version Help Text Last Changed","Version Deleted"\r\n'
                 ),
                 call(
-                    "Test,test__Test__c,Type,test__Type__c,Text (255),,Type of field.,,Project 1.1,,,\r\n"
+                    '"Test","test__Test__c","Type","test__Type__c","Text (255)","","Type of field.","","Project 1.1","","",""\r\n'
                 ),
             ],
             any_order=True,
@@ -1359,17 +1368,17 @@ class TestGenerateDataDictionary:
         m.return_value.write.assert_has_calls(
             [
                 call(
-                    "Object Label,Object API Name,Object Description,Version Introduced,Version Deleted\r\n"
+                    '"Object Label","Object API Name","Object Description","Version Introduced","Version Deleted"\r\n'
                 ),
-                call("Test,test__Test__c,Description,Project 1.1,\r\n"),
+                call('"Test","test__Test__c","Description","Project 1.1",""\r\n'),
                 call(
-                    "Object Label,Object API Name,Field Label,Field API Name,Type,Picklist Values,Help Text,Field Description,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
-                ),
-                call(
-                    "Test,test__Test__c,Type,test__Type__c,Text (255),,Type of field.,,Project 1.1,,,\r\n"
+                    '"Object Label","Object API Name","Field Label","Field API Name","Type","Picklist Values","Help Text","Field Description","Version Introduced","Version Picklist Values Last Changed","Version Help Text Last Changed","Version Deleted"\r\n'
                 ),
                 call(
-                    "Test,test__Test__c,Description,test__Description__c,Text (255),,Description of field.,,Project Prerelease,,,\r\n"
+                    '"Test","test__Test__c","Type","test__Type__c","Text (255)","","Type of field.","","Project 1.1","","",""\r\n'
+                ),
+                call(
+                    '"Test","test__Test__c","Description","test__Description__c","Text (255)","","Description of field.","","Project Prerelease","","",""\r\n'
                 ),
             ],
             any_order=True,
