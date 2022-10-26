@@ -1,9 +1,9 @@
 import base64
 import json
 import os
-import pickle
 import sys
 import typing as T
+from datetime import date, datetime
 from pathlib import Path
 from shutil import rmtree
 
@@ -26,6 +26,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
 from cumulusci.core.utils import import_class, import_global
+from cumulusci.utils.pickle import restricted_loads
 from cumulusci.utils.yaml.cumulusci_yml import ScratchOrg
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
@@ -33,7 +34,7 @@ DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
 # The file permissions that we want set on all
 # .org and .service files. Equivalent to -rw-------
 SERVICE_ORG_FILE_MODE = 0o600
-OS_FILE_FLAGS = os.O_WRONLY | os.O_CREAT
+OS_FILE_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
 if sys.platform.startswith("win"):
     # O_BINARY only available on Windows
     OS_FILE_FLAGS |= os.O_BINARY
@@ -43,15 +44,27 @@ BS = 16
 backend = default_backend()
 
 
-def pad(s):
-    return s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode("ascii")
-
-
 scratch_org_class = os.environ.get("CUMULUSCI_SCRATCH_ORG_CLASS")
 if scratch_org_class:
     scratch_org_factory = import_global(scratch_org_class)  # pragma: no cover
 else:
     scratch_org_factory = ScratchOrgConfig
+
+
+def extract_dates(x):
+    if x.get("$type") == "date":
+        return date.fromisoformat(x["$value"])
+    if x.get("$type") == "datetime":
+        return datetime.fromisoformat(x["$value"])
+    assert "$type" not in x, f"Unknown $type: {x['$type']}"
+    return x
+
+
+def safe_load_json_or_pickle(data):
+    try:
+        return json.loads(data, object_hook=extract_dates)
+    except ValueError:
+        return restricted_loads(data)
 
 
 """
@@ -112,10 +125,10 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         return cipher, iv
 
     def _encrypt_config(self, config):
-        pickled = pickle.dumps(config.config, protocol=2)
-        pickled = pad(pickled)
+        json_obj = config._serialize()
+        encryptor_value = json_obj + (BS - len(json_obj) % BS) * b" "
         cipher, iv = self._get_cipher()
-        return base64.b64encode(iv + cipher.encryptor().update(pickled))
+        return base64.b64encode(iv + cipher.encryptor().update(encryptor_value))
 
     def _decrypt_config(self, config_class, encrypted_config, extra=None, context=None):
         if self.key:
@@ -127,17 +140,17 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             encrypted_config = base64.b64decode(encrypted_config)
             iv = encrypted_config[:16]
             cipher, iv = self._get_cipher(iv)
-            pickled = cipher.decryptor().update(encrypted_config[16:])
+            decrypted = cipher.decryptor().update(encrypted_config[16:])
             try:
-                unpickled = pickle.loads(pickled, encoding="bytes")
-            except Exception:
+                config_obj = safe_load_json_or_pickle(decrypted)
+            except Exception as exc:
                 raise KeychainKeyNotFound(
                     f"Unable to decrypt{' ' + context if context else ''}. "
                     "It was probably stored using a different CUMULUSCI_KEY."
-                )
+                ) from exc
             # Convert bytes created in Python 2
             config_dict = {}
-            for k, v in unpickled.items():
+            for k, v in config_obj.items():
                 if isinstance(k, bytes):
                     k = k.decode("utf-8")
                 if isinstance(v, bytes):
@@ -165,7 +178,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         if self.key:
             org_bytes = self._encrypt_config(config)
         else:
-            org_bytes = pickle.dumps(config.config)
+            org_bytes = config._serialize()
 
         assert org_bytes is not None, "org_bytes should have a value"
         return org_bytes
@@ -367,7 +380,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"org config ({name})",
             )
         else:
-            config = pickle.loads(config)
+            config = safe_load_json_or_pickle(config)
             org = self._construct_config(OrgConfig, [config, name, self])
 
         return org
@@ -592,7 +605,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         elif self.key and not config_encrypted:
             config = self._encrypt_config(service_config)
         else:
-            config = pickle.dumps(service_config.config)
+            config = service_config._serialize()
 
         self.services[service_type][alias] = config
 
@@ -643,7 +656,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"service config ({service_type}:{alias})",
             )
         else:
-            config = pickle.loads(config)
+            config = safe_load_json_or_pickle(config)
             org = self._construct_config(ConfigClass, [config, alias, self])
 
         return org
