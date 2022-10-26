@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import elementtree_parse_file
+from cumulusci.utils.xml.metadata_tree import MetadataElement
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -63,7 +64,7 @@ class MetadataMapEntry(BaseModel):
             directory + "/" + self.subdirectory,
             self.extension,
             delete,
-            **self.options
+            **self.options,
         )
 
 
@@ -110,6 +111,14 @@ def get_metadata_map() -> MetadataMap:
         m = MetadataMap.parse_obj(yaml.safe_load(f_metadata_map))
         m.cache()
         return m
+
+
+class PackageComponent(BaseModel):
+    name: str
+    paths: List[str]
+    content: Optional[bytes]
+    xml_root: Optional[MetadataElement]
+    xml_element: Optional[MetadataElement]
 
 
 class PackageXmlGenerator:
@@ -237,6 +246,11 @@ class BaseMetadataParser(abc.ABC):
                 excludes.append(line.strip())
         return excludes
 
+    @abc.abstractmethod
+    def find_item(self, item: str) -> Optional[PackageComponent]:
+        """Locate the on-disk representation of the given component"""
+        ...
+
     def parse_items(self):
         # Loop through items
         for item in sorted(os.listdir(self.directory)):
@@ -301,6 +315,22 @@ class MetadataFilenameParser(BaseMetadataParser):
     def _parse_item(self, item: str) -> List[str]:
         return [self.strip_extension(item)]
 
+    def find_item(self, item: str) -> Optional[PackageComponent]:
+        if self.extension:
+            filename = f"{item}.{self.extension}"
+        else:
+            filename = item
+
+        path = Path(self.directory) / filename
+        if path.exists():
+            return PackageComponent(
+                name=item,
+                paths=[str(path)],
+                content=None,
+                xml_root=None,
+                xml_element=None,
+            )
+
 
 class MetadataFolderParser(BaseMetadataParser):
     def _parse_item(self, item: str) -> List[str]:
@@ -323,6 +353,22 @@ class MetadataFolderParser(BaseMetadataParser):
             members.extend(submembers)
 
         return members
+
+    def find_item(self, item: str) -> Optional[PackageComponent]:
+        if self.extension:
+            filename = f"{item}.{self.extension}"
+        else:
+            filename = item
+
+        path = Path(self.directory) / filename
+        if path.exists():
+            return PackageComponent(
+                name=item,
+                paths=[str(path)],
+                content=None,
+                xml_root=None,
+                xml_element=None,
+            )
 
     def check_delete_excludes(self, item: str) -> bool:
         return False
@@ -372,6 +418,30 @@ class MetadataXmlElementParser(BaseMetadataParser):
             members.append(self.get_item_name(elem, parent))
 
         return members
+
+    def find_item(self, item: str) -> Optional[PackageComponent]:
+        path_elements = item.split(".")
+        if self.extension:
+            filename = f"{path_elements[0]}.{self.extension}"
+        else:
+            filename = path_elements[0]
+
+        path = Path(self.directory) / filename
+        if path.exists():
+            root = elementtree_parse_file(path)
+            elements = [
+                x
+                for x in self.get_item_elements(root)
+                if self.get_item_name(x, path_elements[0]) == item
+            ]
+            if elements:
+                return PackageComponent(
+                    name=item,
+                    paths=[str(path)],
+                    content=None,
+                    xml_root=MetadataElement(root.getroot()),
+                    xml_element=MetadataElement(elements[0], root),
+                )
 
     def check_delete_excludes(self, item: str) -> bool:
         return False
