@@ -80,7 +80,9 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     additional_yaml: Optional[str]
     source: Union[NullSource, GitHubSource, LocalFolderSource]
     _cache_dir: Optional[Path]
-    included_sources: dict
+    included_sources: Dict[
+        Union[GitHubSourceModel, LocalFolderSourceModel], "BaseProjectConfig"
+    ]
 
     def __init__(
         self,
