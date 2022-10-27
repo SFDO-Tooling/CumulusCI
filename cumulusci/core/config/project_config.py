@@ -14,7 +14,6 @@ from github3 import GitHub
 from github3.repos.repo import Repository
 
 from cumulusci.core.config.base_config import BaseConfig
-from cumulusci.core.keychain.base_project_keychain import BaseProjectKeychain
 from cumulusci.core.versions import PackageVersionNumber
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
@@ -49,6 +48,7 @@ from cumulusci.utils.yaml.cumulusci_yml import (
 
 if TYPE_CHECKING:
     from cumulusci.core.config.universal_config import UniversalConfig
+    from cumulusci.core.keychain.base_project_keychain import BaseProjectKeychain
 
 
 class ProjectConfigPropertiesMixin(BaseConfig):
@@ -72,7 +72,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
     config_filename = "cumulusci.yml"
     universal_config_obj: "UniversalConfig"
-    keychain: Optional[BaseProjectKeychain]
+    keychain: Optional["BaseProjectKeychain"]
     _repo_info: Dict[str, Any]
     config_project: dict
     config_project_local: dict
@@ -543,7 +543,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         except ValueError:
             pass
 
-    def set_keychain(self, keychain: BaseProjectKeychain):
+    def set_keychain(self, keychain: "BaseProjectKeychain"):
         self.keychain = keychain
 
     def _check_keychain(self):
