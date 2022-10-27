@@ -71,7 +71,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     """Base class for a project's configuration which extends the global config"""
 
     config_filename = "cumulusci.yml"
-    universal_config_obj: UniversalConfig
+    universal_config_obj: "UniversalConfig"
     keychain: Optional[BaseProjectKeychain]
     _repo_info: Dict[str, Any]
     config_project: dict
@@ -84,7 +84,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
     def __init__(
         self,
-        universal_config_obj: UniversalConfig,
+        universal_config_obj: "UniversalConfig",
         config: Optional[dict] = None,
         cache_dir: Optional[Path] = None,
         *args,
