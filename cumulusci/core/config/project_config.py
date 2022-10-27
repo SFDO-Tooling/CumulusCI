@@ -8,13 +8,12 @@ from distutils.version import LooseVersion
 from io import StringIO
 from itertools import chain
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Union
 
 from github3 import GitHub
 from github3.repos.repo import Repository
 
 from cumulusci.core.config.base_config import BaseConfig
-from cumulusci.core.config.universal_config import UniversalConfig
 from cumulusci.core.keychain.base_project_keychain import BaseProjectKeychain
 from cumulusci.core.versions import PackageVersionNumber
 
@@ -47,6 +46,9 @@ from cumulusci.utils.yaml.cumulusci_yml import (
     LocalFolderSourceModel,
     cci_safe_load,
 )
+
+if TYPE_CHECKING:
+    from cumulusci.core.config.universal_config import UniversalConfig
 
 
 class ProjectConfigPropertiesMixin(BaseConfig):
