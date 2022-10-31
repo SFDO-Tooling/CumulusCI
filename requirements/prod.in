@@ -19,7 +19,7 @@ requests
 requests-futures
 rich
 # check with Bryan about upgrading to v5
-robotframework<5
+robotframework
 robotframework-lint
 robotframework-pabot
 robotframework-requests
