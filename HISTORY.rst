@@ -2,6 +2,29 @@
 History
 =======
 
+3.68.0 (2022-10-31)
+-------------------
+
+Critical Changes 🎉
+
+-  Upgraded Robot Framework from version 4.1.3 to version 6. As with most Robot Framework updates, there are a host of new features and a few deprecated features and backwards incompatibilities. For a complete list consult the `Robot Framework release notes <https://github.com/robotframework/robotframework/releases>`__ in https://github.com/SFDO-Tooling/CumulusCI/pull/3417
+
+Changes 🎉
+
+-  Add support for InstallKey, sourceOrg, release keys on 2GP version create by @davidmreed in https://github.com/SFDO-Tooling/CumulusCI/pull/3403
+-  We now support the ``Territory2``, ``Territory2Model``, ``Territory2Type``, and ``Territory2Rule`` MetaData types. by @TheBitShepherd in https://github.com/SFDO-Tooling/CumulusCI/pull/3406
+-  Add ``push_upgrade_org`` flow to test in simulated push upgrade environment by @davidmreed in https://github.com/SFDO-Tooling/CumulusCI/pull/3286
+-  Fixed bug preventing the ``deploy_omni_studio_site_settings`` task from deploying to scratch orgs with the new ``.scratch.`` domain names by @jofsky in https://github.com/SFDO-Tooling/CumulusCI/pull/3411
+-  All new keychain details are serialized using JSON, not pickle by @bethbrains in https://github.com/SFDO-Tooling/CumulusCI/pull/3390
+- Snowfakery (upgraded to 3.4) can now generate Event or Meeting Schedules similar to Calendar Apps
+- Snowfakery now has a Salesforce.ContentFile feature for generating Content Versions
+
+Issues Fixed 🩴
+
+-  Bumped key_size from 2048 to 4096 on advice from a security audit by @boakley in https://github.com/SFDO-Tooling/CumulusCI/pull/3389
+-  Fixed an issue where unknown deploy statuses could cause polling to hang in the deploy_marketing_cloud_package task by @TheBitShepherd in https://github.com/SFDO-Tooling/CumulusCI/pull/3394
+-  Fixed an injection vulnerability related to unquoted csv writers by @TheBitShepherd in https://github.com/SFDO-Tooling/CumulusCI/pull/3404
+
 3.66.0 (2022-09-29)
 -------------------
 
