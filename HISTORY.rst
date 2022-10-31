@@ -7,7 +7,7 @@ History
 
 Critical Changes 🎉
 
--  Upgraded RobotFramework from version 4.1.3 to version 6. As with most robotframework updates, there are a host of new features and a few deprecated features and backwards incompatibilities. For a complete list consult the `robotframework release notes <https://github.com/robotframework/robotframework/releases>`__ in https://github.com/SFDO-Tooling/CumulusCI/pull/3417
+-  Upgraded Robot Framework from version 4.1.3 to version 6. As with most Robot Framework updates, there are a host of new features and a few deprecated features and backwards incompatibilities. For a complete list consult the `Robot Framework release notes <https://github.com/robotframework/robotframework/releases>`__ in https://github.com/SFDO-Tooling/CumulusCI/pull/3417
 
 Changes 🎉
 
