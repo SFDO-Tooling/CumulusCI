@@ -13,6 +13,8 @@ Changes 🎉
 -   Add `push_upgrade_org` flow to test in simulated push upgrade environment by @davidmreed in https://github.com/SFDO-Tooling/CumulusCI/pull/3286
 -   Fixed bug preventing the `deploy_omni_studio_site_settings` task from deploying to scratch orgs with the new `.scratch.` domain names by @jofsky in https://github.com/SFDO-Tooling/CumulusCI/pull/3411
 -   All new keychain details are serialized using JSON, not pickle by @bethbrains in https://github.com/SFDO-Tooling/CumulusCI/pull/3390
+-   Snowfakery (upgraded to 3.4) can now generate Event or Meeting Schedules similar to Calendar Apps
+-   Snowfakery now has a Salesforce.ContentFile feature for generating Content Versions
 
 Issues Fixed 🩴
 
