@@ -488,15 +488,15 @@ class TestBulkApiDmlOperation:
         )
 
         serialized = step._serialize_csv_record(step.fields)
-        assert serialized == b"Id,FirstName,LastName\r\n"
+        assert serialized == b'"Id","FirstName","LastName"\r\n'
 
         record = ["1", "Bob", "Ross"]
         serialized = step._serialize_csv_record(record)
-        assert serialized == b"1,Bob,Ross\r\n"
+        assert serialized == b'"1","Bob","Ross"\r\n'
 
         record = ["col1", "multiline\ncol2"]
         serialized = step._serialize_csv_record(record)
-        assert serialized == b'col1,"multiline\ncol2"\r\n'
+        assert serialized == b'"col1","multiline\ncol2"\r\n'
 
     def test_batch(self):
         context = mock.Mock()
@@ -514,13 +514,13 @@ class TestBulkApiDmlOperation:
 
         assert len(results) == 2
         assert list(results[0]) == [
-            "LastName\r\n".encode("utf-8"),
-            "Test\r\n".encode("utf-8"),
-            "Test2\r\n".encode("utf-8"),
+            '"LastName"\r\n'.encode("utf-8"),
+            '"Test"\r\n'.encode("utf-8"),
+            '"Test2"\r\n'.encode("utf-8"),
         ]
         assert list(results[1]) == [
-            "LastName\r\n".encode("utf-8"),
-            "Test3\r\n".encode("utf-8"),
+            '"LastName"\r\n'.encode("utf-8"),
+            '"Test3"\r\n'.encode("utf-8"),
         ]
 
     def test_batch__character_limit(self):
@@ -548,13 +548,13 @@ class TestBulkApiDmlOperation:
 
         assert len(results) == 2
         assert list(results[0]) == [
-            "LastName\r\n".encode("utf-8"),
-            "Test\r\n".encode("utf-8"),
-            "Test2\r\n".encode("utf-8"),
+            '"LastName"\r\n'.encode("utf-8"),
+            '"Test"\r\n'.encode("utf-8"),
+            '"Test2"\r\n'.encode("utf-8"),
         ]
         assert list(results[1]) == [
-            "LastName\r\n".encode("utf-8"),
-            "Test3\r\n".encode("utf-8"),
+            '"LastName"\r\n'.encode("utf-8"),
+            '"Test3"\r\n'.encode("utf-8"),
         ]
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
