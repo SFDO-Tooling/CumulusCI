@@ -2,6 +2,12 @@
 History
 =======
 
+3.68.1 (2022-11-01)
+-------------------
+Critical Changes 🎉
+
+- Revert a change in parsing config files which was incompatible with some configs
+
 3.68.0 (2022-10-31)
 -------------------
 
