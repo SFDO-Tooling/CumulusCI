@@ -7,11 +7,13 @@ from lxml import etree as lxml_etree
 UTF8 = "UTF-8"
 
 
-def elementtree_parse_file(path: T.Union[str, Path, T.IO]) -> etree.ElementTree:
+def elementtree_parse_file(path: T.Union[str, Path, T.IO],namespace=None) -> etree.ElementTree:
     """Parse a file from filename, Path or Stream using Python stdlib.
 
     All else equal, prefer elementtree over LXML for performance and simplicity reasons."""
     try:
+        if namespace:
+            etree.register_namespace('',namespace)
         tree = etree.parse(path)
     except etree.ParseError as err:
         err.filename = path
