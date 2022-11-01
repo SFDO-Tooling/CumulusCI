@@ -1,8 +1,6 @@
-import json
 import logging
 import os
 import warnings
-from datetime import date, datetime
 from functools import lru_cache
 from typing import Any, Dict, Optional
 
@@ -12,14 +10,7 @@ STRICT_GETATTR = os.environ.get("STRICT_GETATTR")
 CHECK_CONFIG_TYPES = os.environ.get("CHECK_CONFIG_TYPES")
 
 
-def load_dates(x):
-    if isinstance(x, datetime):
-        return {"$type": "datetime", "$value": x.isoformat()}
-    elif isinstance(x, date):
-        return {"$type": "date", "$value": x.isoformat()}
-
-
-class BaseConfig:
+class BaseConfig(object):
     """BaseConfig provides a common interface for nested access for all Config objects in CCI."""
 
     defaults = {}
@@ -52,9 +43,6 @@ class BaseConfig:
     def _load_config(self):
         """Subclasses may override this method to initialize :py:attr:`~config`"""
         pass
-
-    def _serialize(self) -> bytes:
-        return json.dumps(self.config, default=load_dates).encode("utf-8")
 
     @classmethod
     def _allowed_names(cls) -> Dict[str, type]:
