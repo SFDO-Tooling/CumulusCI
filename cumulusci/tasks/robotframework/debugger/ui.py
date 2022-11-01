@@ -11,7 +11,7 @@ from robot.libraries.BuiltIn import BuiltIn
 from cumulusci.cli.ui import CliTable
 
 # this is code we use to inject a style into the DOM
-js_initialize_highlight = """
+initialize_highlight_js = """
     if (!window.rdbInitialized) {
         console.log("initializing rdb...");
         window.rdbInitialized = true;
@@ -205,7 +205,7 @@ class SeleniumProxy:
 
     def highlight_elements(self, locator):
         """Highlights Selenium Webdriver elements that match a locator"""
-        self.selenium.driver.execute_script(js_initialize_highlight)
+        self.selenium.driver.execute_script(initialize_highlight_js)
 
         elements = self.selenium.get_webelements(locator)
         for element in elements:
@@ -230,7 +230,7 @@ class BrowserProxy:
 
     def highlight_elements(self, selector):
         """Highlight one or more elements by applying a custom css class"""
-        init_script = f"() => {{{js_initialize_highlight}}};"
+        init_script = f"() => {{{initialize_highlight_js}}};"
         self.browser.evaluate_javascript(None, init_script)
 
         elements = self.browser.get_elements(selector)
@@ -238,7 +238,6 @@ class BrowserProxy:
             self.browser.evaluate_javascript(
                 selector,
                 """(elements) => {
-                    console.log("elements:", elements);
                     for (element of elements) {
                         element.classList.add('rdbHighlight')
                     }
