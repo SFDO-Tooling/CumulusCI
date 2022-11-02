@@ -152,10 +152,11 @@ def download_extract_github_from_repo(github_repo, subfolder=None, ref=None):
     zip_content = io.BytesIO()
     if not github_repo.archive("zipball", zip_content, ref=ref):
         raise CumulusCIException(
-            f"Unable to download a zipball of the Git ref {ref} from "
-            f"{github_repo.full_name}. This usually means the ref has "
-            "not been pushed to the server, or CumulusCI's credential "
-            "does not have permission to access it."
+            f"Unable to download an archive of the Git ref {ref} from "
+            f"{github_repo.full_name}. This can mean that the ref has "
+            "not been pushed to the server, that CumulusCI's credential "
+            "does not have permission to access it, or that your access "
+            "is restricted by an IP address allow list."
         )
     zip_file = zipfile.ZipFile(zip_content)
     path = sorted(zip_file.namelist())[0]
