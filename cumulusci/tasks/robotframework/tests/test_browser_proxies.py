@@ -56,7 +56,7 @@ class TestSeleniumProxy:
 
         self.selenium.driver.execute_script.assert_any_call(initialize_highlight_js)
 
-    def test_highligth_element(self):
+    def test_highlight_element(self):
         """Verify we attempt to add the custom css to matching elements"""
 
         element1 = mock.Mock()
