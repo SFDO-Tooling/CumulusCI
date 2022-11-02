@@ -7,6 +7,7 @@ import yaml
 
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import elementtree_parse_file
+from cumulusci.utils.xml import metadata_tree
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -92,7 +93,7 @@ class PackageXmlGenerator(object):
                     self.directory + "/" + item,  # Directory
                     parser_config.get("extension", ""),  # Extension
                     self.delete,  # Parse for deletion?
-                    **options  # Extra kwargs
+                    **options,  # Extra kwargs
                 )
                 self.types.append(parser)
 
@@ -215,7 +216,7 @@ class BaseMetadataParser(object):
         output.append("    </types>")
         return output
 
-    def strip_folder(self,component_list):
+    def strip_folder(self, component_list):
         for item in sorted(os.listdir(self.directory)):
             if item.startswith("."):
                 continue
@@ -230,23 +231,25 @@ class BaseMetadataParser(object):
             if self.extension and not item.endswith("." + self.extension):
                 continue
 
-            self._strip_component(item,component_list)
+            self._strip_component(item, component_list)
 
-    def _strip_component(self,item,component_list):
-        print(f"Method is not implemented for {self.metadata_type}")
+    def _strip_component(self, item, component_list):
+        raise NotImplementedError(
+            "Subclasses should implement their stripping component logic"
+        )
 
 
 class MetadataFilenameParser(BaseMetadataParser):
     def _parse_item(self, item):
         return [self.strip_extension(item)]
 
-    def _strip_component(self,item,component_list):
+    def _strip_component(self, item, component_list):
         if self.strip_extension(item) not in component_list:
-            print(f"Removing {self.directory} / {item}")
-            os.remove(self.directory+"/"+item)
-            if os.path.exists(self.directory+"/"+item+"-meta.xml"):
-                print(f"Removing {self.directory} / {item}-meta.xml")
-                os.remove(self.directory+"/"+item+"-meta.xml")
+            path = os.path.join(self.directory, item)
+            os.remove(path)
+            if os.path.exists(path + "-meta.xml"):
+                os.remove(path + "-meta.xml")
+
 
 class MetadataFolderParser(BaseMetadataParser):
     def _parse_item(self, item):
@@ -276,27 +279,28 @@ class MetadataFolderParser(BaseMetadataParser):
     def _parse_subitem(self, item, subitem):
         return [item + "/" + self.strip_extension(subitem)]
 
-    def _strip_component(self,item,component_list):
-        path = self.directory + "/" + item
+    def _strip_component(self, item, component_list):
+        path = os.path.join(self.directory, item)
         # Check if it is a directory and take action
-        if os.path.isdir(path):
-            if os.path.exists(path+"-meta.xml"):
-                if item not in component_list:
-                    print(f"Removing {item}")
-                    os.removedirs(path)
+        if (
+            os.path.isdir(path)
+            and os.path.exists(path + "-meta.xml")
+            and item not in component_list
+        ):
+            os.removedirs(path)
 
             for subitem in sorted(os.listdir(path)):
                 if subitem.endswith("-meta.xml") or subitem.startswith("."):
                     continue
-                self._strip_subitem(item,subitem,component_list)
-                
-    def _strip_subitem(self,item,subitem,component_list):
-        if item+"/"+self.strip_extension(subitem) not in component_list:
-            print(f"Removing {self.directory} / {item}/{subitem}")
-            os.remove(self.directory+"/"+item+"/"+subitem)
-            if os.path.exists(self.directory+"/"+item+"/"+subitem+"-meta.xml"):
-                print(f"Removing {self.directory} / {item}/{subitem}-meta.xml")
-                os.remove(self.directory+"/"+item+"/"+subitem+"-meta.xml")
+                self._strip_subitem(item, subitem, component_list)
+
+    def _strip_subitem(self, item, subitem, component_list):
+        if item + "/" + self.strip_extension(subitem) not in component_list:
+            path = os.path.join(self.directory, item, subitem)
+            os.remove(path)
+            if os.path.exists(path + "-meta.xml"):
+                os.remove(path + "-meta.xml")
+
 
 class MissingNameElementError(Exception):
     pass
@@ -365,16 +369,22 @@ class MetadataXmlElementParser(BaseMetadataParser):
     def item_name_prefix(self, parent):
         return parent + "."
 
-    def _strip_component(self,item,component_list):
+    def _strip_component(self, item, component_list):
         parent = self.strip_extension(item)
-        package_tree = elementtree_parse_file(self.directory + "/" + item,namespace=self.namespaces["sf"])
+        package_tree = elementtree_parse_file(
+            self.directory + "/" + item, namespace=self.namespaces["sf"]
+        )
         root = package_tree.getroot()
         for element in self.get_item_elements(root):
-            component_name = self.item_name_prefix(parent) + self.get_name_elements(element)[0].text
+            component_name = (
+                self.item_name_prefix(parent) + self.get_name_elements(element)[0].text
+            )
             if component_name not in component_list:
-                print(f"Removing {component_name}")
                 root.remove(element)
-        package_tree.write(self.directory + "/" + item,encoding="UTF-8",xml_declaration=True)
+        package_tree.write(
+            self.directory + "/" + item, encoding="UTF-8", xml_declaration=True
+        )
+
 
 # TYPE SPECIFIC PARSERS
 
@@ -404,8 +414,8 @@ class CustomObjectParser(MetadataFilenameParser):
         members.append(self.strip_extension(item))
         return members
 
-    def _strip_component(self,item,component_list):
-         # Skip namespaced custom objects
+    def _strip_component(self, item, component_list):
+        # Skip namespaced custom objects
         if len(item.split("__")) > 2:
             return
 
@@ -419,8 +429,9 @@ class CustomObjectParser(MetadataFilenameParser):
             return
 
         if self.strip_extension(item) not in component_list:
-            print(f"Removing {self.directory} / {item}")
-            os.remove(self.directory+"/"+item)
+            path = os.path.join(self.directory, item)
+            os.remove(path)
+
 
 class RecordTypeParser(MetadataXmlElementParser):
     def check_delete_excludes(self, item):
@@ -448,13 +459,13 @@ class BundleParser(BaseMetadataParser):
 
         return members
 
-    def _strip_component(self,item,component_list):
-        path = self.directory + "/" + item
+    def _strip_component(self, item, component_list):
+        path = os.path.join(self.directory, item)
         # Check if it is a directory and take action
         if os.path.isdir(path):
             if item not in component_list:
-                print(f"Removing {self.directory} / {path}")
                 os.removedirs(path)
+
 
 class LWCBundleParser(BaseMetadataParser):
     def _parse_item(self, item):
@@ -470,23 +481,24 @@ class LWCBundleParser(BaseMetadataParser):
 
         return members
 
-    def _strip_component(self,item,component_list):
-        path = self.directory + "/" + item
+    def _strip_component(self, item, component_list):
+        path = os.path.join(self.directory, item)
         # Check if it is a directory and take action
         if os.path.isdir(path):
             if item not in component_list:
-                print(f"Removing {path}")
                 os.removedirs(path)
+
 
 class DocumentParser(MetadataFolderParser):
     def _parse_subitem(self, item, subitem):
         return [item + "/" + subitem]
 
-    def _strip_subitem(self,item,subitem,component_list):
-        if item+"/"+subitem not in component_list:
-            os.remove(self.directory+"/"+item+"/"+subitem)
-            if os.path.exists(self.directory+"/"+item+"/"+subitem+"-meta.xml"):
-                os.remove(self.directory+"/"+item+"/"+subitem+"-meta.xml")
+    def _strip_subitem(self, item, subitem, component_list):
+        if item + "/" + subitem not in component_list:
+            path = os.path.join(self.directory, item, subitem)
+            os.remove(path)
+            if os.path.exists(path + "-meta.xml"):
+                os.remove(path + "-meta.xml")
 
 
 class UpdatePackageXml(BaseTask):
@@ -540,41 +552,36 @@ class UpdatePackageXml(BaseTask):
         with open(self.options.get("output", output), mode="w", encoding="utf-8") as f:
             f.write(package_xml)
 
+
 class RemoveSourceComponents(object):
-    def __init__(
-        self,
-        directory,
-        package_xml,
-        api_version
-    ):
+    def __init__(self, directory, package_xml, api_version):
         self.directory = directory
         self.package_xml = package_xml
         self.api_version = api_version
-    
+
     def __call__(self):
         xml_map = self.generate_package_xml_map()
         self.folder_perser = PackageXmlGenerator(
-            directory=self.directory,
-            api_version=self.api_version
+            directory=self.directory, api_version=self.api_version
         )
         self.folder_perser.parse_types()
-        #print(self.folder_perser.types)
         for parse_type in self.folder_perser.types:
-            parse_type.strip_folder(xml_map[parse_type.metadata_type] if parse_type.metadata_type in xml_map else [])
-        
+            parse_type.strip_folder(
+                xml_map[parse_type.metadata_type]
+                if parse_type.metadata_type in xml_map
+                else []
+            )
 
     def generate_package_xml_map(self) -> map:
-        package_xml_root = elementtree_parse_file(self.package_xml).getroot()
+        package = metadata_tree.parse(self.package_xml)
         xml_map = {}
-        namespace = re.match(r'{.*}', package_xml_root.tag).group(0)
-        for package_type in package_xml_root.findall('{}types'.format(namespace)):
-            type_name = package_type.find('{}name'.format(namespace)).text
+        for type in package.types:
             members = []
-            for package_member in package_type.findall('{}members'.format(namespace)):
-                member_name = package_member.text
-                members.append(member_name)
-            xml_map[type_name] = members
+            for member in type.members:
+                members.append(member.text)
+            xml_map[type["name"].text] = members
         return xml_map
+
 
 class RemoveUnwantedComponents(BaseTask):
     task_options = {
@@ -589,13 +596,15 @@ class RemoveUnwantedComponents(BaseTask):
     }
 
     def _init_options(self, kwargs):
-        super(RemoveUnwantedComponents, self)._init_options(kwargs)
+        super()._init_options(kwargs)
         self.run_class = RemoveSourceComponents(
             directory=self.options.get("path"),
             package_xml=self.options.get("package_xml"),
-            api_version=self.project_config.project__package__api_version
+            api_version=self.project_config.project__package__api_version,
         )
 
     def _run_task(self):
+        self.logger.info(
+            "Removing unwanted components from " + self.options.get("path")
+        )
         self.run_class()
-        print("It is done")
