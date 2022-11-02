@@ -36,7 +36,7 @@ class TestSeleniumProxy:
         self.selenium.reset_mock()
 
     def test_webbrowser_browser(self):
-        """Verify the cli has initialized the webbrowser attribute to BrowserProxy
+        """Verify the cli has initialized the webbrowser attribute to SeleniumProxy
 
         ... but only Browser has been loaded and SeleniumLibrary has not
         """
