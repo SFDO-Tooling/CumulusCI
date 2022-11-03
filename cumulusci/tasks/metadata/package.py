@@ -1,6 +1,7 @@
 import os
 import re
 import urllib.parse
+from logging import Logger
 from pathlib import Path
 
 import yaml
@@ -53,6 +54,7 @@ class PackageXmlGenerator(object):
         install_class=None,
         uninstall_class=None,
         types=None,
+        logger=None,
     ):
         with open(
             __location__ + "/metadata_map.yml", "r", encoding="utf-8"
@@ -66,6 +68,7 @@ class PackageXmlGenerator(object):
         self.install_class = install_class
         self.uninstall_class = uninstall_class
         self.types = types or []
+        self.logger = logger
 
     def __call__(self):
         if not self.types:
@@ -93,6 +96,7 @@ class PackageXmlGenerator(object):
                     self.directory + "/" + item,  # Directory
                     parser_config.get("extension", ""),  # Extension
                     self.delete,  # Parse for deletion?
+                    self.logger,  # Logger
                     **options,  # Extra kwargs
                 )
                 self.types.append(parser)
@@ -134,12 +138,13 @@ class PackageXmlGenerator(object):
 
 
 class BaseMetadataParser(object):
-    def __init__(self, metadata_type, directory, extension, delete):
+    def __init__(self, metadata_type, directory, extension, delete, logger):
         self.metadata_type = metadata_type
         self.directory = directory
         self.extension = extension
         self.delete = delete
         self.members = []
+        self.logger: Logger = logger
 
         if self.delete:
             self.delete_excludes = self.get_delete_excludes()
@@ -246,6 +251,9 @@ class MetadataFilenameParser(BaseMetadataParser):
     def _strip_component(self, item, component_list):
         if self.strip_extension(item) not in component_list:
             path = os.path.join(self.directory, item)
+            self.logger.info(
+                f"Deleting component {self.strip_extension(item)} of type {self.metadata_type}"
+            )
             os.remove(path)
             if os.path.exists(path + "-meta.xml"):
                 os.remove(path + "-meta.xml")
@@ -287,8 +295,10 @@ class MetadataFolderParser(BaseMetadataParser):
             and os.path.exists(path + "-meta.xml")
             and item not in component_list
         ):
+            self.logger.info(f"Deleting component {item} of type {self.metadata_type}")
             os.removedirs(path)
 
+        if os.path.isdir(path):
             for subitem in sorted(os.listdir(path)):
                 if subitem.endswith("-meta.xml") or subitem.startswith("."):
                     continue
@@ -297,6 +307,9 @@ class MetadataFolderParser(BaseMetadataParser):
     def _strip_subitem(self, item, subitem, component_list):
         if item + "/" + self.strip_extension(subitem) not in component_list:
             path = os.path.join(self.directory, item, subitem)
+            self.logger.info(
+                f"Deleting component {item}/{self.strip_extension(subitem)} of type {self.metadata_type}"
+            )
             os.remove(path)
             if os.path.exists(path + "-meta.xml"):
                 os.remove(path + "-meta.xml")
@@ -320,11 +333,12 @@ class MetadataXmlElementParser(BaseMetadataParser):
         directory,
         extension,
         delete,
+        logger,
         item_xpath=None,
         name_xpath=None,
     ):
         super(MetadataXmlElementParser, self).__init__(
-            metadata_type, directory, extension, delete
+            metadata_type, directory, extension, delete, logger
         )
         if not item_xpath:
             raise ParserConfigurationError("You must provide a value for item_xpath")
@@ -380,6 +394,9 @@ class MetadataXmlElementParser(BaseMetadataParser):
                 self.item_name_prefix(parent) + self.get_name_elements(element)[0].text
             )
             if component_name not in component_list:
+                self.logger.info(
+                    f"Deleting component {component_name} of type {self.metadata_type}"
+                )
                 root.remove(element)
         package_tree.write(
             self.directory + "/" + item, encoding="UTF-8", xml_declaration=True
@@ -429,6 +446,9 @@ class CustomObjectParser(MetadataFilenameParser):
             return
 
         if self.strip_extension(item) not in component_list:
+            self.logger.info(
+                f"Deleting component {self.strip_extension(item)} of type {self.metadata_type}"
+            )
             path = os.path.join(self.directory, item)
             os.remove(path)
 
@@ -464,6 +484,9 @@ class BundleParser(BaseMetadataParser):
         # Check if it is a directory and take action
         if os.path.isdir(path):
             if item not in component_list:
+                self.logger.info(
+                    f"Deleting component {item} of type {self.metadata_type}"
+                )
                 os.removedirs(path)
 
 
@@ -486,6 +509,9 @@ class LWCBundleParser(BaseMetadataParser):
         # Check if it is a directory and take action
         if os.path.isdir(path):
             if item not in component_list:
+                self.logger.info(
+                    f"Deleting component {item} of type {self.metadata_type}"
+                )
                 os.removedirs(path)
 
 
@@ -496,6 +522,9 @@ class DocumentParser(MetadataFolderParser):
     def _strip_subitem(self, item, subitem, component_list):
         if item + "/" + subitem not in component_list:
             path = os.path.join(self.directory, item, subitem)
+            self.logger.info(
+                f"Deleting component {item}/{subitem} of type {self.metadata_type}"
+            )
             os.remove(path)
             if os.path.exists(path + "-meta.xml"):
                 os.remove(path + "-meta.xml")
@@ -554,18 +583,19 @@ class UpdatePackageXml(BaseTask):
 
 
 class RemoveSourceComponents(object):
-    def __init__(self, directory, package_xml, api_version):
+    def __init__(self, directory, package_xml, api_version, logger):
         self.directory = directory
         self.package_xml = package_xml
         self.api_version = api_version
+        self.logger = logger
 
     def __call__(self):
         xml_map = self.generate_package_xml_map()
-        self.folder_perser = PackageXmlGenerator(
-            directory=self.directory, api_version=self.api_version
+        self.folder_parser = PackageXmlGenerator(
+            directory=self.directory, api_version=self.api_version, logger=self.logger
         )
-        self.folder_perser.parse_types()
-        for parse_type in self.folder_perser.types:
+        self.folder_parser.parse_types()
+        for parse_type in self.folder_parser.types:
             parse_type.strip_folder(
                 xml_map[parse_type.metadata_type]
                 if parse_type.metadata_type in xml_map
@@ -601,6 +631,7 @@ class RemoveUnwantedComponents(BaseTask):
             directory=self.options.get("path"),
             package_xml=self.options.get("package_xml"),
             api_version=self.project_config.project__package__api_version,
+            logger=self.logger,
         )
 
     def _run_task(self):

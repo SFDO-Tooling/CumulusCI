@@ -118,3 +118,16 @@ options:
                   - find: foo
                     replace: bar
 ```
+
+### Strip components using given xml file
+
+Now, 'deploy' task will remove metadata components using given XML file. When the transformation is added to deploy task, it will compare components available in source folder with provided XML file and delete/modify component files which are not found. This is useful when selective components to deploy to org.
+
+```yaml
+task: deploy
+options:
+    transforms:
+        - transform: strip_unwanted_components
+          options:
+              package_xml: PACKAGE_XML_FILE_PATH
+```
