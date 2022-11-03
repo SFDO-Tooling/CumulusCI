@@ -137,7 +137,6 @@ class OmniStudioDeployRemoteSiteSettings(AddRemoteSiteSettings):
                 url = self.org_config.instance_url.replace(
                     f".{org}{dns}", f"--{namespace}.{org}.vf.force.com"
                 )
-                print("EVERYWHERE", url)
             else:
                 url = self.org_config.instance_url.replace(
                     f"{dns}", f"--{namespace}.vf.force.com"
