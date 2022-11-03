@@ -1,6 +1,7 @@
 import datetime
 import json
 from json.decoder import JSONDecodeError
+from typing import Optional
 
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.exceptions import SfdxOrgException
@@ -76,22 +77,22 @@ class SfdxOrgConfig(OrgConfig):
         return sfdx_info
 
     @property
-    def access_token(self):
+    def access_token(self) -> str:
         return self.sfdx_info["access_token"]
 
     @property
-    def instance_url(self):
+    def instance_url(self) -> str:
         return self.config.get("instance_url") or self.sfdx_info["instance_url"]
 
     @property
-    def org_id(self):
+    def org_id(self) -> str:
         org_id = self.config.get("org_id")
         if not org_id:
             org_id = self.sfdx_info["org_id"]
         return org_id
 
     @property
-    def user_id(self):
+    def user_id(self) -> str:
         if not self.config.get("user_id"):
             result = self.salesforce_client.query_all(
                 f"SELECT Id FROM User WHERE UserName='{self.username}'"
@@ -100,21 +101,21 @@ class SfdxOrgConfig(OrgConfig):
         return self.config["user_id"]
 
     @property
-    def username(self):
+    def username(self) -> str:
         username = self.config.get("username")
         if not username:
             username = self.sfdx_info["username"]
         return username
 
     @property
-    def password(self):
+    def password(self) -> str:
         password = self.config.get("password")
         if not password:
             password = self.sfdx_info["password"]
         return password
 
     @property
-    def email_address(self):
+    def email_address(self) -> Optional[str]:
         email_address = self.config.get("email_address")
         if not email_address:
             email_address = get_git_config("user.email")

@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+from typing import List, Optional
 
 from cumulusci.core.config import FAILED_TO_CREATE_SCRATCH_ORG
 from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
@@ -26,7 +27,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
     createable: bool = True
 
     @property
-    def scratch_info(self):
+    def scratch_info(self) -> dict:
         """Deprecated alias for sfdx_info.
 
         Will create the scratch org if necessary.
@@ -34,26 +35,26 @@ class ScratchOrgConfig(SfdxOrgConfig):
         return self.sfdx_info
 
     @property
-    def days(self):
+    def days(self) -> int:
         return self.config.setdefault("days", 1)
 
     @property
-    def active(self):
+    def active(self) -> bool:
         """Check if an org is alive"""
         return self.date_created and not self.expired
 
     @property
-    def expired(self):
+    def expired(self) -> bool:
         """Check if an org has already expired"""
         return bool(self.expires) and self.expires < datetime.datetime.utcnow()
 
     @property
-    def expires(self):
+    def expires(self) -> Optional[datetime.datetime]:
         if self.date_created:
             return self.date_created + datetime.timedelta(days=int(self.days))
 
     @property
-    def days_alive(self):
+    def days_alive(self) -> Optional[int]:
         if self.date_created and not self.expired:
             delta = datetime.datetime.utcnow() - self.date_created
             return delta.days + 1
@@ -119,7 +120,7 @@ class ScratchOrgConfig(SfdxOrgConfig):
         # Flag that this org has been created
         self.config["created"] = True
 
-    def _build_org_create_args(self):
+    def _build_org_create_args(self) -> List[str]:
         args = ["-f", self.config_file, "-w", "120"]
         devhub = self._choose_devhub()
         if devhub:
@@ -186,14 +187,14 @@ class ScratchOrgConfig(SfdxOrgConfig):
                 f"Failed to set password: \n{nl.join(stdout)}\n{nl.join(stderr)}"
             )
 
-    def format_org_days(self):
+    def format_org_days(self) -> str:
         if self.days_alive:
             org_days = f"{self.days_alive}/{self.days}"
         else:
             org_days = str(self.days)
         return org_days
 
-    def can_delete(self):
+    def can_delete(self) -> bool:
         return bool(self.date_created)
 
     def delete_org(self):

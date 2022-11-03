@@ -1,9 +1,20 @@
 import os
 import re
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from contextlib import contextmanager
 from datetime import date, datetime
 from distutils.version import StrictVersion
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ContextManager,
+    DefaultDict,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Union,
+)
 from urllib.parse import urlparse
 
 import requests
@@ -16,18 +27,29 @@ from cumulusci.core.exceptions import (
     DependencyResolutionError,
     ServiceNotConfigured,
 )
+from cumulusci.core.keychain.base_project_keychain import BaseProjectKeychain
 from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
 from cumulusci.oauth.salesforce import SANDBOX_LOGIN_URL, jwt_session
 from cumulusci.utils import parse_api_datetime
-from cumulusci.utils.fileutils import open_fs_resource
+from cumulusci.utils.fileutils import FSResource, open_fs_resource
 from cumulusci.utils.http.requests_utils import safe_json_from_response
+
+if TYPE_CHECKING:
+    from cumulusci.core.config import ServiceConfig
+    from cumulusci.core.dependencies.dependencies import (
+        PackageNamespaceVersionDependency,
+        PackageVersionIdDependency,
+    )
+
 
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
 SANDBOX_MYDOMAIN_RE = re.compile(r"\.cs\d+\.my\.(.*)salesforce\.com")
 MYDOMAIN_RE = re.compile(r"\.my\.(.*)salesforce\.com")
 
 
-VersionInfo = namedtuple("VersionInfo", ["id", "number"])
+class VersionInfo(NamedTuple):
+    id: str
+    number: StrictVersion
 
 
 class OrgConfig(BaseConfig):
@@ -37,7 +59,7 @@ class OrgConfig(BaseConfig):
     config_file: str
     config_name: str
     created: bool
-    date_created: (datetime, date)  # type: ignore
+    date_created: Union[datetime, date]
     days: int
     email_address: str
     instance_name: str
@@ -45,16 +67,15 @@ class OrgConfig(BaseConfig):
     expires: str  # TODO: note that ScratchOrgConfig has a bool method of same name
     expired: bool  # ditto
     is_sandbox: bool
+    keychain: Optional[BaseProjectKeychain]
     namespace: str
     namespaced: bool
-    org_id: str
     org_type: str
     password: str
     scratch: bool
     scratch_org_type: str
     set_password: bool
     sfdx_alias: str
-    username: str
     userinfo: str
     id: str
     active: bool
@@ -64,12 +85,25 @@ class OrgConfig(BaseConfig):
     client_secret: str
     connected_app: str
 
-    createable: bool = None
+    createable: Optional[bool] = None
+    force_sandbox: bool
+
+    _latest_api_version: Optional[str]
+    _installed_packages: Optional[DefaultDict[str, List[VersionInfo]]]
+    _is_person_accounts_enabled: Optional[bool]
+    _multiple_currencies_is_enabled: Optional[bool]
+    _community_info_cache: Dict[str, dict]
 
     # make sure it can be mocked for tests
     OAuth2Client = OAuth2Client
 
-    def __init__(self, config: dict, name: str, keychain=None, global_org=False):
+    def __init__(
+        self,
+        config: dict,
+        name: str,
+        keychain: Optional[BaseProjectKeychain] = None,
+        global_org: bool = False,
+    ):
         self.keychain = keychain
         self.global_org = global_org
 
@@ -83,7 +117,12 @@ class OrgConfig(BaseConfig):
 
         super().__init__(config)
 
-    def refresh_oauth_token(self, keychain, connected_app=None, is_sandbox=False):
+    def refresh_oauth_token(
+        self,
+        keychain: Optional[BaseProjectKeychain],
+        connected_app: Optional[ServiceConfig] = None,
+        is_sandbox: bool = False,
+    ):
         """Get a fresh access token and store it in the org config.
 
         If the SFDX_CLIENT_ID and SFDX_HUB_KEY environment variables are set,
@@ -122,7 +161,11 @@ class OrgConfig(BaseConfig):
             self.logger.info("Org info updated, writing to keychain")
             self.save()
 
-    def _refresh_token(self, keychain, connected_app):
+    def _refresh_token(
+        self,
+        keychain: Optional[BaseProjectKeychain],
+        connected_app: Optional[ServiceConfig],
+    ) -> Any:
         if keychain:  # it might be none'd and caller adds connected_app
             try:
                 connected_app = keychain.get_service(
@@ -153,7 +196,7 @@ class OrgConfig(BaseConfig):
         return sf_oauth.refresh_token(self.refresh_token)
 
     @property
-    def lightning_base_url(self):
+    def lightning_base_url(self) -> str:
         instance_url = self.instance_url.rstrip("/")
         if SANDBOX_MYDOMAIN_RE.search(instance_url):
             return SANDBOX_MYDOMAIN_RE.sub(r".lightning.\1force.com", instance_url)
@@ -163,7 +206,7 @@ class OrgConfig(BaseConfig):
             return self.instance_url.split(".")[0] + ".lightning.force.com"
 
     @property
-    def salesforce_client(self):
+    def salesforce_client(self) -> Salesforce:
         """Return a simple_salesforce.Salesforce instance authorized to this org.
         Does not perform a token refresh."""
         return Salesforce(
@@ -173,7 +216,7 @@ class OrgConfig(BaseConfig):
         )
 
     @property
-    def latest_api_version(self):
+    def latest_api_version(self) -> str:
         if not self._latest_api_version:
             headers = {"Authorization": "Bearer " + self.access_token}
             response = requests.get(
@@ -190,7 +233,7 @@ class OrgConfig(BaseConfig):
         return self._latest_api_version
 
     @property
-    def start_url(self):
+    def start_url(self) -> str:
         """The frontdoor URL that results in an instant login"""
         start_url = "%s/secur/frontdoor.jsp?sid=%s" % (
             self.instance_url,
@@ -199,15 +242,15 @@ class OrgConfig(BaseConfig):
         return start_url
 
     @property
-    def user_id(self):
+    def user_id(self) -> str:
         return self.id.split("/")[-1]
 
     @property
-    def org_id(self):
+    def org_id(self) -> str:
         return self.id.split("/")[-2]
 
     @property
-    def username(self):
+    def username(self) -> str:
         """Username for the org connection."""
         username = self.config.get("username")
         if not username:
@@ -226,7 +269,7 @@ class OrgConfig(BaseConfig):
             config_data = safe_json_from_response(response)
             self.config.update({"userinfo": config_data})
 
-    def can_delete(self):
+    def can_delete(self) -> bool:
         return False
 
     def _load_orginfo(self):
@@ -252,11 +295,11 @@ class OrgConfig(BaseConfig):
             ).date()
 
     @property
-    def organization_sobject(self):
+    def organization_sobject(self) -> Optional[dict]:
         """Cached copy of Organization sObject. Does not perform API call."""
         return self._org_sobject
 
-    def _fetch_community_info(self):
+    def _fetch_community_info(self) -> Dict[str, dict]:
         """Use the API to re-fetch information about communities"""
         response = self.salesforce_client.restful("connect/communities")
 
@@ -265,7 +308,9 @@ class OrgConfig(BaseConfig):
         result = {community["name"]: community for community in response["communities"]}
         return result
 
-    def get_community_info(self, community_name, force_refresh=False):
+    def get_community_info(
+        self, community_name: str, force_refresh: bool = False
+    ) -> dict:
         """Return the community information for the given community
 
         An API call will be made the first time this function is used,
@@ -286,7 +331,9 @@ class OrgConfig(BaseConfig):
 
         return self._community_info_cache[community_name]
 
-    def has_minimum_package_version(self, package_identifier, version_identifier):
+    def has_minimum_package_version(
+        self, package_identifier: str, version_identifier: str
+    ) -> bool:
         """Return True if the org has a version of the specified package that is
         equal to or newer than the supplied version identifier.
 
@@ -309,7 +356,7 @@ class OrgConfig(BaseConfig):
         return installed_version[0].number >= version_identifier
 
     @property
-    def installed_packages(self):
+    def installed_packages(self) -> DefaultDict[str, List[VersionInfo]]:
         """installed_packages is a dict mapping a namespace or package Id (033*) to the installed package
         version(s) matching that identifier. All values are lists, because multiple second-generation
         packages may be installed with the same namespace.
@@ -363,11 +410,11 @@ class OrgConfig(BaseConfig):
         assert self.keychain, "Keychain was not set on OrgConfig"
         self.keychain.set_org(self, self.global_org)
 
-    def get_domain(self):
+    def get_domain(self) -> str:
         instance_url = self.config.get("instance_url", "")
         return urlparse(instance_url).hostname or ""
 
-    def get_orginfo_cache_dir(self, cachename):
+    def get_orginfo_cache_dir(self, cachename: str) -> ContextManager[FSResource]:
         "Returns a context managed FSResource object"
         assert self.keychain, "Keychain should be set"
         if self.global_org:
@@ -383,7 +430,7 @@ class OrgConfig(BaseConfig):
         return open_fs_resource(cache_dir)
 
     @property
-    def is_person_accounts_enabled(self):
+    def is_person_accounts_enabled(self) -> bool:
         """
         Returns if the org has person accounts enabled, i.e. if Account has an ``IsPersonAccount`` field.
 
@@ -418,7 +465,7 @@ class OrgConfig(BaseConfig):
         return self._is_person_accounts_enabled
 
     @property
-    def is_multiple_currencies_enabled(self):
+    def is_multiple_currencies_enabled(self) -> bool:
         """
         Returns if the org has `Multiple Currencies <https://help.salesforce.com/articleView?id=admin_enable_multicurrency.htm>`_ enabled by checking if the `CurrencyType <https://developer.salesforce.com/docs/atlas.en-us.api.meta/api/sforce_api_objects_currencytype.htm>`_ Sobject is exposed.
 
@@ -468,7 +515,7 @@ class OrgConfig(BaseConfig):
         # - CurrencyType Sobject is not exposed.
         # - simple_salesforce raises a SalesforceResourceNotFound exception when trying to describe CurrencyType.
         # NOTE: Multiple Currencies can be enabled through Metadata API by setting CurrencySettings.enableMultiCurrency as "true". Therefore, we should try to dynamically check if Multiple Currencies is enabled.
-        # NOTE: Once enabled, Multiple Currenies cannot be disabled.
+        # NOTE: Once enabled, Multiple Currencies cannot be disabled.
         if not self._multiple_currencies_is_enabled:
             try:
                 # Multiple Currencies is enabled if CurrencyType can be described (implying the Sobject is exposed).
@@ -477,11 +524,11 @@ class OrgConfig(BaseConfig):
             except SalesforceResourceNotFound:
                 # CurrencyType Sobject is not exposed meaning Multiple Currencies is not enabled.
                 # Keep self._multiple_currencies_is_enabled False.
-                pass
+                self._multiple_currencies_is_enabled = False
         return self._multiple_currencies_is_enabled
 
     @property
-    def is_advanced_currency_management_enabled(self):
+    def is_advanced_currency_management_enabled(self) -> bool:
         """
         Returns if the org has `Advanced Currency Management (ACM) <https://help.salesforce.com/articleView?id=administration_enable_advanced_currency_management.htm>`_ enabled by checking if both:
 
@@ -553,7 +600,12 @@ class OrgConfig(BaseConfig):
             for f in self.salesforce_client.PermissionSet.describe()["fields"]
         )
 
-    def resolve_04t_dependencies(self, dependencies):
+    def resolve_04t_dependencies(
+        self,
+        dependencies: List[
+            Union["PackageNamespaceVersionDependency", "PackageVersionIdDependency"]
+        ],
+    ) -> List[Union["PackageNamespaceVersionDependency", "PackageVersionIdDependency"]]:
         """Look up 04t SubscriberPackageVersion ids for 1GP project dependencies"""
         from cumulusci.core.dependencies.dependencies import (
             PackageNamespaceVersionDependency,
