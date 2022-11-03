@@ -144,7 +144,6 @@ def test_deploy_omni_studio_site_settings_scratch(
             f"https://inspiration-velocity-34802-dev-ed--{expected_namespace}.scratch.vf.force.com/",
         ]
     )
-
     actual_urls = set([r.url for r in records])
     assert expected_urls == actual_urls
 
