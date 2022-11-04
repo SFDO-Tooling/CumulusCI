@@ -1,7 +1,8 @@
 import os
 import re
+import shutil
 import urllib.parse
-from logging import Logger
+from logging import Logger, getLogger
 from pathlib import Path
 
 import yaml
@@ -144,7 +145,7 @@ class BaseMetadataParser(object):
         self.extension = extension
         self.delete = delete
         self.members = []
-        self.logger: Logger = logger
+        self.logger: Logger = logger or getLogger(__file__)
 
         if self.delete:
             self.delete_excludes = self.get_delete_excludes()
@@ -296,7 +297,7 @@ class MetadataFolderParser(BaseMetadataParser):
             and item not in component_list
         ):
             self.logger.info(f"Deleting component {item} of type {self.metadata_type}")
-            os.removedirs(path)
+            shutil.rmtree(path)
             os.remove(path + "-meta.xml")
 
         if os.path.isdir(path):
@@ -387,7 +388,7 @@ class MetadataXmlElementParser(BaseMetadataParser):
     def _strip_component(self, item, component_list):
         parent = self.strip_extension(item)
         package_tree = elementtree_parse_file(
-            self.directory + "/" + item, namespace=self.namespaces["sf"]
+            os.path.join(self.directory, item), namespace=self.namespaces["sf"]
         )
         root = package_tree.getroot()
         for element in self.get_item_elements(root):
@@ -400,7 +401,7 @@ class MetadataXmlElementParser(BaseMetadataParser):
                 )
                 root.remove(element)
         package_tree.write(
-            self.directory + "/" + item, encoding="UTF-8", xml_declaration=True
+            os.path.join(self.directory, item), encoding="UTF-8", xml_declaration=True
         )
 
 
@@ -488,7 +489,7 @@ class BundleParser(BaseMetadataParser):
                 self.logger.info(
                     f"Deleting component {item} of type {self.metadata_type}"
                 )
-                os.removedirs(path)
+                shutil.rmtree(path)
 
 
 class LWCBundleParser(BaseMetadataParser):
@@ -513,7 +514,7 @@ class LWCBundleParser(BaseMetadataParser):
                 self.logger.info(
                     f"Deleting component {item} of type {self.metadata_type}"
                 )
-                os.removedirs(path)
+                shutil.rmtree(path)
 
 
 class DocumentParser(MetadataFolderParser):
@@ -596,6 +597,7 @@ class RemoveSourceComponents:
             directory=self.directory, api_version=self.api_version, logger=self.logger
         )
         self.folder_parser.parse_types()
+        self.folder_parser.types.sort(key=lambda x: x.metadata_type.upper())
         for parse_type in self.folder_parser.types:
             parse_type.strip_folder(
                 xml_map[parse_type.metadata_type]
@@ -608,8 +610,11 @@ class RemoveSourceComponents:
         xml_map = {}
         for type in package.types:
             members = []
-            for member in type.members:
-                members.append(member.text)
+            try:
+                for member in type.members:
+                    members.append(member.text)
+            except AttributeError:  # Exception if there are no members for a type
+                pass
             xml_map[type["name"].text] = members
         return xml_map
 
