@@ -138,7 +138,7 @@ class PackageXmlGenerator(object):
 
 
 class BaseMetadataParser(object):
-    def __init__(self, metadata_type, directory, extension, delete, logger):
+    def __init__(self, metadata_type, directory, extension, delete, logger=None):
         self.metadata_type = metadata_type
         self.directory = directory
         self.extension = extension
@@ -297,6 +297,7 @@ class MetadataFolderParser(BaseMetadataParser):
         ):
             self.logger.info(f"Deleting component {item} of type {self.metadata_type}")
             os.removedirs(path)
+            os.remove(path + "-meta.xml")
 
         if os.path.isdir(path):
             for subitem in sorted(os.listdir(path)):
@@ -333,7 +334,7 @@ class MetadataXmlElementParser(BaseMetadataParser):
         directory,
         extension,
         delete,
-        logger,
+        logger=None,
         item_xpath=None,
         name_xpath=None,
     ):
@@ -582,7 +583,7 @@ class UpdatePackageXml(BaseTask):
             f.write(package_xml)
 
 
-class RemoveSourceComponents(object):
+class RemoveSourceComponents:
     def __init__(self, directory, package_xml, api_version, logger):
         self.directory = directory
         self.package_xml = package_xml
@@ -602,7 +603,7 @@ class RemoveSourceComponents(object):
                 else []
             )
 
-    def generate_package_xml_map(self) -> map:
+    def generate_package_xml_map(self) -> dict:
         package = metadata_tree.parse(self.package_xml)
         xml_map = {}
         for type in package.types:

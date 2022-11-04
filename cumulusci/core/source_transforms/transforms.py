@@ -340,9 +340,6 @@ class FindReplaceTransform(SourceTransform):
 class StripUnwantedComponentsOptions(BaseModel):
     package_xml: str
 
-    def get_package_xml(self) -> str:
-        return self.package_xml
-
 
 class StripUnwantedComponentTransform(SourceTransform):
     options_model = StripUnwantedComponentsOptions

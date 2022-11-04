@@ -119,9 +119,9 @@ options:
                     replace: bar
 ```
 
-### Strip components using given xml file
+### Stripping Components with a `package.xml` Manifest
 
-Now, 'deploy' task will remove metadata components using given XML file. When the transformation is added to deploy task, it will compare components available in source folder with provided XML file and delete/modify component files which are not found. This is useful when selective components to deploy to org.
+This transformation allows you to deploy a subset of a metadata directory based on a `package.xml` manifest by removing unwanted components. It will compare components available in the source folder with a provided `package.xml` file and delete/modify component files which are not found.
 
 ```yaml
 task: deploy
