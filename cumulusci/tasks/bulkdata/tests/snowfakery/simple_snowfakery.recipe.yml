@@ -1,0 +1,13 @@
+- object: Account
+  fields:
+      Name:
+          fake: name
+      ShippingCountry: Canada
+- object: Contact
+  fields:
+      FirstName:
+          fake: first_name
+      LastName:
+          fake: last_name
+      AccountId:
+          reference: Account

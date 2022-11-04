@@ -1,0 +1,69 @@
+interactions:
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+count%28Id%29+from+Account
+      response:
+          body:
+              string: "{\n  \"totalSize\" : 1,\n  \"done\" : true,\n  \"records\" : [ {\n
+                  \   \"attributes\" : {\n      \"type\" : \"AggregateResult\"\n    },\n    \"expr0\"
+                  : 10\n  } ]\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+    - request:
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/sobjects/Organization/00D0xORGID00000000
+      response:
+          body:
+              string:
+                  "{\n  \"attributes\" : {\n    \"type\" : \"Organization\",\n    \"url\"
+                  : \"/services/data/vxx.0/sobjects/Organization/00D0xORGID00000000\"\n  },\n
+                  \ \"Id\" : \"00D0xORGID00000000\",\n  \"Name\" : \"CumulusCI - Dev Workspace\",\n
+                  \ \"Division\" : null,\n  \"Street\" : null,\n  \"City\" : null,\n  \"State\"
+                  : null,\n  \"PostalCode\" : null,\n  \"Country\" : \"US\",\n  \"Latitude\"
+                  : null,\n  \"Longitude\" : null,\n  \"GeocodeAccuracy\" : null,\n  \"Address\"
+                  : {\n    \"city\" : null,\n    \"country\" : \"US\",\n    \"geocodeAccuracy\"
+                  : null,\n    \"latitude\" : null,\n    \"longitude\" : null,\n    \"postalCode\"
+                  : null,\n    \"state\" : null,\n    \"street\" : null\n  },\n  \"Phone\" :
+                  null,\n  \"Fax\" : null,\n  \"PrimaryContact\" : \"User User\",\n  \"DefaultLocaleSidKey\"
+                  : \"en_US\",\n  \"TimeZoneSidKey\" : \"America/Los_Angeles\",\n  \"LanguageLocaleKey\"
+                  : \"en_US\",\n  \"ReceivesInfoEmails\" : true,\n  \"ReceivesAdminInfoEmails\"
+                  : true,\n  \"PreferencesRequireOpportunityProducts\" : false,\n  \"PreferencesTransactionSecurityPolicy\"
+                  : false,\n  \"PreferencesTerminateOldestSession\" : false,\n  \"PreferencesConsentManagementEnabled\"
+                  : true,\n  \"PreferencesAutoSelectIndividualOnMerge\" : false,\n  \"PreferencesLightningLoginEnabled\"
+                  : true,\n  \"PreferencesOnlyLLPermUserAllowed\" : false,\n  \"FiscalYearStartMonth\"
+                  : 1,\n  \"UsesStartDateAsFiscalYearName\" : false,\n  \"DefaultAccountAccess\"
+                  : \"Edit\",\n  \"DefaultContactAccess\" : \"ControlledByParent\",\n  \"DefaultOpportunityAccess\"
+                  : \"Edit\",\n  \"DefaultLeadAccess\" : \"ReadEditTransfer\",\n  \"DefaultCaseAccess\"
+                  : \"ReadEditTransfer\",\n  \"DefaultCalendarAccess\" : \"HideDetailsInsert\",\n
+                  \ \"DefaultPricebookAccess\" : \"ReadSelect\",\n  \"DefaultCampaignAccess\"
+                  : \"All\",\n  \"DelegatedAuthenticationServiceUrl\" : null,\n  \"SystemModstamp\"
+                  : \"2022-03-28T23:25:53.000+0000\",\n  \"ComplianceBccEmail\" : null,\n  \"UiSkin\"
+                  : \"Theme3\",\n  \"SignupCountryIsoCode\" : \"US\",\n  \"TrialExpirationDate\"
+                  : \"2022-04-05T23:25:39.000+0000\",\n  \"NumKnowledgeService\" : 2,\n  \"OrganizationType\"
+                  : \"Developer Edition\",\n  \"NamespacePrefix\" : null,\n  \"InstanceName\"
+                  : \"CS420\",\n  \"IsSandbox\" : true,\n  \"WebToCaseDefaultOrigin\" : \"Web\",\n
+                  \ \"MonthlyPageViewsUsed\" : 0,\n  \"MonthlyPageViewsEntitlement\" : 0,\n
+                  \ \"IsReadOnly\" : false,\n  \"CreatedDate\" : \"2022-03-28T19:09:58.000+0000\",\n
+                  \ \"CreatedById\" : \"00523000002KbrQAAS\",\n  \"LastModifiedDate\" : \"2022-03-28T23:25:46.000+0000\",\n
+                  \ \"LastModifiedById\" : \"00523000002KbrQAAS\"\n}"
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          status:
+              code: 200
+              message: OK
+version: 1

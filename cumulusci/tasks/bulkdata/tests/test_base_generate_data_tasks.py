@@ -1,5 +1,4 @@
 import os
-import unittest
 from unittest import mock
 
 from sqlalchemy import Unicode
@@ -7,7 +6,6 @@ from sqlalchemy import Unicode
 from cumulusci.tasks.bulkdata.base_generate_data_task import BaseGenerateDataTask
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
 from cumulusci.utils import temporary_dir
-
 
 NUM_RECORDS = 20
 
@@ -28,7 +26,7 @@ class DummyBaseBatchDataTask(BaseGenerateDataTask):
         DummyBaseBatchDataTask.was_called = True
 
 
-class TestBaseBatchDataTask(unittest.TestCase):
+class TestBaseBatchDataTask:
     def test_BaseBatchDataTask(self):
         mapping_file = os.path.join(os.path.dirname(__file__), "mapping_v2.yml")
         with temporary_dir() as d:

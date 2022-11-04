@@ -1,13 +1,12 @@
 import os
-from abc import abstractmethod, ABCMeta
+from abc import ABCMeta, abstractmethod
 
-from sqlalchemy import create_engine
-from sqlalchemy import MetaData
-from sqlalchemy.orm import create_session
+from sqlalchemy import MetaData, create_engine
 from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import create_session
 
-from cumulusci.core.tasks import BaseTask
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.tasks import BaseTask
 from cumulusci.tasks.bulkdata.mapping_parser import parse_from_yaml
 
 from .utils import create_table
@@ -46,7 +45,8 @@ class BaseGenerateDataTask(BaseTask, metaclass=ABCMeta):
             self.logger.info("No database URL: creating sqlite file %s" % sqlite_path)
             self.database_url = "sqlite:///" + sqlite_path
 
-        self.num_records = int(self.options.get("num_records", 1))
+        num_records = self.options.get("num_records")
+        self.num_records = int(num_records) if num_records is not None else None
 
     def _run_task(self):
         self._generate_data(

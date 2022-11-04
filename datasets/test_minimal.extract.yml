@@ -1,0 +1,13 @@
+version: 1
+extract:
+    Opportunity: # Extract these Opp fields plus all required fields
+        fields:
+            - Name
+            - ContactId
+            - AccountId
+    Contact: # Extract required Contact fields
+        fields: FIELDS(REQUIRED)
+    Account: # Extract required Account fields
+        fields: FIELDS(REQUIRED)
+    OBJECTS(CUSTOM): # Extract every field on Custom objects
+        fields: FIELDS(ALL)

@@ -1,21 +1,23 @@
 import doctest
-from io import BytesIO, UnsupportedOperation
-from pathlib import Path
-from unittest import mock
-from tempfile import TemporaryDirectory
 import os
 import sys
+import urllib.request
+from io import BytesIO, UnsupportedOperation
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import mock
 
 import pytest
 import responses
-from fs import open_fs, errors
+from fs import errors, open_fs
 
 import cumulusci
 from cumulusci.utils import fileutils, temporary_dir
 from cumulusci.utils.fileutils import (
+    FSResource,
     load_from_source,
     open_fs_resource,
-    FSResource,
+    view_file,
 )
 
 
@@ -36,7 +38,7 @@ class TestFileutils:
             raise
 
     def test_binary_becomes_string(self):
-        with load_from_source(BytesIO(b"foo")) as (path, file):
+        with load_from_source(BytesIO(b"foo")) as (file, path):
             data = file.read()
             assert isinstance(data, str)
             assert data == "foo"
@@ -45,38 +47,54 @@ class TestFileutils:
         with temporary_dir():
             with open("writable", "wt") as t:
                 with pytest.raises(UnsupportedOperation):
-                    with load_from_source(t) as (filename, data):
+                    with load_from_source(t) as (data, filename):
                         pass
 
     @responses.activate
     def test_load_from_url(self):
         html = "<!DOCTYPE HTML ..."
         responses.add("GET", "http://www.salesforce.com", body=html)
-        with load_from_source("http://www.salesforce.com") as (filename, data):
+        with load_from_source("http://www.salesforce.com") as (data, filename):
             assert data.read() == html
 
     def test_load_from_Path(self):
         p = Path(cumulusci.__file__).parent / "cumulusci.yml"
-        with load_from_source(p) as (filename, data):
+        with load_from_source(p) as (data, filename):
             assert "tasks:" in data.read()
 
     def test_load_from_path_string(self):
         p = Path(cumulusci.__file__).parent / "cumulusci.yml"
-        with load_from_source(str(p)) as (filename, data):
+        with load_from_source(str(p)) as (data, filename):
             assert "tasks:" in data.read()
 
     def test_load_from_open_file(self):
         p = Path(cumulusci.__file__).parent / "cumulusci.yml"
         with open(p) as f:
-            with load_from_source(f) as (filename, data):
+            with load_from_source(f) as (data, filename):
                 assert "tasks:" in data.read()
                 assert str(p) == filename
 
     def test_load_from_fs_resource(self):
         p = Path(cumulusci.__file__).parent / "cumulusci.yml"
         with open_fs_resource(p) as p2:
-            with load_from_source(p2) as (filename, data):
+            with load_from_source(p2) as (data, filename):
                 assert "tasks:" in data.read()
+
+    def test_view_file_str_path(self):
+        """Verify view_file works when given a path as a string"""
+        with mock.patch("webbrowser.open") as webbrowser_open:
+            path = "robot/results/index.html"
+            view_file(path)
+            url = f"file://{urllib.request.pathname2url(str(Path(path).resolve()))}"
+            webbrowser_open.assert_called_once_with(url)
+
+    def test_view_file_Path(self):
+        """Verify view_file works when given a path as a Path object"""
+        with mock.patch("webbrowser.open") as webbrowser_open:
+            path = Path("robot/results/index.html")
+            view_file(path)
+            url = f"file://{urllib.request.pathname2url(str(path.resolve()))}"
+            webbrowser_open.assert_called_once_with(url)
 
 
 class _TestFSResourceShared:
@@ -140,7 +158,7 @@ class _TestFSResourceShared:
         abspath = "c:\\foo\\bar"
         with open_fs_resource(abspath) as f:
             if sys.platform == "win32":
-                assert "c:\\foo\\bar" == str(f.getsyspath()), str(f.getsyspath())
+                assert str(f.getsyspath()), str(f.getsyspath()) == r"c:\foo\bar"
 
 
 class TestFSResource(_TestFSResourceShared):

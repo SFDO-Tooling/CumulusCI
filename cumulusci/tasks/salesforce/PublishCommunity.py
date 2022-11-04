@@ -1,6 +1,5 @@
+from cumulusci.core.exceptions import SalesforceException, TaskOptionsError
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.exceptions import SalesforceException
-from cumulusci.core.exceptions import TaskOptionsError
 
 
 class PublishCommunity(BaseSalesforceApiTask):

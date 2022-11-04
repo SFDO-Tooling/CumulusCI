@@ -1,26 +1,28 @@
 import functools
-import time
 import re
+import time
 from pathlib import Path
 
-from selenium.common.exceptions import ElementNotInteractableException
-from selenium.common.exceptions import StaleElementReferenceException
-from selenium.common.exceptions import WebDriverException
-from selenium.common.exceptions import NoSuchWindowException
+import robot.api as robot_api
+from robot.libraries.BuiltIn import BuiltIn
+from selenium.common.exceptions import (
+    ElementNotInteractableException,
+    NoSuchWindowException,
+    StaleElementReferenceException,
+    WebDriverException,
+)
 from selenium.webdriver.remote.command import Command
 from SeleniumLibrary.errors import ElementNotFound
-from robot.libraries.BuiltIn import BuiltIn
-import robot.api as robot_api
 
 
-def set_pdb_trace(pm=False):
+def set_pdb_trace(pm=False):  # pragma: no cover
     """Start the Python debugger when robotframework is running.
 
     This makes sure that pdb can use stdin/stdout even though
     robotframework has redirected I/O.
     """
-    import sys
     import pdb
+    import sys
 
     for attr in ("stdin", "stdout", "stderr"):
         setattr(sys, attr, getattr(sys, "__%s__" % attr))
@@ -93,7 +95,7 @@ class RetryingSeleniumLibraryMixin(object):
                         result = orig_execute(driver_command, params)
                 except Exception:
                     if driver_command != Command.SCREENSHOT:
-                        self.selenium.capture_page_screenshot()
+                        safe_screenshot()
                     if self.debug:
                         self.selenium.log_source()
                     raise
@@ -210,29 +212,44 @@ def selenium_retry(target=None, retry=True):
 def capture_screenshot_on_error(func):
     """Decorator for capturing a screenshot if a keyword throws an error
 
-    The name is slightly misleading. While it was designed to capture a
-    screenshot on error, it actually ties in to the same feature in
-    SeleniumLibrary.
+    This decorator will work for both SeleniumLibrary and Browser.
 
-    SeleniumLibrary lets you define any keyword to be run on error,
-    though I doubt we would ever use it for anything other than to
-    capture screenshots. However, if you do configure SeleniumLibrary
-    to do something other than (or in addition to) capturing a
-    screenshot, any keyword that uses this decorator will behave just
-    like a SeleniumLibrary keyword.
+    If a screenshot cannot be taken for any reason, the screenshot error
+    will be logged before the original exception is re-raised.
 
+    For keywords using the Browser library, this will call the keyword
+    "Take screenshot".
+
+    For keywords using SeleniumLibrary, this decorator will call whatever
+    keyword SeleniumLibrary is configured to call on failure. Normally
+    that will be "Capture page screenshot".
     """
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         except Exception:
-            selib = BuiltIn().get_library_instance("SeleniumLibrary")
-            selib.failure_occurred()
+            safe_screenshot()
             raise
 
     return wrapper
+
+
+def safe_screenshot():
+    """Take a screenshot, but log and then ignore errors if the screenshot fails
+
+    This function should work for both selenium and browser (playwright) libraries
+    """
+
+    libs = BuiltIn().get_library_instance(all=True)
+    try:
+        if "Browser" in libs:
+            libs["Browser"].take_screenshot()
+        elif "SeleniumLibrary" in libs:
+            libs["SeleniumLibrary"].capture_page_screenshot()
+    except Exception as e:
+        BuiltIn().log(f"unable to capture screenshot: {e}")
 
 
 def get_locator_module_name(version):

@@ -1,13 +1,13 @@
 from unittest import mock
-import unittest
 
 from cumulusci.tasks.salesforce import UninstallLocalNamespacedBundles
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
+
 from .util import create_task
 
 
-class TestUninstallLocalNamespacedBundles(unittest.TestCase):
+class TestUninstallLocalNamespacedBundles:
     @mock.patch("cumulusci.tasks.metadata.package.PackageXmlGenerator.__call__")
     def test_get_destructive_changes(self, PackageXmlGenerator):
         with temporary_dir() as path:
@@ -19,4 +19,4 @@ class TestUninstallLocalNamespacedBundles(unittest.TestCase):
                 project_config,
             )
             PackageXmlGenerator.return_value = "%TOKEN%"
-            self.assertEqual("ns__", task._get_destructive_changes())
+            assert task._get_destructive_changes() == "ns__"

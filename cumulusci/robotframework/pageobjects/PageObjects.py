@@ -1,11 +1,13 @@
+import inspect
+import sys
+from pathlib import Path
+
+import robot.utils
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
+
 from cumulusci.robotframework.pageobjects.baseobjects import BasePage
 from cumulusci.robotframework.utils import capture_screenshot_on_error
-import inspect
-import robot.utils
-import os
-import sys
 
 
 def get_keyword_names(obj):
@@ -30,9 +32,15 @@ def pageobject(page_type, object_name=None):
         key = (page_type, object_name if object_name else "")
         PageObjects.registry[key] = cls
         cls._page_type = page_type
-        cls._object_name = object_name
         if getattr(cls, "_object_name", None) is None:
             cls._object_name = object_name
+        else:
+            # this page object uses an alias for the object (ie: the name
+            # and _object_name do not match). Let's add this object name
+            # into the registry so it can be called with either the alias
+            # or the actual object name
+            alias_key = (page_type, cls._object_name)
+            PageObjects.registry[alias_key] = cls
         return cls
 
     return wrapper
@@ -79,11 +87,19 @@ class PageObjects(object):
         importer = robot.utils.Importer()
 
         for file_path in args:
-            try:
-                importer.import_class_or_module_by_path(os.path.abspath(file_path))
-                logger.debug("imported page object {}".format(file_path))
-            except Exception as e:
-                logger.warn(str(e))
+            path = self._find_file_in_pythonpath(file_path)
+            if path:
+                try:
+                    importer.import_class_or_module_by_path(str(path.resolve()))
+                    logger.debug(f"imported page object from {path}")
+                except Exception as e:
+                    raise ImportError(
+                        f"Unable to import page object '{file_path}': ({e})", path=path
+                    )
+
+            else:
+                raise ImportError(f"Unable to find page object file '{file_path}'")
+
         self.current_page_object = None
 
         # Start with this library at the front of the library search order;
@@ -95,6 +111,13 @@ class PageObjects(object):
             # via the robot_libdoc task, in which case we don't care
             # whether this throws an error or not.
             pass
+
+    def _find_file_in_pythonpath(self, filename):
+        for directory in sys.path:
+            path = Path(directory) / filename
+            if path.exists():
+                return path
+        return None
 
     @classmethod
     def _reset(cls):
@@ -154,6 +177,7 @@ class PageObjects(object):
 
         if (page_type, object_name) in self.registry:
             cls = self.registry[(page_type, object_name)]
+            logger.debug(f"using page object class {cls}")
             instance = cls()
             instance._libname = instance.__class__.__name__
 

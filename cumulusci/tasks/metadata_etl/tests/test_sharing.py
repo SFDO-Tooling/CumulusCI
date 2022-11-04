@@ -3,9 +3,9 @@ from unittest import mock
 
 import pytest
 
-from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
-from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.metadata_etl import SetOrgWideDefaults
+from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.utils.xml import metadata_tree
 
 MD = "{%s}" % metadata_tree.METADATA_NAMESPACE

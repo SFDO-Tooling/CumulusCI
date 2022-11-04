@@ -1,10 +1,9 @@
 from abc import ABCMeta, abstractmethod
 from importlib import import_module
 
-from factory import enums, base
+from factory import base, enums
 
 from .base_generate_data_task import BaseGenerateDataTask
-
 
 #  Factoryboy uses "__" and Salesforce uses "__". Luckily Factoryboy makes
 #  theirs easy to override!

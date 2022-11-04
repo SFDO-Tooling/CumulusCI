@@ -1,13 +1,18 @@
-from typing import IO, ContextManager, Text, Tuple, Union
-from contextlib import contextmanager
-from pathlib import Path
-from io import TextIOWrapper, StringIO
 import os
+import urllib.request
+import webbrowser
+from contextlib import contextmanager
+from io import StringIO, TextIOWrapper
+from pathlib import Path
+from typing import IO, ContextManager, Text, Tuple, Union
 
 import requests
-from fs import open_fs, path as fspath, copy, base
+from fs import base, copy, open_fs
+from fs import path as fspath
 
 """Utilities for working with files"""
+
+DataInput = Union[str, IO, Path, "FSResource"]
 
 
 def _get_path_from_stream(stream):
@@ -21,9 +26,7 @@ def _get_path_from_stream(stream):
 
 
 @contextmanager
-def load_from_source(
-    source: Union[str, IO, Path, "FSResource"]
-) -> ContextManager[Tuple[Text, IO[Text]]]:
+def load_from_source(source: DataInput) -> ContextManager[Tuple[IO[Text], Text]]:
     """Normalize potential data sources into uniform tuple
 
     Take as input a file-like, path-like, or URL-like
@@ -37,14 +40,14 @@ def load_from_source(
     For example:
 
     >>> from yaml import safe_load
-    >>> with load_from_source("cumulusci.yml") as (path, file):
+    >>> with load_from_source("cumulusci.yml") as (file, path):
     ...      print(path)
     ...      print(safe_load(file).keys())
     ...
     cumulusci.yml
-    dict_keys(['project', 'tasks', 'flows', 'orgs'])
+    dict_keys(['project', 'sources', 'tasks', 'flows', 'orgs'])
 
-    >>> with load_from_source('http://www.salesforce.com') as (path, file):
+    >>> with load_from_source('http://www.salesforce.com') as (file, path):
     ...     print(path)
     ...     print(file.read(10).strip())
     ...
@@ -53,7 +56,7 @@ def load_from_source(
 
     >>> from urllib.request import urlopen
     >>> with urlopen("https://www.salesforce.com") as f:
-    ...     with load_from_source(f) as (path, file):
+    ...     with load_from_source(f) as (file, path):
     ...         print(path)
     ...         print(file.read(10).strip())  #doctest: +ELLIPSIS
     ...
@@ -62,12 +65,12 @@ def load_from_source(
 
     >>> from pathlib import Path
     >>> p = Path(".") / "cumulusci.yml"
-    >>> with load_from_source(p) as (path, file):
+    >>> with load_from_source(p) as (file, path):
     ...     print(path)
     ...     print(file.readline().strip())
     ...
     cumulusci.yml
-    project:
+    # yaml-language-server: $schema=cumulusci/schema/cumulusci.jsonschema.json
     """
     if (
         hasattr(source, "read") and hasattr(source, "readable") and source.readable()
@@ -75,20 +78,20 @@ def load_from_source(
         path = _get_path_from_stream(source)
         if not hasattr(source, "encoding"):  # not decoded yet
             source = TextIOWrapper(source, "utf-8")
-        yield path, source
+        yield source, path
     elif hasattr(source, "open"):  # pathlib.Path-like
-        with source.open("rt") as f:
+        with source.open("rt", encoding="utf-8") as f:
             path = str(source)
-            yield path, f
+            yield f, path
     elif "://" in source:  # URL string-like
         url = source
         resp = requests.get(url)
         resp.raise_for_status()
-        yield url, StringIO(resp.text)
+        yield StringIO(resp.text), url
     else:  # path-string-like
         path = source
-        with open(path, "rt") as f:
-            yield path, f
+        with open(path, "rt", encoding="utf-8") as f:
+            yield f, path
 
 
 def proxy(funcname):
@@ -96,8 +99,19 @@ def proxy(funcname):
         real_func = getattr(self.fs, funcname)
         return real_func(self.filename, *args, **kwargs)
 
-    func.__doc__ = getattr(base.FS, funcname).__doc__
     return func
+
+
+def view_file(path):
+    """Open the given file in a webbrowser or whatever
+
+    This uses webbrowser.open which might open the file in something other
+    than a web browser (eg: a spreadsheet app if you open a .csv file)
+    """
+    if not isinstance(path, Path):
+        path = Path(path)
+    url = f"file://{urllib.request.pathname2url(str(path.resolve()))}"
+    webbrowser.open(url)
 
 
 class FSResource:
@@ -207,6 +221,10 @@ class FSResource:
     def __contains__(self, other):
         return other in str(self.geturl())
 
+    @property
+    def suffix(self):
+        return Path(self).suffix
+
     def __truediv__(self, other):
         return self.joinpath(other)
 
@@ -257,7 +275,7 @@ class FSResource:
         >>> with open_fs_resource("cumulusci.yml") as cumulusci_yml:
         ...      with cumulusci_yml.open() as c:
         ...          print(c.read(5))
-        proje
+        # yam
 
         """
         resource = FSResource.new(resource_url_or_path, filesystem)

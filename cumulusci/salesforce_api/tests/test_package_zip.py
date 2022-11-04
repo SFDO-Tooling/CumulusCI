@@ -1,19 +1,20 @@
-from unittest import mock
 import base64
 import io
 import os
 import pathlib
-import unittest
 import zipfile
 
-from cumulusci.salesforce_api.package_zip import BasePackageZipBuilder
-from cumulusci.salesforce_api.package_zip import CreatePackageZipBuilder
-from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
-from cumulusci.salesforce_api.package_zip import DestructiveChangesZipBuilder
-from cumulusci.salesforce_api.package_zip import MetadataPackageZipBuilder
-from cumulusci.salesforce_api.package_zip import UninstallPackageZipBuilder
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import touch
+import pytest
+
+from cumulusci.salesforce_api.package_zip import (
+    BasePackageZipBuilder,
+    CreatePackageZipBuilder,
+    DestructiveChangesZipBuilder,
+    InstallPackageZipBuilder,
+    MetadataPackageZipBuilder,
+    UninstallPackageZipBuilder,
+)
+from cumulusci.utils import temporary_dir, touch
 
 
 class TestBasePackageZipBuilder:
@@ -263,30 +264,18 @@ class TestMetadataPackageZipBuilder:
         assert builder._include_directory([]) is True
 
         # not include lwc directory
-        assert builder._include_directory(["lwc"]) is False
+        assert builder._include_directory(["lwc"]) is True
 
         # include any lwc sub-directory (i.e. lwc component directory)
         assert builder._include_directory(["lwc", "myComponent"]) is True
         assert builder._include_directory(["lwc", "lwc"]) is True
+        assert (
+            builder._include_directory(["lwc", "myComponent", "sub-1", "sub-2"]) is True
+        )
 
-        # not include any sub-*-directory of a lwc sub-directory
-        assert builder._include_directory(["lwc", "myComponent", "__tests__"]) is False
-        assert (
-            builder._include_directory(["lwc", "myComponent", "sub-1", "sub-2"])
-            is False
-        )
-        assert (
-            builder._include_directory(
-                ["lwc", "myComponent", "sub-1", "sub-2", "sub-3"]
-            )
-            is False
-        )
-        assert (
-            builder._include_directory(
-                ["lwc", "myComponent", "sub-1", "sub-2", "sub-3", "sub-4"]
-            )
-            is False
-        )
+        # don't include __tests__ within lwc components
+        assert not builder._include_directory(["lwc", "myComponent", "__tests__"])
+        assert not builder._include_directory(["lwc", "myComponent", "__mocks__"])
 
         # include any non-lwc directory
         assert builder._include_directory(["not-lwc"]) is True
@@ -296,23 +285,18 @@ class TestMetadataPackageZipBuilder:
         # include any sub_* directory of a non-lwc directory
         assert builder._include_directory(["not-lwc", "sub-1"]) is True
         assert builder._include_directory(["not-lwc", "sub-1", "sub-2"]) is True
-        assert (
-            builder._include_directory(["not-lwc", "sub-1", "sub-2", "sub-3"]) is True
-        )
-        assert (
-            builder._include_directory(["not-lwc", "sub-1", "sub-2", "sub-3", "sub-4"])
-            is True
-        )
 
     def test_include_file(self):
         builder = MetadataPackageZipBuilder()
 
-        lwc_component_directory = ["lwc", "myComponent"]
-        non_lwc_component_directories = [
-            [],
+        lwc_component_directories = [
             ["lwc"],
+            ["lwc", "myComponent"],
             ["lwc", "myComponent", "sub-1"],
             ["lwc", "myComponent", "sub-2"],
+        ]
+        non_lwc_component_directories = [
+            [],
             ["classes"],
             ["objects", "sub-1"],
             ["objects", "sub-1", "sub-2"],
@@ -320,39 +304,17 @@ class TestMetadataPackageZipBuilder:
 
         # file endings in lwc component whitelist
         for file_ending in [".js", ".js-meta.xml", ".html", ".css", ".svg"]:
-            # lwc_component_directory
-            assert (
-                builder._include_file(
-                    lwc_component_directory, "file_name" + file_ending
-                )
-                is True
-            )
-
-            # non_lwc_component_directories
+            for d in lwc_component_directories:
+                assert builder._include_file(d, "file_name" + file_ending)
             for d in non_lwc_component_directories:
-                assert builder._include_file(d, "file_name" + file_ending) is True
+                assert builder._include_file(d, "file_name" + file_ending)
 
         # file endings not in lwc component whitelist
         for file_ending in ["", ".json", ".xml", ".cls", ".cls-meta.xml", ".object"]:
-            # lwc_component_directory
-            assert (
-                builder._include_file(
-                    lwc_component_directory, "file_name" + file_ending
-                )
-                is False
-            )
-
-            # non_lwc_component_directories
+            for d in lwc_component_directories:
+                assert not builder._include_file(d, "file_name" + file_ending)
             for d in non_lwc_component_directories:
-                assert builder._include_file(d, "file_name" + file_ending) is True
-
-    def test_convert_sfdx(self):
-        with temporary_dir() as path:
-            with mock.patch("cumulusci.salesforce_api.package_zip.sfdx") as sfdx:
-                builder = MetadataPackageZipBuilder()
-                with builder._convert_sfdx_format(path, "Test Package"):
-                    pass
-        sfdx.assert_called_once()
+                assert builder._include_file(d, "file_name" + file_ending)
 
     def test_removes_feature_parameters_from_unlocked_package(self):
         with temporary_dir() as path:
@@ -378,39 +340,39 @@ class TestMetadataPackageZipBuilder:
             assert b"FeatureParameterInteger" not in package_xml
 
 
-class TestCreatePackageZipBuilder(unittest.TestCase):
+class TestCreatePackageZipBuilder:
     def test_init__missing_name(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             CreatePackageZipBuilder(None, "43.0")
 
     def test_init__missing_api_version(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             CreatePackageZipBuilder("TestPackage", None)
 
 
-class TestInstallPackageZipBuilder(unittest.TestCase):
+class TestInstallPackageZipBuilder:
     def test_init__missing_namespace(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             InstallPackageZipBuilder(None, "1.0")
 
     def test_init__missing_version(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             InstallPackageZipBuilder("testns", None)
 
 
-class TestDestructiveChangesZipBuilder(unittest.TestCase):
+class TestDestructiveChangesZipBuilder:
     def test_call(self):
         builder = DestructiveChangesZipBuilder("", "1.0")
         names = builder.zf.namelist()
-        self.assertIn("package.xml", names)
-        self.assertIn("destructiveChanges.xml", names)
+        assert "package.xml" in names
+        assert "destructiveChanges.xml" in names
 
 
-class TestUninstallPackageZipBuilder(unittest.TestCase):
+class TestUninstallPackageZipBuilder:
     def test_init__missing_namespace(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             UninstallPackageZipBuilder(None, "1.0")
 
     def test_call(self):
         builder = UninstallPackageZipBuilder("testns", "1.0")
-        self.assertIn("destructiveChanges.xml", builder.zf.namelist())
+        assert "destructiveChanges.xml" in builder.zf.namelist()

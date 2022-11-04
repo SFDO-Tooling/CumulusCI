@@ -1,7 +1,20 @@
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.utils import process_bool_arg
-
 from simple_salesforce.exceptions import SalesforceMalformedRequest
+
+from cumulusci.core.tasks import BaseSalesforceTask
+from cumulusci.core.utils import process_bool_arg
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
+
+
+class CheckMyDomainActive(BaseSalesforceTask):
+    def _run_task(self):
+        self.return_values = (
+            ".my." in self.org_config.instance_url
+            or ".cloudforce.com" in self.org_config.instance_url
+        )
+
+        self.logger.info(
+            f"Completed My Domain preflight check with result {self.return_values}"
+        )
 
 
 class CheckSettingsValue(BaseSalesforceApiTask):
@@ -22,9 +35,9 @@ class CheckSettingsValue(BaseSalesforceApiTask):
     }
 
     def _run_task(self):
+        field = self.options["settings_field"]
+        entity = self.options["settings_type"]
         try:
-            field = self.options["settings_field"]
-            entity = self.options["settings_type"]
             results = self.tooling.query(f"SELECT {field} FROM {entity}")["records"]
         except SalesforceMalformedRequest as e:
             self.logger.error(
@@ -60,7 +73,5 @@ class CheckSettingsValue(BaseSalesforceApiTask):
         self.return_values = value == comparand
 
         self.logger.info(
-            "Completed Settings preflight check with result {}".format(
-                self.return_values
-            )
+            f"Completed Settings preflight check with result {self.return_values}"
         )

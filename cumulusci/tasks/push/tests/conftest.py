@@ -1,6 +1,5 @@
 import pytest
 
-
 PUSH_FAILURE_RESULT = {
     "totalSize": 10,
     "done": True,

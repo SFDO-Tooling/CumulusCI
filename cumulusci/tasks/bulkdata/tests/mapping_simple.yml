@@ -1,0 +1,27 @@
+Insert Households:
+    api: bulk
+    sf_object: Account
+    table: households
+    fields:
+        Id: sf_id
+    static:
+        Name: TestHousehold
+Insert Contacts:
+    api: bulk
+    batch_size: 1
+    sf_object: Contact
+    table: contacts
+    filters:
+        - "household_id is not null"
+    fields:
+        Id: sf_id
+        FirstName: first_name
+        LastName: last_name
+        Email: email
+    lookups:
+        AccountId:
+            key_field: household_id
+            table: households
+            join_field: household_id
+            value_field: sf_id
+    anchor_date: 1990-07-01

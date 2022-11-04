@@ -1,23 +1,24 @@
-import unittest
-from unittest import mock
+from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from contextlib import contextmanager
+from unittest import mock
 
-from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.bulkdata.tests.utils import _make_task
-
-import yaml
 import pytest
+import yaml
 from sqlalchemy import create_engine
 
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml import (
     GenerateAndLoadDataFromYaml,
 )
-from snowfakery import data_generator_runtime
+from cumulusci.tasks.bulkdata.tests.utils import _make_task
 
-sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.yml"
+sample_yaml = Path(__file__).parent / "snowfakery/gen_npsp_standard_objects.recipe.yml"
 simple_yaml = Path(__file__).parent / "snowfakery/include_parent.yml"
+simple_snowfakery_yaml = (
+    Path(__file__).parent / "snowfakery/simple_snowfakery.recipe.yml"
+)
+
 from cumulusci.tasks.bulkdata.generate_from_yaml import GenerateDataFromYaml
 
 vanilla_mapping_file = Path(__file__).parent / "../tests/mapping_vanilla_sf.yml"
@@ -36,7 +37,16 @@ def temp_sqlite_database_url():
         yield f"sqlite:///{str(path)}"
 
 
-class TestGenerateFromDataTask(unittest.TestCase):
+@contextmanager
+def run_task(task=GenerateDataFromYaml, **options):
+    with temp_sqlite_database_url() as database_url:
+        options["database_url"] = database_url
+        task = _make_task(task, {"options": options})
+        task()
+        yield database_url
+
+
+class TestGenerateFromDataTask:
     def assertRowsCreated(self, database_url):
         engine = create_engine(database_url)
         connection = engine.connect()
@@ -46,7 +56,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
         return accounts
 
     def test_no_options(self):
-        with self.assertRaises(Exception):
+        with pytest.raises(Exception):
             _make_task(GenerateDataFromYaml, {})
 
     def test_simple(self):
@@ -66,7 +76,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
             self.assertRowsCreated(database_url)
 
     def test_inaccessible_generator_yaml(self):
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             task = _make_task(
                 GenerateDataFromYaml,
                 {
@@ -81,7 +91,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
 
     def test_vars(self):
         with temp_sqlite_database_url() as database_url:
-            with self.assertWarns(UserWarning):
+            with pytest.warns(UserWarning):
                 task = _make_task(
                     GenerateDataFromYaml,
                     {
@@ -135,14 +145,31 @@ class TestGenerateFromDataTask(unittest.TestCase):
                 {
                     "options": {
                         "generator_yaml": simple_yaml,
-                        "num_records": 11,
                         "database_url": database_url,
-                        "num_records_tablename": "Account",
                     }
                 },
             )
             task()
-            assert len(self.assertRowsCreated(database_url)) == 11
+            assert len(self.assertRowsCreated(database_url)) == 1, len(
+                self.assertRowsCreated(database_url)
+            )
+
+    @mock.patch(
+        "cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml._dataload"
+    )
+    def test_simple_generate_and_load_with_numrecords(self, _dataload):
+        task = _make_task(
+            GenerateAndLoadDataFromYaml,
+            {
+                "options": {
+                    "generator_yaml": simple_yaml,
+                    "num_records": 11,
+                    "num_records_tablename": "Account",
+                }
+            },
+        )
+        task()
+        assert len(_dataload.mock_calls) == 1
 
     @mock.patch(
         "cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml._dataload"
@@ -161,9 +188,9 @@ class TestGenerateFromDataTask(unittest.TestCase):
         task()
         assert len(_dataload.mock_calls) == 1
 
-    @mock.patch("cumulusci.tasks.bulkdata.generate_from_yaml.generate")
-    def test_exception_handled_cleanly(self, generate):
-        generate.side_effect = AssertionError("Foo")
+    @mock.patch("cumulusci.tasks.bulkdata.generate_from_yaml.generate_data")
+    def test_exception_handled_cleanly(self, generate_data):
+        generate_data.side_effect = AssertionError("Foo")
         with pytest.raises(AssertionError) as e:
             task = _make_task(
                 GenerateAndLoadDataFromYaml,
@@ -177,7 +204,7 @@ class TestGenerateFromDataTask(unittest.TestCase):
             )
             task()
             assert "Foo" in str(e.value)
-        assert len(generate.mock_calls) == 1
+        assert len(generate_data.mock_calls) == 1
 
     @mock.patch(
         "cumulusci.tasks.bulkdata.generate_and_load_data_from_yaml.GenerateAndLoadDataFromYaml._dataload"
@@ -209,49 +236,16 @@ class TestGenerateFromDataTask(unittest.TestCase):
             assert len(records) == 14 % 6  # leftovers
 
     def test_mismatched_options(self):
-        with self.assertRaises(TaskOptionsError) as e:
+        with pytest.raises(TaskOptionsError) as e:
             task = _make_task(
                 GenerateDataFromYaml,
                 {"options": {"generator_yaml": sample_yaml, "num_records": 10}},
             )
             task()
-        assert "without num_records_tablename" in str(e.exception)
-
-    def generate_continuation_data(self):
-        g = data_generator_runtime.Globals()
-        o = data_generator_runtime.ObjectRow(
-            "Account", {"Name": "Johnston incorporated", "id": 5}
-        )
-        g.register_object(o, "The Company")
-        for i in range(0, 5):
-            # burn through 5 imaginary accounts
-            g.id_manager.generate_id("Account")
-        return yaml.safe_dump(g)
-
-    def test_with_continuation_file(self):
-        continuation_data = self.generate_continuation_data()
-        with temp_sqlite_database_url() as database_url:
-            with temporary_file_path("cont.yml") as continuation_file_path:
-                with open(continuation_file_path, "w") as continuation_file:
-                    continuation_file.write(continuation_data)
-
-                task = _make_task(
-                    GenerateDataFromYaml,
-                    {
-                        "options": {
-                            "generator_yaml": sample_yaml,
-                            "database_url": database_url,
-                            "mapping": vanilla_mapping_file,
-                            "continuation_file": continuation_file_path,
-                        }
-                    },
-                )
-                task()
-                rows = self.assertRowsCreated(database_url)
-                assert dict(rows[0])["id"] == 6
+        assert "without num_records_tablename" in str(e.value)
 
     def test_with_nonexistent_continuation_file(self):
-        with self.assertRaises(TaskOptionsError) as e:
+        with pytest.raises(TaskOptionsError) as e:
             with temp_sqlite_database_url() as database_url:
                 task = _make_task(
                     GenerateDataFromYaml,
@@ -268,8 +262,8 @@ class TestGenerateFromDataTask(unittest.TestCase):
                 rows = self.assertRowsCreated(database_url)
                 assert dict(rows[0])["id"] == 6
 
-        assert "jazz" in str(e.exception)
-        assert "does not exist" in str(e.exception)
+        assert "jazz" in str(e.value)
+        assert "does not exist" in str(e.value)
 
     def test_generate_continuation_file(self):
         with temporary_file_path("cont.yml") as temp_continuation_file:
@@ -285,5 +279,65 @@ class TestGenerateFromDataTask(unittest.TestCase):
                     },
                 )
                 task()
-            mapping = yaml.safe_load(open(temp_continuation_file))
-            assert mapping  # internals of this file are not important to MetaCI
+            continuation_file = yaml.safe_load(open(temp_continuation_file))
+            assert continuation_file  # internals of this file are not important to CumulusCI
+
+    def _get_mapping_file(self, **options):
+        with temporary_file_path("mapping.yml") as temp_mapping:
+            with temp_sqlite_database_url() as database_url:
+                task = _make_task(
+                    GenerateDataFromYaml,
+                    {
+                        "options": {
+                            "database_url": database_url,
+                            "generate_mapping_file": temp_mapping,
+                            **options,
+                        }
+                    },
+                )
+                task()
+            with open(temp_mapping) as f:
+                mapping = yaml.safe_load(f)
+        return mapping
+
+    def test_generate_mapping_file__loadfile__inferred(self):
+        mapping = self._get_mapping_file(generator_yaml=simple_snowfakery_yaml)
+
+        assert mapping["Insert Account"]["api"] == "bulk"
+        assert mapping["Insert Contact"].get("bulk_mode") is None
+        assert list(mapping.keys()) == ["Insert Account", "Insert Contact"]
+
+    def test_generate_mapping_file__loadfile__overridden(self):
+        loading_rules = str(simple_snowfakery_yaml).replace(
+            ".recipe.yml", "_2.load.yml"
+        )
+        mapping = self._get_mapping_file(
+            generator_yaml=simple_snowfakery_yaml, loading_rules=str(loading_rules)
+        )
+
+        assert mapping["Insert Account"].get("api") is None
+        assert mapping["Insert Contact"]["bulk_mode"].lower() == "parallel"
+        assert list(mapping.keys()) == ["Insert Contact", "Insert Account"]
+
+    def test_generate_mapping_file__loadfile_multiple_files(self):
+        loading_rules = (
+            str(simple_snowfakery_yaml).replace(".recipe.yml", "_2.load.yml")
+            + ","
+            + str(simple_snowfakery_yaml).replace(".recipe.yml", ".load.yml")
+        )
+        mapping = self._get_mapping_file(
+            generator_yaml=simple_snowfakery_yaml, loading_rules=str(loading_rules)
+        )
+
+        assert mapping["Insert Account"]["api"] == "bulk"
+        assert mapping["Insert Contact"]["bulk_mode"].lower() == "parallel"
+        assert list(mapping.keys()) == ["Insert Contact", "Insert Account"]
+
+    def test_generate_mapping_file__loadfile_missing(self):
+        loading_rules = str(simple_snowfakery_yaml).replace(
+            ".recipe.yml", "_3.load.yml"
+        )
+        with pytest.raises(FileNotFoundError):
+            self._get_mapping_file(
+                generator_yaml=simple_snowfakery_yaml, loading_rules=str(loading_rules)
+            )

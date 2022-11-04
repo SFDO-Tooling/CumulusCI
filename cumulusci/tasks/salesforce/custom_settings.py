@@ -1,9 +1,9 @@
-import os
+import pathlib
+
 import yaml
 
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.utils import os_friendly_path
-from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 
 
 class LoadCustomSettings(BaseSalesforceApiTask):
@@ -44,20 +44,12 @@ class LoadCustomSettings(BaseSalesforceApiTask):
         }
     }
 
-    def _init_options(self, kwargs):
-        super()._init_options(kwargs)
-        self.options["settings_path"] = os_friendly_path(
-            self.options.get("settings_path")
-        )
-        if self.options["settings_path"] is None or not os.path.isfile(
-            self.options["settings_path"]
-        ):
-            raise TaskOptionsError(
-                f"File {self.options['settings_path']} does not exist"
-            )
-
     def _run_task(self):
-        with open(self.options["settings_path"], "r") as f:
+        path = pathlib.Path(self.options["settings_path"])
+        if not path.is_file():
+            raise TaskOptionsError(f"File {path} does not exist")
+
+        with path.open("r") as f:
             self.settings = yaml.safe_load(f)
 
         self.logger.info("Starting Custom Settings load")

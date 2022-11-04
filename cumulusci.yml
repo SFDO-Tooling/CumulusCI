@@ -1,7 +1,17 @@
+# yaml-language-server: $schema=cumulusci/schema/cumulusci.jsonschema.json
 project:
     name: CumulusCI
     package:
         name: CumulusCI
+
+sources:
+    ccitest:
+        github: https://github.com/SFDO-Tooling/CumulusCI-Test
+        branch: main
+
+    omni:
+        github: https://github.com/SalesforceFoundation/omni-cci
+        branch: main
 
 tasks:
     robot:
@@ -9,6 +19,8 @@ tasks:
             suites: cumulusci/robotframework/tests
             options:
                 outputdir: robot/CumulusCI/results
+                skiponfailure: noncritical # allows testing failure conditions
+
     robot_testdoc:
         options:
             path: cumulusci/robotframework/tests
@@ -16,9 +28,9 @@ tasks:
     robot_lint:
         options:
             path:
-              - cumulusci/robotframework
+                - cumulusci/robotframework
             ignore:
-              - RequireTestDocumentation
+                - RequireTestDocumentation
     robot_libdoc:
         description: Generates html documentation for the Salesorce and CumulusCI libraries and resource files
         class_path: cumulusci.tasks.robotframework.RobotLibDoc
@@ -26,11 +38,22 @@ tasks:
             title: CumulusCI Robot Framework Keywords
             output: docs/robot/Keywords.html
             path:
-              - cumulusci.robotframework.CumulusCI
-              - cumulusci.robotframework.PageObjects
-              - cumulusci.robotframework.Salesforce
-              - cumulusci/robotframework/Salesforce.robot
-              - cumulusci/robotframework/pageobjects/BasePageObjects.py
+                - cumulusci.robotframework.CumulusCI
+                - cumulusci.robotframework.PageObjects
+                - cumulusci.robotframework.Performance
+                - cumulusci.robotframework.Salesforce
+                - cumulusci/robotframework/Salesforce.robot
+                - cumulusci.robotframework.SalesforceAPI
+                - cumulusci/robotframework/SalesforcePlaywright.robot
+                - cumulusci.robotframework.SalesforcePlaywright
+                - cumulusci/robotframework/pageobjects/BasePageObjects.py
+
+    # to be used with the person_accounts org definition
+    test_load_person_accounts:
+        class_path: cumulusci.tasks.bulkdata.load.LoadData
+        options:
+            sql_path: cumulusci/tasks/bulkdata/tests/person_accounts.sql
+            mapping: cumulusci/tasks/bulkdata/tests/person_accounts.yml
 
 flows:
     robot_docs:
@@ -55,8 +78,148 @@ flows:
                 options:
                     suites: cumulusci/robotframework/perftests
 
+    test_run_tests:
+        description: Test the run_tests task in a CumulusCI-Test org
+        steps:
+            1:
+                flow: ccitest:qa_org
+
+            2:
+                task: run_tests
+                options:
+                    required_per_class_code_coverage_percent: 50
+            3:
+                task: run_tests
+                ignore_failure: True
+                options:
+                    required_per_class_code_coverage_percent: 90
+                    required_org_code_coverage_percent: 100
+
+    test_upserts_rest_simple:
+        steps:
+            1:
+                task: load_dataset
+                options:
+                    sql_path: datasets/upsert/upsert_before_data.sql
+                    mapping: datasets/upsert/upsert_mapping_rest.yml
+                    set_recently_viewed: False
+
+            2:
+                task: query
+                options:
+                    object: Contact
+                    query: "select Id,Email,Name from Contact where LastName='Bluth'"
+                    result_file: /tmp/contacts_before.csv
+
+            3:
+                task: load_dataset
+                options:
+                    sql_path: datasets/upsert/upsert_example_2.sql
+                    mapping: datasets/upsert/upsert_mapping_rest.yml
+                    set_recently_viewed: False
+
+            4:
+                task: query
+                options:
+                    object: Contact
+                    query: "select Id,Email,Name from Contact where LastName='Bluth'"
+                    result_file: /tmp/contacts_after.csv
+
+    test_upserts_bulk_complex:
+        steps:
+            0.5:
+                task: delete_data
+                options:
+                    objects: Contact,Account,Opportunity
+            1:
+                task: load_dataset
+                options:
+                    sql_path: datasets/upsert/upsert_before_data.sql
+                    mapping: datasets/upsert/upsert_mapping_bulk_complex.yml
+                    set_recently_viewed: False
+
+            2:
+                task: query
+                options:
+                    object: Contact
+                    query: "select Id,Email,Name from Contact where LastName='Bluth'"
+                    result_file: /tmp/contacts_before.csv
+
+            3:
+                task: load_dataset
+                options:
+                    sql_path: datasets/upsert/upsert_complex_example.sql
+                    mapping: datasets/upsert/upsert_mapping_bulk_complex.yml
+                    set_recently_viewed: False
+
+            4:
+                task: query
+                options:
+                    object: Contact
+                    query: "select Id,Email,Name from Contact where LastName='Bluth'"
+                    result_file: /tmp/contacts_after.csv
+
+    do_nothing:
+        steps:
+            1:
+                task: None
+
+    test_upserts_snowfakery:
+        steps:
+            1:
+                task: command
+                options:
+                    command: mkdir -p tmp
+            2:
+                task: delete_data
+                options:
+                    objects: Contact
+                    # where: lastname='Bluth' or lastname='Sitwell' or lastname='Bluth Fünke'
+            3:
+                task: snowfakery
+                options:
+                    recipe: cumulusci/tasks/bulkdata/tests/snowfakery/upsert_before.yml
+
+            4:
+                task: query
+                options:
+                    object: Contact
+                    query: "select Id,Email,Name from Contact where LastName='Bluth'"
+                    result_file: tmp/contacts_before.csv
+
+            5:
+                task: snowfakery
+                options:
+                    recipe: cumulusci/tasks/bulkdata/tests/snowfakery/upsert.recipe.yml
+
+            6:
+                task: query
+                options:
+                    object: Contact
+                    query: "select Id,Email,Name from Contact where LastName='Bluth'"
+                    result_file: tmp/contacts_after.csv
+            7:
+                task: snowfakery
+                options:
+                    recipe: cumulusci/tasks/bulkdata/tests/snowfakery/upsert_2.recipe.yml
+
+            8:
+                task: query
+                options:
+                    object: Contact
+                    query: "select Id,Email,Name from Contact where LastName='Bluth'"
+                    result_file: tmp/contacts_after_2.csv
 
 orgs:
     scratch:
         prerelease:
             config_file: orgs/prerelease.json
+
+        pytest:
+            config_file: orgs/dev.json
+
+        person_accounts:
+            config_file: orgs/person_accounts.json
+
+        omni:
+            config_file: orgs/omni.json

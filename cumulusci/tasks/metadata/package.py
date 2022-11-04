@@ -1,6 +1,8 @@
 import os
 import re
 import urllib.parse
+from pathlib import Path
+
 import yaml
 
 from cumulusci.core.tasks import BaseTask
@@ -51,7 +53,9 @@ class PackageXmlGenerator(object):
         uninstall_class=None,
         types=None,
     ):
-        with open(__location__ + "/metadata_map.yml", "r") as f_metadata_map:
+        with open(
+            __location__ + "/metadata_map.yml", "r", encoding="utf-8"
+        ) as f_metadata_map:
             self.metadata_map = yaml.safe_load(f_metadata_map)
         self.directory = directory
         self.api_version = api_version
@@ -148,7 +152,7 @@ class BaseMetadataParser(object):
             __location__, "..", "..", "files", "delete_excludes.txt"
         )
         excludes = []
-        with open(filename, "r") as f:
+        with open(filename, "r", encoding="utf-8") as f:
             for line in f:
                 excludes.append(line.strip())
         return excludes
@@ -226,8 +230,9 @@ class MetadataFolderParser(BaseMetadataParser):
         if not os.path.isdir(path):
             return members
 
-        # Add the member if it is not namespaced
-        if "__" not in item:
+        # Only add the folder itself if its -meta.xml is present
+        # (If there's no -meta.xml, this package is adding items to an existing folder.)
+        if Path(path + "-meta.xml").exists():
             members.append(item)
 
         for subitem in sorted(os.listdir(path)):
@@ -297,7 +302,7 @@ class MetadataXmlElementParser(BaseMetadataParser):
         return item.findall(self.name_xpath, self.namespaces)
 
     def get_item_name(self, item, parent):
-        """ Returns the value of the first name element found inside of element """
+        """Returns the value of the first name element found inside of element"""
         names = self.get_name_elements(item)
         if not names:
             raise MissingNameElementError
@@ -369,6 +374,21 @@ class BundleParser(BaseMetadataParser):
         return members
 
 
+class LWCBundleParser(BaseMetadataParser):
+    def _parse_item(self, item):
+        members = []
+        path = self.directory + "/" + item
+
+        # Skip non-directories
+        if not os.path.isdir(path) or item.startswith("__"):
+            return members
+
+        # item is a directory; add directory to members and ignore processing directory's files
+        members.append(item)
+
+        return members
+
+
 class DocumentParser(MetadataFolderParser):
     def _parse_subitem(self, item, subitem):
         return [item + "/" + subitem]
@@ -422,5 +442,5 @@ class UpdatePackageXml(BaseTask):
             "Generating {} from metadata in {}".format(output, self.options.get("path"))
         )
         package_xml = self.package_xml()
-        with open(self.options.get("output", output), mode="w") as f:
+        with open(self.options.get("output", output), mode="w", encoding="utf-8") as f:
             f.write(package_xml)

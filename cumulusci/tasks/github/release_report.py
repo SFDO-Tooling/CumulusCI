@@ -1,8 +1,7 @@
 import json
 import re
 
-from cumulusci.core.utils import process_bool_arg
-from cumulusci.core.utils import parse_datetime
+from cumulusci.core.utils import parse_datetime, process_bool_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 
 

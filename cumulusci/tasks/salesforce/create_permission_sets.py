@@ -1,5 +1,5 @@
-from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 from cumulusci.core.utils import process_list_arg
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 
 
 class CreatePermissionSet(BaseSalesforceApiTask):

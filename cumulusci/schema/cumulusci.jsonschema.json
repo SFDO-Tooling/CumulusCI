@@ -1,0 +1,658 @@
+{
+    "title": "CumulusCIRoot",
+    "type": "object",
+    "properties": {
+        "tasks": {
+            "title": "Tasks",
+            "default": {},
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/Task"
+            }
+        },
+        "flows": {
+            "title": "Flows",
+            "default": {},
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/Flow"
+            }
+        },
+        "project": {
+            "title": "Project",
+            "default": {},
+            "allOf": [
+                {
+                    "$ref": "#/definitions/Project"
+                }
+            ]
+        },
+        "orgs": {
+            "title": "Orgs",
+            "default": {},
+            "allOf": [
+                {
+                    "$ref": "#/definitions/Orgs"
+                }
+            ]
+        },
+        "services": {
+            "title": "Services",
+            "default": {},
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/Service"
+            }
+        },
+        "cumulusci": {
+            "$ref": "#/definitions/CumulusCIConfig"
+        },
+        "plans": {
+            "title": "Plans",
+            "default": {},
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/Plan"
+            }
+        },
+        "minimum_cumulusci_version": {
+            "title": "Minimum Cumulusci Version",
+            "type": "string"
+        },
+        "sources": {
+            "title": "Sources",
+            "default": {},
+            "type": "object",
+            "additionalProperties": {
+                "anyOf": [
+                    {
+                        "$ref": "#/definitions/LocalFolderSourceModel"
+                    },
+                    {
+                        "$ref": "#/definitions/GitHubSourceModel"
+                    }
+                ]
+            }
+        },
+        "cli": {
+            "$ref": "#/definitions/CumulusCLIConfig"
+        }
+    },
+    "additionalProperties": false,
+    "definitions": {
+        "Task": {
+            "title": "Task",
+            "type": "object",
+            "properties": {
+                "class_path": {
+                    "title": "Class Path",
+                    "type": "string"
+                },
+                "description": {
+                    "title": "Description",
+                    "type": "string"
+                },
+                "group": {
+                    "title": "Group",
+                    "type": "string"
+                },
+                "options": {
+                    "title": "Options",
+                    "default": {},
+                    "additionalProperties": true,
+                    "type": "object"
+                },
+                "ui_options": {
+                    "title": "Ui Options",
+                    "default": {},
+                    "additionalProperties": true,
+                    "type": "object"
+                },
+                "name": {
+                    "title": "Name",
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "PreflightCheck": {
+            "title": "PreflightCheck",
+            "type": "object",
+            "properties": {
+                "when": {
+                    "title": "When",
+                    "type": "string"
+                },
+                "action": {
+                    "title": "Action",
+                    "type": "string"
+                },
+                "message": {
+                    "title": "Message",
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "Step": {
+            "title": "Step",
+            "type": "object",
+            "properties": {
+                "task": {
+                    "title": "Task",
+                    "type": "string"
+                },
+                "flow": {
+                    "title": "Flow",
+                    "type": "string"
+                },
+                "ignore_failure": {
+                    "title": "Ignore Failure",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "when": {
+                    "title": "When",
+                    "type": "string"
+                },
+                "options": {
+                    "title": "Options",
+                    "default": {},
+                    "additionalProperties": true,
+                    "type": "object"
+                },
+                "ui_options": {
+                    "title": "Ui Options",
+                    "default": {},
+                    "additionalProperties": true,
+                    "type": "object"
+                },
+                "checks": {
+                    "title": "Checks",
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/PreflightCheck"
+                    }
+                },
+                "description": {
+                    "title": "Description",
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "Flow": {
+            "title": "Flow",
+            "type": "object",
+            "properties": {
+                "description": {
+                    "title": "Description",
+                    "type": "string"
+                },
+                "steps": {
+                    "title": "Steps",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/Step"
+                    }
+                },
+                "group": {
+                    "title": "Group",
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "Package": {
+            "title": "Package",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "title": "Name",
+                    "type": "string"
+                },
+                "name_managed": {
+                    "title": "Name Managed",
+                    "type": "string"
+                },
+                "namespace": {
+                    "title": "Namespace",
+                    "type": "string"
+                },
+                "install_class": {
+                    "title": "Install Class",
+                    "type": "string"
+                },
+                "uninstall_class": {
+                    "title": "Uninstall Class",
+                    "type": "string"
+                },
+                "api_version": {
+                    "title": "Api Version",
+                    "type": "string"
+                },
+                "metadata_package_id": {
+                    "title": "Metadata Package Id",
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "Test": {
+            "title": "Test",
+            "type": "object",
+            "properties": {
+                "name_match": {
+                    "title": "Name Match",
+                    "type": "string"
+                }
+            },
+            "required": ["name_match"],
+            "additionalProperties": false
+        },
+        "ReleaseNotesParser": {
+            "title": "ReleaseNotesParser",
+            "type": "object",
+            "properties": {
+                "class_path": {
+                    "title": "Class Path",
+                    "type": "string"
+                },
+                "title": {
+                    "title": "Title",
+                    "type": "string"
+                }
+            },
+            "required": ["class_path", "title"],
+            "additionalProperties": false
+        },
+        "ReleaseNotes": {
+            "title": "ReleaseNotes",
+            "type": "object",
+            "properties": {
+                "parsers": {
+                    "title": "Parsers",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/ReleaseNotesParser"
+                    }
+                }
+            },
+            "required": ["parsers"],
+            "additionalProperties": false
+        },
+        "Git": {
+            "title": "Git",
+            "type": "object",
+            "properties": {
+                "repo_url": {
+                    "title": "Repo Url",
+                    "type": "string"
+                },
+                "default_branch": {
+                    "title": "Default Branch",
+                    "type": "string"
+                },
+                "prefix_feature": {
+                    "title": "Prefix Feature",
+                    "type": "string"
+                },
+                "prefix_beta": {
+                    "title": "Prefix Beta",
+                    "type": "string"
+                },
+                "prefix_release": {
+                    "title": "Prefix Release",
+                    "type": "string"
+                },
+                "push_prefix_sandbox": {
+                    "title": "Push Prefix Sandbox",
+                    "type": "string"
+                },
+                "push_prefix_production": {
+                    "title": "Push Prefix Production",
+                    "type": "string"
+                },
+                "release_notes": {
+                    "$ref": "#/definitions/ReleaseNotes"
+                },
+                "2gp_context": {
+                    "title": "2Gp Context",
+                    "type": "string"
+                },
+                "unlocked_context": {
+                    "title": "Unlocked Context",
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "DependencyResolutions": {
+            "title": "DependencyResolutions",
+            "type": "object",
+            "properties": {
+                "production": {
+                    "title": "Production",
+                    "type": "string"
+                },
+                "preproduction": {
+                    "title": "Preproduction",
+                    "type": "string"
+                },
+                "resolution_strategies": {
+                    "title": "Resolution Strategies",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "Project": {
+            "title": "Project",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "title": "Name",
+                    "type": "string"
+                },
+                "package": {
+                    "$ref": "#/definitions/Package"
+                },
+                "test": {
+                    "$ref": "#/definitions/Test"
+                },
+                "git": {
+                    "$ref": "#/definitions/Git"
+                },
+                "dependencies": {
+                    "title": "Dependencies",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "dependency_resolutions": {
+                    "$ref": "#/definitions/DependencyResolutions"
+                },
+                "dependency_pins": {
+                    "title": "Dependency Pins",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "source_format": {
+                    "title": "Source Format",
+                    "default": "mdapi",
+                    "enum": ["sfdx", "mdapi"],
+                    "type": "string"
+                },
+                "custom": {
+                    "title": "Custom",
+                    "type": "object"
+                }
+            },
+            "additionalProperties": false
+        },
+        "ScratchOrg": {
+            "title": "ScratchOrg",
+            "type": "object",
+            "properties": {
+                "config_file": {
+                    "title": "Config File",
+                    "type": "string",
+                    "format": "path"
+                },
+                "days": {
+                    "title": "Days",
+                    "type": "integer"
+                },
+                "namespaced": {
+                    "title": "Namespaced",
+                    "type": "string"
+                },
+                "setup_flow": {
+                    "title": "Setup Flow",
+                    "type": "string"
+                },
+                "noancestors": {
+                    "title": "Noancestors",
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
+        "Orgs": {
+            "title": "Orgs",
+            "type": "object",
+            "properties": {
+                "scratch": {
+                    "title": "Scratch",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/ScratchOrg"
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "ServiceAttribute": {
+            "title": "ServiceAttribute",
+            "type": "object",
+            "properties": {
+                "description": {
+                    "title": "Description",
+                    "type": "string"
+                },
+                "required": {
+                    "title": "Required",
+                    "type": "boolean"
+                },
+                "default_factory": {
+                    "title": "Default Factory",
+                    "type": "string"
+                },
+                "default": {
+                    "title": "Default",
+                    "type": "string"
+                },
+                "sensitive": {
+                    "title": "Sensitive",
+                    "default": false,
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        },
+        "Service": {
+            "title": "Service",
+            "type": "object",
+            "properties": {
+                "description": {
+                    "title": "Description",
+                    "type": "string"
+                },
+                "class_path": {
+                    "title": "Class Path",
+                    "type": "string"
+                },
+                "attributes": {
+                    "title": "Attributes",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/ServiceAttribute"
+                    }
+                },
+                "validator": {
+                    "title": "Validator",
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "CumulusCIConfig": {
+            "title": "CumulusCIConfig",
+            "type": "object",
+            "properties": {
+                "keychain": {
+                    "title": "Keychain",
+                    "type": "string"
+                }
+            },
+            "required": ["keychain"],
+            "additionalProperties": false
+        },
+        "Plan": {
+            "title": "Plan",
+            "type": "object",
+            "properties": {
+                "title": {
+                    "title": "Title",
+                    "type": "string"
+                },
+                "description": {
+                    "title": "Description",
+                    "type": "string"
+                },
+                "tier": {
+                    "title": "Tier",
+                    "default": "primary",
+                    "enum": ["primary", "secondary", "additional"],
+                    "type": "string"
+                },
+                "slug": {
+                    "title": "Slug",
+                    "type": "string"
+                },
+                "is_listed": {
+                    "title": "Is Listed",
+                    "default": true,
+                    "type": "boolean"
+                },
+                "steps": {
+                    "title": "Steps",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/Step"
+                    }
+                },
+                "checks": {
+                    "title": "Checks",
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/PreflightCheck"
+                    }
+                },
+                "error_message": {
+                    "title": "Error Message",
+                    "type": "string"
+                },
+                "post_install_message": {
+                    "title": "Post Install Message",
+                    "type": "string"
+                },
+                "preflight_message": {
+                    "title": "Preflight Message",
+                    "type": "string"
+                },
+                "allowed_org_providers": {
+                    "title": "Allowed Org Providers",
+                    "default": ["user"],
+                    "type": "array",
+                    "items": {
+                        "enum": ["devhub", "user"],
+                        "type": "string"
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "LocalFolderSourceModel": {
+            "title": "LocalFolderSourceModel",
+            "type": "object",
+            "properties": {
+                "path": {
+                    "title": "Path",
+                    "format": "directory-path",
+                    "type": "string"
+                }
+            },
+            "required": ["path"],
+            "additionalProperties": false
+        },
+        "GitHubSourceRelease": {
+            "title": "GitHubSourceRelease",
+            "description": "An enumeration.",
+            "enum": ["latest", "previous", "latest_beta"],
+            "type": "string"
+        },
+        "GitHubSourceModel": {
+            "title": "GitHubSourceModel",
+            "type": "object",
+            "properties": {
+                "github": {
+                    "title": "Github",
+                    "type": "string"
+                },
+                "resolution_strategy": {
+                    "title": "Resolution Strategy",
+                    "type": "string"
+                },
+                "commit": {
+                    "title": "Commit",
+                    "type": "string"
+                },
+                "ref": {
+                    "title": "Ref",
+                    "type": "string"
+                },
+                "branch": {
+                    "title": "Branch",
+                    "type": "string"
+                },
+                "tag": {
+                    "title": "Tag",
+                    "type": "string"
+                },
+                "release": {
+                    "$ref": "#/definitions/GitHubSourceRelease"
+                },
+                "description": {
+                    "title": "Description",
+                    "type": "string"
+                }
+            },
+            "required": ["github"],
+            "additionalProperties": false
+        },
+        "CumulusCLIConfig": {
+            "title": "CumulusCLIConfig",
+            "type": "object",
+            "properties": {
+                "show_stacktraces": {
+                    "title": "Show Stacktraces",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "plain_output": {
+                    "title": "Plain Output",
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
+        }
+    }
+}

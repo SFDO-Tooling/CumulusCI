@@ -1,10 +1,16 @@
 import csv
-from datetime import datetime
-from datetime import timedelta
 import time
-from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.core.exceptions import CumulusCIException
-from cumulusci.core.exceptions import PushApiObjectNotFound
+from datetime import datetime, timedelta
+
+from dateutil import tz
+from dateutil.parser import isoparse
+
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    PushApiObjectNotFound,
+    TaskOptionsError,
+)
+from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.push.push_api import SalesforcePushApi
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
@@ -64,21 +70,22 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
         version = package.get_package_version_objs(version_where, limit=1)
         if not version:
             raise PushApiObjectNotFound(
-                "PackageVersion not found."
-                + " Namespace = {}, Version Info = {}".format(
-                    package.namespace, version_info
-                )
+                "PackageVersion not found. "
+                + f"Namespace = {package.namespace}, Version Info = {version_info}"
             )
         return version[0]
 
-    def _get_package(self, namespace):
-        package = self.push.get_package_objs(
-            "NamespacePrefix = '{}'".format(namespace), limit=1
-        )
+    def _get_package(self, metadata_package_id: str = None, namespace: str = None):
+        if metadata_package_id:
+            where_clause = f"Id = '{metadata_package_id}'"
+        else:
+            where_clause = f"NamespacePrefix = '{namespace}'"
+
+        package = self.push.get_package_objs(where_clause, limit=1)
 
         if not package:
             raise PushApiObjectNotFound(
-                "The package with namespace {} was not found".format(namespace)
+                f"No package was found using the following query: {where_clause}"
             )
 
         return package[0]
@@ -182,8 +189,8 @@ class BaseSalesforcePushTask(BaseSalesforceApiTask):
 
             # Clear the method level cache on get_push_requests and
             # get_push_request_objs
-            self.push_report.get_push_requests.cache.clear()
-            self.push_report.get_push_request_objs.cache.clear()
+            self.push_report.get_push_requests.cache_clear()
+            self.push_report.get_push_request_objs.cache_clear()
             # Get the push_request again
             self.push_request = self.push_report.get_push_request_objs(
                 "Id = '{}'".format(request_id), limit=1
@@ -208,7 +215,12 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         },
         "version": {
             "description": "The managed package version to push",
-            "required": True,
+        },
+        "version_id": {
+            "description": "The MetadataPackageVersionId (ID prefix `04t`) to push",
+        },
+        "metadata_package_id": {
+            "description": "The MetadataPackageId (ID prefix `033`) to push.",
         },
         "namespace": {
             "description": (
@@ -218,8 +230,9 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         },
         "start_time": {
             "description": (
-                "Set the start time (UTC) to queue a future push."
-                + " Ex: 2016-10-19T10:00"
+                "Set the start time (ISO-8601) to queue a future push."
+                " (Ex: 2021-01-01T06:00Z or 2021-01-01T06:00-08:00)"
+                " Times with no timezone will be interpreted as UTC."
             )
         },
         "batch_size": {
@@ -236,7 +249,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
     def _init_options(self, kwargs):
         super(SchedulePushOrgList, self)._init_options(kwargs)
-
+        self.options["dry_run"] = False
         neither_file_option = "orgs" not in self.options and "csv" not in self.options
         both_file_options = "orgs" in self.options and "csv" in self.options
         if neither_file_option or both_file_options:
@@ -247,6 +260,10 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         # already set
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
+        if "metadata_package_id" not in self.options:
+            self.options[
+                "metadata_package_id"
+            ] = self.project_config.project__package__metadata_package_id
         if "batch_size" not in self.options:
             self.options["batch_size"] = 200
         if "csv" not in self.options and "csv_field_name" in self.options:
@@ -265,16 +282,30 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
 
     def _run_task(self):
         orgs = self._get_orgs()
-        package = self._get_package(self.options.get("namespace"))
-        version = self._get_version(package, self.options.get("version"))
 
+        package_id = self.options.get("metadata_package_id")
+        version_id = self.options.get("version_id")
+        namespace_opt = self.options.get("namespace")
+
+        package = self._get_package(
+            metadata_package_id=package_id,
+            namespace=namespace_opt,
+        )
+        if version_id:
+            version = version_id
+        else:
+            version = self._get_version(package, self.options.get("version")).sf_id
+
+        utcnow = datetime.now(tz.UTC)
         start_time = self.options.get("start_time")
         if start_time:
             if start_time.lower() == "now":
-                start_time = datetime.utcnow() + timedelta(seconds=5)
+                start_time = utcnow + timedelta(seconds=5)
             else:
-                start_time = datetime.strptime(start_time, "%Y-%m-%dT%H:%M")
-            if start_time < datetime.utcnow():
+                start_time = isoparse(start_time)
+                if start_time.utcoffset() is None:
+                    start_time = start_time.replace(tzinfo=tz.UTC)
+            if start_time < utcnow:
                 raise CumulusCIException("Start time cannot be in the past")
         else:
             # delay a bit to allow for review
@@ -282,7 +313,14 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             self.logger.warning(
                 "Scheduling push for %d minutes from now", delay_minutes
             )
-            start_time = datetime.utcnow() + timedelta(minutes=delay_minutes)
+            start_time = utcnow + timedelta(minutes=delay_minutes)
+
+        if self.options["dry_run"]:
+            self.logger.info(
+                f"Selected {len(orgs)} orgs. "
+                f"Skipping actual creation of the PackagePushRequest because the dry_run flag is on."
+            )
+            return
 
         self.request_id, num_scheduled_orgs = self.push.create_push_request(
             version, orgs, start_time
@@ -304,7 +342,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
             return
 
         self.logger.info("Setting status to Pending to queue execution.")
-        self.logger.info("The push upgrade will start at UTC {}".format(start_time))
+        self.logger.info(f"The push upgrade will start at {start_time}")
 
         # Run the job
         self.logger.info(self.push.run_push_request(self.request_id))
@@ -313,7 +351,7 @@ class SchedulePushOrgList(BaseSalesforcePushTask):
         )
 
         # Report the status if start time is less than 1 minute from now
-        if start_time - datetime.utcnow() < timedelta(minutes=1):
+        if start_time - utcnow < timedelta(minutes=1):
             self._report_push_status(self.request_id)
         else:
             self.logger.info("Exiting early since request is in the future")
@@ -337,6 +375,10 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
                 + " will be selected for push"
             )
         },
+        "metadata_package_id": {
+            "description": "The MetadataPackageId (ID prefix `033`) to push.",
+            "required": False,
+        },
         "namespace": {
             "description": (
                 "The managed package namespace to push."
@@ -345,25 +387,42 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
         },
         "start_time": {
             "description": (
-                "Set the start time (UTC) to queue a future push."
-                + " Ex: 2016-10-19T10:00"
+                "Set the start time (ISO-8601) to queue a future push."
+                " (Ex: 2021-01-01T06:00Z or 2021-01-01T06:00-08:00)"
+                " Times with no timezone will be interpreted as UTC."
             )
         },
+        "dry_run": {
+            "description": "If True, log how many orgs were selected but skip creating a PackagePushRequest.  Defaults to False"
+        },
     }
+
+    def _init_options(self, kwargs):
+        super(SchedulePushOrgList, self)._init_options(kwargs)
+        # Set the namespace option to the value from cumulusci.yml if not
+        # already set
+        if "namespace" not in self.options:
+            self.options["namespace"] = self.project_config.project__package__namespace
+        if "batch_size" not in self.options:
+            self.options["batch_size"] = 200
+        self.options["dry_run"] = process_bool_arg(self.options.get("dry_run", False))
 
     def _get_orgs(self):
         subscriber_where = self.options.get("subscriber_where")
         default_where = {
-            "PackageSubscriber": ("OrgStatus = 'Active' AND InstalledStatus = 'i'")
+            "PackageSubscriber": ("OrgStatus != 'Inactive' AND InstalledStatus = 'i'")
         }
         if subscriber_where:
             default_where["PackageSubscriber"] += " AND ({})".format(subscriber_where)
 
         push_api = SalesforcePushApi(
-            self.sf, self.logger, default_where=default_where.copy()
+            self.sf, self.logger, default_where=default_where.copy(), bulk=self.bulk
         )
 
-        package = self._get_package(self.options.get("namespace"))
+        package = self._get_package(
+            metadata_package_id=self.options.get("metadata_package_id"),
+            namespace=self.options.get("namespace"),
+        )
         version = self._get_version(package, self.options.get("version"))
         min_version = self.options.get("min_version")
         if min_version:
@@ -373,9 +432,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
 
         if min_version:
             # If working with a range of versions, use an inclusive search
-            versions = version.get_older_released_version_objs(
-                greater_than_version=min_version
-            )
+            versions = version.get_older_released_version_objs(min_version=min_version)
             included_versions = []
             for include_version in versions:
                 included_versions.append(str(include_version.sf_id))
@@ -390,7 +447,7 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             # query timeout errors with querying multiple versions
             for included_version in included_versions:
                 # Clear the get_subscribers method cache before each call
-                push_api.get_subscribers.cache.clear()
+                push_api.get_subscribers.cache_clear()
                 push_api.default_where[
                     "PackageSubscriber"
                 ] = "{} AND MetadataPackageVersionId = '{}'".format(
@@ -407,18 +464,11 @@ class SchedulePushOrgQuery(SchedulePushOrgList):
             excluded_versions = [str(version.sf_id)]
             for newer in newer_versions:
                 excluded_versions.append(str(newer.sf_id))
-            if len(excluded_versions) == 1:
-                push_api.default_where[
-                    "PackageSubscriber"
-                ] += " AND MetadataPackageVersionId != '{}'".format(
-                    excluded_versions[0]
-                )
-            else:
-                push_api.default_where[
-                    "PackageSubscriber"
-                ] += " AND MetadataPackageVersionId NOT IN {}".format(
-                    "('" + "','".join(excluded_versions) + "')"
-                )
+            push_api.default_where[
+                "PackageSubscriber"
+            ] += " AND MetadataPackageVersionId NOT IN {}".format(
+                "('" + "','".join(excluded_versions) + "')"
+            )
 
             for subscriber in push_api.get_subscribers():
                 orgs.append(subscriber["OrgKey"])

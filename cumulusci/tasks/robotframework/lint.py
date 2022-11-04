@@ -1,11 +1,12 @@
-from pathlib import Path
-from cumulusci.core.tasks import BaseTask
-from cumulusci.core.utils import process_bool_arg
-from cumulusci.core.utils import process_list_arg
-from cumulusci.core.exceptions import CumulusCIFailure
-import rflint
 import glob
 import os
+from pathlib import Path
+
+import rflint
+
+from cumulusci.core.exceptions import CumulusCIFailure
+from cumulusci.core.tasks import BaseTask
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 
 
 class RobotLint(BaseTask):

@@ -1,23 +1,23 @@
-from collections import defaultdict
 import contextlib
 import functools
 import json
 import os
 import re
 import time
+from collections import defaultdict
 
 from cumulusci.core.config import ScratchOrgConfig
 from cumulusci.core.sfdx import sfdx
-from cumulusci.core.utils import process_bool_arg
-from cumulusci.core.utils import process_list_arg
-from cumulusci.tasks.salesforce import BaseRetrieveMetadata
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
-from cumulusci.utils import temporary_dir
-from cumulusci.utils import touch
-from cumulusci.utils import inject_namespace
-from cumulusci.utils import process_text_in_directory
-from cumulusci.utils import tokenize_namespace
+from cumulusci.tasks.salesforce import BaseRetrieveMetadata, BaseSalesforceApiTask
+from cumulusci.utils import (
+    inject_namespace,
+    process_text_in_directory,
+    temporary_dir,
+    tokenize_namespace,
+    touch,
+)
 
 
 class ListChanges(BaseSalesforceApiTask):
@@ -62,7 +62,7 @@ class ListChanges(BaseSalesforceApiTask):
         self._snapshot = {}
         with self._snapshot_file as sf:
             if sf.exists():
-                with sf.open("r") as f:
+                with sf.open("r", encoding="utf-8") as f:
                     self._snapshot = json.load(f)
 
     def _run_task(self):
@@ -131,7 +131,7 @@ class ListChanges(BaseSalesforceApiTask):
             revnum = change["RevisionCounter"] or -1
             self._snapshot.setdefault(mdtype, {})[name] = revnum
         with self._snapshot_file as sf:
-            with sf.open("w") as f:
+            with sf.open("w", encoding="utf-8") as f:
                 json.dump(self._snapshot, f)
 
     def _reset_sfdx_snapshot(self):
@@ -180,7 +180,7 @@ def _write_manifest(changes, path, api_version):
         types=[MetadataType(name, members) for name, members in type_members.items()],
     )
     package_xml = generator()
-    with open(os.path.join(path, "package.xml"), "w") as f:
+    with open(os.path.join(path, "package.xml"), "w", encoding="utf-8") as f:
         f.write(package_xml)
 
 
@@ -226,7 +226,7 @@ def retrieve_components(
             os.mkdir("target")
             # We need to create sfdx-project.json
             # so that sfdx will recognize force-app as a package directory.
-            with open("sfdx-project.json", "w") as f:
+            with open("sfdx-project.json", "w", encoding="utf-8") as f:
                 json.dump(
                     {"packageDirectories": [{"path": "force-app", "default": True}]}, f
                 )
@@ -284,7 +284,7 @@ def retrieve_components(
                 **extra_package_xml_opts,
             }
             package_xml = PackageXmlGenerator(**package_xml_opts)()
-            with open(os.path.join(target, "package.xml"), "w") as f:
+            with open(os.path.join(target, "package.xml"), "w", encoding="utf-8") as f:
                 f.write(package_xml)
 
 
@@ -299,7 +299,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
         package_directories = []
         default_package_directory = None
         if os.path.exists("sfdx-project.json"):
-            with open("sfdx-project.json", "r") as f:
+            with open("sfdx-project.json", "r", encoding="utf-8") as f:
                 sfdx_project = json.load(f)
                 for package_directory in sfdx_project.get("packageDirectories", []):
                     package_directories.append(package_directory["path"])

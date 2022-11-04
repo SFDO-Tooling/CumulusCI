@@ -2,18 +2,21 @@
 
 import io
 import os
-import sarge
-import pytest
 import zipfile
 from datetime import datetime
-
-from xml.etree import ElementTree as ET
 from unittest import mock
+from xml.etree import ElementTree as ET
+
+import pytest
 import responses
+import sarge
 
 from cumulusci import utils
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import FlowConfig, TaskConfig
+from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.tasks import BaseTask
+from cumulusci.tests.util import create_project_config
+from cumulusci.utils.xml import elementtree_parse_file, lxml_parse_file
 
 
 class FunTestTask(BaseTask):
@@ -25,7 +28,7 @@ class FunTestTask(BaseTask):
         "flavor": {
             "description": "What flavor",
             "required": True,
-            "usage": "-o flavor VANILLA",
+            "usage": "--flavor VANILLA",
             "type": "string",
             "default": "chocolate",
         },
@@ -126,11 +129,39 @@ class TestUtils:
             logger.info.assert_called_once()
             assert os.listdir(d) == ["bar"]
 
-    @mock.patch("xml.etree.ElementTree.parse")
-    def test_elementtree_parse_file(self, mock_parse):
-        _marker = object()
-        mock_parse.return_value = _marker
-        assert utils.elementtree_parse_file("test_file") == _marker
+    def test_elementtree_parse_file(self, cumulusci_test_repo_root):
+        tree = elementtree_parse_file(
+            cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml"
+        )
+        assert tree.getroot().tag.startswith("{")
+
+    def test_elementtree_parse_file_pathstr(self, cumulusci_test_repo_root):
+        tree = elementtree_parse_file(
+            str(cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml")
+        )
+        assert tree.getroot().tag.startswith("{")
+
+    def test_lxml_parse_file(self, cumulusci_test_repo_root):
+        tree = lxml_parse_file(
+            cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml"
+        )
+        assert tree.getroot().tag.startswith("{")
+
+    def test_lxml_parse_stream(self, cumulusci_test_repo_root):
+        data = io.StringIO("<Foo/>")
+        tree = lxml_parse_file(data)
+        assert tree.getroot().tag == "Foo"
+
+    def test_lxml_parse_file_pathstr(self, cumulusci_test_repo_root):
+        tree = lxml_parse_file(
+            str(cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml")
+        )
+        assert tree.getroot().tag.startswith("{")
+
+    def test_elementtree_parse_stream(self, cumulusci_test_repo_root):
+        data = io.StringIO("<Foo/>")
+        tree = elementtree_parse_file(data)
+        assert tree.getroot().tag == "Foo"
 
     @mock.patch("xml.etree.ElementTree.parse")
     def test_elementtree_parse_file_error(self, mock_parse):
@@ -193,7 +224,9 @@ class TestUtils:
         task_doc = utils.doc_task("scoop_icecream", task_config)
         assert (
             task_doc
-            == """**scoop_icecream**
+            == """.. _scoop-icecream:
+
+scoop_icecream
 ==========================================\n
 **Description:** Scoops icecream\n
 **Class:** cumulusci.tests.test_utils.FunTestTask\n
@@ -201,15 +234,15 @@ extra docs
 Command Syntax\n------------------------------------------\n
 ``$ cci task run scoop_icecream``\n\n
 Options\n------------------------------------------\n\n
-``-o flavor VANILLA``
+``--flavor VANILLA``
 \t *Required*\n
 \t What flavor\n
 \t Type: string\n
-``-o color COLOR``
+``--color COLOR``
 \t *Optional*\n
 \t What color\n
 \t Default: black\n
-``-o size SIZE``
+``--size SIZE``
 \t *Optional*\n
 \t How big"""
         )
@@ -226,27 +259,27 @@ Options\n------------------------------------------\n\n
         # Required options should be at the front of the list
         assert option_info[0]["required"]
         assert option_info[0]["description"] == "What flavor"
-        assert option_info[0]["usage"] == "-o flavor VANILLA"
+        assert option_info[0]["usage"] == "--flavor VANILLA"
         assert option_info[0]["name"] == "flavor"
         assert option_info[0]["option_type"] == "string"
         assert option_info[0]["default"] is None
 
         assert not option_info[1]["required"]
         assert option_info[1]["default"] == "black"
-        assert option_info[1]["usage"] == "-o color COLOR"
+        assert option_info[1]["usage"] == "--color COLOR"
 
         assert not option_info[2]["required"]
         assert option_info[2]["default"] is None
-        assert option_info[2]["usage"] == "-o size SIZE"
+        assert option_info[2]["usage"] == "--size SIZE"
 
     def test_get_option_usage_string(self, option_info):
         name = option_info[0]["name"]
         usage_str1 = utils.get_option_usage_string(name, option_info[0])
-        assert usage_str1 == "-o option_one OPTIONONE"
+        assert usage_str1 == "--option_one OPTIONONE"
 
         name = option_info[1]["name"]
         usage_str2 = utils.get_option_usage_string(name, option_info[1])
-        assert usage_str2 == "-o option_two OPTIONTWO"
+        assert usage_str2 == "--option_two OPTIONTWO"
 
     def test_create_task_options_doc(self, option_info):
         option_one_doc = utils.create_task_options_doc(option_info[:1])
@@ -260,6 +293,50 @@ Options\n------------------------------------------\n\n
         ]
 
         assert option_two_doc == ["\t *Optional*", "\n\t Brief description here."]
+
+    def test_document_flow(self):
+        project_config = create_project_config("TestOwner", "TestRepo")
+        flow_config = FlowConfig({"description": "Test Flow", "steps": {}})
+        coordinator = FlowCoordinator(project_config, flow_config, name="test_flow")
+        flow_doc = utils.document_flow("test flow", "test description.", coordinator)
+
+        expected_doc = (
+            ".. _test flow:\n\n"
+            "test flow"
+            "\n^^^^^^^^^\n"
+            "\n**Description:** test description.\n"
+            "\n**Flow Steps**\n"
+            "\n.. code-block:: console\n"
+        )
+
+        assert expected_doc == flow_doc, flow_doc
+
+    def test_document_flow__additional_info(self):
+        flow_steps = ["1) (Task) Extract"]
+        flow_coordinator = mock.Mock(get_flow_steps=mock.Mock(return_value=flow_steps))
+        other_info = "**this is** just some rst ``formatted`` text."
+
+        flow_doc = utils.document_flow(
+            "test flow",
+            "test description.",
+            flow_coordinator,
+            additional_info=other_info,
+        )
+
+        expected_doc = (
+            ".. _test flow:\n\n"
+            "test flow"
+            "\n^^^^^^^^^\n"
+            "\n**Description:** test description.\n"
+            f"\n{other_info}"
+            "\n**Flow Steps**\n"
+            "\n.. code-block:: console\n"
+            "\n\t1) (Task) Extract"
+        )
+        if expected_doc != flow_doc:
+            print(repr(expected_doc))
+            print(repr(flow_doc))
+        assert expected_doc == flow_doc
 
     @responses.activate
     def test_download_extract_zip(self):
@@ -391,6 +468,12 @@ Options\n------------------------------------------\n\n
         assert name == "ns__test"
         assert content == "ns__|ns.|ns__|ns|ns"
 
+    def test_inject_namespace__filename_token_in_package_xml(self):
+        name, content = utils.inject_namespace(
+            "package.xml", "___NAMESPACE___", namespace="ns", managed=True
+        )
+        assert content == "ns__"
+
     def test_strip_namespace(self):
         logger = mock.Mock()
         name, content = utils.strip_namespace(
@@ -501,15 +584,15 @@ Options\n------------------------------------------\n\n
             pass
         assert 4 == logger.info.call_count
 
-    def test_util__sets_homebrew_upgrade_cmd(self):
+    def test_util__sets_homebrew_deprecation_msg(self):
         utils.CUMULUSCI_PATH = "/usr/local/Cellar/cumulusci/2.1.2"
         upgrade_cmd = utils.get_cci_upgrade_command()
-        assert utils.BREW_UPDATE_CMD == upgrade_cmd
+        assert utils.BREW_DEPRECATION_MSG == upgrade_cmd
 
-    def test_util__sets_linuxbrew_upgrade_cmd(self):
+    def test_util__sets_linuxbrew_deprecation_msg(self):
         utils.CUMULUSCI_PATH = "/home/linuxbrew/.linuxbrew/cumulusci/2.1.2"
         upgrade_cmd = utils.get_cci_upgrade_command()
-        assert utils.BREW_UPDATE_CMD == upgrade_cmd
+        assert utils.BREW_DEPRECATION_MSG == upgrade_cmd
 
     def test_util__sets_pip_upgrade_cmd(self):
         utils.CUMULUSCI_PATH = "/usr/local/pip-path/cumulusci/2.1.2"
@@ -524,13 +607,9 @@ Options\n------------------------------------------\n\n
         assert utils.PIPX_UPDATE_CMD == upgrade_cmd
 
     def test_convert_to_snake_case(self):
-        assert "one_two" == utils.convert_to_snake_case("OneTwo")
-        assert "one_two" == utils.convert_to_snake_case("ONETwo")
-        assert "one_two" == utils.convert_to_snake_case("One_Two")
-
-    def test_os_friendly_path(self):
-        with mock.patch("os.sep", "\\"):
-            assert "\\" == utils.os_friendly_path("/")
+        assert utils.convert_to_snake_case("OneTwo") == "one_two"
+        assert utils.convert_to_snake_case("ONETwo") == "one_two"
+        assert utils.convert_to_snake_case("One_Two") == "one_two"
 
     @mock.patch("sarge.Command")
     def test_get_git_config(self, Command):
@@ -538,7 +617,7 @@ Options\n------------------------------------------\n\n
             stdout=io.BytesIO(b"test@example.com"), stderr=io.BytesIO(b""), returncode=0
         )
 
-        assert "test@example.com" == utils.get_git_config("user.email")
+        assert utils.get_git_config("user.email") == "test@example.com"
         assert (
             sarge.shell_format('git config --get "{0!s}"', "user.email")
             == Command.call_args[0][0]

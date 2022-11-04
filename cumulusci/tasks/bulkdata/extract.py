@@ -1,37 +1,31 @@
-import csv
 import itertools
+import re
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import MetaData
-from sqlalchemy import Table
-from sqlalchemy import Unicode
+from sqlalchemy import Column, Integer, MetaData, Table, Unicode, create_engine
 from sqlalchemy.orm import create_session, mapper
 
-from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
-from cumulusci.tasks.bulkdata.utils import (
-    SqlAlchemyMixin,
-    create_table,
-)
+from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
-
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
+from cumulusci.tasks.bulkdata.mapping_parser import (
+    parse_from_yaml,
+    validate_and_inject_mapping,
+)
 from cumulusci.tasks.bulkdata.step import (
     DataOperationStatus,
     DataOperationType,
     get_query_operation,
 )
-from cumulusci.tasks.bulkdata.dates import (
-    adjust_relative_dates,
+from cumulusci.tasks.bulkdata.utils import (
+    SqlAlchemyMixin,
+    consume,
+    create_table,
+    sql_bulk_insert_from_records,
+    sql_bulk_insert_from_records_incremental,
 )
-from cumulusci.utils import os_friendly_path, log_progress
-from cumulusci.tasks.bulkdata.mapping_parser import (
-    parse_from_yaml,
-    validate_and_inject_mapping,
-)
-from cumulusci.tasks.bulkdata.utils import consume
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.utils import log_progress
 
 
 class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
@@ -50,8 +44,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             + "This is useful for keeping data in the repository and allowing diffs."
         },
         "inject_namespaces": {
-            "description": "If True, the package namespace prefix will be automatically added to objects "
-            "and fields for which it is present in the org. Defaults to True."
+            "description": "If True, the package namespace prefix will be "
+            "automatically added to (or removed from) objects "
+            "and fields based on the name used in the org. Defaults to True."
         },
         "drop_missing_schema": {
             "description": "Set to True to skip any missing objects or fields instead of stopping with an error."
@@ -63,18 +58,17 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if self.options.get("database_url"):
             # prefer database_url if it's set
             self.options["sql_path"] = None
-        elif self.options.get("sql_path"):
-            self.options["sql_path"] = os_friendly_path(self.options["sql_path"])
-        else:
+        elif not self.options.get("sql_path"):
             raise TaskOptionsError(
                 "You must set either the database_url or sql_path option."
             )
 
+        inject_namespaces = self.options.get("inject_namespaces")
         self.options["inject_namespaces"] = process_bool_arg(
-            self.options.get("inject_namespaces", True)
+            True if inject_namespaces is None else inject_namespaces
         )
         self.options["drop_missing_schema"] = process_bool_arg(
-            self.options.get("drop_missing_schema", False)
+            self.options.get("drop_missing_schema") or False
         )
 
     def _run_task(self):
@@ -97,9 +91,8 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         with self._database_url() as database_url:
 
             # initialize the DB engine
-            self.engine = create_engine(database_url)
-            with self.engine.connect() as connection:
-
+            parent_engine = create_engine(database_url)
+            with parent_engine.connect() as connection:
                 # initialize DB metadata
                 self.metadata = MetaData()
                 self.metadata.bind = connection
@@ -123,7 +116,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         validate_and_inject_mapping(
             mapping=self.mapping,
-            org_config=self.org_config,
+            sf=self.sf,
             namespace=self.project_config.project__package__namespace,
             data_operation=DataOperationType.QUERY,
             inject_namespaces=self.options["inject_namespaces"],
@@ -140,10 +133,16 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if mapping.record_type:
             soql += f" WHERE RecordType.DeveloperName = '{mapping.record_type}'"
 
+        if mapping.soql_filter is not None:
+            soql = self.append_filter_clause(
+                soql=soql, filter_clause=mapping.soql_filter
+            )
+
         return soql
 
     def _run_query(self, soql, mapping):
         """Execute a Bulk or REST API query job and store the results."""
+
         step = get_query_operation(
             sobject=mapping.sf_object,
             api=mapping.api,
@@ -186,7 +185,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         # Convert relative dates to stable dates.
         if mapping.anchor_date:
-            date_context = mapping.get_relative_date_context(self.org_config)
+            date_context = mapping.get_relative_date_context(
+                list(field_map.keys()), self.sf
+            )
             if date_context[0] or date_context[1]:
                 record_iterator = (
                     adjust_relative_dates(
@@ -214,9 +215,9 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             record_iterator = (strip_name_field(record) for record in record_iterator)
 
         if mapping.get_oid_as_pk():
-            self._sql_bulk_insert_from_records(
+            sql_bulk_insert_from_records(
                 connection=conn,
-                table=mapping.table,
+                table=self.metadata.tables[mapping.table],
                 columns=columns,
                 record_iterable=record_iterator,
             )
@@ -227,15 +228,15 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
             f_values = (row[1:] for row in values)
             f_ids = (row[:1] for row in ids)
 
-            values_chunks = self._sql_bulk_insert_from_records_incremental(
+            values_chunks = sql_bulk_insert_from_records_incremental(
                 connection=conn,
-                table=mapping.table,
+                table=self.metadata.tables[mapping.table],
                 columns=columns[1:],  # Strip off the Id column
                 record_iterable=f_values,
             )
-            ids_chunks = self._sql_bulk_insert_from_records_incremental(
+            ids_chunks = sql_bulk_insert_from_records_incremental(
                 connection=conn,
-                table=mapping.get_sf_id_table(),
+                table=self.metadata.tables[mapping.get_sf_id_table()],
                 columns=["sf_id"],
                 record_iterable=f_ids,
             )
@@ -265,32 +266,34 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 self.metadata.tables[m.get_sf_id_table()].drop()
 
     def _get_mapping_for_table(self, table):
-        """Return the first mapping for a table name """
+        """Return the first mapping for a table name"""
         for mapping in self.mapping.values():
             if mapping["table"] == table:
                 return mapping
 
-    def _split_batch_csv(self, records, f_values, f_ids):
-        """Split the record generator and return two files,
-        one containing Ids only and the other record data."""
-        writer_values = csv.writer(f_values)
-        writer_ids = csv.writer(f_ids)
-        for row in records:
-            writer_values.writerow(row[1:])
-            writer_ids.writerow(row[:1])
-        f_values.seek(0)
-        f_ids.seek(0)
-        return f_values, f_ids
-
     def _convert_lookups_to_id(self, mapping, lookup_keys):
         """Rewrite persisted Salesforce Ids to refer to auto-PKs."""
+
+        def throw(string):  # pragma: no cover
+            raise BulkDataException(string)
+
         for lookup_key in lookup_keys:
-            lookup_info = mapping.lookups[lookup_key]
-            model = self.models[mapping.table]
-            lookup_mapping = self._get_mapping_for_table(lookup_info.table)
-            lookup_model = self.models[lookup_mapping.get_sf_id_table()]
+            lookup_info = mapping.lookups.get(lookup_key) or throw(
+                f"Cannot find lookup info {lookup_key}"
+            )
+            model = self.models.get(mapping.table)
+
+            lookup_mapping = self._get_mapping_for_table(lookup_info.table) or throw(
+                f"Cannot find lookup mapping for {lookup_info.table}"
+            )
+
+            lookup_model = self.models.get(lookup_mapping.get_sf_id_table())
+
             key_field = lookup_info.get_lookup_key_field()
-            key_attr = getattr(model, key_field)
+
+            key_attr = getattr(model, key_field, None) or throw(
+                f"key_field {key_field} not found in table {mapping.table}"
+            )
             try:
                 self.session.query(model).filter(
                     key_attr.isnot(None), key_attr == lookup_model.sf_id
@@ -347,3 +350,26 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         with open(path, "w", encoding="utf-8") as f:
             for line in self.session.connection().connection.iterdump():
                 f.write(line + "\n")
+
+    def append_filter_clause(self, soql, filter_clause):
+        """Function that applies filter clause to soql if it is defined in mapping yml file"""
+
+        if not filter_clause:
+            return soql
+
+        # If WHERE keyword is specified in the maping file replace it with empty string.
+        # match WHERE keyword only at the start of the string and whitespace after it.
+        filter_clause = re.sub(
+            pattern=r"^WHERE\s+",
+            repl="",
+            string=filter_clause.strip(),
+            flags=re.IGNORECASE,
+        )
+
+        # If WHERE keyword is already in soql query(because of record type filter) add AND clause
+        if " WHERE " in soql:
+            soql = f"{soql} AND {filter_clause}"
+        else:
+            soql = f"{soql} WHERE {filter_clause}"
+
+        return soql

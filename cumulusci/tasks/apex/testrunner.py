@@ -5,13 +5,14 @@ import io
 import json
 import re
 
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import (
-    TaskOptionsError,
     ApexTestException,
     CumulusCIException,
+    TaskOptionsError,
 )
-from cumulusci.core.utils import process_bool_arg, process_list_arg, decode_to_unicode
+from cumulusci.core.utils import decode_to_unicode, process_bool_arg, process_list_arg
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.utils.http.requests_utils import safe_json_from_response
 
 APEX_LIMITS = {
     "Soql": {
@@ -160,7 +161,11 @@ class RunApexTests(BaseSalesforceApiTask):
             "a retry. Set retry_always to True to retry all failed tests if any failure matches."
         },
         "required_org_code_coverage_percent": {
-            "description": "Require at least X percent code coverage across the org following the test run."
+            "description": "Require at least X percent code coverage across the org following the test run.",
+            "usage": "--required_org_code_coverage_percent PERCENTAGE",
+        },
+        "required_per_class_code_coverage_percent": {
+            "description": "Require at least X percent code coverage for every class in the org.",
         },
         "verbose": {
             "description": "By default, only failures get detailed output. "
@@ -194,8 +199,6 @@ class RunApexTests(BaseSalesforceApiTask):
             "json_output", "test_results.json"
         )
 
-        self.options["managed"] = process_bool_arg(self.options.get("managed", False))
-
         self.options["retry_failures"] = process_list_arg(
             self.options.get("retry_failures", [])
         )
@@ -211,9 +214,10 @@ class RunApexTests(BaseSalesforceApiTask):
                 )
         self.options["retry_failures"] = compiled_res
         self.options["retry_always"] = process_bool_arg(
-            self.options.get("retry_always", False)
+            self.options.get("retry_always") or False
         )
-        self.verbose = process_bool_arg(self.options.get("verbose", False))
+
+        self.verbose = process_bool_arg(self.options.get("verbose") or False)
 
         self.counts = {}
 
@@ -227,7 +231,11 @@ class RunApexTests(BaseSalesforceApiTask):
                     f"Invalid code coverage level {self.options['required_org_code_coverage_percent']}"
                 )
         else:
-            self.code_coverage_level = None
+            self.code_coverage_level = 0
+
+        self.required_per_class_code_coverage_percent = int(
+            self.options.get("required_per_class_code_coverage_percent", 0)
+        )
 
     # pylint: disable=W0201
     def _init_class(self):
@@ -239,7 +247,7 @@ class RunApexTests(BaseSalesforceApiTask):
         self.retry_details = None
 
     def _get_namespace_filter(self):
-        if self.options["managed"]:
+        if self.options.get("managed"):
             namespace = self.options.get("namespace")
             if not namespace:
                 raise TaskOptionsError(
@@ -350,7 +358,7 @@ class RunApexTests(BaseSalesforceApiTask):
             )
 
             # In Spring '20, we cannot get symbol tables for managed classes.
-            if self.options["managed"]:
+            if self.options.get("managed"):
                 self.logger.error(
                     f"Cannot access symbol table for managed class {class_name}. Failure will not be retried."
                 )
@@ -488,11 +496,26 @@ class RunApexTests(BaseSalesforceApiTask):
         else:
             body = {"classids": ",".join(class_ids)}
 
-        return self.tooling._call_salesforce(
-            method="POST", url=self.tooling.base_url + "runTestsAsynchronous", json=body
-        ).json()
+        return safe_json_from_response(
+            self.tooling._call_salesforce(
+                method="POST",
+                url=self.tooling.base_url + "runTestsAsynchronous",
+                json=body,
+            )
+        )
+
+    def _init_task(self):
+        super()._init_task()
+        if "managed" in self.options:
+            self.options["managed"] = process_bool_arg(self.options["managed"] or False)
+        else:
+            namespace = self.options.get("namespace")
+            self.options["managed"] = (
+                bool(namespace) and namespace in self.org_config.installed_packages
+            )
 
     def _run_task(self):
+
         result = self._get_test_classes()
         if result["totalSize"] == 0:
             return
@@ -537,7 +560,7 @@ class RunApexTests(BaseSalesforceApiTask):
                 )
             )
 
-        if self.code_coverage_level:
+        if self.code_coverage_level or self.required_per_class_code_coverage_percent:
             if self.options.get("namespace") not in self.org_config.installed_packages:
                 self._check_code_coverage()
             else:
@@ -550,16 +573,62 @@ class RunApexTests(BaseSalesforceApiTask):
             )
 
     def _check_code_coverage(self):
+        self.logger.info("Checking code coverage.")
+        class_level_coverage_failures = {}
+
+        # Query for Class level code coverage using the aggregate
+        if self.required_per_class_code_coverage_percent:
+            test_classes = self.tooling.query(
+                "SELECT ApexClassOrTrigger.Name, ApexClassOrTriggerId, NumLinesCovered, NumLinesUncovered FROM ApexCodeCoverageAggregate ORDER BY ApexClassOrTrigger.Name ASC"
+            )["records"]
+
+            coverage_percentage = 0
+            for class_level in test_classes:
+                total = (
+                    class_level["NumLinesCovered"] + class_level["NumLinesUncovered"]
+                )
+                # prevent division by 0 errors
+                if total:
+                    # calculate coverage percentage
+                    coverage_percentage = round(
+                        (class_level["NumLinesCovered"] / total) * 100,
+                        2,
+                    )
+
+                if coverage_percentage < self.required_per_class_code_coverage_percent:
+                    class_level_coverage_failures[
+                        class_level["ApexClassOrTrigger"]["Name"]
+                    ] = coverage_percentage
+
+        # Query for OrgWide coverage
         result = self.tooling.query("SELECT PercentCovered FROM ApexOrgWideCoverage")
         coverage = result["records"][0]["PercentCovered"]
+
+        errors = []
+        if self.required_per_class_code_coverage_percent:
+            if class_level_coverage_failures:
+                for class_name in class_level_coverage_failures.keys():
+                    errors.append(
+                        f"{class_name}'s code coverage of {class_level_coverage_failures[class_name]}% is below required level of {self.required_per_class_code_coverage_percent}."
+                    )
+            else:
+                self.logger.info(
+                    f"All classes meet code coverage expectations of {self.required_per_class_code_coverage_percent}% ."
+                )
+
         if coverage < self.code_coverage_level:
-            raise ApexTestException(
+            errors.append(
                 f"Organization-wide code coverage of {coverage}% is below required level of {self.code_coverage_level}"
             )
+        else:
+            self.logger.info(
+                f"Organization-wide code coverage of {coverage}% meets expectations."
+            )
 
-        self.logger.info(
-            f"Organization-wide code coverage of {coverage}% meets expectations."
-        )
+        if errors:
+            error_message = "\n".join(errors)
+            self.logger.info(error_message)
+            raise ApexTestException(error_message)
 
     def _attempt_retries(self):
         total_method_retries = sum(
@@ -631,34 +700,38 @@ class RunApexTests(BaseSalesforceApiTask):
 
     def _write_output(self, test_results):
         junit_output = self.options["junit_output"]
-        with io.open(junit_output, mode="w", encoding="utf-8") as f:
-            f.write('<testsuite tests="{}">\n'.format(len(test_results)))
-            for result in test_results:
-                s = '  <testcase classname="{}" name="{}"'.format(
-                    result["ClassName"], result["Method"]
-                )
-                if (
-                    "Stats" in result
-                    and result["Stats"]
-                    and "duration" in result["Stats"]
-                ):
-                    s += ' time="{}"'.format(result["Stats"]["duration"])
-                if result["Outcome"] in ["Fail", "CompileFail"]:
-                    s += ">\n"
-                    s += '    <failure type="failed" '
-                    if result["Message"]:
-                        s += 'message="{}"'.format(html.escape(result["Message"]))
-                    s += ">"
+        if junit_output:
+            with io.open(junit_output, mode="w", encoding="utf-8") as f:
+                f.write('<testsuite tests="{}">\n'.format(len(test_results)))
+                for result in test_results:
+                    s = '  <testcase classname="{}" name="{}"'.format(
+                        result["ClassName"], result["Method"]
+                    )
+                    if (
+                        "Stats" in result
+                        and result["Stats"]
+                        and "duration" in result["Stats"]
+                    ):
+                        s += ' time="{}"'.format(result["Stats"]["duration"])
+                    if result["Outcome"] in ["Fail", "CompileFail"]:
+                        s += ">\n"
+                        s += '    <failure type="failed" '
+                        if result["Message"]:
+                            s += 'message="{}"'.format(html.escape(result["Message"]))
+                        s += ">"
 
-                    if result["StackTrace"]:
-                        s += "<![CDATA[{}]]>".format(html.escape(result["StackTrace"]))
-                    s += "</failure>\n"
-                    s += "  </testcase>\n"
-                else:
-                    s += " />\n"
-                f.write(str(s))
-            f.write("</testsuite>")
+                        if result["StackTrace"]:
+                            s += "<![CDATA[{}]]>".format(
+                                html.escape(result["StackTrace"])
+                            )
+                        s += "</failure>\n"
+                        s += "  </testcase>\n"
+                    else:
+                        s += " />\n"
+                    f.write(str(s))
+                f.write("</testsuite>")
 
         json_output = self.options["json_output"]
-        with io.open(json_output, mode="w", encoding="utf-8") as f:
-            f.write(str(json.dumps(test_results, indent=4)))
+        if json_output:
+            with io.open(json_output, mode="w", encoding="utf-8") as f:
+                f.write(str(json.dumps(test_results, indent=4)))

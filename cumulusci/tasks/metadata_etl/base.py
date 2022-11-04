@@ -1,16 +1,16 @@
-from abc import ABCMeta, abstractmethod
 import enum
-from pathlib import Path
 import tempfile
+from abc import ABCMeta, abstractmethod
+from pathlib import Path
 from urllib.parse import quote, unquote
 
+from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.tasks import BaseSalesforceTask
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.tasks.metadata.package import PackageXmlGenerator
-from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.utils import inject_namespace
-from cumulusci.core.config import TaskConfig
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.xml.metadata_tree import MetadataElement
 
@@ -43,7 +43,6 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
-        self.options["managed"] = process_bool_arg(self.options.get("managed", False))
         self.api_version = (
             self.options.get("api_version")
             or self.project_config.project__package__api_version
@@ -53,10 +52,47 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
         except ValueError:
             raise TaskOptionsError(f"Invalid API version {self.api_version}")
 
+        self.options["namespace_inject"] = (
+            self.options.get("namespace_inject")
+            or self.project_config.project__package__namespace
+        )
+        # org_config might be None if we're freezing steps for metadeploy.
+        # We can only autodetect the context for namespace injection if we have the org.
+        if self.org_config:
+            self._init_namespace_injection()
+
+    def _init_namespace_injection(self):
+        namespace = (
+            self.options.get("namespace_inject")
+            or self.project_config.project__package__namespace
+        )
+        if "managed" in self.options:
+            self.options["managed"] = process_bool_arg(self.options["managed"] or False)
+        else:
+            self.options["managed"] = (
+                bool(namespace) and namespace in self.org_config.installed_packages
+            )
+        if "namespaced_org" in self.options:
+            self.options["namespaced_org"] = process_bool_arg(
+                self.options["namespaced_org"] or False
+            )
+        else:
+            self.options["namespaced_org"] = (
+                bool(namespace) and namespace == self.org_config.namespace
+            )
+
     def _inject_namespace(self, text):
         """Inject the namespace into the given text if running in managed mode."""
+        # We might not have an org yet if this is called from _init_options
+        # while freezing steps for metadeploy.
+        if self.org_config is None:
+            return text
         return inject_namespace(
-            "", text, self.options.get("namespace_inject"), self.options["managed"]
+            "",
+            text,
+            namespace=self.options["namespace_inject"],
+            managed=self.options.get("managed") or False,
+            namespaced_org=self.options.get("namespaced_org"),
         )[1]
 
     @abstractmethod
@@ -111,7 +147,8 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
                     "options": {
                         "path": self.deploy_dir,
                         "namespace_inject": self.options.get("namespace_inject"),
-                        "unmanaged": not self.options.get("managed"),
+                        "unmanaged": not self.options["managed"],
+                        "namespaced_org": self.options["namespaced_org"],
                     }
                 }
             ),
@@ -147,6 +184,9 @@ class BaseMetadataSynthesisTask(BaseMetadataETLTask, metaclass=ABCMeta):
         """Synthesize a package.xml for generated metadata."""
         generator = PackageXmlGenerator(str(self.deploy_dir), self.api_version)
         return generator()
+
+    def _get_package_xml_content(self, operation) -> str:
+        return ""
 
     def _transform(self):
         self._synthesize()

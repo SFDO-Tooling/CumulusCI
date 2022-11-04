@@ -1,10 +1,10 @@
 """ a task for waiting on a Batch Apex job to complete """
 from datetime import datetime
-from typing import Sequence, Optional
+from typing import Optional, Sequence
 
-from cumulusci.utils import parse_api_datetime
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.core.exceptions import SalesforceException
+from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.utils import parse_api_datetime
 
 COMPLETED_STATUSES = ["Completed", "Aborted", "Failed"]
 STOPPED_STATUSES = ["Aborted"]
@@ -12,7 +12,7 @@ FAILED_STATUSES = ["Failed"]
 
 
 class BatchApexWait(BaseSalesforceApiTask):
-    """BatchApexWait polls an org until the latest batch job
+    """BatchApexWait polls an org until the latest batch job or queueable job
     for an apex class completes or fails."""
 
     name = "BatchApexWait"
@@ -24,7 +24,7 @@ class BatchApexWait(BaseSalesforceApiTask):
             "required": True,
         },
         "poll_interval": {
-            "description": "Seconds to wait before polling for batch job completion. "
+            "description": "Seconds to wait before polling for batch or queueable job completion. "
             "Defaults to 10 seconds."
         },
     }
@@ -144,7 +144,7 @@ class BatchApexWait(BaseSalesforceApiTask):
         return rc
 
     def elapsed_time(self, subjobs: Sequence[dict]):
-        """ returns the time (in seconds) that the subjobs took, if complete """
+        """returns the time (in seconds) that the subjobs took, if complete"""
         completed_dates = [
             subjob["CompletedDate"] for subjob in subjobs if subjob.get("CompletedDate")
         ]
@@ -171,7 +171,7 @@ class BatchApexWait(BaseSalesforceApiTask):
             "SELECT Id, ApexClass.Name, Status, ExtendedStatus, TotalJobItems, "
             "JobItemsProcessed, NumberOfErrors, CreatedDate, CompletedDate "
             "FROM AsyncApexJob "
-            "WHERE JobType='BatchApex' "
+            "WHERE JobType IN ('BatchApex','Queueable') "
             + f"AND ApexClass.Name='{self.options['class_name']}' "
             + date_clause
             + " ORDER BY CreatedDate DESC "

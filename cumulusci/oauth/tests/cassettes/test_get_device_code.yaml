@@ -1,0 +1,22 @@
+interactions:
+    - request:
+          body: client_id=2a4bc3e5ce4f2c49a957&scope=repo+gist
+          headers:
+              Accept:
+                  - application/json
+              Content-Type:
+                  - application/x-www-form-urlencoded
+          method: POST
+          uri: https://github.com/login/device/code
+      response:
+          body:
+              string: '{"device_code":"36482450e39b7f27d9a145a96898d29365a4e73f","user_code":"3E15-9D06","verification_uri":"https://github.com/login/device","expires_in":899,"interval":5}'
+          headers:
+              Content-Type:
+                  - application/json; charset=utf-8
+              Date:
+                  - Wed, 06 Oct 2021 14:45:14 GMT
+          status:
+              code: 200
+              message: OK
+version: 1

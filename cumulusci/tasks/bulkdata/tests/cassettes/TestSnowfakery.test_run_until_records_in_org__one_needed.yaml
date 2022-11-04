@@ -1,0 +1,24 @@
+interactions:
+    - &id001
+      include_file: GET_sobjects_Organization.yaml
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+count%28Id%29+from+Account
+          body: null
+          headers:
+              Request-Headers:
+                  - Elided
+      response:
+          status:
+              code: 200
+              message: OK
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          body:
+              string: "{\n  \"totalSize\" : 1,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"AggregateResult\"\n    },\n  \
+                  \  \"expr0\" : 10\n  } ]\n}"
+    - *id001
+version: 1

@@ -1,9 +1,14 @@
-import pytest
+from collections import defaultdict
 from unittest import mock
 
+import pytest
+
+from cumulusci.core.config.org_config import OrgConfig, VersionInfo
+from cumulusci.core.config.project_config import BaseProjectConfig
+from cumulusci.core.config.universal_config import UniversalConfig
+from cumulusci.core.exceptions import ApexTestException, SalesforceException
 from cumulusci.tasks.salesforce import PackageUpload
-from cumulusci.core.exceptions import ApexTestException
-from cumulusci.core.exceptions import SalesforceException
+
 from .util import create_task
 
 
@@ -58,7 +63,7 @@ class TestPackageUpload:
             return_value=mock.Mock(create=mock.Mock(return_value={"id": "UPLOAD_ID"}))
         )
         task()
-        assert "SUCCESS" == task.upload["Status"]
+        assert task.upload["Status"] == "SUCCESS"
 
     def test_set_package_id(self):
         name = "Test Release"
@@ -173,7 +178,8 @@ class TestPackageUpload:
         task._log_failures(results)
 
         assert table.called_once_with(
-            table_data, "Failed Apex Tests", wrap_cols=["Stacktrace"]
+            table_data,
+            "Failed Apex Tests",
         )
         assert table.echo.called_once()
 
@@ -256,7 +262,7 @@ class TestPackageUpload:
         )
         with pytest.raises(ApexTestException):
             task()
-        assert "ERROR" == task.upload["Status"]
+        assert task.upload["Status"] == "ERROR"
 
     def test_get_one__no_result(self):
         task = create_task(PackageUpload, {"name": "Test Release"})
@@ -277,6 +283,26 @@ class TestPackageUpload:
         assert task.return_values["package_id"] == task.package_id
         assert task.return_values["version_id"] == task.version_id
         assert task.return_values["version_number"] == task.version_number
+
+    def test_set_dependencies(self):
+        project_config = BaseProjectConfig(UniversalConfig())
+        project_config.project__dependencies = [{"namespace": "foo", "version": "1.0"}]
+        org_config = OrgConfig({}, "test")
+        org_config._installed_packages = defaultdict(list)
+        org_config._installed_packages["foo@1.0"] = [
+            VersionInfo("04t000000000000", "1.0")
+        ]
+
+        task = create_task(
+            PackageUpload,
+            {"name": "Test Release"},
+            project_config=project_config,
+            org_config=org_config,
+        )
+
+        task._set_dependencies()
+
+        assert task.return_values["dependencies"] == [{"version_id": "04t000000000000"}]
 
     def test_log_package_upload_success(self):
         task = create_task(PackageUpload, {"name": "Test Release"})

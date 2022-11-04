@@ -13,6 +13,8 @@ build/
 dist/
 docs/api/
 docs/_build/
+docs/tasks.rst
+docs/flows.rst
 .eggs/
 .idea/
 .tox/
@@ -20,8 +22,11 @@ tags
 .vscode/
 .cache/
 .coverage
+.coverage.*
 .python-version
-*selenium-screenshot-*
+robot/CumulusCI/results/
+*.webm
+playwright-log.txt
 log.html
 report.html
 output.xml
@@ -39,3 +44,6 @@ test_results.json
 pabot_results/
 .pabotsuitenames
 large_cassettes/
+github_release_notes.html
+tmp
+pytestdebug.log

@@ -3,9 +3,9 @@ from typing import Dict
 from urllib.parse import unquote
 
 from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.metadata_etl import MetadataSingleEntityTransformTask
 from cumulusci.utils.xml.metadata_tree import MetadataElement
-from cumulusci.core.utils import process_bool_arg, process_list_arg
 
 
 class AddPicklistEntries(MetadataSingleEntityTransformTask):
@@ -20,7 +20,7 @@ class AddPicklistEntries(MetadataSingleEntityTransformTask):
             "Each value should contain the keys 'fullName', the API name of the entry, "
             "and 'label', the user-facing label. Optionally, specify `default: True` on exactly one "
             "entry to make that value the default. Any existing values will not be affected other than "
-            "setting the default (labels of existing entries are not changed).\n"
+            "setting the default (labels of existing entries are not changed). "
             "To order values, include the 'add_before' key. This will insert the new value "
             "before the existing value with the given API name, or at the end of the list if not present.",
             "required": True,

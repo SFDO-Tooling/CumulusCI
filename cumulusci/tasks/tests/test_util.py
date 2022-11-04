@@ -1,18 +1,26 @@
-from unittest import mock
 import os
-import unittest
+import shutil
+from tempfile import mkdtemp
+from unittest import mock
 
+import pytest
+
+from cumulusci.core.config import (
+    BaseProjectConfig,
+    OrgConfig,
+    TaskConfig,
+    UniversalConfig,
+)
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks import util
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.utils import temporary_dir
 from cumulusci.tests.util import DummyLogger
 
 
-class TestUtilTasks(unittest.TestCase):
-    def setUp(self):
+class TestUtilTasks:
+    def setup_method(self, method):
+        self.old_dir = os.getcwd()
+        self.tempdir = mkdtemp()
+        os.chdir(self.tempdir)
         os.mkdir(os.path.join(self.tempdir, ".git"))
         self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
@@ -21,10 +29,9 @@ class TestUtilTasks(unittest.TestCase):
         self.org_config = OrgConfig({}, "test")
         self.task_config = TaskConfig({})
 
-    def run(self, result=None):
-        with temporary_dir() as d:
-            self.tempdir = d
-            super(TestUtilTasks, self).run(result)
+    def teardown_method(self):
+        os.chdir(self.old_dir)
+        shutil.rmtree(self.tempdir)
 
     @mock.patch("cumulusci.tasks.util.download_extract_zip")
     def test_DownloadZip(self, download_extract_zip):
@@ -55,8 +62,8 @@ class TestUtilTasks(unittest.TestCase):
         task()
 
         output = task.logger.get_output()
-        self.assertIn("Metadata types found", output)
-        self.assertIn("CustomObject", output)
+        assert "Metadata types found" in output
+        assert "CustomObject" in output
 
     @mock.patch("cumulusci.tasks.util.time")
     def test_Sleep(self, time):
@@ -74,7 +81,7 @@ class TestUtilTasks(unittest.TestCase):
         task = util.Delete(self.project_config, task_config, self.org_config)
         task()
 
-        self.assertFalse(os.path.exists(file_path))
+        assert not os.path.exists(file_path)
 
     def test_Delete__glob(self):
         target = os.path.join(self.tempdir, "dir1")
@@ -87,7 +94,7 @@ class TestUtilTasks(unittest.TestCase):
         task = util.Delete(self.project_config, task_config, self.org_config)
         task()
 
-        self.assertFalse(os.path.exists(file_path))
+        assert not os.path.exists(file_path)
 
     def test_Delete__subdir(self):
         target = os.path.join(self.tempdir, "dir1")
@@ -97,7 +104,7 @@ class TestUtilTasks(unittest.TestCase):
         task = util.Delete(self.project_config, task_config, self.org_config)
         task()
 
-        self.assertFalse(os.path.exists(target))
+        assert not os.path.exists(target)
 
     def test_Delete__no_match(self):
         task_config = TaskConfig({"options": {"path": "bogus"}})
@@ -110,6 +117,43 @@ class TestUtilTasks(unittest.TestCase):
         task = util.FindReplace(self.project_config, task_config, self.org_config)
         task()
         find_replace.assert_called_once()
+
+    @mock.patch("cumulusci.tasks.util.find_replace")
+    def test_FindReplace_env_replace_error(self, find_replace):
+        with pytest.raises(TaskOptionsError):
+            task_config = TaskConfig(
+                {
+                    "options": {
+                        "find": "foo",
+                        "replace": "bar",
+                        "env_replace": True,
+                        "path": ".",
+                        "max": 1,
+                    }
+                }
+            )
+            task = util.FindReplace(self.project_config, task_config, self.org_config)
+            task()
+            find_replace.assert_called_once()
+
+    @mock.patch("cumulusci.tasks.util.find_replace")
+    def test_FindReplace_env_replace(self, find_replace):
+        with mock.patch.dict(os.environ, {"bar": "bars"}):
+            task_config = TaskConfig(
+                {
+                    "options": {
+                        "find": "foo",
+                        "replace": "bar",
+                        "env_replace": True,
+                        "path": ".",
+                        "max": 1,
+                    }
+                }
+            )
+            task = util.FindReplace(self.project_config, task_config, self.org_config)
+            task()
+            assert task.options["replace"] == "bars"
+            find_replace.assert_called_once()
 
     @mock.patch("cumulusci.tasks.util.find_replace_regex")
     def test_FindReplaceRegex(self, find_replace_regex):
@@ -128,7 +172,7 @@ class TestUtilTasks(unittest.TestCase):
         task = util.CopyFile(self.project_config, task_config, self.org_config)
         task()
 
-        self.assertTrue(os.path.exists(dest))
+        assert os.path.exists(dest)
 
     def test_LogLine(self):
         task_config = TaskConfig({"options": {"level": "debug", "line": "test"}})
@@ -136,7 +180,7 @@ class TestUtilTasks(unittest.TestCase):
         task.logger = DummyLogger()
         task()
         output = task.logger.get_output()
-        self.assertEqual("Beginning task: LogLine\n\ntest", output)
+        assert output == "Beginning task: LogLine\n\ntest"
 
     def test_PassOptionAsResult(self):
         task_config = TaskConfig({"options": {"result": "test"}})
@@ -144,7 +188,7 @@ class TestUtilTasks(unittest.TestCase):
             self.project_config, task_config, self.org_config
         )
         task()
-        self.assertEqual("test", task.result)
+        assert task.result == "test"
 
     def test_PassOptionAsReturnValue(self):
         task_config = TaskConfig({"options": {"key": "foo", "value": "bar"}})
@@ -152,4 +196,4 @@ class TestUtilTasks(unittest.TestCase):
             self.project_config, task_config, self.org_config
         )
         result = task()
-        self.assertEqual("bar", result["foo"])
+        assert result["foo"] == "bar"

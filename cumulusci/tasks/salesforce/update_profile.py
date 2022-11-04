@@ -1,15 +1,14 @@
-from collections import defaultdict
 import os
+from collections import defaultdict
 
 import pkg_resources
 
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.metadata_etl import (
     MetadataOperation,
     MetadataSingleEntityTransformTask,
 )
-
-from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
-from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 from cumulusci.utils import CUMULUSCI_PATH
 from cumulusci.utils.xml import metadata_tree
@@ -29,7 +28,10 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
             "the record type in format <object>.<developer_name>.  Record type names can use the token strings {managed} "
             "and {namespaced_org} for namespace prefix injection as needed.  By default, all listed record types will be set "
             "to visible and not default.  Use the additional keys `visible`, `default`, and `person_account_default` set to "
-            "true/false to override.  NOTE: Setting record_types is only supported in cumulusci.yml, command line override is not supported."
+            "true/false to override.  "
+            "Page Layout Support: If you are using the Page Layouts feature, you can specify the `page_layout` key with the "
+            "layout name to use for the record type.  If not specified, the default page layout will be used.  "
+            "NOTE: Setting record_types is only supported in cumulusci.yml, command line override is not supported."
         },
         "managed": {
             "description": "If True, uses the namespace prefix where appropriate.  Use if running against an org with the managed package "
@@ -57,28 +59,9 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
     def _init_options(self, kwargs):
         super(ProfileGrantAllAccess, self)._init_options(kwargs)
 
-        self.options["managed"] = process_bool_arg(self.options.get("managed", False))
-
-        self.options["namespaced_org"] = process_bool_arg(
-            self.options.get("namespaced_org", False)
-        )
-
-        # For namespaced orgs, managed should always be True
-        if self.options["namespaced_org"]:
-            self.options["managed"] = True
-
         self.options["namespace_inject"] = self.options.get(
             "namespace_inject", self.project_config.project__package__namespace
         )
-
-        # Set up namespace prefix strings
-        namespace_prefix = "{}__".format(self.options["namespace_inject"])
-        self.namespace_prefixes = {
-            "managed": namespace_prefix if self.options["managed"] else "",
-            "namespaced_org": namespace_prefix
-            if self.options["namespaced_org"]
-            else "",
-        }
 
         # We enable new functionality to extend the package.xml to packaged objects
         # by default only if we meet specific requirements: the project has to require
@@ -100,7 +83,7 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
         # Build the api_names list, taking into account legacy behavior.
         # If we're using a custom package.xml, we will union the api_names list with
         # any Profiles specified there.
-        self.api_names = set(process_list_arg(self.options.get("api_names", [])))
+        self.api_names = set(process_list_arg(self.options.get("api_names") or []))
         if "profile_name" in self.options:
             self.api_names.add(self.options["profile_name"])
         if not self.api_names and "package_xml" not in self.options:
@@ -115,16 +98,19 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
                 CUMULUSCI_PATH, "cumulusci", "files", "admin_profile.xml"
             )
 
-        # Namespace injection.
-        if self.options["namespaced_org"]:
-            # Namespaced orgs don't use the explicit namespace references in `package.xml`.
-            # Preserving historic behavior but guarding here
-            self.options["managed"] = False
-
-        self.api_names = {self._inject_namespace(x) for x in self.api_names}
-
-        if self.options["namespaced_org"]:
-            self.options["managed"] = True
+        if self.org_config is not None:
+            # Set up namespace prefix strings.
+            # We can only do this if we actually have an org_config;
+            # i.e. not while freezing steps for metadeploy
+            namespace = self.options["namespace_inject"]
+            namespace_prefix = f"{namespace}__" if namespace else ""
+            self.namespace_prefixes = {
+                "managed": namespace_prefix if self.options["managed"] else "",
+                "namespaced_org": namespace_prefix
+                if self.options["namespaced_org"]
+                else "",
+            }
+            self.api_names = {self._inject_namespace(x) for x in self.api_names}
 
     def freeze(self, step):
         # Preserve behavior from when we subclassed Deploy.
@@ -194,6 +180,27 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
                 "members",
                 text=f"{record['NamespacePrefix']}__{record['DeveloperName']}__c",
             )
+
+        self._expand_package_xml_objects(package_xml)
+
+    def _expand_package_xml_objects(self, package_xml):
+        # Check for any record types specified in the options, but missing from the package.xml
+        # Add these entities to the package.xml
+
+        custom_objects = package_xml.find("types", name="CustomObject")
+
+        # Append custom objects if record types are present but missing from package.xml
+        record_types = self.options.get("record_types") or []
+        rt_objects = {rt["record_type"].split(".")[0] for rt in record_types}
+        listed_custom_objects = {c.text for c in custom_objects.findall("members")}
+
+        for rt in rt_objects:
+            if rt not in listed_custom_objects:
+                self.logger.info('Adding "{}" to package.xml'.format(rt))
+                custom_objects.append(
+                    "members",
+                    text=rt,
+                )
 
     def _transform_entity(self, tree, api_name):
         # Custom applications
@@ -270,6 +277,27 @@ class ProfileGrantAllAccess(MetadataSingleEntityTransformTask, BaseSalesforceApi
             pa_default = elem.find("personAccountDefault")
             if pa_default is not None:
                 pa_default.text = str(rt.get("person_account_default", "false")).lower()
+
+        # Set page layout defaults for record types
+        for rt in record_types:
+            # We need it to look like this:
+            # <layoutAssignments>
+            #   <layout>{page_layout}</layout>
+            #   <recordType>{record_type}</recordType>
+            # </layoutAssignments>
+            layout_option = rt.get("page_layout", None)
+            if layout_option:
+                # Look for page layout definitions in the record type
+                found_layout = False
+                for elem in tree.findall("layoutAssignments"):
+                    if elem.find("recordType").text == rt["record_type"]:
+                        elem.layout.text = layout_option
+                        found_layout = True
+
+                if not found_layout:
+                    assignment = tree.append(tag="layoutAssignments")
+                    assignment.append(tag="recordType", text=rt["record_type"])
+                    assignment.append(tag="layout", text=layout_option)
 
 
 UpdateAdminProfile = UpdateProfile = ProfileGrantAllAccess

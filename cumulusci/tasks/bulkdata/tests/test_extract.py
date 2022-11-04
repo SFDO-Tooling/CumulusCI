@@ -1,30 +1,30 @@
-from datetime import date, timedelta
 import os
-from unittest import mock
-from tempfile import TemporaryDirectory
 from contextlib import contextmanager
-from cumulusci.tests.util import mock_salesforce_client, mock_describe_calls
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import create_session
+from datetime import date, timedelta
+from tempfile import TemporaryDirectory
+from unittest import mock
 
 import pytest
+import responses
+from sqlalchemy import create_engine
 
-from cumulusci.core.exceptions import TaskOptionsError, BulkDataException
+from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.tasks.bulkdata import ExtractData
+from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
 from cumulusci.tasks.bulkdata.step import (
     BaseQueryOperation,
-    DataOperationStatus,
-    DataOperationJobResult,
-    DataOperationType,
     DataApi,
+    DataOperationJobResult,
+    DataOperationStatus,
+    DataOperationType,
 )
 from cumulusci.tasks.bulkdata.tests.utils import _make_task
-from cumulusci.tests.util import assert_max_memory_usage
+from cumulusci.tests.util import (
+    assert_max_memory_usage,
+    mock_describe_calls,
+    mock_salesforce_client,
+)
 from cumulusci.utils import temporary_dir
-from cumulusci.tasks.bulkdata.mapping_parser import MappingLookup, MappingStep
-
-import responses
 
 
 @contextmanager
@@ -87,48 +87,53 @@ class TestExtractData:
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
         mock_describe_calls()
+        with temporary_dir() as d:
+            tmp_db_path = os.path.join(d, "testdata.db")
 
-        task = _make_task(
-            ExtractData,
-            {
-                "options": {
-                    "database_url": "sqlite://",  # in memory
-                    "mapping": mapping_path,
-                }
-            },
-        )
-        task.bulk = mock.Mock()
-        task.sf = mock.Mock()
-        task.org_config._is_person_accounts_enabled = False
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{tmp_db_path}",
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+            task.bulk = mock.Mock()
+            task.sf = mock.Mock()
+            task.org_config._is_person_accounts_enabled = False
 
-        mock_query_households = MockBulkQueryOperation(
-            sobject="Account",
-            api_options={},
-            context=task,
-            query="SELECT Id FROM Account",
-        )
-        mock_query_contacts = MockBulkQueryOperation(
-            sobject="Contact",
-            api_options={},
-            context=task,
-            query="SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
-        )
-        mock_query_households.results = [["1"]]
-        mock_query_contacts.results = [["2", "First", "Last", "test@example.com", "1"]]
+            mock_query_households = MockBulkQueryOperation(
+                sobject="Account",
+                api_options={},
+                context=task,
+                query="SELECT Id FROM Account",
+            )
+            mock_query_contacts = MockBulkQueryOperation(
+                sobject="Contact",
+                api_options={},
+                context=task,
+                query="SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
+            )
+            mock_query_households.results = [["1"]]
+            mock_query_contacts.results = [
+                ["2", "First", "Last", "test@example.com", "1"]
+            ]
 
-        query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
+            query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
 
-        task()
-        session = create_session(bind=task.engine, autocommit=False)
-        household = session.query(task.models["households"]).one()
-        assert "1" == household.sf_id
-        assert not hasattr(household, "IsPersonAccount")
-        assert "HH_Account" == household.record_type
+            task()
 
-        contact = session.query(task.models["contacts"]).one()
-        assert "2" == contact.sf_id
-        assert not hasattr(contact, "IsPersonAccount")
-        assert "1" == contact.household_id
+            with create_engine(task.options["database_url"]).connect() as conn:
+                household = next(conn.execute("select * from households"))
+                assert household.sf_id == "1"
+                assert not hasattr(household, "IsPersonAccount")
+                assert household.record_type == "HH_Account"
+
+                contact = next(conn.execute("select * from contacts"))
+                assert contact.sf_id == "2"
+                assert not hasattr(contact, "IsPersonAccount")
+                assert contact.household_id == "1"
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
@@ -137,50 +142,53 @@ class TestExtractData:
         mapping_path = os.path.join(base_path, self.mapping_file_v1)
         mock_describe_calls()
 
-        task = _make_task(
-            ExtractData,
-            {
-                "options": {
-                    "database_url": "sqlite://",  # in memory
-                    "mapping": mapping_path,
-                }
-            },
-        )
-        task.bulk = mock.Mock()
-        task.sf = mock.Mock()
-        task.org_config._is_person_accounts_enabled = True
+        with temporary_dir() as d:
+            tmp_db_path = os.path.join(d, "testdata.db")
 
-        mock_query_households = MockBulkQueryOperation(
-            sobject="Account",
-            api_options={},
-            context=task,
-            query="SELECT Id, IsPersonAccount FROM Account",
-        )
-        mock_query_contacts = MockBulkQueryOperation(
-            sobject="Contact",
-            api_options={},
-            context=task,
-            query="SELECT Id, FirstName, LastName, Email, IsPersonAccount, AccountId FROM Contact",
-        )
-        mock_query_households.results = [["1", "false"]]
-        mock_query_contacts.results = [
-            ["2", "First", "Last", "test@example.com", "true", "1"]
-        ]
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{tmp_db_path}",
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+            task.bulk = mock.Mock()
+            task.sf = mock.Mock()
+            task.org_config._is_person_accounts_enabled = True
 
-        query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
+            mock_query_households = MockBulkQueryOperation(
+                sobject="Account",
+                api_options={},
+                context=task,
+                query="SELECT Id, IsPersonAccount FROM Account",
+            )
+            mock_query_contacts = MockBulkQueryOperation(
+                sobject="Contact",
+                api_options={},
+                context=task,
+                query="SELECT Id, FirstName, LastName, Email, IsPersonAccount, AccountId FROM Contact",
+            )
+            mock_query_households.results = [["1", "false"]]
+            mock_query_contacts.results = [
+                ["2", "First", "Last", "test@example.com", "true", "1"]
+            ]
 
-        task()
-        session = create_session(bind=task.engine, autocommit=False)
+            query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
 
-        household = session.query(task.models["households"]).one()
-        assert "1" == household.sf_id
-        assert "false" == household.IsPersonAccount
-        assert "HH_Account" == household.record_type
+            task()
+            with create_engine(task.options["database_url"]).connect() as conn:
 
-        contact = session.query(task.models["contacts"]).one()
-        assert "2" == contact.sf_id
-        assert "true" == contact.IsPersonAccount
-        assert "1" == contact.household_id
+                household = next(conn.execute("select * from households"))
+                assert household.sf_id == "1"
+                assert household.IsPersonAccount == "false"
+                assert household.record_type == "HH_Account"
+
+                contact = next(conn.execute("select * from contacts"))
+                assert contact.sf_id == "2"
+                assert contact.IsPersonAccount == "true"
+                assert contact.household_id == "1"
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
@@ -236,47 +244,49 @@ class TestExtractData:
         mapping_path = os.path.join(base_path, self.mapping_file_v2)
         mock_describe_calls()
 
-        task = _make_task(
-            ExtractData,
-            {
-                "options": {
-                    "database_url": "sqlite://",  # in memory
-                    "mapping": mapping_path,
-                }
-            },
-        )
-        task.bulk = mock.Mock()
-        task.sf = mock.Mock()
-        task.org_config._is_person_accounts_enabled = False
+        with TemporaryDirectory() as t:
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{t}/temp_db",  # in memory
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+            task.bulk = mock.Mock()
+            task.sf = mock.Mock()
+            task.org_config._is_person_accounts_enabled = False
 
-        mock_query_households = MockBulkQueryOperation(
-            sobject="Account",
-            api_options={},
-            context=task,
-            query="SELECT Id, Name FROM Account",
-        )
-        mock_query_contacts = MockBulkQueryOperation(
-            sobject="Contact",
-            api_options={},
-            context=task,
-            query="SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
-        )
-        mock_query_households.results = [["1", "TestHousehold"]]
-        mock_query_contacts.results = [["2", "First", "Last", "test@example.com", "1"]]
+            mock_query_households = MockBulkQueryOperation(
+                sobject="Account",
+                api_options={},
+                context=task,
+                query="SELECT Id, Name FROM Account",
+            )
+            mock_query_contacts = MockBulkQueryOperation(
+                sobject="Contact",
+                api_options={},
+                context=task,
+                query="SELECT Id, FirstName, LastName, Email, AccountId FROM Contact",
+            )
+            mock_query_households.results = [["1", "TestHousehold"]]
+            mock_query_contacts.results = [
+                ["2", "First", "Last", "test@example.com", "1"]
+            ]
 
-        query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
+            query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
 
-        task()
-        session = create_session(bind=task.engine, autocommit=False)
+            task()
+            with create_engine(task.options["database_url"]).connect() as conn:
+                household = next(conn.execute("select * from households"))
+                assert household.name == "TestHousehold"
+                assert not hasattr(household, "IsPersonAccount")
+                assert household.record_type == "HH_Account"
 
-        household = session.query(task.models["households"]).one()
-        assert household.name == "TestHousehold"
-        assert not hasattr(household, "IsPersonAccount")
-        assert household.record_type == "HH_Account"
-
-        contact = session.query(task.models["contacts"]).one()
-        assert contact.household_id == "1"
-        assert not hasattr(contact, "IsPersonAccount")
+                contact = next(conn.execute("select * from contacts"))
+                assert contact.household_id == "1"
+                assert not hasattr(contact, "IsPersonAccount")
 
     @responses.activate
     @mock.patch("cumulusci.tasks.bulkdata.extract.get_query_operation")
@@ -284,50 +294,50 @@ class TestExtractData:
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_v2)
         mock_describe_calls()
+        with temporary_dir() as d:
+            tmp_db_path = os.path.join(d, "testdata.db")
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{tmp_db_path}",
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+            task.bulk = mock.Mock()
+            task.sf = mock.Mock()
+            task.org_config._is_person_accounts_enabled = True
 
-        task = _make_task(
-            ExtractData,
-            {
-                "options": {
-                    "database_url": "sqlite://",  # in memory
-                    "mapping": mapping_path,
-                }
-            },
-        )
-        task.bulk = mock.Mock()
-        task.sf = mock.Mock()
-        task.org_config._is_person_accounts_enabled = True
+            mock_query_households = MockBulkQueryOperation(
+                sobject="Account",
+                api_options={},
+                context=task,
+                query="SELECT Id, Name, IsPersonAccount FROM Account",
+            )
+            mock_query_contacts = MockBulkQueryOperation(
+                sobject="Contact",
+                api_options={},
+                context=task,
+                query="SELECT Id, FirstName, LastName, Email, IsPersonAccount, AccountId FROM Contact",
+            )
+            mock_query_households.results = [["1", "TestHousehold", "false"]]
+            mock_query_contacts.results = [
+                ["2", "First", "Last", "test@example.com", "true", "1"]
+            ]
 
-        mock_query_households = MockBulkQueryOperation(
-            sobject="Account",
-            api_options={},
-            context=task,
-            query="SELECT Id, Name, IsPersonAccount FROM Account",
-        )
-        mock_query_contacts = MockBulkQueryOperation(
-            sobject="Contact",
-            api_options={},
-            context=task,
-            query="SELECT Id, FirstName, LastName, Email, IsPersonAccount, AccountId FROM Contact",
-        )
-        mock_query_households.results = [["1", "TestHousehold", "false"]]
-        mock_query_contacts.results = [
-            ["2", "First", "Last", "test@example.com", "true", "1"]
-        ]
+            query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
 
-        query_op_mock.side_effect = [mock_query_households, mock_query_contacts]
+            task()
+            with create_engine(task.options["database_url"]).connect() as conn:
+                household = next(conn.execute("select * from households"))
+                assert household.name == "TestHousehold"
+                assert household.IsPersonAccount == "false"
+                assert household.record_type == "HH_Account"
 
-        task()
-        session = create_session(bind=task.engine, autocommit=False)
-
-        household = session.query(task.models["households"]).one()
-        assert household.name == "TestHousehold"
-        assert household.IsPersonAccount == "false"
-        assert household.record_type == "HH_Account"
-
-        contact = session.query(task.models["contacts"]).one()
-        assert contact.household_id == "1"
-        assert contact.IsPersonAccount == "true"
+                contact = next(conn.execute("select * from contacts"))
+                assert contact.household_id == "1"
+                assert contact.IsPersonAccount == "true"
 
     @mock.patch("cumulusci.tasks.bulkdata.extract.log_progress")
     def test_import_results__oid_as_pk(self, log_mock):
@@ -343,15 +353,18 @@ class TestExtractData:
         )
         step = mock.Mock()
         task.session = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
+        task.metadata = mock.MagicMock()
 
-        task._import_results(mapping, step)
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.extract.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._import_results(mapping, step)
 
         task.session.connection.assert_called_once_with()
         step.get_results.assert_called_once_with()
-        task._sql_bulk_insert_from_records.assert_called_once_with(
+        sql_bulk_insert_from_records.assert_called_once_with(
             connection=task.session.connection.return_value,
-            table=mapping.table,
+            table=task.metadata.tables[mapping.table],
             columns=["sf_id", "Name", "AccountId"],
             record_iterable=log_mock.return_value,
         )
@@ -376,12 +389,14 @@ class TestExtractData:
         step = mock.Mock()
         step.get_results.return_value = [[1], [2]]
         task.session = mock.Mock()
+        task._init_task()
         task._init_mapping()
         task.mapping["Opportunity"] = mapping
         with task._init_db():
             task._import_results(mapping, step)
-            session = create_session(bind=task.engine, autocommit=False)
-            output_Opportunties = list(session.execute("select * from Opportunity"))
+            output_Opportunties = list(
+                task.session.execute("select * from Opportunity")
+            )
             assert output_Opportunties == [(1,), (2,)]
 
     @responses.activate
@@ -402,20 +417,24 @@ class TestExtractData:
             [["006000000000001", (date.today() + timedelta(days=9)).isoformat()]]
         )
         task.session = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
-        task._import_results(mapping, step)
+        task.metadata = mock.MagicMock()
+        task._init_task()
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.extract.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._import_results(mapping, step)
 
         task.session.connection.assert_called_once_with()
         step.get_results.assert_called_once_with()
-        task._sql_bulk_insert_from_records.assert_called_once_with(
+        sql_bulk_insert_from_records.assert_called_once_with(
             connection=task.session.connection.return_value,
-            table=mapping.table,
+            table=task.metadata.tables[mapping.table],
             columns=["sf_id", "CloseDate"],
             record_iterable=mock.ANY,
         )
 
         result = list(
-            task._sql_bulk_insert_from_records.call_args_list[0][1]["record_iterable"]
+            sql_bulk_insert_from_records.call_args_list[0][1]["record_iterable"]
         )
         assert result == [["006000000000001", "2020-07-10"]]
 
@@ -427,9 +446,7 @@ class TestExtractData:
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
         task._extract_record_types = mock.Mock()
-        task._sql_bulk_insert_from_records_incremental = mock.Mock(
-            return_value=[None, None]
-        )
+        task.metadata = mock.MagicMock()
         task.session = mock.Mock()
         task.org_config._is_person_accounts_enabled = False
 
@@ -442,10 +459,14 @@ class TestExtractData:
             lookups={},
             table="accounts",
         )
-        task._import_results(
-            mapping,
-            step,
-        )
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.extract.sql_bulk_insert_from_records_incremental",
+            return_value=[None, None],
+        ):
+            task._import_results(
+                mapping,
+                step,
+            )
         task._extract_record_types.assert_called_once_with(
             "Account",
             mapping.get_source_record_type_table(),
@@ -460,8 +481,8 @@ class TestExtractData:
             {"options": {"database_url": "sqlite://", "mapping": mapping_path}},
         )
         task._extract_record_types = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
         task.session = mock.Mock()
+        task.metadata = mock.MagicMock()
         task.org_config._is_person_accounts_enabled = True
 
         step = mock.Mock()
@@ -470,22 +491,25 @@ class TestExtractData:
             ["000000000000002", "Business Account", "012000000000002", "false"],
         ]
 
-        task._import_results(
-            MappingStep(
-                sf_object="Account",
-                fields={
-                    "Id": "sf_id",
-                    "Name": "Name",
-                    "RecordTypeId": "RecordTypeId",
-                    "IsPersonAccount": "IsPersonAccount",
-                },
-                lookups={},
-            ),
-            step,
-        )
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.extract.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._import_results(
+                MappingStep(
+                    sf_object="Account",
+                    fields={
+                        "Id": "sf_id",
+                        "Name": "Name",
+                        "RecordTypeId": "RecordTypeId",
+                        "IsPersonAccount": "IsPersonAccount",
+                    },
+                    lookups={},
+                ),
+                step,
+            )
 
-        task._sql_bulk_insert_from_records.assert_called()
-        args, kwargs = task._sql_bulk_insert_from_records.call_args_list[0]
+        sql_bulk_insert_from_records.assert_called()
+        args, kwargs = sql_bulk_insert_from_records.call_args_list[0]
 
         records = [record for record in kwargs["record_iterable"]]
 
@@ -513,6 +537,7 @@ class TestExtractData:
         task._convert_lookups_to_id = mock.Mock()
         task.metadata = mock.MagicMock()
 
+        task._init_task()
         task._init_mapping()
         task._map_autopks()
 
@@ -708,7 +733,6 @@ class TestExtractData:
         with task._init_db():
             assert task.models == {}
             assert task.session.query
-            assert task.engine.execute
 
     def assert_person_accounts_in_mapping(
         self, mapping, org_has_person_accounts_enabled
@@ -730,6 +754,7 @@ class TestExtractData:
         )
         task.org_config._is_person_accounts_enabled = False
 
+        task._init_task()
         task._init_mapping()
         assert "Insert Households" in task.mapping
 
@@ -747,6 +772,7 @@ class TestExtractData:
         )
         task.org_config._is_person_accounts_enabled = True
 
+        task._init_task()
         task._init_mapping()
         assert "Insert Households" in task.mapping
 
@@ -770,11 +796,12 @@ class TestExtractData:
         )
         t.org_config._is_person_accounts_enabled = True
 
+        t._init_task()
         t._init_mapping()
 
         validate_and_inject_mapping.assert_called_once_with(
             mapping=t.mapping,
-            org_config=t.org_config,
+            sf=t.sf,
             namespace=t.project_config.project__package__namespace,
             data_operation=DataOperationType.QUERY,
             inject_namespaces=True,
@@ -885,15 +912,18 @@ class TestExtractData:
         )
         step = mock.Mock()
         task.session = mock.Mock()
-        task._sql_bulk_insert_from_records = mock.Mock()
+        task.metadata = mock.MagicMock()
 
-        task._import_results(mapping, step)
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.extract.sql_bulk_insert_from_records"
+        ) as sql_bulk_insert_from_records:
+            task._import_results(mapping, step)
 
         task.session.connection.assert_called_once_with()
         step.get_results.assert_called_once_with()
-        task._sql_bulk_insert_from_records.assert_called_once_with(
+        sql_bulk_insert_from_records.assert_called_once_with(
             connection=task.session.connection.return_value,
-            table="Opportunity",
+            table=task.metadata.tables["Opportunity"],
             columns=["sf_id", "Name", "account_id"],
             record_iterable=log_mock.return_value,
         )
@@ -940,7 +970,7 @@ class TestExtractData:
 
             step_mock.side_effect = [mock_query_households, mock_query_contacts]
 
-            with assert_max_memory_usage(15 * 10 ** 6):
+            with assert_max_memory_usage(15 * 10**6):
                 task()
 
     @responses.activate
@@ -948,42 +978,142 @@ class TestExtractData:
         mock_describe_calls()
         base_path = os.path.dirname(__file__)
         mapping_path = os.path.join(base_path, self.mapping_file_vanilla)
-        task = create_task_fixture(
-            ExtractData,
-            {"database_url": "sqlite://", "mapping": mapping_path},
-        )
+        with temporary_dir() as d:
+            task = create_task_fixture(
+                ExtractData,
+                {"database_url": f"sqlite:///{d}/temp.db", "mapping": mapping_path},
+            )
 
-        extracted_records = {
-            # ['Name', 'Description', 'BillingStreet', 'BillingCity', 'BillingState', 'BillingPostalCode', 'BillingCountry', 'ParentId', 'ShippingStreet', 'ShippingCity', 'ShippingState', 'ShippingPostalCode', 'ShippingCountry', 'Phone', 'Fax', 'Website', 'NumberOfEmployees', 'AccountNumber', 'Site', 'Type', 'IsPersonAccount']
-            "Account": [
-                ["001002", "Account1"] + [""] * 20 + [False],
-                ["001003", "Account2"] + [""] * 20 + [False],
-            ],
-            # Salutation|FirstName|LastName|Email|Phone|MobilePhone|OtherPhone|HomePhone|Title|Birthdate|MailingStreet|MailingCity|MailingState|MailingPostalCode|MailingCountry|AccountId
-            "Contact": [
-                ["002001", "", "Bob 1", "Barker 2"] + [""] * 4,
-                ["002002", "", "Sam 2", "Smith 2"] + [""] * 4,
-            ],  # id|Name|StageName|CloseDate|Amount|AccountId|ContactId|record_type
-            "Opportunity": [
-                [
-                    "0003001",
-                    "Dickenson Mobile Generators",
-                    "Qualification",
-                    "2020-07-18",
-                    "15000.0",
-                    "001003",
-                    "002001",
-                ]
-            ],
-        }
-        with mock_extract_jobs(task, extracted_records), mock_salesforce_client(task):
-            task()
-            session = create_session(bind=task.engine, autocommit=False)
-            output_accounts = list(session.execute("select * from Account"))
-            assert output_accounts[0][0:2] == (1, "Account1")
-            assert output_accounts[1][0:2] == (2, "Account2")
-            assert len(output_accounts) == 2
-            output_opportunities = list(session.execute("select * from Opportunity"))
+            extracted_records = {
+                # ['Name', 'Description', 'BillingStreet', 'BillingCity', 'BillingState', 'BillingPostalCode', 'BillingCountry', 'ParentId', 'ShippingStreet', 'ShippingCity', 'ShippingState', 'ShippingPostalCode', 'ShippingCountry', 'Phone', 'Fax', 'Website', 'NumberOfEmployees', 'AccountNumber', 'Site', 'Type', 'IsPersonAccount']
+                "Account": [
+                    ["001002", "Account1"] + [""] * 20 + [False],
+                    ["001003", "Account2"] + [""] * 20 + [False],
+                ],
+                # Salutation|FirstName|LastName|Email|Phone|MobilePhone|OtherPhone|HomePhone|Title|Birthdate|MailingStreet|MailingCity|MailingState|MailingPostalCode|MailingCountry|AccountId
+                "Contact": [
+                    ["002001", "", "Bob 1", "Barker 2"] + [""] * 4,
+                    ["002002", "", "Sam 2", "Smith 2"] + [""] * 4,
+                ],  # id|Name|StageName|CloseDate|Amount|AccountId|ContactId|record_type
+                "Opportunity": [
+                    [
+                        "0003001",
+                        "Dickenson Mobile Generators",
+                        "Qualification",
+                        "2020-07-18",
+                        "15000.0",
+                        "001003",
+                        "002001",
+                    ]
+                ],
+            }
+            with mock_extract_jobs(task, extracted_records), mock_salesforce_client(
+                task
+            ):
+                task()
+            with create_engine(task.options["database_url"]).connect() as conn:
+                output_accounts = list(conn.execute("select * from Account"))
+                assert output_accounts[0][0:2] == (1, "Account1")
+                assert output_accounts[1][0:2] == (2, "Account2")
+                assert len(output_accounts) == 2
+                output_opportunities = list(conn.execute("select * from Opportunity"))
 
-            assert output_opportunities[0].AccountId == "2"
-            assert output_opportunities[0].ContactId == "1"
+                assert output_opportunities[0].AccountId == "2"
+                assert output_opportunities[0].ContactId == "1"
+
+    def test_run_soql_filter(self):
+        """This test case is to verify when soql_filter is specified with valid filter in the mapping yml"""
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_v1)
+        mock_describe_calls()
+        with temporary_dir() as d:
+            tmp_db_path = os.path.join(d, "testdata.db")
+
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{tmp_db_path}",
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+
+            mapping = MappingStep(
+                sf_object="Contact",
+                fields={"Id": "Id", "Name": "Name"},
+                record_type="Business",
+                soql_filter="Name = 'John Doe'",
+            )
+
+            soql = task._soql_for_mapping(mapping)
+            assert (
+                "WHERE RecordType.DeveloperName = 'Business' AND Name = 'John Doe'"
+                in soql
+            ), "Filter should be applied on Name and DeveloperName"
+
+    def test_run_soql_filter_where_specified(self):
+        """This test case is to verify when soql_filter is specified with mapping yml with WHERE keyword in it"""
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_v1)
+        mock_describe_calls()
+        with temporary_dir() as d:
+            tmp_db_path = os.path.join(d, "testdata.db")
+
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{tmp_db_path}",
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+
+            mapping = MappingStep(
+                sf_object="Contact",
+                fields={"Id": "Id", "Name": "Name"},
+                record_type="Business",
+                soql_filter=" wHeRe Name = 'John Doe'",
+            )
+
+            soql = task._soql_for_mapping(mapping)
+            assert (
+                "WHERE RecordType.DeveloperName = 'Business' AND Name = 'John Doe'"
+                in soql
+            ), "Filter should be applied on Name and RecordType"
+
+    def test_run_soql_filter_no_record_type(self):
+        """This test case is to verify when soql_filter is specified in mapping yml file but no record_type"""
+
+        base_path = os.path.dirname(__file__)
+        mapping_path = os.path.join(base_path, self.mapping_file_v1)
+        mock_describe_calls()
+        with temporary_dir() as d:
+            tmp_db_path = os.path.join(d, "testdata.db")
+
+            task = _make_task(
+                ExtractData,
+                {
+                    "options": {
+                        "database_url": f"sqlite:///{tmp_db_path}",
+                        "mapping": mapping_path,
+                    }
+                },
+            )
+
+            mapping = MappingStep(
+                sf_object="Contact",
+                fields={"Id": "Id", "Name": "Name"},
+                soql_filter=" wHeRe Name = 'John Doe'",
+            )
+
+            soql = task._soql_for_mapping(mapping)
+            assert (
+                "WHERE Name = 'John Doe'" in soql
+            ), "filter should be applied just on name"
+            assert (
+                "DeveloperName" not in soql
+            ), "DeveloperName should not appear in the soql query as it is missing in mapping"

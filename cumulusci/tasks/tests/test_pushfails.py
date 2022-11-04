@@ -1,15 +1,14 @@
 import csv
-from unittest import mock
 import os.path
-import unittest
+from unittest import mock
 
-from cumulusci.utils import temporary_dir
-from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tasks.push.pushfails import ReportPushFailures
+from cumulusci.tasks.salesforce.tests.util import create_task
+from cumulusci.utils import temporary_dir
 
 
 def error_record(gack=False, ErrorTitle="Unexpected Error"):  # type: (bool) -> dict
-    """ a record that looks like the object returned from the sobject api query we use """
+    """a record that looks like the object returned from the sobject api query we use"""
     return {
         "attributes": {"type": "job"},
         "SubscriberOrganizationKey": "00Dxxx000000001",
@@ -31,7 +30,7 @@ def error_record(gack=False, ErrorTitle="Unexpected Error"):  # type: (bool) -> 
     }
 
 
-class TestPushFailureTask(unittest.TestCase):
+class TestPushFailureTask:
     def test_run_task(
         self,
     ):
@@ -73,15 +72,13 @@ class TestPushFailureTask(unittest.TestCase):
         task._init_class = _init_class
         with temporary_dir():
             task()
-            self.assertEqual(2, task.sf.query_all.call_count)
-            self.assertTrue(
-                os.path.isfile(task.result), "the result file does not exist"
-            )
+            assert 2 == task.sf.query_all.call_count
+            assert os.path.isfile(task.result), "the result file does not exist"
             with open(task.result, "r") as f:
                 reader = csv.DictReader(f)
                 rows = list(reader)
-            self.assertEqual(len(rows), 2)
-            self.assertEqual(rows[1]["Stacktrace Id"], "-4532")
+            assert len(rows) == 2
+            assert rows[1]["Stacktrace Id"] == "-4532"
 
     def test_run_task__no_results(self):
         task = create_task(ReportPushFailures, options={"request_id": "123"})
@@ -96,4 +93,4 @@ class TestPushFailureTask(unittest.TestCase):
 
         task._init_class = _init_class
         task()
-        self.assertFalse(os.path.isfile(task.options["result_file"]))
+        assert not os.path.isfile(task.options["result_file"])

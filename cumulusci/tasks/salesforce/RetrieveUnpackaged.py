@@ -1,7 +1,6 @@
 from cumulusci.salesforce_api.metadata import ApiRetrieveUnpackaged
 from cumulusci.tasks.salesforce import BaseRetrieveMetadata
 
-
 retrieve_unpackaged_options = BaseRetrieveMetadata.task_options.copy()
 retrieve_unpackaged_options.update(
     {

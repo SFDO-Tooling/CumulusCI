@@ -1,23 +1,22 @@
-from datetime import date
-from pathlib import Path
-from io import StringIO
-from unittest import mock
 import logging
+from datetime import date
+from io import StringIO
+from pathlib import Path
+from unittest import mock
+
 import pytest
-
 import responses
-from yaml import YAMLError
 
-from cumulusci.core.exceptions import BulkDataException
+from cumulusci.core.exceptions import BulkDataException, YAMLParseException
 from cumulusci.tasks.bulkdata.mapping_parser import (
+    CaseInsensitiveDict,
     MappingLookup,
     MappingStep,
+    ValidationError,
     parse_from_yaml,
     validate_and_inject_mapping,
-    ValidationError,
-    CaseInsensitiveDict,
 )
-from cumulusci.tasks.bulkdata.step import DataOperationType
+from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
 from cumulusci.tests.util import DummyOrgConfig, mock_describe_calls
 
 
@@ -46,11 +45,24 @@ class TestMappingParser:
         parse_from_yaml(base_path)
         assert "record_type" in caplog.text
 
+    def test_deprecation_override(self, caplog):
+        base_path = Path(__file__).parent / "mapping_v2.yml"
+        caplog.set_level(logging.WARNING)
+        with mock.patch(
+            "cumulusci.tasks.bulkdata.mapping_parser.SHOULD_REPORT_RECORD_TYPE_DEPRECATION",
+            False,
+        ):
+            mapping = parse_from_yaml(base_path)
+            assert "record_type" not in caplog.text
+            assert mapping["Insert Households"]["record_type"] == "HH_Account"
+
     def test_bad_mapping_syntax(self):
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
             data = f.read().replace(":", ": abcd")
-            with pytest.raises(YAMLError):
+            with pytest.raises(
+                YAMLParseException, match="An error occurred parsing yaml file .*"
+            ):
                 parse_from_yaml(StringIO(data))
 
     def test_bad_mapping_grammar(self):
@@ -77,7 +89,26 @@ class TestMappingParser:
     def test_bad_mapping_batch_size(self):
         base_path = Path(__file__).parent / "mapping_v2.yml"
         with open(base_path, "r") as f:
-            data = f.read().replace("record_type: HH_Account", "batch_size: 500")
+            data = f.read().replace("record_type: HH_Account", "batch_size: 50000")
+            with pytest.raises(ValidationError):
+                parse_from_yaml(StringIO(data))
+
+    def test_ambiguous_mapping_batch_size_default(self, caplog):
+        caplog.set_level(logging.WARNING)
+        base_path = Path(__file__).parent / "mapping_vanilla_sf.yml"
+        with open(base_path, "r") as f:
+            data = f.read().replace("table: Opportunity", "batch_size: 150")
+            data = data.replace("api: bulk", "")
+            parse_from_yaml(StringIO(data))
+
+        assert "If you set a `batch_size` you should also set" in caplog.text
+
+    def test_bad_mapping_batch_size_default(self, caplog):
+        caplog.set_level(logging.WARNING)
+        base_path = Path(__file__).parent / "mapping_vanilla_sf.yml"
+        with open(base_path, "r") as f:
+            data = f.read().replace("table: Opportunity", "batch_size: 1000")
+            data = f.read().replace("api: bulk", "")
             with pytest.raises(ValidationError):
                 parse_from_yaml(StringIO(data))
 
@@ -145,8 +176,8 @@ class TestMappingParser:
             anchor_date="2020-07-01",
         )
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.Account.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.Account.describe.return_value = {
             "fields": [
                 {"name": "Some_Date__c", "type": "date"},
                 {"name": "Some_Datetime__c", "type": "datetime"},
@@ -154,7 +185,32 @@ class TestMappingParser:
             ]
         }
 
-        assert mapping.get_relative_date_context(org_config) == ([0], [1], date.today())
+        assert mapping.get_relative_date_context(
+            mapping.get_load_field_list(), salesforce_client
+        ) == ([0], [1], date.today())
+
+    def test_get_relative_date_e2e(self):
+        base_path = Path(__file__).parent / "mapping_v1.yml"
+        mapping = parse_from_yaml(base_path)
+        salesforce_client = mock.Mock()
+        salesforce_client.Contact.describe.return_value = {
+            "fields": [
+                {"name": "Some_Date__c", "type": "date"},
+                {"name": "Some_Datetime__c", "type": "datetime"},
+                {"name": "Some_Bool__c", "type": "boolean"},
+            ]
+        }
+        contacts_mapping = mapping["Insert Contacts"]
+        contacts_mapping.fields.update(
+            {"Some_Date__c": "Some_Date__c", "Some_Datetime__c": "Some_Datetime__c"}
+        )
+        assert contacts_mapping.get_relative_date_context(
+            contacts_mapping.get_load_field_list(), salesforce_client
+        ) == (
+            [3],
+            [4],
+            date.today(),
+        )
 
     # Start of FLS/Namespace Injection Unit Tests
 
@@ -163,17 +219,34 @@ class TestMappingParser:
         assert not MappingStep._is_injectable("npsp__Test__c")
         assert not MappingStep._is_injectable("Account")
 
-    def test_get_permission_type(self):
+    def test_get_permission_types(self):
         ms = MappingStep(
             sf_object="Account", fields=["Name"], action=DataOperationType.INSERT
         )
-        assert ms._get_permission_type(DataOperationType.INSERT) == "createable"
-        assert ms._get_permission_type(DataOperationType.QUERY) == "queryable"
+        assert ms._get_required_permission_types(DataOperationType.INSERT) == (
+            "createable",
+        )
+        assert ms._get_required_permission_types(DataOperationType.QUERY) == (
+            "queryable",
+        )
 
         ms = MappingStep(
             sf_object="Account", fields=["Name"], action=DataOperationType.UPDATE
         )
-        assert ms._get_permission_type(DataOperationType.INSERT) == "updateable"
+        assert ms._get_required_permission_types(DataOperationType.INSERT) == (
+            "updateable",
+        )
+
+        ms = MappingStep(
+            sf_object="Account",
+            fields=["Name", "Extid__c"],
+            action=DataOperationType.UPSERT,
+            update_key="Extid__c",
+        )
+        assert ms._get_required_permission_types(DataOperationType.UPSERT) == (
+            "updateable",
+            "createable",
+        )
 
     def test_check_field_permission(self):
         ms = MappingStep(
@@ -208,23 +281,25 @@ class TestMappingParser:
         )
 
         assert ms._validate_field_dict(
-            CaseInsensitiveDict(
+            describe=CaseInsensitiveDict(
                 {"Name": {"createable": True}, "Website": {"createable": True}}
             ),
-            ms.fields_,
-            None,
-            False,
-            DataOperationType.INSERT,
+            field_dict=ms.fields_,
+            inject=None,
+            strip=None,
+            drop_missing=False,
+            data_operation_type=DataOperationType.INSERT,
         )
 
         assert not ms._validate_field_dict(
-            CaseInsensitiveDict(
+            describe=CaseInsensitiveDict(
                 {"Name": {"createable": True}, "Website": {"createable": False}}
             ),
-            ms.fields_,
-            None,
-            False,
-            DataOperationType.INSERT,
+            field_dict=ms.fields_,
+            inject=None,
+            strip=None,
+            drop_missing=False,
+            data_operation_type=DataOperationType.INSERT,
         )
 
     def test_validate_field_dict__injection(self):
@@ -235,13 +310,14 @@ class TestMappingParser:
         )
 
         assert ms._validate_field_dict(
-            CaseInsensitiveDict(
+            describe=CaseInsensitiveDict(
                 {"Name": {"createable": True}, "npsp__Test__c": {"createable": True}}
             ),
-            ms.fields_,
-            lambda field: f"npsp__{field}",
-            False,
-            DataOperationType.INSERT,
+            field_dict=ms.fields_,
+            inject=lambda field: f"npsp__{field}",
+            strip=None,
+            drop_missing=False,
+            data_operation_type=DataOperationType.INSERT,
         )
 
         assert ms.fields_ == {"Id": "Id", "Name": "Name", "npsp__Test__c": "Test__c"}
@@ -254,17 +330,18 @@ class TestMappingParser:
         )
 
         assert ms._validate_field_dict(
-            CaseInsensitiveDict(
+            describe=CaseInsensitiveDict(
                 {
                     "Name": {"createable": True},
                     "npsp__Test__c": {"createable": True},
                     "Test__c": {"createable": True},
                 }
             ),
-            ms.fields_,
-            lambda field: f"npsp__{field}",
-            False,
-            DataOperationType.INSERT,
+            field_dict=ms.fields_,
+            inject=lambda field: f"npsp__{field}",
+            strip=None,
+            drop_missing=False,
+            data_operation_type=DataOperationType.INSERT,
         )
 
         assert ms.fields_ == {"Id": "Id", "Name": "Name", "Test__c": "Test__c"}
@@ -277,13 +354,14 @@ class TestMappingParser:
         )
 
         assert ms._validate_field_dict(
-            CaseInsensitiveDict(
+            describe=CaseInsensitiveDict(
                 {"Name": {"createable": True}, "Website": {"createable": False}}
             ),
-            ms.fields_,
-            None,
-            True,
-            DataOperationType.INSERT,
+            field_dict=ms.fields_,
+            inject=None,
+            strip=None,
+            drop_missing=True,
+            data_operation_type=DataOperationType.INSERT,
         )
 
         assert ms.fields_ == {"Id": "Id", "Name": "Name"}
@@ -296,11 +374,13 @@ class TestMappingParser:
         assert ms._validate_sobject(
             CaseInsensitiveDict({"Account": {"createable": True}}),
             None,
+            None,
             DataOperationType.INSERT,
         )
 
         assert ms._validate_sobject(
             CaseInsensitiveDict({"Account": {"queryable": True}}),
+            None,
             None,
             DataOperationType.QUERY,
         )
@@ -312,6 +392,7 @@ class TestMappingParser:
         assert not ms._validate_sobject(
             CaseInsensitiveDict({"Account": {"updateable": False}}),
             None,
+            None,
             DataOperationType.INSERT,
         )
 
@@ -322,10 +403,24 @@ class TestMappingParser:
 
         assert ms._validate_sobject(
             CaseInsensitiveDict({"npsp__Test__c": {"createable": True}}),
-            lambda obj: f"npsp__{obj}",
-            DataOperationType.INSERT,
+            inject=lambda obj: f"npsp__{obj}",
+            strip=None,
+            data_operation_type=DataOperationType.INSERT,
         )
         assert ms.sf_object == "npsp__Test__c"
+
+    def test_validate_sobject__stripping(self):
+        ms = MappingStep(
+            sf_object="foo__Test__c", fields=["Name"], action=DataOperationType.INSERT
+        )
+
+        assert ms._validate_sobject(
+            CaseInsensitiveDict({"Test__c": {"createable": True}}),
+            inject=None,
+            strip=lambda obj: obj[len("foo__") :],
+            data_operation_type=DataOperationType.INSERT,
+        )
+        assert ms.sf_object == "Test__c"
 
     def test_validate_sobject__injection_duplicate(self):
         ms = MappingStep(
@@ -337,6 +432,7 @@ class TestMappingParser:
                 {"npsp__Test__c": {"createable": True}, "Test__c": {"createable": True}}
             ),
             lambda obj: f"npsp__{obj}",
+            None,
             DataOperationType.INSERT,
         )
         assert ms.sf_object == "Test__c"
@@ -362,21 +458,22 @@ class TestMappingParser:
             )
         )["Insert Accounts"]
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.describe.return_value = {
             "sobjects": [{"name": "Account", "createable": True}]
         }
-        org_config.salesforce_client.Account.describe.return_value = {
+        salesforce_client.Account.describe.return_value = {
             "fields": [{"name": "ns__Test__c", "createable": True}]
         }
 
         assert ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT, inject_namespaces=True
+            salesforce_client, "ns", DataOperationType.INSERT, inject_namespaces=True
         )
 
         ms._validate_sobject.assert_called_once_with(
             CaseInsensitiveDict({"Account": {"name": "Account", "createable": True}}),
             mock.ANY,  # This is a function def
+            mock.ANY,
             DataOperationType.INSERT,
         )
 
@@ -388,12 +485,14 @@ class TestMappingParser:
                     ),
                     ms.fields,
                     mock.ANY,  # local function def
+                    mock.ANY,  # local function def
                     False,
                     DataOperationType.INSERT,
                 ),
                 mock.call(
                     {"ns__Test__c": {"name": "ns__Test__c", "createable": True}},
                     ms.lookups,
+                    mock.ANY,  # local function def
                     mock.ANY,  # local function def
                     False,
                     DataOperationType.INSERT,
@@ -425,11 +524,11 @@ class TestMappingParser:
             )
         )["Insert Accounts"]
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.describe.return_value = {
             "sobjects": [{"name": "Account", "createable": True}]
         }
-        org_config.salesforce_client.Account.describe.return_value = {
+        salesforce_client.Account.describe.return_value = {
             "fields": [
                 {"name": "Name", "createable": True},
                 {"name": "ns__Lookup__c", "updateable": False, "createable": True},
@@ -437,12 +536,13 @@ class TestMappingParser:
         }
 
         assert ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT, inject_namespaces=True
+            salesforce_client, "ns", DataOperationType.INSERT, inject_namespaces=True
         )
 
         ms._validate_sobject.assert_called_once_with(
             CaseInsensitiveDict({"Account": {"name": "Account", "createable": True}}),
             mock.ANY,  # local function def
+            mock.ANY,
             DataOperationType.INSERT,
         )
 
@@ -459,6 +559,7 @@ class TestMappingParser:
                     },
                     ms.fields,
                     mock.ANY,  # local function def.
+                    mock.ANY,  # local function def.
                     False,
                     DataOperationType.INSERT,
                 ),
@@ -472,6 +573,7 @@ class TestMappingParser:
                         },
                     },
                     ms.lookups,
+                    mock.ANY,  # local function def.
                     mock.ANY,  # local function def.
                     False,
                     DataOperationType.INSERT,
@@ -492,19 +594,20 @@ class TestMappingParser:
             sf_object="Test__c", fields=["Field__c"], action=DataOperationType.INSERT
         )
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.describe.return_value = {
             "sobjects": [{"name": "Test__c", "createable": True}]
         }
-        org_config.salesforce_client.Test__c.describe.return_value = {
+        salesforce_client.Test__c.describe.return_value = {
             "fields": [{"name": "Field__c", "createable": True}]
         }
         assert ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT
+            salesforce_client, "ns", DataOperationType.INSERT
         )
 
         ms._validate_sobject.assert_called_once_with(
             CaseInsensitiveDict({"Test__c": {"name": "Test__c", "createable": True}}),
+            None,
             None,
             DataOperationType.INSERT,
         )
@@ -515,12 +618,14 @@ class TestMappingParser:
                     {"Field__c": {"name": "Field__c", "createable": True}},
                     {"Field__c": "Field__c"},
                     None,
+                    None,
                     False,
                     DataOperationType.INSERT,
                 ),
                 mock.call(
                     {"Field__c": {"name": "Field__c", "createable": True}},
                     {},
+                    None,
                     None,
                     False,
                     DataOperationType.INSERT,
@@ -543,19 +648,20 @@ class TestMappingParser:
             sf_object="Test__c", fields=["Name"], action=DataOperationType.INSERT
         )
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.describe.return_value = {
             "sobjects": [{"name": "Test__c", "createable": False}]
         }
-        org_config.salesforce_client.Test__c.describe.return_value = {
+        salesforce_client.Test__c.describe.return_value = {
             "fields": [{"name": "Name", "createable": True}]
         }
         assert not ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT
+            salesforce_client, "ns", DataOperationType.INSERT
         )
 
         ms._validate_sobject.assert_called_once_with(
             {"Test__c": {"name": "Test__c", "createable": False}},
+            None,
             None,
             DataOperationType.INSERT,
         )
@@ -577,19 +683,20 @@ class TestMappingParser:
             sf_object="Test__c", fields=["Name"], action=DataOperationType.INSERT
         )
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.describe.return_value = {
             "sobjects": [{"name": "Test__c", "createable": True}]
         }
-        org_config.salesforce_client.Test__c.describe.return_value = {
+        salesforce_client.Test__c.describe.return_value = {
             "fields": [{"name": "Name", "createable": False}]
         }
         assert not ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT
+            salesforce_client, "ns", DataOperationType.INSERT
         )
 
         ms._validate_sobject.assert_called_once_with(
             {"Test__c": {"name": "Test__c", "createable": True}},
+            None,
             None,
             DataOperationType.INSERT,
         )
@@ -599,6 +706,7 @@ class TestMappingParser:
                 mock.call(
                     {"Name": {"name": "Name", "createable": False}},
                     {"Name": "Name"},
+                    None,
                     None,
                     False,
                     DataOperationType.INSERT,
@@ -630,22 +738,23 @@ class TestMappingParser:
             )
         )["Insert Accounts"]
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.describe.return_value = {
             "sobjects": [{"name": "Account", "createable": True}]
         }
-        org_config.salesforce_client.Account.describe.return_value = {
+        salesforce_client.Account.describe.return_value = {
             "fields": [
                 {"name": "Name", "createable": True},
                 {"name": "Lookup__c", "updateable": True, "createable": False},
             ]
         }
         assert not ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT
+            salesforce_client, "ns", DataOperationType.INSERT
         )
 
         ms._validate_sobject.assert_called_once_with(
             {"Account": {"name": "Account", "createable": True}},
+            None,
             None,
             DataOperationType.INSERT,
         )
@@ -663,6 +772,7 @@ class TestMappingParser:
                     },
                     {"Name": "Name"},
                     None,
+                    None,
                     False,
                     DataOperationType.INSERT,
                 ),
@@ -676,6 +786,7 @@ class TestMappingParser:
                         },
                     },
                     ms.lookups,
+                    None,
                     None,
                     False,
                     DataOperationType.INSERT,
@@ -708,22 +819,23 @@ class TestMappingParser:
             )
         )["Insert Accounts"]
 
-        org_config = mock.Mock()
-        org_config.salesforce_client.describe.return_value = {
+        salesforce_client = mock.Mock()
+        salesforce_client.describe.return_value = {
             "sobjects": [{"name": "Account", "createable": True}]
         }
-        org_config.salesforce_client.Account.describe.return_value = {
+        salesforce_client.Account.describe.return_value = {
             "fields": [
                 {"name": "Name", "createable": True},
                 {"name": "Lookup__c", "updateable": False, "createable": True},
             ]
         }
         assert not ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT
+            salesforce_client, "ns", DataOperationType.INSERT
         )
 
         ms._validate_sobject.assert_called_once_with(
             {"Account": {"name": "Account", "createable": True}},
+            None,
             None,
             DataOperationType.INSERT,
         )
@@ -741,6 +853,7 @@ class TestMappingParser:
                     },
                     {"Name": "Name"},
                     None,
+                    None,
                     False,
                     DataOperationType.INSERT,
                 ),
@@ -754,6 +867,7 @@ class TestMappingParser:
                         },
                     },
                     ms.lookups,
+                    None,
                     None,
                     False,
                     DataOperationType.INSERT,
@@ -778,7 +892,7 @@ class TestMappingParser:
         with pytest.raises(BulkDataException):
             validate_and_inject_mapping(
                 mapping=mapping,
-                org_config=org_config,
+                sf=org_config.salesforce_client,
                 namespace=None,
                 data_operation=DataOperationType.INSERT,
                 inject_namespaces=False,
@@ -799,7 +913,7 @@ class TestMappingParser:
 
         validate_and_inject_mapping(
             mapping=mapping,
-            org_config=org_config,
+            sf=org_config.salesforce_client,
             namespace=None,
             data_operation=DataOperationType.INSERT,
             inject_namespaces=False,
@@ -825,7 +939,7 @@ class TestMappingParser:
 
         validate_and_inject_mapping(
             mapping=mapping,
-            org_config=org_config,
+            sf=org_config.salesforce_client,
             namespace=None,
             data_operation=DataOperationType.INSERT,
             inject_namespaces=False,
@@ -858,7 +972,7 @@ class TestMappingParser:
         with pytest.raises(BulkDataException):
             validate_and_inject_mapping(
                 mapping=mapping,
-                org_config=org_config,
+                sf=org_config.salesforce_client,
                 namespace=None,
                 data_operation=DataOperationType.INSERT,
                 inject_namespaces=False,
@@ -883,10 +997,39 @@ class TestMappingParser:
         )
 
         assert ms.validate_and_inject_namespace(
-            org_config, "ns", DataOperationType.INSERT, inject_namespaces=True
+            org_config.salesforce_client,
+            "ns",
+            DataOperationType.INSERT,
+            inject_namespaces=True,
         )
 
         assert list(ms.fields.keys()) == ["ns__Description__c"]
+
+    @responses.activate
+    def test_validate_and_inject_mapping_removes_namespaces(self):
+        mock_describe_calls()
+        # Note: History__c is a mock field added to our stored, mock describes (in JSON)
+        ms = parse_from_yaml(
+            StringIO(
+                """Insert Accounts:
+                  sf_object: Account
+                  table: Account
+                  fields:
+                    - ns__History__c"""
+            )
+        )["Insert Accounts"]
+        org_config = DummyOrgConfig(
+            {"instance_url": "https://example.com", "access_token": "abc123"}, "test"
+        )
+
+        assert ms.validate_and_inject_namespace(
+            org_config.salesforce_client,
+            "ns",
+            DataOperationType.INSERT,
+            inject_namespaces=True,
+        )
+
+        assert list(ms.fields.keys()) == ["History__c"]
 
     @responses.activate
     def test_validate_and_inject_mapping_queries_is_person_account_field(self):
@@ -905,7 +1048,7 @@ class TestMappingParser:
 
         validate_and_inject_mapping(
             mapping=mapping,
-            org_config=org_config,
+            sf=org_config.salesforce_client,
             namespace=None,
             data_operation=DataOperationType.QUERY,
             inject_namespaces=False,
@@ -979,7 +1122,7 @@ class TestMappingLookup:
 
         validate_and_inject_mapping(
             mapping=mapping,
-            org_config=org_config,
+            sf=org_config.salesforce_client,
             namespace=None,
             data_operation=DataOperationType.INSERT,
             inject_namespaces=False,
@@ -989,3 +1132,131 @@ class TestMappingLookup:
         assert mapping["Insert Accounts"].sf_object != "account"
         assert "Name" in mapping["Insert Accounts"].fields
         assert "name" not in mapping["Insert Accounts"].fields
+
+    @responses.activate
+    def test_bulk_attributes(self):
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    """Insert Accounts:
+                        sf_object: account
+                        table: account
+                        api: rest
+                        bulk_mode: Serial
+                        batch_size: 50
+                        fields:
+                            - name"""
+                )
+            )
+        )
+        assert mapping["Insert Accounts"].api == DataApi.REST
+        assert mapping["Insert Accounts"].bulk_mode == "Serial"
+        assert mapping["Insert Accounts"].batch_size == 50
+
+    def test_case_conversions(self):
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    """Insert Accounts:
+                        sf_object: account
+                        table: account
+                        api: ReST
+                        bulk_mode: serial
+                        action: INSerT
+                        batch_size: 50
+                        fields:
+                            - name"""
+                )
+            )
+        )
+        assert mapping["Insert Accounts"].api == DataApi.REST
+        assert mapping["Insert Accounts"].bulk_mode == "Serial"
+        assert mapping["Insert Accounts"].action.value == "insert"
+        assert mapping["Insert Accounts"].batch_size == 50
+
+    def test_oid_as_pk__raises(self):
+        with pytest.raises(ValueError):
+            parse_from_yaml(
+                StringIO(
+                    (
+                        """Insert Accounts:
+                            sf_object: account
+                            oid_as_pk: True
+                            fields:
+                                - name"""
+                    )
+                )
+            )
+
+    def test_oid_as_pk__false(self):
+        result = parse_from_yaml(
+            StringIO(
+                (
+                    """Insert Accounts:
+                            sf_object: account
+                            oid_as_pk: False
+                            fields:
+                                - name"""
+                )
+            )
+        )
+        assert result["Insert Accounts"].oid_as_pk is False
+
+
+class TestUpsertKeyValidations:
+    def test_upsert_key_wrong_type(self):
+        with pytest.raises(ValidationError) as e:
+            parse_from_yaml(
+                StringIO(
+                    (
+                        """Insert Accounts:
+                        sf_object: account
+                        table: account
+                        action: upsert
+                        update_key: 11
+                        fields:
+                            - name"""
+                    )
+                )
+            )
+        assert "update_key" in str(e.value)
+
+    def test_upsert_key_wrong_type__list_item(self):
+        with pytest.raises(ValidationError) as e:
+            parse_from_yaml(
+                StringIO(
+                    (
+                        """Insert Accounts:
+                        sf_object: account
+                        table: account
+                        action: upsert
+                        update_key:
+                            - 11
+                        fields:
+                            - name"""
+                    )
+                )
+            )
+        assert "update_key" in str(e.value)
+
+    def test_upsert_key_list(self):
+        mapping = parse_from_yaml(
+            StringIO(
+                (
+                    """Insert Accounts:
+                        sf_object: account
+                        table: account
+                        action: etl_upsert
+                        update_key:
+                            - FirstName
+                            - LastName
+                        fields:
+                            - FirstName
+                            - LastName """
+                )
+            )
+        )
+        assert mapping["Insert Accounts"]["update_key"] == (
+            "FirstName",
+            "LastName",
+        ), mapping["Insert Accounts"]["update_key"]

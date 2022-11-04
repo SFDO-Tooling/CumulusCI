@@ -1,11 +1,10 @@
-import unittest
-from TestListener import TestListener
 import pytest
+from TestListener import TestListener
 
 
-class TestTestListener(unittest.TestCase):
+class TestTestListener:
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         cls.listener = TestListener()
 
     def test_reset_test_listener_keyword_log(self):

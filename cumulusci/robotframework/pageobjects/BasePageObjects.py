@@ -10,10 +10,12 @@ file.
 """
 
 import re
+
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from SeleniumLibrary.errors import ElementNotFound
-from selenium.common.exceptions import NoSuchElementException
-from cumulusci.robotframework.pageobjects import pageobject
-from cumulusci.robotframework.pageobjects import BasePage
+
+from cumulusci.robotframework.form_handlers import get_form_handler
+from cumulusci.robotframework.pageobjects import BasePage, pageobject
 from cumulusci.robotframework.utils import capture_screenshot_on_error
 
 # This will appear in the generated documentation in place of
@@ -34,7 +36,7 @@ class ListingPage(BasePage):
 
     """
 
-    def _go_to_page(self, filter_name=None):
+    def _go_to_page(self, filter_name=None, locator=None):
         url_template = "{root}/lightning/o/{object_name}/list"
         url = url_template.format(
             root=self.cumulusci.org.lightning_base_url, object_name=self.object_name
@@ -42,12 +44,73 @@ class ListingPage(BasePage):
         if filter_name:
             url += "?filterName={}".format(filter_name)
         self.selenium.go_to(url)
-        self.salesforce.wait_until_loading_is_complete()
+        self.salesforce.wait_until_loading_is_complete(locator=locator)
 
     def _is_current_page(self):
         self.selenium.location_should_contain(
             "/lightning/o/{}/list".format(self.object_name)
         )
+
+    @capture_screenshot_on_error
+    def select_rows(self, *items):
+        """Check the checkbutton for one or more rows
+
+        Arguments are one or more strings. Each row that contains one
+        of the strings in any column will be clicked. Rows that have
+        already been checked will remain checked.
+
+        If no elements are found to match, this keyword will raise an error.
+
+        Example
+
+        The following example selects all rows that contain either
+        John Doe or Jane Doe in any column.
+
+        | Select Rows   John Doe  Jane Doe
+        """
+        for item in items:
+            xpath = self.salesforce.get_locator("object_list.checkbutton", item)
+            elements = self.selenium.get_webelements(xpath)
+            if elements:
+                for element in elements:
+                    cb = element.find_element_by_tag_name("input")
+                    if not cb.is_selected():
+                        element.click()
+            else:
+                raise Exception(f"No rows matched '{item}'")
+
+    @capture_screenshot_on_error
+    def deselect_rows(self, *items):
+        """Uncheck the checkbutton for one or more rows
+
+         Arguments are one or more strings. Each row that contains one
+         of the strings in any column will be delselected. Rows that are
+         unchecked will remain unchecked.
+
+         If no elements are found to match, this keyword will raise an error.
+
+        Example
+
+         The following example deselects all rows that contain either
+         John Doe or Jane Doe in any column.
+
+         | Select Rows   John Doe  Jane Doe
+
+        """
+        for item in items:
+            xpath = self.salesforce.get_locator("object_list.checkbutton", item)
+            elements = self.selenium.get_webelements(xpath)
+
+            if elements:
+                for element in elements:
+                    cb = element.find_element_by_tag_name("input")
+                    if cb.is_selected():
+                        self.builtin.log(f"clicking on element for {item}")
+                        element.click()
+                    else:
+                        self.builtin.log(f"NOT clicking on element for {item}")
+            else:
+                raise Exception(f"No rows matched '{item}'")
 
 
 class ModalMixin:
@@ -65,7 +128,7 @@ class ModalMixin:
 
     @capture_screenshot_on_error
     def close_the_modal(self):
-        """ Closes the open modal """
+        """Closes the open modal"""
 
         locator = "css: button.slds-modal__close"
         self.selenium.wait_until_element_is_enabled(locator)
@@ -77,12 +140,7 @@ class ModalMixin:
     def click_modal_button(self, button_label):
         """Click the named modal button (Save, Save & New, Cancel, etc)"""
         # stolen from Salesforce.py:click_modal_button
-        locator = (
-            "//div[contains(@class,'uiModal')]"
-            "//div[contains(@class,'modal-footer') or contains(@class, 'actionsContainer')]"
-            "//button[.//span[text()='{}']]"
-        ).format(button_label)
-
+        locator = f"sf:modal.button:{button_label}"
         self.selenium.wait_until_page_contains_element(locator)
         self.selenium.wait_until_element_is_enabled(locator)
         self.salesforce._jsclick(locator)
@@ -101,6 +159,23 @@ class ModalMixin:
             self.selenium.page_should_contain_element(
                 locator,
                 'The page did not contain an error with the text "{}"'.format(message),
+            )
+
+    @capture_screenshot_on_error
+    def modal_should_show_edit_error_for_fields(self, *field_names):
+        """Verify that a dialog is showing requiring a review of the given fields
+
+        This works by looking for a the "we hit a snag" popup, and
+        then looking for an anchor tag with the attribute
+        force-recordediterror_recordediterror, along with the given
+        text.
+
+        """
+        self.selenium.wait_until_page_contains_element("sf:modal.field_alert")
+        for field_name in field_names:
+            locator = f"sf:modal.review_alert:{field_name}"
+            self.selenium.page_should_contain_element(
+                locator, f"Unable to find alert with field '{field_name}'"
             )
 
     @capture_screenshot_on_error
@@ -147,32 +222,18 @@ class ModalMixin:
         If a modal is present, the modal will be searched for the dropdown. Otherwise
         the first matching dropdown on the entire web page will be used.
         """
-        input_element = self._get_form_element_for_label(label)
-        if input_element is None:
-            raise Exception(f"No form element found with the label '{label}'")
-
-        # SeleniumLibrary's scroll_element_into_view doesn't seem to work
-        # for elements in a scrollable div on Firefox. Javascript seems to
-        # work though.
-        self.selenium.driver.execute_script(
-            "arguments[0].scrollIntoView()", input_element
-        )
-        trigger = input_element.find_element_by_class_name("uiPopupTrigger")
-        trigger.click()
-
+        locator = f"label:{label}"
         try:
-            popup_locator = (
-                "//div[contains(@class, 'uiPopupTarget')][contains(@class, 'visible')]"
-            )
-            popup = self.selenium.get_webelement(popup_locator)
-        except ElementNotFound:
-            raise ElementNotFound("Timed out waiting for the dropdown menu")
+            element = self.selenium.get_webelement(locator)
+        except (NoSuchElementException, TimeoutException, ElementNotFound):
+            raise ElementNotFound(f"Form element with label '{label}' was not found")
 
+        self.salesforce.scroll_element_into_view(locator)
+        handler = get_form_handler(element, locator)
         try:
-            value_element = popup.find_element_by_link_text(value)
-            value_element.click()
-        except NoSuchElementException:
-            raise Exception(f"Dropdown value '{value}' not found")
+            handler.set(value)
+        except (NoSuchElementException, TimeoutException, ElementNotFound):
+            raise ElementNotFound(f"Dropdown value '{value}' not found")
 
     @capture_screenshot_on_error
     def wait_until_modal_is_closed(self, timeout=None):
@@ -207,6 +268,18 @@ class ModalMixin:
             if modals:
                 root = modals[0]
         try:
+            # As salesforce evolves, more and more fields use <label for='some-id'>
+            # where "for" points to the associated input field. w00t! If we can,
+            # use that. If not, fall back to an older strategy
+            try:
+                label_element = root.find_element_by_xpath(f'//label[text()="{label}"]')
+                input_id = label_element.get_attribute("for")
+                element = root.find_element_by_id(input_id)
+                return element
+
+            except NoSuchElementException:
+                pass
+
             # gnarly, but effective.
             # this finds an element with the class slds-form-element which
             # has a child element with the class 'form-element__label' and
@@ -272,13 +345,13 @@ class HomePage(BasePage):
 
     """
 
-    def _go_to_page(self):
+    def _go_to_page(self, locator=None):
         url_template = "{root}/lightning/o/{object_name}/home"
         url = url_template.format(
             root=self.cumulusci.org.lightning_base_url, object_name=self.object_name
         )
         self.selenium.go_to(url)
-        self.salesforce.wait_until_loading_is_complete()
+        self.salesforce.wait_until_loading_is_complete(locator=locator)
 
     def _is_current_page(self):
         self.selenium.location_should_contain(
@@ -309,7 +382,7 @@ class DetailPage(BasePage):
 
     """
 
-    def _go_to_page(self, object_id=None, **kwargs):
+    def _go_to_page(self, object_id=None, locator=None, **kwargs):
         """Go to the detail page for the given record.
 
         You may pass in an object id, or you may pass in keyword arguments
@@ -335,7 +408,7 @@ class DetailPage(BasePage):
             object_id=object_id,
         )
         self.selenium.go_to(url)
-        self.salesforce.wait_until_loading_is_complete()
+        self.salesforce.wait_until_loading_is_complete(locator=locator)
 
     def _is_current_page(self, **kwargs):
         """Verify we are on a detail page.

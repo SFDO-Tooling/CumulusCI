@@ -1,0 +1,24 @@
+interactions:
+- request:
+    body: '{"compositeRequest": [{"referenceId": "CCI__RefId__0__", "method": "GET",
+      "url": "/services/data/vxx.0/sobjects/Foo"}]}'
+    headers:
+      Request-Headers:
+      - Elided
+    method: POST
+    uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite
+  response:
+    body:
+      string: "{\n  \"compositeResponse\" : [ {\n    \"body\" : [ {\n      \"errorCode\"
+        : \"NOT_FOUND\",\n      \"message\" : \"The requested resource does not exist\"\n
+        \   } ],\n    \"httpHeaders\" : { },\n    \"httpStatusCode\" : 404,\n    \"referenceId\"
+        : \"CCI__RefId__0__\"\n  } ]\n}"
+    headers:
+      Response-Headers:
+        Content-Type:
+        - application/json;charset=UTF-8
+        Others: Elided
+    status:
+      code: 200
+      message: OK
+version: 1

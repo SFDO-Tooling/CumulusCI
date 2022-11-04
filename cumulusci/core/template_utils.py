@@ -1,6 +1,6 @@
 from functools import lru_cache
-from faker import Faker
 
+from faker import Faker
 from jinja2 import Template
 
 

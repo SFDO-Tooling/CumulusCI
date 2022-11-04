@@ -1,10 +1,9 @@
-from tempfile import TemporaryDirectory
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest import mock
 
-from cumulusci.core.config import OrgConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.tests.util import create_project_config, DummyKeychain
+from cumulusci.core.config import OrgConfig, TaskConfig
+from cumulusci.tests.util import DummyKeychain, create_project_config
 
 
 def create_task(task_class, options=None, project_config=None, org_config=None):
@@ -15,6 +14,7 @@ def create_task(task_class, options=None, project_config=None, org_config=None):
         org_config = OrgConfig(
             {
                 "instance_url": "https://test.salesforce.com",
+                "id": "https://test.salesforce.com/ORG_ID/USER_ID",
                 "access_token": "TOKEN",
                 "org_id": "ORG_ID",
                 "username": "test-cci@example.com",

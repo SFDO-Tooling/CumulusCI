@@ -1,11 +1,12 @@
-import yaml
 from collections import defaultdict
 from contextlib import contextmanager
 
+import yaml
+
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
-from cumulusci.core.utils import process_list_arg, process_bool_arg
-from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
-from cumulusci.utils.fileutils import open_fs_resource, FSResource
+from cumulusci.utils.fileutils import FSResource, open_fs_resource
 
 
 class SetTDTMHandlerStatus(BaseSalesforceApiTask):
@@ -36,7 +37,7 @@ class SetTDTMHandlerStatus(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super(SetTDTMHandlerStatus, self)._init_options(kwargs)
         self.options["handlers"] = process_list_arg(self.options.get("handlers", []))
-        self.options["active"] = process_bool_arg(self.options.get("active", False))
+        self.options["active"] = process_bool_arg(self.options.get("active") or False)
         has_restore_file = (
             self.options.get("restore_file") is not False
             and self.options.get("restore_file") != "False"

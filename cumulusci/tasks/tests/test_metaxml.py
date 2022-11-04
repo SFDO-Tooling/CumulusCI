@@ -1,16 +1,13 @@
-from unittest import mock
 import os
-import unittest
+from unittest import mock
 
-from cumulusci.core.config import UniversalConfig
-from cumulusci.core.config import BaseProjectConfig
-from cumulusci.core.config import TaskConfig
-from cumulusci.tasks.metaxml import UpdateApi
-from cumulusci.tasks.metaxml import UpdateDependencies
+from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
+from cumulusci.core.dependencies.dependencies import PackageNamespaceVersionDependency
+from cumulusci.tasks.metaxml import UpdateApi, UpdateDependencies
 from cumulusci.utils import temporary_dir
 
 
-class TestUpdateApi(unittest.TestCase):
+class TestUpdateApi:
     def test_run_task(self):
         with temporary_dir() as d:
             os.mkdir(".git")
@@ -34,18 +31,24 @@ class TestUpdateApi(unittest.TestCase):
 
             with open(meta_xml_path, "r") as f:
                 result = f.read()
-            self.assertEqual(
+            assert (
                 """<?xml version="1.0" encoding="UTF-8"?>
 <ApexClass xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>43.0</apiVersion>
 </ApexClass>
-""",
-                result,
+"""
+                == result
             )
 
 
-class TestUpdateDependencies(unittest.TestCase):
-    def test_run_task(self):
+class TestUpdateDependencies:
+    @mock.patch("cumulusci.tasks.metaxml.get_static_dependencies")
+    def test_run_task(self, get_static_dependencies):
+        get_static_dependencies.return_value = [
+            PackageNamespaceVersionDependency(namespace="npe01", version="1.1"),
+            PackageNamespaceVersionDependency(namespace="npsp", version="3.0"),
+        ]
+
         with temporary_dir() as d:
             os.mkdir(".git")
             os.mkdir("src")
@@ -71,22 +74,13 @@ class TestUpdateDependencies(unittest.TestCase):
             project_config = BaseProjectConfig(
                 UniversalConfig(), config={"noyaml": True}
             )
-            project_config.get_static_dependencies = mock.Mock(
-                return_value=[
-                    {
-                        "namespace": "npsp",
-                        "version": "3.0",
-                        "dependencies": [{"namespace": "npe01", "version": "1.1"}],
-                    }
-                ]
-            )
             task_config = TaskConfig()
             task = UpdateDependencies(project_config, task_config)
             task()
 
             with open(meta_xml_path, "r") as f:
                 result = f.read()
-            self.assertEqual(
+            assert (
                 """<?xml version="1.0" encoding="UTF-8"?>
 <ApexClass xmlns="http://soap.sforce.com/2006/04/metadata">
     <packageVersions>
@@ -100,6 +94,6 @@ class TestUpdateDependencies(unittest.TestCase):
         <minorNumber>1</minorNumber>
     </packageVersions>
 </ApexClass>
-""",
-                result,
+"""
+                == result
             )

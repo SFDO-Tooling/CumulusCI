@@ -1,13 +1,14 @@
 import json
-import re
 import os
+import re
+
 from cumulusci.core.config import ServiceConfig
-from cumulusci.core.exceptions import TaskOptionsError, ServiceNotConfigured
+from cumulusci.core.exceptions import ServiceNotConfigured, TaskOptionsError
 from cumulusci.core.keychain import DEFAULT_CONNECTED_APP
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.tasks.sfdx import SFDXBaseTask, SFDX_CLI
-from cumulusci.utils import random_alphanumeric_underscore
-from cumulusci.utils import temporary_dir
+from cumulusci.oauth.client import PROD_LOGIN_URL
+from cumulusci.tasks.sfdx import SFDX_CLI, SFDXBaseTask
+from cumulusci.utils import random_alphanumeric_underscore, temporary_dir
 
 CONNECTED_APP = """<?xml version="1.0" encoding="UTF-8"?>
 <ConnectedApp xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -81,9 +82,9 @@ class CreateConnectedApp(SFDXBaseTask):
                 )
             self.options["email"] = github.email
 
-        self.options["connect"] = process_bool_arg(self.options.get("connect", False))
+        self.options["connect"] = process_bool_arg(self.options.get("connect") or False)
         self.options["overwrite"] = process_bool_arg(
-            self.options.get("overwrite", False)
+            self.options.get("overwrite") or False
         )
 
     def _set_default_username(self):
@@ -139,9 +140,9 @@ class CreateConnectedApp(SFDXBaseTask):
         if not self.options["overwrite"]:
             try:
                 connected_app = self.project_config.keychain.get_service(
-                    "connected_app"
+                    "connected_app", self.options["label"]
                 )
-            except ServiceNotConfigured:
+            except ServiceNotConfigured:  # pragma: no cover
                 pass
             else:
                 if connected_app is not DEFAULT_CONNECTED_APP:
@@ -152,10 +153,12 @@ class CreateConnectedApp(SFDXBaseTask):
     def _connect_service(self):
         self.project_config.keychain.set_service(
             "connected_app",
+            self.options["label"],
             ServiceConfig(
                 {
                     "client_id": self.client_id,
                     "client_secret": self.client_secret,
+                    "login_url": PROD_LOGIN_URL,
                     "callback_url": "http://localhost:8080/callback",
                 }
             ),
@@ -166,7 +169,7 @@ class CreateConnectedApp(SFDXBaseTask):
         # Default to sfdx defaultdevhubusername
         if "username" not in self.options:
             self._set_default_username()
-        self.options["command"] += " -u {}".format(self.options.get("username"))
+        command += " -u {}".format(self.options.get("username"))
         command += " -d {}".format(self.tempdir)
         return command
 

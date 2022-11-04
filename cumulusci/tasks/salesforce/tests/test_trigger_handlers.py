@@ -3,8 +3,8 @@ from unittest import mock
 import pytest
 import responses
 
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.salesforce import SetTDTMHandlerStatus
-from cumulusci.core.exceptions import TaskOptionsError, CumulusCIException
 
 
 class TestTriggerHandlers:

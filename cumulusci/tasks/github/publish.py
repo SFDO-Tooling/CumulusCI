@@ -1,12 +1,20 @@
 import tempfile
 from datetime import datetime
+from pathlib import Path
 
 import github3.exceptions
-from cumulusci.core.exceptions import GithubException, TaskOptionsError
+
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    GithubException,
+    TaskOptionsError,
+)
+from cumulusci.core.github import get_tag_by_name
 from cumulusci.core.utils import process_bool_arg, process_list_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.tasks.github.util import CommitDir
 from cumulusci.utils import download_extract_github_from_repo
+from cumulusci.utils.git import split_repo_url
 
 
 class PublishSubtree(BaseGithubTask):
@@ -17,18 +25,26 @@ class PublishSubtree(BaseGithubTask):
             "required": True,
         },
         "version": {
-            "description": "The version number to release. "
-            "Also supports latest and latest_beta to look up the latest releases. "
-            "Required if 'ref' is not set."
+            "description": "(Deprecated >= 3.42.0) Only the values of 'latest' and 'latest_beta' are acceptable. "
+            "Required if 'ref' or 'tag_name' is not set. This will override tag_name if it is provided."
+        },
+        "tag_name": {
+            "description": "The name of the tag that should be associated with this release. "
+            "Values of 'latest' and 'latest_beta' are also allowed. "
+            "Required if 'ref' or 'version' is not set."
         },
         "ref": {
-            "description": "The git reference to publish.  Takes precedence over 'version'."
+            "description": "The git reference to publish.  Takes precedence over 'version' and 'tag_name'. "
+            "Required if 'tag_name' is not set."
         },
         "include": {
             "description": "A list of paths from repo root to include. Directories must end with a trailing slash."
         },
+        "renames": {
+            "description": "A list of paths to rename in the target repo, given as `local:` `target:` pairs."
+        },
         "create_release": {
-            "description": "If True, create a release in the public repo.  Defaults to True"
+            "description": "If True, create a release in the public repo.  Defaults to False"
         },
         "release_body": {
             "description": "If True, the entire release body will be published to the public repo.  Defaults to False"
@@ -45,27 +61,69 @@ class PublishSubtree(BaseGithubTask):
                 "include", ["datasets/", "documentation/", "tasks/", "unpackaged/"]
             )
         )
-        if self.options.get("version") in ("latest", "latest_beta"):
-            get_beta = self.options["version"] == "latest_beta"
-            self.options["version"] = str(
-                self.project_config.get_latest_version(beta=get_beta)
+
+        self.options["renames"] = self._process_renames(self.options.get("renames", []))
+
+        if "version" in self.options:  # pragma: no cover
+            self.logger.warning(
+                "The `version` option is deprecated. Please use the `tag_name` option instead."
             )
-        if "ref" not in self.options and "version" not in self.options:
-            raise TaskOptionsError("Either `ref` or `version` option is required")
+            if self.options["version"] not in ("latest", "latest_beta"):
+                raise TaskOptionsError(
+                    f"Only `latest` and `latest_beta` are valid values for the `version` option. Found: {self.options['version']}"
+                )
+
+        if (
+            "ref" not in self.options
+            and "tag_name" not in self.options
+            and "version" not in self.options
+        ):
+            raise TaskOptionsError("Either `ref` or `tag_name` option is required.")
+
         self.options["create_release"] = process_bool_arg(
-            self.options.get("create_release", True)
+            self.options.get("create_release", False)
         )
         self.options["release_body"] = process_bool_arg(
             self.options.get("release_body", False)
         )
         self.options["dry_run"] = process_bool_arg(self.options.get("dry_run", False))
 
-    def _get_target_repo_api(self):
-        target_repo_info = self.project_config._split_repo_url(self.options["repo_url"])
-        gh = self.project_config.get_github_api(
-            target_repo_info["owner"], target_repo_info["name"]
+    def _process_renames(self, renamed_paths):
+        """
+        For each entry in renames, any renames and store them
+        in self.local_to_target_paths.
+        """
+        if not renamed_paths:
+            return {}
+
+        is_list_of_dicts = all(isinstance(pair, dict) for pair in renamed_paths)
+        dicts_have_correct_keys = is_list_of_dicts and all(
+            {"local", "target"} == pair.keys() for pair in renamed_paths
         )
-        return gh.repository(target_repo_info["owner"], target_repo_info["name"])
+
+        ERROR_MSG = (
+            "Renamed paths must be a list of dicts with `local:` and `target:` keys."
+        )
+        if not dicts_have_correct_keys:
+            raise TaskOptionsError(ERROR_MSG)
+
+        local_to_target_paths = {}
+
+        for rename in renamed_paths:
+            local_path = rename.get("local")
+            target_path = rename.get("target")
+
+            if local_path and target_path:
+                local_to_target_paths[local_path] = target_path
+            else:
+                raise TaskOptionsError(ERROR_MSG)
+
+        return local_to_target_paths
+
+    def _get_target_repo_api(self):
+        owner, name = split_repo_url(self.options["repo_url"])
+        gh = self.project_config.get_github_api(self.options["repo_url"])
+        return gh.repository(owner, name)
 
     def _run_task(self):
         self.target_repo = self._get_target_repo_api()
@@ -73,6 +131,7 @@ class PublishSubtree(BaseGithubTask):
 
         with tempfile.TemporaryDirectory() as target:
             self._download_repo_and_extract(target)
+            self._rename_files(target)
             commit = self._create_commit(target)
             if commit and self.options["create_release"]:
                 self._create_release(target, commit.sha)
@@ -80,11 +139,24 @@ class PublishSubtree(BaseGithubTask):
     def _set_ref(self):
         if "ref" in self.options:
             self.ref = self.options["ref"]
-        else:
-            self.tag_name = self.project_config.get_tag_for_version(
-                self.options["version"]
-            )
+
+        elif "version" in self.options:
+            get_beta = self.options.get("version") == "latest_beta"
+            self.tag_name = self.project_config.get_latest_tag(beta=get_beta)
             self.ref = f"tags/{self.tag_name}"
+
+        elif "tag_name" in self.options:
+            if self.options["tag_name"] in ("latest", "latest_beta"):
+                get_beta = self.options["tag_name"] == "latest_beta"
+                tag_name = self.project_config.get_latest_tag(beta=get_beta)
+            else:
+                tag_name = self.options["tag_name"]
+
+            self.tag_name = tag_name
+            self.ref = f"tags/{self.tag_name}"
+
+        else:  # pragma: no cover
+            raise CumulusCIException("No ref, version, or tag_name present")
 
     def _download_repo_and_extract(self, path):
         zf = download_extract_github_from_repo(self.get_repo(), ref=self.ref)
@@ -94,16 +166,43 @@ class PublishSubtree(BaseGithubTask):
         zf.extractall(path=path, members=included_members)
 
     def _filter_namelist(self, includes, namelist):
-        dirs = tuple(name for name in includes if name.endswith("/"))
+        """
+        Filter a zipfile namelist, handling any included directory filenames missing
+        a trailing slash.
+        """
+        included_dirs = []
+        zip_dirs = [
+            filename.rstrip("/") for filename in namelist if filename.endswith("/")
+        ]
+
+        for name in includes:
+            if name.endswith("/"):
+                included_dirs.append(name)
+            elif name in zip_dirs:
+                # append a trailing slash to avoid partial matches
+                included_dirs.append(name + "/")
+
         return list(
-            {name for name in namelist if name.startswith(dirs) or name in includes}
+            {
+                name
+                for name in namelist
+                if name.startswith(tuple(included_dirs)) or name in includes
+            }
         )
+
+    def _rename_files(self, zip_dir):
+        for local_name, target_name in self.options["renames"].items():
+            local_path = Path(zip_dir, local_name)
+            if local_path.exists():
+                target_path = Path(zip_dir, target_name)
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                local_path.replace(target_path)
 
     def _create_commit(self, path):
         committer = CommitDir(self.target_repo, logger=self.logger)
         message = f"Published content from ref {self.ref}"
-        if "version" in self.options:
-            message += f'\n\nVersion {self.options["version"]}'
+        if "tag_name" in self.options:
+            message += f"\n\nTag {self.tag_name}"
         return committer(
             path,
             self.options["branch"],
@@ -113,20 +212,9 @@ class PublishSubtree(BaseGithubTask):
         )
 
     def _create_release(self, path, commit):
-        # Get current release info
         repo = self.get_repo()
-        # Get the ref
-        try:
-            ref = repo.ref(f"tags/{self.tag_name}")
-        except github3.exceptions.NotFoundError:
-            message = f"Ref not found for tag {self.tag_name}"
-            raise GithubException(message)
-        # Get the tag
-        try:
-            tag = repo.tag(ref.object.sha)
-        except github3.exceptions.NotFoundError:
-            message = f"Tag {self.tag_name} not found"
-            raise GithubException(message)
+        tag = get_tag_by_name(repo, self.tag_name)
+
         # Get the release
         try:
             release = repo.release_from_tag(self.tag_name)
@@ -153,7 +241,7 @@ class PublishSubtree(BaseGithubTask):
             tagger={
                 "name": self.github_config.username,
                 "email": self.github_config.email,
-                "date": "{}Z".format(datetime.utcnow().isoformat()),
+                "date": f"{datetime.utcnow().isoformat()}Z",
             },
             lightweight=False,
         )
@@ -161,7 +249,7 @@ class PublishSubtree(BaseGithubTask):
         # Create the release
         self.target_repo.create_release(
             tag_name=self.tag_name,
-            name=self.options["version"],
+            name=self.project_config.get_version_for_tag(self.tag_name),
             prerelease=release.prerelease,
             body=release_body,
         )

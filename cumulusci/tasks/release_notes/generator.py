@@ -1,18 +1,22 @@
 import github3.exceptions
 
-from cumulusci.core.utils import import_global
 from cumulusci.core.github import (
-    markdown_link_to_pr,
-    is_pull_request_merged,
     get_pull_requests_with_base_branch,
+    is_pull_request_merged,
+    markdown_link_to_pr,
 )
+from cumulusci.core.utils import import_global
 from cumulusci.tasks.release_notes.exceptions import CumulusCIException
-from cumulusci.tasks.release_notes.parser import ChangeNotesLinesParser
-from cumulusci.tasks.release_notes.parser import GithubLinesParser
-from cumulusci.tasks.release_notes.parser import IssuesParser
-from cumulusci.tasks.release_notes.provider import StaticChangeNotesProvider
-from cumulusci.tasks.release_notes.provider import DirectoryChangeNotesProvider
-from cumulusci.tasks.release_notes.provider import GithubChangeNotesProvider
+from cumulusci.tasks.release_notes.parser import (
+    ChangeNotesLinesParser,
+    GithubLinesParser,
+    IssuesParser,
+)
+from cumulusci.tasks.release_notes.provider import (
+    DirectoryChangeNotesProvider,
+    GithubChangeNotesProvider,
+    StaticChangeNotesProvider,
+)
 
 
 class BaseReleaseNotesGenerator(object):
@@ -22,6 +26,9 @@ class BaseReleaseNotesGenerator(object):
         self.init_parsers()
         self.init_change_notes()
         self.version_id = None
+        self.trial_info = False
+        self.sandbox_date = None
+        self.production_date = None
 
     def __call__(self):
         self._parse_change_notes()
@@ -36,7 +43,7 @@ class BaseReleaseNotesGenerator(object):
         return []
 
     def init_parsers(self):
-        """ Initializes the parser instances as the list self.parsers """
+        """Initializes the parser instances as the list self.parsers"""
         self.parsers = []
         self._init_parsers()
 
@@ -65,13 +72,13 @@ class BaseReleaseNotesGenerator(object):
             self.empty_change_notes.append(change_note)
 
     def render(self):
-        """ Returns the rendered release notes from all parsers as a string """
+        """Returns the rendered release notes from all parsers as a string"""
         release_notes = []
         for parser in self.parsers:
             parser_content = parser.render()
             if parser_content:
                 release_notes.append(parser_content)
-        return u"\r\n\r\n".join(release_notes)
+        return "\r\n\r\n".join(release_notes)
 
 
 class StaticReleaseNotesGenerator(BaseReleaseNotesGenerator):
@@ -187,6 +194,9 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         has_issues=True,
         include_empty=False,
         version_id=None,
+        trial_info=False,
+        sandbox_date=None,
+        production_date=None,
     ):
         self.github = github
         self.github_info = github_info
@@ -201,6 +211,9 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         self.issues_parser_class = None
         super(GithubReleaseNotesGenerator, self).__init__()
         self.version_id = version_id
+        self.trial_info = trial_info
+        self.sandbox_date = sandbox_date
+        self.production_date = production_date
 
     def __call__(self):
         release = self._get_release()
@@ -293,7 +306,8 @@ class GithubReleaseNotesGenerator(BaseReleaseNotesGenerator):
         # add empty PR section
         if self.include_empty_pull_requests:
             new_body.extend(render_empty_pr_section(self.empty_change_notes))
-        content = u"\r\n".join(new_body)
+
+        content = "\r\n".join(new_body)
         return content
 
     def get_repo(self):

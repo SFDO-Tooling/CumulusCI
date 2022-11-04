@@ -1,12 +1,24 @@
-from cumulusci.core.exceptions import TaskOptionsError
+import click
+
+from cumulusci.core.dependencies.dependencies import (
+    GitHubDynamicDependency,
+    PackageInstallOptions,
+    PackageNamespaceVersionDependency,
+    PackageVersionIdDependency,
+)
+from cumulusci.core.dependencies.resolvers import get_resolver_stack
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
+from cumulusci.core.github import find_previous_release
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.salesforce_api.exceptions import MetadataApiError
-from cumulusci.salesforce_api.package_install import install_package_version
-from cumulusci.salesforce_api.package_zip import InstallPackageZipBuilder
-from cumulusci.tasks.salesforce import Deploy
+from cumulusci.salesforce_api.package_install import (
+    DEFAULT_PACKAGE_RETRY_OPTIONS,
+    PACKAGE_INSTALL_TASK_OPTIONS,
+    SecurityType,
+)
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 
 
-class InstallPackageVersion(Deploy):
+class InstallPackageVersion(BaseSalesforceApiTask):
     task_options = {
         "name": {
             "description": "The name of the package to install.  Defaults to project__package__name_managed",
@@ -20,12 +32,13 @@ class InstallPackageVersion(Deploy):
             "description": 'The version of the package to install.  "latest" and "latest_beta" can be used to trigger lookup via Github Releases on the repository.',
             "required": True,
         },
-        "activateRSS": {
-            "description": "If True, preserve the isActive state of "
-            "Remote Site Settings and Content Security Policy "
-            "in the package. Default: False."
+        "version_number": {
+            "description": "If installing a package using an 04t version Id, display this version "
+            "number to the user and in logs. Has no effect otherwise."
         },
-        "password": {"description": "The package password. Optional."},
+        "activateRSS": {
+            "description": "Deprecated. Use activate_remote_site_settings instead."
+        },
         "retries": {"description": "Number of retries (default=5)"},
         "retry_interval": {
             "description": "Number of seconds to wait before the next retry (default=5),"
@@ -33,87 +46,168 @@ class InstallPackageVersion(Deploy):
         "retry_interval_add": {
             "description": "Number of seconds to add before each retry (default=30),"
         },
-        "security_type": {
-            "description": "Which users to install package for (FULL = all users, NONE = admins only)"
+        "interactive": {
+            "description": "If True, stop after resolving the package version and output the package Id that will be installed. Defaults to False."
         },
+        "base_package_url_format": {
+            "description": "If `interactive` is set to True, display package Ids using a format string ({} will be replaced with the package Id)."
+        },
+        **PACKAGE_INSTALL_TASK_OPTIONS,
     }
 
     def _init_options(self, kwargs):
-        super(InstallPackageVersion, self)._init_options(kwargs)
+        super()._init_options(kwargs)
+
         if "namespace" not in self.options:
             self.options["namespace"] = self.project_config.project__package__namespace
-        if "name" not in self.options:
-            self.options["name"] = (
-                self.project_config.project__package__name_managed
-                or self.project_config.project__package__name
-                or self.options["namespace"]
-            )
-        if "retries" not in self.options:
-            self.options["retries"] = 10
-        if "retry_interval" not in self.options:
-            self.options["retry_interval"] = 5
-        if "retry_interval_add" not in self.options:
-            self.options["retry_interval_add"] = 30
         version = self.options.get("version")
-        if version == "latest":
-            self.options["version"] = self.project_config.get_latest_version()
-        elif version == "latest_beta":
-            self.options["version"] = self.project_config.get_latest_version(beta=True)
-        elif version == "previous":
-            self.options["version"] = self.project_config.get_previous_version()
-        self.options["activateRSS"] = process_bool_arg(self.options.get("activateRSS"))
-        self.options["security_type"] = self.options.get("security_type", "FULL")
-        if self.options["security_type"] not in ("FULL", "NONE", "PUSH"):
-            raise TaskOptionsError(
-                f"Unsupported value for security_type: {self.options['security_type']}"
-            )
 
-    def _get_api(self, path=None):
-        package_zip = InstallPackageZipBuilder(
-            namespace=self.options["namespace"],
-            version=self.options["version"],
-            activateRSS=self.options["activateRSS"],
-            password=self.options.get("password"),
-            securityType=self.options.get("security_type", "FULL"),
+        # `name` is shown in the logs and in MetaDeploy
+        # Populate a reasonable default. Note that if we're deploying a different package
+        # than our own, we should not show the name of this repo's package.
+        if "name" not in self.options:
+            if isinstance(version, str) and version.startswith("04t"):
+                self.options["name"] = "Package"
+            elif (
+                self.options["namespace"]
+                == self.project_config.project__package__namespace
+            ):
+                self.options["name"] = (
+                    self.project_config.project__package__name_managed
+                    or self.project_config.project__package__name
+                    or self.options["namespace"]
+                )
+            else:
+                self.options["name"] = self.options["namespace"]
+
+        self.retry_options = DEFAULT_PACKAGE_RETRY_OPTIONS.copy()
+        if "retries" in self.options:
+            self.retry_options["retries"] = self.options["retries"]
+        if "retry_interval" in self.options:
+            self.retry_options["retry_interval"] = self.options["retry_interval"]
+        if "retry_interval_add" in self.options:
+            self.retry_options["retry_interval_add"] = self.options[
+                "retry_interval_add"
+            ]
+
+        dependency = None
+        github = f"https://{self.project_config.server_domain}/{self.project_config.repo_owner}/{self.project_config.repo_name}"
+
+        if version in ["latest", "latest_beta"]:
+            strategy = "include_beta" if version == "latest_beta" else "production"
+            dependency = GitHubDynamicDependency(github=github)
+            dependency.resolve(
+                self.project_config, get_resolver_stack(self.project_config, strategy)
+            )
+        elif version == "previous":
+            release = find_previous_release(
+                self.project_config.get_repo(),
+                self.project_config.project__git__prefix_release,
+            )
+            dependency = GitHubDynamicDependency(github=github, tag=release.tag_name)
+            dependency.resolve(
+                self.project_config,
+                get_resolver_stack(self.project_config, "production"),
+            )
+        elif isinstance(version, (float, int)):
+            self.logger.warning(
+                f"The `version` option is specified as a number ({version}). "
+                "Please specify as a quoted string to avoid ambiguous results."
+            )
+            self.options["version"] = str(version)
+
+        if dependency:
+            if dependency.package_dependency:
+                # Handle 2GP and 1GP releases in a backwards-compatible way.
+                if isinstance(
+                    dependency.package_dependency, PackageNamespaceVersionDependency
+                ):
+                    self.options["version"] = dependency.package_dependency.version
+                    self.options[
+                        "version_id"
+                    ] = dependency.package_dependency.version_id
+                elif isinstance(
+                    dependency.package_dependency, PackageVersionIdDependency
+                ):
+                    self.options["version"] = dependency.package_dependency.version_id
+                    self.options[
+                        "version_number"
+                    ] = dependency.package_dependency.version_number
+            else:
+                raise CumulusCIException(
+                    f"The release for {version} does not identify a package version."
+                )
+
+        if "activateRSS" in self.options:
+            self.logger.warning(
+                "The activateRSS option is deprecated. Please use activate_remote_site_settings."
+            )
+            self.options["activate_remote_site_settings"] = self.options["activateRSS"]
+            del self.options["activateRSS"]
+
+        self.install_options = PackageInstallOptions.from_task_options(self.options)
+        self._check_for_tooling()
+
+        # Interactivity options
+        self.options["interactive"] = process_bool_arg(
+            self.options.get("interactive") or False
         )
-        return self.api_class(self, package_zip(), purge_on_delete=False)
+        self.options["base_package_url_format"] = (
+            self.options.get("base_package_url_format") or "{}"
+        )
 
     def _run_task(self):
         version = self.options["version"]
-        self.logger.info(f"Installing {self.options['name']} {version}")
-        if isinstance(version, str) and version.startswith("04t"):
-            install_options = {**self.options, "version_id": version}
-            retry_options = {
-                "retries": self.options["retries"],
-                "retry_interval": self.options["retry_interval"],
-                "retry_interval_add": self.options["retry_interval_add"],
-            }
-            install_package_version(
-                self.project_config, self.org_config, install_options, retry_options
+
+        if version.startswith("04t"):
+            dep = PackageVersionIdDependency(
+                version_id=version, package_name=self.options["name"]
             )
+            if "version_number" in self.options:
+                dep.version_number = self.options["version_number"]
         else:
-            self._retry()
+            dep = PackageNamespaceVersionDependency(
+                namespace=self.options["namespace"],
+                version=version,
+                package_name=self.options["name"],
+                version_id=self.options.get("version_id"),
+            )
+
+        if self.options.get("interactive", False):
+            if dep.version_id:
+                package_desc = self.options["base_package_url_format"].format(
+                    dep.version_id
+                )
+            else:
+                package_desc = str(dep)
+            self.logger.info("Package to install: {}".format(package_desc))
+            if not click.confirm("Continue to install dependencies?", default=True):
+                raise CumulusCIException("Dependency installation was canceled.")
+
+        dep.install(
+            self.project_config,
+            self.org_config,
+            self.install_options,
+            self.retry_options,
+        )
+
         self.org_config.reset_installed_packages()
 
-    def _try(self):
-        api = self._get_api()
-        api()
-
-    def _is_retry_valid(self, e):
-        if isinstance(e, MetadataApiError) and (
-            "This package is not yet available" in str(e)
-            or "InstalledPackage version number" in str(e)
-            or "The requested package doesn't yet exist or has been deleted" in str(e)
-        ):
-            return True
-
     def freeze(self, step):
+        if self.options["interactive"]:
+            raise CumulusCIException(
+                "update_dependencies cannot be frozen when `interactive` is True."
+            )
+
         options = self.options.copy()
         options["version"] = str(options["version"])
+        if "version_id" in options:
+            # This is used only in interactive mode.
+            del options["version_id"]
         name = options.pop("name")
         task_config = {"options": options, "checks": self.task_config.checks or []}
         ui_step = {
-            "name": "Install {} {}".format(name, options["version"]),
+            "name": f"Install {name} {options.get('version_number') or options['version']}",
             "kind": "managed",
             "is_required": True,
         }
@@ -128,3 +222,13 @@ class InstallPackageVersion(Deploy):
             }
         )
         return [ui_step]
+
+    def _check_for_tooling(self):
+        version = str(self.options.get("version"))
+        if (
+            version.startswith("04t")
+            and self.install_options.security_type is SecurityType.PUSH
+        ):
+            raise TaskOptionsError(
+                "Cannot use security type 'PUSH' when installing using a 04t package version ID due to Tooling API limitations."
+            )

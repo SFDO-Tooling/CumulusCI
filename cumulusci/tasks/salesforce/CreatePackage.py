@@ -1,5 +1,5 @@
-from cumulusci.tasks.salesforce import Deploy
 from cumulusci.salesforce_api.package_zip import CreatePackageZipBuilder
+from cumulusci.tasks.salesforce import Deploy
 
 
 class CreatePackage(Deploy):
