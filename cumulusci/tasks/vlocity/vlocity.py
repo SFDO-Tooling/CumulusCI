@@ -110,108 +110,11 @@ class OmniStudioDeployRemoteSiteSettings(AddRemoteSiteSettings):
         }
     }
 
-    def create_vf_url(
-        self,
-        namespace: str,
-        legacy: bool = False,
-        org: str = None,
-        dns: str = ".my.salesforce.com",
-    ):
-        """
-        Helper function to create visualforce or legacy visualforce
-        remote site settings. Function takes a namespace,and injects it
-        into remote site setting url provided.
-
-        A legacy boolean parameter is passed to determine whether to construct
-        the legacy or visualforce url convention.
-
-        An optional org parameter is available to determine the url convention
-        to inject the org type into the remote site setting url
-        to follow the appropriate convention.
-
-        Lastly an optional dns value is given to abstract away the common
-        .my.salesforce.com convention that is common for all instance urls.
-        """
-        if legacy:
-            if org:
-                url = self.org_config.instance_url.replace(
-                    f".{org}{dns}", f"--{namespace}.{org}.vf.force.com"
-                )
-            else:
-                url = self.org_config.instance_url.replace(
-                    f"{dns}", f"--{namespace}.vf.force.com"
-                )
-        else:
-            if org:
-                url = self.org_config.instance_url.replace(
-                    f".{org}{dns}",
-                    f"--{namespace}.{org}.{self.org_config.instance_name}.visual.force.com",
-                )
-            else:
-                url = self.org_config.instance_url.replace(
-                    f"{dns}",
-                    f"--{namespace}.{self.org_config.instance_name}.visual.force.com",
-                )
-        return url
-
-    def prepare_remote_site_urls(self, namespace: str, dns: str = ".my.salesforce.com"):
-        """
-        Helper function to create all 3 remote site settings required
-        for Omnistudio Development.
-
-        This includes the following remote site settings:
-
-        - visualforce remote site setting (helper function used)
-        - legacy_visualforce remote site setting (helper function used)
-        - lightning (web component) remote site setting
-
-        Lastly an optional dns value is given to abstract away the common
-        .my.salesforce.com convention that is common for all instance urls.
-        """
-        # developer
-        if f"develop{dns}" in self.org_config.instance_url:
-            visualforce_url = self.create_vf_url(namespace, False, "develop")
-            legacy_visualforce_url = self.create_vf_url(namespace, True, "develop")
-        # patch
-        elif f"patch{dns}" in self.org_config.instance_url:
-            visualforce_url = self.create_vf_url(namespace, False, "patch")
-            legacy_visualforce_url = self.create_vf_url(namespace, True, "patch")
-        # trailhead
-        elif f"trailblaze{dns}" in self.org_config.instance_url:
-            visualforce_url = self.create_vf_url(namespace, False, "trailblaze")
-            legacy_visualforce_url = self.create_vf_url(namespace, True, "trailblaze")
-        # scratch
-        elif f"scratch{dns}" in self.org_config.instance_url:
-            visualforce_url = self.create_vf_url(namespace, False, "scratch")
-            legacy_visualforce_url = self.create_vf_url(namespace, True, "scratch")
-        # sandbox
-        elif f"sandbox{dns}" in self.org_config.instance_url:
-            visualforce_url = self.create_vf_url(namespace, False, "sandbox")
-            legacy_visualforce_url = self.create_vf_url(namespace, True, "sandbox")
-        # demo
-        elif f"demo{dns}" in self.org_config.instance_url:
-            visualforce_url = self.create_vf_url(namespace, False, "demo")
-            legacy_visualforce_url = self.create_vf_url(namespace, True, "demo")
-        # free
-        elif f"free{dns}" in self.org_config.instance_url:
-            visualforce_url = self.create_vf_url(namespace, False, "free")
-            legacy_visualforce_url = self.create_vf_url(namespace, True, "free")
-        else:
-            visualforce_url = self.create_vf_url(namespace, False, None)
-            legacy_visualforce_url = self.create_vf_url(namespace, True, None)
-
-        lightning_url = self.org_config.instance_url.replace(
-            f"{dns}", ".lightning.force.com"
-        )
-        return {
-            "visualforce_url": visualforce_url,
-            "legacy_visualforce_url": legacy_visualforce_url,
-            "lightning_url": lightning_url,
-        }
-
     def _get_options(self) -> RSSOptions:
         namespace = self.options.get("namespace") or OMNI_NAMESPACE
-        urls = self.prepare_remote_site_urls(namespace)
+        urls = prepare_remote_site_urls(
+            self.org_config.instance_url, self.org_config.instance_name, namespace
+        )
         self.options = {
             **self.options,
             "records": [
@@ -233,3 +136,202 @@ class OmniStudioDeployRemoteSiteSettings(AddRemoteSiteSettings):
             ],
         }
         return super()._get_options()
+
+
+def create_vf_url(
+    namespace: str,
+    instance_url: str,
+    legacy: bool = False,
+    instance: str = None,
+    org: str = None,
+    dns: str = ".my.salesforce.com",
+):
+    """
+    Helper function to create visualforce or legacy visualforce
+    remote site settings. Function takes a namespace,and injects it
+    into remote site setting url provided.
+
+    A legacy boolean parameter is passed to determine whether to construct
+    the legacy or visualforce url convention.
+
+    An optional org parameter is available to determine the url convention
+    to inject the org type into the remote site setting url
+    to follow the appropriate convention.
+
+    Lastly an optional dns value is given to abstract away the common
+    .my.salesforce.com convention that is common for all instance urls.
+    """
+    if legacy:
+        if org:
+            url = instance_url.replace(
+                f".{org}{dns}", f"--{namespace}.{org}.vf.force.com"
+            )
+        else:
+            url = instance_url.replace(f"{dns}", f"--{namespace}.vf.force.com")
+    else:
+        if org:
+            url = instance_url.replace(
+                f".{org}{dns}",
+                f"--{namespace}.{org}.{instance}.visual.force.com",
+            )
+        else:
+            url = instance_url.replace(
+                f"{dns}",
+                f"--{namespace}.{instance}.visual.force.com",
+            )
+    return url
+
+
+def prepare_remote_site_urls(
+    instance_url: str,
+    instance: str,
+    namespace: str,
+    dns: str = ".my.salesforce.com",
+):
+    """
+    Helper function to create all 3 remote site settings required
+    for Omnistudio Development.
+
+    This includes the following remote site settings:
+
+    - visualforce remote site setting (helper function used)
+    - legacy_visualforce remote site setting (helper function used)
+    - lightning (web component) remote site setting
+
+    Lastly an optional dns value is given to abstract away the common
+    .my.salesforce.com convention that is common for all instance urls.
+    """
+    # developer
+    if f"develop{dns}" in instance_url:
+        visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            False,
+            instance,
+            "develop",
+        )
+        legacy_visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            True,
+            instance,
+            "develop",
+        )
+    # patch
+    elif f"patch{dns}" in instance_url:
+        visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            False,
+            instance,
+            "patch",
+        )
+        legacy_visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            True,
+            instance,
+            "patch",
+        )
+    # trailhead
+    elif f"trailblaze{dns}" in instance_url:
+        visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            False,
+            instance,
+            "trailblaze",
+        )
+        legacy_visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            True,
+            instance,
+            "trailblaze",
+        )
+    # scratch
+    elif f"scratch{dns}" in instance_url:
+        visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            False,
+            instance,
+            "scratch",
+        )
+        legacy_visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            True,
+            instance,
+            "scratch",
+        )
+    # sandbox
+    elif f"sandbox{dns}" in instance_url:
+        visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            False,
+            instance,
+            "sandbox",
+        )
+        legacy_visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            True,
+            instance,
+            "sandbox",
+        )
+    # demo
+    elif f"demo{dns}" in instance_url:
+        visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            False,
+            instance,
+            "demo",
+        )
+        legacy_visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            True,
+            instance,
+            "demo",
+        )
+    # free
+    elif f"free{dns}" in instance_url:
+        visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            False,
+            instance,
+            "free",
+        )
+        legacy_visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            True,
+            instance,
+            "free",
+        )
+    else:
+        visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            False,
+            instance,
+            None,
+        )
+        legacy_visualforce_url = create_vf_url(
+            namespace,
+            instance_url,
+            True,
+            instance,
+            None,
+        )
+
+    lightning_url = instance_url.replace(f"{dns}", ".lightning.force.com")
+    return {
+        "visualforce_url": visualforce_url,
+        "legacy_visualforce_url": legacy_visualforce_url,
+        "lightning_url": lightning_url,
+    }
