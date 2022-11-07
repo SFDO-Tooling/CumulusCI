@@ -166,11 +166,6 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         return True
 
     def _process(self):
-        # We have to close the existing zipfile and reopen it before processing;
-        # otherwise we hit a bug in Windows where ZipInfo objects have the wrong path separators.
-        fp = self.zf.fp
-        self.zf.close()
-        self.zf = zipfile.ZipFile(fp, "r")
 
         transforms = []
 
@@ -198,6 +193,11 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
             transforms.append(RemoveFeatureParametersTransform())
 
         for t in transforms:
+            # We have to close the existing zipfile and reopen it before processing;
+            # otherwise we hit a bug in Windows where ZipInfo objects have the wrong path separators.
+            fp = self.zf.fp
+            self.zf.close()
+            self.zf = zipfile.ZipFile(fp, "r")
             new_zipfile = t.process(self.zf, self.logger)
             if new_zipfile != self.zf:
                 # Ensure that zipfiles are closed (in case they're filesystem resources)

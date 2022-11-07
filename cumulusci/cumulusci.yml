@@ -562,6 +562,13 @@ tasks:
         class_path: cumulusci.tasks.metadata_etl.SetOrgWideDefaults
         options:
             namespace_inject: $project_config.project__package__namespace
+    strip_unwanted_components:
+        description: Removes components from src folder which are not mentioned in given package.xml file
+        class_path: cumulusci.tasks.metadata.package.RemoveUnwantedComponents
+        options:
+            path: src
+            package_xml: src/package.xml
+        group: Salesforce Metadata
     uninstall_managed:
         description: Uninstalls the managed version of the package
         class_path: cumulusci.tasks.salesforce.UninstallPackage
