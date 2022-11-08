@@ -132,10 +132,10 @@ test_cases = [
 def test_deploy_omni_studio_site_settings_scratch(
     project_config, task_config, expected_namespace
 ):
-    for org_type, instance_url in ORG_TYPES.items():
+    for org_type, url in ORG_TYPES.items():
         org_config = mock.Mock(
             installed_packages=[],
-            instance_url=instance_url,
+            instance_url=url,
             instance_name="CS28",
             scratch=True,
         )

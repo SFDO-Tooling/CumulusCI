@@ -1,4 +1,6 @@
 import sys
+import re
+
 from abc import ABC
 from typing import Final
 
@@ -201,117 +203,26 @@ def prepare_remote_site_urls(
     Lastly an optional dns value is given to abstract away the common
     .my.salesforce.com convention that is common for all instance urls.
     """
-    # developer
-    if f"develop{dns}" in instance_url:
+
+    match = re.match(f"(?P<Name>[^.]+)\\.(?P<Category>[^.]+){dns}", instance_url)
+    category = None
+    if match:
+        category = match.group("Category")
+
+    if category and f"{category}{dns}" in instance_url:
         visualforce_url = create_vf_url(
             namespace,
             instance_url,
             False,
             instance,
-            "develop",
+            category,
         )
         legacy_visualforce_url = create_vf_url(
             namespace,
             instance_url,
             True,
             instance,
-            "develop",
-        )
-    # patch
-    elif f"patch{dns}" in instance_url:
-        visualforce_url = create_vf_url(
-            namespace,
-            instance_url,
-            False,
-            instance,
-            "patch",
-        )
-        legacy_visualforce_url = create_vf_url(
-            namespace,
-            instance_url,
-            True,
-            instance,
-            "patch",
-        )
-    # trailhead
-    elif f"trailblaze{dns}" in instance_url:
-        visualforce_url = create_vf_url(
-            namespace,
-            instance_url,
-            False,
-            instance,
-            "trailblaze",
-        )
-        legacy_visualforce_url = create_vf_url(
-            namespace,
-            instance_url,
-            True,
-            instance,
-            "trailblaze",
-        )
-    # scratch
-    elif f"scratch{dns}" in instance_url:
-        visualforce_url = create_vf_url(
-            namespace,
-            instance_url,
-            False,
-            instance,
-            "scratch",
-        )
-        legacy_visualforce_url = create_vf_url(
-            namespace,
-            instance_url,
-            True,
-            instance,
-            "scratch",
-        )
-    # sandbox
-    elif f"sandbox{dns}" in instance_url:
-        visualforce_url = create_vf_url(
-            namespace,
-            instance_url,
-            False,
-            instance,
-            "sandbox",
-        )
-        legacy_visualforce_url = create_vf_url(
-            namespace,
-            instance_url,
-            True,
-            instance,
-            "sandbox",
-        )
-    # demo
-    elif f"demo{dns}" in instance_url:
-        visualforce_url = create_vf_url(
-            namespace,
-            instance_url,
-            False,
-            instance,
-            "demo",
-        )
-        legacy_visualforce_url = create_vf_url(
-            namespace,
-            instance_url,
-            True,
-            instance,
-            "demo",
-        )
-    # free
-    elif f"free{dns}" in instance_url:
-        visualforce_url = create_vf_url(
-            namespace,
-            instance_url,
-            False,
-            instance,
-            "free",
-        )
-        legacy_visualforce_url = create_vf_url(
-            namespace,
-            instance_url,
-            True,
-            instance,
-            "free",
+            category,
         )
     else:
         visualforce_url = create_vf_url(
