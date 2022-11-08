@@ -118,3 +118,16 @@ options:
                   - find: foo
                     replace: bar
 ```
+
+### Stripping Components with a `package.xml` Manifest
+
+This transformation allows you to deploy a subset of a metadata directory based on a `package.xml` manifest by removing unwanted components. It will compare components available in the source folder with a provided `package.xml` file and delete/modify component files which are not found.
+
+```yaml
+task: deploy
+options:
+    transforms:
+        - transform: strip_unwanted_components
+          options:
+              package_xml: PACKAGE_XML_FILE_PATH
+```
