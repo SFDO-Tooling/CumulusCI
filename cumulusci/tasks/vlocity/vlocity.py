@@ -34,7 +34,9 @@ class VlocityBaseTask(Command, BaseSalesforceTask):
             "description": "The full command to run with the sfdx cli.",
             "required": True,
         },
-        "extra": {"description": "Any extra arguments to pass to the vlocity CLI"},
+        "extra": {
+            "description": "Any extra arguments to pass to the vlocity CLI"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -68,8 +70,13 @@ class VlocitySimpleJobTask(VlocityBaseTask, ABC):
     """Abstract class for working with the `vlocity` CLI tool"""
 
     task_options: dict = {
-        "job_file": {"description": "Filepath to the jobfile", "required": True},
-        "extra": {"description": "Any extra arguments to pass to the vlocity CLI"},
+        "job_file": {
+            "description": "Filepath to the jobfile",
+            "required": True,
+        },
+        "extra": {
+            "description": "Any extra arguments to pass to the vlocity CLI"
+        },
     }
 
     def _get_command(self) -> str:
@@ -81,8 +88,12 @@ class VlocitySimpleJobTask(VlocityBaseTask, ABC):
         if isinstance(self.org_config, ScratchOrgConfig):
             command = f"{command} -sfdx.username '{username}'"
         else:
-            access_token: str = f"-sf.accessToken '{self.org_config.access_token}'"
-            instance_url: str = f"-sf.instanceUrl '{self.org_config.instance_url}'"
+            access_token: str = (
+                f"-sf.accessToken '{self.org_config.access_token}'"
+            )
+            instance_url: str = (
+                f"-sf.instanceUrl '{self.org_config.instance_url}'"
+            )
             command = f"{command} {access_token} {instance_url}"
 
         self.options["command"] = command
@@ -115,7 +126,9 @@ class OmniStudioDeployRemoteSiteSettings(AddRemoteSiteSettings):
     def _get_options(self) -> RSSOptions:
         namespace = self.options.get("namespace") or OMNI_NAMESPACE
         urls = prepare_remote_site_urls(
-            self.org_config.instance_url, self.org_config.instance_name, namespace
+            self.org_config.instance_url,
+            self.org_config.instance_name,
+            namespace,
         )
         self.options = {
             **self.options,
@@ -204,7 +217,9 @@ def prepare_remote_site_urls(
     .my.salesforce.com convention that is common for all instance urls.
     """
 
-    match = re.match(f"(?P<Name>[^.]+)\\.(?P<Category>[^.]+){dns}", instance_url)
+    match = re.match(
+        f"(?P<Name>[^.]+)\\.(?P<Category>[^.]+){dns}", instance_url
+    )
     category = None
     if match:
         category = match.group("Category")
