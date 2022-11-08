@@ -121,9 +121,7 @@ def test_vlocity_build_tool_missing(project_config):
         "cumulusci.tasks.vlocity.vlocity.sarge.Command",
         mock.Mock(side_effect=ValueError),
     ):
-        with pytest.raises(
-            BuildToolMissingError, match=BUILD_TOOL_MISSING_ERROR
-        ):
+        with pytest.raises(BuildToolMissingError, match=BUILD_TOOL_MISSING_ERROR):
             task._init_task()
 
 
@@ -152,9 +150,7 @@ def test_deploy_omni_studio_site_settings_scratch(
         rss_options = task._get_options()
         records = rss_options.records
 
-        expected_site_names = set(
-            [VF_RSS_NAME, VF_LEGACY_RSS_NAME, LWC_RSS_NAME]
-        )
+        expected_site_names = set([VF_RSS_NAME, VF_LEGACY_RSS_NAME, LWC_RSS_NAME])
         actual_site_names = set([r.full_name for r in records])
         assert expected_site_names == actual_site_names
 
@@ -180,9 +176,7 @@ def test_deploy_omni_studio_site_settings(
         instance_name="CS28",
     )
 
-    task = OmniStudioDeployRemoteSiteSettings(
-        project_config, task_config, org_config
-    )
+    task = OmniStudioDeployRemoteSiteSettings(project_config, task_config, org_config)
     rss_options = task._get_options()
     records = rss_options.records
 
@@ -243,9 +237,7 @@ class TestVlocityIntegration:
             print(caplog.records)
             raise
 
-    def test_vlocity_integration__error_handling(
-        self, project_config, create_task
-    ):
+    def test_vlocity_integration__error_handling(self, project_config, create_task):
         task_config = project_config.get_task("omni:test_failure")
         task_class = import_global(task_config.class_path)
         task = create_task(
