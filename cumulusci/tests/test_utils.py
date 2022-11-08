@@ -13,6 +13,7 @@ import sarge
 
 from cumulusci import utils
 from cumulusci.core.config import FlowConfig, TaskConfig
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tests.util import create_project_config
@@ -389,12 +390,23 @@ Options\n------------------------------------------\n\n
 
         def assign_bytes(archive_type, zip_content, ref=None):
             zip_content.write(zipbytes)
+            return True
 
-        mock_archive = mock.Mock(return_value=True, side_effect=assign_bytes)
+        mock_archive = mock.Mock(side_effect=assign_bytes)
         mock_repo.archive = mock_archive
         zf = utils.download_extract_github(mock_github, "TestOwner", "TestRepo", "src")
         result = zf.read("test")
         assert b"test" in result
+
+    def test_download_extract_github__failure(self):
+        mock_repo = mock.Mock(default_branch="main")
+        mock_github = mock.Mock()
+        mock_github.repository.return_value = mock_repo
+
+        mock_repo.archive.return_value = False
+        with pytest.raises(CumulusCIException) as e:
+            utils.download_extract_github(mock_github, "TestOwner", "TestRepo", "src")
+            assert "Unable to download a zipball" in str(e)
 
     def test_process_text_in_directory__renamed_file(self):
         with utils.temporary_dir():
