@@ -6,6 +6,7 @@ from pathlib import Path
 
 import requests
 
+from cumulusci.core.debug import get_debug_mode
 from cumulusci.core.exceptions import DeploymentException
 from cumulusci.core.utils import process_list_of_pairs_dict_arg
 from cumulusci.utils import temporary_dir
@@ -53,6 +54,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
     }
 
     def _init_options(self, kwargs):
+        self.debug_mode = get_debug_mode()
         super()._init_options(kwargs)
         custom_inputs = self.options.get("custom_inputs")
         self.custom_inputs = (
@@ -150,6 +152,9 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
         if custom_inputs:
             payload = self._add_custom_inputs_to_payload(custom_inputs, payload)
+
+        if self.debug_mode:  # pragma: nocover
+            self.logger.debug(f"Payload:\n{payload}")
 
         return payload
 
