@@ -310,8 +310,8 @@ yarl==1.8.1
 zipp==3.10.0
     # via
     #   -c requirements/prod.txt
-    #   importlib-metadata
-    #   importlib-resources
+    #    importlib-metadata
+    #    importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
