@@ -2,6 +2,24 @@
 History
 =======
 
+Changes 🎉
+~~~~~~~~~~
+
+-  Playwright debugger by @boakley in
+   https://github.com/SFDO-Tooling/CumulusCI/pull/3408
+-  Adding stripping unwanted component transformation task by
+   @jkasturi-sf in https://github.com/SFDO-Tooling/CumulusCI/pull/3421
+-  Add Omnistudio-in-Cumulus docs by @bethbrains in
+   https://github.com/SFDO-Tooling/CumulusCI/pull/3427
+-  Fix deploy of Omnistudio Remote Site Settings for new Salesforce DNS
+   syntaxes (e.g. .*scratch.my.salesforce, \*.demo.my.salesforce, etc.)
+   by @jofsky in https://github.com/SFDO-Tooling/CumulusCI/pull/3424
+-  The deploy_marketing_cloud_package task will now output the
+   constructed payload sent to Marketing Cloud when the --debug flag is
+   passed. by @TheBitShepherd in
+   https://github.com/SFDO-Tooling/CumulusCI/pull/3430
+
+
 3.68.1 (2022-11-01)
 -------------------
 Critical Changes 🎉
