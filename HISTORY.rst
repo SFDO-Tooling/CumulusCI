@@ -2,8 +2,10 @@
 History
 =======
 
+3.69 (2022-11-14)
+-----------------
+
 Changes 🎉
-~~~~~~~~~~
 
 -  Added support for debugging and breakpoints in Playwright-based
    Robot Framework by @boakley in
