@@ -2,6 +2,29 @@
 History
 =======
 
+3.69 (2022-11-14)
+-----------------
+
+Changes 🎉
+
+-  Added support for debugging and breakpoints in Playwright-based
+   Robot Framework by @boakley in
+   https://github.com/SFDO-Tooling/CumulusCI/pull/3408
+-  Added option for deploy task to remove selected components from the
+   bundle by 
+   @jkasturi-sf in https://github.com/SFDO-Tooling/CumulusCI/pull/3421
+-  Added documentation for using OmniStudio in Cumulus flows by @bethbrains in
+   https://github.com/SFDO-Tooling/CumulusCI/pull/3427
+-  Update creation of OmniStudio Remote Site Settings for new
+   Salesforce domain patterns (e.g. .\*scratch.my.salesforce,
+   \*.demo.my.salesforce, etc.) by
+   syntaxes (e.g. .*scratch.my.salesforce, \*.demo.my.salesforce, etc.)
+   by @jofsky in https://github.com/SFDO-Tooling/CumulusCI/pull/3424
+-  The deploy_marketing_cloud_package task will now output the
+   constructed payload sent to Marketing Cloud when the --debug flag is
+   passed. by @TheBitShepherd in
+   https://github.com/SFDO-Tooling/CumulusCI/pull/3430
+
 3.68.1 (2022-11-01)
 -------------------
 Critical Changes 🎉
