@@ -905,6 +905,15 @@ class TestEncryptedFileProjectKeychain:
         assert config.__class__ == BaseConfig
         assert config.config == {}
 
+    def test_decrypt_config__Python_2_warning(self, keychain, caplog):
+        config = keychain.cleanup_Python_2_configs({"a": "b"})
+        assert config == {"a": "b"}
+        assert len(caplog.records) == 0
+
+        config = keychain.cleanup_Python_2_configs({"a": b"b", b"c": "d"})
+        assert config == {"a": "b", "c": "d"}
+        assert len(caplog.records) == 2
+
     def test_decrypt_config__wrong_key(self, keychain, org_config):
         keychain.set_org(org_config, False)
         keychain.key = "x" * 16
