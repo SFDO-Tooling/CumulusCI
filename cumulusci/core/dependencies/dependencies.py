@@ -627,6 +627,7 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
         context.logger.info(f"Deploying unmanaged metadata from {self.description}")
 
         package_zip_builder = self.get_metadata_package_zip_builder(context, org)
+        # FIXME
         task = TaskContext(org_config=org, project_config=context, logger=logger)
         api = ApiDeploy(task, package_zip_builder.as_base64())
 
