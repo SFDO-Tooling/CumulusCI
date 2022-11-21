@@ -31,6 +31,7 @@ from cumulusci.core.tests.utils import MockLoggerMixin
 from cumulusci.tasks.apex.anon import AnonymousApexTask
 from cumulusci.tasks.apex.batch import BatchApexWait
 from cumulusci.tasks.apex.testrunner import RunApexTests
+from cumulusci.tests.util import CURRENT_SF_API_VERSION
 
 
 @patch(
@@ -762,7 +763,7 @@ class TestRunApexTests(MockLoggerMixin):
 )
 class TestAnonymousApexTask:
     def setup_method(self):
-        self.api_version = 42.0
+        self.api_version = CURRENT_SF_API_VERSION
         self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
         )
@@ -804,7 +805,12 @@ class TestAnonymousApexTask:
         shutil.rmtree(self.tmpdir)
 
     def _get_url_and_task(self):
-        task = AnonymousApexTask(self.project_config, self.task_config, self.org_config)
+        task = AnonymousApexTask(
+            self.project_config,
+            self.task_config,
+            self.org_config,
+            api_version=CURRENT_SF_API_VERSION,
+        )
         url = self.base_tooling_url + "executeAnonymous"
         return task, url
 
@@ -813,13 +819,14 @@ class TestAnonymousApexTask:
         with pytest.raises(TaskOptionsError):
             AnonymousApexTask(self.project_config, task_config, self.org_config)
 
-    def test_run_from_path_outside_repo(self):
+    def test_run_from_path_outside_repo(self, patch_orgconfig_api_version):
         task_config = TaskConfig({"options": {"path": "/"}})
         task = AnonymousApexTask(self.project_config, task_config, self.org_config)
+
         with pytest.raises(TaskOptionsError):
             task()
 
-    def test_run_path_not_found(self):
+    def test_run_path_not_found(self, patch_orgconfig_api_version):
         task_config = TaskConfig({"options": {"path": "bogus"}})
         task = AnonymousApexTask(self.project_config, task_config, self.org_config)
         with pytest.raises(TaskOptionsError):
@@ -856,10 +863,11 @@ class TestAnonymousApexTask:
         task, url = self._get_url_and_task()
         resp = {"compiled": True, "success": True}
         responses.add(responses.GET, url, status=200, json=resp)
+        task._api_version = CURRENT_SF_API_VERSION
         task()
 
     @responses.activate
-    def test_run_string_only(self):
+    def test_run_string_only(self, patch_orgconfig_api_version):
         task_config = TaskConfig({"options": {"apex": 'System.debug("test");'}})
         task = AnonymousApexTask(self.project_config, task_config, self.org_config)
         url = self.base_tooling_url + "executeAnonymous"
@@ -869,7 +877,7 @@ class TestAnonymousApexTask:
         task()
 
     @responses.activate
-    def test_run_anonymous_apex_status_fail(self):
+    def test_run_anonymous_apex_status_fail(self, patch_orgconfig_api_version):
         task, url = self._get_url_and_task()
         responses.add(responses.GET, url, status=418, body="I'm a teapot")
         with pytest.raises(SalesforceGeneralError) as e:
@@ -881,7 +889,7 @@ class TestAnonymousApexTask:
         assert err.content == "I'm a teapot"
 
     @responses.activate
-    def test_run_anonymous_apex_compile_except(self):
+    def test_run_anonymous_apex_compile_except(self, patch_orgconfig_api_version):
         task, url = self._get_url_and_task()
         problem = "Unexpected token '('."
         resp = {
@@ -939,7 +947,7 @@ class TestAnonymousApexTask:
 )
 class TestRunBatchApex(MockLoggerMixin):
     def setup_method(self):
-        self.api_version = 42.0
+        self.api_version = CURRENT_SF_API_VERSION
         self.universal_config = UniversalConfig(
             {"project": {"api_version": self.api_version}}
         )

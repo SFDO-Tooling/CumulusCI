@@ -14,6 +14,7 @@ import responses
 import yaml
 from requests import ReadTimeout
 
+from cumulusci import DEFAULT_SF_API_VERSION
 from cumulusci.core.config import (
     BaseConfig,
     BaseProjectConfig,
@@ -22,7 +23,10 @@ from cumulusci.core.config import (
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 
-CURRENT_SF_API_VERSION = "55.0"
+# Rename for this for use in tests.
+# Having two names makes it easy to grep for the two
+# different use-cases.
+CURRENT_SF_API_VERSION = DEFAULT_SF_API_VERSION
 from cumulusci.tasks.bulkdata.tests.utils import FakeBulkAPI
 
 
@@ -47,6 +51,9 @@ def create_project_config(
     )
     if namespace:
         project_config.config["project"]["package"]["namespace"] = namespace
+
+    # should not be CURRENT_SF_API_VERSION
+    project_config.config["project"]["package"]["api_version"] = CURRENT_SF_API_VERSION
     keychain = BaseProjectKeychain(project_config, None)
     project_config.set_keychain(keychain)
     return project_config

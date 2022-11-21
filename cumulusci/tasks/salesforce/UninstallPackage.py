@@ -25,7 +25,7 @@ class UninstallPackage(Deploy):
 
     def _get_api(self, path=None):
         package_zip = UninstallPackageZipBuilder(
-            self.options["namespace"], self.project_config.project__package__api_version
+            self.options["namespace"], self.api_version
         )
         return self.api_class(
             self, package_zip(), purge_on_delete=self.options["purge_on_delete"]

@@ -58,11 +58,7 @@ class BaseMetadataApiCall(object):
         self.task = task
         self.status = None
         self.check_num = 1
-        self.api_version = (
-            api_version
-            if api_version
-            else task.project_config.project__package__api_version
-        )
+        self.api_version = api_version if api_version else task.api_version
 
     def __call__(self):
         self.task.logger.info("Pending")

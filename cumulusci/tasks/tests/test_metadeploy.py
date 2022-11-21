@@ -113,7 +113,7 @@ class TestPublish(GithubApiTestMixin):
         assert "Admin API" in str(e.value)
 
     @responses.activate
-    def test_run_task(self):
+    def test_run_task(self, patch_orgconfig_api_version):
         project_config = create_project_config()
         project_config.config["plans"] = {
             "install": {

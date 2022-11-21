@@ -131,6 +131,4 @@ class UninstallPackagedIncremental(UninstallPackaged):
             return destructive_changes
 
     def _render_xml_from_items_dict(self, items):
-        return package_xml_from_dict(
-            items, api_version=self.project_config.project__package__api_version
-        )
+        return package_xml_from_dict(items, api_version=self.api_version)

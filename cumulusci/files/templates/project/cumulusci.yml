@@ -6,7 +6,6 @@ project:
         {% if package_namespace %}
         namespace: {{ package_namespace }}
         {% endif %}
-        api_version: '{{ api_version }}'
     {% if dependencies %}
     dependencies:
     {% for dep in dependencies %}

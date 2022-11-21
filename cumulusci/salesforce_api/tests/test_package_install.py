@@ -21,7 +21,7 @@ from cumulusci.tests.util import CURRENT_SF_API_VERSION, create_project_config
 
 
 @responses.activate
-def test_install_package_by_version_id(caplog):
+def test_install_package_by_version_id(caplog, patch_orgconfig_api_version):
     caplog.set_level(logging.INFO)
     responses.add(
         "POST",
@@ -50,7 +50,7 @@ def test_install_package_by_version_id(caplog):
 
 
 @responses.activate
-def test_install_package_by_version_id__error():
+def test_install_package_by_version_id__error(patch_orgconfig_api_version):
     responses.add(
         "POST",
         f"https://salesforce/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/PackageInstallRequest/",
@@ -80,7 +80,9 @@ def test_install_package_by_version_id__error():
 
 
 @responses.activate
-def test_install_package_by_version_id__not_propagated(caplog):
+def test_install_package_by_version_id__not_propagated(
+    caplog, patch_orgconfig_api_version
+):
     caplog.set_level(logging.INFO)
     responses.add(
         "POST",
@@ -101,7 +103,8 @@ def test_install_package_by_version_id__not_propagated(caplog):
 
     project_config = create_project_config()
     org_config = OrgConfig(
-        {"instance_url": "https://salesforce", "access_token": "TOKEN"}, "test"
+        {"instance_url": "https://salesforce", "access_token": "TOKEN"},
+        "test",
     )
     install_package_by_version_id(
         project_config, org_config, "04t", PackageInstallOptions()

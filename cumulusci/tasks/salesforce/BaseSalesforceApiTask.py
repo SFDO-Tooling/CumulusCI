@@ -7,7 +7,7 @@ from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 
 class BaseSalesforceApiTask(BaseSalesforceTask):
     name = "BaseSalesforceApiTask"
-    api_version = None
+    # api_version = None
 
     def _init_task(self):
         super()._init_task()
@@ -27,7 +27,11 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
         return rv
 
     def _init_bulk(self):
-        version = self.api_version or self.project_config.project__package__api_version
+        version = (
+            self.api_version
+            or self.project_config.project__package__api_version
+            or self.org_config.latest_api_version
+        )
         if not version:
             raise ConfigError("Cannot find Salesforce version")
         return SalesforceBulk(

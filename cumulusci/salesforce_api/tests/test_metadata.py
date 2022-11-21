@@ -10,7 +10,7 @@ from requests import Response
 
 from cumulusci.core.config import TaskConfig
 from cumulusci.core.exceptions import ApexTestException, CumulusCIException
-from cumulusci.core.tasks import BaseTask
+from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.salesforce_api.exceptions import (
     MetadataApiError,
     MetadataComponentFailure,
@@ -80,7 +80,7 @@ class TestBaseTestMetadataApi:
             task_config = {}
         if not org_config:
             org_config = {}
-        task = BaseTask(
+        task = BaseSalesforceTask(
             project_config=self.project_config,
             task_config=TaskConfig(task_config),
             org_config=DummyOrgConfig(org_config),
@@ -99,6 +99,8 @@ class TestBaseTestMetadataApi:
         )
         return response
 
+    from pysnooper import snoop
+
     def _create_instance(self, task, api_version=None):
         return self.api_class(task, api_version=api_version)
 
@@ -106,7 +108,11 @@ class TestBaseTestMetadataApi:
         task = self._create_task()
         api = self._create_instance(task)
         assert api.task == task
-        assert api.api_version == self.project_config.project__package__api_version
+        assert api.api_version == self.project_config.project__package__api_version, (
+            api.api_version,
+            self.project_config.project__package__api_version,
+            task.api_version,
+        )
 
     def test_build_endpoint_url(self):
         org_config = {
@@ -117,7 +123,7 @@ class TestBaseTestMetadataApi:
         api = self._create_instance(task)
         assert api._build_endpoint_url() == "{}/services/Soap/m/{}/{}".format(
             org_config["instance_url"],
-            self.project_config.project__package__api_version,
+            task.api_version,
             task.org_config.org_id,
         )
 
@@ -128,6 +134,7 @@ class TestBaseTestMetadataApi:
         }
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
+        print(api._build_endpoint_url())
         assert (
             api._build_endpoint_url()
             == "https://test-org.na12.my.salesforce.com/services/Soap/m/{}/{}".format(

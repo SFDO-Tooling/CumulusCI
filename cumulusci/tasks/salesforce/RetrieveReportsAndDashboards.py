@@ -28,9 +28,7 @@ class RetrieveReportsAndDashboards(BaseRetrieveMetadata):
     def _init_options(self, kwargs):
         super(RetrieveReportsAndDashboards, self)._init_options(kwargs)
         if "api_version" not in self.options:
-            self.options[
-                "api_version"
-            ] = self.project_config.project__package__api_version
+            self.options["api_version"] = self.api_version
 
     def _validate_options(self):
         super(RetrieveReportsAndDashboards, self)._validate_options()

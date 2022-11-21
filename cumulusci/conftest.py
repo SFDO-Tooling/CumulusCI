@@ -12,11 +12,17 @@ from pytest import fixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.github import get_github_api
 from cumulusci.salesforce_api.org_schema_models import Base
 from cumulusci.tasks.salesforce.tests.util import create_task_fixture
 from cumulusci.tests.pytest_plugins.pytest_sf_vcr import salesforce_vcr, vcr_config
-from cumulusci.tests.util import DummyKeychain, DummyOrgConfig, mock_env
+from cumulusci.tests.util import (
+    CURRENT_SF_API_VERSION,
+    DummyKeychain,
+    DummyOrgConfig,
+    mock_env,
+)
 
 
 @fixture(scope="session", autouse=True)
@@ -108,6 +114,12 @@ def temp_db():
                 yield connection, Base.metadata, session
 
         yield open_db
+
+
+@pytest.fixture()
+def patch_orgconfig_api_version():
+    with mock.patch.object(OrgConfig, "latest_api_version", CURRENT_SF_API_VERSION):
+        yield
 
 
 @pytest.fixture()

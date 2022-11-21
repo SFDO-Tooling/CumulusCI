@@ -19,9 +19,7 @@ class CreatePackage(Deploy):
         if "package" not in self.options:
             self.options["package"] = self.project_config.project__package__name
         if "api_version" not in self.options:
-            self.options[
-                "api_version"
-            ] = self.project_config.project__package__api_version
+            self.options["api_version"] = self.api_version
 
     def _get_package_zip(self, path=None):
         return CreatePackageZipBuilder(

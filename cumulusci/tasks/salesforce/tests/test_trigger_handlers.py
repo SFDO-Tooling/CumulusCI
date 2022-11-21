@@ -32,7 +32,7 @@ class TestTriggerHandlers:
         task = create_task_fixture(
             SetTDTMHandlerStatus, {"handlers": ["TestTDTM"], "active": False}
         )
-        task.api_version = "47.0"
+        task._api_version = "47.0"
         responses.add(
             method="GET",
             url=task.org_config.instance_url + "/services/data/v47.0/sobjects",
@@ -49,7 +49,7 @@ class TestTriggerHandlers:
             SetTDTMHandlerStatus,
             {"handlers": ["TestTDTM"], "active": False, "namespace": "npsp"},
         )
-        task.api_version = "47.0"
+        task._api_version = "47.0"
         responses.add(
             method="GET",
             url=task.org_config.instance_url + "/services/data/v47.0/sobjects",
@@ -94,7 +94,7 @@ class TestTriggerHandlers:
         task = create_task_fixture(
             SetTDTMHandlerStatus, {"active": False, "namespace": "npsp"}
         )
-        task.api_version = "47.0"
+        task._api_version = "47.0"
         responses.add(
             method="GET",
             url=task.org_config.instance_url + "/services/data/v47.0/sobjects",
@@ -147,7 +147,7 @@ class TestTriggerHandlers:
             SetTDTMHandlerStatus,
             {"handlers": ["Test__c:TestTDTM"], "active": False, "namespace": "npsp"},
         )
-        task.api_version = "47.0"
+        task._api_version = "47.0"
         responses.add(
             method="GET",
             url=task.org_config.instance_url + "/services/data/v47.0/sobjects",
@@ -193,7 +193,7 @@ class TestTriggerHandlers:
             SetTDTMHandlerStatus,
             {"restore": True, "restore_file": "resto.yml", "namespace": "npsp"},
         )
-        task.api_version = "47.0"
+        task._api_version = "47.0"
         responses.add(
             method="GET",
             url=task.org_config.instance_url + "/services/data/v47.0/sobjects",
@@ -251,7 +251,7 @@ class TestTriggerHandlers:
                 "namespace": "npsp",
             },
         )
-        task.api_version = "47.0"
+        task._api_version = "47.0"
         responses.add(
             method="GET",
             url=task.org_config.instance_url + "/services/data/v47.0/sobjects",

@@ -6,6 +6,7 @@ from typing import List, Optional, Union
 
 import requests
 
+from cumulusci import DEFAULT_SF_API_VERSION
 from cumulusci.core.config import BaseProjectConfig, FlowConfig, TaskConfig
 from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.flowrunner import FlowCoordinator
@@ -167,6 +168,7 @@ class Publish(BaseMetaDeployTask):
                     step.project_config,
                     TaskConfig(step.task_config),
                     name=step.task_name,
+                    api_version=DEFAULT_SF_API_VERSION,
                 )
                 steps.extend(task.freeze(step))
         self.logger.debug("Prepared steps:\n" + json.dumps(steps, indent=4))

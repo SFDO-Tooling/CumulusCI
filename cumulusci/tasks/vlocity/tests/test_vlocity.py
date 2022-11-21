@@ -18,6 +18,7 @@ from cumulusci.tasks.vlocity.vlocity import (
     VlocityDeployTask,
     VlocityRetrieveTask,
 )
+from cumulusci.tests.util import CURRENT_SF_API_VERSION
 
 ORG_TYPES = {
     "develop": "https://inspiration-velocity-34802-dev-ed.develop.my.salesforce.com/",
@@ -142,6 +143,7 @@ def test_deploy_omni_studio_site_settings_scratch(
             instance_url=url,
             instance_name="CS28",
             scratch=True,
+            latest_api_version=CURRENT_SF_API_VERSION,
         )
 
         task = OmniStudioDeployRemoteSiteSettings(
@@ -174,6 +176,7 @@ def test_deploy_omni_studio_site_settings(
         installed_packages=[],
         instance_url="https://inspiration-velocity-34802-dev-ed.my.salesforce.com/",
         instance_name="CS28",
+        latest_api_version=CURRENT_SF_API_VERSION,
     )
 
     task = OmniStudioDeployRemoteSiteSettings(project_config, task_config, org_config)

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import yaml
 
+from cumulusci import DEFAULT_SF_API_VERSION
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import elementtree_parse_file
 from cumulusci.utils.xml import metadata_tree
@@ -564,7 +565,10 @@ class UpdatePackageXml(BaseTask):
 
         self.package_xml = PackageXmlGenerator(
             directory=self.options.get("path"),
-            api_version=self.project_config.project__package__api_version,
+            api_version=(
+                self.project_config.project__package__api_version
+                or DEFAULT_SF_API_VERSION
+            ),
             package_name=package_name,
             managed=self.options.get("managed", False),
             delete=self.options.get("delete", False),
@@ -636,7 +640,7 @@ class RemoveUnwantedComponents(BaseTask):
         self.run_class = RemoveSourceComponents(
             directory=self.options.get("path"),
             package_xml=self.options.get("package_xml"),
-            api_version=self.project_config.project__package__api_version,
+            api_version=self.api_version,
             logger=self.logger,
         )
 

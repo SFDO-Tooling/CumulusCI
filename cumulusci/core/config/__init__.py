@@ -65,8 +65,7 @@ class TaskConfig(BaseConfig):
     name: str
     checks: list
     project_config: "BaseProjectConfig"
-
-    pass
+    api_version: None
 
 
 from cumulusci.core.config.base_task_flow_config import BaseTaskFlowConfig

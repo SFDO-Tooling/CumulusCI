@@ -3,6 +3,11 @@ import sys
 
 from simple_salesforce import api, bulk
 
+# For tasks that don't connect to orgs but do nevertheless need
+# to look at the API version (e.g. to write it during freezing
+# or XML rewriting)
+DEFAULT_SF_API_VERSION = "56.0"
+
 __import__("pkg_resources").declare_namespace("cumulusci")
 
 __location__ = os.path.dirname(os.path.realpath(__file__))

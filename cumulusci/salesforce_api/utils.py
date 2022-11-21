@@ -30,7 +30,9 @@ def get_simple_salesforce_connection(
     sf = simple_salesforce.Salesforce(
         instance=instance,
         session_id=org_config.access_token,
-        version=api_version or project_config.project__package__api_version,
+        version=api_version
+        or project_config.project__package__api_version
+        or org_config.latest_api_version,
     )
     try:
         app = project_config.keychain.get_service("connectedapp")

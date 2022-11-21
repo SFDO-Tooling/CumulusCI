@@ -42,7 +42,7 @@ class UninstallLocalNamespacedBundles(UninstallLocalBundles):
 
         generator = PackageXmlGenerator(
             directory=path,
-            api_version=self.project_config.project__package__api_version,
+            api_version=self.api_version,
             delete=True,
         )
         namespace = ""

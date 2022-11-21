@@ -43,10 +43,7 @@ class BaseMetadataETLTask(BaseSalesforceTask, metaclass=ABCMeta):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
-        self.api_version = (
-            self.options.get("api_version")
-            or self.project_config.project__package__api_version
-        )
+        self._api_version = self.options.get("api_version") or self.api_version
         try:
             float(self.api_version)
         except ValueError:

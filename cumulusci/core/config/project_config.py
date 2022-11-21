@@ -191,6 +191,9 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         self._validate_package_api_format()
 
     def _validate_package_api_format(self):
+        if not self.project__package__api_version:
+            return True
+
         api_version = str(self.project__package__api_version)
 
         if not API_VERSION_RE.match(api_version):

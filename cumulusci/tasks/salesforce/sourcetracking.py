@@ -325,9 +325,7 @@ class RetrieveChanges(ListChanges, BaseSalesforceApiTask):
         self.options["path"] = path
 
         if "api_version" not in self.options:
-            self.options[
-                "api_version"
-            ] = self.project_config.project__package__api_version
+            self.options["api_version"] = self.api_version
 
     def _run_task(self):
         self._load_snapshot()

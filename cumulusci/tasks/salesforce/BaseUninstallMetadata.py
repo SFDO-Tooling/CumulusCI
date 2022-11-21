@@ -33,7 +33,7 @@ class BaseUninstallMetadata(Deploy):
             return
 
         package_zip = DestructiveChangesZipBuilder(
-            destructive_changes, self.project_config.project__package__api_version
+            destructive_changes, self.api_version
         )
         api = self.api_class(
             self, package_zip(), purge_on_delete=self.options["purge_on_delete"]

@@ -28,7 +28,7 @@ class UninstallPackaged(UninstallLocal):
         retrieve_api = ApiRetrievePackaged(
             self,
             self.options["package"],
-            self.project_config.project__package__api_version,
+            self.api_version,
         )
         packaged = retrieve_api()
         packaged = zip_subfolder(packaged, self.options["package"])

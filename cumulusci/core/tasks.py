@@ -65,6 +65,7 @@ class BaseTask:
     poll_count: int
     poll_interval_level: int
     poll_interval_s: int
+    _api_version = None
 
     def __init__(
         self,
@@ -75,6 +76,7 @@ class BaseTask:
         name: Optional[str] = None,
         stepnum: Optional[StepVersion] = None,
         logger: Optional[logging.Logger] = None,
+        api_version: Optional[str] = None,
         **kwargs,
     ):
         self.project_config = project_config
@@ -93,6 +95,7 @@ class BaseTask:
         self.name = name
         # the task's stepnumber in the flow
         self.stepnum = stepnum
+        self._api_version = api_version
 
         self.debug_mode = get_debug_mode()
         if logger:
@@ -271,6 +274,9 @@ class BaseSalesforceTask(BaseTask):
     name = "BaseSalesforceTask"
     salesforce_task = True
 
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+
     def _get_client_name(self):
         try:
             app = self.project_config.keychain.get_service("connectedapp")
@@ -345,3 +351,16 @@ class BaseSalesforceTask(BaseTask):
             return injected
         else:
             return sobject
+
+    @property
+    def api_version(self):
+        print(
+            "project__package__api_version",
+            self.project_config.lookup("project__package__api_version", None),
+        )
+        if not self._api_version:
+            self._api_version = (
+                self.project_config.lookup("project__package__api_version", None)
+                or self.org_config.latest_api_version
+            )
+        return self._api_version
