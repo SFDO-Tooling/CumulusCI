@@ -157,7 +157,7 @@ def test_deploy_omni_studio_site_settings_scratch(
         # when no 'namespace' option is specified, we default to the omni studio namespace
         expected_urls = set(
             [
-                f"https://inspiration-velocity-34802-dev-ed--{expected_namespace}.{org_type}.{org_config.instance_name}.visual.force.com/",
+                f"https://inspiration-velocity-34802-dev-ed--{expected_namespace}.{org_config.instance_name}.visual.force.com/",
                 f"https://inspiration-velocity-34802-dev-ed.{org_type}.lightning.force.com/",
                 f"https://inspiration-velocity-34802-dev-ed--{expected_namespace}.{org_type}.vf.force.com/",
             ]
