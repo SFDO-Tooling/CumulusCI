@@ -25,6 +25,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
+from cumulusci.core.keychain.serialization import load_decrypted_config_from_bytes
 from cumulusci.core.utils import import_class, import_global
 from cumulusci.utils.yaml.cumulusci_yml import ScratchOrg
 
@@ -125,29 +126,53 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 else:
                     return config_class()
             encrypted_config = base64.b64decode(encrypted_config)
-            iv = encrypted_config[:16]
-            cipher, iv = self._get_cipher(iv)
-            pickled = cipher.decryptor().update(encrypted_config[16:])
             try:
-                unpickled = pickle.loads(pickled, encoding="bytes")
-            except Exception:
-                raise KeychainKeyNotFound(
-                    f"Unable to decrypt{' ' + context if context else ''}. "
-                    "It was probably stored using a different CUMULUSCI_KEY."
+                iv = encrypted_config[:16]
+                cipher, iv = self._get_cipher(iv)
+                pickled = cipher.decryptor().update(encrypted_config[16:])
+                unpickled = load_decrypted_config_from_bytes(pickled)
+            except ValueError as e:
+                message = "\n".join(
+                    [
+                        f"Unable to decrypt{' ' + context if context else ''}. \n"
+                        "A changed CUMULUSCI_KEY or laptop password might be the cause.\n"
+                        "Unfortunately, there is usually no way to recover an Org's Configuration \n"
+                        "once this has happened.\n"
+                        "Typically we advise users to delete the unusable file or rename it to .bak.\n"
+                        "The org can be connected or imported again to replace the corrupted config.\n"
+                        "(Specific error: " + str(e) + ")\n"
+                    ]
                 )
-            # Convert bytes created in Python 2
-            config_dict = {}
-            for k, v in unpickled.items():
-                if isinstance(k, bytes):
-                    k = k.decode("utf-8")
-                if isinstance(v, bytes):
-                    v = v.decode("utf-8")
-                config_dict[k] = v
+                raise KeychainKeyNotFound(message) from e
+
+        config_dict = self.cleanup_Python_2_configs(unpickled)
 
         args = [config_dict]
         if extra:
             args += extra
         return self._construct_config(config_class, args)
+
+    def cleanup_Python_2_configs(self, unpickled):
+        # Convert bytes created in Python 2
+        config_dict = {}
+
+        # After a few months, we can clean up this code if nobody reports
+        # warnings.
+        message = (
+            "Unexpected bytes found in config.\n"
+            "Please inform the CumulusCI team.\n"
+            "Future versions of CumulusCI may break your config."
+        )
+        for k, v in unpickled.items():
+            if isinstance(k, bytes):
+                self.logger.warning(message)
+                k = k.decode("utf-8")
+            if isinstance(v, bytes):
+                self.logger.warning(message)
+                v = v.decode("utf-8")
+            config_dict[k] = v
+
+        return config_dict
 
     def _construct_config(self, config_class, args):
         config = args[0]
@@ -331,11 +356,6 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 raise e
             raise OrgCannotBeLoaded(
                 f"Cannot parse config loaded from\n{filename}\n{e}\n"
-                "A changed CUMULUSCI_KEY or laptop password might be the cause.\n"
-                "Unfortunately, there is usually no way to recover an Org's Configuration \n"
-                "once this has happened.\n"
-                "Typically we advise users to delete the unusable file or rename it to .bak.\n"
-                "The org can be connected or imported again to replace the corrupted config."
             )
         org.global_org = global_org
 
@@ -367,7 +387,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"org config ({name})",
             )
         else:
-            config = pickle.loads(config)
+            config = load_decrypted_config_from_bytes(config)
             org = self._construct_config(OrgConfig, [config, name, self])
 
         return org
@@ -643,7 +663,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"service config ({service_type}:{alias})",
             )
         else:
-            config = pickle.loads(config)
+            config = load_decrypted_config_from_bytes(config)
             org = self._construct_config(ConfigClass, [config, alias, self])
 
         return org
