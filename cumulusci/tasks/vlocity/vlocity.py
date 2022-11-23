@@ -178,7 +178,7 @@ def create_vf_url(
         if org:
             url = instance_url.replace(
                 f".{org}{dns}",
-                f"--{namespace}.{org}.{instance}.visual.force.com",
+                f"--{namespace}.{instance}.visual.force.com",
             )
         else:
             url = instance_url.replace(
