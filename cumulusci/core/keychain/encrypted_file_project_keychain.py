@@ -115,6 +115,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         return cipher, iv
 
     def _encrypt_config(self, config_data: bytes) -> bytes:
+        assert isinstance(config_data, bytes)
         padded = pad(config_data)
         cipher, iv = self._get_cipher()
         return base64.b64encode(iv + cipher.encryptor().update(padded))
@@ -294,6 +295,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         org_name = org_config.name
 
         org_bytes = self._get_config_bytes(org_config)
+        assert isinstance(org_bytes, bytes)
 
         if global_org:
             org_config = GlobalOrg(org_bytes)

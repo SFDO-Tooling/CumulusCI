@@ -11,7 +11,7 @@ from typing import NamedTuple, Optional
 #
 # Thus we roll out the ability to parse JSON configs a bit
 # ahead of the write behaviour.
-SHOULD_SAVE_AS_JSON = os.environ.get("SHOULD_SAVE_AS_JSON", "True") != "False"
+SHOULD_SAVE_AS_JSON = os.environ.get("SHOULD_SAVE_AS_JSON", "False") != "False"
 
 
 def load_config_from_json_or_pickle(b: bytes) -> dict:
@@ -85,14 +85,16 @@ def decode_typed_value(x: dict):
 def try_load_config_from_json_or_pickle(data: bytes) -> dict:
     """Load JSON or Pickle into a dict"""
     try:
-        data = json.loads(data.decode("utf-8"), object_hook=decode_dict)
-        if SHOULD_SAVE_AS_JSON:
-            return data
-        else:
-            raise ValueError("JSON saving is not enabled yet.")
+        config = json.loads(data.decode("utf-8"), object_hook=decode_dict)
+        # remove this debugging tool after transition
+        config["serialization_format"] = "json"
+        return config
     except ValueError as e1:
         try:
-            return pickle.loads(data, encoding="bytes")
+            config = pickle.loads(data, encoding="bytes")
+            # remove this debugging tool after transition
+            config["serialization_format"] = "pickle"
+            return config
         except pickle.UnpicklingError as e2:
             raise ValueError(f"{e1}\n{e2}")
 
@@ -121,16 +123,26 @@ def check_round_trip(data: dict, logger: Logger) -> Optional[bytes]:
         return None
     try:
         test_load = load_config_from_json_or_pickle(as_json_text)
-        assert test_load == data, f"JSON did not round-trip-cleanly {test_load}, {data}"
+        assert _simplify_config(test_load) == _simplify_config(
+            data
+        ), f"JSON did not round-trip-cleanly {test_load}, {data}"
     except Exception as e:  # pragma: no cover
         report_error("CumulusCI found a problem saving your config:", e, logger)
         return None
+    assert isinstance(as_json_text, bytes)
     return as_json_text
+
+
+def _simplify_config(config: dict):
+    return {k: v for k, v in config.items() if k != "serialization_format"}
 
 
 def serialize_config_to_json_or_pickle(config: dict, logger: Logger) -> bytes:
     """Serialize a dict to JSON if possible or Pickle otherwise"""
-    if as_json_text := check_round_trip(config, logger):
+    as_json_text = check_round_trip(config, logger)
+    if as_json_text and SHOULD_SAVE_AS_JSON:
+        print("JSON", SHOULD_SAVE_AS_JSON)
+        assert isinstance(as_json_text, bytes)
         return as_json_text
     else:
         return pickle.dumps(config, protocol=2)

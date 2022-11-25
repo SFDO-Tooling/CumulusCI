@@ -39,12 +39,24 @@ from cumulusci.core.keychain.encrypted_file_project_keychain import (
     SERVICE_ORG_FILE_MODE,
     GlobalOrg,
 )
-from cumulusci.core.keychain.serialization import load_config_from_json_or_pickle
+from cumulusci.core.keychain.serialization import (
+    _simplify_config,
+    load_config_from_json_or_pickle,
+)
 from cumulusci.core.tests.utils import EnvironmentVarGuard
 from cumulusci.utils import temporary_dir
 
 # Test code both with an encryption key and with no key.
 withdifferentkeys = pytest.mark.parametrize("key", ["0123456789123456", None])
+
+
+@pytest.fixture(params=[True, False])
+def withdifferentformats(request):
+    SHOULD_SAVE_AS_JSON = request.param
+    with mock.patch(
+        "cumulusci.core.keychain.serialization.SHOULD_SAVE_AS_JSON", request.param
+    ):
+        yield "json" if SHOULD_SAVE_AS_JSON else "pickle"
 
 
 @pytest.fixture()
@@ -78,12 +90,14 @@ class TestEncryptedFileProjectKeychain:
     #######################################
 
     @withdifferentkeys
-    def test_set_and_get_org__global(self, keychain, org_config, key):
+    def test_set_and_get_org__global(
+        self, keychain, org_config, key, withdifferentformats
+    ):
         org_config.global_org = True
         keychain.set_org(org_config, True)
         keychain.key = key
         assert list(keychain.orgs.keys()) == ["test"]
-        assert keychain.get_org("test").config == org_config.config
+        assert _simplify_config(keychain.get_org("test").config) == org_config.config
 
     @withdifferentkeys
     def test_get_org__with_config_properly_overridden(
@@ -119,11 +133,15 @@ class TestEncryptedFileProjectKeychain:
 
         filepath = Path(keychain.project_local_dir, "test.org")
         with open(filepath, "rb") as f:
-            assert load_config_from_json_or_pickle(f.read()) == org_config.config
+            assert load_config_from_json_or_pickle(f.read()) == {
+                **org_config.config,
+                # still the default for now
+                "serialization_format": "pickle",
+            }
 
     @withdifferentkeys
     def test_set_org__should_not_save_when_environment_project_keychain_set(
-        self, keychain, org_config, key
+        self, keychain, org_config, key, withdifferentformats
     ):
         with temporary_dir() as temp:
             env = EnvironmentVarGuard()
@@ -136,7 +154,10 @@ class TestEncryptedFileProjectKeychain:
                     keychain.key = key
 
             actual_org = keychain.get_org("test")
-            assert actual_org.config == org_config.config
+            assert actual_org.config == {
+                **org_config.config,
+                "serialization_format": withdifferentformats,
+            }
             assert not Path(temp, "test.org").is_file()
 
     @mock.patch("cumulusci.core.keychain.encrypted_file_project_keychain.open")
@@ -178,18 +199,18 @@ class TestEncryptedFileProjectKeychain:
             keychain.remove_org("test", True)
 
     def test_set_and_get_org_local_should_not_shadow_global(
-        self,
-        keychain,
-        org_config,
-        project_config,
-        key,
+        self, keychain, org_config, project_config, key, withdifferentformats
     ):
         global_org = True
         org_config.global_org = global_org
         keychain.set_org(org_config, global_org)
         assert ["test"] == list(keychain.orgs.keys())
         assert isinstance(keychain.orgs["test"], GlobalOrg), keychain.orgs["test"]
-        assert org_config.config == keychain.get_org("test").config
+        test_config = keychain.get_org("test").config
+        assert {
+            **org_config.config,
+            "serialization_format": withdifferentformats,
+        } == test_config
 
         org_filepath = Path(keychain.global_config_dir, "test.org")
         assert org_filepath.exists()
@@ -224,7 +245,9 @@ class TestEncryptedFileProjectKeychain:
         with open(self._default_org_path(keychain), "w") as f:
             f.write("test")
         try:
-            assert keychain.get_default_org()[1].config == org_config.config
+            assert _simplify_config(
+                keychain.get_default_org()[1].config
+            ) == _simplify_config(org_config.config)
         finally:
             self._default_org_path(keychain).unlink()
 
@@ -266,7 +289,9 @@ class TestEncryptedFileProjectKeychain:
         org_config.config["default"] = True
         org_config.save()
         keychain.key = key
-        assert keychain.get_default_org()[1].config == org_config.config
+        assert _simplify_config(
+            keychain.get_default_org()[1].config
+        ) == _simplify_config(org_config.config)
 
     def test_get_default_org__outside_project(self, keychain):
         assert keychain.get_default_org() == (None, None)
@@ -289,9 +314,13 @@ class TestEncryptedFileProjectKeychain:
             keychain._load_orgs_from_environment()
 
         actual_config = keychain.get_org("dev")
-        assert actual_config.config == scratch_config
+        assert _simplify_config(actual_config.config) == _simplify_config(
+            scratch_config
+        )
         actual_config = keychain.get_org("devhub")
-        assert actual_config.config == org_config.config
+        assert _simplify_config(actual_config.config) == _simplify_config(
+            org_config.config
+        )
 
     #######################################
     #              Services               #
@@ -338,9 +367,13 @@ class TestEncryptedFileProjectKeychain:
 
         gh_service = keychain.get_service("github")
         # this also confirms the default service is set appropriately
-        assert gh_service.config == service_config_one.config
+        assert _simplify_config(gh_service.config) == _simplify_config(
+            service_config_one.config
+        )
         gh_service = keychain.get_service("github", "env-OTHER")
-        assert gh_service.config == service_config_two.config
+        assert _simplify_config(gh_service.config) == _simplify_config(
+            service_config_two.config
+        )
 
     def test_load_services_from_env__same_name_throws_error(self, keychain):
         keychain.logger = mock.Mock()
@@ -401,7 +434,7 @@ class TestEncryptedFileProjectKeychain:
             actual_mode = oct(stat_result.st_mode & 0o777)
             assert actual_mode == oct(SERVICE_ORG_FILE_MODE)
 
-        assert default_github_service.config == {
+        assert _simplify_config(default_github_service.config) == {
             **service_config.config,
             "token": "test123",
         }
@@ -440,28 +473,36 @@ class TestEncryptedFileProjectKeychain:
         keychain.set_service("github", "bar_github", ServiceConfig({"name": "bar"}))
 
         github_service = keychain.get_service("github")
-        assert github_service.config == {"name": "foo"}
+        assert _simplify_config(github_service.config) == {"name": "foo"}
 
-    def test_set_default_service(self, keychain):
+    def test_set_default_service(self, keychain, withdifferentformats):
         keychain.set_service("github", "foo_github", ServiceConfig({"name": "foo"}))
         keychain.set_service("github", "bar_github", ServiceConfig({"name": "bar"}))
 
         github_service = keychain.get_service("github")
-        assert github_service.config == {"name": "foo"}
+        assert _simplify_config(github_service.config) == {"name": "foo"}
         # now set default to bar
         keychain.set_default_service("github", "bar_github")
         github_service = keychain.get_service("github")
-        assert github_service.config == {"name": "bar"}
+        assert _simplify_config(github_service.config) == {"name": "bar"}
 
-    def test_set_default_service__service_alredy_default(self, keychain):
+    def test_set_default_service__service_alredy_default(
+        self, keychain, withdifferentformats
+    ):
         keychain.set_service("github", "foo_github", ServiceConfig({"name": "foo"}))
         github_service = keychain.get_service("github")
-        assert github_service.config == {"name": "foo"}
+        assert github_service.config == {
+            "name": "foo",
+            "serialization_format": withdifferentformats,
+        }
 
         keychain.set_default_service("github", "foo_github")
 
         github_service = keychain.get_service("github")
-        assert github_service.config == {"name": "foo"}
+        assert github_service.config == {
+            "name": "foo",
+            "serialization_format": withdifferentformats,
+        }
 
     def test_set_default_service__no_such_service(self, keychain):
         with pytest.raises(ServiceNotConfigured):
@@ -693,7 +734,7 @@ class TestEncryptedFileProjectKeychain:
         with open(named_devhub_service / "global.service", "r") as f:
             assert f.read() == "migrated config"
 
-    def test_rename_service(self, keychain, service_config):
+    def test_rename_service(self, keychain, service_config, withdifferentformats):
         home_dir = tempfile.mkdtemp()
 
         cci_home_dir = Path(f"{home_dir}/.cumulusci")
@@ -725,6 +766,7 @@ class TestEncryptedFileProjectKeychain:
         assert keychain.get_service("github", "new_alias").config == {
             **service_config.config,
             "token": "test123",
+            "serialization_format": withdifferentformats,
         }
         # Old service file should be gone
         assert not (github_services_dir / "old_alias.service").is_file()
@@ -1081,7 +1123,9 @@ class TestCleanupOrgCacheDir:
         assert formatted == expected, (formatted, expected)
 
     @withdifferentkeys
-    def test_set_and_get_org_with_dates__global(self, keychain, org_config, key):
+    def test_set_and_get_org_with_dates__json(
+        self, keychain, org_config, key, withdifferentformats
+    ):
         org_config.global_org = True
         keychain.key = key
 
@@ -1093,11 +1137,15 @@ class TestCleanupOrgCacheDir:
         keychain.set_org(org_config, True)
         assert list(keychain.orgs.keys()) == ["test"]
         config = keychain.get_org("test").config
-        assert config == org_config.config
+        assert config == {
+            **org_config.config,
+            "serialization_format": withdifferentformats,
+        }
         assert config["custom_datetime"] == custom_datetime
         assert config["custom_date"] == custom_date
 
     @withdifferentkeys
+    @mock.patch("cumulusci.core.keychain.serialization.SHOULD_SAVE_AS_JSON", True)
     def test_set_and_get_org_with_bad_datatypes(self, keychain, org_config, key):
         org_config.global_org = True
         keychain.key = None
@@ -1114,7 +1162,9 @@ class TestCleanupOrgCacheDir:
             assert dumps.called_once_with({"bad", 25j})
 
     @withdifferentkeys
-    def test_set_and_get_service_with_dates__global(self, keychain, key):
+    def test_set_and_get_service_with_dates__global(
+        self, keychain, key, withdifferentformats
+    ):
         service_config = ServiceConfig(
             {"name": "foo1", "password": "1234", "token": "1234"}
         )
@@ -1128,6 +1178,9 @@ class TestCleanupOrgCacheDir:
 
         keychain.set_service("github", "alias", service_config)
         config = keychain.get_service("github").config
-        assert config == service_config.config
+        assert config == {
+            **service_config.config,
+            "serialization_format": withdifferentformats,
+        }
         assert config["custom_datetime"] == custom_datetime
         assert config["custom_date"] == custom_date
