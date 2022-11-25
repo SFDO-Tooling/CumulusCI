@@ -1,7 +1,6 @@
 import base64
 import json
 import os
-import pickle
 import sys
 import typing as T
 from pathlib import Path
@@ -25,7 +24,10 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
-from cumulusci.core.keychain.serialization import load_decrypted_config_from_bytes
+from cumulusci.core.keychain.serialization import (
+    load_config_from_json_or_pickle,
+    serialize_config_to_json_or_pickle,
+)
 from cumulusci.core.utils import import_class, import_global
 from cumulusci.utils.yaml.cumulusci_yml import ScratchOrg
 
@@ -45,7 +47,7 @@ backend = default_backend()
 
 
 def pad(s):
-    return s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode("ascii")
+    return s + (BS - len(s) % BS) * b" "
 
 
 scratch_org_class = os.environ.get("CUMULUSCI_SCRATCH_ORG_CLASS")
@@ -112,11 +114,10 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         cipher = Cipher(AES(key), CBC(iv), backend=backend)
         return cipher, iv
 
-    def _encrypt_config(self, config):
-        pickled = pickle.dumps(config.config, protocol=2)
-        pickled = pad(pickled)
+    def _encrypt_config(self, config_data: bytes) -> bytes:
+        padded = pad(config_data)
         cipher, iv = self._get_cipher()
-        return base64.b64encode(iv + cipher.encryptor().update(pickled))
+        return base64.b64encode(iv + cipher.encryptor().update(padded))
 
     def _decrypt_config(self, config_class, encrypted_config, extra=None, context=None):
         if self.key:
@@ -130,7 +131,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 iv = encrypted_config[:16]
                 cipher, iv = self._get_cipher(iv)
                 pickled = cipher.decryptor().update(encrypted_config[16:])
-                unpickled = load_decrypted_config_from_bytes(pickled)
+                unpickled = load_config_from_json_or_pickle(pickled)
             except ValueError as e:
                 message = "\n".join(
                     [
@@ -187,10 +188,10 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         """Depending on if a key is present return
         the bytes that we want to store on the keychain."""
         org_bytes = None
+        org_bytes = serialize_config_to_json_or_pickle(config.config, self.logger)
+
         if self.key:
-            org_bytes = self._encrypt_config(config)
-        else:
-            org_bytes = pickle.dumps(config.config)
+            org_bytes = self._encrypt_config(org_bytes)
 
         assert org_bytes is not None, "org_bytes should have a value"
         return org_bytes
@@ -387,7 +388,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"org config ({name})",
             )
         else:
-            config = load_decrypted_config_from_bytes(config)
+            config = load_config_from_json_or_pickle(config)
             org = self._construct_config(OrgConfig, [config, name, self])
 
         return org
@@ -608,16 +609,18 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         # (like when were setting services after loading from an encrypted file)
         # then we don't need to do anything.
         if self.key and config_encrypted:
-            config = service_config
-        elif self.key and not config_encrypted:
-            config = self._encrypt_config(service_config)
+            serialized_config = service_config
         else:
-            config = pickle.dumps(service_config.config)
+            serialized_config = serialize_config_to_json_or_pickle(
+                service_config.config, self.logger
+            )
+            if self.key:
+                serialized_config = self._encrypt_config(serialized_config)
 
-        self.services[service_type][alias] = config
+        self.services[service_type][alias] = serialized_config
 
         if save:
-            self._save_encrypted_service(service_type, alias, config)
+            self._save_encrypted_service(service_type, alias, serialized_config)
 
     def _save_encrypted_service(self, service_type, alias, encrypted):
         """Write out the encrypted service to disk."""
@@ -663,7 +666,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"service config ({service_type}:{alias})",
             )
         else:
-            config = load_decrypted_config_from_bytes(config)
+            config = load_config_from_json_or_pickle(config)
             org = self._construct_config(ConfigClass, [config, alias, self])
 
         return org
