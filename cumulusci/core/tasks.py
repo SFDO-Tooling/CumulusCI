@@ -354,10 +354,6 @@ class BaseSalesforceTask(BaseTask):
 
     @property
     def api_version(self):
-        print(
-            "project__package__api_version",
-            self.project_config.lookup("project__package__api_version", None),
-        )
         if not self._api_version:
             self._api_version = (
                 self.project_config.lookup("project__package__api_version", None)

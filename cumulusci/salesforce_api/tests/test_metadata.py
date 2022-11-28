@@ -99,8 +99,6 @@ class TestBaseTestMetadataApi:
         )
         return response
 
-    from pysnooper import snoop
-
     def _create_instance(self, task, api_version=None):
         return self.api_class(task, api_version=api_version)
 
@@ -134,7 +132,6 @@ class TestBaseTestMetadataApi:
         }
         task = self._create_task(org_config=org_config)
         api = self._create_instance(task)
-        print(api._build_endpoint_url())
         assert (
             api._build_endpoint_url()
             == "https://test-org.na12.my.salesforce.com/services/Soap/m/{}/{}".format(
