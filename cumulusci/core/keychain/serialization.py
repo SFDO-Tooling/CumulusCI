@@ -141,7 +141,6 @@ def serialize_config_to_json_or_pickle(config: dict, logger: Logger) -> bytes:
     """Serialize a dict to JSON if possible or Pickle otherwise"""
     as_json_text = check_round_trip(config, logger)
     if as_json_text and SHOULD_SAVE_AS_JSON:
-        print("JSON", SHOULD_SAVE_AS_JSON)
         assert isinstance(as_json_text, bytes)
         return as_json_text
     else:
