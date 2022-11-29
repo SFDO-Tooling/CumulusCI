@@ -19,10 +19,10 @@ def find_packages(path=["."], prefix=""):
 with open(os.path.join("cumulusci", "version.txt"), "r") as version_file:
     version = version_file.read().strip()
 
-with open("README.rst", "rb") as readme_file:
+with open("README.md", "rb") as readme_file:
     readme = readme_file.read().decode("utf-8")
 
-with open("HISTORY.rst", "rb") as history_file:
+with open("HISTORY.md", "rb") as history_file:
     history = history_file.read().decode("utf-8")
 
 with open("requirements/prod.txt") as requirements_file:
