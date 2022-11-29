@@ -4,8 +4,8 @@
 
 Issues Fixed 🩴
 
--   The `retrieve_changes` and `list_changes` tasks now properly exclude metadata types that `SFDX` is unable to process. These include: `AuraDefinition`, `ExperienceResource`, and `LightningComponentResource`. (#3443)
--   The `deploy_remote_site_settings` task has been updated to load the correct Remote Site Settings records for OmniStudio. (#3444)
+-   The `retrieve_changes` and `list_changes` tasks now properly exclude metadata types that `SFDX` is unable to process. These include: `AuraDefinition`, `ExperienceResource`, and `LightningComponentResource` by @jstvz in https://github.com/SFDO-Tooling/CumulusCI/pull/3443
+-   The `deploy_remote_site_settings` task has been updated to load the correct Remote Site Settings records for OmniStudio by @jofsky in https://github.com/SFDO-Tooling/CumulusCI/pull/3444
 
 ## 3.69.0 (2022-11-14)
 
