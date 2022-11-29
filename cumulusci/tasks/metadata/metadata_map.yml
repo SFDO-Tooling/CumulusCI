@@ -46,6 +46,10 @@ assignmentRules:
     - type: AssignmentRule
       class: MetadataFilenameParser
       extension: assignmentRules
+audience:
+    - type: Audience
+      class: MetadataFilenameParser
+      extension: audience
 aura:
     - type: AuraDefinitionBundle
       class: BundleParser
