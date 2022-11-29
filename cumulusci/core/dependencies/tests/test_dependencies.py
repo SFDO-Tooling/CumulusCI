@@ -1,6 +1,5 @@
 import io
 import os
-from distutils.version import StrictVersion
 from typing import List, Optional, Tuple
 from unittest import mock
 from zipfile import ZipFile
@@ -30,6 +29,7 @@ from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
     PackageInstallOptions,
 )
+from cumulusci.utils.version_strings import StrictVersion
 from cumulusci.utils.ziputils import zip_subfolder
 
 

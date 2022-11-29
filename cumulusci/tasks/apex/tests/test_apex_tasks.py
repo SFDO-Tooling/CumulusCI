@@ -4,7 +4,6 @@ import os
 import shutil
 import tempfile
 from copy import deepcopy
-from distutils.version import StrictVersion
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -31,6 +30,7 @@ from cumulusci.core.tests.utils import MockLoggerMixin
 from cumulusci.tasks.apex.anon import AnonymousApexTask
 from cumulusci.tasks.apex.batch import BatchApexWait
 from cumulusci.tasks.apex.testrunner import RunApexTests
+from cumulusci.utils.version_strings import StrictVersion
 
 
 @patch(

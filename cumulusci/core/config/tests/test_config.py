@@ -2,7 +2,6 @@
 import json
 import os
 import pathlib
-from distutils.version import StrictVersion
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
@@ -44,6 +43,7 @@ from cumulusci.core.keychain.base_project_keychain import (
 from cumulusci.core.source import LocalFolderSource
 from cumulusci.tests.util import DummyKeychain
 from cumulusci.utils import temporary_dir, touch
+from cumulusci.utils.version_strings import StrictVersion
 from cumulusci.utils.yaml.cumulusci_yml import GitHubSourceModel, LocalFolderSourceModel
 
 
