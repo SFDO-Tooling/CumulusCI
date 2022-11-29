@@ -41,11 +41,13 @@ jobs:
     unit_tests:
         name: "Unit tests: ${{ matrix.os }}-${{ matrix.python-version }}"
         runs-on: ${{ matrix.os }}
+        # FIXME: Remove when https://github.com/lxml/lxml/pull/356 is released upstream
+        continue-on-error: ${{ matrix.os == 'sfdc-windows-latest' && matrix.python-version == '3.11' }}
         strategy:
             fail-fast: false
             matrix:
                 os: [macos-latest, sfdc-ubuntu-latest, sfdc-windows-latest]
-                python-version: ["3.8", "3.9", "3.10"]
+                python-version: ["3.8", "3.9", "3.10", "3.11"]
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python
