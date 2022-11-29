@@ -1,5 +1,12 @@
 # History
 
+## 3.70.0 (2022-11-29)
+
+Issues Fixed 🩴
+
+-   CumulusCI now properly excludes MetaData types that `SFDX` is unable to process. These include: `AuraDefinition`, `ExperienceResource`, and `LightningComponentResource`. (#3443)
+-   The `deploy_remote_site_settings` task has been updated to load the correct Remote Site Settings records for OmniStudio. (#3444)
+
 ## 3.69.0 (2022-11-14)
 
 Changes 🎉
