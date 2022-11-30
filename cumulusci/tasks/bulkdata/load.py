@@ -145,8 +145,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         elif self.options.get("mapping"):
             self.options.setdefault("sql_path", "datasets/sample.sql")
         elif found_dataset := (
-            self._find_default_sample_dataset("default")
-            or self._find_old_style_default_dataset()
+            self._find_sample_data()
         ):  # didn't get either database_url or sql_path
             mapping_path, dataset_path = found_dataset
             self.options["mapping"] = mapping_path
@@ -155,6 +154,21 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self.has_dataset = False
             return
         self.has_dataset = True
+
+    def _find_sample_data(self) -> T.Optional[T.Tuple[str, str]]:
+        return (
+            self._find_default_sample_dataset_matching_org_shape()
+            or self._find_default_sample_dataset("default")
+            or self._find_old_style_default_dataset()
+        )
+
+    def _find_default_sample_dataset_matching_org_shape(
+        self,
+    ) -> T.Optional[T.Tuple[str, str]]:
+        if self.org_config:
+            org_shape = self.org_config.lookup("config_name")
+            if org_shape:
+                return self._find_default_sample_dataset(org_shape)
 
     def _find_default_sample_dataset(
         self, dataset_name
