@@ -805,7 +805,7 @@ flows:
             90:
                 task: load_dataset
                 options:
-                    org_shape_match_only: True
+                    default_dataset_only: True
     config_managed:
         group: Post-Install Configuration
         description: Configure an org for use after the managed package has been installed.
@@ -817,7 +817,7 @@ flows:
             90:
                 task: load_dataset
                 options:
-                    org_shape_match_only: True
+                    default_dataset_only: True
     config_packaging:
         group: Post-Install Configuration
         description: Configure packaging org for upload after package metadata is deployed
@@ -835,7 +835,7 @@ flows:
             90:
                 task: load_dataset
                 options:
-                    org_shape_match_only: True
+                    default_dataset_only: True
     config_regression:
         group: Post-Install Configuration
         description: Configure an org for QA regression after the package is installed

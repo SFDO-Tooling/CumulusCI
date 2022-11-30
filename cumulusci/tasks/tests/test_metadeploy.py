@@ -322,7 +322,7 @@ class TestPublish(GithubApiTestMixin):
                 "task_class": "cumulusci.tasks.bulkdata.LoadData",
                 "task_config": {
                     "options": {
-                        "org_shape_match_only": True,
+                        "default_dataset_only": True,
                         "ignore_row_errors": False,
                         "mapping": None,
                         "sql_path": None,

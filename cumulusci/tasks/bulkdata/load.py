@@ -85,8 +85,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         "set_recently_viewed": {
             "description": "By default, the first 1000 records inserted via the Bulk API will be set as recently viewed. If fewer than 1000 records are inserted, existing objects of the same type being inserted will also be set as recently viewed.",
         },
-        "org_shape_match_only": {
-            "description": "When True, all path options are ignored and only a dataset matching the org shape name will be loaded. Defaults to False."
+        "default_dataset_only": {
+            "description": "When True, all path options are ignored and only the default dataset in datasets/default/default.dataset.sql will be loaded."
         },
     }
     row_warning_limit = 10
@@ -118,20 +118,20 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
     def _init_dataset(self):
         """Find the dataset paths to use with the following sequence:
-        1. If `org_shape_match_only` is True (defaults False),
+        1. If `default_dataset_only` is True (defaults False),
            unset any other path options that may have been supplied.
         2. Prefer a supplied `database_url`.
         3. If `sql_path` was supplied, but not `mapping`, use default `mapping` value.
         4. If `mapping` was supplied, but not `sql_path`, use default `sql_path` value.
         5. If no path options were supplied, look for a dataset matching the org shape.
-        6. If no matching dataset was found AND `org_shape_match_only` is False,
+        6. If no matching dataset was found AND `default_dataset_only` is False,
            look for a dataset with the default `mapping` and `sql_path` values
            (as previously defaulted in the standard library yml).
         """
-        self.options["org_shape_match_only"] = process_bool_arg(
-            self.options.get("org_shape_match_only", False)
+        self.options["default_dataset_only"] = process_bool_arg(
+            self.options.get("default_dataset_only", False)
         )
-        if self.options["org_shape_match_only"]:
+        if self.options["default_dataset_only"]:
             self.options["mapping"] = None
             self.options["sql_path"] = None
             self.options["database_url"] = None
@@ -145,7 +145,8 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         elif self.options.get("mapping"):
             self.options.setdefault("sql_path", "datasets/sample.sql")
         elif found_dataset := (
-            self._find_matching_dataset() or self._find_default_dataset()
+            self._find_default_sample_dataset("default")
+            or self._find_old_style_default_dataset()
         ):  # didn't get either database_url or sql_path
             mapping_path, dataset_path = found_dataset
             self.options["mapping"] = mapping_path
@@ -155,29 +156,35 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             return
         self.has_dataset = True
 
-    def _find_matching_dataset(self) -> T.Optional[T.Tuple[str, str]]:
-        org_shape = self.org_config.lookup("config_name") if self.org_config else None
-        if not org_shape:
-            return None  # persistent org
-        dataset_folder = f"datasets/{org_shape}"
+    def _find_default_sample_dataset(
+        self, dataset_name
+    ) -> T.Optional[T.Tuple[str, str]]:
+        dataset_folder = f"datasets/{dataset_name}"
         if Path(dataset_folder).exists():
             # check for dataset.sql and mapping.yml
-            mapping_path = f"{dataset_folder}/{org_shape}.mapping.yml"
-            dataset_path = f"{dataset_folder}/{org_shape}.dataset.sql"
+            mapping_path = f"{dataset_folder}/{dataset_name}.mapping.yml"
+            dataset_path = f"{dataset_folder}/{dataset_name}.dataset.sql"
             if Path(mapping_path).exists() and Path(dataset_path).exists():
                 return (mapping_path, dataset_path)
             else:
                 self.logger.warning(
-                    f"Found datasets/{org_shape} but it did not contain {org_shape}.mapping.yml and {org_shape}.dataset.yml."
+                    f"Found datasets/{dataset_name} but it did not contain {dataset_name}.mapping.yml and {dataset_name}.dataset.yml."
                 )
         return None
 
-    def _find_default_dataset(self) -> T.Optional[T.Tuple[str, str]]:
-        if self.options["org_shape_match_only"]:
+    def _find_old_style_default_dataset(self) -> T.Optional[T.Tuple[str, str]]:
+        if self.options["default_dataset_only"]:
             return None
         dataset_path = "datasets/sample.sql"
         mapping_path = "datasets/mapping.yml"
         if Path(dataset_path).exists() and Path(mapping_path).exists():
+            self.logger.warning(
+                "If you move your dataset to datasets/default.dataset.sql "
+                "and datasets/default.mapping.yml then CumulusCI will load it automatically for you "
+                "in the standard flows. If you prefer to keep the dataset where it is, please supply "
+                "an explicit path in your cumulusci.yml or on your command line. In the future, "
+                "CumulusCI will not look for its default at `datasets/sample.sql` anymore."
+            )
             return (mapping_path, dataset_path)
         return None
 
