@@ -144,19 +144,35 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                     ]
                 )
                 raise KeychainKeyNotFound(message) from e
-            # Convert bytes created in Python 2
-            config_dict = {}
-            for k, v in unpickled.items():
-                if isinstance(k, bytes):
-                    k = k.decode("utf-8")
-                if isinstance(v, bytes):
-                    v = v.decode("utf-8")
-                config_dict[k] = v
+
+        config_dict = self.cleanup_Python_2_configs(unpickled)
 
         args = [config_dict]
         if extra:
             args += extra
         return self._construct_config(config_class, args)
+
+    def cleanup_Python_2_configs(self, unpickled):
+        # Convert bytes created in Python 2
+        config_dict = {}
+
+        # After a few months, we can clean up this code if nobody reports
+        # warnings.
+        message = (
+            "Unexpected bytes found in config.\n"
+            "Please inform the CumulusCI team.\n"
+            "Future versions of CumulusCI may break your config."
+        )
+        for k, v in unpickled.items():
+            if isinstance(k, bytes):
+                self.logger.warning(message)
+                k = k.decode("utf-8")
+            if isinstance(v, bytes):
+                self.logger.warning(message)
+                v = v.decode("utf-8")
+            config_dict[k] = v
+
+        return config_dict
 
     def _construct_config(self, config_class, args):
         config = args[0]
