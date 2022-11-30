@@ -247,8 +247,7 @@ class TestCreateNetworkMemberGroups:
 
         task.sf = Mock()
 
-        insert_response = Mock()
-        task.sf.NetworkMemberGroup.create = Mock(insert_response)
+        task.sf.NetworkMemberGroup.create = Mock()
 
         # Execute the test.
         with pytest.raises(CumulusCIException) as context:
@@ -278,9 +277,7 @@ class TestCreateNetworkMemberGroups:
         task.sf = Mock()
         task.sf.NetworkMemberGroup = Mock()
 
-        insert_response = Mock()
-        insert_response.get = Mock()
-        task.sf.NetworkMemberGroup.create = Mock(insert_response)
+        task.sf.NetworkMemberGroup.create = Mock()
 
         # Execute the test.
         task._create_network_member_group(sobject_type, parent_name, parent_id)
