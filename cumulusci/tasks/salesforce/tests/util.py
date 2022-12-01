@@ -2,7 +2,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
 
-from cumulusci.core.config import OrgConfig, TaskConfig
+from cumulusci.core.config import TaskConfig
+from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.tests.util import DummyKeychain, create_project_config
 
 
@@ -34,9 +35,17 @@ def create_task(task_class, options=None, project_config=None, org_config=None):
 
 
 def patch_dir(patch_path, file_path):
+    def return_file_path(*args, **kwargs):
+        """
+        Python 3.11 removed pathlib._Accessor. This replaced a call to
+        os.getcwd() with Path.cwd() in Path.absolute(). This means we can have 0
+        or 1 arguments.
+        """
+        return file_path
+
     directory = Path(file_path)
     directory.mkdir(parents=True, exist_ok=True)
-    patch = mock.patch(patch_path, lambda: file_path)
+    patch = mock.patch(patch_path, return_file_path)
     patch.start()
     return patch
 
