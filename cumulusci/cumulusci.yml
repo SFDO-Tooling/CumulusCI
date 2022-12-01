@@ -669,9 +669,17 @@ tasks:
             sql_path: "datasets/sample.sql"
         group: "Data Operations"
     load_dataset:
-        description: Load a sample dataset using the bulk API.
-        class_path: cumulusci.tasks.bulkdata.LoadData
+        description: Load a SQL dataset using the bulk API.
+        class_path: cumulusci.tasks.bulkdata.load.LoadData
         group: "Data Operations"
+    load_sample_data:
+        description: Load a saved sample dataset
+        class_path: cumulusci.tasks.sample_data.load_sample_data.LoadSampleData
+        group: "Sample Data"
+    capture_sample_data:
+        description: Load a saved sample dataset
+        class_path: cumulusci.tasks.sample_data.capture_sample_data.CaptureSampleData
+        group: "Sample Data"
     load_custom_settings:
         description: Load Custom Settings specified in a YAML file to the target org
         class_path: cumulusci.tasks.salesforce.LoadCustomSettings
@@ -803,9 +811,7 @@ flows:
             2:
                 task: update_admin_profile
             90:
-                task: load_dataset
-                options:
-                    default_dataset_only: True
+                task: load_sample_data
     config_managed:
         group: Post-Install Configuration
         description: Configure an org for use after the managed package has been installed.
@@ -815,9 +821,7 @@ flows:
             2:
                 task: update_admin_profile
             90:
-                task: load_dataset
-                options:
-                    default_dataset_only: True
+                task: load_sample_data
     config_packaging:
         group: Post-Install Configuration
         description: Configure packaging org for upload after package metadata is deployed
@@ -833,9 +837,7 @@ flows:
             2:
                 task: update_admin_profile
             90:
-                task: load_dataset
-                options:
-                    default_dataset_only: True
+                task: load_sample_data
     config_regression:
         group: Post-Install Configuration
         description: Configure an org for QA regression after the package is installed

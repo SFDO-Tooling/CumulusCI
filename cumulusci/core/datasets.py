@@ -99,8 +99,11 @@ class Dataset:
     def temp_extract_mapping(self, schema):
         with TemporaryDirectory() as t:
             t = Path(t)
-            with self.extract_file.open() as f:
-                decls = ExtractRulesFile.parse_extract(f)
+            if self.extract_file.exists():
+                f = self.extract_file
+            else:
+                f = StringIO(DEFAULT_EXTRACT_DATA)
+            decls = ExtractRulesFile.parse_extract(f)
 
             extract_mapping = t / "extract.mapping.yml"
             with extract_mapping.open("w") as f:
@@ -110,10 +113,10 @@ class Dataset:
                     ),
                     f,
                 )
-            yield extract_mapping
+            yield extract_mapping, decls
 
     def extract(self):
-        with self.temp_extract_mapping(self.schema) as extract_mapping:
+        with self.temp_extract_mapping(self.schema) as (extract_mapping, decls):
             task = _make_task(
                 ExtractData,
                 project_config=self.project_config,
@@ -122,8 +125,7 @@ class Dataset:
                 mapping=str(extract_mapping),
             )
             task()
-        with open(self.extract_file) as f:
-            self._save_load_mapping(list(ExtractRulesFile.parse_extract(f).values()))
+        self._save_load_mapping(list(decls.values()))
 
     def load(self):
 

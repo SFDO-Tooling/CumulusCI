@@ -135,6 +135,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self.options["mapping"] = None
             self.options["sql_path"] = None
             self.options["database_url"] = None
+            self.logger.warning(
+                "The `default_dataset_only` option has been deprecated. "
+                "Please switch to the `load_sample_data` task."
+            )
 
         self.options.setdefault("database_url", None)
         if self.options.get("database_url"):
