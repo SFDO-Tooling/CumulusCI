@@ -373,8 +373,8 @@ class TestSynthesizeExtractDeclarations:
             assert "WorkBadgeDefinition" in decls
             # HEY NOW!
             assert "You\\'re a RockStar!" in decls["WorkBadgeDefinition"].where
-            if "Contact" in decls:
-                assert "DoNotCall" not in decls["Contact"].fields, decls.keys()
+            if "Opportunity" in decls:
+                assert "IsPrivate" not in decls["Opportunity"].fields, decls.keys()
 
 
 @lru_cache(maxsize=None)
