@@ -320,7 +320,7 @@ class TestCustomObjectParser:
 class TestRecordTypeParser:
     def test_check_delete_excludes(self):
         parser = RecordTypeParser(
-            "RecordType", None, "object", True, "./sf:recordTypes"
+            "RecordType", None, "object", True, item_xpath="./sf:recordTypes"
         )
         assert parser.check_delete_excludes("asdf")
 
@@ -328,7 +328,7 @@ class TestRecordTypeParser:
 class TestBusinessProcessParser:
     def test_check_delete_excludes(self):
         parser = BusinessProcessParser(
-            "BusinessProcess", None, "object", True, "./sf:businessProcesses"
+            "BusinessProcess", None, "object", True, item_xpath="./sf:businessProcesses"
         )
         assert parser.check_delete_excludes("asdf")
 
