@@ -162,11 +162,16 @@ def _expand_field_definitions(
     for c in group_declarations:
         declarations.extend(_find_matching_field_declarations(c, schema_fields))
 
+    def required(field):
+        defaulted = (
+            field.defaultValue is not None or field.nillable or field.defaultedOnCreate
+        )
+        already_specified = field.name in declarations
+        return field.createable and not defaulted and not already_specified
+
     # add in all of the required fields
     declarations.extend(
-        field.name
-        for field in schema_fields.values()
-        if (field.createable and not field.nillable and field.name not in declarations)
+        field.name for field in schema_fields.values() if required(field)
     )
     # get rid of OwnerId because we don't move users between orgs
     if "OwnerId" in declarations:

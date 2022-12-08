@@ -309,7 +309,6 @@ class TestSynthesizeExtractDeclarations:
                 "ContactId",
                 "AccountId",
                 "CloseDate",  # pull these in because they required
-                "IsPrivate",
                 "StageName",
             ]
             assert "Account" in decls
@@ -351,6 +350,7 @@ class TestSynthesizeExtractDeclarations:
             assert "Custom__c" not in decls
 
             assert set(decls["Account"].fields) == set(["Name", "Description"])
+            assert decls["Contact"].fields == ["LastName"], decls["Contact"].fields
 
     @pytest.mark.needs_org()
     @pytest.mark.slow()
@@ -372,7 +372,9 @@ class TestSynthesizeExtractDeclarations:
             decls = {decl.sf_object: decl for decl in decls}
             assert "WorkBadgeDefinition" in decls
             # HEY NOW!
-            assert "You\\'re a RockStar!" in decls.get("WorkBadgeDefinition").where
+            assert "You\\'re a RockStar!" in decls["WorkBadgeDefinition"].where
+            if "Contact" in decls:
+                assert "DoNotCall" not in decls["Contact"].fields, decls.keys()
 
 
 @lru_cache(maxsize=None)
