@@ -14,7 +14,7 @@ any data.
 
 ## Sample Data
 
-CumulusCI has high-level tasks for working with the primary
+CumulusCI has easy to use tasks for working with the primary
 sample datasets used for projects. There is a 'default' dataset
 which would be used in scratch org configuration flows, as well
 as other datasets specific to the needs of specific scratch orgconfigurations.
@@ -45,7 +45,7 @@ using the task `capture_sample_data` like this:
 $ cci task run capture_sample_data --org orgname
 ```
 
-That will extract all of the data from the Salesforce
+That will extract the data from the Salesforce
 org named `orgname` into the dataset named `default`.
 
 You can then load it into any target org (e.g.
@@ -58,6 +58,12 @@ $ cci task run load_sample_data --org org2
 A main benefit of sample datasets is that they are always
 loaded automatically into scratch orgs by the scratch org
 setup flows like `dev_org` and `qa_org`.
+
+The exact subset of data captured depends on heuristics
+that may change over time, so do not depend on this task
+in a highly automated situation. It is designed to be
+used interactively, and you can control its behavior
+with an [Extract Declaration](data/extract_declarations.md) file.
 
 ### Multiple Sample Datasets
 
@@ -75,10 +81,11 @@ $ cci task run capture_sample_data --dataset qa --org org2
 ```
 
 This would create two datasets in `datasets/dev` and `datasets/qa`
-which would be loaded instead of `datasets/default`.
+which would be loaded instead of `datasets/default`. You can
+create as many datasets as you want.
 
 You can download just a subset of the objects or fields in an org with
-an Extract Declaration file.
+an [Extract Declaration](data/extract_declarations.md) file.
 
 ## Low level datasets
 

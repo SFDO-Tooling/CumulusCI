@@ -42,5 +42,6 @@ class CaptureSampleData(BaseSalesforceApiTask):
                 verb = "Created"
             else:
                 verb = "Updated"
-            dataset.extract()
+            self.return_values = dataset.extract()
             self.logger.info(f"{verb} dataset '{name}' in 'datasets/{name}'")
+            return self.return_values

@@ -3,11 +3,13 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from io import StringIO
 from pathlib import Path
+from shutil import rmtree
 from tempfile import TemporaryDirectory
 
 import yaml
 from simple_salesforce import Salesforce
 
+from cumulusci.core import exceptions as exc
 from cumulusci.core.config import BaseProjectConfig, OrgConfig, TaskConfig
 from cumulusci.salesforce_api.org_schema import Filters, Schema, get_org_schema
 from cumulusci.tasks.bulkdata.extract import ExtractData
@@ -26,6 +28,7 @@ from cumulusci.tasks.bulkdata.generate_mapping_utils.generate_mapping_from_decla
     create_load_mapping_file_from_extract_declarations,
 )
 from cumulusci.tasks.bulkdata.load import LoadData
+from cumulusci.tasks.bulkdata.snowfakery import Snowfakery
 
 
 @dataclass
@@ -52,6 +55,12 @@ class Dataset:
     @property
     def data_file(self) -> Path:
         return self.path / f"{self.name}.dataset.sql"
+
+    def exists(self) -> bool:
+        return self.path.exists()
+
+    def delete(self):
+        rmtree(str(self.path))
 
     def __enter__(self, *args, **kwargs):
         if self.schema is None:
@@ -126,8 +135,35 @@ class Dataset:
             )
             task()
         self._save_load_mapping(list(decls.values()))
+        return task.return_values
+
+    def _snowfakery_dataload(self, recipe: Path) -> dict:
+        subtask_config = TaskConfig(
+            {"options": {**self.options, "recipe": str(recipe)}}
+        )
+        subtask = Snowfakery(
+            project_config=self.project_config,
+            task_config=subtask_config,
+            org_config=self.org_config,
+            flow=self.flow,
+            name=self.name,
+            stepnum=self.stepnum,
+            logger=self.logger,
+        )
+        subtask()
+        return subtask.return_values
 
     def load(self):
+        if self.data_file.exists():
+            self._sql_dataload()
+        elif self.snowfakery_recipe.exists():
+            self._snowfakery_dataload()
+        else:  # pragma: no cover
+            raise exc.BulkDataException(
+                f"Dataset has no SQL ({self.data_file}) or recipe ({self.snowfakery_recipe})"
+            )
+
+    def _sql_dataload(self):
 
         task = _make_task(
             LoadData,

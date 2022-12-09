@@ -1,9 +1,8 @@
-from pathlib import Path
+from typing import Optional
 
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.datasets import Dataset
 from cumulusci.core.exceptions import TaskOptionsError
-from cumulusci.tasks.bulkdata.load import LoadData
-from cumulusci.tasks.bulkdata.snowfakery import Snowfakery
+from cumulusci.salesforce_api.org_schema import Filters, get_org_schema
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
@@ -26,88 +25,58 @@ class LoadSampleData(BaseSalesforceApiTask):
     }
 
     def _run_task(self):
-        dataset_dir = self.find_dataset()
-        self.return_values = self._load_sample_data(dataset_dir)
+        name: str = self._find_dataset()
+        print("XXX", name)
+        if not name:
+            return
+        with get_org_schema(
+            self.sf,
+            self.org_config,
+            include_counts=True,
+            filters=[Filters.extractable, Filters.createable],
+        ) as schema, Dataset(
+            name,
+            self.project_config,
+            self.sf,
+            self.org_config,
+            schema,
+        ) as dataset:
+            self.return_values = dataset.load()
         return self.return_values
 
-    def find_dataset(self):
+    def _find_dataset(self) -> Optional[str]:
+        def dataset_for_name(name: str):
+            return Dataset(name, self.project_config, self.sf, self.org_config)
+
+        checked_folders = []
         dataset_name = self.options.get("dataset")
         if dataset_name:
-            named_dataset_dir = Path("datasets", dataset_name)
-            if named_dataset_dir.exists():
-                return named_dataset_dir
+            dsf = dataset_for_name(dataset_name)
+            if dsf.exists():
+                return dataset_name
             else:
-                raise TaskOptionsError(
-                    f"Could not find dataset directory {named_dataset_dir}"
-                )
+                raise TaskOptionsError(f"Could not find dataset directory {dsf.path}")
 
         config_name = self.org_config.lookup("config_name")
-        config_based_dataset_dir = Path("datasets", config_name)
-        if config_based_dataset_dir.exists():
-            return config_based_dataset_dir
+        if config_name:
+            config_dsf = dataset_for_name(config_name)
+            if config_dsf.exists():
+                return config_name
+            else:
+                checked_folders.append(config_dsf.path)
 
-        default_dataset_dir = Path("datasets", "default")
-        if default_dataset_dir.exists():
-            return default_dataset_dir
+        default_dsf = dataset_for_name("default")
+        if default_dsf.exists():
+            return "default"
+        else:
+            checked_folders.append(default_dsf.path)
+
+        checked_folders = " and ".join(
+            str(f.relative_to(self.project_config.repo_root)) for f in checked_folders
+        )
         # Don't throw exception in this case
         self.logger.info(
-            f"No contextual sample data found. (looked in 'datasets/default' and 'datasets/{config_name}') Skipping step."
+            f"No contextual sample data found. (looked in '{checked_folders}') Skipping step."
         )
 
-    def _load_sample_data(self, path: Path):
-        name = path.name
-        snowfakery_path = path / f"{name}.recipe.yml"
-        sql_path = path / f"{name}.dataset.sql"
-        mapping_path = path / f"{name}.mapping.yml"
-        if snowfakery_path.exists():
-            if sql_path.exists():
-                raise TaskOptionsError(
-                    f"{path} includes both a Snowfakery recipe and a SQL file"
-                )
-            return self._snowfakery_dataload(snowfakery_path)
-        elif sql_path.exists():
-            if not mapping_path.exists():
-                raise TaskOptionsError("Cannot load from SQL without a mapping file.")
-            return self._sql_dataload(sql_path, mapping_path)
-        else:
-            raise TaskOptionsError(
-                f"Cannot find either {snowfakery_path} or {sql_path}"
-            )
-
-    def _snowfakery_dataload(self, recipe: Path) -> dict:
-        subtask_config = TaskConfig(
-            {"options": {**self.options, "recipe": str(recipe)}}
-        )
-        subtask = Snowfakery(
-            project_config=self.project_config,
-            task_config=subtask_config,
-            org_config=self.org_config,
-            flow=self.flow,
-            name=self.name,
-            stepnum=self.stepnum,
-            logger=self.logger,
-        )
-        subtask()
-        return subtask.return_values
-
-    def _sql_dataload(self, sql_path: Path, mapping_path: Path) -> dict:
-        subtask_config = TaskConfig(
-            {
-                "options": {
-                    **self.options,
-                    "sql_path": str(sql_path),
-                    "mapping": str(mapping_path),
-                }
-            }
-        )
-        subtask = LoadData(
-            project_config=self.project_config,
-            task_config=subtask_config,
-            org_config=self.org_config,
-            flow=self.flow,
-            name=self.name,
-            stepnum=self.stepnum,
-            logger=self.logger,
-        )
-        subtask()
-        return subtask.return_values
+        return None
