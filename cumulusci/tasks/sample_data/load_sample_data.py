@@ -1,9 +1,10 @@
 from typing import Optional
 
+from cumulusci.core.config import OrgConfig
 from cumulusci.core.datasets import Dataset
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.org_schema import Filters, get_org_schema
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 
 
 class LoadSampleData(BaseSalesforceApiTask):
@@ -23,10 +24,10 @@ class LoadSampleData(BaseSalesforceApiTask):
             "description": "By default, the first 1000 records inserted via the Bulk API will be set as recently viewed. If fewer than 1000 records are inserted, existing objects of the same type being inserted will also be set as recently viewed.",
         },
     }
+    org_config: OrgConfig
 
     def _run_task(self):
-        name: str = self._find_dataset()
-        print("XXX", name)
+        name = self._find_dataset()
         if not name:
             return
         with get_org_schema(
@@ -41,7 +42,7 @@ class LoadSampleData(BaseSalesforceApiTask):
             self.org_config,
             schema,
         ) as dataset:
-            self.return_values = dataset.load()
+            self.return_values = dataset.load(self.options, self.logger)
         return self.return_values
 
     def _find_dataset(self) -> Optional[str]:

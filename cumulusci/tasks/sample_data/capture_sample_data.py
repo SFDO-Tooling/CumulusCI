@@ -1,6 +1,7 @@
+from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.datasets import Dataset
 from cumulusci.salesforce_api.org_schema import Filters, get_org_schema
-from cumulusci.tasks.salesforce import BaseSalesforceApiTask
+from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 
 
 class CaptureSampleData(BaseSalesforceApiTask):
@@ -18,6 +19,8 @@ class CaptureSampleData(BaseSalesforceApiTask):
             "description": "A file describing what to be extracted."
         },
     }
+
+    org_config: OrgConfig
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
@@ -42,6 +45,6 @@ class CaptureSampleData(BaseSalesforceApiTask):
                 verb = "Created"
             else:
                 verb = "Updated"
-            self.return_values = dataset.extract()
+            self.return_values = dataset.extract({}, self.logger)
             self.logger.info(f"{verb} dataset '{name}' in 'datasets/{name}'")
             return self.return_values

@@ -45,12 +45,14 @@ class TestCaptureDatasets:
         org_config,
     ):
         with setup_test(org_config):
-            task = create_task(LoadSampleData, {})
+            task = create_task(LoadSampleData, {"ignore_row_errors": True})
             task()
             # default dataset should opened
             Dataset.assert_any_call("default", mock.ANY, mock.ANY, org_config, mock.ANY)
             # and loaded
-            Dataset().__enter__().load.assert_called_with()
+            Dataset().__enter__().load.assert_called_with(
+                {"ignore_row_errors": True}, task.logger
+            )
 
     @mock.patch("cumulusci.tasks.sample_data.load_sample_data.Dataset")
     def test_simple_extract__name(
@@ -67,7 +69,9 @@ class TestCaptureDatasets:
                 "mydataset", mock.ANY, mock.ANY, org_config, mock.ANY
             )
             # and loaded
-            Dataset().__enter__().load.assert_called_with()
+            Dataset().__enter__().load.assert_called_with(
+                {"dataset": "mydataset"}, task.logger
+            )
 
     @mock.patch("cumulusci.tasks.sample_data.load_sample_data.Dataset")
     def test_simple_extract__scratch_config(
@@ -90,13 +94,13 @@ class TestCaptureDatasets:
                     "qwerty", mock.ANY, mock.ANY, org_config, mock.ANY
                 )
                 # and loaded
-                Dataset().__enter__().load.assert_called_with()
+                Dataset().__enter__().load.assert_called_with({}, task.logger)
             finally:
                 ds.delete()
 
     def test_no_match_to_name(self, create_task):
-        task = create_task(LoadSampleData, {"dataset": "foo"})
-        with pytest.raises(TaskOptionsError, match="Could not find.*foo"):
+        task = create_task(LoadSampleData, {"dataset": "f.z.f.efa.f"})
+        with pytest.raises(TaskOptionsError, match="Could not find.*f.z.f.efa.f"):
             task()
 
     @mock.patch(

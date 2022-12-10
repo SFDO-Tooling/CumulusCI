@@ -20,7 +20,7 @@ class SimplifiedExtractDeclarationWithLookups(SimplifiedExtractDeclaration):
 
 
 def create_load_mapping_file_from_extract_declarations(
-    decls: T.List[ExtractDeclaration],
+    decls: T.Sequence[ExtractDeclaration],
     schema: Schema,
 ) -> T.Dict[str, dict]:
     """Create a mapping file from Extract declarations"""

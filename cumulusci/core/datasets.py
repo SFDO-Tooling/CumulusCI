@@ -2,6 +2,7 @@ import typing as T
 from contextlib import contextmanager
 from dataclasses import dataclass
 from io import StringIO
+from logging import Logger, getLogger
 from pathlib import Path
 from shutil import rmtree
 from tempfile import TemporaryDirectory
@@ -30,6 +31,8 @@ from cumulusci.tasks.bulkdata.generate_mapping_utils.generate_mapping_from_decla
 from cumulusci.tasks.bulkdata.load import LoadData
 from cumulusci.tasks.bulkdata.snowfakery import Snowfakery
 
+DEFAULT_LOGGER = getLogger(__file__)
+
 
 @dataclass
 class Dataset:
@@ -37,12 +40,12 @@ class Dataset:
     project_config: BaseProjectConfig
     sf: Salesforce
     org_config: OrgConfig
-    schema: Schema = None
+    schema: T.Optional[Schema] = None
     initialized = False
 
     @property
     def path(self) -> Path:
-        return Path(self.project_config.repo_root) / "datasets" / self.name
+        return Path(self.project_config.repo_root or "") / "datasets" / self.name
 
     @property
     def extract_file(self) -> Path:
@@ -56,6 +59,10 @@ class Dataset:
     def data_file(self) -> Path:
         return self.path / f"{self.name}.dataset.sql"
 
+    @property
+    def snowfakery_recipe(self) -> Path:
+        return self.path / f"{self.name}.recipe.yml"
+
     def exists(self) -> bool:
         return self.path.exists()
 
@@ -65,7 +72,7 @@ class Dataset:
     def __enter__(self, *args, **kwargs):
         if self.schema is None:
             self.schema_context = self._get_org_schema()
-            self.schema = self.schema_context.__enter__(*args, **kwargs)
+            self.schema = self.schema_context.__enter__(*args, **kwargs)  # type: ignore
         else:
             self.schema_context = None
         self.initialized = True
@@ -73,7 +80,7 @@ class Dataset:
 
     def __exit__(self, *args, **kwargs):
         if self.schema_context:
-            self.schema_context.__exit__(*args, **kwargs)
+            self.schema_context.__exit__(*args, **kwargs)  # type: ignore
 
     def create(self):
         assert (
@@ -98,6 +105,7 @@ class Dataset:
         )
 
     def _save_load_mapping(self, decls: T.Sequence[ExtractDeclaration]) -> None:
+        assert isinstance(self.schema, Schema)
         mapping_data = create_load_mapping_file_from_extract_declarations(
             decls, self.schema
         )
@@ -124,7 +132,11 @@ class Dataset:
                 )
             yield extract_mapping, decls
 
-    def extract(self):
+    def extract(
+        self, options: T.Optional[T.Dict] = None, logger: T.Optional[Logger] = None
+    ):
+        options = options or {}
+        logger = logger or DEFAULT_LOGGER
         with self.temp_extract_mapping(self.schema) as (extract_mapping, decls):
             task = _make_task(
                 ExtractData,
@@ -137,33 +149,34 @@ class Dataset:
         self._save_load_mapping(list(decls.values()))
         return task.return_values
 
-    def _snowfakery_dataload(self, recipe: Path) -> dict:
+    def _snowfakery_dataload(self, options: T.Dict, logger: Logger) -> T.Dict:
         subtask_config = TaskConfig(
-            {"options": {**self.options, "recipe": str(recipe)}}
+            {"options": {**options, "recipe": str(self.snowfakery_recipe)}}
         )
         subtask = Snowfakery(
             project_config=self.project_config,
             task_config=subtask_config,
             org_config=self.org_config,
-            flow=self.flow,
-            name=self.name,
-            stepnum=self.stepnum,
-            logger=self.logger,
+            logger=logger,
         )
         subtask()
         return subtask.return_values
 
-    def load(self):
+    def load(
+        self, options: T.Optional[T.Dict] = None, logger: T.Optional[Logger] = None
+    ):
+        options = options or {}
+        logger = logger or DEFAULT_LOGGER
         if self.data_file.exists():
-            self._sql_dataload()
+            self._sql_dataload(options)
         elif self.snowfakery_recipe.exists():
-            self._snowfakery_dataload()
+            self._snowfakery_dataload(options, logger)
         else:  # pragma: no cover
             raise exc.BulkDataException(
                 f"Dataset has no SQL ({self.data_file}) or recipe ({self.snowfakery_recipe})"
             )
 
-    def _sql_dataload(self):
+    def _sql_dataload(self, options: T.Dict):
 
         task = _make_task(
             LoadData,
@@ -171,15 +184,18 @@ class Dataset:
             org_config=self.org_config,
             sql_path=self.data_file,
             mapping=str(self.mapping_file),
+            **options,
         )
         task()
 
     def read_schema_subset(self) -> T.Dict[str, T.List[str]]:
+        assert isinstance(self.schema, Schema)
         decls = ExtractRulesFile.parse_extract(self.extract_file)
         flattened = flatten_declarations(list(decls.values()), self.schema)
-        return {obj.sf_object: obj.fields for obj in flattened}
+        return {obj.sf_object: obj.fields for obj in flattened}  # type: ignore
 
     def read_which_fields_selected(self) -> T.Dict[str, T.Dict[str, bool]]:
+        assert isinstance(self.schema, Schema)
         selected = self.read_schema_subset()
         selected_fields = {
             (obj, field) for obj, fields in selected.items() for field in fields

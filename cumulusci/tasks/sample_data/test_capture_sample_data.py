@@ -45,7 +45,7 @@ class TestCaptureDatasetss:
             # default dataset should created
             Dataset.assert_any_call("default", mock.ANY, mock.ANY, org_config, mock.ANY)
             # and extracted
-            Dataset().__enter__().extract.assert_called_with()
+            Dataset().__enter__().extract.assert_called_with({}, task.logger)
 
     @mock.patch("cumulusci.tasks.sample_data.capture_sample_data.Dataset")
     def test_named_extract(
@@ -64,4 +64,4 @@ class TestCaptureDatasetss:
             )
             Dataset().__enter__().create.assert_called_with()
             # and extracted
-            Dataset().__enter__().extract.assert_called_with()
+            Dataset().__enter__().extract.assert_called_with({}, task.logger)
