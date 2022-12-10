@@ -72,7 +72,6 @@ include = [
     'cumulusci/tasks/bulkdata/dates.py',
     'cumulusci/core/versions.py',
     'cumulusci/salesforce_api/soap_envelopes.py',
-    'cumulusci/core/datasets.py',
     'cumulusci/core/template_utils.py',
     'cumulusci/utils/ziputils.py',
     'cumulusci/tasks/github/__init__.py',

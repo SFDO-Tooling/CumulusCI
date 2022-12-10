@@ -15,6 +15,7 @@ def get_frozen_steps(project_config, plan_config):
         if step.skip:
             continue
         with cd(step.project_config.repo_root):
+            assert step.task_class
             task = step.task_class(
                 step.project_config,
                 TaskConfig(step.task_config),
