@@ -136,6 +136,9 @@ nodeenv==1.7.0
     # via pre-commit
 packaging==21.3
     # via
+    #   pre-commit
+    #   pyright
+packaging==22.0
     #   pytest
     #   sphinx
     #   tox
@@ -174,8 +177,8 @@ pygments==2.13.0
     #   readme-renderer
     #   rich
     #   sphinx
-pyparsing==3.0.9
-    # via packaging
+pyright==1.1.283
+    # via -r requirements/dev.in
 pyrsistent==0.19.2
     # via jsonschema
 pytest==7.0.1

@@ -26,3 +26,11 @@ repos:
       rev: v2.5.1
       hooks:
           - id: prettier
+    - repo: local
+      hooks:
+          - id: pyright
+            name: pyright
+            entry: pyright
+            language: node
+            types: [python]
+            pass_filenames: false

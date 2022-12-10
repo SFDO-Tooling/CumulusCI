@@ -9,6 +9,7 @@ isort
 jsonschema
 myst-parser
 pre-commit
+pyright
 pytest<7.1 # https://github.com/pytest-dev/pytest/issues/9765
 pytest-cov
 pytest-random-order
