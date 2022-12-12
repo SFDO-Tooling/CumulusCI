@@ -73,8 +73,7 @@ class AddLookupsToQuery(LoadQueryExtender):
             value_column = getattr(self.model, key_field)
             return (
                 lookup.aliased_table,
-                lookup.aliased_table.columns.id == ("" + value_column),
-                # lookup.aliased_table.columns.id == func.concat(lookup.table, "-", value_column),
+                lookup.aliased_table.columns.id == value_column,
             )
 
         return [join_for_lookup(lookup) for lookup in self.lookups]
