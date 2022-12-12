@@ -31,6 +31,7 @@ known_third_party = "robot"
 [tool.pyright]
 reportMissingImports = "warning"
 exclude = ["**/test_*", "**/tests/**"]
+# Add files to this list as you make them compatible.
 include = [
     'cumulusci/core/metadeploy/api.py',
     'cumulusci/tasks/metadata_etl/value_sets.py',
@@ -72,7 +73,6 @@ include = [
     'cumulusci/tasks/github/merge.py',
     'cumulusci/core/exceptions.py',
     'cumulusci/tasks/bulkdata/dates.py',
-    'cumulusci/core/versions.py',
     'cumulusci/salesforce_api/soap_envelopes.py',
     'cumulusci/core/template_utils.py',
     'cumulusci/utils/ziputils.py',
@@ -150,7 +150,6 @@ strict = [
     'cumulusci/core/metadeploy/__init__.py',
     'cumulusci/core/source/__init__.py',
     'cumulusci/core/source_transforms/__init__.py',
-    'cumulusci/core/versions.py',
     'cumulusci/oauth/__init__.py',
     'cumulusci/oauth/exceptions.py',
     'cumulusci/robotframework/locators_54.py',
