@@ -29,7 +29,7 @@ known_first_party = "cumulusci"
 known_third_party = "robot"
 
 [tool.pyright]
-stubPath = ""
+reportMissingImports = "warning"
 exclude = ["**/test_*", "**/tests/**"]
 include = [
     'cumulusci/core/metadeploy/api.py',
@@ -136,7 +136,6 @@ include = [
     'cumulusci/core/config/sfdx_org_config.py',
     'cumulusci/tasks/marketing_cloud/api.py',
     'cumulusci/tasks/bulkdata/__init__.py',
-    'cumulusci/tasks/user/set_user_field.py',
     'cumulusci/tasks/metadata_etl/objects.py'
 ]
 # Do not add to this list. Instead use
