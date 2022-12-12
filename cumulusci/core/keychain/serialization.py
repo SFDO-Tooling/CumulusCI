@@ -91,6 +91,11 @@ def try_load_config_from_json_or_pickle(data: bytes) -> dict:
         return config
     except ValueError as e1:
         try:
+            # first byte in a Pickle must be part of
+            # OPCODE Proto == \x80 == 128
+            # https://github.com/python/cpython/blob/1b293b60067f6f4a95984d064ce0f6b6d34c1216/Lib/pickletools.py#L2124
+            if data[0] != 128:
+                raise ValueError("Decryption error")
             config = pickle.loads(data, encoding="bytes")
             # remove this debugging tool after transition
             config["serialization_format"] = "pickle"
