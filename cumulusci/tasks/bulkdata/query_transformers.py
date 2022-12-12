@@ -12,9 +12,17 @@ Criterion = T.Any
 class LoadQueryExtender:
     """Class that transforms a load.py query with columns, filters, joins"""
 
-    columns_to_add = cached_property(lambda *args: None)
-    filters_to_add = cached_property(lambda *args: None)
-    outerjoins_to_add = cached_property(lambda *args: None)
+    @cached_property
+    def columns_to_add(*args) -> T.Optional[T.List]:
+        return None
+
+    @cached_property
+    def filters_to_add(*args) -> T.Optional[T.List]:
+        return None
+
+    @cached_property
+    def outerjoins_to_add(*args) -> T.Optional[T.List]:
+        return None
 
     def __init__(self, mapping, metadata, model) -> None:
         self.mapping, self.metadata, self.model = mapping, metadata, model
@@ -65,7 +73,8 @@ class AddLookupsToQuery(LoadQueryExtender):
             value_column = getattr(self.model, key_field)
             return (
                 lookup.aliased_table,
-                lookup.aliased_table.columns.id == value_column,
+                lookup.aliased_table.columns.id == ("" + value_column),
+                # lookup.aliased_table.columns.id == func.concat(lookup.table, "-", value_column),
             )
 
         return [join_for_lookup(lookup) for lookup in self.lookups]

@@ -90,6 +90,7 @@ include = [
     'cumulusci/core/keychain/subprocess_keychain.py',
     'cumulusci/tasks/apex/__init__.py',
     'cumulusci/tasks/bulkdata/snowfakery_utils/subtask_configurator.py',
+    'cumulusci/tasks/bulkdata/query_transformers.py',
     'cumulusci/core/source/__init__.py',
     'cumulusci/tasks/bulkdata/generate.py',
     'cumulusci/core/debug.py',
