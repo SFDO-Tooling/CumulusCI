@@ -29,6 +29,8 @@ known_first_party = "cumulusci"
 known_third_party = "robot"
 
 [tool.pyright]
+stubPath = ""
+exclude = ["**/test_*", "**/tests/**"]
 include = [
     'cumulusci/core/metadeploy/api.py',
     'cumulusci/tasks/metadata_etl/value_sets.py',
@@ -136,8 +138,6 @@ include = [
     'cumulusci/tasks/user/set_user_field.py',
     'cumulusci/tasks/metadata_etl/objects.py'
 ]
-exclude = ["**/test_*", "**/tests/**"]
-stubPath = ""
 # Do not add to this list. Instead use
 # # pyright: strict
 strict = [
