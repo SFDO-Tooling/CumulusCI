@@ -119,6 +119,24 @@ options:
                     replace: bar
 ```
 
+### Find-and-Replace Id Injection
+
+Some pieces metadata are deployed with Id references in them. CumulusCI offers a way to place the Id of a record that exists in a target org directly into your metadata components prior to deploying. Specify a SOQL query with the `replace_record_id_query` option as follows:
+
+```yaml
+task: deploy
+options:
+    transforms:
+        - transform: find_replace
+          options:
+              patterns:
+                  - find: special_string
+                    replace_record_id_query: SELECT Id from Account WHERE name="Specific Account"
+                    api: rest
+```
+
+Available values for `api` include `rest` and `tooling`.
+
 ### Stripping Components with a `package.xml` Manifest
 
 This transformation allows you to deploy a subset of a metadata directory based on a `package.xml` manifest by removing unwanted components. It will compare components available in the source folder with a provided `package.xml` file and delete/modify component files which are not found.
