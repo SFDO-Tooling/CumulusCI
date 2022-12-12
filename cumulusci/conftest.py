@@ -2,6 +2,7 @@ import io
 import os
 from contextlib import contextmanager
 from http.client import HTTPMessage
+from logging import getLogger
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
@@ -12,6 +13,7 @@ from pytest import fixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.github import get_github_api
 from cumulusci.salesforce_api.org_schema_models import Base
 from cumulusci.tasks.salesforce.tests.util import create_task_fixture
@@ -154,3 +156,10 @@ def global_describe(cumulusci_test_repo_root):
 @pytest.fixture(scope="session")
 def shared_vcr_cassettes(cumulusci_test_repo_root):
     return Path(cumulusci_test_repo_root / "cumulusci/tests/shared_cassettes")
+
+
+@pytest.fixture
+def context(org_config, project_config):
+    return TaskContext(
+        org_config=org_config, project_config=project_config, logger=getLogger()
+    )

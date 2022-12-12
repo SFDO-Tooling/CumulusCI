@@ -6,7 +6,6 @@ import os
 import shutil
 import typing as T
 import zipfile
-from logging import Logger
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -363,7 +362,9 @@ class FindReplaceTransform(SourceTransform):
                 if not spec.paths or any(
                     parent in path.parents for parent in spec.paths
                 ):
-                    content = content.replace(spec.find, spec.get_replace_string())
+                    content = content.replace(
+                        spec.find, spec.get_replace_string(context)
+                    )
 
             return (filename, content)
 
@@ -382,14 +383,14 @@ class StripUnwantedComponentTransform(SourceTransform):
     def __init__(self, options: StripUnwantedComponentsOptions):
         self.options = options
 
-    def process(self, zf: ZipFile, logger: Logger) -> ZipFile:
+    def process(self, zf: ZipFile, context: TaskContext) -> ZipFile:
         package_xml_path = os.path.abspath(os.path.expanduser(self.options.package_xml))
 
         zip_dest = zipfile.ZipFile(io.BytesIO(), "w", zipfile.ZIP_DEFLATED)
         with temporary_dir():
             zf.extractall()
             RemoveSourceComponents(
-                os.getcwd(), package_xml_path, api_version=None, logger=logger
+                os.getcwd(), package_xml_path, api_version=None, logger=context.logger
             )()
             shutil.copy(package_xml_path, "package.xml")
             for root, _, files in os.walk("."):

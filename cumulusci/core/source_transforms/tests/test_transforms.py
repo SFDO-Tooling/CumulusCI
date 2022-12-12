@@ -9,9 +9,10 @@ from zipfile import ZipFile
 import pytest
 from pydantic import ValidationError
 
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.source_transforms.transforms import (
     CleanMetaXMLTransform,
+    FindReplaceIdAPI,
     FindReplaceTransform,
     FindReplaceTransformOptions,
     NamespaceInjectionTransform,
@@ -81,7 +82,7 @@ class ZipFileSpec:
             return False
 
 
-def test_namespace_inject():
+def test_namespace_inject(context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec(
             {
@@ -91,21 +92,23 @@ def test_namespace_inject():
             }
         ).as_zipfile(),
         options={"namespace_inject": "ns", "unmanaged": False},
+        context=context,
     )
     assert ZipFileSpec({Path("ns__Foo.cls"): "System.debug('ns__blah');"}) == builder.zf
 
 
-def test_namespace_inject__unmanaged():
+def test_namespace_inject__unmanaged(context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec(
             {Path("___NAMESPACE___Foo.cls"): "System.debug('%%%NAMESPACE%%%blah');"}
         ).as_zipfile(),
         options={"namespace_inject": "ns"},
+        context=context,
     )
     assert ZipFileSpec({Path("Foo.cls"): "System.debug('blah');"}) == builder.zf
 
 
-def test_namespace_inject__namespaced_org():
+def test_namespace_inject__namespaced_org(context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec(
             {
@@ -115,22 +118,25 @@ def test_namespace_inject__namespaced_org():
             }
         ).as_zipfile(),
         options={"namespace_inject": "ns", "namespaced_org": True},
+        context=context,
     )
     assert ZipFileSpec({Path("Foo.cls"): "System.debug('ns__blah');"}) == builder.zf
 
 
-def test_namespace_strip():
+def test_namespace_strip(context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec({Path("ns__Foo.cls"): "System.debug('ns__blah');"}).as_zipfile(),
         options={"namespace_strip": "ns", "unmanaged": False},
+        context=context,
     )
     assert ZipFileSpec({Path("Foo.cls"): "System.debug('blah');"}) == builder.zf
 
 
-def test_namespace_tokenize():
+def test_namespace_tokenize(context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec({Path("ns__Foo.cls"): "System.debug('ns__blah');"}).as_zipfile(),
         options={"namespace_tokenize": "ns", "unmanaged": False},
+        context=context,
     )
     assert (
         ZipFileSpec(
@@ -140,7 +146,7 @@ def test_namespace_tokenize():
     )
 
 
-def test_namespace_injection_ignores_binary():
+def test_namespace_injection_ignores_binary(context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec(
             {
@@ -149,6 +155,7 @@ def test_namespace_injection_ignores_binary():
             }
         ).as_zipfile(),
         options={"namespace_tokenize": "ns", "unmanaged": False},
+        context=context,
     )
     assert (
         ZipFileSpec(
@@ -161,7 +168,7 @@ def test_namespace_injection_ignores_binary():
     )
 
 
-def test_clean_meta_xml():
+def test_clean_meta_xml(context):
     xml_data = """<?xml version="1.0" encoding="UTF-8"?>
 <ApexClass xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>56.0</apiVersion>
@@ -178,12 +185,13 @@ def test_clean_meta_xml():
     </ApexClass>"""
 
     builder = MetadataPackageZipBuilder.from_zipfile(
-        ZipFileSpec({Path("classes/Foo.cls-meta.xml"): xml_data}).as_zipfile()
+        ZipFileSpec({Path("classes/Foo.cls-meta.xml"): xml_data}).as_zipfile(),
+        context=context,
     )
     assert ZipFileSpec({Path("classes/Foo.cls-meta.xml"): xml_data_clean}) == builder.zf
 
 
-def test_clean_meta_xml__inactive():
+def test_clean_meta_xml__inactive(context):
     xml_data = """<?xml version="1.0" encoding="UTF-8"?>
 <ApexClass xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>56.0</apiVersion>
@@ -198,11 +206,12 @@ def test_clean_meta_xml__inactive():
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec({Path("classes") / "Foo.cls-meta.xml": xml_data}).as_zipfile(),
         options={"clean_meta_xml": False},
+        context=context,
     )
     assert ZipFileSpec({Path("classes") / "Foo.cls-meta.xml": xml_data}) == builder.zf
 
 
-def test_remove_feature_parameters():
+def test_remove_feature_parameters(context):
     xml_data = """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>TestPackage</fullName>
@@ -237,6 +246,7 @@ def test_remove_feature_parameters():
             }
         ).as_zipfile(),
         options={"package_type": "Unlocked"},
+        context=context,
     )
     assert (
         ZipFileSpec(
@@ -249,7 +259,7 @@ def test_remove_feature_parameters():
     )
 
 
-def test_remove_feature_parameters__inactive():
+def test_remove_feature_parameters__inactive(context):
     xml_data = """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>TestPackage</fullName>
@@ -272,6 +282,7 @@ def test_remove_feature_parameters__inactive():
                 Path("classes") / "MyClass.cls": "blah",
             }
         ).as_zipfile(),
+        context=context,
     )
     assert (
         ZipFileSpec(
@@ -285,7 +296,7 @@ def test_remove_feature_parameters__inactive():
     )
 
 
-def test_bundle_static_resources():
+def test_bundle_static_resources(context):
     xml_data = """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>TestPackage</fullName>
@@ -337,6 +348,7 @@ def test_bundle_static_resources():
                 }
             ).as_zipfile(),
             options={"static_resource_path": str(statics_dir)},
+            context=context,
         )
 
         foo_spec = ZipFileSpec(
@@ -364,13 +376,14 @@ def test_bundle_static_resources():
         assert compare_spec == zf
 
 
-def test_find_replace_static():
+def test_find_replace_static(context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec(
             {
                 Path("Foo.cls"): "System.debug('blah');",
             }
         ).as_zipfile(),
+        context=context,
         transforms=[
             FindReplaceTransform(
                 FindReplaceTransformOptions.parse_obj(
@@ -390,7 +403,7 @@ def test_find_replace_static():
     )
 
 
-def test_find_replace_environ():
+def test_find_replace_environ(context):
     with mock.patch.dict(os.environ, {"INSERT_TEXT": "ye"}):
         builder = MetadataPackageZipBuilder.from_zipfile(
             ZipFileSpec(
@@ -398,6 +411,7 @@ def test_find_replace_environ():
                     Path("Foo.cls"): "System.debug('blah');",
                 }
             ).as_zipfile(),
+            context=context,
             transforms=[
                 FindReplaceTransform(
                     FindReplaceTransformOptions.parse_obj(
@@ -417,7 +431,7 @@ def test_find_replace_environ():
         )
 
 
-def test_find_replace_environ__not_found():
+def test_find_replace_environ__not_found(context):
     assert "INSERT_TEXT" not in os.environ
     with pytest.raises(TaskOptionsError):
         MetadataPackageZipBuilder.from_zipfile(
@@ -426,6 +440,7 @@ def test_find_replace_environ__not_found():
                     Path("Foo.cls"): "System.debug('blah');",
                 }
             ).as_zipfile(),
+            context=context,
             transforms=[
                 FindReplaceTransform(
                     FindReplaceTransformOptions.parse_obj(
@@ -436,7 +451,7 @@ def test_find_replace_environ__not_found():
         )
 
 
-def test_find_replace_filtered():
+def test_find_replace_filtered(context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec(
             {
@@ -444,6 +459,7 @@ def test_find_replace_filtered():
                 Path("Bar.cls"): "System.debug('blah');",
             }
         ).as_zipfile(),
+        context=context,
         transforms=[
             FindReplaceTransform(
                 FindReplaceTransformOptions.parse_obj(
@@ -468,7 +484,7 @@ def test_find_replace_filtered():
     )
 
 
-def test_find_replace_multiple():
+def test_find_replace_multiple(context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec(
             {
@@ -476,6 +492,7 @@ def test_find_replace_multiple():
                 Path("Bar.cls"): "System.debug('blah');",
             }
         ).as_zipfile(),
+        context=context,
         transforms=[
             FindReplaceTransform(
                 FindReplaceTransformOptions.parse_obj(
@@ -499,6 +516,72 @@ def test_find_replace_multiple():
         )
         == builder.zf
     )
+
+
+@pytest.mark.parametrize("api", [FindReplaceIdAPI.REST, FindReplaceIdAPI.TOOLING])
+def test_find_replace_id(api):
+    context = mock.Mock()
+    result = {"totalSize": 1, "records": [{"Id": "00D"}]}
+    context.org_config.salesforce_client.query.return_value = result
+    context.org_config.tooling.query.return_value = result
+    options = FindReplaceTransformOptions.parse_obj(
+        {
+            "patterns": [
+                {
+                    "find": "00Y",
+                    "replace_record_id_query": "SELECT Id FROM Account WHERE name='Initech Corp.'",
+                    "api": api,
+                },
+            ]
+        }
+    )
+    builder = MetadataPackageZipBuilder.from_zipfile(
+        ZipFileSpec(
+            {
+                Path("classes") / "Foo.cls": "System.debug('00Y');",
+                Path("Bar.cls"): "System.debug('blah');",
+            }
+        ).as_zipfile(),
+        context=context,
+        transforms=[FindReplaceTransform(options)],
+    )
+
+    assert (
+        ZipFileSpec(
+            {
+                Path("classes") / "Foo.cls": "System.debug('00D');",
+                Path("Bar.cls"): "System.debug('blah');",
+            }
+        )
+        == builder.zf
+    )
+
+
+def test_find_replace_id__bad_query_result():
+    context = mock.Mock()
+    result = {"totalSize": 0}
+    context.org_config.salesforce_client.query.return_value = result
+    options = FindReplaceTransformOptions.parse_obj(
+        {
+            "patterns": [
+                {
+                    "find": "00Y",
+                    "replace_record_id_query": "SELECT Id FROM Account WHERE name='Initech Corp.'",
+                },
+            ]
+        }
+    )
+    with pytest.raises(CumulusCIException):
+        MetadataPackageZipBuilder.from_zipfile(
+            ZipFileSpec(
+                {
+                    Path("classes") / "Foo.cls": "System.debug('00Y');",
+                    Path("Bar.cls"): "System.debug('blah');",
+                }
+            ).as_zipfile(),
+            context=context,
+            transforms=[FindReplaceTransform(options)],
+        )
 
 
 def test_source_transform_parsing():
@@ -536,7 +619,7 @@ def test_source_transform_parsing__bad_transform():
         assert "destroy_the_things is not valid" in str(e)
 
 
-def test_strip_unwanted_files():
+def test_strip_unwanted_files(context):
     """
     This test covers all strip options available during deployment.
     It covers below scenarios:
@@ -641,6 +724,7 @@ def test_strip_unwanted_files():
                     Path(os.path.join("lwc", "lwcBundle2", "lwc2.cmp")): "Comp 2",
                 }
             ).as_zipfile(),
+            context=context,
             transforms=[
                 StripUnwantedComponentTransform(
                     StripUnwantedComponentsOptions.parse_obj(
