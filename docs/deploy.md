@@ -137,6 +137,22 @@ options:
 
 Available values for `api` include `rest` and `tooling`.
 
+### Find-and-Replace Current Username
+
+CumulusCI can replace a given token with the username of the current running user in the target Salesforce org.
+All that is needed is to specify a value for `find` and set `inject_username: True`:
+
+```yaml
+task: deploy
+options:
+    transforms:
+        - transform: find_replace
+          options:
+              patterns:
+                  - find: special_string
+                    inject_username: True
+```
+
 ### Stripping Components with a `package.xml` Manifest
 
 This transformation allows you to deploy a subset of a metadata directory based on a `package.xml` manifest by removing unwanted components. It will compare components available in the source folder with a provided `package.xml` file and delete/modify component files which are not found.

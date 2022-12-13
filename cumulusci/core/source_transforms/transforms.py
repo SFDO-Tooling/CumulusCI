@@ -340,8 +340,26 @@ class FindReplaceIdSpec(FindReplaceBaseSpec):
         return results["records"][0]["Id"]
 
 
+class FindReplaceCurrentUserSpec(FindReplaceBaseSpec):
+    inject_username: bool = True
+
+    def get_replace_string(self, context: TaskContext) -> str:
+        if not self.inject_username:  # pragma: no cover
+            raise CumulusCIException(
+                f"find-replace current user transform requires inject_username to be 'True' but got: {self.inject_username}"
+            )
+        return context.org_config.username
+
+
 class FindReplaceTransformOptions(BaseModel):
-    patterns: T.List[T.Union[FindReplaceSpec, FindReplaceEnvSpec, FindReplaceIdSpec]]
+    patterns: T.List[
+        T.Union[
+            FindReplaceSpec,
+            FindReplaceEnvSpec,
+            FindReplaceIdSpec,
+            FindReplaceCurrentUserSpec,
+        ]
+    ]
 
 
 class FindReplaceTransform(SourceTransform):

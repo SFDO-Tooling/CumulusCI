@@ -82,7 +82,7 @@ class ZipFileSpec:
             return False
 
 
-def test_namespace_inject(context):
+def test_namespace_inject(task_context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec(
             {
@@ -92,23 +92,23 @@ def test_namespace_inject(context):
             }
         ).as_zipfile(),
         options={"namespace_inject": "ns", "unmanaged": False},
-        context=context,
+        context=task_context,
     )
     assert ZipFileSpec({Path("ns__Foo.cls"): "System.debug('ns__blah');"}) == builder.zf
 
 
-def test_namespace_inject__unmanaged(context):
+def test_namespace_inject__unmanaged(task_context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec(
             {Path("___NAMESPACE___Foo.cls"): "System.debug('%%%NAMESPACE%%%blah');"}
         ).as_zipfile(),
         options={"namespace_inject": "ns"},
-        context=context,
+        context=task_context,
     )
     assert ZipFileSpec({Path("Foo.cls"): "System.debug('blah');"}) == builder.zf
 
 
-def test_namespace_inject__namespaced_org(context):
+def test_namespace_inject__namespaced_org(task_context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec(
             {
@@ -118,25 +118,25 @@ def test_namespace_inject__namespaced_org(context):
             }
         ).as_zipfile(),
         options={"namespace_inject": "ns", "namespaced_org": True},
-        context=context,
+        context=task_context,
     )
     assert ZipFileSpec({Path("Foo.cls"): "System.debug('ns__blah');"}) == builder.zf
 
 
-def test_namespace_strip(context):
+def test_namespace_strip(task_context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec({Path("ns__Foo.cls"): "System.debug('ns__blah');"}).as_zipfile(),
         options={"namespace_strip": "ns", "unmanaged": False},
-        context=context,
+        context=task_context,
     )
     assert ZipFileSpec({Path("Foo.cls"): "System.debug('blah');"}) == builder.zf
 
 
-def test_namespace_tokenize(context):
+def test_namespace_tokenize(task_context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec({Path("ns__Foo.cls"): "System.debug('ns__blah');"}).as_zipfile(),
         options={"namespace_tokenize": "ns", "unmanaged": False},
-        context=context,
+        context=task_context,
     )
     assert (
         ZipFileSpec(
@@ -146,7 +146,7 @@ def test_namespace_tokenize(context):
     )
 
 
-def test_namespace_injection_ignores_binary(context):
+def test_namespace_injection_ignores_binary(task_context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec(
             {
@@ -155,7 +155,7 @@ def test_namespace_injection_ignores_binary(context):
             }
         ).as_zipfile(),
         options={"namespace_tokenize": "ns", "unmanaged": False},
-        context=context,
+        context=task_context,
     )
     assert (
         ZipFileSpec(
@@ -168,7 +168,7 @@ def test_namespace_injection_ignores_binary(context):
     )
 
 
-def test_clean_meta_xml(context):
+def test_clean_meta_xml(task_context):
     xml_data = """<?xml version="1.0" encoding="UTF-8"?>
 <ApexClass xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>56.0</apiVersion>
@@ -186,12 +186,12 @@ def test_clean_meta_xml(context):
 
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec({Path("classes/Foo.cls-meta.xml"): xml_data}).as_zipfile(),
-        context=context,
+        context=task_context,
     )
     assert ZipFileSpec({Path("classes/Foo.cls-meta.xml"): xml_data_clean}) == builder.zf
 
 
-def test_clean_meta_xml__inactive(context):
+def test_clean_meta_xml__inactive(task_context):
     xml_data = """<?xml version="1.0" encoding="UTF-8"?>
 <ApexClass xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>56.0</apiVersion>
@@ -206,12 +206,12 @@ def test_clean_meta_xml__inactive(context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec({Path("classes") / "Foo.cls-meta.xml": xml_data}).as_zipfile(),
         options={"clean_meta_xml": False},
-        context=context,
+        context=task_context,
     )
     assert ZipFileSpec({Path("classes") / "Foo.cls-meta.xml": xml_data}) == builder.zf
 
 
-def test_remove_feature_parameters(context):
+def test_remove_feature_parameters(task_context):
     xml_data = """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>TestPackage</fullName>
@@ -246,7 +246,7 @@ def test_remove_feature_parameters(context):
             }
         ).as_zipfile(),
         options={"package_type": "Unlocked"},
-        context=context,
+        context=task_context,
     )
     assert (
         ZipFileSpec(
@@ -259,7 +259,7 @@ def test_remove_feature_parameters(context):
     )
 
 
-def test_remove_feature_parameters__inactive(context):
+def test_remove_feature_parameters__inactive(task_context):
     xml_data = """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>TestPackage</fullName>
@@ -282,7 +282,7 @@ def test_remove_feature_parameters__inactive(context):
                 Path("classes") / "MyClass.cls": "blah",
             }
         ).as_zipfile(),
-        context=context,
+        context=task_context,
     )
     assert (
         ZipFileSpec(
@@ -296,7 +296,7 @@ def test_remove_feature_parameters__inactive(context):
     )
 
 
-def test_bundle_static_resources(context):
+def test_bundle_static_resources(task_context):
     xml_data = """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>TestPackage</fullName>
@@ -348,7 +348,7 @@ def test_bundle_static_resources(context):
                 }
             ).as_zipfile(),
             options={"static_resource_path": str(statics_dir)},
-            context=context,
+            context=task_context,
         )
 
         foo_spec = ZipFileSpec(
@@ -376,14 +376,14 @@ def test_bundle_static_resources(context):
         assert compare_spec == zf
 
 
-def test_find_replace_static(context):
+def test_find_replace_static(task_context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec(
             {
                 Path("Foo.cls"): "System.debug('blah');",
             }
         ).as_zipfile(),
-        context=context,
+        context=task_context,
         transforms=[
             FindReplaceTransform(
                 FindReplaceTransformOptions.parse_obj(
@@ -403,7 +403,7 @@ def test_find_replace_static(context):
     )
 
 
-def test_find_replace_environ(context):
+def test_find_replace_environ(task_context):
     with mock.patch.dict(os.environ, {"INSERT_TEXT": "ye"}):
         builder = MetadataPackageZipBuilder.from_zipfile(
             ZipFileSpec(
@@ -411,7 +411,7 @@ def test_find_replace_environ(context):
                     Path("Foo.cls"): "System.debug('blah');",
                 }
             ).as_zipfile(),
-            context=context,
+            context=task_context,
             transforms=[
                 FindReplaceTransform(
                     FindReplaceTransformOptions.parse_obj(
@@ -431,7 +431,7 @@ def test_find_replace_environ(context):
         )
 
 
-def test_find_replace_environ__not_found(context):
+def test_find_replace_environ__not_found(task_context):
     assert "INSERT_TEXT" not in os.environ
     with pytest.raises(TaskOptionsError):
         MetadataPackageZipBuilder.from_zipfile(
@@ -440,7 +440,7 @@ def test_find_replace_environ__not_found(context):
                     Path("Foo.cls"): "System.debug('blah');",
                 }
             ).as_zipfile(),
-            context=context,
+            context=task_context,
             transforms=[
                 FindReplaceTransform(
                     FindReplaceTransformOptions.parse_obj(
@@ -451,7 +451,7 @@ def test_find_replace_environ__not_found(context):
         )
 
 
-def test_find_replace_filtered(context):
+def test_find_replace_filtered(task_context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec(
             {
@@ -459,7 +459,7 @@ def test_find_replace_filtered(context):
                 Path("Bar.cls"): "System.debug('blah');",
             }
         ).as_zipfile(),
-        context=context,
+        context=task_context,
         transforms=[
             FindReplaceTransform(
                 FindReplaceTransformOptions.parse_obj(
@@ -484,7 +484,7 @@ def test_find_replace_filtered(context):
     )
 
 
-def test_find_replace_multiple(context):
+def test_find_replace_multiple(task_context):
     builder = MetadataPackageZipBuilder.from_zipfile(
         ZipFileSpec(
             {
@@ -492,7 +492,7 @@ def test_find_replace_multiple(context):
                 Path("Bar.cls"): "System.debug('blah');",
             }
         ).as_zipfile(),
-        context=context,
+        context=task_context,
         transforms=[
             FindReplaceTransform(
                 FindReplaceTransformOptions.parse_obj(
@@ -511,6 +511,39 @@ def test_find_replace_multiple(context):
         ZipFileSpec(
             {
                 Path("classes") / "Foo.cls": "System.debug('haah');",
+                Path("Bar.cls"): "System.debug('blah');",
+            }
+        )
+        == builder.zf
+    )
+
+
+def test_find_replace_current_user(task_context):
+    options = FindReplaceTransformOptions.parse_obj(
+        {
+            "patterns": [
+                {
+                    "find": "%%%CURRENT_USER%%%",
+                },
+            ]
+        }
+    )
+    builder = MetadataPackageZipBuilder.from_zipfile(
+        ZipFileSpec(
+            {
+                Path("classes") / "Foo.cls": "System.debug('%%%CURRENT_USER%%%');",
+                Path("Bar.cls"): "System.debug('blah');",
+            }
+        ).as_zipfile(),
+        context=task_context,
+        transforms=[FindReplaceTransform(options)],
+    )
+
+    expected_username = task_context.org_config.username
+    assert (
+        ZipFileSpec(
+            {
+                Path("classes") / "Foo.cls": f"System.debug('{expected_username}');",
                 Path("Bar.cls"): "System.debug('blah');",
             }
         )
@@ -619,7 +652,7 @@ def test_source_transform_parsing__bad_transform():
         assert "destroy_the_things is not valid" in str(e)
 
 
-def test_strip_unwanted_files(context):
+def test_strip_unwanted_files(task_context):
     """
     This test covers all strip options available during deployment.
     It covers below scenarios:
@@ -724,7 +757,7 @@ def test_strip_unwanted_files(context):
                     Path(os.path.join("lwc", "lwcBundle2", "lwc2.cmp")): "Comp 2",
                 }
             ).as_zipfile(),
-            context=context,
+            context=task_context,
             transforms=[
                 StripUnwantedComponentTransform(
                     StripUnwantedComponentsOptions.parse_obj(

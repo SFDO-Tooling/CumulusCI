@@ -159,7 +159,7 @@ def shared_vcr_cassettes(cumulusci_test_repo_root):
 
 
 @pytest.fixture
-def context(org_config, project_config):
+def task_context(org_config, project_config):
     return TaskContext(
         org_config=org_config, project_config=project_config, logger=getLogger()
     )
