@@ -34,7 +34,7 @@ from cumulusci.tasks.apex.testrunner import RunApexTests
 
 
 @patch(
-    "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials",
+    "cumulusci.core.tasks.BaseSalesforceTask._update_credentials",
     MagicMock(return_value=None),
 )
 class TestRunApexTests(MockLoggerMixin):
@@ -757,7 +757,7 @@ class TestRunApexTests(MockLoggerMixin):
 
 
 @patch(
-    "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials",
+    "cumulusci.core.tasks.BaseSalesforceTask._update_credentials",
     MagicMock(return_value=None),
 )
 class TestAnonymousApexTask:
@@ -934,7 +934,7 @@ class TestAnonymousApexTask:
 
 
 @patch(
-    "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials",
+    "cumulusci.core.tasks.BaseSalesforceTask._update_credentials",
     MagicMock(return_value=None),
 )
 class TestRunBatchApex(MockLoggerMixin):
