@@ -12,7 +12,7 @@ from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
 @patch(
-    "cumulusci.tasks.salesforce.BaseSalesforceTask._update_credentials",
+    "cumulusci.core.tasks.BaseSalesforceTask._update_credentials",
     MagicMock(return_value=None),
 )
 class TestSalesforceToolingTask:
