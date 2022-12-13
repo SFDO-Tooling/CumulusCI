@@ -137,7 +137,7 @@ options:
 
 Available values for `api` include `rest` and `tooling`.
 
-### Find-and-Replace Current Username
+### Find-and-Replace Current Username Injection
 
 CumulusCI can replace a given token with the username of the current running user in the target Salesforce org.
 All that is needed is to specify a value for `find` and set `inject_username: True`:
