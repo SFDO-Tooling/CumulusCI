@@ -55,8 +55,6 @@ the definition file. In many cases, it's easier to use the
 hand. See below for more details.
 ```
 
-````
-
 A simple dataset definition looks like this:
 
 ```yaml
@@ -79,7 +77,7 @@ Contacts:
     lookups:
         AccountId:
             table: Account
-````
+```
 
 This example defines two steps: `Accounts` and `Contacts`. (The names of
 steps are arbitrary). Each step governs the extraction or load of
@@ -579,9 +577,7 @@ Example: :
 
     cci task run extract_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
 
-(data-load-dataset)=
-
-### `load_dataset`
+### <a name="data-load-dataset"></a> `load_dataset`
 
 Load the data for a dataset into an org. If the storage is a database,
 persist new Salesforce Ids to storage.
