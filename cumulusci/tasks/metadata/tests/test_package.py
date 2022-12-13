@@ -365,3 +365,36 @@ class TestUpdatePackageXml:
             with open(output_path, "r") as f:
                 result = f.read()
             assert expected == result
+
+
+class TestUpdatePackageXmlInstallUninstallClass:
+    def test_run_task(self):
+        src_path = os.path.join(
+            __location__, "package_metadata", "namespaced_report_folder"
+        )
+        with open(os.path.join(src_path, "package_install_uninstall.xml"), "r") as f:
+            expected = f.read()
+        with temporary_dir() as path:
+            output_path = os.path.join(path, "package.xml")
+            project_config = BaseProjectConfig(
+                UniversalConfig(),
+                {
+                    "project": {
+                        "package": {
+                            "name": "Test Package",
+                            "api_version": "36.0",
+                            "install_class": "MyPostInstallClass",
+                            "uninstall_class": "MyPostUninstallClass",
+                        }
+                    }
+                },
+            )
+            task_config = TaskConfig(
+                {"options": {"path": src_path, "output": output_path, "managed": True}}
+            )
+            org_config = OrgConfig({}, "test")
+            task = UpdatePackageXml(project_config, task_config, org_config)
+            task()
+            with open(output_path, "r") as f:
+                result = f.read()
+            assert expected == result

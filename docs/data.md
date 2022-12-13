@@ -136,8 +136,6 @@ the definition file. In many cases, it's easier to use the
 hand. See below for more details.
 ```
 
-````
-
 A simple dataset definition looks like this:
 
 ```yaml
@@ -160,7 +158,7 @@ Contacts:
     lookups:
         AccountId:
             table: Account
-````
+```
 
 This example defines two steps: `Accounts` and `Contacts`. (The names of
 steps are arbitrary). Each step governs the extraction or load of
@@ -298,11 +296,13 @@ map Record Types by Developer Name into target orgs during loads.
 
 Older dataset definitions may also use a `record_type` key:
 
-    Accounts:
-        sf_object: Account
-        fields:
-            - Name
-        record_type: Organization
+```yaml
+Accounts:
+    sf_object: Account
+    fields:
+        - Name
+    record_type: Organization
+```
 
 This feature limits extraction to records possessing that specific
 Record Type, and assigns the same Record Type upon load.
@@ -424,8 +424,10 @@ The `filters` key encompasses filters applied to the SQL data store when
 loading data. Use of `filters` can support use cases where only a subset
 of stored data should be loaded. :
 
-    filters:
-        - 'SQL string'
+```yaml
+filters:
+    - "SQL string"
+```
 
 Note that `filters` uses SQL syntax, not SOQL. Filters do not perform
 filtration or data subsetting upon extraction; they only impact loading.
@@ -434,21 +436,25 @@ This is an advanced feature.
 The `static` key allows individual fields to be populated with a fixed,
 static value:
 
-    static:
-        CustomCheckbox__c: True
-        CustomDateField__c: 2019-01-01
+```yaml
+static:
+    CustomCheckbox__c: True
+    CustomDateField__c: 2019-01-01
+```
 
 The `soql_filter` key lets you specify a WHERE clause that should be
 used when extracting data from your Salesforce org:
 
-     Account:
-          sf_object: Account
-          table: Account
-          fields:
-            - Name
-            - Industry
-            - Type
-          soql_filter: "Industry = 'Higher Education' OR Type = 'Higher Education'"
+```yaml
+Account:
+    sf_object: Account
+    table: Account
+    fields:
+        - Name
+        - Industry
+        - Type
+    soql_filter: "Industry = 'Higher Education' OR Type = 'Higher Education'"
+```
 
 Note that trying to load data that is extracted using `soql_filter` may
 cause "invalid cross reference id" errors if related object records
@@ -464,7 +470,9 @@ within the stored database.
 
 If the `fields` list for an sObject contains a mapping:
 
-    Id: sf_id
+```yaml
+Id: sf_id
+```
 
 CumulusCI will extract the Salesforce Id for each record and use that Id
 as the primary key in the stored database.
@@ -509,29 +517,33 @@ practice.
 A mapping file that is converted to use explicit namespacing might look
 like this:
 
-Original version: :
+Original version:
 
-    Destinations:
-        sf_object: Destination__c
-        fields:
-            Name: Name
-            Target__c: Target__c
-        lookups:
-            Supplier__c:
-                table: Supplier__c
+```yaml
+Destinations:
+    sf_object: Destination__c
+    fields:
+        Name: Name
+        Target__c: Target__c
+    lookups:
+        Supplier__c:
+            table: Supplier__c
+```
 
-Namespaced version: :
+Namespaced version:
 
-    Destinations:
-        sf_object: MyNS__Destination__c
-        table: Destination__c
-        fields:
-            MyNS__Name: Name
-            MyNS__Target__c: Target__c
-        lookups:
-            MyNS__Supplier__c:
-                key_field: Supplier__c
-                table: Supplier__c
+```yaml
+Destinations:
+    sf_object: MyNS__Destination__c
+    table: Destination__c
+    fields:
+        MyNS__Name: Name
+        MyNS__Target__c: Target__c
+    lookups:
+        MyNS__Supplier__c:
+            key_field: Supplier__c
+            table: Supplier__c
+```
 
 Note that each of the definition elements that refer to _local_ storage
 remains un-namespaced, while those elements referring to the Salesforce
@@ -589,27 +601,27 @@ Each top-level YAML key should be the API name of a Custom Setting. List
 Custom Settings should contain a nested map of names to values.
 Hierarchy Custom settings should contain a list, each of which contains
 a `data` key and a `location` key. The
-`location` key may contain either `profile: \<profile name\>`, `user: name: \<username\>`,
-`user: email: \<email\>`, or `org`.
+`location` key may contain either `profile: <profile name>`, `user: name: <username>`,
+`user: email: <email>`, or `org`.
 
-Example: :
+Example:
 
-    List__c:
-        Test:
-            MyField__c: 1
-        Test 2:
-            MyField__c: 2
-    Hierarchy__c:
-        -
-            location: org
-            data:
-                MyField__c: 1
-        -
-            location:
-                user:
-                    name: test@example.com
-            data:
-                MyField__c: 2"""
+```yaml
+List__c:
+    Test:
+        MyField__c: 1
+    Test 2:
+        MyField__c: 2
+Hierarchy__c:
+    - location: org
+      data:
+          MyField__c: 1
+    - location:
+          user:
+              name: test@example.com
+      data:
+          MyField__c: 2
+```
 
 CumulusCI will automatically resolve the `location` specified for
 Hierarchy Custom Settings to a `SetupOwnerId`. Any Custom Settings
@@ -630,9 +642,11 @@ manually updating the required setting in the User Interface section of
 Saleforce Setup, or by updating your scratch org configuration to
 include :
 
-    "securitySettings": {
-      "enableAuditFieldsInactiveOwner": true
-    }
+```json
+"securitySettings": {
+    "enableAuditFieldsInactiveOwner": true
+}
+```
 
 For more information about the Set Audit Fields feature, review [this
 Knowledge
@@ -660,9 +674,7 @@ Example: :
 
     cci task run extract_dataset -o mapping datasets/qa/mapping.yml -o sql_path datasets/qa/data.sql --org qa
 
-(data-load-dataset)=
-
-### `load_dataset`
+### <a name="data-load-dataset"></a> `load_dataset`
 
 Load the data for a dataset into an org. If the storage is a database,
 persist new Salesforce Ids to storage.
@@ -804,29 +816,29 @@ You can filter the rows that you're updating like this:
 
 The recipe for an update can be as simple as this:
 
-```
+```yaml
 object: Account
 fields:
-NumberOfEmployees: 10000
+    NumberOfEmployees: 10000
 ```
 
 You can use all of the power of `snowfakery` to add fake data:
 
-```
+```yaml
 object: Account
 fields:
-NumberOfEmployees: 10_000
-BillingStreet:
-fake: Streetname
+    NumberOfEmployees: 10_000
+    BillingStreet:
+        fake: Streetname
 ```
 
 Using Snowfakery formulas, you can also refer to specific input fields
 like this:
 
-```
+```yaml
 object: Account
 fields:
-Description: ${{input.Name}} is our favorite customer in ${{input.BillingCity}}
+    Description: ${{input.Name}} is our favorite customer in ${{input.BillingCity}}
 ```
 
 To tell CumulusCI to extract those fields and make them use the `fields`
@@ -877,14 +889,14 @@ it has loaded 400 Accounts.
 
 The counting works like this:
 
-> -   Snowfakery always executes a _complete_ recipe. It never stops
->     halfway through. If your recipe creates more records than you
->     need, you might overshoot. Usually the amount of overshoot is just
->     a few records, but it depends on the details of your recipe.
-> -   At the end of executing a recipe, it checks whether it has created
->     enough of the object type mentioned by the
->     `--run-until-records-loaded` parameter.
-> -   If so, it finishes. If not, it runs the recipe again.
+-   Snowfakery always executes a _complete_ recipe. It never stops
+    halfway through. If your recipe creates more records than you
+    need, you might overshoot. Usually the amount of overshoot is just
+    a few records, but it depends on the details of your recipe.
+-   At the end of executing a recipe, it checks whether it has created
+    enough of the object type mentioned by the
+    `--run-until-records-loaded` parameter.
+-   If so, it finishes. If not, it runs the recipe again.
 
 So if your recipe creates 10 Accounts, 5 Contacts and 15 Opportunities,
 then when you run the command above it will run the recipe 100 times
@@ -915,7 +927,7 @@ your recipe is called "babka.recipe.yml" then your load file would be
 Inside of that file you put a list of declarations in the following
 format:
 
-```
+```yaml
 - sf_object: Account
   api: bulk
   bulk_mode: parallel
@@ -937,7 +949,7 @@ they do in mapping.yml as described in [API Selection](api-selection).
 For example, one could force Accounts and Opportunities to load after
 Contacts:
 
-```
+```yaml
 - sf_object: Account
   load_after: Contact
 
