@@ -1,12 +1,10 @@
-import fnmatch
 import io
 import os
 import signal
 from unittest import mock
 
-from selenium.common.exceptions import InvalidSelectorException
-
 from cumulusci.tasks.robotframework import debugger
+from cumulusci.tasks.robotframework.debugger.ui import BrowserProxy, SeleniumProxy
 
 
 class TestDebugListener:
@@ -20,9 +18,8 @@ class TestDebugListener:
         assert len(listener.breakpoints) == 1
         bp = listener.breakpoints[0]
         assert not bp.temporary
-        assert bp.pattern == "*::cumulusci.robotframework.Salesforce.Breakpoint"
+        assert bp.pattern == "*::cumulusci.robotframework.*.Breakpoint"
         assert bp.breakpoint_type == debugger.Keyword
-        assert bp.regex == fnmatch.translate(bp.pattern)
 
     def test_listener_custom_breakpoints(self):
         """Verify we can create a cli with custom breakpoints"""
@@ -180,76 +177,49 @@ class TestRobotDebugger:
         return_value = self.cli.do_continue("")
         assert return_value
 
-    def test_selenium(self):
-        self.cli.selenium
-        self.cli.builtin.get_library_instance.assert_called_with("SeleniumLibrary")
+    def test_webbrowser_selenium(self):
+        """Verify the cli has initialized the webbrowser attribute to SeleniumProxy
 
-    @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
+        ... but only if SeleniumLibrary has been loaded
+        """
+        self.cli.builtin.get_library_instance = mock.Mock(
+            return_value={
+                "SeleniumLibrary": mock.Mock(),
+                "Browser": mock.Mock(),
+            }
+        )
+
+        assert isinstance(self.cli.webbrowser, SeleniumProxy)
+
+    def test_webbrowser_browser(self):
+        """Verify the cli has initialized the webbrowser attribute to BrowserProxy
+
+        ... but only Browser has been loaded and SeleniumLibrary has not
+        """
+        self.cli.builtin.get_library_instance = mock.Mock(
+            return_value={
+                "Browser": mock.Mock(),
+            }
+        )
+
+        assert isinstance(self.cli.webbrowser, BrowserProxy)
+
+    @mock.patch.object(debugger.DebuggerCli, "webbrowser", mock.Mock())
     def test_locate_elements(self):
         """Test that the 'locate_elements' debugger command works
 
-        This test sets up a mock that acts like selenium found several
-        elements, and verifies that it calls the functions to highlight them
+        This test simply verifies that "do_locate_elements" calls the appropriate
+        method on the browser proxy. What the proxies actually do is the subject
+        of another test (see test_browser_proxies.py)
         """
-        self.cli._highlight_element = mock.Mock()
-        self.cli.selenium.get_webelements.return_value = ["Element1", "Element2"]
-        return_value = self.cli.do_locate_elements("//whatever")
-        assert return_value is None
-        self.cli._highlight_element.assert_has_calls(
-            [mock.call("Element1"), mock.call("Element2")]
-        )
-        assert self.cli.stdout.getvalue() == "Found 2 matches\n"
+        self.cli.do_locate_elements("button")
+        self.cli.webbrowser.highlight_elements.assert_called_once_with("button")
 
-    @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
-    def test_locate_elements_exception_handling(self):
-        """Verify that the 'locate_elements' debugger command handles exceptions"""
-
-        self.cli._highlight_element = mock.Mock()
-        self.cli.selenium.get_webelements.side_effect = InvalidSelectorException(
-            "invalid xpath"
-        )
-        self.cli.stdout = io.StringIO()
-        return_value = self.cli.do_locate_elements("//whatever")
-        assert return_value is None
-        self.cli._highlight_element.assert_not_called()
-        assert self.cli.stdout.getvalue() == "invalid locator '//whatever'\n"
-
-        # Even if get_webelement throws an exception, the keyword
-        # should handle it gracefully
-        self.cli.selenium.get_webelements.side_effect = Exception(
-            "something unexpected"
-        )
-        self.cli.stdout = io.StringIO()
-        return_value = self.cli.do_locate_elements("//whatever")
-        assert return_value is None
-        self.cli._highlight_element.assert_not_called()
-        assert self.cli.stdout.getvalue() == "something unexpected\n"
-
-    @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
-    def test_highlight_element_executes_javascript(self):
-        mock_element = mock.Mock()
-        mock_element.get_attribute.return_value = ""
-        self.cli._highlight_element(mock_element)
-        self.cli.selenium.driver.execute_script.assert_called()
-
-    @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
+    @mock.patch.object(debugger.DebuggerCli, "webbrowser", mock.Mock())
     def test_reset_elements(self):
         """Verify that the 'reset_elements' debugger command works"""
-        self.cli._restore_element_style = mock.Mock()
-        self.cli.selenium.get_webelements.return_value = ["Element1", "Element2"]
-        return_value = self.cli.do_reset_elements("")
-        assert return_value is None
-        self.cli._restore_element_style.assert_has_calls(
-            [mock.call("Element1"), mock.call("Element2")]
-        )
-
-    @mock.patch.object(debugger.DebuggerCli, "selenium", mock.Mock())
-    def test_reset_elements_logging(self):
-        self.cli.selenium.driver.execute_script.return_value = False
-        self.cli._restore_element_style("dummy")
-        self.cli.builtin.log.assert_called_with(
-            "unable to restore style; original style not found", "DEBUG"
-        )
+        self.cli.do_reset_elements()
+        self.cli.webbrowser.restore_element_style.assert_called()
 
     def test_shell_no_variables(self):
         """Verify that the shell command works"""
