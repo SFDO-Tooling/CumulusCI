@@ -121,7 +121,7 @@ options:
 
 #### Find-and-Replace Id Injection
 
-Some pieces metadata are deployed with Id references in them. CumulusCI offers a way to place the Id of a record that exists in a target org directly into your metadata components prior to deploying. Specify a SOQL query with the `replace_record_id_query` option as follows:
+Some metadata components contain ID references. CumulusCI offers a way to insert the ID of an existing record from the target org directly into such components during a deployment. Specify a SOQL query with the `replace_record_id_query` option as follows:
 
 ```yaml
 task: deploy
