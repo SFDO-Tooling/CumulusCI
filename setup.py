@@ -19,10 +19,10 @@ def find_packages(path=["."], prefix=""):
 with open(os.path.join("cumulusci", "version.txt"), "r") as version_file:
     version = version_file.read().strip()
 
-with open("README.rst", "rb") as readme_file:
+with open("README.md", "rb") as readme_file:
     readme = readme_file.read().decode("utf-8")
 
-with open("HISTORY.rst", "rb") as history_file:
+with open("docs/history.md", "rb") as history_file:
     history = history_file.read().decode("utf-8")
 
 with open("requirements/prod.txt") as requirements_file:
@@ -42,7 +42,7 @@ setup(
     version=version,
     description="Build and release tools for Salesforce developers",
     long_description=readme + "\n\n" + history,
-    long_description_content_type="text/x-rst",
+    long_description_content_type="text/markdown",
     author="Salesforce.org",
     author_email="sfdo-mrbelvedere@salesforce.com",
     url="https://github.com/SFDO-Tooling/CumulusCI",
