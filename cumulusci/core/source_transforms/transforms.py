@@ -337,7 +337,13 @@ class FindReplaceIdSpec(FindReplaceBaseSpec):
                 f"The find-replace query {self.replace_record_id_query} returned {results['totalSize']} results. Exactly 1 result is required"
             )
 
-        return results["records"][0]["Id"]
+        try:
+            record_id = results["records"][0]["Id"]
+        except KeyError:
+            raise CumulusCIException(
+                "Results from the replace_record_id_query did not include an 'Id'. Please ensure the 'Id' field in included in your query's SELECT clause."
+            )
+        return record_id
 
 
 class FindReplaceCurrentUserSpec(FindReplaceBaseSpec):
@@ -345,9 +351,10 @@ class FindReplaceCurrentUserSpec(FindReplaceBaseSpec):
 
     def get_replace_string(self, context: TaskContext) -> str:
         if not self.inject_username:  # pragma: no cover
-            raise CumulusCIException(
-                f"find_replace current user transform requires inject_username to be 'True' but got: {self.inject_username}"
+            self.logger.warning(
+                "The inject_username value for the find_replace transform is set to False. Skipping transform."
             )
+            return self.find
         return context.org_config.username
 
 

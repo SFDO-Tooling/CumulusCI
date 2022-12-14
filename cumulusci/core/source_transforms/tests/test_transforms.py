@@ -617,6 +617,33 @@ def test_find_replace_id__bad_query_result():
         )
 
 
+def test_find_replace_id__no_id_returned():
+    context = mock.Mock()
+    result = {"totalSize": 1, "records": [{"name": "foo"}]}
+    context.org_config.salesforce_client.query.return_value = result
+    options = FindReplaceTransformOptions.parse_obj(
+        {
+            "patterns": [
+                {
+                    "find": "00Y",
+                    "replace_record_id_query": "SELECT Id FROM Account WHERE name='Initech Corp.'",
+                },
+            ]
+        }
+    )
+    with pytest.raises(CumulusCIException):
+        MetadataPackageZipBuilder.from_zipfile(
+            ZipFileSpec(
+                {
+                    Path("classes") / "Foo.cls": "System.debug('00Y');",
+                    Path("Bar.cls"): "System.debug('blah');",
+                }
+            ).as_zipfile(),
+            context=context,
+            transforms=[FindReplaceTransform(options)],
+        )
+
+
 def test_source_transform_parsing():
     tl = SourceTransformList.parse_obj(
         [
