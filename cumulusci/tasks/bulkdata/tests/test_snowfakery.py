@@ -217,6 +217,7 @@ class SnowfakeryTaskResults(T.NamedTuple):
 
     task: Snowfakery  # The task, so we can inspect its return_values
     working_dir: Path  # The working directory, to look at mapping files, DB files, etc.
+    values_loaded: T.List[T.Dict]
 
 
 @pytest.fixture()
@@ -287,7 +288,10 @@ def run_snowfakery_and_yield_results(snowfakery, mock_load_data):
                 **options,
             )
             task()
-            yield SnowfakeryTaskResults(task, workingdir)
+            values_loaded = [
+                mock_call.values_loaded for mock_call in mock_load_data.mock_calls
+            ]
+            yield SnowfakeryTaskResults(task, workingdir, values_loaded)
 
     return _run_snowfakery_and_inspect_mapping_and_example_records
 
@@ -642,10 +646,14 @@ class TestSnowfakery:
         )
         with run_snowfakery_and_yield_results(
             recipe=options_yaml,
-            recipe_options="row_count:7,account_name:aaaaa",
+            recipe_options="row_count:7,account_name:FakeAccountName",
             run_until_recipe_repeated=2,
         ) as results:
             record_counts = get_record_counts_from_snowfakery_results(results)
+            assert (
+                results.values_loaded[0]["Account"][0]["name"]
+                == "Account FakeAccountName"
+            )
         assert record_counts["Account"] == 7, record_counts["Account"]
 
     @mock.patch("cumulusci.tasks.bulkdata.snowfakery.MIN_PORTION_SIZE", 3)
