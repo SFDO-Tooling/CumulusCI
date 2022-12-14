@@ -341,7 +341,7 @@ class FindReplaceIdSpec(FindReplaceBaseSpec):
             record_id = results["records"][0]["Id"]
         except KeyError:
             raise CumulusCIException(
-                "Results from the replace_record_id_query did not include an 'Id'. Please ensure the 'Id' field in included in your query's SELECT clause."
+                "Results from the replace_record_id_query did not include an 'Id'. Please ensure the 'Id' field is included in your query's SELECT clause."
             )
         return record_id
 
