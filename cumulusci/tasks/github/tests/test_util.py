@@ -1,4 +1,5 @@
 import hashlib
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -10,88 +11,102 @@ from cumulusci.tasks.github.util import CommitDir
 from cumulusci.utils import temporary_dir
 
 
-class TestCommitDir:
-    def test_call(self):
-        with temporary_dir() as d:
-            repo = mock.Mock(spec=Repository)
-            repo.owner = "SalesforceFoundation"
-            repo.name = "TestRepo"
-            repo.tree = mock.Mock()
-            repo.tree.return_value = Tree(
-                {
-                    "url": "string",
-                    "sha": "tree-ish-hash",
-                    "tree": [
-                        {
-                            "type": "tree",
-                            "mode": "100644",
-                            "path": "dir",
-                            "sha": "bogus1",
-                        },
-                        {
-                            "type": "blob",
-                            "mode": "100644",
-                            "path": "file_outside_dir",
-                            "sha": "bogus2",
-                        },
-                        {
-                            "type": "blob",
-                            "mode": "100644",
-                            "path": "dir/deleteme",
-                            "sha": "deletedfilesha",
-                        },
-                        {
-                            "type": "blob",
-                            "mode": "100644",
-                            "path": "dir/unchanged",
-                            "sha": hashlib.sha1(b"blob 0\0").hexdigest(),
-                        },
-                        {
-                            "type": "blob",
-                            "mode": "100644",
-                            "path": "dir/modified",
-                            "sha": "bogus3",
-                        },
-                    ],
-                },
-                None,
-            )
+@pytest.fixture
+def repo():
+    repo = mock.Mock(spec=Repository)
+    repo.owner = "SalesforceFoundation"
+    repo.name = "TestRepo"
+    return repo
 
-            commit = CommitDir(repo)
-            with open("unchanged", "w") as f:
-                f.write("")
-            with open("modified", "w") as f:
-                f.write("modified")
-            with open("new", "w") as f:
-                f.write("new")
-            with open(".hidden", "w") as f:
-                pass
-            commit(d, "main", "dir", dry_run=True)
-            assert commit.new_tree_list == [
-                {
-                    "sha": "bogus2",
-                    "mode": "100644",
-                    "path": "file_outside_dir",
-                    "size": None,
-                    "type": "blob",
-                },
-                {
-                    "sha": hashlib.sha1(b"blob 0\0").hexdigest(),
-                    "mode": "100644",
-                    "path": "dir/unchanged",
-                    "size": None,
-                    "type": "blob",
-                },
-                {
-                    "sha": None,
-                    "mode": "100644",
-                    "path": "dir/modified",
-                    "size": None,
-                    "type": "blob",
-                },
-                {"path": "dir/new", "mode": "100644", "type": "blob", "sha": None},
-            ]
-            commit(d, "main", "dir", commit_message="msg")
+
+class TestCommitDir:
+    def test_call(self, repo, tmp_path):
+        repo.git_commit.tree.sha = mock.Mock()
+        repo.create_blob.return_value = "mocked_sha_hash"
+        repo.tree = mock.Mock()
+        repo.tree.return_value = Tree(
+            {
+                "url": "string",
+                "sha": "tree-ish-hash",
+                "tree": [
+                    {
+                        "type": "tree",
+                        "mode": "100644",
+                        "path": "dir",
+                        "sha": "bogus1",
+                    },
+                    {
+                        "type": "blob",
+                        "mode": "100644",
+                        "path": "file_outside_dir",
+                        "sha": "bogus2",
+                    },
+                    {
+                        "type": "blob",
+                        "mode": "100644",
+                        "path": "dir/deleteme",
+                        "sha": "deletedfilesha",
+                    },
+                    {
+                        "type": "blob",
+                        "mode": "100644",
+                        "path": "dir/unchanged",
+                        "sha": hashlib.sha1(b"blob 0\0").hexdigest(),
+                    },
+                    {
+                        "type": "blob",
+                        "mode": "100644",
+                        "path": "dir/modified",
+                        "sha": "bogus3",
+                    },
+                    {
+                        "type": "blob",
+                        "mode": "100644",
+                        "path": "dir/modified_bin",
+                        "sha": "bogus4",
+                    },
+                ],
+            },
+            None,
+        )
+
+        commit = CommitDir(repo)
+        Path(tmp_path, "unchanged").write_text("")
+        Path(tmp_path, "modified").write_text("modified")
+        Path(tmp_path, "new").write_text("new")
+        Path(tmp_path, ".hidden").write_text(".hidden")
+        Path(tmp_path, "modified_bin").write_bytes(b"\x9c")
+        Path(tmp_path, "new_bin").write_bytes(b"\x9c")
+
+        commit(tmp_path, "main", "dir", dry_run=True)
+        expected_tree = [
+            {"type": "blob", "mode": "100644", "path": "dir/deleteme", "sha": None},
+            {
+                "type": "blob",
+                "mode": "100644",
+                "path": "dir/modified",
+                "content": "modified",
+            },
+            {
+                "type": "blob",
+                "mode": "100644",
+                "path": "dir/modified_bin",
+                "sha": "mocked_sha_hash",
+            },
+            {"path": "dir/new", "mode": "100644", "type": "blob", "content": "new"},
+            {
+                "path": "dir/new_bin",
+                "mode": "100644",
+                "type": "blob",
+                "sha": "mocked_sha_hash",
+            },
+        ]
+        commit(tmp_path, "main", "dir", commit_message="msg")
+        assert len(commit.new_tree_list) == len(expected_tree)
+        assert all(item in commit.new_tree_list for item in expected_tree)
+        repo.create_tree.assert_called_once()
+        assert commit.new_tree_list == repo.create_tree.call_args.args[0]
+        assert "base_tree" in repo.create_tree.call_args.kwargs
         repo.create_commit.assert_called_once()
 
     def test_call__no_changes(self):
@@ -163,16 +178,25 @@ class TestCommitDir:
             with pytest.raises(GithubException):
                 commit(d, "main", commit_message="msg")
 
-    def test_create_blob__handles_decode_error(self):
-        repo = mock.Mock(spec=Repository)
+    def test_content_or_sha__dry_run(self, repo):
         commit = CommitDir(repo)
-        commit.dry_run = False
-        assert commit._create_blob(b"\x9c", "local_path")
+        result = commit._get_content_or_sha(b"content goes here", True)
+        assert result == {"content": None}
 
-    def test_create_blob__error(self):
-        repo = mock.Mock(spec=Repository)
-        repo.create_blob.return_value = None
+    def test_content_or_sha__text_content(self, repo):
         commit = CommitDir(repo)
-        commit.dry_run = False
+        result = commit._get_content_or_sha(b"content goes here", False)
+        assert result == {"content": "content goes here"}
+
+    def test_content_or_sha__binary_sha(self, repo):
+        commit = CommitDir(repo)
+        repo.create_blob.return_value = "binary-sha"
+        result = commit._get_content_or_sha(b"\x9c", False)
+        repo.create_blob.assert_called_once_with("nA==", "base64")
+        assert result == {"sha": "binary-sha"}
+
+    def test_create_blob__error(self, repo):
+        commit = CommitDir(repo)
+        repo.create_blob.return_value = None
         with pytest.raises(GithubException):
-            assert commit._create_blob(b"", "local_path")
+            commit._get_content_or_sha(b"\x9c", False)

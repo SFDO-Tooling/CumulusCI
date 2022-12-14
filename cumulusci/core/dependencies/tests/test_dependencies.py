@@ -21,7 +21,10 @@ from cumulusci.core.dependencies.dependencies import (
     UnmanagedZipURLDependency,
     parse_dependency,
 )
-from cumulusci.core.dependencies.resolvers import DependencyResolutionStrategy, Resolver
+from cumulusci.core.dependencies.resolvers import (
+    AbstractResolver,
+    DependencyResolutionStrategy,
+)
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
@@ -49,7 +52,7 @@ class ConcreteDynamicDependency(DynamicDependency):
         return ""
 
 
-class MockResolver(Resolver):
+class MockResolver(AbstractResolver):
     def __init__(
         self,
         resolve_ref: Optional[str] = None,
@@ -67,7 +70,7 @@ class MockResolver(Resolver):
         return self.ref, self.dep
 
 
-class MockBadResolver(Resolver):
+class MockBadResolver(AbstractResolver):
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
         return True
 

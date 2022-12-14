@@ -1200,7 +1200,7 @@ class TestMappingLookup:
                 )
             )
         )
-        assert not mapping["Insert Accounts"].oid_as_pk
+        assert mapping["Insert Accounts"].oid_as_pk is False
 
 
 class TestUpsertKeyValidations:

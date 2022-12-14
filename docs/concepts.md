@@ -108,11 +108,13 @@ the most common flows that build orgs.
     typically used with an org whose configuration is `beta`.
 -   `install_prod`: This flow builds a managed org with the latest
     release installed, for projects that build managed packages.
--   `regression_org`: This flow builds a managed org that starts with
-    the latest release installed and is then upgraded to the latest beta
-    to simulate a subscriber upgrade for projects that build managed
-    packages. It's typically used with an org whose configuration is
-    `release`.
+-   `push_upgrade_org`: This flow builds a managed org that starts
+    with the latest release installed and available for all Profiles.
+    It then upgrades the package dependencies and the package itself to
+    their latest betas, installing upgrades for System Administrators only,
+    and runs `config_qa` to set up the org for testing. This simulates
+    a subscriber push upgrade for non-System Administrator users.
+    It's typically used with an org whose configuration is `release`.
 
 CumulusCI derives the library of tasks and flows available for any
 project by combining its internal standard library with your

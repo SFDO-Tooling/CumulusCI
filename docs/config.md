@@ -599,6 +599,18 @@ in your cumulusci.yml file.
 
 ## Advanced Configurations
 
+### Customizing Metadata Deployment
+
+CumulusCI's `deploy` task offers deep flexibility to customize your deployment process. Review [](deploy) for an in-depth guide.
+
+```{toctree}
+---
+maxdepth: 1
+---
+
+deploy
+```
+
 ### Reference Task Return Values
 
 ```{attention}

@@ -66,6 +66,11 @@ class MappingLookup(CCIDictModel):
             + f"Tried {', '.join(guesses)}"
         )
 
+    class Config:
+        # name is an injected field (from the parent dict)
+        # so don't try to serialize it as part of the model
+        fields = {"name": {"exclude": True}}
+
 
 SHOULD_REPORT_RECORD_TYPE_DEPRECATION = True
 
@@ -106,7 +111,8 @@ class MappingStep(CCIDictModel):
     def case_normalize(cls, val):
         if isinstance(val, Enum):
             return val
-        return ENUM_VALUES.get(val.lower())
+        if val is not None:
+            return ENUM_VALUES.get(val.lower())
 
     @validator("update_key", pre=True)
     def split_update_key(cls, val):
@@ -224,7 +230,8 @@ class MappingStep(CCIDictModel):
     @validator("anchor_date")
     @classmethod
     def validate_anchor_date(cls, v):
-        return iso_to_date(v)
+        if v is not None:
+            return iso_to_date(v)
 
     @validator("record_type")
     @classmethod
@@ -267,7 +274,7 @@ class MappingStep(CCIDictModel):
     @classmethod
     def fixup_lookup_names(cls, v):
         "Allow lookup objects to know the key they were attached to in the mapping file."
-        for name, lookup in v["lookups"].items():
+        for name, lookup in v.get("lookups", {}).items():
             lookup.name = name
         return v
 
@@ -535,6 +542,16 @@ class MappingStep(CCIDictModel):
     def describe_data(self, sf: Salesforce):
         return describe_data(self.sf_object, sf)
 
+    def dict(self, by_alias=True, exclude_defaults=True, **kwargs):
+        out = super().dict(
+            by_alias=by_alias, exclude_defaults=exclude_defaults, **kwargs
+        )
+        if fields := out.get("fields"):
+            keys = list(fields.keys())
+            if keys == list(fields.values()):
+                out["fields"] = keys
+        return out
+
 
 class MappingSteps(CCIDictModel):
     "Mapping of named steps"
@@ -581,7 +598,7 @@ def validate_and_inject_mapping(
         raise BulkDataException(
             "One or more schema or permissions errors blocked the operation.\n"
             "If you would like to attempt the load regardless, you can specify "
-            "'-o drop_missing_schema True' on the command."
+            "'--drop_missing_schema True' on the command."
         )
 
     if drop_missing:

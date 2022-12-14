@@ -48,11 +48,11 @@ class PackageConfig(BaseModel):
     description: str = ""
     package_type: PackageTypeEnum
     org_dependent: bool = False
-    post_install_script: Optional[str]
-    uninstall_script: Optional[str]
-    namespace: Optional[str]
+    post_install_script: Optional[str] = None
+    uninstall_script: Optional[str] = None
+    namespace: Optional[str] = None
     version_name: str
-    version_base: Optional[str]
+    version_base: Optional[str] = None
     version_type: VersionTypeEnum = VersionTypeEnum.minor
 
     @validator("org_dependent")
@@ -112,6 +112,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         "uninstall_script": {
             "description": "Uninstall script (for managed packages)",
         },
+        "install_key": {
+            "description": "Install key for package. Default is no install key."
+        },
         "force_upload": {
             "description": "If true, force creating a new package version even if one with the same contents already exists"
         },
@@ -162,7 +165,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             or self.project_config.project__package__namespace,
             version_name=self.options.get("version_name") or "Release",
             version_base=self.options.get("version_base"),
-            version_type=self.options.get("version_type") or "build",
+            version_type=self.options.get("version_type") or VersionTypeEnum("build"),
         )
         self.options["skip_validation"] = process_bool_arg(
             self.options.get("skip_validation") or False
@@ -376,12 +379,18 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             # Add org shape
             with open(self.org_config.config_file, "r") as f:
                 scratch_org_def = json.load(f)
+
+            # See https://github.com/forcedotcom/packaging/blob/main/src/package/packageVersionCreate.ts#L358
+            # Note that we handle orgPreferences below by converting to settings,
+            # in build_settings_package()
             for key in (
                 "country",
                 "edition",
                 "language",
                 "features",
                 "snapshot",
+                "release",
+                "sourceOrg",
             ):
                 if key in scratch_org_def:
                     package_descriptor[key] = scratch_org_def[key]
@@ -426,6 +435,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "VersionInfo": version_info,
             "CalculateCodeCoverage": not skip_validation,
         }
+        if "install_key" in self.options:
+            request["InstallKey"] = self.options["install_key"]
+
         self.logger.info(
             f"Requesting creation of package version {version_number.format()} "
             f"for package {package_config.package_name} ({package_id})"
@@ -436,7 +448,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         return response["id"]
 
-    def _resolve_ancestor_id(self, spv_id: str = None) -> str:
+    def _resolve_ancestor_id(self, spv_id: Optional[str] = None) -> str:
         """
         If an ancestor_id (04t) is not specified, get it
         from the latest production release.

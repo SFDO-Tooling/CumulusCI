@@ -122,7 +122,7 @@ class PublishSubtree(BaseGithubTask):
 
     def _get_target_repo_api(self):
         owner, name = split_repo_url(self.options["repo_url"])
-        gh = self.project_config.get_github_api(owner, name)
+        gh = self.project_config.get_github_api(self.options["repo_url"])
         return gh.repository(owner, name)
 
     def _run_task(self):

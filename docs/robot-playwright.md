@@ -38,17 +38,12 @@ Playwright is based on Node.js. If you don't already have Node.js
 installed, you can find a Node.js installer for your platform on the
 [Node.js downloads page](https://nodejs.org/en/download/).
 
-::: warning
-::: title
-Warning
-:::
-
+```{important}
 You must have Node.js installed before continuing with these
 instructions.
-:::
+```
 
-Step 2: Run the Playwright installation command
-\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^\^
+### Step 2: Run the Playwright installation command
 
 Installing the browser library requires a couple of manual steps, which
 we've automated in a single script. This script does three things:
@@ -58,15 +53,11 @@ we've automated in a single script. This script does three things:
 -   it downloads and installs the Node.js modules and drivers for
     playwright.
 
-::: note
-::: title
-Note
-:::
-
+```{note}
 The installation of Playwright contains drivers for all supported
 browsers, so there's no need to manually install drivers such as
 ChromeDriver. It works right out of the box!
-:::
+```
 
 Before you run the script, make sure your working directory is at the
 root of your repository. You can then run the script with the following
@@ -76,14 +67,10 @@ command:
 $ cci robot install_playwright
 ```
 
-::: tip
-::: title
-Tip
-:::
-
+```{tip}
 You can use the `--dry_run` (or `-n`) option to see what the command
-will do without actually installing anything.
-:::
+will do without actually installing.
+```
 
 ## Running an example test
 
@@ -157,6 +144,113 @@ Finally, notice how easy it is to interact with both the app menu and
 the user profile. Playwright locators are often much easier to write
 than Selenium locators, which translates to tests and keywords that
 don't have to be tweaked when the page markup changes.
+
+## Writing keywords in JavaScript
+
+At its core, Playwright is built on Node.js, which makes it possible
+to write keywords in JavaScript. This is enabled by providing the path
+to a JavaScript library when the Browser library is
+imported. CumulusCI comes with a small bootstrap file which will
+import a Node module from your project, which itself can import any number of other
+modules.
+
+```{tip}
+For more information about writing keywords in Javascript see [Extending Browser library with a JavaScript module](
+https://marketsquare.github.io/robotframework-browser/Browser.html#Extending%20Browser%20library%20with%20a%20JavaScript%20module)
+in the [Browser library documentation](https://marketsquare.github.io/robotframework-browser/Browser.html).
+```
+
+### Creating a keyword file in JavaScript
+
+When you import `SalesforcePlaywright.robot` into a test, it will import
+the Browser library and pass it the name of a small bootstrap
+JavaScript file. This bootstrap file will import the file
+`robot/<ProjectName>/javascript/index.js`, exposing the exported
+functions as keywords.
+
+### Example
+
+Who doesn't love a good "Hello, world" example? Start by creating the
+`javascript` folder in your `robot` folder. For example, if your
+project is named Food-Bank, you should create a folder named
+`robot/Food-Bank/javascript`.
+
+In that folder, create a file named `keywords.js` with the following
+content:
+
+```javascript
+// keywords.js
+function hello_javascript() {
+    return "Hello, JavaScript!";
+}
+
+exports.__esModule = true;
+module.exports = { hello_javascript };
+```
+
+```{note}
+The Browser documentation for [writing keywords in javascript](https://marketsquare.github.io/robotframework-browser/Browser.html#Extending%20Browser%20library%20with%20a%20JavaScript%20module) uses async functions
+in all of the examples, but async functions are not strictly required.
+```
+
+Next, create a file named `index.js` in the same folder. This file
+is where you can import the `keywords.js` file and any other files
+you need to import. For our simple example `index.js` should look
+like the following example.
+
+```javascript
+// index.js
+exports.__esModule = true;
+module.exports = {
+    ...require("keywords.js"),
+};
+```
+
+### Getting CumulusCI test context
+
+CumumlusCI comes with a node module named `cumulusci` which provides
+access to information about the repository and org.
+
+Let's extend our earlier example to include a keyword for getting the
+instance URL of the org under test.
+
+The first step is to import the `cumulusci` module. This module
+returns data that looks like the following:
+
+```json
+{
+    "project_config": {
+        "repo_name": "Food-Bank",
+        "repo_root": "/projects/Food-Bank"
+    },
+    "org": {
+        "name": "dev",
+        "instance_url": "https://something-clever.my.salesforce.com",
+        "org_id": "00D5C..."
+    }
+}
+```
+
+We can directly access these member attributes with a keyword. Edit
+the `keywords.js` file to look like the following example.
+
+```javascript
+var cci = require("cumulusci");
+
+function hello_javascript() {
+    return "Hello, Javascript!";
+}
+
+function get_instance_url() {
+    return cci.org.instance_url;
+}
+
+exports.__esModule = true;
+module.exports = {
+    hello_javascript,
+    get_instance_url,
+};
+```
 
 ## Summary
 

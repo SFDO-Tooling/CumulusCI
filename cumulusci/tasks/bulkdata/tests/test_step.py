@@ -488,15 +488,15 @@ class TestBulkApiDmlOperation:
         )
 
         serialized = step._serialize_csv_record(step.fields)
-        assert serialized == b"Id,FirstName,LastName\r\n"
+        assert serialized == b'"Id","FirstName","LastName"\r\n'
 
         record = ["1", "Bob", "Ross"]
         serialized = step._serialize_csv_record(record)
-        assert serialized == b"1,Bob,Ross\r\n"
+        assert serialized == b'"1","Bob","Ross"\r\n'
 
         record = ["col1", "multiline\ncol2"]
         serialized = step._serialize_csv_record(record)
-        assert serialized == b'col1,"multiline\ncol2"\r\n'
+        assert serialized == b'"col1","multiline\ncol2"\r\n'
 
     def test_batch(self):
         context = mock.Mock()
@@ -514,13 +514,13 @@ class TestBulkApiDmlOperation:
 
         assert len(results) == 2
         assert list(results[0]) == [
-            "LastName\r\n".encode("utf-8"),
-            "Test\r\n".encode("utf-8"),
-            "Test2\r\n".encode("utf-8"),
+            '"LastName"\r\n'.encode("utf-8"),
+            '"Test"\r\n'.encode("utf-8"),
+            '"Test2"\r\n'.encode("utf-8"),
         ]
         assert list(results[1]) == [
-            "LastName\r\n".encode("utf-8"),
-            "Test3\r\n".encode("utf-8"),
+            '"LastName"\r\n'.encode("utf-8"),
+            '"Test3"\r\n'.encode("utf-8"),
         ]
 
     def test_batch__character_limit(self):
@@ -548,13 +548,13 @@ class TestBulkApiDmlOperation:
 
         assert len(results) == 2
         assert list(results[0]) == [
-            "LastName\r\n".encode("utf-8"),
-            "Test\r\n".encode("utf-8"),
-            "Test2\r\n".encode("utf-8"),
+            '"LastName"\r\n'.encode("utf-8"),
+            '"Test"\r\n'.encode("utf-8"),
+            '"Test2"\r\n'.encode("utf-8"),
         ]
         assert list(results[1]) == [
-            "LastName\r\n".encode("utf-8"),
-            "Test3\r\n".encode("utf-8"),
+            '"LastName"\r\n'.encode("utf-8"),
+            '"Test3"\r\n'.encode("utf-8"),
         ]
 
     @mock.patch("cumulusci.tasks.bulkdata.step.download_file")
@@ -1386,3 +1386,69 @@ class TestGetOperationFunctions:
                 api=42,
                 volume=1,
             )
+
+    def test_cleanup_date_strings__insert(self):
+        """Empty date strings should be removed from INSERT operations"""
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        context.sf.Test__c.describe = lambda: {
+            "name": "Test__c",
+            "fields": [
+                {"name": "Birthdate", "type": "date"},
+                {"name": "IsHappy", "type": "boolean"},
+                {"name": "Name", "type": "string"},
+            ],
+        }
+
+        step = get_dml_operation(
+            sobject="Test__c",
+            operation=DataOperationType.INSERT,
+            fields=["Birthdate", "IsHappy", "Name"],
+            api_options={},
+            context=context,
+            api=DataApi.REST,
+            volume=1,
+        )
+        json_out = step._record_to_json(["", "", "Bill"])
+        assert json_out == {
+            "IsHappy": False,
+            "Name": "Bill",
+            "attributes": {"type": "Test__c"},
+        }, json_out
+        # Empty dates (and other fields) should be filtered out of INSERTs
+        assert "BirthDate" not in json_out  # just for emphasis
+
+    @pytest.mark.parametrize(
+        "operation", ((DataOperationType.UPSERT, DataOperationType.UPDATE))
+    )
+    def test_cleanup_date_strings__upsert_update(self, operation):
+        """Empty date strings should be NULLED for UPSERT and UPDATE operations"""
+        context = mock.Mock()
+        context.sf.sf_version = "42.0"
+        context.sf.Test__c.describe = lambda: {
+            "name": "Test__c",
+            "fields": [
+                {"name": "Birthdate", "type": "date"},
+                {"name": "IsHappy", "type": "boolean"},
+                {"name": "Name", "type": "string"},
+            ],
+        }
+
+        step = get_dml_operation(
+            sobject="Test__c",
+            operation=operation,
+            fields=["Birthdate", "IsHappy", "Name"],
+            api_options={},
+            context=context,
+            api=DataApi.REST,
+            volume=1,
+        )
+        # Empty dates (and other fields) should be NULLED in UPSERTs
+        # Booleans become False for backwards-compatibility reasons.
+        json_out = step._record_to_json(["", "", "Bill"])
+        assert json_out == {
+            "Birthdate": None,
+            "IsHappy": False,
+            "Name": "Bill",
+            "attributes": {"type": "Test__c"},
+        }, json_out

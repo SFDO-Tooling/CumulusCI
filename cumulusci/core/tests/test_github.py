@@ -1,11 +1,13 @@
 import json
 import os
 from datetime import datetime
+from ssl import SSLCertVerificationError
 from unittest import mock
 
 import pytest
 import requests
 import responses
+from github3 import GitHub, GitHubEnterprise
 from github3.exceptions import (
     AuthenticationFailed,
     ConnectionError,
@@ -13,30 +15,34 @@ from github3.exceptions import (
     ResponseError,
     TransportError,
 )
-from github3.github import GitHub
 from github3.pulls import ShortPullRequest
 from github3.repos.repo import Repository
 from github3.session import AppInstallationTokenAuth
-from requests.exceptions import RequestException, RetryError
+from requests.exceptions import RequestException, RetryError, SSLError
 from requests.models import Response
 
 import cumulusci
 from cumulusci.core import github
+from cumulusci.core.config import BaseProjectConfig, ServiceConfig, UniversalConfig
 from cumulusci.core.exceptions import (
     DependencyLookupError,
     GithubApiError,
     GithubApiNotFoundError,
     GithubException,
+    ServiceNotConfigured,
 )
 from cumulusci.core.github import (
+    SELF_SIGNED_WARNING,
     SSO_WARNING,
     UNAUTHORIZED_WARNING,
+    _determine_github_client,
     add_labels_to_pull_request,
     catch_common_github_auth_errors,
     check_github_sso_auth,
     create_gist,
     create_pull_request,
     format_github3_exception,
+    get_auth_from_service,
     get_commit,
     get_github_api,
     get_github_api_for_repo,
@@ -54,9 +60,11 @@ from cumulusci.core.github import (
     is_pull_request_merged,
     markdown_link_to_pr,
     request_url_from_exc,
+    validate_gh_enterprise,
     validate_service,
     warn_oauth_restricted,
 )
+from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.release_notes.tests.utils import MockUtil
 
@@ -75,6 +83,47 @@ class TestGithub(GithubApiTestMixin):
     def repo(self, gh_api):
         repo_json = self._get_expected_repo("TestOwner", "TestRepo")
         return Repository(repo_json, gh_api)
+
+    @pytest.fixture
+    def keychain_enterprise(self):
+        runtime = mock.Mock()
+        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
+        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+        runtime.keychain.set_service(
+            "github_enterprise",
+            "ent",
+            ServiceConfig(
+                {
+                    "username": "testusername",
+                    "email": "test@domain.com",
+                    "token": "ATOKEN",
+                    "server_domain": "git.enterprise.domain.com",
+                }
+            ),
+        )
+        return runtime.keychain
+
+    def test_github_api_retries__escape_hatch_SSL_error(self):
+        gh = get_github_api("TestUser", "TestPass")
+        adapter = gh.session.get_adapter("http://")
+
+        assert 0.3 == adapter.max_retries.backoff_factor
+        assert 502 in adapter.max_retries.status_forcelist
+
+        with mock.patch(
+            "urllib3.connectionpool.HTTPConnectionPool._make_request"
+        ) as _make_request:
+            _make_request.side_effect = SSLCertVerificationError(
+                "SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain"
+            )
+
+            with pytest.raises(
+                ConnectionError,
+                match="(CERTIFICATE_VERIFY_FAILED)",
+            ):
+                gh.octocat("meow")
+
+            assert 1 == _make_request.call_count
 
     def test_github_api_retries(self, mock_http_response):
         gh = get_github_api("TestUser", "TestPass")
@@ -128,7 +177,7 @@ class TestGithub(GithubApiTestMixin):
         with mock.patch.dict(
             os.environ, {"GITHUB_APP_KEY": "bogus", "GITHUB_APP_ID": "1234"}
         ):
-            gh = get_github_api_for_repo(None, "TestOwner", "TestRepo")
+            gh = get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo/")
             assert isinstance(gh.session.auth, AppInstallationTokenAuth)
 
     @responses.activate
@@ -144,20 +193,94 @@ class TestGithub(GithubApiTestMixin):
             os.environ, {"GITHUB_APP_KEY": "bogus", "GITHUB_APP_ID": "1234"}
         ):
             with pytest.raises(GithubException):
-                get_github_api_for_repo(None, "TestOwner", "TestRepo")
+                get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo/")
 
     @responses.activate
     @mock.patch("cumulusci.core.github.GitHub")
     def test_get_github_api_for_repo__token(self, GitHub):
         with mock.patch.dict(os.environ, {"GITHUB_TOKEN": "token"}):
-            gh = get_github_api_for_repo(None, "TestOwner", "TestRepo")
+            gh = get_github_api_for_repo(None, "https://github.com/TestOwner/TestRepo/")
         gh.login.assert_called_once_with(token="token")
 
     @responses.activate
-    def test_validate_service(self):
+    @mock.patch("cumulusci.core.github.GitHubEnterprise")
+    def test_get_github_api_for_repo__enterprise(
+        self, GitHubEnterprise, keychain_enterprise
+    ):
+
+        gh = get_github_api_for_repo(
+            keychain_enterprise, "https://git.enterprise.domain.com/TestOwner/TestRepo/"
+        )
+
+        gh.login.assert_called_once_with(token="ATOKEN")
+
+    @responses.activate
+    def test_validate_service(self, keychain_enterprise):
         responses.add("GET", "https://api.github.com/user", status=401, headers={})
+
         with pytest.raises(GithubException):
-            validate_service({"username": "BOGUS", "token": "BOGUS"})
+            validate_service(
+                {"username": "BOGUS", "token": "BOGUS"}, keychain_enterprise
+            )
+
+    @responses.activate
+    def test_validate_gh_enterprise(self, keychain_enterprise):
+        keychain_enterprise.set_service(
+            "github_enterprise",
+            "ent2",
+            ServiceConfig(
+                {
+                    "username": "testusername2",
+                    "email": "test2@domain.com",
+                    "token": "ATOKEN2",
+                    "server_domain": "git.enterprise.domain.com",
+                }
+            ),
+        )
+
+        with pytest.raises(
+            GithubException,
+            match="More than one Github Enterprise service configured for domain git.enterprise.domain.com",
+        ):
+            validate_gh_enterprise("git.enterprise.domain.com", keychain_enterprise)
+
+    @responses.activate
+    def test_get_auth_from_service(self, keychain_enterprise):
+        # github service, should be ignored
+        keychain_enterprise.set_service(
+            "github",
+            "ent",
+            ServiceConfig(
+                {
+                    "username": "testusername",
+                    "email": "test@domain.com",
+                    "token": "ATOKEN",
+                }
+            ),
+        )
+        assert (
+            get_auth_from_service("git.enterprise.domain.com", keychain_enterprise)
+            == "ATOKEN"
+        )
+
+        with pytest.raises(
+            ServiceNotConfigured,
+            match="No Github Enterprise service configured for domain garbage",
+        ):
+            get_auth_from_service("garbage", keychain_enterprise)
+
+    @pytest.mark.parametrize(
+        "domain,client",
+        [
+            (None, GitHub),
+            ("github.com", GitHub),
+            ("api.github.com", GitHub),
+            ("git.enterprise.domain.com", GitHubEnterprise),
+        ],
+    )
+    def test_determine_github_client(self, domain, client):
+        client_result = _determine_github_client(domain, {})
+        assert type(client_result) == client
 
     @responses.activate
     def test_get_pull_requests_by_head(self, mock_util, repo):
@@ -536,6 +659,19 @@ class TestGithub(GithubApiTestMixin):
         exc = TransportError(base_exc)
         assert UNAUTHORIZED_WARNING == format_github3_exception(exc)
 
+    def test_format_gh3_self_signed_ssl(self):
+        resp = Response()
+        resp.status_code = 401
+        message = "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain"
+        base_exc = SSLError(message, response=resp)
+        exc = ConnectionError(base_exc)
+        assert SELF_SIGNED_WARNING == format_github3_exception(exc)
+
+        # Test passsthrough of other conenction errors
+        base_exc = SSLError(response=resp)
+        exc = ConnectionError(base_exc)
+        assert format_github3_exception(exc) == ""
+
     def test_format_url_from_exc(self):
         resp = Response()
         resp.status_code = 401
@@ -603,7 +739,27 @@ class TestGithub(GithubApiTestMixin):
             test_func()
 
     @responses.activate
-    def test_validate_no_repo_exc(self):
+    def test_catch_common_decorator_connection_error(self):
+
+        mock_rsp = responses.Response(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            body=ConnectionError("self signed certificate"),
+        )
+        responses.add(mock_rsp)
+
+        @catch_common_github_auth_errors
+        def test_func():
+            GitHub().rate_limit()
+
+        with pytest.raises(
+            GithubApiError,
+            match="(self-signed certificate in the certificate chain)",
+        ):
+            test_func()
+
+    @responses.activate
+    def test_validate_no_repo_exc(self, keychain_enterprise):
         service_dict = {
             "username": "e2ac67",
             "token": "ghp_cf83e1357eefb8bdf1542850d66d8007d620e4",
@@ -661,7 +817,7 @@ class TestGithub(GithubApiTestMixin):
                 "X-OAuth-Scopes": "gist, repo",
             },
         )
-        updated_dict = validate_service(service_dict)
+        updated_dict = validate_service(service_dict, keychain_enterprise)
         expected_dict = {
             "username": "e2ac67",
             "token": "ghp_cf83e1357eefb8bdf1542850d66d8007d620e4",
@@ -673,7 +829,7 @@ class TestGithub(GithubApiTestMixin):
         assert expected_dict == updated_dict
 
     @responses.activate
-    def test_validate_bad_auth(self):
+    def test_validate_bad_auth(self, keychain_enterprise):
         service_dict = {
             "username": "e2ac67",
             "token": "bad_cf83e1357eefb8bdf1542850d66d8007d620e4",
@@ -691,7 +847,7 @@ class TestGithub(GithubApiTestMixin):
         )
 
         with pytest.raises(cumulusci.core.exceptions.GithubException) as e:
-            validate_service(service_dict)
+            validate_service(service_dict, keychain_enterprise)
         assert "401" in str(e.value)
 
     @mock.patch("webbrowser.open")
@@ -725,10 +881,19 @@ class TestGithub(GithubApiTestMixin):
         browser_open.assert_called_with("https://github.com/login/device")
 
     @responses.activate
-    def test_get_latest_prerelease(self):
+    @pytest.mark.parametrize(
+        ("base_url", "endpoint"),
+        (
+            ("https://api.github.com", "https://api.github.com/graphql"),
+            (
+                "https://github.enterprise.server/api/v3",
+                "https://github.enterprise.server/api/graphql",
+            ),
+        ),
+    )
+    def test_get_latest_prerelease(self, base_url, endpoint):
         expected_tag = "beta/1.0-Beta_1"
         query_result = self._get_expected_prerelease_tag_gql(expected_tag)
-        endpoint = "https://api.github.com/graphql"
 
         responses.add(
             "POST",
@@ -738,7 +903,7 @@ class TestGithub(GithubApiTestMixin):
 
         repo: Repository = mock.MagicMock()
         repo.session = mock.MagicMock()
-        repo.session.build_url.return_value = endpoint
+        repo.session.base_url = base_url
         repo.session.request = requests.request
 
         get_latest_prerelease(repo=repo)

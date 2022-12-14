@@ -8,7 +8,7 @@ from pathlib import Path
 import jinja2
 import robot.utils
 from robot.libdocpkg.builder import DocumentationBuilder
-from robot.libdocpkg.robotbuilder import LibraryDocBuilder
+from robot.libdocpkg.robotbuilder import LibraryDocBuilder, ResourceDocBuilder
 from robot.libraries.BuiltIn import RobotNotRunningError
 from robot.utils import Importer
 
@@ -116,7 +116,14 @@ class RobotLibDoc(BaseTask):
                         kwfile.add_keywords(libdoc, pobj_name)
 
                 else:
-                    libdoc = DocumentationBuilder(library_name).build(library_name)
+                    # this test necessary due to a backwards-incompatible change
+                    # in robot 6.x where .robot files get unconditionally passed
+                    # to SuiteBuilder which then generates an error on keyword
+                    # files since they don't have test cases.
+                    if library_name.endswith(".robot"):
+                        libdoc = ResourceDocBuilder().build(library_name)
+                    else:
+                        libdoc = DocumentationBuilder(library_name).build(library_name)
                     kwfile.add_keywords(libdoc)
 
                 # if we get here, we were able to process the file correctly
@@ -134,7 +141,7 @@ class RobotLibDoc(BaseTask):
             if self.options["output"].endswith(".csv"):
                 data = self._convert_to_tuples(kwfiles)
                 with open(self.options["output"], "w", newline="") as f:
-                    csv_writer = csv.writer(f)
+                    csv_writer = csv.writer(f, quoting=csv.QUOTE_ALL)
                     csv_writer.writerows(data)
 
             else:

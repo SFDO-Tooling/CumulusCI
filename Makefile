@@ -87,14 +87,8 @@ release: clean ## package and upload a release
 	python setup.py bdist_wheel
 	twine upload dist/*
 
-release-homebrew: clean ## create a homebrew formula and associated pull request
-	utility/build-homebrew.sh cumulusci.rb
-	python utility/push-homebrew.py cumulusci.rb
-	rm -f cumulusci.rb
-
 dist: clean ## builds source and wheel package
-	python setup.py sdist
-	python setup.py bdist_wheel
+	python setup.py sdist bdist_wheel
 	ls -l dist
 
 install: clean ## install the package to the active Python's site-packages
