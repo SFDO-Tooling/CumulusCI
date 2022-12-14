@@ -8,6 +8,7 @@ import tracemalloc
 from contextlib import contextmanager, nullcontext
 from functools import lru_cache
 from pathlib import Path
+from typing import Optional
 from unittest import mock
 
 import responses
@@ -22,7 +23,7 @@ from cumulusci.core.config import (
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 
-CURRENT_SF_API_VERSION = "55.0"
+CURRENT_SF_API_VERSION = "56.0"
 from cumulusci.tasks.bulkdata.tests.utils import FakeBulkAPI
 
 
@@ -260,7 +261,7 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
 
 
 @contextmanager
-def mock_env(home, cumulusci_key="0123456789ABCDEF"):
+def mock_env(home, cumulusci_key: Optional[str] = "0123456789ABCDEF"):
     real_homedir = str(Path.home())
     patches = {
         "HOME": home,
