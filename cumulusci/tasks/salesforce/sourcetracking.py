@@ -19,6 +19,14 @@ from cumulusci.utils import (
     touch,
 )
 
+# These types are leftover from core but SFDX does not know how to process them.
+# They should be excluded from package manifests files.
+KNOWN_BAD_MD_TYPES = [
+    "AuraDefinition",
+    "ExperienceResource",
+    "LightningComponentResource",
+]
+
 
 class ListChanges(BaseSalesforceApiTask):
     api_version = "48.0"
@@ -169,6 +177,8 @@ def _write_manifest(changes, path, api_version):
     type_members = defaultdict(list)
     for change in changes:
         mdtype = change["MemberType"]
+        if mdtype in KNOWN_BAD_MD_TYPES:
+            continue
         # folders are retrieved along with their contained type
         if mdtype.endswith("Folder"):
             mdtype = mdtype[: -len("Folder")]

@@ -32,6 +32,8 @@ class SecurityType(str, Enum):
     ADMIN = "NONE"  # System Administrator only
     PUSH = "PUSH"  # No profiles
 
+    __str__ = str.__str__
+
 
 class NameConflictResolution(str, Enum):
     """Enum used to specify how name conflicts will be resolved when installing an Unlocked Package."""
@@ -39,11 +41,15 @@ class NameConflictResolution(str, Enum):
     BLOCK = "Block"
     RENAME = "RenameMetadata"
 
+    __str__ = str.__str__
+
 
 # Unlocked Packages only. Default appears to be all but is not documented.
 class ApexCompileType(str, Enum):
     ALL = "all"
     PACKAGE = "package"
+
+    __str__ = str.__str__
 
 
 # Unlocked Packages only. Default is mixed.
@@ -51,6 +57,8 @@ class UpgradeType(str, Enum):
     DELETE_ONLY = "delete-only"
     DEPRECATE_ONLY = "deprecate-only"
     MIXED = "mixed"
+
+    __str__ = str.__str__
 
 
 class PackageInstallOptions(CCIModel):
