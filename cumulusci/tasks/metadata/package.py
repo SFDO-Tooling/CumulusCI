@@ -7,7 +7,6 @@ from pathlib import Path
 
 import yaml
 
-from cumulusci import DEFAULT_SF_API_VERSION
 from cumulusci.core.tasks import BaseTask
 from cumulusci.utils import elementtree_parse_file
 from cumulusci.utils.xml import metadata_tree
@@ -549,6 +548,12 @@ class UpdatePackageXml(BaseTask):
         "delete": {
             "description": "If True, generate a package.xml for use as a destructiveChanges.xml file for deleting metadata"
         },
+        "install_class": {
+            "description": "Specify post install class file to be used. Defaults to what is set in project config"
+        },
+        "uninstall_class": {
+            "description": "Specify post uninstall class file to be used. Defaults to what is set in project config"
+        },
     }
 
     def _init_options(self, kwargs):
@@ -565,15 +570,16 @@ class UpdatePackageXml(BaseTask):
 
         self.package_xml = PackageXmlGenerator(
             directory=self.options.get("path"),
-            api_version=(
-                self.project_config.project__package__api_version
-                or DEFAULT_SF_API_VERSION
-            ),
+            api_version=self.project_config.project__package__api_version,
             package_name=package_name,
             managed=self.options.get("managed", False),
             delete=self.options.get("delete", False),
-            install_class=self.project_config.project__package__install_class,
-            uninstall_class=self.project_config.project__package__uninstall_class,
+            install_class=self.options.get(
+                "install_class", self.project_config.project__package__install_class
+            ),
+            uninstall_class=self.options.get(
+                "uninstall_class", self.project_config.project__package__uninstall_class
+            ),
         )
 
     def _run_task(self):
@@ -640,12 +646,12 @@ class RemoveUnwantedComponents(BaseTask):
         self.run_class = RemoveSourceComponents(
             directory=self.options.get("path"),
             package_xml=self.options.get("package_xml"),
-            api_version=self.api_version,
+            api_version=self.project_config.cumulusci__default_api_version,
             logger=self.logger,
         )
 
     def _run_task(self):
         self.logger.info(
-            "Removing unwanted components from " + self.options.get("path")
+            f"Removing unwanted components from {self.options.get('path')}"
         )
         self.run_class()

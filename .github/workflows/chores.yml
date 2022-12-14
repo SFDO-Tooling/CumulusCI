@@ -44,7 +44,7 @@ jobs:
               id: set-cci-api-version
               run: |
                   yq --indent 4 --inplace '
-                    .project.package.api_version = strenv(VERSION)
+                    .project.cumulusci.default_api_version = strenv(VERSION)
                   ' cumulusci/cumulusci.yml
             - name: Commit changes
               run: |

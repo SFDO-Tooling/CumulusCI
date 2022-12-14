@@ -173,6 +173,7 @@ class Service(CCIDictModel):
 
 class CumulusCIConfig(CCIDictModel):
     keychain: PythonClassPath
+    default_api_version: Optional[str]
 
 
 class GitHubSourceRelease(str, enum.Enum):

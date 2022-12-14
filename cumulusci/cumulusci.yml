@@ -1,5 +1,6 @@
 cumulusci:
     keychain: cumulusci.core.keychain.EncryptedFileProjectKeychain
+    default_api_version: 56
 tasks:
     activate_flow:
         group: Metadata Transformations
@@ -1446,6 +1447,7 @@ project:
         namespace:
         install_class:
         uninstall_class:
+        api_version: "56.0"
     git:
         default_branch: master
         prefix_feature: feature/

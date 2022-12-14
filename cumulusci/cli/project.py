@@ -86,12 +86,6 @@ def project_init(runtime):
         )
 
     click.echo()
-    context["api_version"] = click.prompt(
-        click.style("Salesforce API Version", bold=True),
-        default=runtime.universal_config.lookup("project__package__api_version", None),
-    )
-
-    click.echo()
     click.echo(
         "Salesforce metadata can be stored using Metadata API format or DX source format. "
         "Which do you want to use?"
