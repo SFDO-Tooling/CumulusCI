@@ -119,7 +119,7 @@ options:
                     replace: bar
 ```
 
-### Find-and-Replace Id Injection
+#### Find-and-Replace Id Injection
 
 Some pieces metadata are deployed with Id references in them. CumulusCI offers a way to place the Id of a record that exists in a target org directly into your metadata components prior to deploying. Specify a SOQL query with the `replace_record_id_query` option as follows:
 
@@ -131,13 +131,13 @@ options:
           options:
               patterns:
                   - find: special_string
-                    replace_record_id_query: SELECT Id from Account WHERE name="Specific Account"
+                    replace_record_id_query: SELECT Id from Account WHERE name='Specific Account'
                     api: rest
 ```
 
 Available values for `api` include `rest` and `tooling`.
 
-### Find-and-Replace Current Username Injection
+#### Find-and-Replace Current Username Injection
 
 CumulusCI can replace a given token with the username of the current running user in the target Salesforce org.
 All that is needed is to specify a value for `find` and set `inject_username: True`:

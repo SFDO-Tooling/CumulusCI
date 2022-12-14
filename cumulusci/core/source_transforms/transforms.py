@@ -346,7 +346,7 @@ class FindReplaceCurrentUserSpec(FindReplaceBaseSpec):
     def get_replace_string(self, context: TaskContext) -> str:
         if not self.inject_username:  # pragma: no cover
             raise CumulusCIException(
-                f"find-replace current user transform requires inject_username to be 'True' but got: {self.inject_username}"
+                f"find_replace current user transform requires inject_username to be 'True' but got: {self.inject_username}"
             )
         return context.org_config.username
 
