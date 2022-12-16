@@ -352,8 +352,6 @@ class TestSynthesizeExtractDeclarations:
             assert set(decls["Account"].fields) == set(["Name", "Description"])
             assert decls["Contact"].fields == ["LastName"], decls["Contact"].fields
 
-    @pytest.mark.needs_org()
-    @pytest.mark.slow()
     def test_synthesize_fields(self, sf, org_config):
         declarations = """
             extract:
@@ -371,24 +369,25 @@ class TestSynthesizeExtractDeclarations:
                         - FIELDS(CUSTOM)
         """
         declarations = ExtractRulesFile.parse_extract(StringIO(declarations))
-
-        with get_org_schema(
-            sf,
+        object_counts = {"Account": 2, "Contact": 2, "Custom__c": 5}
+        object_describes = [describe_for(obj) for obj in object_counts.keys()]
+        with _fake_get_org_schema(
             org_config,
+            object_describes,
+            object_counts,
             include_counts=True,
-            filters=[Filters.createable, Filters.extractable, Filters.populated],
         ) as schema:
-            print(schema.keys())
             decls = flatten_declarations(declarations.values(), schema)
             decls = {decl.sf_object: decl for decl in decls}
             assert "Account" in decls
             assert "Contact" in decls
-            assert "Opportunity" in decls
-            assert "Custom__c" in decls
-
-            assert set(decls["Account"].fields) == set(["Name"])
-            assert "AccountId" in decls["Contact"].fields, decls["Contact"].fields
-            assert 0, decls
+            assert "Entitlement" not in decls
+            assert "Opportunity" not in decls  # not populated
+            assert "Name" not in decls["Custom__c"].fields
+            assert "Id" not in decls["Custom__c"].fields
+            assert "Name" in decls["Account"].fields  # because required
+            assert "BillingCountry" not in decls["Account"].fields  # not required
+            assert "CustomField__c" in decls["Custom__c"].fields
 
     @pytest.mark.needs_org()
     @pytest.mark.slow()
