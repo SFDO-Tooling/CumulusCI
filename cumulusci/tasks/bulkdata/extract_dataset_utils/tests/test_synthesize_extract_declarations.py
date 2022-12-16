@@ -354,6 +354,44 @@ class TestSynthesizeExtractDeclarations:
 
     @pytest.mark.needs_org()
     @pytest.mark.slow()
+    def test_synthesize_fields(self, sf, org_config):
+        declarations = """
+            extract:
+                Opportunity:
+                    fields:
+                        - FIELDS(STANDARD)
+                Account:
+                    fields:
+                        - FIELDS(CUSTOM)
+                Contact:
+                    fields:
+                        - FIELDS(ALL)
+                Custom__c:
+                    fields:
+                        - FIELDS(CUSTOM)
+        """
+        declarations = ExtractRulesFile.parse_extract(StringIO(declarations))
+
+        with get_org_schema(
+            sf,
+            org_config,
+            include_counts=True,
+            filters=[Filters.createable, Filters.extractable, Filters.populated],
+        ) as schema:
+            print(schema.keys())
+            decls = flatten_declarations(declarations.values(), schema)
+            decls = {decl.sf_object: decl for decl in decls}
+            assert "Account" in decls
+            assert "Contact" in decls
+            assert "Opportunity" in decls
+            assert "Custom__c" in decls
+
+            assert set(decls["Account"].fields) == set(["Name"])
+            assert "AccountId" in decls["Contact"].fields, decls["Contact"].fields
+            assert 0, decls
+
+    @pytest.mark.needs_org()
+    @pytest.mark.slow()
     def test_find_standard_objects__integration_tests(self, sf, org_config):
         declarations = """
             extract:
@@ -372,7 +410,7 @@ class TestSynthesizeExtractDeclarations:
             decls = {decl.sf_object: decl for decl in decls}
             assert "WorkBadgeDefinition" in decls
             # HEY NOW!
-            assert "You\\'re a RockStar!" in decls["WorkBadgeDefinition"].where
+            assert "You\\'re a RockStar!" in str(decls["WorkBadgeDefinition"].where)
             if "Opportunity" in decls:
                 assert "IsPrivate" not in decls["Opportunity"].fields, decls.keys()
 
