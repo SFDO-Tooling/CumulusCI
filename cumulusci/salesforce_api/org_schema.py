@@ -401,13 +401,13 @@ def get_org_schema(
                     schema = Schema(engine, schema_path, filters)
 
                     cleanups_on_failure.append(schema.close)
-                    closer.callback(schema.close)
-                    assert schema.sobjects.first().name
-                    schema.from_cache = True
                     if schema.version != schema.CurrentFormatVersion:
                         raise SilentMigration(
                             "was created with older CumulusCI version"
                         )
+                    closer.callback(schema.close)
+                    assert schema.sobjects.first().name
+                    schema.from_cache = True
                 except Exception as e:
                     if not isinstance(e, SilentMigration):
                         logger.warning(
