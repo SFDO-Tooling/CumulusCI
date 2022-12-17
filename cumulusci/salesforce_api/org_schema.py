@@ -242,13 +242,36 @@ class Schema:
                     field["sobject"] = sobj_data["name"]
                     create_row(sess, Field, field)
 
-            create_row(sess, FileMetadata, {"name": "FormatVersion", "value": 1})
+            self.save_version(sess)
 
         engine.execute("vacuum")
+
+    FormatVersion = "FormatVersion"
+    CurrentFormatVersion = 2
+
+    @property
+    def version(self) -> int:
+        rows = self.session.query(FileMetadata.value)
+        rows = rows.filter(FileMetadata.name == self.FormatVersion)
+        first_row = rows.one()
+        assert first_row
+        return int(first_row[0])
+
+    def save_version(self, sess: "BufferedSession"):
+        create_row(
+            sess,
+            FileMetadata,
+            {"name": self.FormatVersion, "value": self.CurrentFormatVersion},
+        )
+        self.session.commit()
 
 
 def create_row(buffered_session: "BufferedSession", model, valuesdict: dict):
     buffered_session.write_single_row(model.__tablename__, valuesdict)
+
+
+class SilentMigration(Exception):
+    pass
 
 
 class BufferedSession:
@@ -317,7 +340,7 @@ def get_org_schema(
     include_counts: bool = False,
     filters: T.Sequence[Filters] = (),
     patterns_to_ignore: T.Tuple[str, ...] = (),
-    included_objects: T.Sequence[str] = (),
+    included_objects: T.List[str] = (),
     force_recache=False,
     logger=None,
 ):
@@ -381,10 +404,15 @@ def get_org_schema(
                     closer.callback(schema.close)
                     assert schema.sobjects.first().name
                     schema.from_cache = True
+                    if schema.version != schema.CurrentFormatVersion:
+                        raise SilentMigration(
+                            "was created with older CumulusCI version"
+                        )
                 except Exception as e:
-                    logger.warning(
-                        f"Cannot read `{schema_path}`. Recreating it. Reason `{e}`."
-                    )
+                    if not isinstance(e, SilentMigration):
+                        logger.warning(
+                            f"Cannot read `{schema_path}`. Recreating it. Reason `{e}`."
+                        )
                     schema = None
                     for cleanup_action in reversed(cleanups_on_failure):
                         cleanup_action()

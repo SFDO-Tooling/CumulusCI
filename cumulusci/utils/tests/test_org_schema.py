@@ -428,6 +428,32 @@ class TestOrgSchema:
             assert "Apostasy" in caplog.text
             assert "more counting errors suppressed" in caplog.text
 
+    def test_old_schema_version(self, sf, org_config, caplog):
+        with mock_return_uncached_responses(self.cassette_data):
+            with patch(
+                "cumulusci.salesforce_api.org_schema.Schema.CurrentFormatVersion", 7
+            ), get_org_schema(
+                FakeSF(), org_config, include_counts=True, filters=[Filters.populated]
+            ) as schema:
+                assert schema.version == 7
+
+            class FakeSilentMigration(Exception):
+                called = False
+
+                def __init__(self, *args, **kwargs):
+                    self.__class__.called = True
+
+            with patch(
+                "cumulusci.salesforce_api.org_schema.SilentMigration",
+                FakeSilentMigration,
+            ), patch(
+                "cumulusci.salesforce_api.org_schema.Schema.CurrentFormatVersion", 8
+            ), get_org_schema(
+                FakeSF(), org_config, include_counts=True, filters=[Filters.populated]
+            ) as schema:
+                assert schema.version == 8
+                assert FakeSilentMigration.called
+
     @pytest.mark.needs_org()
     def test_schema_populated_real(self, sf, org_config, ensure_records):
         starting_records = {
