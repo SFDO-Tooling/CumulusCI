@@ -17,7 +17,7 @@ any data.
 CumulusCI has easy to use tasks for working with the primary
 sample datasets used for projects. There is a 'default' dataset
 which would be used in scratch org configuration flows, as well
-as other datasets specific to the needs of specific scratch orgconfigurations.
+as other datasets specific to the needs of specific scratch org configurations.
 
 For example, the 'dev' dataset is for 'dev' orgs, and it is used
 instead of the default dataset if it exists.
