@@ -1,11 +1,17 @@
 from contextlib import contextmanager
+from pathlib import Path
 from unittest import mock
 
+import pytest
+import responses
+
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.bulkdata.extract_dataset_utils.tests.test_synthesize_extract_declarations import (
     _fake_get_org_schema,
     describe_for,
 )
 from cumulusci.tasks.sample_data.capture_sample_data import CaptureSampleData
+from cumulusci.tests.util import CURRENT_SF_API_VERSION
 
 
 @contextmanager
@@ -27,7 +33,13 @@ def setup_test(org_config):
             included_objects=["Account", "Contact", "Opportunity"],
             **kwargs,
         ),
-    ):
+    ), responses.RequestsMock() as rsps:
+        rsps.add(
+            responses.GET,
+            f"https://orgname.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects",
+            json={"sobjects": [{"name": "WebLink"}]},
+            status=200,
+        )
         yield
 
 
@@ -45,7 +57,9 @@ class TestCaptureDatasetss:
             # default dataset should created
             Dataset.assert_any_call("default", mock.ANY, mock.ANY, org_config, mock.ANY)
             # and extracted
-            Dataset().__enter__().extract.assert_called_with({}, task.logger)
+            Dataset().__enter__().extract.assert_called_with(
+                {}, task.logger, None, mock.ANY
+            )
 
     @mock.patch("cumulusci.tasks.sample_data.capture_sample_data.Dataset")
     def test_named_extract(
@@ -55,8 +69,18 @@ class TestCaptureDatasetss:
         org_config,
     ):
         with setup_test(org_config):
+            extraction_definition = Path("test_extract_definition")
+            with open(extraction_definition, "w") as f:
+                f.write("")  # Doesn't matter. We won't parse it
+
             Dataset().__enter__().path.exists.return_value = False
-            task = create_task(CaptureSampleData, {"dataset": "mydataset"})
+            task = create_task(
+                CaptureSampleData,
+                {
+                    "dataset": "mydataset",
+                    "extraction_definition": extraction_definition,
+                },
+            )
             task()
             # named dataset should create
             Dataset.assert_any_call(
@@ -64,4 +88,23 @@ class TestCaptureDatasetss:
             )
             Dataset().__enter__().create.assert_called_with()
             # and extracted
-            Dataset().__enter__().extract.assert_called_with({}, task.logger)
+            Dataset().__enter__().extract.assert_called_with(
+                {}, task.logger, extraction_definition, mock.ANY
+            )
+
+    @mock.patch("cumulusci.tasks.sample_data.capture_sample_data.Dataset")
+    def test_option_error(
+        self,
+        Dataset,
+        create_task,
+        org_config,
+    ):
+        task = create_task(
+            CaptureSampleData,
+            {
+                "dataset": "mydataset",
+                "extraction_definition": Path("xyzzy.bbb.yml"),
+            },
+        )
+        with pytest.raises(TaskOptionsError, match="xyzzy.bbb.yml"):
+            task()

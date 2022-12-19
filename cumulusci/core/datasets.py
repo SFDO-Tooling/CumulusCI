@@ -130,7 +130,7 @@ class Dataset:
             else:
                 extraction_definition = self.extract_file
 
-                if not self.extract_file.exists():
+                if not self.extract_file.exists():  # pragma: no cover
                     self.extract_file.write_text(DEFAULT_EXTRACT_DATA)
             decls = ExtractRulesFile.parse_extract(extraction_definition)
 

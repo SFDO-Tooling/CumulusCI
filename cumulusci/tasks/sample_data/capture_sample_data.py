@@ -31,6 +31,10 @@ class CaptureSampleData(BaseSalesforceApiTask):
 
     def _run_task(self):
         name = self.options["dataset"]
+        if extraction_definition := self.options.get("extraction_definition"):
+            extraction_definition = Path(extraction_definition)
+            if not extraction_definition.exists():
+                raise TaskOptionsError(f"Cannot find {extraction_definition}")
         with get_org_schema(
             self.sf,
             self.org_config,
@@ -48,10 +52,6 @@ class CaptureSampleData(BaseSalesforceApiTask):
                 verb = "Created"
             else:
                 verb = "Updated"
-            if extraction_definition := self.options.get("extraction_definition"):
-                extraction_definition = Path(extraction_definition)
-                if not extraction_definition.exists():
-                    raise TaskOptionsError(f"Cannot find {extraction_definition}")
             opt_in_only = [f["name"] for f in self.tooling.describe()["sobjects"]]  # type: ignore
             opt_in_only += [
                 "FeedItem",

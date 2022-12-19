@@ -34,7 +34,7 @@ class SimplifiedExtractDeclaration(ExtractDeclaration):
 def flatten_declarations(
     declarations: T.Iterable[ExtractDeclaration],
     schema: Schema,
-    opt_in_only: T.Sequence[str],
+    opt_in_only: T.Sequence[str] = (),
 ) -> T.List[SimplifiedExtractDeclaration]:
     """Convert short-form, abstract Extract declarations like this:
 
