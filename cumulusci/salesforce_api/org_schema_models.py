@@ -126,6 +126,7 @@ class SObject(OrgSchemaModelMixin, Base):
     supportedScopes = Column(SequenceType)
     actionOverrides = Column(SequenceType)
     count = Column(Integer)
+    last_modified_date = Column(String)
 
     @property
     def extractable(self):

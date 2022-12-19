@@ -3,12 +3,11 @@ import re
 import typing as T
 from collections import defaultdict
 from contextlib import ExitStack, contextmanager
-from email.utils import parsedate
 from enum import Enum
 from logging import getLogger
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, Iterable, List, NamedTuple, Optional, Tuple
+from typing import Dict, Iterable, List, NamedTuple, Optional
 
 from sqlalchemy import MetaData, create_engine, not_
 from sqlalchemy.engine import Engine
@@ -112,7 +111,6 @@ class Filters(Enum):
 class Schema:
     """Represents an org's schema, cached from describe() calls"""
 
-    _last_modified_date = None
     included_objects = None
     includes_counts = False
 
@@ -164,21 +162,6 @@ class Schema:
     def close(self):
         self.session.close()
 
-    @property
-    def last_modified_date(self):
-        """Date of the most recent schema update"""
-        if not self._last_modified_date:
-            try:
-                self._last_modified_date = (
-                    self.session.query(FileMetadata)
-                    .filter(FileMetadata.name == "Last-Modified")
-                    .one()
-                    .value
-                )
-            except exc.NoResultFound:
-                pass
-        return self._last_modified_date
-
     def __repr__(self):
         return f"<Schema {self.path} : {self.engine}>"
 
@@ -193,7 +176,6 @@ class Schema:
         self,
         sf,
         included_objects,
-        last_modified_date,
         filters: T.Sequence[Filters] = (),
         patterns_to_ignore: T.Sequence[str] = (),
         logger=None,
@@ -223,18 +205,26 @@ class Schema:
                 or ignore_based_on_properties(obj, filters)
             )
         ]
-        changes = list(deep_describe(sf, last_modified_date, sobj_names, logger))
 
-        self._populate_cache_from_describe(changes, last_modified_date)
+        def find_last_modified_date(sobj_name: str) -> Optional[str]:
+            if obj := self.get(sobj_name):
+                return obj.last_modified_date
+            else:
+                return y2k
+
+        objs_to_refresh = {
+            sobj_name: find_last_modified_date(sobj_name) for sobj_name in sobj_names
+        }
+        changes = list(deep_describe(sf, objs_to_refresh, logger))
+
+        self._populate_cache_from_describe(changes)
         if include_counts:
             results = populate_counts(sf, self, sobj_names, logger)
         else:
             results = {name: None for name in sobj_names}
         return results
 
-    def _populate_cache_from_describe(
-        self, describe_objs: List[Tuple[dict, str]], last_modified_date
-    ) -> T.List[str]:
+    def _populate_cache_from_describe(self, describe_objs: List["DescribeUpdate"]):
         """Populate a schema cache from a list of describe objects."""
         engine = self.engine
         metadata = Base.metadata
@@ -243,30 +233,45 @@ class Schema:
 
         with BufferedSession(engine, metadata) as sess:
 
-            max_last_modified = (parsedate(last_modified_date), last_modified_date)
             for (sobj_data, last_modified) in describe_objs:
                 sobj_data = sobj_data.copy()
                 fields = sobj_data.pop("fields")
+                sobj_data["last_modified_date"] = last_modified
                 create_row(sess, SObject, sobj_data)
                 for field in fields:
                     field["sobject"] = sobj_data["name"]
                     create_row(sess, Field, field)
-                    sortable = parsedate(last_modified), last_modified
-                    if sortable > max_last_modified:
-                        max_last_modified = sortable
 
-            create_row(
-                sess,
-                FileMetadata,
-                {"name": "Last-Modified", "value": max_last_modified[1]},
-            )
-            create_row(sess, FileMetadata, {"name": "FormatVersion", "value": 1})
+            self.save_version(sess)
 
         engine.execute("vacuum")
+
+    FormatVersion = "FormatVersion"
+    CurrentFormatVersion = 2
+
+    @property
+    def version(self) -> int:
+        rows = self.session.query(FileMetadata.value)
+        rows = rows.filter(FileMetadata.name == self.FormatVersion)
+        first_row = rows.one()
+        assert first_row
+        return int(first_row[0])
+
+    def save_version(self, sess: "BufferedSession"):
+        create_row(
+            sess,
+            FileMetadata,
+            {"name": self.FormatVersion, "value": self.CurrentFormatVersion},
+        )
+        self.session.commit()
 
 
 def create_row(buffered_session: "BufferedSession", model, valuesdict: dict):
     buffered_session.write_single_row(model.__tablename__, valuesdict)
+
+
+class SilentMigration(Exception):
+    pass
 
 
 class BufferedSession:
@@ -334,7 +339,7 @@ def get_org_schema(
     *,
     include_counts: bool = False,
     filters: T.Sequence[Filters] = (),
-    patterns_to_ignore: T.Tuple[str] = (),
+    patterns_to_ignore: T.Tuple[str, ...] = (),
     included_objects: T.List[str] = (),
     force_recache=False,
     logger=None,
@@ -400,12 +405,17 @@ def get_org_schema(
 
                     cleanups_on_failure.append(schema.close)
                     closer.callback(schema.close)
+                    if schema.version != schema.CurrentFormatVersion:
+                        raise SilentMigration(
+                            "was created with older CumulusCI version"
+                        )
                     assert schema.sobjects.first().name
                     schema.from_cache = True
                 except Exception as e:
-                    logger.warning(
-                        f"Cannot read `{schema_path}`. Recreating it. Reason `{e}`."
-                    )
+                    if not isinstance(e, SilentMigration):
+                        logger.warning(
+                            f"Cannot read `{schema_path}`. Recreating it. Reason `{e}`."
+                        )
                     schema = None
                     for cleanup_action in reversed(cleanups_on_failure):
                         cleanup_action()
@@ -420,7 +430,6 @@ def get_org_schema(
             populated_objs = schema.populate_cache(
                 sf,
                 included_objects,
-                schema.last_modified_date or y2k,
                 filters,
                 patterns_to_ignore,
                 logger,
@@ -497,9 +506,10 @@ class DescribeUpdate(NamedTuple):
     last_modified_date: str = None
 
 
-def deep_describe(
-    sf, last_modified_date: Optional[str], objs: List[str], logger
-) -> Iterable[DescribeUpdate]:
+lm_date = Optional[str]
+
+
+def deep_describe(sf, objs: Dict[str, lm_date], logger) -> Iterable[DescribeUpdate]:
     """Fetch describe data for changed sobjects
 
     Fetch describe data for sobjects from the list 'objs'
@@ -507,7 +517,6 @@ def deep_describe(
     proto format) and yield each object as a DescribeResponse object."""
 
     logger = logger or getLogger(__name__)
-    last_modified_date = last_modified_date or y2k
     with CompositeParallelSalesforce(sf, max_workers=8) as cpsf:
         responses, errors = cpsf.do_composite_requests(
             (
@@ -515,9 +524,9 @@ def deep_describe(
                     "method": "GET",
                     "url": f"/services/data/v{sf.sf_version}/sobjects/{obj}/describe",
                     "referenceId": f"ref{obj}",
-                    "httpHeaders": {"If-Modified-Since": last_modified_date},
+                    "httpHeaders": {"If-Modified-Since": last_modified_date or y2k},
                 }
-                for obj in objs
+                for obj, last_modified_date in objs.items()
             )
         )
 
