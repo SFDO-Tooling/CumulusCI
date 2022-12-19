@@ -28,7 +28,7 @@ class TestGenerateLoadMappingFromDeclarations:
             filters=[],
             include_counts=True,
         ) as schema:
-            mf = create_extract_mapping_file_from_declarations(declarations, schema)
+            mf = create_extract_mapping_file_from_declarations(declarations, schema, ())
             assert mf == {
                 "Extract Account": {
                     "sf_object": "Account",
@@ -55,7 +55,7 @@ class TestGenerateLoadMappingFromDeclarations:
             filters=[],
             include_counts=True,
         ) as schema:
-            mf = create_extract_mapping_file_from_declarations(declarations, schema)
+            mf = create_extract_mapping_file_from_declarations(declarations, schema, ())
             print(mf)
             assert mf == {
                 "Extract Account": {

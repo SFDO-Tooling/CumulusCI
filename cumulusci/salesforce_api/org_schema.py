@@ -364,6 +364,9 @@ def get_org_schema(
 
     force_recache: True - replace cache. False (default) - use/update cache is available.
     logger - replace the standard logger "cumulusci.salesforce_api.org_schema"
+
+    This function take 5-20 seconds (or even more) depending on
+    the complexity of the org. Call it at most once per task!
     """
     assert not isinstance(patterns_to_ignore, str)
 
