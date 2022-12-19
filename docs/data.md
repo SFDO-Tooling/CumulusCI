@@ -14,6 +14,9 @@ any data.
 
 ## Sample Data
 
+Note: Sample Data features are still under active
+development and may change based on user feedback.
+
 CumulusCI has easy to use tasks for working with the primary
 sample datasets used for projects. There is a 'default' dataset
 which would be used in scratch org configuration flows, as well
