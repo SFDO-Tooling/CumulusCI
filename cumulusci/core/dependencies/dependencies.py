@@ -559,9 +559,9 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
         pass
 
     def get_metadata_package_zip_builder(
-        self, context: BaseProjectConfig, org: OrgConfig
+        self, project_config: BaseProjectConfig, org: OrgConfig
     ) -> MetadataPackageZipBuilder:
-        zip_src = self._get_zip_src(context)
+        zip_src = self._get_zip_src(project_config)
         # Determine whether to inject namespace prefixes or not
         # If and only if we have no explicit configuration.
 
@@ -605,10 +605,11 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
                 stack.enter_context(temporary_dir(chdir=True))
                 zip_src.extractall()
                 real_path = stack.enter_context(
-                    convert_sfdx_source(self.subfolder, None, context.logger)
+                    convert_sfdx_source(self.subfolder, None, project_config.logger)
                 )
                 zip_src = None  # Don't use the zipfile if we converted source.
 
+            context = TaskContext(org, project_config, project_config.logger)
             # We now know what to send to MetadataPackageZipBuilder
             # Note that subfolder logic is applied either by subsetting the zip
             # (for MDAPI) or by the conversion (for SFDX format)
@@ -617,7 +618,7 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
                 zip_src,
                 path=real_path,
                 options=options,
-                logger=context.logger,
+                context=context,
             )
 
         return package_zip
