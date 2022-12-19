@@ -352,6 +352,43 @@ class TestSynthesizeExtractDeclarations:
             assert set(decls["Account"].fields) == set(["Name", "Description"])
             assert decls["Contact"].fields == ["LastName"], decls["Contact"].fields
 
+    def test_synthesize_fields(self, sf, org_config):
+        declarations = """
+            extract:
+                Opportunity:
+                    fields:
+                        - FIELDS(STANDARD)
+                Account:
+                    fields:
+                        - FIELDS(CUSTOM)
+                Contact:
+                    fields:
+                        - FIELDS(ALL)
+                Custom__c:
+                    fields:
+                        - FIELDS(CUSTOM)
+        """
+        declarations = ExtractRulesFile.parse_extract(StringIO(declarations))
+        object_counts = {"Account": 2, "Contact": 2, "Custom__c": 5}
+        object_describes = [describe_for(obj) for obj in object_counts.keys()]
+        with _fake_get_org_schema(
+            org_config,
+            object_describes,
+            object_counts,
+            include_counts=True,
+        ) as schema:
+            decls = flatten_declarations(declarations.values(), schema)
+            decls = {decl.sf_object: decl for decl in decls}
+            assert "Account" in decls
+            assert "Contact" in decls
+            assert "Entitlement" not in decls
+            assert "Opportunity" not in decls  # not populated
+            assert "Name" not in decls["Custom__c"].fields
+            assert "Id" not in decls["Custom__c"].fields
+            assert "Name" in decls["Account"].fields  # because required
+            assert "BillingCountry" not in decls["Account"].fields  # not required
+            assert "CustomField__c" in decls["Custom__c"].fields
+
     @pytest.mark.needs_org()
     @pytest.mark.slow()
     def test_find_standard_objects__integration_tests(self, sf, org_config):
@@ -372,7 +409,7 @@ class TestSynthesizeExtractDeclarations:
             decls = {decl.sf_object: decl for decl in decls}
             assert "WorkBadgeDefinition" in decls
             # HEY NOW!
-            assert "You\\'re a RockStar!" in decls["WorkBadgeDefinition"].where
+            assert "You\\'re a RockStar!" in str(decls["WorkBadgeDefinition"].where)
             if "Opportunity" in decls:
                 assert "IsPrivate" not in decls["Opportunity"].fields, decls.keys()
 
