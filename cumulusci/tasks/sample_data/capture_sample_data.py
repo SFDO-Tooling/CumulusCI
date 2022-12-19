@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.datasets import Dataset
+from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.org_schema import Filters, get_org_schema
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
 
@@ -28,6 +31,10 @@ class CaptureSampleData(BaseSalesforceApiTask):
 
     def _run_task(self):
         name = self.options["dataset"]
+        if extraction_definition := self.options.get("extraction_definition"):
+            extraction_definition = Path(extraction_definition)
+            if not extraction_definition.exists():
+                raise TaskOptionsError(f"Cannot find {extraction_definition}")
         with get_org_schema(
             self.sf,
             self.org_config,
@@ -45,6 +52,17 @@ class CaptureSampleData(BaseSalesforceApiTask):
                 verb = "Created"
             else:
                 verb = "Updated"
-            self.return_values = dataset.extract({}, self.logger)
+            opt_in_only = [f["name"] for f in self.tooling.describe()["sobjects"]]  # type: ignore
+            opt_in_only += [
+                "FeedItem",
+                "Translation",
+                "WebLinkLocalization",
+                "RecordTypeLocalization",
+                "RecordType",
+                "BrandTemplate",
+            ]
+            self.return_values = dataset.extract(
+                {}, self.logger, extraction_definition, opt_in_only
+            )
             self.logger.info(f"{verb} dataset '{name}' in 'datasets/{name}'")
             return self.return_values

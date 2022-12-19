@@ -42,7 +42,7 @@ class TestSynthesizeExtractDeclarations:
             filters=[],
             include_counts=True,
         ) as schema:
-            decls = flatten_declarations(declarations.values(), schema)
+            decls = flatten_declarations(declarations.values(), schema, ())
 
             assert tuple(decl.dict() for decl in decls) == tuple(
                 (
@@ -128,6 +128,41 @@ class TestSynthesizeExtractDeclarations:
                         "api": DataApi.SMART,
                         "sf_object": "Account",
                     },
+                    {
+                        "where": None,
+                        "fields_": mock.ANY,
+                        "api": DataApi.SMART,
+                        "sf_object": "Case",
+                    },
+                )
+            )
+
+    def test_filter_objects(self, org_config):
+        declarations = """
+            extract:
+                    OBJECTS(STANDARD):
+                        fields:
+                            FIELDS(REQUIRED)
+        """
+        object_counts = {"Account": 10, "Contact": 0, "Case": 5, "Custom__c": 10}
+        obj_describes = (
+            describe_for("Account"),
+            describe_for("Contact"),
+            describe_for("Case"),
+            describe_for("Custom__c"),
+        )
+        declarations = ExtractRulesFile.parse_extract(StringIO(declarations))
+        with _fake_get_org_schema(
+            org_config,
+            obj_describes,
+            object_counts,
+            filters=[],
+            include_counts=True,
+        ) as schema:
+            decls = flatten_declarations(declarations.values(), schema, ("Account"))
+
+            assert tuple(decl.dict() for decl in decls) == tuple(
+                (  # No Account
                     {
                         "where": None,
                         "fields_": mock.ANY,

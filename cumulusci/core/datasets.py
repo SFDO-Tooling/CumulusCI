@@ -94,7 +94,6 @@ class Dataset:
         decls = ExtractRulesFile.parse_extract(StringIO(DEFAULT_EXTRACT_DATA))
 
         decls = list(decls.values())
-        self._save_load_mapping(decls)
 
     def _get_org_schema(self):
         return get_org_schema(
@@ -104,40 +103,62 @@ class Dataset:
             filters=[Filters.extractable, Filters.createable, Filters.populated],
         )
 
-    def _save_load_mapping(self, decls: T.Sequence[ExtractDeclaration]) -> None:
+    def _save_load_mapping(
+        self,
+        decls: T.Sequence[ExtractDeclaration],
+        opt_in_only: T.Sequence[str] = (),
+    ) -> None:
         assert isinstance(self.schema, Schema)
         mapping_data = create_load_mapping_file_from_extract_declarations(
-            decls, self.schema
+            decls, self.schema, opt_in_only
         )
         with self.mapping_file.open("w") as f:
             yaml.safe_dump(mapping_data, f, sort_keys=False)
 
     @contextmanager
-    def temp_extract_mapping(self, schema):
+    def temp_extract_mapping(
+        self,
+        schema,
+        extraction_definition: T.Optional[Path],
+        opt_in_only: T.Sequence[str],
+    ):
         with TemporaryDirectory() as t:
             t = Path(t)
-            if self.extract_file.exists():
-                f = self.extract_file
+            if extraction_definition:
+                assert extraction_definition.exists(), "Cannot find extract mapping {f}"
+                self.extract_file.write_text(extraction_definition.read_text())
             else:
-                f = StringIO(DEFAULT_EXTRACT_DATA)
-            decls = ExtractRulesFile.parse_extract(f)
+                extraction_definition = self.extract_file
+
+                if not self.extract_file.exists():  # pragma: no cover
+                    self.extract_file.write_text(DEFAULT_EXTRACT_DATA)
+            decls = ExtractRulesFile.parse_extract(extraction_definition)
 
             extract_mapping = t / "extract.mapping.yml"
             with extract_mapping.open("w") as f:
                 yaml.safe_dump(
                     create_extract_mapping_file_from_declarations(
-                        list(decls.values()), schema
+                        list(decls.values()), schema, opt_in_only
                     ),
                     f,
                 )
             yield extract_mapping, decls
 
     def extract(
-        self, options: T.Optional[T.Dict] = None, logger: T.Optional[Logger] = None
+        self,
+        options: T.Optional[T.Dict] = None,
+        logger: T.Optional[Logger] = None,
+        extraction_definition: T.Optional[Path] = None,
+        opt_in_only: T.Sequence[str] = (),
     ):
         options = options or {}
         logger = logger or DEFAULT_LOGGER
-        with self.temp_extract_mapping(self.schema) as (extract_mapping, decls):
+        with self.temp_extract_mapping(
+            self.schema, extraction_definition, opt_in_only
+        ) as (
+            extract_mapping,
+            decls,
+        ):
             task = _make_task(
                 ExtractData,
                 project_config=self.project_config,
@@ -146,7 +167,7 @@ class Dataset:
                 mapping=str(extract_mapping),
             )
             task()
-        self._save_load_mapping(list(decls.values()))
+        self._save_load_mapping(list(decls.values()), opt_in_only)
         return task.return_values
 
     def _snowfakery_dataload(self, options: T.Dict, logger: Logger) -> T.Dict:
@@ -208,7 +229,11 @@ class Dataset:
                 objrepr[field] = is_selected
         return out
 
-    def update_schema_subset(self, objs: T.Dict[str, T.List[str]]):
+    def update_schema_subset(
+        self,
+        objs: T.Dict[str, T.List[str]],
+        opt_in_only: T.Sequence[str] = (),
+    ):
         # TODO: Test round-tripping through this carefully...especially
         #       for weird objects like WorkBadgeDefinitions
         objs_dict = {name: {"fields": fields} for name, fields in objs.items()}
@@ -219,7 +244,7 @@ class Dataset:
             SimplifiedExtractDeclaration(sf_object=name, fields=fields)
             for name, fields in objs.items()
         ]
-        self._save_load_mapping(decls)
+        self._save_load_mapping(decls, opt_in_only)
 
 
 def _make_task(task_class, project_config, org_config, **options):
