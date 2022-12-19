@@ -10,9 +10,13 @@ from cumulusci.tasks.bulkdata.extract_dataset_utils.tests.test_synthesize_extrac
     _fake_get_org_schema,
     describe_for,
 )
-from cumulusci.tasks.bulkdata.tests.integration_test_utils import ensure_accounts
+from cumulusci.tasks.bulkdata.tests.integration_test_utils import (
+    ensure_accounts,
+    ensure_records,
+)
 
 ensure_accounts = ensure_accounts
+ensure_records = ensure_records
 
 
 class Timer:

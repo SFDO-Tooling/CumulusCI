@@ -16,9 +16,16 @@ from sqlalchemy.orm import sessionmaker
 from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.github import get_github_api
 from cumulusci.salesforce_api.org_schema_models import Base
+from cumulusci.tasks.bulkdata.tests.integration_test_utils import (
+    ensure_accounts,
+    ensure_records,
+)
 from cumulusci.tasks.salesforce.tests.util import create_task_fixture
 from cumulusci.tests.pytest_plugins.pytest_sf_vcr import salesforce_vcr, vcr_config
 from cumulusci.tests.util import DummyKeychain, DummyOrgConfig, mock_env
+
+ensure_accounts = ensure_accounts
+ensure_records = ensure_records
 
 
 @fixture(scope="session", autouse=True)
