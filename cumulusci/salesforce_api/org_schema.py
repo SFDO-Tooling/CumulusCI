@@ -406,7 +406,7 @@ def get_org_schema(
                         raise SilentMigration(
                             "was created with older CumulusCI version"
                         )
-                    assert schema.sobjects.one().name
+                    assert schema.sobjects.first().name
                     schema.from_cache = True
                 except Exception as e:
                     if not isinstance(e, SilentMigration):
