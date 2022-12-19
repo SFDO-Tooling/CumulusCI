@@ -22,9 +22,10 @@ class SimplifiedExtractDeclarationWithLookups(SimplifiedExtractDeclaration):
 def create_load_mapping_file_from_extract_declarations(
     decls: T.Sequence[ExtractDeclaration],
     schema: Schema,
+    opt_in_only: T.Sequence[str] = (),
 ) -> T.Dict[str, dict]:
     """Create a mapping file from Extract declarations"""
-    simplified_decls = flatten_declarations(decls, schema)
+    simplified_decls = flatten_declarations(decls, schema, opt_in_only)  # FIXME
     simplified_decls_w_lookups = classify_and_filter_lookups(simplified_decls, schema)
     intertable_dependencies = _discover_dependendencies(simplified_decls_w_lookups)
 
