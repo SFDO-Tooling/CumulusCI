@@ -4,7 +4,7 @@
 
 Critical Changes 🎉
 
--   A few weeks ago we soft-launched a `load_data` feature that matched the dataset loaded to the `org_shape`. If you had discovered and used the `load_data` option called `org_shape_match_only`, you should switch to the new task because eventually we will remove the option and only use the new task. (#3455)
+-   A few weeks ago we soft-launched a `load_data` feature that matched the dataset loaded to the `org_shape`. If you had discovered and used the `load_data` option called `org_shape_match_only`, you should switch to the new task because eventually we will remove the option and only use the new `load_sample_data` task. (#3455)
 
 Changes 🎉
 
