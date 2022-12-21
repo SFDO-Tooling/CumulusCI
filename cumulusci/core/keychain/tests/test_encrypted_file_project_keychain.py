@@ -1151,3 +1151,30 @@ class TestCleanupOrgCacheDir:
         }
         assert config["custom_datetime"] == custom_datetime
         assert config["custom_date"] == custom_date
+
+    def test_migration_pickle_to_json(
+        self, keychain, patch_home_and_env, project_config
+    ):
+        # This all runs in fake-home, not real home.
+        with mock.patch(
+            "cumulusci.core.keychain.serialization.SHOULD_SAVE_AS_JSON", False
+        ):
+            org_config = OrgConfig(
+                {"password": "Kltpzyxm"}, "test_migration", keychain=keychain
+            )
+            org_config.save()
+            assert Path(keychain.project_local_dir, "test_migration.org").exists()
+            del keychain.config["orgs"]
+            keychain._load_orgs()
+            assert keychain.get_org("test_migration").password == "Kltpzyxm"
+            assert keychain.get_org("test_migration").serialization_format == "pickle"
+
+        with mock.patch(
+            "cumulusci.core.keychain.serialization.SHOULD_SAVE_AS_JSON", True
+        ):
+            org_config.save()
+            assert Path(keychain.project_local_dir, "test_migration.org").exists()
+            del keychain.config["orgs"]
+            keychain._load_orgs()
+            assert keychain.get_org("test_migration").password == "Kltpzyxm"
+            assert keychain.get_org("test_migration").serialization_format == "json"

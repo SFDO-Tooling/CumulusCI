@@ -12,6 +12,7 @@ Force tags      forms
 *** Variables ***
 ${account name}   ACME Labs
 ${campaign name}  The Big SPAM
+${DATA DIR}  ${{pathlib.Path($SUITE_SOURCE).parent}}
 
 *** Keywords ***
 Initialize test objects
@@ -48,7 +49,7 @@ Go to My Email settings
     Go to  ${url}
 
 *** Test Cases ***
-Lightning based form - Opportunity
+Lightning based form
     [Documentation]
     ...  Sets all of the input fields for an opportunity, to make sure
     ...  we at least support enough input field types to create an opportunity
@@ -142,28 +143,20 @@ Non-lightning based form - radiobutton
     # ... and then verify that it was set
     Radio button should be set to  use_external_email  0
 
-Non-lightning based form - Shipment
+Non-lightning based form - input and textarea
     [Documentation]
-    ...  Fill in input and textarea fields
+    ...  Fill in non-lightning input and textarea fields
 
-    [Setup]  Run keywords
-    ...  Go to page                  Home    Shipment
-    ...  AND  Click Object Button    New
-    ...  AND  Wait for modal         New     Shipment
-    [Teardown]   Click modal button  Cancel
+    [Setup]  Go to  file://${DATA DIR}/labels.html
 
-    # first, let's make sure that the keyword returns an element
-    # that is not a lightning component
-    FOR  ${label}  IN  Ship To Street  Ship To City
-        ${element}=  Get webelement  label:${label}
-        Should not start with  ${element.tag_name}  lightning-
-        ...  Element tag for '${label}' not expected to be lightning component
-    END
     Input form data
-    ...  Ship To Street  2501 Exchange Ave
-    ...  Ship To City    Oklahoma City
+    ...  Description  This is the description
+    ...  City         Oklahoma City
 
-Fieldsets - Shipment
+    Textarea should contain   id=textarea-1  This is the description
+    Textfield should contain  id=input-3     Oklahoma City
+
+Fieldsets
     [Documentation]
     ...  Verify we can use fieldsets to disambiguate fields
 

@@ -32,7 +32,9 @@ class SimplifiedExtractDeclaration(ExtractDeclaration):
 
 
 def flatten_declarations(
-    declarations: T.Iterable[ExtractDeclaration], schema: Schema
+    declarations: T.Iterable[ExtractDeclaration],
+    schema: Schema,
+    opt_in_only: T.Sequence[str] = (),
 ) -> T.List[SimplifiedExtractDeclaration]:
     """Convert short-form, abstract Extract declarations like this:
 
@@ -54,7 +56,9 @@ def flatten_declarations(
     from referenced tables recursively.
     """
     assert schema.includes_counts, "Schema object was not set up with `includes_counts`"
-    simplified_declarations = _simplify_sfobject_declarations(declarations, schema)
+    simplified_declarations = _simplify_sfobject_declarations(
+        declarations, schema, opt_in_only
+    )
 
     from .calculate_dependencies import extend_declarations_to_include_referenced_tables
 
@@ -66,7 +70,7 @@ def flatten_declarations(
 
 
 def _simplify_sfobject_declarations(
-    declarations, schema: Schema
+    declarations, schema: Schema, opt_in_only: T.Sequence[str]
 ) -> T.List[SimplifiedExtractDeclaration]:
     """Generate a new list of declarations such that all sf_object patterns
     (like OBJECTS(CUSTOM)) have been expanded into many declarations
@@ -79,7 +83,7 @@ def _simplify_sfobject_declarations(
         atomic_declarations, DEFAULT_DECLARATIONS
     )
     atomized_declarations = _merge_group_declarations_with_simple_declarations(
-        normalized_atomic_declarations, group_declarations, schema
+        normalized_atomic_declarations, group_declarations, schema, opt_in_only
     )
     simplifed_declarations = [
         _expand_field_definitions(decl, schema[decl.sf_object].fields)
@@ -93,6 +97,7 @@ def _merge_group_declarations_with_simple_declarations(
     simple_declarations: T.Iterable[ExtractDeclaration],
     group_declarations: T.Iterable[ExtractDeclaration],
     schema: Schema,
+    opt_in_only: T.Sequence[str],
 ) -> T.List[ExtractDeclaration]:
     """Expand group declarations to simple declarations and merge
     with existing simple declarations"""
@@ -106,9 +111,12 @@ def _merge_group_declarations_with_simple_declarations(
     ]
     for decl_set in simplified_declarations:
         for decl in decl_set:
-            if decl.sf_object not in specific_sobject_decl_names and not any(
+            already_specified = decl.sf_object in specific_sobject_decl_names
+            hard_banned = any(
                 re.match(pat, decl.sf_object, re.IGNORECASE) for pat in NOT_EXTRACTABLE
-            ):
+            )
+            opted_out = decl.sf_object in opt_in_only
+            if not (already_specified or hard_banned or opted_out):
                 simple_declarations.append(decl)
 
     return simple_declarations
@@ -171,7 +179,9 @@ def _expand_field_definitions(
 
     # add in all of the required fields
     declarations.extend(
-        field.name for field in schema_fields.values() if required(field)
+        field.name
+        for field in schema_fields.values()
+        if field.requiredOnCreate and field.name not in declarations
     )
     # get rid of OwnerId because we don't move users between orgs
     if "OwnerId" in declarations:

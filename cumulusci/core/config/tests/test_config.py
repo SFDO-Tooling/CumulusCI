@@ -854,7 +854,7 @@ class TestBaseTaskFlowConfig:
 
 
 class TestOrgConfig:
-    @mock.patch("cumulusci.core.config.OrgConfig.OAuth2Client")
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
     def test_refresh_oauth_token(self, OAuth2Client):
         config = OrgConfig(
             {
@@ -877,7 +877,7 @@ class TestOrgConfig:
         assert client_config.client_id == DEFAULT_CONNECTED_APP.client_id
         refresh_token.assert_called_once_with(mock.sentinel.refresh_token)
 
-    @mock.patch("cumulusci.core.config.OrgConfig.OAuth2Client")
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.OAuth2Client")
     def test_refresh_oauth_token__other_connected_app(self, OAuth2Client):
         config = OrgConfig(
             {
@@ -1143,7 +1143,7 @@ class TestOrgConfig:
         info = config.get_community_info("Kōkua")
         assert info["name"] == "Kōkua"
 
-    @mock.patch("cumulusci.core.config.OrgConfig._fetch_community_info")
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig._fetch_community_info")
     def test_community_info_force_refresh(self, mock_fetch):
         """Verify that the force_refresh parameter has an effect"""
         mock_fetch.return_value = {"Kōkua": {"name": "Kōkua"}}
@@ -1159,7 +1159,7 @@ class TestOrgConfig:
         config.get_community_info("Kōkua", force_refresh=True)
         mock_fetch.assert_called()
 
-    @mock.patch("cumulusci.core.config.OrgConfig._fetch_community_info")
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig._fetch_community_info")
     def test_community_info_exception(self, mock_fetch):
         """Verify an exception is thrown when the community doesn't exist"""
         config = OrgConfig({}, "test")
@@ -1259,7 +1259,7 @@ class TestOrgConfig:
         SalesforceError(None, None, None, None),
     ]
 
-    @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.salesforce_client")
     def test_installed_packages(self, sf):
         config = OrgConfig({}, "test")
         sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
@@ -1300,7 +1300,7 @@ class TestOrgConfig:
         assert config.installed_packages == expected
         sf.restful.assert_called()
 
-    @mock.patch("cumulusci.core.config.OrgConfig.salesforce_client")
+    @mock.patch("cumulusci.core.config.org_config.OrgConfig.salesforce_client")
     def test_has_minimum_package_version(self, sf):
         config = OrgConfig({}, "test")
         sf.restful.side_effect = self.MOCK_TOOLING_PACKAGE_RESULTS
