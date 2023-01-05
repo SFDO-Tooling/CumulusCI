@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from cumulusci.core.config.org_config import OrgConfig
-from cumulusci.core.datasets import Dataset
+from cumulusci.core.datasets import Dataset, DatasetFormat
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.salesforce_api.org_schema import Filters, get_org_schema
 from cumulusci.tasks.salesforce.BaseSalesforceApiTask import BaseSalesforceApiTask
@@ -21,13 +21,20 @@ class CaptureSampleData(BaseSalesforceApiTask):
         "extraction_definition": {
             "description": "A file describing what to be extracted."
         },
+        "format": {
+            "description": "'snowfakery' or 'sql' file format. Defaults to sql."
+        },
     }
 
     org_config: OrgConfig
+    format = None
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
         self.options.setdefault("dataset", "default")
+
+        if format := self.options.get("format"):
+            self.format = getattr(DatasetFormat, format, None)
 
     def _run_task(self):
         name = self.options["dataset"]
@@ -62,7 +69,7 @@ class CaptureSampleData(BaseSalesforceApiTask):
                 "BrandTemplate",
             ]
             self.return_values = dataset.extract(
-                {}, self.logger, extraction_definition, opt_in_only
+                {}, self.logger, extraction_definition, opt_in_only, format=self.format
             )
             self.logger.info(f"{verb} dataset '{name}' in 'datasets/{name}'")
             return self.return_values

@@ -572,9 +572,9 @@ class MappingSteps(CCIDictModel):
 ValidationError = ValidationError  # export Pydantic's Validation Error under an alias
 
 
-def parse_from_yaml(source: Union[str, Path, IO]) -> Dict:
+def parse_from_yaml(source: Union[str, Path, IO]) -> Dict[str, MappingStep]:
     "Parse from a path, url, path-like or file-like"
-    return MappingSteps.parse_from_yaml(source)
+    return MappingSteps.parse_from_yaml(source)  # type: ignore
 
 
 def validate_and_inject_mapping(

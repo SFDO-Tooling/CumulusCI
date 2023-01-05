@@ -89,7 +89,7 @@ class ExtractData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.models = {}
 
         with self._database_url() as database_url:
-
+            assert database_url
             # initialize the DB engine
             parent_engine = create_engine(database_url)
             with parent_engine.connect() as connection:

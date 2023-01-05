@@ -129,6 +129,10 @@ tasks:
         description: Execute a series of REST API requests in a single call
         class_path: cumulusci.tasks.salesforce.composite.CompositeApi
         group: Data Operations
+    convert_dataset_to_recipe:
+        description: Convert a Dataset (SQL or DB format) to a snowfakery recipe
+        class_path: cumulusci.tasks.bulkdata.convert_dataset_to_recipe.ConvertDatasetToRecipe
+        group: Data Operations
     create_community:
         description: Creates a Community in the target org using the Connect API
         class_path: cumulusci.tasks.salesforce.CreateCommunity

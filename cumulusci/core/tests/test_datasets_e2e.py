@@ -256,13 +256,13 @@ class TestDatasetsE2E:
 class TestLoadDatasets:
     def test_dataset_with_snowfakery(self, sf, project_config, org_config):
         def fake_path_exists(self):
-            return str(self).endswith("recipe.yml")
+            return str(self).endswith("dataset.yml")
 
         called = False
 
         def fake_run_snowfakery(self):
             nonlocal called
-            assert "foo.recipe.yml" in self.options["recipe"]
+            assert "foo.dataset.yml" in self.options["recipe"]
             called = True
 
         with setup_test(org_config), Dataset(

@@ -1,6 +1,7 @@
 import typing as T
 from contextlib import contextmanager
 from dataclasses import dataclass
+from enum import Enum
 from io import StringIO
 from logging import Logger, getLogger
 from pathlib import Path
@@ -13,6 +14,7 @@ from simple_salesforce import Salesforce
 from cumulusci.core import exceptions as exc
 from cumulusci.core.config import BaseProjectConfig, OrgConfig, TaskConfig
 from cumulusci.salesforce_api.org_schema import Filters, Schema, get_org_schema
+from cumulusci.tasks.bulkdata.convert_dataset_to_recipe import ConvertDatasetToRecipe
 from cumulusci.tasks.bulkdata.extract import ExtractData
 from cumulusci.tasks.bulkdata.extract_dataset_utils.extract_yml import (
     ExtractDeclaration,
@@ -30,8 +32,15 @@ from cumulusci.tasks.bulkdata.generate_mapping_utils.generate_mapping_from_decla
 )
 from cumulusci.tasks.bulkdata.load import LoadData
 from cumulusci.tasks.bulkdata.snowfakery import Snowfakery
+from cumulusci.utils.fileutils import backup
 
 DEFAULT_LOGGER = getLogger(__file__)
+ExtractTaskResults = TaskResults = dict
+
+
+class DatasetFormat(Enum):
+    snowfakery = "Snowfakery"
+    sql = default = "Sql"
 
 
 @dataclass
@@ -56,12 +65,12 @@ class Dataset:
         return self.path / f"{self.name}.mapping.yml"
 
     @property
-    def data_file(self) -> Path:
+    def sql_file(self) -> Path:
         return self.path / f"{self.name}.dataset.sql"
 
     @property
     def snowfakery_recipe(self) -> Path:
-        return self.path / f"{self.name}.recipe.yml"
+        return self.path / f"{self.name}.dataset.yml"
 
     def exists(self) -> bool:
         return self.path.exists()
@@ -150,64 +159,132 @@ class Dataset:
         logger: T.Optional[Logger] = None,
         extraction_definition: T.Optional[Path] = None,
         opt_in_only: T.Sequence[str] = (),
-    ):
+        format: T.Optional[DatasetFormat] = DatasetFormat.default,
+    ) -> ExtractTaskResults:
+        ret = None
         options = options or {}
         logger = logger or DEFAULT_LOGGER
+        format = format or DatasetFormat.default
         with self.temp_extract_mapping(
             self.schema, extraction_definition, opt_in_only
         ) as (
             extract_mapping,
             decls,
         ):
-            task = _make_task(
-                ExtractData,
-                project_config=self.project_config,
-                org_config=self.org_config,
-                sql_path=self.data_file,
-                mapping=str(extract_mapping),
-            )
-            task()
-        self._save_load_mapping(list(decls.values()), opt_in_only)
+            if format == DatasetFormat.sql:
+                ret = self.extract_as_sql(options, extract_mapping)
+            elif format == DatasetFormat.snowfakery:
+                ret = self.extract_as_recipe(
+                    options, self.snowfakery_recipe, extract_mapping
+                )
+            else:  # pragma: no cov
+                assert False, f"Strange format: {format}"
+        self._save_load_mapping(list(decls.values()))
+        return ret
+
+    def extract_as_recipe(
+        self, options: dict, recipe: Path, extract_mapping: Path
+    ) -> TaskResults:
+        with self.extract_as_temp_db(extract_mapping) as (sql_file, extract_ret):
+            convert_ret = self._convert_dataset_to_recipe(options, sql_file, recipe)
+        if self.sql_file.exists():
+            backup(self.sql_file)
+        return {"extract": extract_ret, "convert_dataset_to_recipe": convert_ret}
+
+    def _convert_dataset_to_recipe(
+        self, options: dict, db_path: Path, recipe: Path
+    ) -> TaskResults:
+        subtask = _make_task(
+            ConvertDatasetToRecipe,
+            project_config=self.project_config,
+            org_config=self.org_config,
+            database_url=f"sqlite:///{db_path}",
+            recipe=recipe,
+            **options,
+        )
+        subtask()
+        return subtask.return_values
+
+    @contextmanager
+    def extract_as_temp_db(self, extract_mapping: Path):
+        with TemporaryDirectory() as t:
+            dir = Path(t)
+            assert dir.exists()
+            sql_file = Path(t) / "temporary_extract.db"
+            assert dir.exists()
+            ret = self.extract_as_db(extract_mapping, sql_file)
+            yield sql_file, ret
+
+    def extract_as_sql(
+        self, options: dict, extract_mapping: Path
+    ) -> ExtractTaskResults:
+        task = _make_task(
+            ExtractData,
+            project_config=self.project_config,
+            org_config=self.org_config,
+            sql_path=self.sql_file,
+            mapping=str(extract_mapping),
+            **options,
+        )
+        task()
+        if self.snowfakery_recipe.exists():
+            backup(self.snowfakery_recipe)
+
         return task.return_values
 
-    def _snowfakery_dataload(self, options: T.Dict, logger: Logger) -> T.Dict:
-        subtask_config = TaskConfig(
-            {"options": {**options, "recipe": str(self.snowfakery_recipe)}}
-        )
-        subtask = Snowfakery(
+    def extract_as_db(
+        self, extract_mapping: Path, database_path: Path
+    ) -> ExtractTaskResults:
+        task = _make_task(
+            ExtractData,
             project_config=self.project_config,
-            task_config=subtask_config,
+            org_config=self.org_config,
+            database_url=f"sqlite:///{database_path.absolute()}",
+            mapping=str(extract_mapping),
+        )
+        task()
+        return task.return_values
+
+    def _snowfakery_dataload(self, options: T.Dict, logger: Logger) -> TaskResults:
+        options = {**options, "recipe": str(self.snowfakery_recipe)}
+
+        subtask = _make_task(
+            Snowfakery,
+            project_config=self.project_config,
             org_config=self.org_config,
             logger=logger,
+            **options,
         )
         subtask()
         return subtask.return_values
 
     def load(
         self, options: T.Optional[T.Dict] = None, logger: T.Optional[Logger] = None
-    ):
+    ) -> TaskResults:
+        ret = None
         options = options or {}
         logger = logger or DEFAULT_LOGGER
-        if self.data_file.exists():
-            self._sql_dataload(options)
+        if self.sql_file.exists():
+            ret = self._sql_dataload(options)
         elif self.snowfakery_recipe.exists():
-            self._snowfakery_dataload(options, logger)
+            ret = self._snowfakery_dataload(options, logger)
         else:  # pragma: no cover
             raise exc.BulkDataException(
-                f"Dataset has no SQL ({self.data_file}) or recipe ({self.snowfakery_recipe})"
+                f"Dataset has no SQL ({self.sql_file}) or recipe ({self.snowfakery_recipe})"
             )
+        return ret
 
-    def _sql_dataload(self, options: T.Dict):
-
+    def _sql_dataload(self, options: T.Dict) -> TaskResults:
         task = _make_task(
             LoadData,
             project_config=self.project_config,
             org_config=self.org_config,
-            sql_path=self.data_file,
+            sql_path=self.sql_file,
             mapping=str(self.mapping_file),
             **options,
         )
         task()
+        return task.return_values
 
     def read_schema_subset(self) -> T.Dict[str, T.List[str]]:
         assert isinstance(self.schema, Schema)
@@ -241,7 +318,7 @@ class Dataset:
             data = {"extract": objs_dict}
             yaml.safe_dump(data, f, sort_keys=False)
         decls = [
-            SimplifiedExtractDeclaration(sf_object=name, fields=fields)
+            SimplifiedExtractDeclaration(sf_object=name, fields=fields)  # type: ignore
             for name, fields in objs.items()
         ]
         self._save_load_mapping(decls, opt_in_only)

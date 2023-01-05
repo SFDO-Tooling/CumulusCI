@@ -15,6 +15,15 @@ from fs import path as fspath
 DataInput = Union[str, IO, Path, "FSResource"]
 
 
+def backup(filename: Path):
+    i = 0
+    new_name = Path(f"{filename}.bak")
+    while new_name.exists():
+        i += 1
+        new_name = Path(f"{filename}.{i}.bak")
+    filename.rename(new_name)
+
+
 def _get_path_from_stream(stream):
     "Try to infer a name from an open stream"
     stream_name = getattr(stream, "name", None)

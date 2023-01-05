@@ -618,6 +618,10 @@ def convert_to_snake_case(content):
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
+def snake_to_camel(word):
+    return "".join(x.capitalize() or "_" for x in word.split("_"))
+
+
 def get_git_config(config_key):
     p = sarge.Command(
         sarge.shell_format('git config --get "{0!s}"', config_key),
