@@ -10,7 +10,7 @@ from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import CumulusCIException, ServiceNotConfigured
 from cumulusci.core.utils import import_class, import_global, make_jsonable
 
-from .runtime import pass_runtime
+from .runtime import CliRuntime, pass_runtime
 from .ui import CliTable
 
 
@@ -161,7 +161,7 @@ class ConnectServiceCommand(click.MultiCommand):
             service_config = services[service_type]
         except KeyError:
             raise click.UsageError(
-                f"Sorry, I don't know about the '{service_type}' service."
+                f"Sorry, I don't know about the '{service_type}' service type."
             )
 
         attributes = service_config.get("attributes", {}).items()
@@ -272,6 +272,36 @@ def service_connect():
     pass
 
 
+@service.command(name="update")
+@click.argument("service_type")
+@click.argument("service_name")
+@pass_runtime(require_project=False, require_keychain=True)
+def service_update(runtime: CliRuntime, service_type: str, service_name: str):
+    """Allow users to update attribute values of a particular service."""
+    console = Console()
+    # This will throw a ServiceNotConfigured error if the type or name is not present.
+    service_config = runtime.keychain.get_service(service_type, service_name)
+    service_attributes = get_service_attributes(runtime, service_type)
+
+    attributes_were_updated = False
+    for attr in service_attributes:
+        attr_name = service_config.config[attr]
+        console.print(f"\n\n{attr} is currently: {attr_name}")
+
+        user_input = console.input("Enter a new value or press <ENTER> to continue: ")
+        if user_input != "":
+            attributes_were_updated = True
+            service_config.config[attr] = user_input
+
+    if attributes_were_updated:
+        runtime.keychain.set_service(service_type, service_name, service_config)
+        console.print(
+            f"\nThe {service_type} service {service_name} has been updated successfully!"
+        )
+    else:
+        console.print("\nNothing to update. Exiting.")
+
+
 @service.command(name="info")
 @click.argument("service_type")
 @click.argument("service_name", required=False)
@@ -321,7 +351,11 @@ def get_service_data(service_config, sensitive_attributes) -> list:
     return service_data
 
 
-def get_sensitive_service_attributes(runtime, service_type) -> list:
+def get_service_attributes(
+    runtime: CliRuntime, service_type: str, sensitive: bool = False
+) -> list:
+    """Returns the attributes for the given service type as they are defined in the
+    standard lib (universal cumulusci.yml file)."""
     services = (
         runtime.project_config.services
         if runtime.project_config
@@ -329,9 +363,17 @@ def get_sensitive_service_attributes(runtime, service_type) -> list:
     )
     try:
         service_type_attributes = services[service_type]["attributes"]
-        return [k for k, v in service_type_attributes.items() if v.get("sensitive")]
     except KeyError:
         return []
+
+    if sensitive:
+        return [k for k, v in service_type_attributes.items() if v.get("sensitive")]
+    else:
+        return [k for k, v in service_type_attributes.items()]
+
+
+def get_sensitive_service_attributes(runtime: CliRuntime, service_type: str) -> list:
+    return get_service_attributes(runtime, service_type, sensitive=True)
 
 
 @service.command(
