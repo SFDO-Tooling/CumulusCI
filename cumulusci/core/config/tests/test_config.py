@@ -354,11 +354,11 @@ class TestBaseProjectConfig:
         config._repo_info = {"root": "."}
         assert config.repo_root == "."
 
-    def test_server_domain_from_repo_info(self):
+    def test_server_domain_from_repo_info(self, run_in_dummy_projdir):
         config = BaseProjectConfig(UniversalConfig())
         assert config.server_domain == "github.com"
 
-    def test_server_domain_no_repo_root(self):
+    def test_server_domain_no_repo_root(self, run_in_dummy_projdir):
         config = BaseProjectConfig(UniversalConfig())
         with temporary_dir():
             assert config.server_domain is None
@@ -373,7 +373,7 @@ class TestBaseProjectConfig:
         with temporary_dir():
             assert config.repo_name is None
 
-    def test_repo_name_from_git(self):
+    def test_repo_name_from_git(self, run_in_dummy_projdir):
         config = BaseProjectConfig(UniversalConfig())
         assert config.repo_name == "CumulusCI"
 
@@ -477,7 +477,7 @@ class TestBaseProjectConfig:
             "Test", "TestRepo"
         )
 
-    def test_get_latest_tag(self):
+    def test_get_latest_tag(self, run_in_dummy_projdir):
         config = BaseProjectConfig(
             UniversalConfig(),
             {
@@ -490,7 +490,7 @@ class TestBaseProjectConfig:
         result = config.get_latest_tag()
         assert result == "release/1.1"
 
-    def test_get_latest_tag_matching_prefix(self):
+    def test_get_latest_tag_matching_prefix(self, run_in_dummy_projdir):
         config = BaseProjectConfig(
             UniversalConfig(),
             {"project": {"git": {"prefix_beta": "beta/", "prefix_release": "rel/"}}},
@@ -503,7 +503,7 @@ class TestBaseProjectConfig:
         result = config.get_latest_tag()
         assert result == "rel/0.9"
 
-    def test_get_latest_tag_beta(self):
+    def test_get_latest_tag_beta(self, run_in_dummy_projdir):
         config = BaseProjectConfig(
             UniversalConfig(),
             {
@@ -516,7 +516,7 @@ class TestBaseProjectConfig:
         result = config.get_latest_tag(beta=True)
         assert result == "beta/1.0-Beta_2"
 
-    def test_get_latest_tag__beta_not_found(self):
+    def test_get_latest_tag__beta_not_found(self, run_in_dummy_projdir):
         config = BaseProjectConfig(UniversalConfig())
         github = self._make_github()
         github.repositories["CumulusCI"]._releases = []
@@ -524,7 +524,7 @@ class TestBaseProjectConfig:
         with pytest.raises(GithubException):
             config.get_latest_tag(beta=True)
 
-    def test_get_latest_tag__repo_not_found(self):
+    def test_get_latest_tag__repo_not_found(self, run_in_dummy_projdir):
         config = BaseProjectConfig(UniversalConfig())
         github = self._make_github()
         github.repositories["CumulusCI"] = None
@@ -532,7 +532,7 @@ class TestBaseProjectConfig:
         with pytest.raises(GithubException):
             config.get_latest_tag()
 
-    def test_get_latest_tag__release_not_found(self):
+    def test_get_latest_tag__release_not_found(self, run_in_dummy_projdir):
         config = BaseProjectConfig(UniversalConfig())
         github = self._make_github()
         github.repositories["CumulusCI"]._releases = []
@@ -540,7 +540,7 @@ class TestBaseProjectConfig:
         with pytest.raises(GithubException):
             config.get_latest_tag()
 
-    def test_get_latest_version(self):
+    def test_get_latest_version(self, run_in_dummy_projdir):
         config = BaseProjectConfig(
             UniversalConfig(),
             {
@@ -553,7 +553,7 @@ class TestBaseProjectConfig:
         result = config.get_latest_version()
         assert result == "1.1"
 
-    def test_get_latest_version_beta(self):
+    def test_get_latest_version_beta(self, run_in_dummy_projdir):
         config = BaseProjectConfig(
             UniversalConfig(),
             {
@@ -566,7 +566,7 @@ class TestBaseProjectConfig:
         result = config.get_latest_version(beta=True)
         assert result == "1.0 (Beta 2)"
 
-    def test_get_previous_version(self):
+    def test_get_previous_version(self, run_in_dummy_projdir):
         config = BaseProjectConfig(
             UniversalConfig(),
             {

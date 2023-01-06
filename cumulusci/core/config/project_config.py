@@ -325,7 +325,9 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         path = Path.cwd().resolve()
         paths = chain((path,), path.parents)
         for path in paths:
-            if (path / ".git").is_dir():
+            if (
+                (path / "cumulusci.yml").exists() and (path / ".cumulusci").exists()
+            ) or (path / ".git").exists():
                 return str(path)
 
     @property

@@ -1,5 +1,6 @@
 import io
 import os
+import shutil
 from contextlib import contextmanager
 from http.client import HTTPMessage
 from logging import getLogger
@@ -23,6 +24,7 @@ from cumulusci.tasks.bulkdata.tests.integration_test_utils import (
 from cumulusci.tasks.salesforce.tests.util import create_task_fixture
 from cumulusci.tests.pytest_plugins.pytest_sf_vcr import salesforce_vcr, vcr_config
 from cumulusci.tests.util import DummyKeychain, DummyOrgConfig, mock_env
+from cumulusci.utils import cd
 
 ensure_accounts = ensure_accounts
 ensure_records = ensure_records
@@ -98,7 +100,39 @@ def patch_home_and_env(request):
     "Patch the default home directory and $HOME environment for all tests at once."
     with TemporaryDirectory(prefix="fake_home_") as home, mock_env(home):
         Path(home, ".cumulusci").mkdir()
-        Path(home, ".cumulusci/cumulusci.yml").touch()
+        Path(home, "cumulusci.yml").touch()
+        yield
+
+
+@pytest.fixture(scope="session")
+def readonly_dummy_projdir(request, cumulusci_test_repo_root):
+    """Create a cache-based project directory for tests that depend on it.
+
+    The project is cached in .cache/TestProject persistently.
+
+    At most once per test session it is copied to a temp folder, lazily.
+
+    Tests that need it, can opt in to using it with the `run_in_dummy_projdir` fixture.
+    """
+    with TemporaryDirectory(prefix="dummy_project_") as home:
+        ccitest = cumulusci_test_repo_root / ".cache/TestProject"
+        if not ccitest.exists():
+            (cumulusci_test_repo_root / ".cache").mkdir(exist_ok=True)
+            # TODO: Change this to using CumulusCI-Test...but some work
+            #       needs to be done first. CumulusCI-Test doesn't seem
+            #       to have releases.
+            # ccitest_url = "https://github.com/SFDO-Tooling/CumulusCI-Test.git"
+            ccitest_url = "https://github.com/SFDO-Tooling/CumulusCI.git"
+            os.system(f'git clone {ccitest_url} "{ccitest}"')
+        shutil.rmtree(home)
+        shutil.copytree(ccitest, home)
+        yield home
+
+
+@pytest.fixture(scope="function")
+def run_in_dummy_projdir(request, readonly_dummy_projdir):
+    "Run a test in a dummy CCI project"
+    with cd(readonly_dummy_projdir), mock_env(readonly_dummy_projdir):
         yield
 
 
@@ -134,6 +168,12 @@ def delete_data_from_org(create_task):
 @pytest.fixture(scope="session")
 def cumulusci_test_repo_root():
     return Path(__file__).parent.parent
+
+
+@pytest.fixture(scope="function")
+def run_from_cci_root(cumulusci_test_repo_root):
+    with cd(cumulusci_test_repo_root):
+        yield
 
 
 @pytest.fixture(scope="session")

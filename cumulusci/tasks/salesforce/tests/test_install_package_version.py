@@ -153,7 +153,9 @@ def test_init_options__float_version():
 @mock.patch(
     "cumulusci.tasks.salesforce.install_package_version.GitHubDynamicDependency"
 )
-def test_init_options__dynamic_version_latest(mock_GitHubDynamicDependency):
+def test_init_options__dynamic_version_latest(
+    mock_GitHubDynamicDependency, run_in_dummy_projdir
+):
     project_config = create_project_config()
     project_config.config["project"]["package"]["namespace"] = "ns"
 
@@ -177,7 +179,9 @@ def test_init_options__dynamic_version_latest(mock_GitHubDynamicDependency):
 @mock.patch(
     "cumulusci.tasks.salesforce.install_package_version.GitHubDynamicDependency"
 )
-def test_init_options__dynamic_version_latest__2gp(mock_GitHubDynamicDependency):
+def test_init_options__dynamic_version_latest__2gp(
+    mock_GitHubDynamicDependency, run_in_dummy_projdir
+):
     project_config = create_project_config()
     project_config.config["project"]["package"]["namespace"] = "ns"
 
@@ -204,7 +208,9 @@ def test_init_options__dynamic_version_latest__2gp(mock_GitHubDynamicDependency)
 @mock.patch(
     "cumulusci.tasks.salesforce.install_package_version.GitHubDynamicDependency"
 )
-def test_init_options__dynamic_version_latest_beta(mock_GitHubDynamicDependency):
+def test_init_options__dynamic_version_latest_beta(
+    mock_GitHubDynamicDependency, run_in_dummy_projdir
+):
     project_config = create_project_config()
     project_config.config["project"]["package"]["namespace"] = "ns"
 
@@ -230,7 +236,7 @@ def test_init_options__dynamic_version_latest_beta(mock_GitHubDynamicDependency)
 )
 @mock.patch("cumulusci.tasks.salesforce.install_package_version.find_previous_release")
 def test_init_options__dynamic_version_previous(
-    mock_find_previous_release, mock_GitHubDynamicDependency
+    mock_find_previous_release, mock_GitHubDynamicDependency, run_in_dummy_projdir
 ):
     project_config = create_project_config()
     project_config.config["project"]["package"]["namespace"] = "ns"
