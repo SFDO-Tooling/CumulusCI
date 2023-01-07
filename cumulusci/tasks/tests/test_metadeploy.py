@@ -112,8 +112,9 @@ class TestPublish(GithubApiTestMixin):
 
         assert "Admin API" in str(e.value)
 
+    @pytest.mark.parametrize("dry_run", [True, False])
     @responses.activate
-    def test_run_task(self):
+    def test_run_task(self, dry_run: bool):
         project_config = create_project_config()
         project_config.config["plans"] = {
             "install": {
@@ -264,7 +265,7 @@ class TestPublish(GithubApiTestMixin):
                 "options": {
                     "tag": "release/1.0",
                     "publish": True,
-                    "dry_run": "False",
+                    "dry_run": str(dry_run),
                     "labels_path": labels_path,
                 }
             }

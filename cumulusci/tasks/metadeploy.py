@@ -24,6 +24,7 @@ class BaseMetaDeployTask(BaseTask):
     """Base class for tasks that talk to MetaDeploy's API."""
 
     def _init_task(self):
+        assert self.project_config.keychain
         metadeploy_service = self.project_config.keychain.get_service("metadeploy")
         self.api: MetaDeployAPI = MetaDeployAPI(metadeploy_service)
 
@@ -112,10 +113,13 @@ class Publish(BaseMetaDeployTask):
             version = self._find_or_create_version(product)
             if self.labels_path and "slug" in product:
                 self._publish_labels(product["slug"])
+        else:
+            version = {"id": "fake_for_dryrun", "url": "fake_for_dryrun"}
 
         # Check out the specified tag
         gh = self.project_config.get_github_api()
         repo = gh.repository(repo_owner, repo_name)
+        assert repo
         if self.tag:
             tag = get_tag_by_name(repo, self.tag)
             self.commit = tag.object.sha
@@ -136,6 +140,7 @@ class Publish(BaseMetaDeployTask):
                     "commit": self.commit,
                 },
             )
+            assert self.project_config.keychain
             project_config.set_keychain(self.project_config.keychain)
 
             # Create each plan
@@ -168,6 +173,7 @@ class Publish(BaseMetaDeployTask):
             if step.skip:
                 continue
             with cd(step.project_config.repo_root):
+                assert step.task_class
                 task = step.task_class(
                     step.project_config,
                     TaskConfig(step.task_config),
@@ -254,6 +260,7 @@ class Publish(BaseMetaDeployTask):
     def _get_allowed_org_providers(self, plan_name: str) -> List[str]:
         "Validates and returns the org providers for a given plan"
         plan = Plan.parse_obj(self.project_config.config["plans"][plan_name])
+        assert isinstance(plan, Plan)
         return plan.allowed_org_providers
 
     def _convert_org_providers_to_plan_equivalent(
@@ -268,6 +275,8 @@ class Publish(BaseMetaDeployTask):
             org_providers = "Both"
         elif providers == ["devhub"]:
             org_providers = "Scratch"
+        else:  # pragma: no cover
+            assert False, "Cannot resolve provider"
 
         return org_providers
 
