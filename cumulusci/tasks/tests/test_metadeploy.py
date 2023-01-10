@@ -273,71 +273,73 @@ class TestPublish(GithubApiTestMixin):
         task = Publish(project_config, task_config)
         task()
 
-        body = json.loads(responses.calls[-2].request.body)
-        assert body["supported_orgs"] == "Both"
+        if not dry_run:
 
-        steps = body["steps"]
-        self.maxDiff = None
+            body = json.loads(responses.calls[-2].request.body)
+            assert body["supported_orgs"] == "Both"
 
-        assert [
-            {
-                "name": "Install Test Product 1.0",
-                "kind": "managed",
-                "is_required": True,
-                "path": "install_prod.install_managed",
-                "step_num": "1/2",
-                "task_class": "cumulusci.tasks.salesforce.InstallPackageVersion",
-                "task_config": {
-                    "options": {
-                        "version": "1.0",
-                        "namespace": "ns",
-                        "interactive": False,
-                        "base_package_url_format": "{}",
+            steps = body["steps"]
+            self.maxDiff = None
+
+            assert [
+                {
+                    "name": "Install Test Product 1.0",
+                    "kind": "managed",
+                    "is_required": True,
+                    "path": "install_prod.install_managed",
+                    "step_num": "1/2",
+                    "task_class": "cumulusci.tasks.salesforce.InstallPackageVersion",
+                    "task_config": {
+                        "options": {
+                            "version": "1.0",
+                            "namespace": "ns",
+                            "interactive": False,
+                            "base_package_url_format": "{}",
+                        },
+                        "checks": [],
                     },
-                    "checks": [],
+                    "source": None,
                 },
-                "source": None,
-            },
-            {
-                "name": "Update Admin Profile",
-                "kind": "metadata",
-                "is_required": True,
-                "path": "install_prod.config_managed.update_admin_profile",
-                "step_num": "1/3/2",
-                "task_class": "cumulusci.tasks.salesforce.ProfileGrantAllAccess",
-                "task_config": {
-                    "options": {
-                        "namespace_inject": "ns",
-                        "include_packaged_objects": False,
+                {
+                    "name": "Update Admin Profile",
+                    "kind": "metadata",
+                    "is_required": True,
+                    "path": "install_prod.config_managed.update_admin_profile",
+                    "step_num": "1/3/2",
+                    "task_class": "cumulusci.tasks.salesforce.ProfileGrantAllAccess",
+                    "task_config": {
+                        "options": {
+                            "namespace_inject": "ns",
+                            "include_packaged_objects": False,
+                        },
+                        "checks": [],
                     },
-                    "checks": [],
+                    "source": None,
                 },
-                "source": None,
-            },
-            {
-                "name": "load_sample_data",
-                "kind": "other",
-                "is_required": True,
-                "path": "install_prod.config_managed.load_sample_data",
-                "step_num": "1/3/90",
-                "task_class": "cumulusci.tasks.sample_data.load_sample_data.LoadSampleData",
-                "task_config": {"options": {}, "checks": []},
-                "source": None,
-            },
-            {
-                "name": "util_sleep",
-                "kind": "other",
-                "is_required": True,
-                "path": "util_sleep",
-                "step_num": "2",
-                "task_class": "cumulusci.tasks.util.Sleep",
-                "task_config": {
-                    "options": {"seconds": 5},
-                    "checks": [{"when": "False", "action": "error"}],
+                {
+                    "name": "load_sample_data",
+                    "kind": "other",
+                    "is_required": True,
+                    "path": "install_prod.config_managed.load_sample_data",
+                    "step_num": "1/3/90",
+                    "task_class": "cumulusci.tasks.sample_data.load_sample_data.LoadSampleData",
+                    "task_config": {"options": {}, "checks": []},
+                    "source": None,
                 },
-                "source": None,
-            },
-        ] == steps, steps
+                {
+                    "name": "util_sleep",
+                    "kind": "other",
+                    "is_required": True,
+                    "path": "util_sleep",
+                    "step_num": "2",
+                    "task_class": "cumulusci.tasks.util.Sleep",
+                    "task_config": {
+                        "options": {"seconds": 5},
+                        "checks": [{"when": "False", "action": "error"}],
+                    },
+                    "source": None,
+                },
+            ] == steps, steps
 
         labels = json.loads(en_labels_path.read_text())
         assert labels == {
