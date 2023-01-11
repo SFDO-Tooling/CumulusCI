@@ -23,7 +23,7 @@ jobs:
         runs-on: sfdc-ubuntu-latest
         steps:
             - name: "Checkout"
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
               with:
                   fetch-depth: 1
             - name: Set up Python 3.8
@@ -46,11 +46,8 @@ jobs:
             matrix:
                 os: [macos-latest, sfdc-ubuntu-latest, sfdc-windows-latest]
                 python-version: ["3.8", "3.9", "3.10", "3.11"]
-                exclude: # FIXME: Remove when lxml publishes a 311-windows wheel
-                    - os: sfdc-windows-latest
-                      python-version: "3.11"
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
             - name: Set up Python
               uses: actions/setup-python@v4
               with:
@@ -68,7 +65,7 @@ jobs:
         name: "Robot: No browser"
         runs-on: sfdc-ubuntu-latest
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
             - name: Set up Python 3.8
               uses: actions/setup-python@v4
               with:
@@ -127,7 +124,7 @@ jobs:
                       job-name: "Pre-release"
                       org-shape: "prerelease"
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
             - name: Set up Python 3.8
               uses: actions/setup-python@v4
               with:
