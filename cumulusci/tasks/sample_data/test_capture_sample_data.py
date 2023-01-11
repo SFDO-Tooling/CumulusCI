@@ -36,14 +36,14 @@ def setup_test(org_config):
     ), responses.RequestsMock() as rsps:
         rsps.add(
             responses.GET,
-            f"https://orgname.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects",
+            f"{org_config.instance_url}/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects",
             json={"sobjects": [{"name": "WebLink"}]},
             status=200,
         )
         yield
 
 
-class TestCaptureDatasetss:
+class TestCaptureDatasets:
     @mock.patch("cumulusci.tasks.sample_data.capture_sample_data.Dataset")
     def test_simple_extract(
         self,
@@ -54,6 +54,7 @@ class TestCaptureDatasetss:
         with setup_test(org_config):
             task = create_task(CaptureSampleData, {})
             task()
+            print("Dataset.mock_calls", Dataset.mock_calls)
             # default dataset should created
             Dataset.assert_any_call("default", mock.ANY, mock.ANY, org_config, mock.ANY)
             # and extracted
