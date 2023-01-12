@@ -667,7 +667,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         service from the environment on to the keychain"""
         if not value:
             raise ServiceCannotBeLoaded(
-                f"Service env var {env_var_name} cannot be loaded because it is empty. Either set {env_var_name} to a json string or unset it from the environmet."
+                f"Service env var {env_var_name} cannot be loaded because it is empty. Either set {env_var_name} to a json string or unset it from the environment."
             )
         try:
             service_config = json.loads(value)
