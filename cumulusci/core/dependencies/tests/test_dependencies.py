@@ -21,7 +21,10 @@ from cumulusci.core.dependencies.dependencies import (
     UnmanagedZipURLDependency,
     parse_dependency,
 )
-from cumulusci.core.dependencies.resolvers import DependencyResolutionStrategy, Resolver
+from cumulusci.core.dependencies.resolvers import (
+    AbstractResolver,
+    DependencyResolutionStrategy,
+)
 from cumulusci.core.exceptions import DependencyResolutionError
 from cumulusci.salesforce_api.package_install import (
     DEFAULT_PACKAGE_RETRY_OPTIONS,
@@ -49,7 +52,7 @@ class ConcreteDynamicDependency(DynamicDependency):
         return ""
 
 
-class MockResolver(Resolver):
+class MockResolver(AbstractResolver):
     def __init__(
         self,
         resolve_ref: Optional[str] = None,
@@ -67,7 +70,7 @@ class MockResolver(Resolver):
         return self.ref, self.dep
 
 
-class MockBadResolver(Resolver):
+class MockBadResolver(AbstractResolver):
     def can_resolve(self, dep: DynamicDependency, context: BaseProjectConfig) -> bool:
         return True
 
@@ -631,7 +634,7 @@ class TestUnmanagedGitHubRefDependency:
                 "namespace_inject": None,
                 "namespace_strip": None,
             },
-            logger=mock.ANY,  # the logger
+            context=mock.ANY,
         )
         api_deploy_mock.assert_called_once_with(
             mock.ANY,  # The context object is checked below
@@ -719,7 +722,7 @@ class TestUnmanagedZipURLDependency:
                 "namespace_strip": None,
             },
             path=None,
-            logger=mock.ANY,  # the logger
+            context=mock.ANY,
         )
         api_deploy_mock.assert_called_once_with(
             mock.ANY,  # The context object is checked below
@@ -788,7 +791,7 @@ class TestUnmanagedZipURLDependency:
                 "namespace_inject": None,
                 "namespace_strip": None,
             },
-            logger=context.logger,
+            context=mock.ANY,
         )
 
     @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
@@ -822,7 +825,7 @@ class TestUnmanagedZipURLDependency:
                 "namespace_inject": None,
                 "namespace_strip": None,
             },
-            logger=context.logger,
+            context=mock.ANY,
         )
 
     @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
@@ -855,7 +858,7 @@ class TestUnmanagedZipURLDependency:
                 "namespace_inject": None,
                 "namespace_strip": None,
             },
-            logger=context.logger,
+            context=mock.ANY,
         )
         sfdx_mock.assert_called_once_with(
             "force:source:convert",

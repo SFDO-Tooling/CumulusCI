@@ -82,6 +82,22 @@ class TestSetObjectSettings:
         assert len(entry) == 1
         assert entry[0].text == "false"
 
+    def test_enable__single_missing(self):
+        task = create_task(
+            SetObjectSettings,
+            {
+                "api_names": "Test__c",
+                "enable": ["Sharing"],
+            },
+        )
+        tree = metadata_tree.fromstring(CUSTOMOBJECT_SETTINGS_XML)
+
+        result = task._transform_entity(tree, "Test__c")
+
+        entry = result._element.findall(f".//{MD}enableSharing")
+        assert len(entry) == 1
+        assert entry[0].text == "true"
+
     def test_enable__no_change(self):
         task = create_task(
             SetObjectSettings,
@@ -137,6 +153,22 @@ class TestSetObjectSettings:
         entry = result._element.findall(f".//{MD}enableBulkApi")
         assert len(entry) == 1
         assert entry[0].text == "true"
+
+    def test_disable__single_missing(self):
+        task = create_task(
+            SetObjectSettings,
+            {
+                "api_names": "Test__c",
+                "disable": ["Sharing"],
+            },
+        )
+        tree = metadata_tree.fromstring(CUSTOMOBJECT_SETTINGS_XML)
+
+        result = task._transform_entity(tree, "Test__c")
+
+        entry = result._element.findall(f".//{MD}enableSharing")
+        assert len(entry) == 1
+        assert entry[0].text == "false"
 
     def test_disable__no_change(self):
         task = create_task(

@@ -2,6 +2,7 @@ import contextlib
 import io
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from unittest import mock
@@ -262,13 +263,16 @@ def test_cci_org_default__no_orgname(
     assert "There is no default org" in stdout.getvalue()
 
 
+DEPLOY_CLASS_PATH = f"cumulusci.tasks.salesforce.Deploy{'.Deploy' if sys.version_info >= (3, 11) else ''}"
+
+
 @mock.patch("cumulusci.cli.cci.init_logger", mock.Mock())
 @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock())
-@mock.patch("cumulusci.tasks.salesforce.Deploy.__call__", mock.Mock())
+@mock.patch(f"{DEPLOY_CLASS_PATH}.__call__", mock.Mock())
 @mock.patch("sys.exit", mock.Mock())
 @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
 @mock.patch("cumulusci.cli.cci.CliRuntime")
-@mock.patch("cumulusci.tasks.salesforce.Deploy.__init__")
+@mock.patch(f"{DEPLOY_CLASS_PATH}.__init__")
 def test_cci_run_task_options__with_dash(
     Deploy,
     CliRuntime,
@@ -296,11 +300,11 @@ def test_cci_run_task_options__with_dash(
 
 @mock.patch("cumulusci.cli.cci.init_logger", mock.Mock())
 @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock())
-@mock.patch("cumulusci.tasks.salesforce.Deploy.__call__", mock.Mock())
+@mock.patch(f"{DEPLOY_CLASS_PATH}.__call__", mock.Mock())
 @mock.patch("sys.exit", mock.Mock())
 @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
 @mock.patch("cumulusci.cli.cci.CliRuntime")
-@mock.patch("cumulusci.tasks.salesforce.Deploy.__init__")
+@mock.patch(f"{DEPLOY_CLASS_PATH}.__init__")
 def test_cci_run_task_options__old_style_with_dash(
     Deploy,
     CliRuntime,
@@ -514,3 +518,28 @@ def mock_validate_debug(value):
         assert bool(self.debug_mode) == bool(value)
 
     return _run_task
+
+
+@mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+@mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+@mock.patch("cumulusci.cli.cci.init_logger")
+@mock.patch("cumulusci.cli.cci.check_latest_version")
+@mock.patch("cumulusci.cli.cci.CliRuntime")
+@mock.patch("cumulusci.cli.cci.show_version_info")
+def test_dash_dash_version(
+    show_version_info,
+    CliRuntime,
+    check_latest_version,
+    init_logger,
+    get_tempfile_logger,
+    tee,
+):
+    get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
+    cci.main(["cci", "--help"])
+    assert len(show_version_info.mock_calls) == 0
+
+    cci.main(["cci", "version"])
+    assert len(show_version_info.mock_calls) == 1
+
+    cci.main(["cci", "--version"])
+    assert len(show_version_info.mock_calls) == 2

@@ -277,31 +277,31 @@ class TestPublish(GithubApiTestMixin):
 
         steps = body["steps"]
         self.maxDiff = None
+
         assert [
             {
-                "is_required": True,
-                "kind": "managed",
                 "name": "Install Test Product 1.0",
+                "kind": "managed",
+                "is_required": True,
                 "path": "install_prod.install_managed",
-                "source": None,
                 "step_num": "1/2",
                 "task_class": "cumulusci.tasks.salesforce.InstallPackageVersion",
                 "task_config": {
                     "options": {
-                        "namespace": "ns",
                         "version": "1.0",
+                        "namespace": "ns",
                         "interactive": False,
                         "base_package_url_format": "{}",
                     },
                     "checks": [],
                 },
+                "source": None,
             },
             {
-                "is_required": True,
-                "kind": "metadata",
                 "name": "Update Admin Profile",
+                "kind": "metadata",
+                "is_required": True,
                 "path": "install_prod.config_managed.update_admin_profile",
-                "source": None,
                 "step_num": "1/3/2",
                 "task_class": "cumulusci.tasks.salesforce.ProfileGrantAllAccess",
                 "task_config": {
@@ -311,6 +311,17 @@ class TestPublish(GithubApiTestMixin):
                     },
                     "checks": [],
                 },
+                "source": None,
+            },
+            {
+                "name": "load_sample_data",
+                "kind": "other",
+                "is_required": True,
+                "path": "install_prod.config_managed.load_sample_data",
+                "step_num": "1/3/90",
+                "task_class": "cumulusci.tasks.sample_data.load_sample_data.LoadSampleData",
+                "task_config": {"options": {}, "checks": []},
+                "source": None,
             },
             {
                 "name": "util_sleep",
@@ -325,10 +336,11 @@ class TestPublish(GithubApiTestMixin):
                 },
                 "source": None,
             },
-        ] == steps
+        ] == steps, steps
 
         labels = json.loads(en_labels_path.read_text())
         assert labels == {
+            "test": {"title": {}},
             "plan:install": {
                 "title": {
                     "message": "Test Install",
@@ -344,13 +356,16 @@ class TestPublish(GithubApiTestMixin):
                     "message": "Update Admin Profile",
                     "description": "title of installation step",
                 },
+                "load_sample_data": {
+                    "message": "load_sample_data",
+                    "description": "title of installation step",
+                },
                 "util_sleep": {
                     "message": "util_sleep",
                     "description": "title of installation step",
                 },
             },
-            "test": {"title": {}},
-        }
+        }, labels
         shutil.rmtree(labels_path)
 
     @responses.activate

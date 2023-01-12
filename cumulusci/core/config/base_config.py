@@ -1,8 +1,8 @@
 import logging
 import os
-import typing as T
 import warnings
 from functools import lru_cache
+from typing import Any, Dict, Optional
 
 # turn on strictness.
 # delete this when strictness is mandatory
@@ -15,8 +15,9 @@ class BaseConfig(object):
 
     defaults = {}
     config: dict
+    logger: logging.Logger
 
-    def __init__(self, config=None, keychain=None):
+    def __init__(self, config: Optional[dict] = None, keychain=None):
         if config is None:
             self.config = {}
         else:
@@ -44,11 +45,11 @@ class BaseConfig(object):
         pass
 
     @classmethod
-    def _allowed_names(cls) -> T.Dict[str, type]:
+    def _allowed_names(cls) -> Dict[str, type]:
         return getattr(cls, "__annotations__", {})
 
     # long term plan is to get rid of this
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         """Look up a property in a sub-dictionary
 
         Property names should be declared in each Config class with type annotations.
@@ -70,10 +71,10 @@ class BaseConfig(object):
 
     @classmethod
     @lru_cache
-    def _all_allowed_names(cls):
+    def _all_allowed_names(cls) -> Dict[str, type]:
         "Allowed names from this class and its base classes"
         allowed_names_from_all_base_classes = (
-            baseclass._allowed_names()
+            baseclass._allowed_names()  # type: ignore
             for baseclass in cls.__mro__
             if hasattr(baseclass, "_allowed_names")
         )
@@ -82,11 +83,13 @@ class BaseConfig(object):
             ret.update(d)
         return ret
 
-    def lookup(self, name, default=None, already_called_getattr=False):
+    def lookup(
+        self, name: str, default: Any = None, already_called_getattr: bool = False
+    ) -> Any:
         tree = name.split("__")
         if name.startswith("_"):
             raise AttributeError(f"Attribute {name} not found")
-        value = None
+        value: Any = None
         value_found = False
         config = self.config
         if len(tree) > 1:

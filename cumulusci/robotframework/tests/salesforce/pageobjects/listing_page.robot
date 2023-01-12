@@ -14,7 +14,13 @@ Create Test Data
     [Documentation]
     ...  Create contacts used by tests in this suite
 
-    # First, delete all existing contacts
+    # Delete all cases, in case they are holding on to some contacts
+    ${records}=  Salesforce Query  Case
+    FOR  ${record}  IN  @{records}
+        Salesforce Delete  Case  ${record['Id']}
+    END
+
+    # Next, delete all existing contacts
     ${records}=  Salesforce Query  Contact
     FOR  ${record}  IN  @{records}
         Salesforce Delete  Contact  ${record['Id']}

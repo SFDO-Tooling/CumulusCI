@@ -120,12 +120,17 @@ Should be used with an org whose configuration is `beta`
 This flow builds a managed org with the latest release installed. Should
 be used with an org whose configuration is `release`
 
-### `regression_org`
+### `push_upgrade_org`
 
 This flow builds a managed org that starts with the latest release
-installed and is then upgraded to the latest beta to simulate a
-subscriber upgrade. Should be used with an org whose configuration is
-`release`
+installed and available for all Profiles. It then upgrades the package
+dependencies and the package itself to their latest betas, installing
+upgrades for System Administrators only, and runs `config_qa` to set
+up the org for testing. This simulates a subscriber push upgrade for
+non-System Administrator users.
+
+Should be used with an org whose configuration is
+`release`.
 
 Your project may provide additional org-building flows. Consult the
 project's automation documentation for more details.

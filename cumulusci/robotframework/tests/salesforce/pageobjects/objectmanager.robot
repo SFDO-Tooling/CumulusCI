@@ -38,7 +38,6 @@ Navigate To The Object Manager page For Specified Object
 Create Custom Lookup Field Using Object Manager
     [Documentation]     To test the ability of creating a custom lookup field using object manager and verify field got created
 
-    Skip if  "firefox" in $browser
     Create Custom Field In Object Manager
     ...                                                    Object=Contact
     ...                                                    Field_Type=Lookup
@@ -52,7 +51,6 @@ Create Custom Lookup Field Using Object Manager
 Create Custom Text Field Using Object Manager
     [Documentation]     To test the ability of creating a custom text field using object manager and verify field got created
 
-    Skip if  "firefox" in $browser
     Create Custom Field In Object Manager
     ...                                                    Object=Contact
     ...                                                    Field_Type=Text
@@ -66,7 +64,6 @@ Create Custom Text Field Using Object Manager
 Create Custom Currency Field Using Object Manager
     [Documentation]     To test the ability of creating a custom currency field and verify field got created
 
-    Skip if  "firefox" in $browser
     Create Custom Field In Object Manager
     ...                                                    Object=Account
     ...                                                    Field_Type=Currency
