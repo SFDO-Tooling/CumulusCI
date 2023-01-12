@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from cumulusci.core.config.OrgConfig import OrgConfig, VersionInfo
+from cumulusci.core.config.org_config import OrgConfig, VersionInfo
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.config.universal_config import UniversalConfig
 from cumulusci.core.exceptions import ApexTestException, SalesforceException
@@ -63,7 +63,7 @@ class TestPackageUpload:
             return_value=mock.Mock(create=mock.Mock(return_value={"id": "UPLOAD_ID"}))
         )
         task()
-        assert "SUCCESS" == task.upload["Status"]
+        assert task.upload["Status"] == "SUCCESS"
 
     def test_set_package_id(self):
         name = "Test Release"
@@ -262,7 +262,7 @@ class TestPackageUpload:
         )
         with pytest.raises(ApexTestException):
             task()
-        assert "ERROR" == task.upload["Status"]
+        assert task.upload["Status"] == "ERROR"
 
     def test_get_one__no_result(self):
         task = create_task(PackageUpload, {"name": "Test Release"})

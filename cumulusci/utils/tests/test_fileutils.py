@@ -1,6 +1,7 @@
 import doctest
 import os
 import sys
+import urllib.request
 from io import BytesIO, UnsupportedOperation
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -12,7 +13,12 @@ from fs import errors, open_fs
 
 import cumulusci
 from cumulusci.utils import fileutils, temporary_dir
-from cumulusci.utils.fileutils import FSResource, load_from_source, open_fs_resource
+from cumulusci.utils.fileutils import (
+    FSResource,
+    load_from_source,
+    open_fs_resource,
+    view_file,
+)
 
 
 class TestFileutils:
@@ -73,6 +79,22 @@ class TestFileutils:
         with open_fs_resource(p) as p2:
             with load_from_source(p2) as (data, filename):
                 assert "tasks:" in data.read()
+
+    def test_view_file_str_path(self):
+        """Verify view_file works when given a path as a string"""
+        with mock.patch("webbrowser.open") as webbrowser_open:
+            path = "robot/results/index.html"
+            view_file(path)
+            url = f"file://{urllib.request.pathname2url(str(Path(path).resolve()))}"
+            webbrowser_open.assert_called_once_with(url)
+
+    def test_view_file_Path(self):
+        """Verify view_file works when given a path as a Path object"""
+        with mock.patch("webbrowser.open") as webbrowser_open:
+            path = Path("robot/results/index.html")
+            view_file(path)
+            url = f"file://{urllib.request.pathname2url(str(path.resolve()))}"
+            webbrowser_open.assert_called_once_with(url)
 
 
 class _TestFSResourceShared:
@@ -136,7 +158,7 @@ class _TestFSResourceShared:
         abspath = "c:\\foo\\bar"
         with open_fs_resource(abspath) as f:
             if sys.platform == "win32":
-                assert "c:\\foo\\bar" == str(f.getsyspath()), str(f.getsyspath())
+                assert str(f.getsyspath()), str(f.getsyspath()) == r"c:\foo\bar"
 
 
 class TestFSResource(_TestFSResourceShared):

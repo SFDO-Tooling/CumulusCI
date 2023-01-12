@@ -1,6 +1,5 @@
 import json
 import tempfile
-import unittest
 from pathlib import Path
 from unittest import mock
 
@@ -18,8 +17,8 @@ from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tests.util import create_project_config
 
 
-class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
-    def setUp(self):
+class TestPublishSubtree(GithubApiTestMixin):
+    def setup_method(self):
         self.repo_owner = "TestOwner"
         self.repo_name = "TestRepo"
         self.repo_api_url = (
@@ -81,7 +80,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             )
             rsps.add(
                 method=responses.GET,
-                url=self.repo_api_url + "/git/refs/tags/release/1.0",
+                url=self.repo_api_url + "/git/ref/tags/release/1.0",
                 status=200,
                 json=self._get_expected_tag_ref("release/1.0", "SHA"),
             )
@@ -98,7 +97,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             )
             rsps.add(
                 responses.GET,
-                self.public_repo_url + "/git/refs/tags/release/1.0",
+                self.public_repo_url + "/git/ref/tags/release/1.0",
                 status=404,
             )
             rsps.add(
@@ -166,7 +165,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             )
             rsps.add(
                 method=responses.GET,
-                url=self.repo_api_url + "/git/refs/tags/release/1.0",
+                url=self.repo_api_url + "/git/ref/tags/release/1.0",
                 status=200,
                 json=self._get_expected_tag_ref("release/1.0", "SHA"),
             )
@@ -183,7 +182,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             )
             rsps.add(
                 responses.GET,
-                self.public_repo_url + "/git/refs/tags/release/1.0",
+                self.public_repo_url + "/git/ref/tags/release/1.0",
                 status=404,
             )
             rsps.add(
@@ -253,7 +252,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             )
             rsps.add(
                 method=responses.GET,
-                url=self.repo_api_url + "/git/refs/tags/beta/1.0-Beta_1",
+                url=self.repo_api_url + "/git/ref/tags/beta/1.0-Beta_1",
                 status=200,
                 json=self._get_expected_tag_ref("release/1.0", "SHA"),
             )
@@ -270,7 +269,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             )
             rsps.add(
                 responses.GET,
-                self.public_repo_url + "/git/refs/tags/beta/1.0-Beta_1",
+                self.public_repo_url + "/git/ref/tags/beta/1.0-Beta_1",
                 status=404,
             )
             rsps.add(
@@ -335,7 +334,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/git/refs/tags/release/1.0",
+            url=self.repo_api_url + "/git/ref/tags/release/1.0",
             status=404,
         )
         task_config = TaskConfig(
@@ -384,7 +383,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/git/refs/tags/release/1.0",
+            url=self.repo_api_url + "/git/ref/tags/release/1.0",
             status=201,
             json=self._get_expected_tag_ref("release/1.0", "REF_SHA"),
         )
@@ -442,7 +441,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/git/refs/tags/release/1.0",
+            url=self.repo_api_url + "/git/ref/tags/release/1.0",
             status=200,
             json=self._get_expected_tag_ref("release/1.0", "SHA"),
         )
@@ -474,7 +473,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         task = PublishSubtree(self.project_config, task_config)
         with pytest.raises(GithubException) as exc:
             task()
-        assert "Release for release/1.0 not found" == str(exc.value)
+        assert str(exc.value) == "Release for release/1.0 not found"
 
     @responses.activate
     @mock.patch("cumulusci.tasks.github.publish.download_extract_github_from_repo")
@@ -499,13 +498,13 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         )
         responses.add(
             method=responses.GET,
-            url=self.public_repo_url + "/git/refs/tags/release/1.0",
+            url=self.public_repo_url + "/git/ref/tags/release/1.0",
             status=201,
             json=self._get_expected_tag_ref("release/1.0", "SHA"),
         )
         responses.add(
             method=responses.GET,
-            url=self.repo_api_url + "/git/refs/tags/release/1.0",
+            url=self.repo_api_url + "/git/ref/tags/release/1.0",
             status=201,
             json=self._get_expected_tag_ref("release/1.0", "SHA"),
         )
@@ -544,7 +543,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         task = PublishSubtree(self.project_config, task_config)
         with pytest.raises(GithubException) as exc:
             task()
-        assert "Ref for tag release/1.0 already exists in target repo" == str(exc.value)
+        assert str(exc.value) == "Ref for tag release/1.0 already exists in target repo"
 
     def test_ref_nor_tag_name_error(self):
         task_config = TaskConfig(
@@ -558,7 +557,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
         )
         with pytest.raises(TaskOptionsError) as exc:
             PublishSubtree(self.project_config, task_config)
-        assert "Either `ref` or `tag_name` option is required." == str(exc.value)
+        assert str(exc.value) == "Either `ref` or `tag_name` option is required."
 
     def test_renames_not_list_error(self):
         task_config = TaskConfig(
@@ -723,7 +722,7 @@ class TestPublishSubtree(unittest.TestCase, GithubApiTestMixin):
             task()
 
             extract_github.assert_called_once()
-            assert "feature/publish" == extract_github.call_args[1]["ref"]
+            assert extract_github.call_args[1]["ref"] == "feature/publish"
             commit_dir.assert_called_once()
             expected_commit_message = "Published content from ref feature/publish"
             assert commit_dir.call_args[1]["commit_message"] == expected_commit_message

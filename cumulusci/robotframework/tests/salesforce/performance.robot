@@ -1,7 +1,7 @@
 *** Settings ***
 
 Resource        cumulusci/robotframework/Salesforce.robot
-Resource        cumulusci/robotframework/CumulusCI.robot
+Library         cumulusci.robotframework.Performance
 Test Teardown   Delete Session Records
 Force Tags      api  no-browser
 
@@ -9,7 +9,7 @@ Force Tags      api  no-browser
 
 Test Elapsed Time For Last Record
     # This test uses contacts as if they were "jobs" because they are
-    # easy to insert. I don't currently have a better alternative 
+    # easy to insert. I don't currently have a better alternative
     # for a job-like objects which is easy to create in a vanilla
     # SF org. The underlying keyword only cares that it has two
     # datetime fields.
@@ -19,7 +19,7 @@ Test Elapsed Time For Last Record
     ...         LastName=Dummy2
     ...         EmailBouncedDate=2030-01-01T00:00:00
 
-    ${Elapsed}=     Elapsed Time For Last Record    
+    ${Elapsed}=     Elapsed Time For Last Record
     ...             obj_name=Contact
     ...             where=Id='${contact_id}'
     ...             start_field=CreatedDate
@@ -33,7 +33,7 @@ Test Elapsed Time For Last Record
     ...         LastName=Dummy2
     ...         EmailBouncedDate=2029-01-01T00:00:00
 
-    ${Elapsed_latest}=     Elapsed Time For Last Record    
+    ${Elapsed_latest}=     Elapsed Time For Last Record
     ...             obj_name=Contact
     ...             start_field=CreatedDate
     ...             end_field=EmailBouncedDate
@@ -45,8 +45,8 @@ Test Elapsed Time For Last Record
 
 
 Test Elapsed Time For Last Record - Failure No Record
-    Run Keyword and expect Error   *Matching record not found*   
-    ...     Elapsed Time For Last Record    
+    Run Keyword and expect Error   *Matching record not found*
+    ...     Elapsed Time For Last Record
     ...             obj_name=AsyncApexJob
     ...             where=ApexClass.Name='BlahBlah'
     ...             start_field=CreatedDate
@@ -57,15 +57,15 @@ Test Elapsed Time For Last Record - Failure Bad Fields
     ${contact_id} =  Salesforce Insert  Contact
     ...         LastName=Dummy2
     ...         EmailBouncedDate=2030-01-01T00:00:00
-    Run Keyword and Expect Error   *Date parse error*   
-    ...     Elapsed Time For Last Record    
+    Run Keyword and Expect Error   *Date parse error*
+    ...     Elapsed Time For Last Record
     ...             obj_name=Contact
     ...             start_field=EmailBouncedDate
     ...             end_field=LastName
     ...             order_by=LastName
 
-    Run Keyword and Expect Error   *Date parse error*   
-    ...     Elapsed Time For Last Record    
+    Run Keyword and Expect Error   *Date parse error*
+    ...     Elapsed Time For Last Record
     ...             obj_name=Contact
     ...             start_field=EmailBouncedDate
     ...             end_field=FirstName     # None/NULL
@@ -78,7 +78,7 @@ Test Perf Set Elapsed Time
 Test Perf Set Elapsed Time Twice
     [Tags]  perf
     Set Test Elapsed Time       11655.9
-    Set Test Elapsed Time       53  
+    Set Test Elapsed Time       53
 
 Test Perf Set Elapsed Time String
     [Tags]  perf
@@ -98,7 +98,7 @@ Set Time and Also Metric
     Start Performance Timer
     Log         Noop
     Stop Performance Timer
-    Set Test Metric   number of records  100 
+    Set Test Metric   number of records  100
 
 Test Perf Measure Other Metric
     Set Test Metric    Max_CPU_Percent    30

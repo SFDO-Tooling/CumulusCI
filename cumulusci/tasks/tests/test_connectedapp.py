@@ -2,7 +2,6 @@
 
 import os
 import re
-import unittest
 from unittest import mock
 
 import pytest
@@ -26,10 +25,10 @@ from cumulusci.tasks.connectedapp import CreateConnectedApp
 from cumulusci.utils import temporary_dir
 
 
-class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
+class TestCreateConnectedApp(MockLoggerMixin):
     """Tests for the CreateConnectedApp task"""
 
-    def setUp(self):
+    def setup_method(self):
         self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
             self.universal_config, config={"noyaml": True}
@@ -58,11 +57,11 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         self.task_config.config["options"]["connect"] = True
         self.task_config.config["options"]["overwrite"] = True
         task = CreateConnectedApp(self.project_config, self.task_config)
-        self.assertEqual(task.options["label"], self.label)
-        self.assertEqual(task.options["username"], self.username)
-        self.assertEqual(task.options["email"], self.email)
-        self.assertIs(task.options["connect"], True)
-        self.assertIs(task.options["overwrite"], True)
+        assert task.options["label"] == self.label
+        assert task.options["username"] == self.username
+        assert task.options["email"] == self.email
+        assert task.options["connect"] is True
+        assert task.options["overwrite"] is True
 
     def test_init_options_invalid_label(self):
         """Non-alphanumeric + _ label raises TaskOptionsError"""
@@ -80,7 +79,7 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
             "github", "test_alias", ServiceConfig({"email": self.email})
         )
         task = CreateConnectedApp(self.project_config, self.task_config)
-        self.assertEqual(task.options["email"], self.email)
+        assert task.options["email"] == self.email
 
     def test_init_options_email_not_found(self):
         """TaskOptionsError is raised if no email provided and no github service exists"""
@@ -104,16 +103,14 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         """_process_json_output returns valid json"""
         task = CreateConnectedApp(self.project_config, self.task_config)
         output = task._process_json_output('{"foo":"bar"}')
-        self.assertEqual(output, {"foo": "bar"})
+        assert output == {"foo": "bar"}
 
     def test_process_json_output_invalid(self):
         """_process_json_output with invalid input logs output and raises JSONDecodeError"""
         task = CreateConnectedApp(self.project_config, self.task_config)
         with pytest.raises(JSONDecodeError):
             task._process_json_output("invalid")
-        self.assertEqual(
-            self.task_log["error"], ["Failed to parse json from output: invalid"]
-        )
+        assert self.task_log["error"] == ["Failed to parse json from output: invalid"]
 
     @mock.patch(
         "cumulusci.tasks.connectedapp.CreateConnectedApp._set_default_username",
@@ -124,7 +121,7 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         del self.task_config.config["options"]["username"]
         task = CreateConnectedApp(self.project_config, self.task_config)
         task._process_devhub_output('{"result":[{"value":"' + self.username + '"}]}')
-        self.assertEqual(task.options.get("username"), self.username)
+        assert task.options.get("username") == self.username
 
     @mock.patch(
         "cumulusci.tasks.connectedapp.CreateConnectedApp._set_default_username",
@@ -141,10 +138,10 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         """client_id and client_secret are generated correctly"""
         task = CreateConnectedApp(self.project_config, self.task_config)
         task._generate_id_and_secret()
-        self.assertEqual(len(task.client_id), task.client_id_length)
-        self.assertEqual(len(task.client_secret), task.client_secret_length)
-        self.assertNotEqual(re.match(r"^\w+$", task.client_id), None)
-        self.assertNotEqual(re.match(r"^\w+$", task.client_secret), None)
+        assert len(task.client_id) == task.client_id_length
+        assert len(task.client_secret) == task.client_secret_length
+        assert re.match(r"^\w+$", task.client_id) is not None
+        assert re.match(r"^\w+$", task.client_secret) is not None
 
     def test_build_package(self):
         """tempdir is populated with connected app and package.xml"""
@@ -155,19 +152,15 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
                 task.tempdir, "connectedApps", "{}.connectedApp".format(self.label)
             )
             task._build_package()
-            self.assertTrue(os.path.isdir(os.path.join(task.tempdir, "connectedApps")))
-            self.assertTrue(os.path.isfile(os.path.join(task.tempdir, "package.xml")))
-            self.assertTrue(os.path.isfile(connected_app_path))
+            assert os.path.isdir(os.path.join(task.tempdir, "connectedApps"))
+            assert os.path.isfile(os.path.join(task.tempdir, "package.xml"))
+            assert os.path.isfile(connected_app_path)
             with open(connected_app_path, "r") as f:
                 connected_app = f.read()
-                self.assertTrue("<label>{}<".format(self.label) in connected_app)
-                self.assertTrue("<contactEmail>{}<".format(self.email) in connected_app)
-                self.assertTrue(
-                    "<consumerKey>{}<".format(task.client_id) in connected_app
-                )
-                self.assertTrue(
-                    "<consumerSecret>{}<".format(task.client_secret) in connected_app
-                )
+                assert "<label>{}<".format(self.label) in connected_app
+                assert "<contactEmail>{}<".format(self.email) in connected_app
+                assert "<consumerKey>{}<".format(task.client_id) in connected_app
+                assert "<consumerSecret>{}<".format(task.client_secret) in connected_app
 
     def test_connect_service(self):
         """connected app gets added to the keychain connected_app service"""
@@ -220,7 +213,7 @@ class TestCreateConnectedApp(MockLoggerMixin, unittest.TestCase):
         task = CreateConnectedApp(self.project_config, self.task_config)
         task._run_task()
         run_task_mock.assert_called_once()
-        self.assertFalse(os.path.isdir(task.tempdir))
+        assert not os.path.isdir(task.tempdir)
         connected_app = self.project_config.keychain.get_service("connected_app")
         assert connected_app is DEFAULT_CONNECTED_APP
 

@@ -7,6 +7,7 @@ from simple_salesforce.exceptions import SalesforceError
 
 from cumulusci.core.exceptions import SalesforceException
 from cumulusci.tasks.salesforce.insert_record import InsertRecord
+from cumulusci.tests.util import CURRENT_SF_API_VERSION
 
 from .util import create_task
 
@@ -89,7 +90,9 @@ class TestCreateRecord:
         )
         responses.add(
             responses.POST,
-            re.compile(r"https://test.salesforce.com/services/data/v52.0/.*"),
+            re.compile(
+                rf"https://test.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}/.*"
+            ),
             content_type="application/json",
             status=404,
             json={

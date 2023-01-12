@@ -113,7 +113,7 @@ def test_run_task_success():
         RESPONSE_SUCCESS,
     )
     result = task._run_task()
-    assert "001R0000029IyDPIA0" == result
+    assert result == "001R0000029IyDPIA0"
     assert responses.calls[0].request.params == {
         "q": "SELECT Id, Name FROM UserLicense WHERE Name = 'Foo' LIMIT 1"
     }

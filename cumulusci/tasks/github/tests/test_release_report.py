@@ -1,4 +1,3 @@
-import unittest
 from datetime import datetime
 
 import pytz
@@ -10,8 +9,8 @@ from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tests.util import create_project_config
 
 
-class TestReleaseReport(unittest.TestCase, GithubApiTestMixin):
-    def setUp(self):
+class TestReleaseReport(GithubApiTestMixin):
+    def setup_method(self):
         self.repo_owner = "TestOwner"
         self.repo_name = "TestRepo"
         self.repo_api_url = "https://api.github.com/repos/{}/{}".format(
@@ -81,21 +80,16 @@ Production orgs: 2018-09-01""",
             ),
         )
         task()
-        self.assertEqual(
-            [
-                {
-                    "beta": False,
-                    "name": "1.0",
-                    "tag": u"rel/2.0",
-                    "time_created": datetime(2018, 1, 1, 0, 0, tzinfo=pytz.UTC),
-                    "time_push_production": datetime(
-                        2018, 9, 1, 0, 0, 0, 5, tzinfo=pytz.UTC
-                    ),
-                    "time_push_sandbox": datetime(
-                        2018, 8, 1, 0, 0, 0, 2, tzinfo=pytz.UTC
-                    ),
-                    "url": "",
-                }
-            ],
-            task.return_values["releases"],
-        )
+        assert [
+            {
+                "beta": False,
+                "name": "1.0",
+                "tag": "rel/2.0",
+                "time_created": datetime(2018, 1, 1, 0, 0, tzinfo=pytz.UTC),
+                "time_push_production": datetime(
+                    2018, 9, 1, 0, 0, 0, 5, tzinfo=pytz.UTC
+                ),
+                "time_push_sandbox": datetime(2018, 8, 1, 0, 0, 0, 2, tzinfo=pytz.UTC),
+                "url": "",
+            }
+        ] == task.return_values["releases"]

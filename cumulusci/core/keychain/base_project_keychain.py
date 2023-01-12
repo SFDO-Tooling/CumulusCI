@@ -1,10 +1,14 @@
-from typing import Dict
-
 import sarge
 
-from cumulusci.core.config import BaseConfig, ConnectedAppOAuthConfig, ScratchOrgConfig
+from cumulusci.core.config import (
+    BaseConfig,
+    ConnectedAppOAuthConfig,
+    ScratchOrgConfig,
+    ServiceConfig,
+)
 from cumulusci.core.exceptions import (
     CumulusCIException,
+    CumulusCIUsageError,
     OrgNotFound,
     ServiceNotConfigured,
     ServiceNotValid,
@@ -24,12 +28,13 @@ DEFAULT_CONNECTED_APP = ConnectedAppOAuthConfig(
 
 class BaseProjectKeychain(BaseConfig):
     encrypted = False
+    orgs: dict
+    services: dict
 
     def __init__(self, project_config, key):
         super(BaseProjectKeychain, self).__init__()
         self.config = {
             "orgs": {},
-            "app": None,
             "services": {},
         }
         self.project_config = project_config
@@ -54,7 +59,7 @@ class BaseProjectKeychain(BaseConfig):
 
     def create_scratch_org(self, org_name, config_name, days=None, set_password=True):
         """Adds/Updates a scratch org config to the keychain from a named config"""
-        scratch_config = getattr(self.project_config, f"orgs__scratch__{config_name}")
+        scratch_config = self.project_config.lookup(f"orgs__scratch__{config_name}")
         if days is not None:
             # Allow override of scratch config's default days
             scratch_config["days"] = days
@@ -167,6 +172,20 @@ class BaseProjectKeychain(BaseConfig):
     #              Services               #
     #######################################
 
+    def set_default_service(
+        self, service_type: str, alias: str, project: bool = False, save: bool = True
+    ) -> None:
+        """Public API for setting a default service e.g. `cci service default`
+
+        @param service_type: the type of service
+        @param alias: the name of the service
+        @param project: Should this be a project default
+        @param save: save the defaults so they are loaded on subsequent executions
+        @raises ServiceNotConfigured if service_type or alias are invalid
+        """
+        self._validate_service_type_and_alias(service_type, alias)
+        self._default_services[service_type] = alias
+
     def get_default_service_name(self, service_type: str):
         """Returns the name of the default service for the given type
         or None if no default is currently set for the given type."""
@@ -179,7 +198,7 @@ class BaseProjectKeychain(BaseConfig):
         self,
         service_type: str,
         alias: str,
-        service_config: Dict,
+        service_config: ServiceConfig,
         save: bool = True,
         config_encrypted: bool = False,
     ):
@@ -255,6 +274,70 @@ class BaseProjectKeychain(BaseConfig):
                 services[s_type].append(name)
         return services
 
+    def get_services_for_type(self, service_type: str) -> list:
+        return [
+            self.get_service(service_type, alias)
+            for alias in self.list_services().get(service_type, [])
+        ]
+
+    def rename_service(
+        self, service_type: str, current_alias: str, new_alias: str
+    ) -> None:
+        """Public API for renaming a service
+
+        @param service_type type of service being renamed
+        @param current_alias the current alias of the service
+        @param new_alias the new alias for the service
+        @throws: ServiceNotValid if no services of the given type are configured,
+        or if no service of the given type has the current_alias
+        """
+        if (
+            service_type == "connected_app"
+            and current_alias == DEFAULT_CONNECTED_APP_NAME
+        ):
+            raise CumulusCIException(
+                "You cannot rename the connected app service that is provided by CumulusCI."
+            )
+
+        self._validate_service_type_and_alias(service_type, current_alias)
+        if new_alias in self.services[service_type]:
+            raise CumulusCIUsageError(
+                f"A service of type {service_type} already exists with name: {new_alias}"
+            )
+
+        self.services[service_type][new_alias] = self.services[service_type].pop(
+            current_alias
+        )
+
+        if self._default_services.get(service_type) == current_alias:
+            self._default_services[service_type] = new_alias
+
+    def remove_service(self, service_type: str, alias: str):
+        """Removes the given service from the keychain. If the service
+        is the default service, and there is only one other service
+        of the same type, that service is set as the new default.
+
+        @param service_type type of the service
+        @param alias the name of the service
+        @raises ServiceNotConfigured if the service_type or alias are invalid
+        """
+        if service_type == "connected_app" and alias == DEFAULT_CONNECTED_APP_NAME:
+            raise CumulusCIException(
+                f"Unable to remove connected app service: {DEFAULT_CONNECTED_APP_NAME}. "
+                "This connected app is provided by CumulusCI and cannot be removed."
+            )
+
+        self._validate_service_type_and_alias(service_type, alias)
+        # remove the loaded service from the keychain
+        del self.services[service_type][alias]
+
+        # if set, remove the service as the default
+        if alias == self._default_services[service_type]:
+            del self._default_services[service_type]
+            if len(self.services[service_type].keys()) == 1:
+                alias = self.list_services()[service_type][0]
+                self.set_default_service(service_type, alias, project=False)
+
     def _load_services(self):
         pass
 
@@ -307,7 +390,7 @@ class BaseProjectKeychain(BaseConfig):
         missing_required = []
         attr_key = f"services__{service_type}__attributes"
         for atr, config in list(getattr(self.project_config, attr_key).items()):
-            if config.get("required") and not getattr(service_config, atr):
+            if config.get("required") and not service_config.lookup(atr):
                 missing_required.append(atr)
 
         if missing_required:
@@ -327,6 +410,18 @@ class BaseProjectKeychain(BaseConfig):
         if service_type == "connected_app" and alias == DEFAULT_CONNECTED_APP_NAME:
             raise ServiceNotValid(
                 f"You cannot use the name {DEFAULT_CONNECTED_APP_NAME} for a connected app service. Please select a different name."
+            )
+
+    def _validate_service_type_and_alias(self, service_type, alias):
+        """Raises ServiceNotConfigured exception if the service_type
+        or alias are not valid."""
+        if service_type not in self.services:
+            raise ServiceNotConfigured(
+                f"No services of type {service_type} are currently configured"
+            )
+        elif alias not in self.services[service_type]:
+            raise ServiceNotConfigured(
+                f"No service of type {service_type} configured with the name: {alias}"
             )
 
     def _raise_service_not_configured(self, service_type):

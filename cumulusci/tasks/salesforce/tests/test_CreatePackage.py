@@ -1,6 +1,5 @@
 import base64
 import io
-import unittest
 import zipfile
 
 from cumulusci.core.config import BaseProjectConfig, UniversalConfig
@@ -9,7 +8,7 @@ from cumulusci.tasks.salesforce import CreatePackage
 from .util import create_task
 
 
-class TestCreatePackage(unittest.TestCase):
+class TestCreatePackage:
     def test_get_package_zip(self):
         project_config = BaseProjectConfig(
             UniversalConfig(),

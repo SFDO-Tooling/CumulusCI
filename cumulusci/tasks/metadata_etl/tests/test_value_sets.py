@@ -1,5 +1,4 @@
 import pytest
-from lxml import etree
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl import AddValueSetEntries
@@ -10,7 +9,7 @@ from cumulusci.tasks.metadata_etl.value_sets import (
     OPP_STAGE_ERR,
 )
 from cumulusci.tasks.salesforce.tests.util import create_task
-from cumulusci.utils.xml import metadata_tree
+from cumulusci.utils.xml import lxml_parse_string, metadata_tree
 
 MD = "{%s}" % "http://soap.sforce.com/2006/04/metadata"
 VALUESET_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -45,7 +44,7 @@ class TestAddValueSetEntries:
             },
         )
 
-        tree = etree.fromstring(VALUESET_XML).getroottree()
+        tree = lxml_parse_string(VALUESET_XML)
 
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test']")) == 0
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")) == 0
@@ -131,7 +130,7 @@ class TestAddValueSetEntries:
             },
         )
 
-        tree = etree.fromstring(VALUESET_XML).getroottree()
+        tree = lxml_parse_string(VALUESET_XML)
 
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test']")) == 0
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")) == 0
@@ -163,7 +162,7 @@ class TestAddValueSetEntries:
             },
         )
 
-        tree = etree.fromstring(VALUESET_XML).getroottree()
+        tree = lxml_parse_string(VALUESET_XML)
 
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test']")) == 0
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Test_2']")) == 0
@@ -195,7 +194,7 @@ class TestAddValueSetEntries:
             },
         )
 
-        tree = etree.fromstring(VALUESET_XML).getroottree()
+        tree = lxml_parse_string(VALUESET_XML)
 
         assert len(tree.findall(f".//{MD}standardValue[{MD}fullName='Value']")) == 1
 

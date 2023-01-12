@@ -2,23 +2,25 @@ import io
 import json
 import shutil
 import tempfile
-import unittest
 import zipfile
 from base64 import b64encode
 from pathlib import Path
 
+import pytest
 import requests
 import responses
 import yaml
 
 from cumulusci.core.config import ServiceConfig, TaskConfig
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.metadeploy import BaseMetaDeployTask, Publish
 from cumulusci.tests.util import create_project_config
 
+pytestmark = pytest.mark.metadeploy
 
-class TestBaseMetaDeployTask(unittest.TestCase):
+
+class TestBaseMetaDeployTask:
     maxDiff = None
 
     @responses.activate
@@ -34,7 +36,7 @@ class TestBaseMetaDeployTask(unittest.TestCase):
         task_config = TaskConfig()
         task = BaseMetaDeployTask(project_config, task_config)
         task._init_task()
-        with self.assertRaises(requests.exceptions.HTTPError):
+        with pytest.raises(requests.exceptions.HTTPError):
             task._call_api("GET", "/rest")
 
     @responses.activate
@@ -60,16 +62,27 @@ class TestBaseMetaDeployTask(unittest.TestCase):
         task = BaseMetaDeployTask(project_config, task_config)
         task._init_task()
         results = task._call_api("GET", "/rest", collect_pages=True)
-        self.assertEqual([1, 2], results)
+        assert [1, 2] == results
 
 
-class TestPublish(unittest.TestCase, GithubApiTestMixin):
+class TestPublish(GithubApiTestMixin):
     maxDiff = None
 
     @responses.activate
-    def test_run_task(self):
+    def test_error__base_instead_of_admin_api(self):
+        responses.add(
+            "GET",
+            "https://metadeploy/api/products?repo_url=https%3A%2F%2Fgithub.com%2FTestOwner%2FTestRepo",
+            status=200,
+            body=b'{"results":[]}',
+        )
+
         project_config = create_project_config()
-        project_config.config["project"]["git"]["repo_url"] = "EXISTING_REPO"
+        project_config.keychain.set_service(
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy/api", "token": "TOKEN"}),
+        )
         project_config.config["plans"] = {
             "install": {
                 "title": "Test Install",
@@ -83,6 +96,39 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     },
                 },
                 "checks": [{"when": "False", "action": "error"}],
+            }
+        }
+
+        task_config = TaskConfig(
+            {
+                "options": {
+                    "tag": "release/1.0",
+                }
+            }
+        )
+        with pytest.raises(CumulusCIException) as e:
+            task = Publish(project_config, task_config)
+            task()
+
+        assert "Admin API" in str(e.value)
+
+    @responses.activate
+    def test_run_task(self):
+        project_config = create_project_config()
+        project_config.config["plans"] = {
+            "install": {
+                "title": "Test Install",
+                "slug": "install",
+                "tier": "primary",
+                "steps": {
+                    1: {"flow": "install_prod"},
+                    2: {
+                        "task": "util_sleep",
+                        "checks": [{"when": "False", "action": "error"}],
+                    },
+                },
+                "checks": [{"when": "False", "action": "error"}],
+                "allowed_org_providers": ["user", "devhub"],
             }
         }
         project_config.keychain.set_service(
@@ -100,7 +146,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
 
         responses.add(
             "GET",
-            "https://metadeploy/products?repo_url=EXISTING_REPO",
+            "https://metadeploy/products?repo_url=https%3A%2F%2Fgithub.com%2FTestOwner%2FTestRepo",
             json={
                 "data": [
                     {
@@ -120,7 +166,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         responses.add("PATCH", "https://metadeploy/translations/es-bogus", status=404)
         responses.add(
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/release/1.0",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/release/1.0",
             json=self._get_expected_tag_ref("release/1.0", "tag_sha"),
         )
         responses.add(
@@ -226,61 +272,75 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         task = Publish(project_config, task_config)
         task()
 
-        steps = json.loads(responses.calls[-2].request.body)["steps"]
+        body = json.loads(responses.calls[-2].request.body)
+        assert body["supported_orgs"] == "Both"
+
+        steps = body["steps"]
         self.maxDiff = None
-        self.assertEqual(
-            [
-                {
-                    "is_required": True,
-                    "kind": "managed",
-                    "name": "Install Test Product 1.0",
-                    "path": "install_prod.install_managed",
-                    "source": None,
-                    "step_num": "1/2",
-                    "task_class": "cumulusci.tasks.salesforce.InstallPackageVersion",
-                    "task_config": {
-                        "options": {
-                            "namespace": "ns",
-                            "version": "1.0",
-                        },
-                        "checks": [],
+
+        assert [
+            {
+                "name": "Install Test Product 1.0",
+                "kind": "managed",
+                "is_required": True,
+                "path": "install_prod.install_managed",
+                "step_num": "1/2",
+                "task_class": "cumulusci.tasks.salesforce.InstallPackageVersion",
+                "task_config": {
+                    "options": {
+                        "version": "1.0",
+                        "namespace": "ns",
+                        "interactive": False,
+                        "base_package_url_format": "{}",
                     },
+                    "checks": [],
                 },
-                {
-                    "is_required": True,
-                    "kind": "metadata",
-                    "name": "Update Admin Profile",
-                    "path": "install_prod.config_managed.update_admin_profile",
-                    "source": None,
-                    "step_num": "1/3/2",
-                    "task_class": "cumulusci.tasks.salesforce.ProfileGrantAllAccess",
-                    "task_config": {
-                        "options": {
-                            "namespace_inject": "ns",
-                            "include_packaged_objects": False,
-                        },
-                        "checks": [],
+                "source": None,
+            },
+            {
+                "name": "Update Admin Profile",
+                "kind": "metadata",
+                "is_required": True,
+                "path": "install_prod.config_managed.update_admin_profile",
+                "step_num": "1/3/2",
+                "task_class": "cumulusci.tasks.salesforce.ProfileGrantAllAccess",
+                "task_config": {
+                    "options": {
+                        "namespace_inject": "ns",
+                        "include_packaged_objects": False,
                     },
+                    "checks": [],
                 },
-                {
-                    "name": "util_sleep",
-                    "kind": "other",
-                    "is_required": True,
-                    "path": "util_sleep",
-                    "step_num": "2",
-                    "task_class": "cumulusci.tasks.util.Sleep",
-                    "task_config": {
-                        "options": {"seconds": 5},
-                        "checks": [{"when": "False", "action": "error"}],
-                    },
-                    "source": None,
+                "source": None,
+            },
+            {
+                "name": "load_sample_data",
+                "kind": "other",
+                "is_required": True,
+                "path": "install_prod.config_managed.load_sample_data",
+                "step_num": "1/3/90",
+                "task_class": "cumulusci.tasks.sample_data.load_sample_data.LoadSampleData",
+                "task_config": {"options": {}, "checks": []},
+                "source": None,
+            },
+            {
+                "name": "util_sleep",
+                "kind": "other",
+                "is_required": True,
+                "path": "util_sleep",
+                "step_num": "2",
+                "task_class": "cumulusci.tasks.util.Sleep",
+                "task_config": {
+                    "options": {"seconds": 5},
+                    "checks": [{"when": "False", "action": "error"}],
                 },
-            ],
-            steps,
-        )
+                "source": None,
+            },
+        ] == steps, steps
 
         labels = json.loads(en_labels_path.read_text())
         assert labels == {
+            "test": {"title": {}},
             "plan:install": {
                 "title": {
                     "message": "Test Install",
@@ -296,13 +356,16 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
                     "message": "Update Admin Profile",
                     "description": "title of installation step",
                 },
+                "load_sample_data": {
+                    "message": "load_sample_data",
+                    "description": "title of installation step",
+                },
                 "util_sleep": {
                     "message": "util_sleep",
                     "description": "title of installation step",
                 },
             },
-            "test": {"title": {}},
-        }
+        }, labels
         shutil.rmtree(labels_path)
 
     @responses.activate
@@ -334,7 +397,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         version = task._find_or_create_version(
             {"url": "http://EXISTING_PRODUCT", "id": "abcdef"}
         )
-        self.assertEqual("http://EXISTING_VERSION", version["url"])
+        assert version["url"] == "http://EXISTING_VERSION"
 
     @responses.activate
     def test_find_or_create_version__commit(self):
@@ -365,7 +428,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         version = task._find_or_create_version(
             {"url": "http://EXISTING_PRODUCT", "id": "abcdef"}
         )
-        self.assertEqual("http://EXISTING_VERSION", version["url"])
+        assert version["url"] == "http://EXISTING_VERSION"
 
     @responses.activate
     def test_find_product__not_found(self):
@@ -384,7 +447,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         task_config = TaskConfig({"options": {"tag": "release/1.0"}})
         task = Publish(project_config, task_config)
         task._init_task()
-        with self.assertRaises(Exception):
+        with pytest.raises(Exception):
             task._find_product()
 
     def test_init_task__no_tag_or_commit(self):
@@ -396,7 +459,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         )
         task_config = TaskConfig({"options": {}})
         task = Publish(project_config, task_config)
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             task._init_task()
 
     @responses.activate
@@ -420,7 +483,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         task_config = TaskConfig({"options": {"tag": "release/1.0", "plan": "install"}})
         task = Publish(project_config, task_config)
         task._init_task()
-        self.assertEqual(expected_plans, task.plan_configs)
+        assert expected_plans == task.plan_configs
 
     @responses.activate
     def test_find_or_create_plan_template__not_found(self):
@@ -462,7 +525,7 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
             "install",
             {"slug": "install"},
         )
-        self.assertEqual("https://NEW_PLANTEMPLATE", plantemplate["url"])
+        assert plantemplate["url"] == "https://NEW_PLANTEMPLATE"
 
     def test_freeze_steps__skip(self):
         project_config = create_project_config()
@@ -482,3 +545,38 @@ class TestPublish(unittest.TestCase, GithubApiTestMixin):
         task._init_task()
         steps = task._freeze_steps(project_config, plan_config)
         assert steps == []
+
+    providers = [
+        (["user"], "Persistent"),
+        (["devhub"], "Scratch"),
+        (["user", "devhub"], "Both"),
+    ]
+
+    @pytest.mark.parametrize("org_providers,metadeploy_equivalent", providers)
+    def test_convert_org_providers_to_plan_equivalent(
+        self, org_providers, metadeploy_equivalent
+    ):
+        project_config = create_project_config()
+        project_config.keychain.set_service(
+            "metadeploy",
+            "test_alias",
+            ServiceConfig({"url": "https://metadeploy", "token": "TOKEN"}),
+        )
+
+        plan_config = {
+            "title": "Test Install",
+            "slug": "install",
+            "tier": "primary",
+            "steps": {1: {"task": "None"}},
+            "allowed_org_providers": org_providers,
+        }
+        plan_name = "test_install"
+        project_config.config["plans"] = {
+            plan_name: plan_config,
+        }
+        task_config = TaskConfig({"options": {"tag": "release/1.0"}})
+
+        task = Publish(project_config, task_config)
+        actual = task._convert_org_providers_to_plan_equivalent(org_providers)
+
+        assert actual == metadeploy_equivalent

@@ -19,7 +19,7 @@ class SfdxOrgConfig(OrgConfig):
             return self._sfdx_info
 
         # On-demand creation of scratch orgs
-        if self.create_org is not None and not self.created:
+        if self.createable and not self.created:
             self.create_org()
 
         username = self.config.get("username")

@@ -1,6 +1,5 @@
 import io
 import json
-from contextlib import contextmanager
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from unittest import mock
@@ -9,16 +8,25 @@ import click
 import pytest
 import responses
 
-from cumulusci.cli import cci
-from cumulusci.core.config import OrgConfig, ScratchOrgConfig
+from cumulusci.core.config import (
+    BaseProjectConfig,
+    OrgConfig,
+    ScratchOrgConfig,
+    ServiceConfig,
+    UniversalConfig,
+)
+from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 from cumulusci.core.exceptions import (
     OrgNotFound,
     ScratchOrgException,
     ServiceNotConfigured,
 )
+from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.core.tests.utils import MockLookup
+from cumulusci.utils import parse_api_datetime
 
 from .. import org
-from .utils import run_click_command
+from .utils import run_cli_command, run_click_command
 
 
 class TestOrgCommands:
@@ -81,21 +89,69 @@ class TestOrgCommands:
         click_echo.assert_called_once_with(start_url)
         org_config.save.assert_called_once_with()
 
-    @mock.patch("cumulusci.cli.org.OAuth2Client")
+    @mock.patch("cumulusci.oauth.client.OAuth2Client.auth_code_flow")
     @responses.activate
-    def test_org_connect(self, oauth2client):
-        client_instance = mock.Mock()
-        client_instance.auth_code_flow.return_value = {
+    def test_org_connect(self, auth_code_flow):
+        auth_code_flow.return_value = {
             "instance_url": "https://instance",
             "access_token": "BOGUS",
             "id": "OODxxxxxxxxxxxx/user",
         }
-        oauth2client.return_value = client_instance
         runtime = mock.Mock()
-        runtime.keychain.get_service.return_value = mock.Mock(
-            client_id="asdfasdf",
-            client_secret="asdfasdf",
-            callback_url="http://localhost:8080/callback",
+        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
+        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+        responses.add(
+            method="GET",
+            url="https://instance/services/oauth2/userinfo",
+            body=b"{}",
+            status=200,
+        )
+        responses.add(
+            method="GET",
+            url="https://instance/services/data/v45.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            json={
+                "TrialExpirationDate": None,
+                "OrganizationType": "Developer Edition",
+                "IsSandbox": False,
+                "InstanceName": "CS420",
+                "NamespacePrefix": None,
+            },
+            status=200,
+        )
+        responses.add("GET", "https://instance/services/data", json=[{"version": 45.0}])
+
+        result = run_cli_command("org", "connect", "test", "--default", runtime=runtime)
+
+        name, org_config = runtime.keychain.get_default_org()
+        assert name == "test"
+        assert org_config.id == "OODxxxxxxxxxxxx/user"
+        assert org_config.connected_app == "built-in"
+        assert org_config.expires == "Persistent"
+        assert "Connecting org using the built-in connected app..." in result.output
+        assert "test is now the default org" in result.output
+
+    @mock.patch("cumulusci.oauth.client.OAuth2Client.auth_code_flow")
+    @responses.activate
+    def test_org_connect__non_default_connected_app(self, auth_code_flow):
+        auth_code_flow.return_value = {
+            "instance_url": "https://instance",
+            "access_token": "BOGUS",
+            "id": "OODxxxxxxxxxxxx/user",
+        }
+        runtime = mock.Mock()
+        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
+        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+        runtime.keychain.set_service(
+            "connected_app",
+            "other",
+            ServiceConfig(
+                {
+                    "login_url": "https://other",
+                    "callback_url": "http://localhost:8080/callback",
+                    "client_id": "ID",
+                    "client_secret": "SECRET",
+                }
+            ),
         )
         responses.add(
             method="GET",
@@ -116,37 +172,17 @@ class TestOrgCommands:
             status=200,
         )
         responses.add("GET", "https://instance/services/data", json=[{"version": 45.0}])
-        run_click_command(
-            org.org_connect,
-            runtime=runtime,
-            org_name="test",
-            sandbox=False,
-            login_url=None,
-            default=True,
-            global_org=False,
+
+        result = run_cli_command(
+            "org", "connect", "test", "--connected_app", "other", runtime=runtime
         )
 
-        runtime.check_org_overwrite.assert_called_once()
-        runtime.keychain.set_org.assert_called_once()
-        org_config = runtime.keychain.set_org.call_args[0][0]
-        assert org_config.expires == "Persistent"
-        runtime.keychain.set_default_org.assert_called_once_with("test")
-
-    @contextmanager
-    def mock_main_context(self):
-        with mock.patch(  # side effects break other tests
-            "cumulusci.cli.cci.init_logger", mock.Mock()
-        ), mock.patch(
-            "cumulusci.cli.cci.get_tempfile_logger",
-            mock.MagicMock(return_value=(None, "")),
-        ), mock.patch(
-            "cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock()
-        ):
-            yield
+        org_config = runtime.keychain.get_org("test")
+        assert org_config.connected_app == "other"
+        assert "Connecting org using the other connected app..." in result.output
 
     @mock.patch("cumulusci.cli.org.connect_org_to_keychain")
-    @mock.patch("cumulusci.cli.cci.CliRuntime")
-    def test_org_connect__sandbox(self, cli_runtime, connect_to_keychain):
+    def test_org_connect__sandbox(self, connect_to_keychain):
         mocked_connected_app = mock.Mock()
         mocked_connected_app.client_id = "foo"
         mocked_connected_app.client_secret = "bar"
@@ -155,36 +191,78 @@ class TestOrgCommands:
         runtime = mock.Mock()
         runtime.keychain.get_service.return_value = mocked_connected_app
 
-        cli_runtime.return_value = runtime
-
-        with self.mock_main_context():
-            cci.main(["cci", "org", "connect", "blah", "--sandbox"])
+        run_cli_command("org", "connect", "blah", "--sandbox", runtime=runtime)
 
         actual_client_config = connect_to_keychain.call_args_list[0][0][0].client_config
         assert actual_client_config.auth_uri.startswith("https://test.salesforce.com/")
         assert actual_client_config.token_uri.startswith("https://test.salesforce.com/")
 
     @mock.patch("cumulusci.cli.org.connect_org_to_keychain")
-    @mock.patch("cumulusci.cli.cci.CliRuntime")
-    def test_org_connect__prod_default(self, cli_runtime, connect_to_keychain):
-        mocked_connected_app = mock.Mock()
-        mocked_connected_app.client_id = "foo"
-        mocked_connected_app.client_secret = "bar"
-        mocked_connected_app.callback_url = "https://foo.bar.baz/"
-
+    def test_org_connect__prod_default(self, connect_to_keychain):
         runtime = mock.Mock()
-        runtime.keychain.get_service.return_value = mocked_connected_app
+        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
+        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
 
-        cli_runtime.return_value = runtime
-
-        with self.mock_main_context():
-            cci.main(["cci", "org", "connect", "blah"])
+        run_cli_command("org", "connect", "blah", runtime=runtime)
 
         actual_client_config = connect_to_keychain.call_args_list[0][0][0].client_config
         assert actual_client_config.auth_uri.startswith("https://login.salesforce.com/")
         assert actual_client_config.token_uri.startswith(
             "https://login.salesforce.com/"
         )
+
+    @mock.patch("cumulusci.cli.org.connect_org_to_keychain")
+    def test_org_connect__other_connected_app_login_url(self, connect_to_keychain):
+        runtime = mock.Mock()
+        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
+        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+        runtime.keychain.set_service(
+            "connected_app",
+            "other",
+            ServiceConfig(
+                {
+                    "client_id": "foo",
+                    "client_secret": "bar",
+                    "callback_url": "https://foo.bar.baz/",
+                    "login_url": "https://other",
+                }
+            ),
+        )
+
+        run_cli_command(
+            "org", "connect", "blah", "--connected-app", "other", runtime=runtime
+        )
+
+        actual_client_config = connect_to_keychain.call_args_list[0][0][0].client_config
+        assert actual_client_config.auth_uri.startswith("https://other/")
+        assert actual_client_config.token_uri.startswith("https://other/")
+
+    @mock.patch("cumulusci.cli.org.connect_org_to_keychain")
+    def test_org_connect__login_url_from_cli_option(self, connect_to_keychain):
+        runtime = mock.Mock()
+        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
+        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+
+        run_cli_command(
+            "org", "connect", "blah", "--login-url", "https://custom", runtime=runtime
+        )
+
+        actual_client_config = connect_to_keychain.call_args_list[0][0][0].client_config
+        assert actual_client_config.auth_uri.startswith("https://custom/")
+        assert actual_client_config.token_uri.startswith("https://custom/")
+
+    def test_org_connect__bad_connected_app_name(self):
+        runtime = mock.Mock()
+        runtime.project_config = BaseProjectConfig(UniversalConfig(), config={})
+        runtime.keychain = BaseProjectKeychain(runtime.project_config, None)
+
+        with pytest.raises(
+            ServiceNotConfigured,
+            match="No service of type connected_app configured with name: bogus",
+        ):
+            run_cli_command(
+                "org", "connect", "blah", "--connected-app", "bogus", runtime=runtime
+            )
 
     @mock.patch("cumulusci.cli.org.OAuth2Client")
     @responses.activate
@@ -291,7 +369,7 @@ class TestOrgCommands:
                 "createdDate": "1970-01-01T00:00:00.000Z",
                 "expirationDate": "1970-01-01",
                 "instanceUrl": "url",
-                "accessToken": "access!token",
+                "accessToken": "OODxxxxxxxxxxxx!token",
                 "username": "test@test.org",
                 "password": "password"
             }
@@ -309,16 +387,21 @@ class TestOrgCommands:
                 runtime=runtime,
             )
             runtime.keychain.set_org.assert_called_once()
-        assert "Imported scratch org: access, username: test@test.org" in "".join(out)
+        assert (
+            "Imported scratch org: OODxxxxxxxxxxxx, username: test@test.org"
+            in "".join(out)
+        )
 
     @mock.patch("sarge.Command")
+    @responses.activate
     def test_org_import__persistent_org(self, cmd):
         runtime = mock.Mock()
         result = b"""{
             "result": {
+                "id": "OODxxxxxxxxxxxx",
                 "createdDate": null,
-                "instanceUrl": "url",
-                "accessToken": "access!token",
+                "instanceUrl": "https://instance",
+                "accessToken": "OODxxxxxxxxxxxx!token",
                 "username": "test@test.org",
                 "password": "password"
             }
@@ -327,16 +410,98 @@ class TestOrgCommands:
             stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=0
         )
 
+        # Mock the call to get the Organization sObject
+        responses.add(
+            method="GET",
+            url="https://instance/services/data",
+            status=200,
+            json=[{"version": "54.0"}],
+        )
+        responses.add(
+            method="GET",
+            url="https://instance/services/data/v54.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            json={
+                "TrialExpirationDate": None,
+                "OrganizationType": "Developer Edition",
+                "IsSandbox": True,
+                "InstanceName": "CS420",
+                "NamespacePrefix": None,
+            },
+            status=200,
+        )
+
         out = []
-        with mock.patch("click.echo", out.append), pytest.raises(
-            click.UsageError, match="cci org connect"
-        ):
+        with mock.patch("click.echo", out.append):
             run_click_command(
                 org.org_import,
                 username_or_alias="test@test.org",
                 org_name="test",
                 runtime=runtime,
             )
+            runtime.keychain.set_org.assert_called_once()
+            created_org = runtime.keychain.set_org.call_args[0][0]
+            assert isinstance(created_org, SfdxOrgConfig)
+            assert created_org.config["sfdx"]
+        assert created_org.config["expires"] == "Persistent"
+
+        assert "Imported org: OODxxxxxxxxxxxx, username: test@test.org" in "".join(out)
+
+    @mock.patch("sarge.Command")
+    @responses.activate
+    def test_org_import__trial_org(self, cmd):
+        runtime = mock.Mock()
+        result = b"""{
+            "result": {
+                "id": "OODxxxxxxxxxxxx",
+                "createdDate": null,
+                "instanceUrl": "https://instance",
+                "accessToken": "OODxxxxxxxxxxxx!token",
+                "username": "test@test.org",
+                "password": "password"
+            }
+        }"""
+        cmd.return_value = mock.Mock(
+            stderr=io.BytesIO(b""), stdout=io.BytesIO(result), returncode=0
+        )
+
+        # Mock the call to get the Organization sObject
+        api_datetime = "2030-08-07T16:00:56.000+0000"
+        responses.add(
+            method="GET",
+            url="https://instance/services/data",
+            status=200,
+            json=[{"version": "54.0"}],
+        )
+        responses.add(
+            method="GET",
+            url="https://instance/services/data/v54.0/sobjects/Organization/OODxxxxxxxxxxxx",
+            json={
+                "TrialExpirationDate": api_datetime,
+                "OrganizationType": "Developer Edition",
+                "IsSandbox": True,
+                "InstanceName": "CS420",
+                "NamespacePrefix": None,
+            },
+            status=200,
+        )
+
+        out = []
+        with mock.patch("click.echo", out.append):
+            run_click_command(
+                org.org_import,
+                username_or_alias="test@test.org",
+                org_name="test",
+                runtime=runtime,
+            )
+            runtime.keychain.set_org.assert_called_once()
+            created_org = runtime.keychain.set_org.call_args[0][0]
+            assert isinstance(created_org, SfdxOrgConfig)
+            assert created_org.config["sfdx"]
+            assert (
+                created_org.config["expires"] == parse_api_datetime(api_datetime).date()
+            )
+
+        assert "Imported org: OODxxxxxxxxxxxx, username: test@test.org" in "".join(out)
 
     def test_calculate_org_days(self):
         info_1 = {
@@ -370,7 +535,12 @@ class TestOrgCommands:
 
     def test_org_info(self):
         org_config = mock.Mock()
-        org_config.config = {"days": 1, "default": True, "password": None}
+        org_config.config = {
+            "days": 1,
+            "default": True,
+            "password": None,
+            "connected_app": "built-in",
+        }
         org_config.expires = date.today()
         org_config.latest_api_version = "42.0"
         runtime = mock.Mock()
@@ -384,6 +554,7 @@ class TestOrgCommands:
                 [
                     ["Org: test", ""],
                     ["\x1b[1mapi_version\x1b[0m", "42.0"],
+                    ["\x1b[1mconnected_app\x1b[0m", "built-in"],
                     ["\x1b[1mdays\x1b[0m", "1"],
                     ["\x1b[1mdefault\x1b[0m", "True"],
                     ["\x1b[1mpassword\x1b[0m", "None"],
@@ -642,6 +813,73 @@ class TestOrgCommands:
         echo.assert_called_once_with(json.dumps(expected))
 
     @mock.patch("click.echo")
+    @mock.patch("cumulusci.cli.org.CliTable")
+    def test_org_list__error(self, cli_tbl, echo):
+        runtime = mock.Mock()
+        runtime.universal_config.cli__plain_output = None
+        org_configs = {
+            "test0": ScratchOrgConfig(
+                {
+                    "default": True,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=8),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test0@example.com",
+                },
+                "test0",
+            ),
+            "test1": AssertionError("NOPE!"),
+            "test2": OrgConfig(
+                {
+                    "default": False,
+                    "scratch": False,
+                    "expires": "Persistent",
+                    "expired": False,
+                    "config_name": "dev",
+                    "username": "test2@example.com",
+                    "instance_url": "https://dude-chillin-2330-dev-ed.cs22.my.salesforce.com",
+                },
+                "test2",
+            ),
+        }
+
+        runtime.keychain.list_orgs.return_value = list(org_configs.keys())
+
+        def get_org(orgname):
+            value = org_configs[orgname]
+            if isinstance(value, Exception):
+                raise value
+            return value
+
+        runtime.keychain.get_org = get_org
+        runtime.project_config.cache_dir = Path("does_not_possibly_exist")
+        runtime.keychain.cleanup_org_cache_dirs.side_effect = AssertionError("OUCH!")
+
+        runtime.keychain.get_default_org.return_value = (
+            "test0",
+            ScratchOrgConfig(
+                {
+                    "default": True,
+                    "scratch": True,
+                    "date_created": datetime.now() - timedelta(days=8),
+                    "days": 7,
+                    "config_name": "dev",
+                    "username": "test0@example.com",
+                },
+                "test0",
+            ),
+        )
+
+        run_click_command(org.org_list, runtime=runtime, json_flag=False, plain=False)
+
+        assert "Cannot load org config for `test1`" in str(
+            echo.mock_calls
+        ), echo.mock_calls
+        assert "NOPE!" in str(echo.mock_calls), echo.mock_calls
+        assert "Cannot cleanup org cache dirs" in str(echo.mock_calls), echo.mock_calls
+
+    @mock.patch("click.echo")
     def test_org_prune(self, echo):
         runtime = mock.Mock()
         runtime.keychain.list_orgs.return_value = [
@@ -653,7 +891,13 @@ class TestOrgCommands:
             "active2",
             "persistent",
         ]
-        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
+
+        runtime.project_config.lookup = MockLookup(
+            orgs__scratch={
+                "shape1": True,
+                "shape2": True,
+            },
+        )
 
         runtime.keychain.get_org.side_effect = [
             ScratchOrgConfig(
@@ -759,7 +1003,13 @@ class TestOrgCommands:
             "active2",
             "persistent",
         ]
-        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
+
+        runtime.project_config.lookup = MockLookup(
+            orgs__scratch={
+                "shape1": True,
+                "shape2": True,
+            }
+        )
 
         runtime.keychain.get_org.side_effect = [
             ScratchOrgConfig(
@@ -837,7 +1087,12 @@ class TestOrgCommands:
             "active2",
             "persistent",
         ]
-        runtime.project_config.orgs__scratch = {"shape1": True, "shape2": True}
+
+        def lookup(name, default):
+            assert name == "orgs__scratch", name
+            return {"shape1": True, "shape2": True}
+
+        runtime.project_config.lookup = lookup
 
         runtime.keychain.get_org.side_effect = [
             ScratchOrgConfig(
@@ -978,7 +1233,10 @@ class TestOrgCommands:
 
     def test_org_scratch(self):
         runtime = mock.Mock()
-        runtime.project_config.orgs__scratch = {"dev": {"orgName": "Dev"}}
+
+        runtime.project_config.lookup = MockLookup(
+            orgs__scratch={"dev": {"orgName": "Dev"}}
+        )
 
         run_click_command(
             org.org_scratch,
@@ -999,7 +1257,9 @@ class TestOrgCommands:
 
     def test_org_scratch__not_default(self):
         runtime = mock.Mock()
-        runtime.project_config.orgs__scratch = {"dev": {"orgName": "Dev"}}
+        runtime.project_config.lookup = MockLookup(
+            orgs__scratch={"dev": {"orgName": "Dev"}}
+        )
 
         run_click_command(
             org.org_scratch,
@@ -1019,7 +1279,7 @@ class TestOrgCommands:
 
     def test_org_scratch_no_configs(self):
         runtime = mock.Mock()
-        runtime.project_config.orgs__scratch = None
+        runtime.project_config.lookup = MockLookup(orgs__scratch=None)
 
         with pytest.raises(click.UsageError):
             run_click_command(
@@ -1035,7 +1295,7 @@ class TestOrgCommands:
 
     def test_org_scratch_config_not_found(self):
         runtime = mock.Mock()
-        runtime.project_config.orgs__scratch = {"bogus": {}}
+        runtime.project_config.lookup = MockLookup(orgs__scratch={"bogus": {}})
 
         with pytest.raises(click.UsageError):
             run_click_command(

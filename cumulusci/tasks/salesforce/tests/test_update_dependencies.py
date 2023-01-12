@@ -16,7 +16,11 @@ from cumulusci.core.dependencies.resolvers import (
     DependencyResolutionStrategy,
     get_resolver_stack,
 )
-from cumulusci.core.exceptions import DependencyParseError, TaskOptionsError
+from cumulusci.core.exceptions import (
+    CumulusCIException,
+    DependencyParseError,
+    TaskOptionsError,
+)
 from cumulusci.core.flowrunner import StepSpec
 from cumulusci.tasks.salesforce.update_dependencies import UpdateDependencies
 from cumulusci.tests.util import create_project_config
@@ -218,6 +222,46 @@ def test_run_task_gets_static_dependencies_and_installs():
     )
 
 
+@mock.patch("cumulusci.tasks.salesforce.update_dependencies.click.confirm")
+def test_run_task_gets_static_dependencies_and_installs__interactive(confirm):
+    confirm.return_value = True
+
+    task = create_task(
+        UpdateDependencies,
+        {
+            "dependencies": [
+                {
+                    "namespace": "ns",
+                    "version": "1.0",
+                },
+                {"version_id": "04t000000000000"},
+            ],
+            "resolution_strategy": "production",
+            "ignore_dependencies": [{"github": "https://github.com/Test/TestRepo"}],
+            "security_type": "PUSH",
+            "interactive": True,
+        },
+    )
+
+    task._install_dependency = mock.Mock()
+    task()
+
+    task._install_dependency.assert_has_calls(
+        [
+            mock.call(PackageNamespaceVersionDependency(namespace="ns", version="1.0")),
+            mock.call(PackageVersionIdDependency(version_id="04t000000000000")),
+        ]
+    )
+
+    with pytest.raises(CumulusCIException) as e:
+        task._install_dependency.reset_mock()
+        confirm.return_value = False
+        task()
+
+    task._install_dependency.assert_not_called()
+    assert "canceled" in str(e)
+
+
 def test_run_task_gets_static_dependencies_and_installs__packages_only():
     task = create_task(
         UpdateDependencies,
@@ -362,6 +406,8 @@ def test_freeze(get_static_dependencies):
                 "options": {
                     "dependencies": [{"namespace": "ns", "version": "1.0"}],
                     "packages_only": False,
+                    "interactive": False,
+                    "base_package_url_format": "{}",
                 },
                 "checks": [],
             },
@@ -384,6 +430,8 @@ def test_freeze(get_static_dependencies):
                         },
                     ],
                     "packages_only": False,
+                    "interactive": False,
+                    "base_package_url_format": "{}",
                 },
                 "checks": [],
             },
@@ -434,8 +482,25 @@ def test_freeze__packages_only(get_static_dependencies):
                 "options": {
                     "dependencies": [{"namespace": "ns", "version": "1.0"}],
                     "packages_only": True,
+                    "interactive": False,
+                    "base_package_url_format": "{}",
                 },
                 "checks": [],
             },
         }
     ] == steps
+
+
+def test_freeze__interactive_exception():
+    task = create_task(
+        UpdateDependencies,
+        {
+            "dependencies": [],
+            "interactive": True,
+        },
+    )
+    step = StepSpec(1, "test_task", task.task_config, None, task.project_config)
+    with pytest.raises(CumulusCIException) as e:
+        task.freeze(step)
+
+    assert "cannot be frozen" in str(e)

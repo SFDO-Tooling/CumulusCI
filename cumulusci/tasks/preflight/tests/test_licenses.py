@@ -1,4 +1,3 @@
-import unittest
 from unittest.mock import Mock
 
 from cumulusci.tasks.preflight.licenses import (
@@ -9,7 +8,7 @@ from cumulusci.tasks.preflight.licenses import (
 from cumulusci.tasks.salesforce.tests.util import create_task
 
 
-class TestLicensePreflights(unittest.TestCase):
+class TestLicensePreflights:
     def test_license_preflight(self):
         task = create_task(GetAvailableLicenses, {})
         task._init_api = Mock()

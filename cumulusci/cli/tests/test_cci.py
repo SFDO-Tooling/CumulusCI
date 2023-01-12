@@ -2,6 +2,7 @@ import contextlib
 import io
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from unittest import mock
@@ -15,6 +16,7 @@ from rich.console import Console
 import cumulusci
 from cumulusci.cli import cci
 from cumulusci.cli.tests.utils import run_click_command
+from cumulusci.cli.utils import get_installed_version
 from cumulusci.core.config import BaseProjectConfig
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.utils import temporary_dir
@@ -114,6 +116,7 @@ def test_main__cci_show_stacktraces(
     init_logger,
     get_tempfile_logger,
     tee,
+    capsys,
 ):
     runtime = mock.Mock()
     runtime.universal_config.cli__show_stacktraces = True
@@ -121,7 +124,7 @@ def test_main__cci_show_stacktraces(
     cli.side_effect = Exception
     get_tempfile_logger.return_value = (mock.Mock(), "tempfile.log")
 
-    with pytest.raises(Exception):
+    with pytest.raises(SystemExit):
         cci.main(["cci"])
 
     check_latest_version.assert_called_once()
@@ -129,6 +132,8 @@ def test_main__cci_show_stacktraces(
     CliRuntime.assert_called_once()
     cli.assert_called_once()
     post_mortem.assert_not_called()
+    captured = capsys.readouterr()
+    assert "Traceback (most recent call last)" in captured.err
 
 
 @mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
@@ -258,13 +263,16 @@ def test_cci_org_default__no_orgname(
     assert "There is no default org" in stdout.getvalue()
 
 
+DEPLOY_CLASS_PATH = f"cumulusci.tasks.salesforce.Deploy{'.Deploy' if sys.version_info >= (3, 11) else ''}"
+
+
 @mock.patch("cumulusci.cli.cci.init_logger", mock.Mock())
 @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock())
-@mock.patch("cumulusci.tasks.salesforce.Deploy.__call__", mock.Mock())
+@mock.patch(f"{DEPLOY_CLASS_PATH}.__call__", mock.Mock())
 @mock.patch("sys.exit", mock.Mock())
 @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
 @mock.patch("cumulusci.cli.cci.CliRuntime")
-@mock.patch("cumulusci.tasks.salesforce.Deploy.__init__")
+@mock.patch(f"{DEPLOY_CLASS_PATH}.__init__")
 def test_cci_run_task_options__with_dash(
     Deploy,
     CliRuntime,
@@ -292,11 +300,11 @@ def test_cci_run_task_options__with_dash(
 
 @mock.patch("cumulusci.cli.cci.init_logger", mock.Mock())
 @mock.patch("cumulusci.cli.cci.tee_stdout_stderr", mock.MagicMock())
-@mock.patch("cumulusci.tasks.salesforce.Deploy.__call__", mock.Mock())
+@mock.patch(f"{DEPLOY_CLASS_PATH}.__call__", mock.Mock())
 @mock.patch("sys.exit", mock.Mock())
 @mock.patch("cumulusci.cli.cci.get_tempfile_logger")
 @mock.patch("cumulusci.cli.cci.CliRuntime")
-@mock.patch("cumulusci.tasks.salesforce.Deploy.__init__")
+@mock.patch(f"{DEPLOY_CLASS_PATH}.__init__")
 def test_cci_run_task_options__old_style_with_dash(
     Deploy,
     CliRuntime,
@@ -370,10 +378,10 @@ def test_handle_click_exception(traceback, cci_open):
     cci_open.__enter__.return_value = mock.Mock()
 
     with contextlib.redirect_stderr(io.StringIO()) as stderr:
-        cci.handle_exception(click.ClickException("oops"), False, "file.path")
+        cci.handle_exception(click.ClickException("[oops]"), False, "file.path")
 
     stderr = stderr.getvalue()
-    assert "Error: oops" in stderr
+    assert "Error: [oops]" in stderr
     traceback.assert_not_called()
 
 
@@ -396,23 +404,28 @@ def test_cli():
     "cumulusci.cli.cci.get_latest_final_version",
     mock.Mock(return_value=pkg_resources.parse_version("100")),
 )
-@mock.patch("click.echo")
-def test_version(echo):
+def test_version(capsys):
     run_click_command(cci.version)
-    assert cumulusci.__version__ in echo.call_args_list[1][0][0]
+    console_output = capsys.readouterr().out
+    assert f"CumulusCI version: {cumulusci.__version__}" in console_output
+    assert "There is a newer version of CumulusCI available" in console_output
 
 
 @mock.patch(
     "cumulusci.cli.cci.get_latest_final_version",
-    mock.Mock(return_value=pkg_resources.parse_version("100")),
+    mock.Mock(return_value=pkg_resources.parse_version("1")),
 )
-@mock.patch("click.echo")
-def test_version__latest(echo):
-    with mock.patch(
-        "cumulusci.cli.cci.get_latest_final_version", cci.get_installed_version
-    ):
-        run_click_command(cci.version)
-    assert "You have the latest version of CumulusCI." in echo.call_args_list[-2][0][0]
+def test_version__latest(capsys):
+    run_click_command(cci.version)
+    console_output = capsys.readouterr().out
+    assert "You have the latest version of CumulusCI" in console_output
+
+
+@mock.patch("cumulusci.cli.cci.warn_if_no_long_paths")
+@mock.patch("cumulusci.cli.cci.get_latest_final_version", get_installed_version)
+def test_version__win_path_warning(warn_if):
+    run_click_command(cci.version)
+    warn_if.assert_called_once()
 
 
 @mock.patch("code.interact")
@@ -505,3 +518,28 @@ def mock_validate_debug(value):
         assert bool(self.debug_mode) == bool(value)
 
     return _run_task
+
+
+@mock.patch("cumulusci.cli.cci.tee_stdout_stderr")
+@mock.patch("cumulusci.cli.cci.get_tempfile_logger")
+@mock.patch("cumulusci.cli.cci.init_logger")
+@mock.patch("cumulusci.cli.cci.check_latest_version")
+@mock.patch("cumulusci.cli.cci.CliRuntime")
+@mock.patch("cumulusci.cli.cci.show_version_info")
+def test_dash_dash_version(
+    show_version_info,
+    CliRuntime,
+    check_latest_version,
+    init_logger,
+    get_tempfile_logger,
+    tee,
+):
+    get_tempfile_logger.return_value = mock.Mock(), "tempfile.log"
+    cci.main(["cci", "--help"])
+    assert len(show_version_info.mock_calls) == 0
+
+    cci.main(["cci", "version"])
+    assert len(show_version_info.mock_calls) == 1
+
+    cci.main(["cci", "--version"])
+    assert len(show_version_info.mock_calls) == 2

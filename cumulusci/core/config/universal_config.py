@@ -2,19 +2,26 @@ import os
 from pathlib import Path
 
 from cumulusci.core.config import BaseTaskFlowConfig
-from cumulusci.core.config.project_config import BaseProjectConfig
+from cumulusci.core.config.project_config import (
+    BaseProjectConfig,
+    ProjectConfigPropertiesMixin,
+)
 from cumulusci.core.utils import merge_config
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 
 
-class UniversalConfig(BaseTaskFlowConfig):
+class UniversalConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     """Base class for the global config which contains all configuration not specific to projects"""
+
+    project_local_dir: str
+    cli: dict
 
     config = None
     config_filename = "cumulusci.yml"
     project_config_class = BaseProjectConfig
+    universal_config_obj = None
 
     def __init__(self, config=None):
         self._init_logger()

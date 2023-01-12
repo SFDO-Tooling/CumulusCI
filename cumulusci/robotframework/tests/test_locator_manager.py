@@ -1,4 +1,3 @@
-import unittest
 from unittest import mock
 
 import pytest
@@ -18,10 +17,9 @@ def mock_get_library_instance(name):
     return mock_libs[name]
 
 
-class TestTranslateLocator(unittest.TestCase):
+class TestTranslateLocator:
     @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
+    def setup_class(cls):
         LOCATORS.clear()
         register_locators(
             prefix="test",
@@ -32,9 +30,15 @@ class TestTranslateLocator(unittest.TestCase):
                         "baz": "//div[@class='baz']",
                         "hello": "//span[text()='Hello, {}']",
                     },
-                }
+                },
+                "action": "//span[@name='{title}' or @title='{title}']//a[.='{link}']",
             },
         )
+
+    def test_named_format_fields(self):
+        """This tests that named format fields are given positional arguments in the correct order"""
+        loc = translate_locator("test", "action:User,Clear")
+        assert loc == "//span[@name='User' or @title='User']//a[.='Clear']"
 
     def test_strip_whitespace_from_locator(self):
         """Verify whitespace is stripped from locator key and args"""
@@ -89,10 +93,9 @@ class TestTranslateLocator(unittest.TestCase):
             translate_locator("test", "foo.not.valid")
 
 
-class TestLocateElement(unittest.TestCase):
+class TestLocateElement:
     @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
+    def setup_class(cls):
         LOCATORS.clear()
         register_locators(
             prefix="test",
@@ -102,7 +105,10 @@ class TestLocateElement(unittest.TestCase):
     def test_locate_element(self):
         """Verify that the locate_element function translates the
         locator and calls SeleniumLibrary.get_webelement with the
-        translated locator
+        translated locator.
+
+        That is to say, this verifies that our registered locators
+        are actually usable with Selenium keywords.
         """
 
         locator = "foo.bar.hello:world"
@@ -115,13 +121,13 @@ class TestLocateElement(unittest.TestCase):
             side_effect=mock_get_library_instance,
         ):
             locate_element("test", parent, locator, tag, constraints)
-            mock_libs["SeleniumLibrary"].get_webelement.assert_called_with(
+            mock_libs["SeleniumLibrary"].get_webelements.assert_called_with(
                 "//span[text()='Hello, world']"
             )
 
 
-class TestRegisterLocators(unittest.TestCase):
-    def setUp(self):
+class TestRegisterLocators:
+    def setup_method(self):
         LOCATORS.clear()
 
     def test_register_locators(self):
@@ -129,7 +135,7 @@ class TestRegisterLocators(unittest.TestCase):
         register_locators("test", {"foo": "//div/foo"})
 
         expected = {"test": {"foo": "//div/foo"}}
-        self.assertDictEqual(LOCATORS, expected)
+        assert LOCATORS == expected
 
     def test_multiple_registrations(self):
         """Verify that more than one prefix can be registered"""
@@ -138,7 +144,7 @@ class TestRegisterLocators(unittest.TestCase):
         register_locators("test2", {"bar": "//div/bar"})
 
         expected = {"test1": {"foo": "//div/foo"}, "test2": {"bar": "//div/bar"}}
-        self.assertDictEqual(LOCATORS, expected)
+        assert LOCATORS == expected
 
     def test_register_locators_merge(self):
         """Verify that calling register_locators will merge the new locators
@@ -149,4 +155,4 @@ class TestRegisterLocators(unittest.TestCase):
         register_locators("test1", {"foo": {"two": "//div/two"}})
 
         expected = {"test1": {"foo": {"one": "//div/one", "two": "//div/two"}}}
-        self.assertDictEqual(LOCATORS, expected)
+        assert LOCATORS == expected

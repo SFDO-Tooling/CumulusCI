@@ -1,2 +1,0 @@
-CumulusCI Internal API
-======================

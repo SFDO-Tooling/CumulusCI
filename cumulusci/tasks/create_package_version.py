@@ -17,6 +17,7 @@ from cumulusci.core.dependencies.dependencies import (
     UnmanagedGitHubRefDependency,
 )
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
+from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.exceptions import (
     CumulusCIUsageError,
     DependencyLookupError,
@@ -27,7 +28,7 @@ from cumulusci.core.exceptions import (
 from cumulusci.core.github import get_version_id_from_tag
 from cumulusci.core.sfdx import convert_sfdx_source
 from cumulusci.core.utils import process_bool_arg
-from cumulusci.core.versions import PackageVersionNumber, VersionTypeEnum
+from cumulusci.core.versions import PackageType, PackageVersionNumber, VersionTypeEnum
 from cumulusci.salesforce_api.package_zip import (
     BasePackageZipBuilder,
     MetadataPackageZipBuilder,
@@ -48,11 +49,11 @@ class PackageConfig(BaseModel):
     description: str = ""
     package_type: PackageTypeEnum
     org_dependent: bool = False
-    post_install_script: Optional[str]
-    uninstall_script: Optional[str]
-    namespace: Optional[str]
+    post_install_script: Optional[str] = None
+    uninstall_script: Optional[str] = None
+    namespace: Optional[str] = None
     version_name: str
-    version_base: Optional[str]
+    version_base: Optional[str] = None
     version_type: VersionTypeEnum = VersionTypeEnum.minor
 
     @validator("org_dependent")
@@ -112,6 +113,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         "uninstall_script": {
             "description": "Uninstall script (for managed packages)",
         },
+        "install_key": {
+            "description": "Install key for package. Default is no install key."
+        },
         "force_upload": {
             "description": "If true, force creating a new package version even if one with the same contents already exists"
         },
@@ -137,21 +141,32 @@ class CreatePackageVersion(BaseSalesforceApiTask):
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
 
+        # Allow these fields to be explicitly set to blanks
+        # so that unlocked builds can override an otherwise-configured
+        # postinstall script
+        if "post_install_script" in self.options:
+            post_install_script = self.options["post_install_script"]
+        else:
+            post_install_script = self.project_config.project__package__install_class
+
+        if "uninstall_script" in self.options:
+            uninstall_script = self.options["uninstall_script"]
+        else:
+            uninstall_script = self.project_config.project__package__uninstall_class
+
         self.package_config = PackageConfig(
             package_name=self.options.get("package_name")
             or self.project_config.project__package__name,
             package_type=self.options.get("package_type")
             or self.project_config.project__package__type,
             org_dependent=self.options.get("org_dependent", False),
-            post_install_script=self.options.get("post_install_script")
-            or self.project_config.project__package__install_class,
-            uninstall_script=self.options.get("uninstall_script")
-            or self.project_config.project__package__uninstall_class,
+            post_install_script=post_install_script,
+            uninstall_script=uninstall_script,
             namespace=self.options.get("namespace")
             or self.project_config.project__package__namespace,
             version_name=self.options.get("version_name") or "Release",
             version_base=self.options.get("version_base"),
-            version_type=self.options.get("version_type") or "build",
+            version_type=self.options.get("version_type") or VersionTypeEnum("build"),
         )
         self.options["skip_validation"] = process_bool_arg(
             self.options.get("skip_validation") or False
@@ -170,6 +185,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             api_version=self.api_version,
             base_url="tooling",
         )
+        self.context = TaskContext(self.org_config, self.project_config, self.logger)
 
     def _run_task(self):
         """Creates a new 2GP package version.
@@ -202,7 +218,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 path=path,
                 name=self.package_config.package_name,
                 options=options,
-                logger=self.logger,
+                context=self.context,
             )
 
         ancestor_id = self._resolve_ancestor_id(self.options.get("ancestor_id"))
@@ -365,12 +381,18 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             # Add org shape
             with open(self.org_config.config_file, "r") as f:
                 scratch_org_def = json.load(f)
+
+            # See https://github.com/forcedotcom/packaging/blob/main/src/package/packageVersionCreate.ts#L358
+            # Note that we handle orgPreferences below by converting to settings,
+            # in build_settings_package()
             for key in (
                 "country",
                 "edition",
                 "language",
                 "features",
                 "snapshot",
+                "release",
+                "sourceOrg",
             ):
                 if key in scratch_org_def:
                     package_descriptor[key] = scratch_org_def[key]
@@ -382,7 +404,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     scratch_org_def.get("objectSettings"),
                     self.api_version,
                 ) as path:
-                    settings_zip_builder = MetadataPackageZipBuilder(path=path)
+                    settings_zip_builder = MetadataPackageZipBuilder(
+                        path=path, context=self.context
+                    )
                     version_info.writestr(
                         "settings.zip", settings_zip_builder.as_bytes()
                     )
@@ -415,6 +439,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             "VersionInfo": version_info,
             "CalculateCodeCoverage": not skip_validation,
         }
+        if "install_key" in self.options:
+            request["InstallKey"] = self.options["install_key"]
+
         self.logger.info(
             f"Requesting creation of package version {version_number.format()} "
             f"for package {package_config.package_name} ({package_id})"
@@ -425,7 +452,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         return response["id"]
 
-    def _resolve_ancestor_id(self, spv_id: str = None) -> str:
+    def _resolve_ancestor_id(self, spv_id: Optional[str] = None) -> str:
         """
         If an ancestor_id (04t) is not specified, get it
         from the latest production release.
@@ -492,19 +519,27 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 "LIMIT 1"
             )
             if res["size"]:
-                return PackageVersionNumber(**res["records"][0])
+                return PackageVersionNumber(
+                    **res["records"][0], package_type=PackageType.SECOND_GEN
+                )
         elif version_base == "latest_github_release":
             # Get the version of the latest github release
             try:
+                # Because we are building a 2GP (which has an incrementable version number)
+                # but the latest package version may in fact be a 1GP, force this version number
+                # to be treated as a 2GP so we can increment it.
                 return PackageVersionNumber.parse(
-                    str(self.project_config.get_latest_version())
+                    str(self.project_config.get_latest_version()),
+                    package_type=PackageType.SECOND_GEN,
                 )
             except GithubException:
                 # handle case where there isn't a release yet
                 pass
         else:
-            return PackageVersionNumber.parse(version_base)
-        return PackageVersionNumber()
+            return PackageVersionNumber.parse(
+                version_base, package_type=PackageType.SECOND_GEN
+            )
+        return PackageVersionNumber(package_type=PackageType.SECOND_GEN)
 
     def _get_dependencies(self):
         """Resolve dependencies into SubscriberPackageVersionIds (04t prefix)"""
@@ -649,7 +684,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         with convert_sfdx_source(path, package_name, self.logger) as src_path:
             package_zip_builder = MetadataPackageZipBuilder(
-                path=src_path, name=package_name, logger=self.logger
+                path=src_path, name=package_name, context=self.context
             )
             package_config = PackageConfig(
                 package_name=package_name,

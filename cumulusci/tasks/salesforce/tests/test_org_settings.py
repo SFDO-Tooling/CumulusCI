@@ -1,10 +1,10 @@
-from unittest.mock import Mock
 import base64
 import io
 import json
 import os
 import pathlib
 import zipfile
+from unittest.mock import Mock
 
 import pytest
 
@@ -13,6 +13,7 @@ from cumulusci.tasks.salesforce.org_settings import (
     build_settings_package,
 )
 from cumulusci.utils import temporary_dir
+
 from .util import create_task
 
 
@@ -25,10 +26,20 @@ class TestDeployOrgSettings:
                         "settings": {
                             "orgPreferenceSettings": {"s1DesktopEnabled": True},
                             "otherSettings": {
-                                "nested": {
+                                "nestedDict": {
                                     "boolValue": True,
                                     "stringValue": "string",
                                 },
+                                "nestedList": [
+                                    {
+                                        "boolValue": True,
+                                        "stringValue": "foo",
+                                    },
+                                    {
+                                        "boolValue": False,
+                                        "stringValue": "bar",
+                                    },
+                                ],
                             },
                         },
                     },
@@ -68,11 +79,63 @@ class TestDeployOrgSettings:
             readtext(zf, "settings/Other.settings")
             == """<?xml version="1.0" encoding="UTF-8"?>
 <OtherSettings xmlns="http://soap.sforce.com/2006/04/metadata">
-    <nested>
+    <nestedDict>
         <boolValue>true</boolValue>
         <stringValue>string</stringValue>
-    </nested>
+    </nestedDict>
+    <nestedList>
+        <boolValue>true</boolValue>
+        <stringValue>foo</stringValue>
+    </nestedList>
+    <nestedList>
+        <boolValue>false</boolValue>
+        <stringValue>bar</stringValue>
+    </nestedList>
 </OtherSettings>"""
+        )
+
+    def test_run_task__json_only__with_org_settings(self):
+        with temporary_dir() as d:
+            with open("dev.json", "w") as f:
+                json.dump(
+                    {
+                        "settings": {
+                            "orgPreferenceSettings": {"s1DesktopEnabled": True},
+                            "otherSettings": {
+                                "nested": {
+                                    "boolValue": True,
+                                    "stringValue": "string",
+                                },
+                            },
+                        },
+                        "objectSettings": {"foo__c": {"sharingModel": "Private"}},
+                    },
+                    f,
+                )
+            path = os.path.join(d, "dev.json")
+            task_options = {"definition_file": path, "api_version": "48.0"}
+            task = create_task(DeployOrgSettings, task_options)
+            task.api_class = Mock()
+            task()
+
+        package_zip = task.api_class.call_args[0][1]
+        zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(package_zip)), "r")
+        # The context manager's output is tested separately, below.
+        assert (
+            readtext(zf, "package.xml")
+            == """<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>Foo__c</members>
+        <name>CustomObject</name>
+    </types>
+    <types>
+        <members>OrgPreference</members>
+        <members>Other</members>
+        <name>Settings</name>
+    </types>
+    <version>48.0</version>
+</Package>"""
         )
 
     def test_run_task__settings_only(self):
@@ -207,7 +270,27 @@ class TestDeployOrgSettings:
                     {
                         "settings": {
                             "otherSettings": {
-                                "list": [],
+                                "none": None,
+                            },
+                        },
+                    },
+                    f,
+                )
+            path = os.path.join(d, "dev.json")
+            task_options = {"definition_file": path, "api_version": "48.0"}
+            task = create_task(DeployOrgSettings, task_options)
+            task.api_class = Mock()
+            with pytest.raises(TypeError):
+                task()
+
+    def test_run_task_bad_nested_list_settings_type(self):
+        with temporary_dir() as d:
+            with open("dev.json", "w") as f:
+                json.dump(
+                    {
+                        "settings": {
+                            "otherSettings": {
+                                "nestedList": ["foo"],
                             },
                         },
                     },
@@ -274,8 +357,13 @@ class TestBuildSettingsPackage:
     </nested>
 </OtherSettings>"""
             )
+
+            rm_ws = "".maketrans("", "", " \t \n")
+
             assert (
-                (pathlib.Path(path) / "objects" / "Account.object").read_text()
+                (pathlib.Path(path) / "objects" / "Account.object")
+                .read_text()
+                .translate(rm_ws)
                 == """<?xml version="1.0" encoding="UTF-8"?>
 <Object xmlns="http://soap.sforce.com/2006/04/metadata">
     <sharingModel>Public</sharingModel>
@@ -283,15 +371,15 @@ class TestBuildSettingsPackage:
         <fullName>Default</fullName>
         <label>Default</label>
         <active>true</active>
-        
     </recordTypes>
-        
-
-</Object>"""
+</Object>""".translate(
+                    rm_ws
+                )
             )
-            print((pathlib.Path(path) / "objects" / "Solution.object").read_text())
             assert (
-                (pathlib.Path(path) / "objects" / "Solution.object").read_text()
+                (pathlib.Path(path) / "objects" / "Solution.object")
+                .read_text()
+                .translate(rm_ws)
                 == """<?xml version="1.0" encoding="UTF-8"?>
 <Object xmlns="http://soap.sforce.com/2006/04/metadata">
 
@@ -301,14 +389,15 @@ class TestBuildSettingsPackage:
         <active>true</active>
         <businessProcess>DefaultSolution</businessProcess>
     </recordTypes>
-        
+
     <businessProcesses>
         <fullName>DefaultSolution</fullName>
         <isActive>true</isActive>
         <values>
             <fullName>Draft</fullName>
-            
         </values>
     </businessProcesses>
-</Object>"""
+</Object>""".translate(
+                    rm_ws
+                )
             )

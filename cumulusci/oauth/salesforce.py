@@ -21,7 +21,9 @@ SANDBOX_LOGIN_URL = (
 PROD_LOGIN_URL = os.environ.get("SF_PROD_LOGIN_URL") or "https://login.salesforce.com"
 
 
-def jwt_session(client_id, private_key, username, url=None, auth_url=None):
+def jwt_session(
+    client_id, private_key, username, url=None, auth_url=None, is_sandbox=False
+):
     """Complete the JWT Token Oauth flow to obtain an access token for an org.
 
     :param client_id: Client Id for the connected app
@@ -52,6 +54,9 @@ def jwt_session(client_id, private_key, username, url=None, auth_url=None):
                 # between instances, so let's use the specific one for this org.
                 instance = m.group(2)
                 url = f"https://{instance}.salesforce.com"
+
+    if is_sandbox:  # pragma: no cover
+        aud = SANDBOX_LOGIN_URL
 
     payload = {
         "alg": "RS256",

@@ -1,6 +1,7 @@
 import os
-import unittest
 from unittest import mock
+
+import pytest
 
 from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.exceptions import TaskOptionsError
@@ -8,7 +9,7 @@ from cumulusci.tasks.metadata.ee_src import CreateUnmanagedEESrc, RevertUnmanage
 from cumulusci.utils import temporary_dir
 
 
-class TestCreateUnmanagedEESrc(unittest.TestCase):
+class TestCreateUnmanagedEESrc:
     @mock.patch("cumulusci.tasks.metadata.ee_src.remove_xml_element_directory")
     def test_run_task(self, remove_xml_element_directory):
         with temporary_dir() as path:
@@ -34,7 +35,7 @@ class TestCreateUnmanagedEESrc(unittest.TestCase):
         project_config = BaseProjectConfig(UniversalConfig(), config={"noyaml": True})
         task_config = TaskConfig({"options": {"path": "bogus", "revert_path": "bogus"}})
         task = CreateUnmanagedEESrc(project_config, task_config)
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             task()
 
     def test_run_task__revert_path_already_exists(self):
@@ -46,11 +47,11 @@ class TestCreateUnmanagedEESrc(unittest.TestCase):
                 {"options": {"path": path, "revert_path": revert_path}}
             )
             task = CreateUnmanagedEESrc(project_config, task_config)
-            with self.assertRaises(TaskOptionsError):
+            with pytest.raises(TaskOptionsError):
                 task()
 
 
-class TestRevertUnmanagedEESrc(unittest.TestCase):
+class TestRevertUnmanagedEESrc:
     def test_run_task(self):
         with temporary_dir() as revert_path:
             with open(os.path.join(revert_path, "file"), "w"):
@@ -66,11 +67,11 @@ class TestRevertUnmanagedEESrc(unittest.TestCase):
             )
             task = RevertUnmanagedEESrc(project_config, task_config)
             task()
-            self.assertTrue(os.path.exists(os.path.join(path, "file")))
+            assert os.path.exists(os.path.join(path, "file"))
 
     def test_run_task__revert_path_not_found(self):
         project_config = BaseProjectConfig(UniversalConfig(), config={"noyaml": True})
         task_config = TaskConfig({"options": {"path": "bogus", "revert_path": "bogus"}})
         task = RevertUnmanagedEESrc(project_config, task_config)
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             task()

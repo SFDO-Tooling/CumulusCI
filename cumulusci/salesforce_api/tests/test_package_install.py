@@ -1,4 +1,5 @@
 import logging
+from logging import getLogger
 from unittest import mock
 
 import pytest
@@ -9,13 +10,15 @@ from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.exceptions import PackageInstallError
 from cumulusci.salesforce_api.exceptions import MetadataApiError
 from cumulusci.salesforce_api.package_install import (
+    ApexCompileType,
     NameConflictResolution,
     PackageInstallOptions,
     SecurityType,
+    UpgradeType,
     install_package_by_namespace_version,
     install_package_by_version_id,
 )
-from cumulusci.tests.util import create_project_config
+from cumulusci.tests.util import CURRENT_SF_API_VERSION, create_project_config
 
 
 @responses.activate
@@ -23,17 +26,17 @@ def test_install_package_by_version_id(caplog):
     caplog.set_level(logging.INFO)
     responses.add(
         "POST",
-        "https://salesforce/services/data/v52.0/tooling/sobjects/PackageInstallRequest/",
+        f"https://salesforce/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/PackageInstallRequest/",
         json={"id": "0Hf"},
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v52.0/tooling/query/",
+        f"https://salesforce/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/",
         json={"records": [{"Status": "IN_PROGRESS"}]},
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v52.0/tooling/query/",
+        f"https://salesforce/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/",
         json={"records": [{"Status": "SUCCESS"}]},
     )
 
@@ -51,12 +54,12 @@ def test_install_package_by_version_id(caplog):
 def test_install_package_by_version_id__error():
     responses.add(
         "POST",
-        "https://salesforce/services/data/v52.0/tooling/sobjects/PackageInstallRequest/",
+        f"https://salesforce/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/PackageInstallRequest/",
         json={"id": "0Hf"},
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v52.0/tooling/query/",
+        f"https://salesforce/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/",
         json={
             "records": [
                 {
@@ -82,18 +85,18 @@ def test_install_package_by_version_id__not_propagated(caplog):
     caplog.set_level(logging.INFO)
     responses.add(
         "POST",
-        "https://salesforce/services/data/v52.0/tooling/sobjects/PackageInstallRequest/",
+        f"https://salesforce/services/data/v{CURRENT_SF_API_VERSION}/tooling/sobjects/PackageInstallRequest/",
         json={"id": "0Hf"},
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v52.0/tooling/query/",
+        f"https://salesforce/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/",
         status=400,
         body="invalid cross reference id",
     )
     responses.add(
         "GET",
-        "https://salesforce/services/data/v52.0/tooling/query/",
+        f"https://salesforce/services/data/v{CURRENT_SF_API_VERSION}/tooling/query/",
         json={"records": [{"Status": "SUCCESS"}]},
     )
 
@@ -126,7 +129,6 @@ def test_install_package_by_namespace_version(zip_builder, api_deploy):
         ),
     )
 
-    task = TaskContext(org_config=org, project_config=pc, logger=mock.ANY)
     zip_builder.assert_called_once_with(
         namespace="foo",
         version="1.0",
@@ -134,7 +136,12 @@ def test_install_package_by_namespace_version(zip_builder, api_deploy):
         password="foobar",
         securityType="PUSH",
     )
-    api_deploy.assert_called_once_with(task, mock.ANY, purge_on_delete=False)
+    context = TaskContext(
+        org_config=org,
+        project_config=pc,
+        logger=getLogger("cumulusci.salesforce_api.package_install"),
+    )
+    api_deploy.assert_called_once_with(context, mock.ANY, purge_on_delete=False)
     api_deploy.return_value.assert_called_once()
 
 
@@ -156,11 +163,15 @@ def test_install_package_by_namespace_version__retry(zip_builder, api_deploy):
         PackageInstallOptions(),
     )
 
-    task = TaskContext(org_config=org, project_config=pc, logger=mock.ANY)
+    context = TaskContext(
+        org_config=org,
+        project_config=pc,
+        logger=getLogger("cumulusci.salesforce_api.package_install"),
+    )
     api_deploy.assert_has_calls(
         [
-            mock.call(task, mock.ANY, purge_on_delete=False),
-            mock.call(task, mock.ANY, purge_on_delete=False),
+            mock.call(context, mock.ANY, purge_on_delete=False),
+            mock.call(context, mock.ANY, purge_on_delete=False),
         ],
         any_order=True,
     )
@@ -183,4 +194,26 @@ def test_package_install_options_from_task_options():
         name_conflict_resolution=NameConflictResolution.RENAME,
         password="foo",
         security_type=SecurityType.PUSH,
+    )
+
+
+def test_package_install_options_from_task_options__omitting_optionals():
+    task_options = {
+        "activate_remote_site_settings": "False",
+        "name_conflict_resolution": "RenameMetadata",
+        "password": "foo",
+        "security_type": "PUSH",
+        "apex_compile_type": "package",
+        "upgrade_type": "deprecate-only",
+    }
+
+    assert PackageInstallOptions.from_task_options(
+        task_options
+    ) == PackageInstallOptions(
+        activate_remote_site_settings=False,
+        name_conflict_resolution=NameConflictResolution.RENAME,
+        password="foo",
+        security_type=SecurityType.PUSH,
+        apex_compile_type=ApexCompileType.PACKAGE,
+        upgrade_type=UpgradeType.DEPRECATE_ONLY,
     )

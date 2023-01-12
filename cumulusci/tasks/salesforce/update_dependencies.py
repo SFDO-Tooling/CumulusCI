@@ -1,5 +1,7 @@
 from typing import List
 
+import click
+
 from cumulusci.core.dependencies.dependencies import (
     Dependency,
     PackageNamespaceVersionDependency,
@@ -12,7 +14,7 @@ from cumulusci.core.dependencies.resolvers import (
     get_resolver_stack,
     get_static_dependencies,
 )
-from cumulusci.core.exceptions import TaskOptionsError
+from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
 from cumulusci.core.tasks import BaseSalesforceTask
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.package_install import (
@@ -55,6 +57,12 @@ class UpdateDependencies(BaseSalesforceTask):
         },
         "packages_only": {
             "description": "Install only packaged dependencies. Ignore all unmanaged metadata. Defaults to False."
+        },
+        "interactive": {
+            "description": "If True, stop after identifying all dependencies and output the package Ids that will be installed. Defaults to False."
+        },
+        "base_package_url_format": {
+            "description": "If `interactive` is set to True, display package Ids using a format string ({} will be replaced with the package Id)."
         },
         **{k: v for k, v in PACKAGE_INSTALL_TASK_OPTIONS.items() if k != "password"},
     }
@@ -153,6 +161,14 @@ class UpdateDependencies(BaseSalesforceTask):
 
         self.install_options = PackageInstallOptions.from_task_options(self.options)
 
+        # Interactivity options
+        self.options["interactive"] = process_bool_arg(
+            self.options.get("interactive") or False
+        )
+        self.options["base_package_url_format"] = (
+            self.options.get("base_package_url_format") or "{}"
+        )
+
     def _filter_dependencies(self, deps: List[Dependency]) -> List[Dependency]:
         return [
             dep
@@ -187,7 +203,22 @@ class UpdateDependencies(BaseSalesforceTask):
         self.logger.info("Collected dependencies:")
 
         for d in dependencies:
-            self.logger.info(f"    {d}")
+            if isinstance(d, PackageVersionIdDependency):
+                desc = self.options["base_package_url_format"].format(d.version_id)
+            elif isinstance(d, PackageNamespaceVersionDependency):
+                if d.version_id:
+                    desc = self.options["base_package_url_format"].format(d.version_id)
+                else:
+                    desc = ""
+            else:
+                desc = "unpackaged"
+
+            desc = f" ({desc})" if desc else desc
+            self.logger.info(f"    {d}{desc}")
+
+        if self.options["interactive"]:
+            if not click.confirm("Continue to install dependencies?", default=True):
+                raise CumulusCIException("Dependency installation was canceled.")
 
         for d in dependencies:
             self._install_dependency(d)
@@ -205,6 +236,11 @@ class UpdateDependencies(BaseSalesforceTask):
             dependency.install(self.project_config, self.org_config)
 
     def freeze(self, step):
+        if self.options["interactive"]:
+            raise CumulusCIException(
+                "update_dependencies cannot be frozen when `interactive` is True."
+            )
+
         ui_options = self.task_config.config.get("ui_options", {})
         if "ignore_dependencies" in self.options:
             filter_function = dependency_filter_ignore_deps(

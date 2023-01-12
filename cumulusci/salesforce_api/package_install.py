@@ -32,6 +32,8 @@ class SecurityType(str, Enum):
     ADMIN = "NONE"  # System Administrator only
     PUSH = "PUSH"  # No profiles
 
+    __str__ = str.__str__
+
 
 class NameConflictResolution(str, Enum):
     """Enum used to specify how name conflicts will be resolved when installing an Unlocked Package."""
@@ -39,14 +41,35 @@ class NameConflictResolution(str, Enum):
     BLOCK = "Block"
     RENAME = "RenameMetadata"
 
+    __str__ = str.__str__
+
+
+# Unlocked Packages only. Default appears to be all but is not documented.
+class ApexCompileType(str, Enum):
+    ALL = "all"
+    PACKAGE = "package"
+
+    __str__ = str.__str__
+
+
+# Unlocked Packages only. Default is mixed.
+class UpgradeType(str, Enum):
+    DELETE_ONLY = "delete-only"
+    DEPRECATE_ONLY = "deprecate-only"
+    MIXED = "mixed"
+
+    __str__ = str.__str__
+
 
 class PackageInstallOptions(CCIModel):
     """Options governing installation behavior for a managed or unlocked package."""
 
     activate_remote_site_settings: bool = True
     name_conflict_resolution: NameConflictResolution = NameConflictResolution.BLOCK
-    password: Optional[str]
+    password: Optional[str] = None
     security_type: SecurityType = SecurityType.FULL
+    apex_compile_type: Optional[ApexCompileType] = None
+    upgrade_type: Optional[UpgradeType] = None
 
     @staticmethod
     def from_task_options(task_options: dict) -> "PackageInstallOptions":
@@ -65,6 +88,12 @@ class PackageInstallOptions(CCIModel):
                 )
             if "password" in task_options:
                 options.password = task_options["password"]
+            if "apex_compile_type" in task_options:
+                options.apex_compile_type = ApexCompileType(
+                    task_options["apex_compile_type"]
+                )
+            if "upgrade_type" in task_options:
+                options.upgrade_type = UpgradeType(task_options["upgrade_type"])
         except ValueError as e:
             raise TaskOptionsError(f"Invalid task options: {e}")
 
@@ -84,6 +113,12 @@ PACKAGE_INSTALL_TASK_OPTIONS = {
         "description": "Activate Remote Site Settings when installing a package. Defaults to True."
     },
     "password": {"description": "The installation key for the managed package."},
+    "apex_compile_type": {
+        "description": "For Unlocked Packages only, whether to compile Apex in the package only (`package`) or in the whole org (`all`). `all` is the default behavior."
+    },
+    "upgrade_type": {
+        "description": "For Unlocked Package upgrades only, whether to deprecate removed components (`deprecate-only`), delete them (`delete-only`), or delete and deprecate based on safety (`mixed`). `mixed` is the default behavior."
+    },
 }
 
 DEFAULT_PACKAGE_RETRY_OPTIONS = {
@@ -142,6 +177,8 @@ def _install_package_by_version_id(
             "Password": options.password,
             "SecurityType": options.security_type,
             "SubscriberPackageVersionKey": version_id,
+            "UpgradeType": options.upgrade_type,
+            "ApexCompileType": options.apex_compile_type,
         }
     )
     poll(functools.partial(_wait_for_package_install, tooling, request))

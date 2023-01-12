@@ -1,11 +1,10 @@
-import unittest
 from unittest.mock import Mock
 
 from cumulusci.tasks.preflight.permsets import GetPermissionSetAssignments
 from cumulusci.tasks.salesforce.tests.util import create_task
 
 
-class TestPermsetPreflights(unittest.TestCase):
+class TestPermsetPreflights:
     def test_assigned_permset_preflight(self):
         task = create_task(GetPermissionSetAssignments, {})
         task._init_api = Mock()

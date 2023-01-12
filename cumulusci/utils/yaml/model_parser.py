@@ -17,7 +17,8 @@ class CCIModel(BaseModel):
         "Parse from a path, url, path-like or file-like"
         with load_from_source(source) as (f, path):
             data = load_yaml_data(f)
-            return cls.parse_obj(data, path).__root__
+            obj = cls.parse_obj(data, path)
+            return getattr(obj, "__root__", obj)
 
     @classmethod
     def parse_obj(cls, data: Union[dict, list], path: str = None):

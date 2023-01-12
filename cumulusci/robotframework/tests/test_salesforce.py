@@ -1,19 +1,13 @@
-import unittest
 from unittest import mock
 
 import pytest
-import responses
 from SeleniumLibrary.errors import ElementNotFound
 
 from cumulusci.robotframework.Salesforce import Salesforce
 
 
 # _init_locators has a special code block
-class TestSeleniumLibrary(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        super(TestSeleniumLibrary, cls).setUpClass()
-
+class TestSeleniumLibrary:
     def test_init_locators(self):
         """Verify that locators are initialized if not passed in"""
         with mock.patch.object(Salesforce, "_init_locators"):
@@ -27,10 +21,9 @@ class TestSeleniumLibrary(unittest.TestCase):
 
 
 @mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
-class TestKeyword_wait_until_salesforce_is_ready(unittest.TestCase):
+class TestKeyword_wait_until_salesforce_is_ready:
     @classmethod
-    def setUpClass(cls):
-        super(TestKeyword_wait_until_salesforce_is_ready, cls).setUpClass()
+    def setup_class(cls):
         cls.sflib = Salesforce(locators={"body": "//whatever"})
 
     def test_successful_page_load(self, mock_robot_context):
@@ -63,8 +56,8 @@ class TestKeyword_wait_until_salesforce_is_ready(unittest.TestCase):
         with mock.patch.object(Salesforce, "wait_for_aura", return_value=True):
             self.sflib.selenium.get_webelement.side_effect = ElementNotFound()
 
-            with self.assertRaisesRegex(
-                Exception, "Timed out waiting for a lightning page"
+            with pytest.raises(
+                Exception, match="Timed out waiting for a lightning page"
             ):
                 # The timeout needs to be longer than the duration of
                 # one loop iteration, but less than the retry interval
@@ -76,44 +69,11 @@ class TestKeyword_wait_until_salesforce_is_ready(unittest.TestCase):
 
 
 @mock.patch("robot.libraries.BuiltIn.BuiltIn._get_context")
-class TestKeyword_breakpoint(unittest.TestCase):
+class TestKeyword_breakpoint:
     @classmethod
-    def setUpClass(cls):
-        super(TestKeyword_breakpoint, cls).setUpClass()
+    def setup_class(cls):
         cls.sflib = Salesforce(locators={"body": "//whatever"})
 
     def test_breakpoint(self, mock_robot_context):
         """Verify that the keyword doesn't raise an exception"""
-        self.assertIsNone(self.sflib.breakpoint())
-
-
-class TestKeyword_elapsed_time_for_last_record(unittest.TestCase):
-    @responses.activate
-    def test_elapsed_time_for_last_record__query_empty(self):
-        sflib = Salesforce()
-        records = {"records": []}
-
-        with mock.patch.object(Salesforce, "cumulusci") as cumulusci:
-            cumulusci.sf.query_all.return_value = records
-            with pytest.raises(Exception) as e:
-                sflib.elapsed_time_for_last_record("FOO", "Bar", "Baz", "Baz")
-            assert "Matching record not found" in str(e.value)
-
-    @responses.activate
-    def test_elapsed_time_for_last_record__query_returns_result(self):
-        sflib = Salesforce()
-        records = {
-            "records": [
-                {
-                    "CreatedDate": "2020-12-29T10:00:01.000+0000",
-                    "CompletedDate": "2020-12-29T10:00:04.000+0000",
-                }
-            ],
-        }
-
-        with mock.patch.object(Salesforce, "cumulusci") as cumulusci:
-            cumulusci.sf.query_all.return_value = records
-            elapsed = sflib.elapsed_time_for_last_record(
-                "AsyncApexJob", "CreatedDate", "CompletedDate", "CompletedDate"
-            )
-            assert elapsed == 3
+        assert self.sflib.breakpoint() is None

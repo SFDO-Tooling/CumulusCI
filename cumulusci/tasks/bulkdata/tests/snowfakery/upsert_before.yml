@@ -1,0 +1,10 @@
+- object: Contact
+  fields:
+      firstname: Michael
+      lastname: Bluth
+      email: michael@bluth.com
+- object: Contact
+  fields:
+      firstname: Lindsay
+      lastname: Sitwell
+      email: lindsay.bluth@example.com

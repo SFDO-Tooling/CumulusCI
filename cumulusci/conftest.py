@@ -2,6 +2,7 @@ import io
 import os
 from contextlib import contextmanager
 from http.client import HTTPMessage
+from logging import getLogger
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
@@ -12,11 +13,19 @@ from pytest import fixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.github import get_github_api
 from cumulusci.salesforce_api.org_schema_models import Base
+from cumulusci.tasks.bulkdata.tests.integration_test_utils import (
+    ensure_accounts,
+    ensure_records,
+)
 from cumulusci.tasks.salesforce.tests.util import create_task_fixture
 from cumulusci.tests.pytest_plugins.pytest_sf_vcr import salesforce_vcr, vcr_config
 from cumulusci.tests.util import DummyKeychain, DummyOrgConfig, mock_env
+
+ensure_accounts = ensure_accounts
+ensure_records = ensure_records
 
 
 @fixture(scope="session", autouse=True)
@@ -130,10 +139,11 @@ def cumulusci_test_repo_root():
 @pytest.fixture(scope="session")
 def global_describe(cumulusci_test_repo_root):
     global_describe_file = (
-        cumulusci_test_repo_root / "cumulusci/tasks/bulkdata/tests/global_describe.json"
+        cumulusci_test_repo_root
+        / "cumulusci/tests/shared_cassettes/GET_sobjects_Global_describe.yaml"
     )
     with global_describe_file.open() as f:
-        data = yaml.safe_load(f)
+        data = yaml.safe_load(yaml.safe_load(f)["response"]["body"]["string"])
 
     def global_describe_specific_sobjects(sobjects: int = None):
         if sobjects is None:  # pragma: no cover
@@ -148,3 +158,15 @@ def global_describe(cumulusci_test_repo_root):
         return subset
 
     return global_describe_specific_sobjects
+
+
+@pytest.fixture(scope="session")
+def shared_vcr_cassettes(cumulusci_test_repo_root):
+    return Path(cumulusci_test_repo_root / "cumulusci/tests/shared_cassettes")
+
+
+@pytest.fixture
+def task_context(org_config, project_config):
+    return TaskContext(
+        org_config=org_config, project_config=project_config, logger=getLogger()
+    )

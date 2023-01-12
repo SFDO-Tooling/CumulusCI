@@ -1,0 +1,793 @@
+version: 1
+interactions:
+    - &id001
+      include_file: GET_sobjects_Global_describe.yaml
+    - &id011
+      include_file: GET_sobjects_Account_describe.yaml
+    - *id001
+    - &id012
+      include_file: GET_sobjects_Contact_describe.yaml
+    - *id001
+    - &id013
+      include_file: GET_sobjects_Opportunity_describe.yaml
+    - request: &id014
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job
+          body: <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload"><operation>insert</operation><object>Account</object><concurrencyMode>Parallel</concurrencyMode><contentType>CSV</contentType></jobInfo>
+          headers: &id002
+              Request-Headers:
+                  - Elided
+      response:
+          status: &id003
+              code: 201
+              message: Created
+          headers: &id004
+              Content-Type:
+                  - application/xml
+              Others: Elided
+          body:
+              string:
+                  include_template: jobInfo_insert_xml.tpl
+                  vars:
+                      id: 750P0000006HoS1IAK
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:36.000Z"
+                      smts: "2022-10-20T16:45:36.000Z"
+                      qdbatches: "0"
+                      numbatchtotal: "0"
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoS1IAK/batch
+          body: "8\r\n\"Name\"\r\n\r\n11\r\n\"Sitwell-Bluth\"\r\n\r\n0\r\n\r\n"
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  include_template: batchInfo_xml.tpl
+                  vars:
+                      id: 751P0000007qkgoIAA
+                      jobId: 750P0000006HoS1IAK
+                      state: Queued
+                      cdate: "2022-10-20T16:45:37.000Z"
+                      smts: "2022-10-20T16:45:37.000Z"
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoS1IAK
+          body: <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload"><state>Closed</state></jobInfo>
+          headers: *id002
+      response:
+          status: &id005
+              code: 200
+              message: OK
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_insert_xml.tpl
+                  vars:
+                      id: 750P0000006HoS1IAK
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:36.000Z"
+                      smts: "2022-10-20T16:45:36.000Z"
+                      state: Closed
+                      qdbatches: "0"
+                      numbatchip: "1"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoS1IAK
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_insert_xml.tpl
+                  vars:
+                      id: 750P0000006HoS1IAK
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:36.000Z"
+                      smts: "2022-10-20T16:45:38.000Z"
+                      state: Closed
+                      qdbatches: "0"
+                      numbatchcomp: "1"
+                      numrecsprocc: "1"
+                      tpt: "273"
+                      apipt: "128"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoS1IAK/batch
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: batchInfoList_xml.tpl
+                  vars:
+                      id: 751P0000007qkgoIAA
+                      jobId: 750P0000006HoS1IAK
+                      state: Completed
+                      cdate: "2022-10-20T16:45:37.000Z"
+                      smts: "2022-10-20T16:45:38.000Z"
+                      numrecsprocc: "1"
+                      tpt: "273"
+                      apipt: "128"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoS1IAK/batch/751P0000007qkgoIAA/result
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: &id008
+              Content-Type:
+                  - text/csv
+              Others: Elided
+          body:
+              string: '"Id","Success","Created","Error"
+
+                  "001P000001vkheIIAQ","true","true",""
+
+                  '
+    - request: &id016
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job
+          body: <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload"><operation>upsert</operation><object>Contact</object><externalIdFieldName>Email</externalIdFieldName><concurrencyMode>Parallel</concurrencyMode><contentType>CSV</contentType></jobInfo>
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_upsert_xml.tpl
+                  vars:
+                      id: 750P0000006HoQuIAK
+                      object: Contact
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:42.000Z"
+                      smts: "2022-10-20T16:45:42.000Z"
+                      idField: Email
+                      numbatchtotal: "0"
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoQuIAK/batch
+          body: "20\r\n\"FirstName\",\"LastName\",\"Email\"\r\n\r\n31\r\n\"Lindsay\",\"\
+              Sitwell\",\"lindsay.bluth@example.com\"\r\n\r\n2b\r\n\"Audrey\",\"Cain\",\"\
+              audrey.cain@example.com\"\r\n\r\n33\r\n\"Micheal\",\"Bernard\",\"michael.bernard@example.com\"\
+              \r\n\r\n2b\r\n\"Chloe\",\"Myers\",\"Chloe.Myers@example.com\"\r\n\r\n2b\r\n\"\
+              Rose\",\"Larson\",\"Rose.Larson@example.com\"\r\n\r\n27\r\n\"Brent\",\"Ali\"\
+              ,\"Brent.Ali@example.com\"\r\n\r\n31\r\n\"Julia\",\"Townsend\",\"Julia.Townsend@example.com\"\
+              \r\n\r\n3b\r\n\"Benjamin\",\"Cunningham\",\"Benjamin.Cunningham@example.com\"\
+              \r\n\r\n33\r\n\"Christy\",\"Stanton\",\"Christy.Stanton@example.com\"\r\n\r\n\
+              35\r\n\"Sabrina\",\"Roberson\",\"Sabrina.Roberson@example.com\"\r\n\r\n2f\r\n\
+              \"Michael\",\"Bluth\",\"Michael.Bluth@example.com\"\r\n\r\n2d\r\n\"Javier\"\
+              ,\"Banks\",\"Javier.Banks@example.com\"\r\n\r\n27\r\n\"GOB\",\"Bluth\",\"GOB.Bluth@example.com\"\
+              \r\n\r\n2f\r\n\"Kaitlyn\",\"Rubio\",\"Kaitlyn.Rubio@example.com\"\r\n\r\n2b\r\
+              \n\"Jerry\",\"Eaton\",\"Jerry.Eaton@example.com\"\r\n\r\n35\r\n\"Gabrielle\"\
+              ,\"Vargas\",\"Gabrielle.Vargas@example.com\"\r\n\r\n0\r\n\r\n"
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  include_template: batchInfo_xml.tpl
+                  vars:
+                      id: 751P0000007qkgtIAA
+                      jobId: 750P0000006HoQuIAK
+                      state: Queued
+                      cdate: "2022-10-20T16:45:42.000Z"
+                      smts: "2022-10-20T16:45:42.000Z"
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoQuIAK
+          body: <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload"><state>Closed</state></jobInfo>
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_upsert_xml.tpl
+                  vars:
+                      id: 750P0000006HoQuIAK
+                      object: Contact
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:42.000Z"
+                      smts: "2022-10-20T16:45:42.000Z"
+                      state: Closed
+                      idField: Email
+                      qdbatches: "1"
+    - request: &id006
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoQuIAK
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_upsert_xml.tpl
+                  vars:
+                      id: 750P0000006HoQuIAK
+                      object: Contact
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:42.000Z"
+                      smts: "2022-10-20T16:45:43.000Z"
+                      state: Closed
+                      idField: Email
+                      qdbatches: "1"
+    - request: &id007
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoQuIAK/batch
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: batchInfoList_xml.tpl
+                  vars:
+                      id: 751P0000007qkgtIAA
+                      jobId: 750P0000006HoQuIAK
+                      state: Queued
+                      cdate: "2022-10-20T16:45:42.000Z"
+                      smts: "2022-10-20T16:45:42.000Z"
+    - request: *id006
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_upsert_xml.tpl
+                  vars:
+                      id: 750P0000006HoQuIAK
+                      object: Contact
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:42.000Z"
+                      smts: "2022-10-20T16:45:43.000Z"
+                      state: Closed
+                      idField: Email
+                      numbatchip: "1"
+    - request: *id007
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: batchInfoList_xml.tpl
+                  vars:
+                      id: 751P0000007qkgtIAA
+                      jobId: 750P0000006HoQuIAK
+                      state: Completed
+                      cdate: "2022-10-20T16:45:42.000Z"
+                      smts: "2022-10-20T16:45:45.000Z"
+                      numrecsprocc: "16"
+                      tpt: "494"
+                      apipt: "288"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoQuIAK/batch/751P0000007qkgtIAA/result
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id008
+          body:
+              string: '"Id","Success","Created","Error"
+
+                  "003P000001avB4GIAU","true","true",""
+
+                  "003P000001avB4HIAU","true","true",""
+
+                  "003P000001avB4IIAU","true","true",""
+
+                  "003P000001avB4JIAU","true","true",""
+
+                  "003P000001avB4KIAU","true","true",""
+
+                  "003P000001avB4LIAU","true","true",""
+
+                  "003P000001avB4MIAU","true","true",""
+
+                  "003P000001avB4NIAU","true","true",""
+
+                  "003P000001avB4OIAU","true","true",""
+
+                  "003P000001avB4PIAU","true","true",""
+
+                  "003P000001avB4QIAU","true","true",""
+
+                  "003P000001avB4RIAU","true","true",""
+
+                  "003P000001avB4SIAU","true","true",""
+
+                  "003P000001avB4TIAU","true","true",""
+
+                  "003P000001avB4UIAU","true","true",""
+
+                  "003P000001avB4VIAU","true","true",""
+
+                  '
+    - request: &id017
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job
+          body: <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload"><operation>insert</operation><object>Opportunity</object><concurrencyMode>Parallel</concurrencyMode><contentType>CSV</contentType></jobInfo>
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_insert_xml.tpl
+                  vars:
+                      id: 750P0000006HoS6IAK
+                      object: Opportunity
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:47.000Z"
+                      smts: "2022-10-20T16:45:47.000Z"
+                      qdbatches: "0"
+                      numbatchtotal: "0"
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoS6IAK
+          body: <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload"><state>Closed</state></jobInfo>
+          headers: *id002
+      response: &id009
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_insert_xml.tpl
+                  vars:
+                      id: 750P0000006HoS6IAK
+                      object: Opportunity
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:47.000Z"
+                      smts: "2022-10-20T16:45:47.000Z"
+                      state: Closed
+                      qdbatches: "0"
+                      numbatchtotal: "0"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoS6IAK
+          body: null
+          headers: *id002
+      response: *id009
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoS6IAK/batch
+          body: null
+          headers: *id002
+      response: &id015
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  "<?xml version=\"1.0\" encoding=\"UTF-8\"?><batchInfoList\n   xmlns=\"\
+                  http://www.force.com/2009/06/asyncapi/dataload\" />"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+Name+from+Account
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: &id010
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          body:
+              string: "{\n  \"totalSize\" : 1,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Account\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Account/001P000001vkheIIAQ\"\n    },\n    \"\
+                  Name\" : \"Sitwell-Bluth\"\n  } ]\n}"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+FirstName+from+Contact
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id010
+          body:
+              string:
+                  "{\n  \"totalSize\" : 16,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Contact/003P000001avB4GIAU\"\n    },\n    \"\
+                  FirstName\" : \"Lindsay\"\n  }, {\n    \"attributes\" : {\n      \"type\"\
+                  \ : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4HIAU\"\
+                  \n    },\n    \"FirstName\" : \"Audrey\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4IIAU\"\
+                  \n    },\n    \"FirstName\" : \"Micheal\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4JIAU\"\
+                  \n    },\n    \"FirstName\" : \"Chloe\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4KIAU\"\
+                  \n    },\n    \"FirstName\" : \"Rose\"\n  }, {\n    \"attributes\" : {\n \
+                  \     \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4LIAU\"\
+                  \n    },\n    \"FirstName\" : \"Brent\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4MIAU\"\
+                  \n    },\n    \"FirstName\" : \"Julia\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4NIAU\"\
+                  \n    },\n    \"FirstName\" : \"Benjamin\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4OIAU\"\
+                  \n    },\n    \"FirstName\" : \"Christy\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4PIAU\"\
+                  \n    },\n    \"FirstName\" : \"Sabrina\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4QIAU\"\
+                  \n    },\n    \"FirstName\" : \"Michael\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4RIAU\"\
+                  \n    },\n    \"FirstName\" : \"Javier\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4SIAU\"\
+                  \n    },\n    \"FirstName\" : \"GOB\"\n  }, {\n    \"attributes\" : {\n  \
+                  \    \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4TIAU\"\
+                  \n    },\n    \"FirstName\" : \"Kaitlyn\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4UIAU\"\
+                  \n    },\n    \"FirstName\" : \"Jerry\"\n  }, {\n    \"attributes\" : {\n\
+                  \      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4VIAU\"\
+                  \n    },\n    \"FirstName\" : \"Gabrielle\"\n  } ]\n}"
+    - *id001
+    - *id011
+    - *id001
+    - *id012
+    - *id001
+    - *id013
+    - request: *id014
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_insert_xml.tpl
+                  vars:
+                      id: 750P0000006HoSBIA0
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:52.000Z"
+                      smts: "2022-10-20T16:45:52.000Z"
+                      qdbatches: "0"
+                      numbatchtotal: "0"
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoSBIA0
+          body: <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload"><state>Closed</state></jobInfo>
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_insert_xml.tpl
+                  vars:
+                      id: 750P0000006HoSBIA0
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:52.000Z"
+                      smts: "2022-10-20T16:45:52.000Z"
+                      state: Closed
+                      qdbatches: "0"
+                      numbatchtotal: "0"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoSBIA0
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_insert_xml.tpl
+                  vars:
+                      id: 750P0000006HoSBIA0
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:52.000Z"
+                      smts: "2022-10-20T16:45:53.000Z"
+                      state: Closed
+                      qdbatches: "0"
+                      numbatchtotal: "0"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoSBIA0/batch
+          body: null
+          headers: *id002
+      response: *id015
+    - request: *id016
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_upsert_xml.tpl
+                  vars:
+                      id: 750P0000006HoSGIA0
+                      object: Contact
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:56.000Z"
+                      smts: "2022-10-20T16:45:56.000Z"
+                      idField: Email
+                      numbatchtotal: "0"
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoSGIA0/batch
+          body: "20\r\n\"FirstName\",\"LastName\",\"Email\"\r\n\r\n2f\r\n\"Nichael\",\"\
+              Bluth\",\"Michael.Bluth@example.com\"\r\n\r\n30\r\n\"George Oscar\",\"Bluth\"\
+              ,\"GOB.Bluth@example.com\"\r\n\r\n2f\r\n\"Lindsay\",\"Bluth\",\"lindsay.bluth@example.com\"\
+              \r\n\r\n2f\r\n\"Annyong\",\"Bluth\",\"annyong.bluth@example.com\"\r\n\r\n0\r\
+              \n\r\n"
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  include_template: batchInfo_xml.tpl
+                  vars:
+                      id: 751P0000007qkgyIAA
+                      jobId: 750P0000006HoSGIA0
+                      state: Queued
+                      cdate: "2022-10-20T16:45:57.000Z"
+                      smts: "2022-10-20T16:45:57.000Z"
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoSGIA0
+          body: <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload"><state>Closed</state></jobInfo>
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_upsert_xml.tpl
+                  vars:
+                      id: 750P0000006HoSGIA0
+                      object: Contact
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:56.000Z"
+                      smts: "2022-10-20T16:45:56.000Z"
+                      state: Closed
+                      idField: Email
+                      numbatchcomp: "1"
+                      numrecsprocc: "4"
+                      tpt: "343"
+                      apipt: "183"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoSGIA0
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_upsert_xml.tpl
+                  vars:
+                      id: 750P0000006HoSGIA0
+                      object: Contact
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:45:56.000Z"
+                      smts: "2022-10-20T16:45:57.000Z"
+                      state: Closed
+                      idField: Email
+                      numbatchcomp: "1"
+                      numrecsprocc: "4"
+                      tpt: "343"
+                      apipt: "183"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoSGIA0/batch
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: batchInfoList_xml.tpl
+                  vars:
+                      id: 751P0000007qkgyIAA
+                      jobId: 750P0000006HoSGIA0
+                      state: Completed
+                      cdate: "2022-10-20T16:45:57.000Z"
+                      smts: "2022-10-20T16:45:58.000Z"
+                      numrecsprocc: "4"
+                      tpt: "343"
+                      apipt: "183"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoSGIA0/batch/751P0000007qkgyIAA/result
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id008
+          body:
+              string: '"Id","Success","Created","Error"
+
+                  "003P000001avB4QIAU","true","false",""
+
+                  "003P000001avB4SIAU","true","false",""
+
+                  "003P000001avB4GIAU","true","false",""
+
+                  "003P000001avB4lIAE","true","true",""
+
+                  '
+    - request: *id017
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_insert_xml.tpl
+                  vars:
+                      id: 750P0000006HoSLIA0
+                      object: Opportunity
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:46:01.000Z"
+                      smts: "2022-10-20T16:46:01.000Z"
+                      qdbatches: "0"
+                      numbatchtotal: "0"
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoSLIA0/batch
+          body: "38\r\n\"Name\",\"StageName\",\"CloseDate\",\"AccountId\",\"ContactId\"\r\
+              \n\r\n4d\r\n\"Illusional Opportunity\",\"In Progress\",\"2021-10-03\",\"\",\"\
+              003P000001avB4SIAU\"\r\n\r\n4c\r\n\"Espionage Opportunity\",\"In Progress\"\
+              ,\"2021-10-03\",\"\",\"003P000001avB4lIAE\"\r\n\r\n0\r\n\r\n"
+          headers: *id002
+      response:
+          status: *id003
+          headers: *id004
+          body:
+              string:
+                  include_template: batchInfo_xml.tpl
+                  vars:
+                      id: 751P0000007qkh3IAA
+                      jobId: 750P0000006HoSLIA0
+                      state: Queued
+                      cdate: "2022-10-20T16:46:01.000Z"
+                      smts: "2022-10-20T16:46:01.000Z"
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoSLIA0
+          body: <jobInfo xmlns="http://www.force.com/2009/06/asyncapi/dataload"><state>Closed</state></jobInfo>
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_insert_xml.tpl
+                  vars:
+                      id: 750P0000006HoSLIA0
+                      object: Opportunity
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:46:01.000Z"
+                      smts: "2022-10-20T16:46:01.000Z"
+                      state: Closed
+                      qdbatches: "1"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoSLIA0
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: jobInfo_insert_xml.tpl
+                  vars:
+                      id: 750P0000006HoSLIA0
+                      object: Opportunity
+                      creator: 005P000000AyPpYIAV
+                      cdate: "2022-10-20T16:46:01.000Z"
+                      smts: "2022-10-20T16:46:02.000Z"
+                      state: Closed
+                      qdbatches: "0"
+                      numbatchip: "1"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoSLIA0/batch
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id004
+          body:
+              string:
+                  include_template: batchInfoList_xml.tpl
+                  vars:
+                      id: 751P0000007qkh3IAA
+                      jobId: 750P0000006HoSLIA0
+                      state: Completed
+                      cdate: "2022-10-20T16:46:01.000Z"
+                      smts: "2022-10-20T16:46:03.000Z"
+                      numrecsprocc: "2"
+                      tpt: "623"
+                      apipt: "453"
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/async/vxx.0/job/750P0000006HoSLIA0/batch/751P0000007qkh3IAA/result
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id008
+          body:
+              string: '"Id","Success","Created","Error"
+
+                  "006P000000FNGu6IAH","true","true",""
+
+                  "006P000000FNGu7IAH","true","true",""
+
+                  '
+    - request:
+          method: GET
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/query/?q=select+FirstName%2C%28select+Name+from+Opportunities%29+from+Contact
+          body: null
+          headers: *id002
+      response:
+          status: *id005
+          headers: *id010
+          body:
+              string:
+                  "{\n  \"totalSize\" : 17,\n  \"done\" : true,\n  \"records\" : [ {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Contact/003P000001avB4GIAU\"\n    },\n    \"\
+                  FirstName\" : \"Lindsay\",\n    \"Opportunities\" : null\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4HIAU\"\
+                  \n    },\n    \"FirstName\" : \"Audrey\",\n    \"Opportunities\" : null\n\
+                  \  }, {\n    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4IIAU\"\n    },\n\
+                  \    \"FirstName\" : \"Micheal\",\n    \"Opportunities\" : null\n  }, {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Contact/003P000001avB4JIAU\"\n    },\n    \"\
+                  FirstName\" : \"Chloe\",\n    \"Opportunities\" : null\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4KIAU\"\
+                  \n    },\n    \"FirstName\" : \"Rose\",\n    \"Opportunities\" : null\n  },\
+                  \ {\n    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4LIAU\"\n    },\n\
+                  \    \"FirstName\" : \"Brent\",\n    \"Opportunities\" : null\n  }, {\n  \
+                  \  \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4MIAU\"\
+                  \n    },\n    \"FirstName\" : \"Julia\",\n    \"Opportunities\" : null\n \
+                  \ }, {\n    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4NIAU\"\n    },\n\
+                  \    \"FirstName\" : \"Benjamin\",\n    \"Opportunities\" : null\n  }, {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Contact/003P000001avB4OIAU\"\n    },\n    \"\
+                  FirstName\" : \"Christy\",\n    \"Opportunities\" : null\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4PIAU\"\
+                  \n    },\n    \"FirstName\" : \"Sabrina\",\n    \"Opportunities\" : null\n\
+                  \  }, {\n    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4QIAU\"\n    },\n\
+                  \    \"FirstName\" : \"Nichael\",\n    \"Opportunities\" : null\n  }, {\n\
+                  \    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"\
+                  /services/data/vxx.0/sobjects/Contact/003P000001avB4RIAU\"\n    },\n    \"\
+                  FirstName\" : \"Javier\",\n    \"Opportunities\" : null\n  }, {\n    \"attributes\"\
+                  \ : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4SIAU\"\
+                  \n    },\n    \"FirstName\" : \"George Oscar\",\n    \"Opportunities\" : {\n\
+                  \      \"totalSize\" : 1,\n      \"done\" : true,\n      \"records\" : [ {\n\
+                  \        \"attributes\" : {\n          \"type\" : \"Opportunity\",\n     \
+                  \     \"url\" : \"/services/data/vxx.0/sobjects/Opportunity/006P000000FNGu6IAH\"\
+                  \n        },\n        \"Name\" : \"Illusional Opportunity\"\n      } ]\n \
+                  \   }\n  }, {\n    \"attributes\" : {\n      \"type\" : \"Contact\",\n   \
+                  \   \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4TIAU\"\
+                  \n    },\n    \"FirstName\" : \"Kaitlyn\",\n    \"Opportunities\" : null\n\
+                  \  }, {\n    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4UIAU\"\n    },\n\
+                  \    \"FirstName\" : \"Jerry\",\n    \"Opportunities\" : null\n  }, {\n  \
+                  \  \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\" : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4VIAU\"\
+                  \n    },\n    \"FirstName\" : \"Gabrielle\",\n    \"Opportunities\" : null\n\
+                  \  }, {\n    \"attributes\" : {\n      \"type\" : \"Contact\",\n      \"url\"\
+                  \ : \"/services/data/vxx.0/sobjects/Contact/003P000001avB4lIAE\"\n    },\n\
+                  \    \"FirstName\" : \"Annyong\",\n    \"Opportunities\" : {\n      \"totalSize\"\
+                  \ : 1,\n      \"done\" : true,\n      \"records\" : [ {\n        \"attributes\"\
+                  \ : {\n          \"type\" : \"Opportunity\",\n          \"url\" : \"/services/data/vxx.0/sobjects/Opportunity/006P000000FNGu7IAH\"\
+                  \n        },\n        \"Name\" : \"Espionage Opportunity\"\n      } ]\n  \
+                  \  }\n  } ]\n}"

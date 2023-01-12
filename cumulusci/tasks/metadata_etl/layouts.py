@@ -169,6 +169,29 @@ class AddFieldsToPageLayout(MetadataSingleEntityTransformTask):
                 - field: [api_name] (Use with relative: before, after)
                 - section: [index] (Use with relative: top, bottom)
                 - column: [first | last] (Use with relative: top, bottom)
+
+        Example Usage
+        -----------------------
+
+        .. code-block::  yaml
+
+            task: add_page_layout_fields
+            options:
+                api_names: "Contact-Contact Layout"
+                fields:
+                  - api_name: Giving_Level__c
+                    position:
+                      - relative: bottom
+                        section: 0
+                        column: first
+                  - api_name: Previous_Giving_Level__c
+                    position:
+                      - relative: bottom
+                        section: 0
+                        column: last
+            ui_options:
+                name: Add custom giving fields to Contact Layout
+
         """
     entity = "Layout"
     task_options = {

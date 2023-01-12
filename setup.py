@@ -19,10 +19,10 @@ def find_packages(path=["."], prefix=""):
 with open(os.path.join("cumulusci", "version.txt"), "r") as version_file:
     version = version_file.read().strip()
 
-with open("README.rst", "rb") as readme_file:
+with open("README.md", "rb") as readme_file:
     readme = readme_file.read().decode("utf-8")
 
-with open("HISTORY.rst", "rb") as history_file:
+with open("docs/history.md", "rb") as history_file:
     history = history_file.read().decode("utf-8")
 
 with open("requirements/prod.txt") as requirements_file:
@@ -33,16 +33,18 @@ with open("requirements/prod.txt") as requirements_file:
             continue
         else:
             req = req.split(" ")[0]
+            # Work around normalized name of github3.py distribution
+            req = req.replace("github3-py", "github3.py")
             requirements.append(req)
 
 setup(
     name="cumulusci",
     version=version,
     description="Build and release tools for Salesforce developers",
-    long_description=readme + u"\n\n" + history,
-    long_description_content_type="text/x-rst",
+    long_description=readme + "\n\n" + history,
+    long_description_content_type="text/markdown",
     author="Salesforce.org",
-    author_email="jlantz@salesforce.com",
+    author_email="sfdo-mrbelvedere@salesforce.com",
     url="https://github.com/SFDO-Tooling/CumulusCI",
     packages=list(find_packages(["cumulusci"], "cumulusci")),
     package_dir={"cumulusci": "cumulusci"},
@@ -63,12 +65,10 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
     ],
     test_suite="cumulusci.core.tests",
-    python_requires=">=3.6",
+    python_requires=">=3.8",
 )

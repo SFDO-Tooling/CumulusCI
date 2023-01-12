@@ -1,57 +1,18 @@
-import pytest
 import responses
 
-from cumulusci.core.config import ServiceConfig
-from cumulusci.core.config.marketing_cloud_service_config import (
-    MarketingCloudServiceConfig,
-)
 from cumulusci.tasks.marketing_cloud.tests import test_api_soap_envelopes as envelopes
-from cumulusci.tests.util import create_project_config
 
 from ..api import CreateSubscriberAttribute, CreateUser, UpdateUserRole
-
-
-@pytest.fixture
-def project_config():
-    project_config = create_project_config()
-    project_config.keychain.set_service(
-        "oauth2_client",
-        "test",
-        ServiceConfig(
-            {
-                "client_id": "MC_CLIENT_ID",
-                "client_secret": "BOGUS",
-                "auth_uri": "https://TSSD.auth.marketingcloudapis.com/v2/authorize",
-                "token_uri": "https://TSSD.auth.marketingcloudapis.com/v2/token",
-                "callback_url": "https://127.0.0.1:8080/",
-            },
-            "test",
-            project_config.keychain,
-        ),
-        False,
-    )
-    project_config.keychain.set_service(
-        "marketing_cloud",
-        "test",
-        MarketingCloudServiceConfig(
-            {
-                "oauth2_client": "test",
-                "refresh_token": "REFRESH",
-                "soap_instance_url": "https://TSSD.soap.marketingcloudapis.com/",
-            },
-            "test",
-            project_config.keychain,
-        ),
-        False,
-    )
-    return project_config
+from ..mc_constants import MC_API_VERSION
 
 
 @responses.activate
-def test_marketing_cloud_create_subscriber_attribute_task(create_task, project_config):
+def test_marketing_cloud_create_subscriber_attribute_task(
+    create_task, mc_project_config
+):
     responses.add(
         "POST",
-        "https://tssd.auth.marketingcloudapis.com/v2/token",
+        f"https://tssd.auth.marketingcloudapis.com/{MC_API_VERSION}/token",
         json={"access_token": "ACCESS_TOKEN"},
     )
     responses.add(
@@ -65,17 +26,17 @@ def test_marketing_cloud_create_subscriber_attribute_task(create_task, project_c
         {
             "attribute_name": "Test Subscriber Attribute",
         },
-        project_config=project_config,
+        project_config=mc_project_config,
     )
     task()
     assert task.return_values == {"success": True}
 
 
 @responses.activate
-def test_marketing_cloud_create_user_task(create_task, project_config):
+def test_marketing_cloud_create_user_task(create_task, mc_project_config):
     responses.add(
         "POST",
-        "https://tssd.auth.marketingcloudapis.com/v2/token",
+        f"https://tssd.auth.marketingcloudapis.com/{MC_API_VERSION}/token",
         json={"access_token": "ACCESS_TOKEN"},
     )
     responses.add(
@@ -95,18 +56,23 @@ def test_marketing_cloud_create_user_task(create_task, project_config):
             "user_password": "SterlingCooperDraperPryce1!",
             "user_username": "sterling-don",
             "role_id": "31",
+            "activate_if_existing": "True",
         },
-        project_config=project_config,
+        project_config=mc_project_config,
     )
     task()
     assert task.return_values == {"success": True}
 
+    request = responses.calls[-1].request
+    assert b"<ActiveFlag>true</ActiveFlag>" in request.body
+    assert b"<IsLocked>false</IsLocked>" in request.body
+
 
 @responses.activate
-def test_marketing_cloud_update_user_role_task(create_task, project_config):
+def test_marketing_cloud_update_user_role_task(create_task, mc_project_config):
     responses.add(
         "POST",
-        "https://tssd.auth.marketingcloudapis.com/v2/token",
+        f"https://tssd.auth.marketingcloudapis.com/{MC_API_VERSION}/token",
         json={"access_token": "ACCESS_TOKEN"},
     )
     responses.add(
@@ -125,7 +91,7 @@ def test_marketing_cloud_update_user_role_task(create_task, project_config):
             "user_password": "SterlingCooperDraperPryce1!",
             "role_id": "31",
         },
-        project_config=project_config,
+        project_config=mc_project_config,
     )
     task()
     assert task.return_values == {"success": True}

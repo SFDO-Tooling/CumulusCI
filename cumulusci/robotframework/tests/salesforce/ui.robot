@@ -106,7 +106,7 @@ Click Related List Button
     Go To Record Home          ${contact}[Id]
     Click Related List Button  Opportunities  New
     Wait Until Modal Is Open
-    Page Should Contain        New Opportunity
+    Wait Until Page Contains   New Opportunity
 
 Click related item link
     [Documentation]

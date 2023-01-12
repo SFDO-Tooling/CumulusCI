@@ -77,6 +77,7 @@ class TestIntegrationInfrastructure:
                 },
             )
             task()
+            Path("foo.csv").unlink()
 
         run_code_without_recording(setup)
 
@@ -97,11 +98,13 @@ class TestIntegrationInfrastructure:
 
     @pytest.mark.needs_org()
     @pytest.mark.slow()
-    @pytest.mark.org_shape("qa", "qa_org")
-    def test_org_shape(self, capture_orgid_using_task, current_org_shape):
+    @pytest.mark.org_shape("qa", "do_nothing")
+    def test_org_shape(self, capture_orgid_using_task, current_org_shape, org_config):
         assert (
-            current_org_shape.org_config.sfdx_alias == "CumulusCI__pytest__qa__qa_org"
+            current_org_shape.org_config.sfdx_alias
+            == "CumulusCI__pytest__qa__do_nothing"
         )
+        assert org_config._sfdx_info  # ensure org was initialized
         assert self.__class__.remembered_cli_specified_org_id
         generated_org_id = capture_orgid_using_task()
         assert self.__class__.remembered_cli_specified_org_id != generated_org_id, (
@@ -112,7 +115,7 @@ class TestIntegrationInfrastructure:
 
     @pytest.mark.needs_org()
     @pytest.mark.slow()
-    @pytest.mark.org_shape("qa", "qa_org")
+    @pytest.mark.org_shape("qa", "do_nothing")
     def test_org_shape_reuse(
         self,
         create_task,
@@ -121,7 +124,8 @@ class TestIntegrationInfrastructure:
         capture_orgid_using_task,
     ):
         assert (
-            current_org_shape.org_config.sfdx_alias == "CumulusCI__pytest__qa__qa_org"
+            current_org_shape.org_config.sfdx_alias
+            == "CumulusCI__pytest__qa__do_nothing"
         )
         generated_org_id = capture_orgid_using_task()
         assert generated_org_id == self.__class__.remember_generated_org_id

@@ -3,11 +3,10 @@ import os
 import re
 import sys
 
-from lxml import etree as ET
-
 from cumulusci.core.dependencies.dependencies import PackageNamespaceVersionDependency
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
 from cumulusci.core.tasks import BaseTask
+from cumulusci.utils.xml import lxml_parse_file
 
 
 class MetaXmlBaseTask(BaseTask):
@@ -21,7 +20,7 @@ class MetaXmlBaseTask(BaseTask):
             for filename in files:
                 filename = os.path.join(root, filename)
                 if filename.endswith("-meta.xml"):
-                    tree = ET.parse(filename)
+                    tree = lxml_parse_file(filename)
                     if self._process_xml(tree.getroot()):
                         self._write_file(tree, filename)
                         self.logger.info("Processed file %s", filename)
@@ -60,7 +59,8 @@ class UpdateDependencies(MetaXmlBaseTask):
     def _init_task(self):
         self.dependencies = []
         dependencies = get_static_dependencies(
-            self.project_config, resolution_strategy="production"
+            self.project_config,
+            resolution_strategy="production",
         )
         self._process_dependencies(dependencies)
 

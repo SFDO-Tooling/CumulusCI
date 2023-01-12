@@ -2,30 +2,29 @@ import tempfile
 import typing as T
 from collections import defaultdict
 from contextlib import contextmanager
+from pathlib import Path
 from unittest.mock import MagicMock
 
-from sqlalchemy import (
-    Column,
-    MetaData,
-    Table,
-    Unicode,
-    create_engine,
-    func,
-    inspect,
-    text,
-)
+from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, func, inspect
 from sqlalchemy.ext.automap import automap_base
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session
 
 from cumulusci.core.exceptions import BulkDataException, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.org_schema import get_org_schema
 from cumulusci.tasks.bulkdata.dates import adjust_relative_dates
 from cumulusci.tasks.bulkdata.mapping_parser import (
+    CaseInsensitiveDict,
     MappingLookup,
     MappingStep,
     parse_from_yaml,
     validate_and_inject_mapping,
+)
+from cumulusci.tasks.bulkdata.query_transformers import (
+    AddLookupsToQuery,
+    AddMappingFiltersToQuery,
+    AddPersonAccountsToQuery,
+    AddRecordTypesToQuery,
 )
 from cumulusci.tasks.bulkdata.step import (
     DEFAULT_BULK_BATCH_SIZE,
@@ -34,7 +33,16 @@ from cumulusci.tasks.bulkdata.step import (
     DataOperationType,
     get_dml_operation,
 )
-from cumulusci.tasks.bulkdata.utils import RowErrorChecker, SqlAlchemyMixin
+from cumulusci.tasks.bulkdata.upsert_utils import (
+    AddUpsertsToQuery,
+    extract_upsert_key_data,
+    needs_etl_upsert,
+)
+from cumulusci.tasks.bulkdata.utils import (
+    RowErrorChecker,
+    SqlAlchemyMixin,
+    sql_bulk_insert_from_records,
+)
 from cumulusci.tasks.salesforce import BaseSalesforceApiTask
 
 
@@ -77,6 +85,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         "set_recently_viewed": {
             "description": "By default, the first 1000 records inserted via the Bulk API will be set as recently viewed. If fewer than 1000 records are inserted, existing objects of the same type being inserted will also be set as recently viewed.",
         },
+        "org_shape_match_only": {
+            "description": "When True, all path options are ignored and only a dataset matching the org shape name will be loaded. Defaults to False."
+        },
     }
     row_warning_limit = 10
 
@@ -86,15 +97,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.options["ignore_row_errors"] = process_bool_arg(
             self.options.get("ignore_row_errors") or False
         )
-        if self.options.get("database_url"):
-            # prefer database_url if it's set
-            self.options["sql_path"] = None
-        elif self.options.get("sql_path"):
-            self.options["database_url"] = None
-        else:
-            raise TaskOptionsError(
-                "You must set either the database_url or sql_path option."
-            )
+        self._init_dataset()
         self.reset_oids = self.options.get("reset_oids", True)
         self.bulk_mode = (
             self.options.get("bulk_mode") and self.options.get("bulk_mode").title()
@@ -113,7 +116,86 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self.options.get("set_recently_viewed", True)
         )
 
+    def _init_dataset(self):
+        """Find the dataset paths to use with the following sequence:
+        1. If `org_shape_match_only` is True (defaults False),
+           unset any other path options that may have been supplied.
+        2. Prefer a supplied `database_url`.
+        3. If `sql_path` was supplied, but not `mapping`, use default `mapping` value.
+        4. If `mapping` was supplied, but not `sql_path`, use default `sql_path` value.
+        5. If no path options were supplied, look for a dataset matching the org shape.
+        6. If no matching dataset was found AND `org_shape_match_only` is False,
+           look for a dataset with the default `mapping` and `sql_path` values
+           (as previously defaulted in the standard library yml).
+        """
+        self.options["org_shape_match_only"] = process_bool_arg(
+            self.options.get("org_shape_match_only", False)
+        )
+        if self.options["org_shape_match_only"]:
+            self.options["mapping"] = None
+            self.options["sql_path"] = None
+            self.options["database_url"] = None
+            self.logger.warning(
+                "The `default_dataset_only` option has been deprecated. "
+                "Please switch to the `load_sample_data` task."
+            )
+
+        self.options.setdefault("database_url", None)
+        if self.options.get("database_url"):
+            # prefer database_url if it's set
+            self.options["sql_path"] = None
+        elif self.options.get("sql_path"):
+            self.options.setdefault("mapping", "datasets/mapping.yml")
+        elif self.options.get("mapping"):
+            self.options.setdefault("sql_path", "datasets/sample.sql")
+        elif found_dataset := (
+            self._find_matching_dataset() or self._find_default_dataset()
+        ):  # didn't get either database_url or sql_path
+            mapping_path, dataset_path = found_dataset
+            self.options["mapping"] = mapping_path
+            self.options["sql_path"] = dataset_path
+        else:
+            self.has_dataset = False
+            return
+        self.has_dataset = True
+
+    def _find_matching_dataset(self) -> T.Optional[T.Tuple[str, str]]:
+        org_shape = self.org_config.lookup("config_name") if self.org_config else None
+        if not org_shape:
+            return None  # persistent org
+        dataset_folder = f"datasets/{org_shape}"
+        if Path(dataset_folder).exists():
+            # check for dataset.sql and mapping.yml
+            mapping_path = f"{dataset_folder}/{org_shape}.mapping.yml"
+            dataset_path = f"{dataset_folder}/{org_shape}.dataset.sql"
+            if Path(mapping_path).exists() and Path(dataset_path).exists():
+                return (mapping_path, dataset_path)
+            else:
+                self.logger.warning(
+                    f"Found datasets/{org_shape} but it did not contain {org_shape}.mapping.yml and {org_shape}.dataset.yml."
+                )
+        return None
+
+    def _find_default_dataset(self) -> T.Optional[T.Tuple[str, str]]:
+        if self.options["org_shape_match_only"]:
+            return None
+        dataset_path = "datasets/sample.sql"
+        mapping_path = "datasets/mapping.yml"
+        if Path(dataset_path).exists() and Path(mapping_path).exists():
+            return (mapping_path, dataset_path)
+        return None
+
     def _run_task(self):
+        if not self.has_dataset:
+            if org_shape := self.org_config.lookup("config_name"):
+                self.logger.info(
+                    f"No data will be loaded because there was no dataset found matching your org shape name ('{org_shape}')."
+                )
+            else:
+                self.logger.info(
+                    "No data will be loaded because this is a persistent org and no dataset was specified."
+                )
+            return
         self._init_mapping()
         with self._init_db():
             self._expand_mapping()
@@ -150,16 +232,21 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if self.options["set_recently_viewed"]:
             try:
                 self.logger.info("Setting records to 'recently viewed'.")
-                self._set_viewed()
+                set_recently_viewed = self._set_viewed()
             except Exception as e:
                 self.logger.warning(f"Could not set recently viewed because {e}")
+                set_recently_viewed = [SetRecentlyViewedInfo("ALL", e)]
+        else:
+            set_recently_viewed = False
 
         self.return_values = {
             "step_results": {
                 step_name: result_info.simplify()
                 for step_name, result_info in results.items()
-            }
+            },
         }
+        if set_recently_viewed is not False:
+            self.return_values["set_recently_viewed"] = set_recently_viewed
 
     def _execute_step(
         self, mapping: MappingStep
@@ -171,17 +258,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self._load_record_types([mapping.sf_object], conn)
             self.session.commit()
 
-        query = self._query_db(mapping)
-        bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
-        step = get_dml_operation(
-            sobject=mapping.sf_object,
-            operation=mapping.action,
-            api_options={"batch_size": mapping.batch_size, "bulk_mode": bulk_mode},
-            context=self,
-            fields=mapping.get_load_field_list(),
-            api=mapping.api,
-            volume=query.count(),
-        )
+        step, query = self.configure_step(mapping)
 
         with tempfile.TemporaryFile(mode="w+t") as local_ids:
             step.start()
@@ -194,6 +271,62 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
             return step.job_result
 
+    def configure_step(self, mapping):
+        """Create a step appropriate to the action"""
+        bulk_mode = mapping.bulk_mode or self.bulk_mode or "Parallel"
+        api_options = {"batch_size": mapping.batch_size, "bulk_mode": bulk_mode}
+
+        fields = mapping.get_load_field_list()
+
+        # implement "smart" upsert
+        if mapping.action == DataOperationType.SMART_UPSERT:
+            if needs_etl_upsert(mapping, self.sf):
+                mapping.action = DataOperationType.ETL_UPSERT
+            else:
+                mapping.action = DataOperationType.UPSERT
+
+        if mapping.action == DataOperationType.ETL_UPSERT:
+            extract_upsert_key_data(
+                mapping.sf_object,
+                mapping.update_key,
+                self,
+                self.metadata,
+                self.session.connection(),
+            )
+
+            # If we treat "Id" as an "external_id_name" then it's
+            # allowed to be sparse.
+            api_options["update_key"] = "Id"
+            action = DataOperationType.UPSERT
+            fields.append("Id")
+        elif mapping.action == DataOperationType.UPSERT:
+            self.check_simple_upsert(mapping)
+            api_options["update_key"] = mapping.update_key[0]
+            action = DataOperationType.UPSERT
+        else:
+            action = mapping.action
+
+        query = self._query_db(mapping)
+
+        step = get_dml_operation(
+            sobject=mapping.sf_object,
+            operation=action,
+            api_options=api_options,
+            context=self,
+            fields=fields,
+            api=mapping.api,
+            volume=query.count(),
+        )
+        return step, query
+
+    def check_simple_upsert(self, mapping):
+        """Check that this upsert is correct."""
+        if needs_etl_upsert(mapping, self.sf):
+            raise BulkDataException(
+                f"This update key is not compatible with a simple upsert: `{','.join(mapping.update_key)}`. "
+                "Use `action: ETL_UPSERT` instead."
+            )
+
     def _stream_queried_data(self, mapping, local_ids, query):
         """Get data from the local db"""
 
@@ -202,7 +335,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         if mapping.anchor_date:
             date_context = mapping.get_relative_date_context(
-                mapping.get_load_field_list(), self.org_config
+                mapping.get_load_field_list(), self.sf
             )
         # Clamping the yield from the query ensures we do not
         # create more Bulk API batches than expected, regardless
@@ -266,86 +399,56 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         id_column = model.__table__.primary_key.columns.keys()[0]
         columns = [getattr(model, id_column)]
 
+        table_cases = CaseInsensitiveDict(model.__table__.columns)
         for name, f in mapping.fields.items():
             if name not in ("Id", "RecordTypeId", "RecordType"):
-                columns.append(model.__table__.columns[f])
-
-        lookups = {
-            lookup_field: lookup
-            for lookup_field, lookup in mapping.lookups.items()
-            if not lookup.after
-        }
-
-        for lookup in lookups.values():
-            lookup.aliased_table = aliased(
-                self.metadata.tables[f"{lookup.table}_sf_ids"]
-            )
-            columns.append(lookup.aliased_table.columns.sf_id)
-
-        if "RecordTypeId" in mapping.fields:
-            rt_dest_table = self.metadata.tables[
-                mapping.get_destination_record_type_table()
-            ]
-            columns.append(rt_dest_table.columns.record_type_id)
+                column = table_cases.get(f)
+                columns.append(column)
 
         query = self.session.query(*columns)
-        if mapping.record_type and hasattr(model, "record_type"):
-            query = query.filter(model.record_type == mapping.record_type)
-        if mapping.filters:
-            filter_args = []
-            for f in mapping.filters:
-                filter_args.append(text(f))
-            query = query.filter(*filter_args)
 
-        if "RecordTypeId" in mapping.fields:
-            try:
-                rt_source_table = self.metadata.tables[
-                    mapping.get_source_record_type_table()
-                ]
-            except KeyError as e:
-                raise BulkDataException(
-                    "A record type mapping table was not found in your dataset. "
-                    f"Was it generated by extract_data? {e}",
-                ) from e
-            rt_dest_table = self.metadata.tables[
-                mapping.get_destination_record_type_table()
-            ]
-            query = query.outerjoin(
-                rt_source_table,
-                rt_source_table.columns.record_type_id
-                == getattr(model, mapping.fields["RecordTypeId"]),
-            )
-            query = query.outerjoin(
-                rt_dest_table,
-                rt_dest_table.columns.developer_name
-                == rt_source_table.columns.developer_name,
-            )
+        classes = [
+            AddLookupsToQuery,
+            AddRecordTypesToQuery,
+            AddMappingFiltersToQuery,
+            AddUpsertsToQuery,
+        ]
+        transformers = [cls(mapping, self.metadata, model) for cls in classes]
 
-        for sf_field, lookup in lookups.items():
-            # Outer join with lookup ids table:
-            # returns main obj even if lookup is null
+        if mapping.sf_object == "Contact" and self._can_load_person_accounts(mapping):
+            transformers.append(AddPersonAccountsToQuery(mapping, self.metadata, model))
+
+        for transformer in transformers:
+            query = transformer.add_columns(query)
+
+        for transformer in transformers:
+            query = transformer.add_filters(query)
+
+        for transformer in transformers:
+            query = transformer.add_outerjoins(query)
+
+        query = self._sort_by_lookups(query, mapping, model)
+        return query
+
+    def _sort_by_lookups(self, query, mapping, model):
+        lookups = [lookup for lookup in mapping.lookups.values() if not lookup.after]
+        for lookup in lookups:
             key_field = lookup.get_lookup_key_field(model)
-            value_column = getattr(model, key_field)
-            query = query.outerjoin(
-                lookup.aliased_table,
-                lookup.aliased_table.columns.id == value_column,
-            )
-            # Order by foreign key to minimize lock contention
-            # by trying to keep lookup targets in the same batch
             lookup_column = getattr(model, key_field)
             query = query.order_by(lookup_column)
-
-        # Filter out non-person account Contact records.
-        # Contact records for person accounts were already created by the system.
-        if mapping.sf_object == "Contact" and self._can_load_person_accounts(mapping):
-            query = self._filter_out_person_account_records(query, model)
 
         return query
 
     def _process_job_results(self, mapping, step, local_ids):
         """Get the job results and process the results. If we're raising for
         row-level errors, do so; if we're inserting, store the new Ids."""
-        if mapping.action is DataOperationType.INSERT:
+
+        is_insert_or_upsert = mapping.action in (
+            DataOperationType.INSERT,
+            DataOperationType.UPSERT,
+            DataOperationType.ETL_UPSERT,
+        )
+        if is_insert_or_upsert:
             id_table_name = self._initialize_id_table(mapping, self.reset_oids)
             conn = self.session.connection()
 
@@ -353,12 +456,12 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         # If we know we have no successful inserts, don't attempt to persist Ids.
         # Do, however, drain the generator to get error-checking behavior.
-        if mapping.action is DataOperationType.INSERT and (
+        if is_insert_or_upsert and (
             step.job_result.records_processed - step.job_result.total_row_errors
         ):
-            self._sql_bulk_insert_from_records(
+            sql_bulk_insert_from_records(
                 connection=conn,
-                table=id_table_name,
+                table=self.metadata.tables[id_table_name],
                 columns=("id", "sf_id"),
                 record_iterable=results_generator,
             )
@@ -371,22 +474,22 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         # person account Contact records so lookups to
         # person account Contact records get populated downstream as expected.
         if (
-            mapping.action is DataOperationType.INSERT
+            is_insert_or_upsert
             and mapping.sf_object == "Contact"
             and self._can_load_person_accounts(mapping)
         ):
             account_id_lookup = mapping.lookups.get("AccountId")
             if account_id_lookup:
-                self._sql_bulk_insert_from_records(
+                sql_bulk_insert_from_records(
                     connection=conn,
-                    table=id_table_name,
+                    table=self.metadata.tables[id_table_name],
                     columns=("id", "sf_id"),
                     record_iterable=self._generate_contact_id_map_for_person_accounts(
                         mapping, account_id_lookup, conn
                     ),
                 )
 
-        if mapping.action is DataOperationType.INSERT:
+        if is_insert_or_upsert:
             self.session.commit()
 
     def _generate_results_id_map(self, step, local_ids):
@@ -498,7 +601,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
 
         validate_and_inject_mapping(
             mapping=self.mapping,
-            org_config=self.org_config,
+            sf=self.sf,
             namespace=self.project_config.project__package__namespace,
             data_operation=DataOperationType.INSERT,
             inject_namespaces=self.options["inject_namespaces"],
@@ -554,14 +657,10 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         IsPersonAccount as 'true' but the org does not have person accounts enabled.
         """
         for mapping in self.mapping.values():
-            if (
-                mapping.sf_object
-                in [
-                    "Account",
-                    "Contact",
-                ]
-                and self._db_has_person_accounts_column(mapping)
-            ):
+            if mapping.sf_object in [
+                "Account",
+                "Contact",
+            ] and self._db_has_person_accounts_column(mapping):
                 table = self.models[mapping.table].__table__
                 if (
                     self.session.query(table)
@@ -588,11 +687,6 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         return (
             self._db_has_person_accounts_column(mapping)
             and self.org_config.is_person_accounts_enabled
-        )
-
-    def _filter_out_person_account_records(self, query, model):
-        return query.filter(
-            func.lower(model.__table__.columns.get("IsPersonAccount")) == "false"
         )
 
     def _generate_contact_id_map_for_person_accounts(
@@ -669,10 +763,11 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 # Join maps together to get tuple (Contact ID, Contact SF ID) to insert into step's ID Table.
                 yield (contact_id, contact_sf_id)
 
-    def _set_viewed(self):
+    def _set_viewed(self) -> T.List["SetRecentlyViewedInfo"]:
         """Set items as recently viewed. Filter out custom objects without custom tabs."""
         object_names = set()
         custom_objects = set()
+        results = []
 
         # Separate standard and custom objects
         for mapping in self.mapping.values():
@@ -695,20 +790,27 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 self.logger.warning(
                     f"Cannot get the list of custom tabs to set recently viewed status on them. Error: {e}"
                 )
-        with get_org_schema(self.sf, self.org_config) as org_schema:
+        with get_org_schema(
+            self.sf, self.org_config, included_objects=object_names, force_recache=True
+        ) as org_schema:
             for mapped_item in sorted(object_names):
                 if org_schema[mapped_item].mruEnabled:
                     try:
                         self.sf.query_all(
                             f"SELECT Id FROM {mapped_item} ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW"
                         )
+                        results.append(SetRecentlyViewedInfo(mapped_item, None))
                     except Exception as e:
                         self.logger.warning(
                             f"Cannot set recently viewed status for {mapped_item}. Error: {e}"
                         )
+                        results.append(SetRecentlyViewedInfo(mapped_item, e))
+        return results
 
 
 class StepResultInfo(T.NamedTuple):
+    """Represent a Step Result in a form easily convertible to JSON"""
+
     sobject: str
     result: DataOperationJobResult
     record_type: str = None
@@ -719,3 +821,10 @@ class StepResultInfo(T.NamedTuple):
             "record_type": self.record_type,
             **self.result.simplify(),
         }
+
+
+class SetRecentlyViewedInfo(T.NamedTuple):
+    """Did the set recently succeed or fail?"""
+
+    sobject: str
+    error: T.Optional[Exception]

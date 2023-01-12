@@ -10,6 +10,10 @@ actionPlanTemplates:
     - type: ActionPlanTemplate
       class: MetadataFilenameParser
       extension: apt
+aiApplicationConfigs:
+    - type: AIApplicationConfig
+      class: MetadataFilenameParser
+      extension: aiapplicationconfig
 analyticSnapshots:
     - type: AnalyticSnapshot
       class: MetadataFilenameParser
@@ -42,6 +46,10 @@ assignmentRules:
     - type: AssignmentRule
       class: MetadataFilenameParser
       extension: assignmentRules
+audience:
+    - type: Audience
+      class: MetadataFilenameParser
+      extension: audience
 aura:
     - type: AuraDefinitionBundle
       class: BundleParser
@@ -78,6 +86,10 @@ briefcaseDefinitions:
     - type: BriefcaseDefinition
       class: MetadataFilenameParser
       extension: briefcaseDefinition
+buildingEnergyIntensityConfigs:
+    - type: BldgEnrgyIntensityCnfg
+      class: MetadataFilenameParser
+      extension: buildingEnergyIntensityConfig
 businessProcessGroups:
     - type: BusinessProcessGroup
       class: MetadataFilenameParser
@@ -166,6 +178,10 @@ customHelpMenuSections:
     - type: CustomHelpMenuSection
       class: MetadataFilenameParser
       extension: customHelpMenuSection
+customindex:
+    - type: CustomIndex
+      class: MetadataFilenameParser
+      extension: indx
 customMetadata:
     - type: CustomMetadata
       class: MetadataFilenameParser
@@ -642,6 +658,10 @@ roles:
     - type: Role
       class: MetadataFilenameParser
       extension: role
+rules:
+    - type: Territory2Rule
+      class: MetadataFilenameParser
+      extension: territory2Rule
 s3DataConnectors:
     - type: DataConnectorS3
       class: MetadataFilenameParser
@@ -703,6 +723,10 @@ skills:
     - type: Skill
       class: MetadataFilenameParser
       extension: skill
+slackapps:
+    - type: SlackApp
+      class: MetadataFilenameParser
+      extension: slackapp
 standardValueSets:
     - type: StandardValueSet
       class: MetadataFilenameParser
@@ -715,6 +739,10 @@ staticresources:
     - type: StaticResource
       class: MetadataFilenameParser
       extension: resource
+stationaryAssetEnvSourceConfigs:
+    - type: StnryAssetEnvSrcCnfg
+      class: MetadataFilenameParser
+      extension: stationaryAssetEnvSourceConfig
 synonymDictionaries:
     - type: SynonymDictionary
       class: MetadataFilenameParser
@@ -723,6 +751,18 @@ tabs:
     - type: CustomTab
       class: MetadataFilenameParser
       extension: tab
+territories:
+    - type: Territory2
+      class: MetadataFilenameParser
+      extension: territory2
+territory2Models:
+    - type: Territory2Model
+      class: MetadataFilenameParser
+      extension: territory2Model
+territory2Types:
+    - type: Territory2Type
+      class: MetadataFilenameParser
+      extension: territory2Types
 testSuites:
     - type: ApexTestSuite
       class: MetadataFilenameParser
@@ -751,6 +791,14 @@ userCriteria:
     - type: UserCriteria
       class: MetadataFilenameParser
       extension: userCriteria
+vehicleAssetEmssnSourceConfigs:
+    - type: VehicleAssetEmssnSrcCnfg
+      class: MetadataFilenameParser
+      extension: vehicleAssetEmssnSourceConfig
+viewdefinitions:
+    - type: ViewDefinition
+      class: MetadataFilenameParser
+      extension: view
 wave:
     - type: WaveApplication
       class: MetadataFilenameParser

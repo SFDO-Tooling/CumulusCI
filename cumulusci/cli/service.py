@@ -8,7 +8,7 @@ from rich.console import Console
 
 from cumulusci.core.config import ServiceConfig
 from cumulusci.core.exceptions import CumulusCIException, ServiceNotConfigured
-from cumulusci.core.utils import import_class, import_global
+from cumulusci.core.utils import import_class, import_global, make_jsonable
 
 from .runtime import pass_runtime
 from .ui import CliTable
@@ -35,7 +35,7 @@ def service_list(runtime, plain, print_json):
 
     console = Console()
     if print_json:
-        console.print(json.dumps(services))
+        console.print_json(data=services)
         return None
 
     configured_services = runtime.keychain.list_services()
@@ -84,17 +84,43 @@ class ConnectServiceCommand(click.MultiCommand):
         return sorted(services.keys())
 
     def _build_param(self, attribute: str, details: dict) -> click.Option:
-        req = details["required"]
+        required = details.get("required", False)
         default_factory: Optional[Callable] = self._get_callable_default(
             details.get("default_factory")
         )
-        prompt = None if default_factory else req
+        default = details.get("default")
+        if default is not None:
+            # This gives the user a chance to change the default
+            # (but only if they didn't specify it as a command line option)
+            default_factory = lambda: default  # noqa
+            prompt = True
+            # Since there's a default value,
+            # we don't need to indicate this option as required in help,
+            required = False
+        elif default_factory:
+            # If there's a function to calculate the default,
+            # we'll call it instead of prompting the user.
+            # This provides a hook for collecting the value in other ways,
+            # such as via an oauth flow.
+            prompt = None
+        else:
+            # If there's no default, we prompt the user only if the option is required.
+            prompt = required
+
+        # Make sure the description is included in the prompt
+        description = details.get("description")
+        if prompt:
+            prompt = attribute
+            if description:
+                prompt += f" ({description})"
 
         kwargs = {
             "prompt": prompt,
-            "required": req,
-            "help": details.get("description"),
+            "required": required,
+            "help": description,
             "default": default_factory,
+            # If there is a preset default, this causes it to be shown in help.
+            "show_default": default,
         }
         return click.Option((f"--{attribute}",), **kwargs)
 
@@ -138,7 +164,7 @@ class ConnectServiceCommand(click.MultiCommand):
                 f"Sorry, I don't know about the '{service_type}' service."
             )
 
-        attributes = service_config["attributes"].items()
+        attributes = service_config.get("attributes", {}).items()
         params = [self._build_param(attr, cnfg) for attr, cnfg in attributes]
         params.extend(self._get_default_options(runtime))
 
@@ -185,7 +211,7 @@ class ConnectServiceCommand(click.MultiCommand):
             validator_path = service_config.get("validator")
             if validator_path:
                 validator = import_global(validator_path)
-                updated_conf: dict = validator(serv_conf)
+                updated_conf: dict = validator(serv_conf, runtime.keychain)
                 if updated_conf:
                     serv_conf.update(updated_conf)
 
@@ -246,32 +272,66 @@ def service_connect():
     pass
 
 
-@service.command(name="info", help="Show the details of a connected service")
+@service.command(name="info")
 @click.argument("service_type")
 @click.argument("service_name", required=False)
-@click.option("--plain", is_flag=True, help="Print the table using plain ascii.")
+@click.option("--json", "print_json", is_flag=True, help="Print a json string")
 @pass_runtime(require_project=False, require_keychain=True)
-def service_info(runtime, service_type, service_name, plain):
+def service_info(runtime, service_type, service_name, print_json):
+    """Show the details of a connected service.
+
+    Use --json to include the full value of sensitive attributes, such as a token or secret.
+    """
     try:
-        plain = plain or runtime.universal_config.cli__plain_output
+        console = Console()
         service_config = runtime.keychain.get_service(service_type, service_name)
-        service_data = [["Key", "Value"]]
-        service_data.extend(
-            [
-                [click.style(k, bold=True), str(v)]
-                for k, v in service_config.config.items()
-                if k != "service_name"
-            ]
-        )
+        if print_json:
+            print_config = {
+                k: make_jsonable(v) for k, v in service_config.config.items()
+            }
+            console.print(json.dumps(print_config))
+            return
+        sensitive_attributes = get_sensitive_service_attributes(runtime, service_type)
+        service_data = get_service_data(service_config, sensitive_attributes)
         default_service = runtime.keychain.get_default_service_name(service_type)
         service_name = default_service if not service_name else service_name
-        service_table = CliTable(service_data, title=f"{service_type}:{service_name}")
-        console = Console()
-        console.print(service_table)
+        console.print(CliTable(service_data, title=f"{service_type}:{service_name}"))
     except ServiceNotConfigured:
         click.echo(
             f"{service_type} is not configured for this project.  Use service connect {service_type} to configure."
         )
+
+
+def get_service_data(service_config, sensitive_attributes) -> list:
+    service_data = [["Key", "Value"]]
+    service_data.extend(
+        [
+            [
+                click.style(k, bold=True),
+                (
+                    (v[:5] + (len(v[5:]) * "*") if len(v) > 10 else "*" * len(v))
+                    if k in sensitive_attributes
+                    else str(v)
+                ),
+            ]
+            for k, v in service_config.config.items()
+            if k != "service_name"
+        ]
+    )
+    return service_data
+
+
+def get_sensitive_service_attributes(runtime, service_type) -> list:
+    services = (
+        runtime.project_config.services
+        if runtime.project_config
+        else runtime.universal_config.services
+    )
+    try:
+        service_type_attributes = services[service_type]["attributes"]
+        return [k for k, v in service_type_attributes.items() if v.get("sensitive")]
+    except KeyError:
+        return []
 
 
 @service.command(
@@ -286,6 +346,10 @@ def service_info(runtime, service_type, service_name, plain):
 )
 @pass_runtime(require_project=False, require_keychain=True)
 def service_default(runtime, service_type, service_name, project):
+    if not runtime.project_config and project:
+        raise click.UsageError(
+            "The --project flag must be used while in a CumulusCI project directory."
+        )
     try:
         runtime.keychain.set_default_service(service_type, service_name, project)
     except ServiceNotConfigured as e:

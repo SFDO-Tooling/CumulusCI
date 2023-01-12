@@ -106,7 +106,6 @@ def test_flow_doc__with_flows_rst_file(load_yaml_data, echo):
                 }
             }
         },
-        load_keychain=False,
     )
 
     load_yaml_data.return_value = {
@@ -117,7 +116,7 @@ def test_flow_doc__with_flows_rst_file(load_yaml_data, echo):
         "flows": {"Flow1": {"rst_text": "Some ``extra`` **pizzaz**!"}},
     }
 
-    run_click_command(flow.flow_doc, runtime=runtime)
+    run_click_command(flow.flow_doc, runtime=runtime, project=True)
 
     assert 1 == load_yaml_data.call_count
 
@@ -125,7 +124,7 @@ def test_flow_doc__with_flows_rst_file(load_yaml_data, echo):
         "Flow Reference\n==========================================\n\nopening blurb for flow reference doc\n\n",
         "Group1\n------",
         "This is a description of group1.",
-        "Flow1\n^^^^^\n\n**Description:** Description of Flow1\n\nSome ``extra`` **pizzaz**!\n**Flow Steps**\n\n.. code-block:: console\n",
+        ".. _Flow1:\n\nFlow1\n^^^^^\n\n**Description:** Description of Flow1\n\nSome ``extra`` **pizzaz**!\n**Flow Steps**\n\n.. code-block:: console\n",
         "",
     ]
     expected_call_args = [mock.call(s) for s in expected_call_args]

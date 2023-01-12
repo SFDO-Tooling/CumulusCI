@@ -7,12 +7,15 @@ import traceback
 
 import click
 import requests
+import rich
 from rich.console import Console
+from rich.markup import escape
 
 import cumulusci
 from cumulusci.core.debug import set_debug_mode
 from cumulusci.core.exceptions import CumulusCIUsageError
 from cumulusci.utils import get_cci_upgrade_command
+from cumulusci.utils.http.requests_utils import init_requests_trust
 from cumulusci.utils.logging import tee_stdout_stderr
 
 from .error import error
@@ -21,10 +24,16 @@ from .logger import get_tempfile_logger, init_logger
 from .org import org
 from .plan import plan
 from .project import project
+from .robot import robot
 from .runtime import CliRuntime, pass_runtime
 from .service import service
 from .task import task
-from .utils import check_latest_version, get_installed_version, get_latest_final_version
+from .utils import (
+    check_latest_version,
+    get_installed_version,
+    get_latest_final_version,
+    warn_if_no_long_paths,
+)
 
 SUGGEST_ERROR_COMMAND = (
     """Run this command for more information about debugging errors: cci error --help"""
@@ -45,6 +54,10 @@ def main(args=None):
     """
     with contextlib.ExitStack() as stack:
         args = args or sys.argv
+
+        # (If enabled) set up requests to validate certs using system CA certs instead of certifi
+        init_requests_trust()
+
         # Check for updates _unless_ we've been asked to output JSON,
         # or if we're going to check anyway as part of the `version` command.
         is_version_command = len(args) > 1 and args[1] == "version"
@@ -106,9 +119,10 @@ def handle_exception(
     if isinstance(error, requests.exceptions.ConnectionError):
         connection_error_message(error_console)
     elif isinstance(error, click.ClickException):
-        error_console.print(f"[red bold]Error: {error.format_message()}")
+        error_console.print(f"[red bold]Error: {escape(error.format_message())}")
     else:
-        error_console.print(f"[red bold]Error: {error}")
+        # We call str ourselves to make Typeguard shut up.
+        error_console.print(f"[red bold]Error: {escape(str(error))}")
     # Only suggest gist command if it wasn't run
     if not is_error_cmd:
         error_console.print(f"[yellow]{SUGGEST_ERROR_COMMAND}")
@@ -119,7 +133,7 @@ def handle_exception(
             traceback.print_exc(file=log_file)  # log stacktrace silently
 
     if should_show_stacktraces and not isinstance(error, USAGE_ERRORS):
-        raise error
+        error_console.print_exception()
 
 
 def connection_error_message(console: Console):
@@ -136,34 +150,64 @@ def show_debug_info():
     pdb.post_mortem()
 
 
+def show_version_info():
+    console = rich.get_console()
+    console.print(f"CumulusCI version: {cumulusci.__version__} ({sys.argv[0]})")
+    console.print(f"Python version: {sys.version.split()[0]} ({sys.executable})")
+    console.print()
+    warn_if_no_long_paths(console=console)
+
+    current_version = get_installed_version()
+    latest_version = get_latest_final_version()
+
+    if not latest_version > current_version:
+        console.print("You have the latest version of CumulusCI :sun_behind_cloud:\n")
+        display_release_notes_link(str(latest_version))
+        return
+
+    console.print(
+        f"[yellow]There is a newer version of CumulusCI available: {str(latest_version)}"
+    )
+    console.print(f"To upgrade, run `{get_cci_upgrade_command()}`")
+    display_release_notes_link(str(latest_version))
+
+
+def display_release_notes_link(latest_version: str) -> None:
+    """Provide a link to the latest CumulusCI Release Notes"""
+    release_notes_link = (
+        f"https://github.com/SFDO-Tooling/CumulusCI/releases/tag/v{latest_version}"
+    )
+    console = rich.get_console()
+    console.print(
+        f"See the latest CumulusCI Release Notes: [link={release_notes_link}]{release_notes_link}[/link]"
+    )
+
+
+def version_info_wrapper(
+    ctx: click.Context, param: click.Parameter, value: bool
+) -> None:
+    if not value:
+        return
+    show_version_info()
+    ctx.exit()
+
+
 @click.group("main", help="")
+@click.option(  # based on https://click.palletsprojects.com/en/8.1.x/options/#callbacks-and-eager-options
+    "--version",
+    is_flag=True,
+    expose_value=False,
+    is_eager=True,
+    help="Show the version and exit.",
+    callback=version_info_wrapper,
+)
 def cli():
     """Top-level `click` command group."""
 
 
 @cli.command(name="version", help="Print the current version of CumulusCI")
 def version():
-    click.echo("CumulusCI version: ", nl=False)
-    click.echo(click.style(cumulusci.__version__, bold=True), nl=False)
-    click.echo(f" ({sys.argv[0]})")
-    click.echo(f"Python version: {sys.version.split()[0]}", nl=False)
-    click.echo(f" ({sys.executable})")
-
-    click.echo()
-    current_version = get_installed_version()
-    latest_version = get_latest_final_version()
-    if latest_version > current_version:
-        click.echo(
-            f"There is a newer version of CumulusCI available ({str(latest_version)})."
-        )
-        click.echo(f"To upgrade, run `{get_cci_upgrade_command()}`")
-        click.echo(
-            f"Release notes: https://github.com/SFDO-Tooling/CumulusCI/releases/tag/v{str(latest_version)}"
-        )
-    else:
-        click.echo("You have the latest version of CumulusCI.")
-
-    click.echo()
+    show_version_info()
 
 
 @cli.command(name="shell", help="Drop into a Python shell")
@@ -197,3 +241,4 @@ cli.add_command(service)
 cli.add_command(task)
 cli.add_command(flow)
 cli.add_command(plan)
+cli.add_command(robot)

@@ -1,6 +1,7 @@
 import abc
 
 from robot.libraries.BuiltIn import BuiltIn
+from selenium.common.exceptions import TimeoutException
 
 from cumulusci.utils.classutils import get_all_subclasses
 
@@ -59,7 +60,7 @@ class BaseFormHandler(abc.ABC):
 
     @property
     def input_element(self):
-        """Returns the actual <input> or <textarea> element inside the element"""
+        """Returns the first <input> or <textarea> element inside the element"""
         elements = self.element.find_elements_by_xpath(
             ".//*[self::input or self::textarea]"
         )
@@ -96,7 +97,20 @@ class HTMLInputHandler(BaseFormHandler):
     tags = ["input", "textarea"]
 
     def set(self, value):
-        self.element.send_keys(value)
+        if self.element.get_attribute("type") == "checkbox":
+            value = value.lower()
+            checked = self.element.is_selected()
+            if (checked and value != "checked") or (not checked and value == "checked"):
+                self.element.click()
+
+        elif self.element.get_attribute("type") == "radio":
+            if value.strip().lower() != "selected":
+                raise Exception("value must be 'selected'")
+            self.element.send_keys(" ")
+
+        else:
+            self.clear()
+            self.element.send_keys(value)
 
     def get(self, value):
         # not currently being used
@@ -113,15 +127,24 @@ class LightningComboboxHandler(BaseFormHandler):
 
     tags = ["lightning-combobox"]
 
+    @property
+    def input_element(self):
+        """Returns the base form element (input or button) that the combobox is based on"""
+        elements = self.element.find_elements_by_xpath(
+            ".//*[contains(@class, 'slds-combobox__input')]"
+        )
+        return elements[0] if elements else None
+
     def set(self, value):
         value_locator = f'//lightning-base-combobox-item[.="{value}"]'
         wait = 5
         try:
+            # at this point, self.input_element is None
             self.input_element.click()
             self.selenium.wait_until_element_is_visible(value_locator, wait)
             self.selenium.click_element(value_locator)
         except Exception:
-            raise Exception(
+            raise TimeoutException(
                 f"Dropdown value '{value}' for '{self.locator}' not found after {wait} seconds"
             )
 
@@ -147,6 +170,12 @@ class LightningInputHandler(BaseFormHandler):
             checked = self.element.get_attribute("checked")
             if (checked and value != "checked") or (not checked and value == "checked"):
                 self.input_element.send_keys(" ")
+
+        elif self.input_element.get_attribute("type") == "radio":
+            if value.strip().lower() != "selected":
+                raise Exception("value must be 'selected'")
+            self.input_element.send_keys(" ")
+
         else:
             self.clear()
             self.input_element.send_keys(value)
@@ -165,19 +194,17 @@ class LightningLookupHandler(BaseFormHandler):
     tags = ["lightning-lookup", "lightning-grouped-combobox"]
 
     def set(self, value):
-        wait = 5
+        wait = 10
         # I wonder if I should/could anchor this to the element
         # instead of searching the whole document?
-        value_locator = f'//div[@role="listbox"]//*[.="{value}"]'
+        value_locator = f'//lightning-base-combobox-formatted-text[@title="{value}"]'
         self.element.click()
         self.input_element.send_keys(value)
         try:
             self.selenium.wait_until_element_is_visible(value_locator, wait)
             self.selenium.click_element(value_locator)
         except Exception:
-            # *sigh* this still fails randomly even though
-            # I can see the dadgum item in the dropdown.
-            raise Exception(
+            raise TimeoutException(
                 f"Lookup value '{value}' for '{self.locator}' not found after {wait} seconds"
             )
 

@@ -13,8 +13,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
 import os
+import sys
 
 # If extensions (or modules to document with autodoc) are in another
 # directory, add these directories to sys.path here. If the directory is
@@ -45,13 +45,20 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
+    "myst_parser"  # ,
+    #    "recommonmark"
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = ".rst"
+# source_suffix = ".md" #".rst"
+source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
+
+# Auto-generate anchors for headings
+# myst_heading_anchors = 3
+
 
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
@@ -68,7 +75,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "CumulusCI"
-copyright = "2021, Salesforce.org"
+copyright = "2022, Salesforce.org"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -234,7 +241,13 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ("index", "cumulusci.tex", "CumulusCI Documentation", "Jason Lantz", "manual")
+    (
+        "index",
+        "cumulusci.tex",
+        "CumulusCI Documentation",
+        "Cumulus Suite Development Team",
+        "manual",
+    )
 ]
 
 # The name of an image file (relative to this directory) to place at
@@ -262,7 +275,15 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "cumulusci", "CumulusCI Documentation", ["Jason Lantz"], 1)]
+man_pages = [
+    (
+        "index",
+        "cumulusci",
+        "CumulusCI Documentation",
+        ["Cumulus Suite Development Team"],
+        1,
+    )
+]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -278,7 +299,7 @@ texinfo_documents = [
         "index",
         "cumulusci",
         "CumulusCI Documentation",
-        "Jason Lantz",
+        "Cumulus Suite Development Team",
         "cumulusci",
         "One line description of project.",
         "Miscellaneous",
@@ -300,10 +321,13 @@ texinfo_documents = [
 
 def generate_task_and_flow_docs(_):
     """Run cci commands to generate tasks.rst and flows.rst"""
+    import logging
     import subprocess
+
     from sphinx.util.logging import getLogger
 
     logger = getLogger("cci")
+    logger.setLevel(logging.INFO)
     logger.info("Generating docs/tasks.rst from cci tasks")
     with open("tasks.rst", "w") as task_docs:
         subprocess.run(["cci", "task", "doc"], stdout=task_docs, check=True)

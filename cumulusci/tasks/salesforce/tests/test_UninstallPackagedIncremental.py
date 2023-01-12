@@ -1,8 +1,9 @@
 import io
 import os
-import unittest
 import zipfile
 from unittest import mock
+
+import pytest
 
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.salesforce import UninstallPackagedIncremental
@@ -12,7 +13,7 @@ from cumulusci.utils import temporary_dir
 from .util import create_task
 
 
-class TestUninstallPackagedIncremental(unittest.TestCase):
+class TestUninstallPackagedIncremental:
     def test_get_destructive_changes(self):
         with temporary_dir():
             os.mkdir("src")
@@ -78,7 +79,7 @@ class TestUninstallPackagedIncremental(unittest.TestCase):
             )
             task._retrieve_packaged = mock.Mock(return_value=zf)
             result = task._get_destructive_changes()
-            self.assertEqual(
+            assert (
                 """<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
@@ -90,8 +91,8 @@ class TestUninstallPackagedIncremental(unittest.TestCase):
         <name>CustomObject</name>
     </types>
     <version>43.0</version>
-</Package>""",
-                result,
+</Package>"""
+                == result
             )
 
     def test_get_destructive_changes__no_package_xml(self):
@@ -105,7 +106,7 @@ class TestUninstallPackagedIncremental(unittest.TestCase):
             },
             project_config,
         )
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             task._get_destructive_changes()
 
     def test_dry_run(self):

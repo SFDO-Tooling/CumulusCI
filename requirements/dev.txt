@@ -6,120 +6,146 @@
 #
 alabaster==0.7.12
     # via sphinx
-attrs==21.2.0
+attrs==22.1.0
     # via
     #   jsonschema
     #   pytest
-babel==2.9.1
+babel==2.11.0
     # via sphinx
-backports.entry-points-selectable==1.1.1
-    # via virtualenv
-beautifulsoup4==4.10.0
+beautifulsoup4==4.11.1
     # via furo
-black==21.10b0
+black==22.10.0
     # via -r requirements/dev.in
-bleach==4.1.0
+bleach==5.0.1
     # via readme-renderer
-certifi==2021.10.8
+certifi==2022.9.24
     # via
     #   -c requirements/prod.txt
     #   requests
+cffi==1.15.1
+    # via
+    #   -c requirements/prod.txt
+    #   cryptography
 cfgv==3.3.1
     # via pre-commit
-charset-normalizer==2.0.7
+charset-normalizer==2.1.1
     # via
     #   -c requirements/prod.txt
     #   requests
-click==7.1.2
+click==8.1.3
     # via
     #   -c requirements/prod.txt
     #   black
-colorama==0.4.4
+commonmark==0.9.1
     # via
     #   -c requirements/prod.txt
-    #   twine
-coverage[toml]==6.1.1
+    #   rich
+coverage[toml]==6.5.0
     # via
     #   -r requirements/dev.in
     #   coveralls
-coveralls==3.3.0
+    #   pytest-cov
+coveralls==3.3.1
     # via -r requirements/dev.in
-distlib==0.3.3
+cryptography==38.0.3
+    # via
+    #   -c requirements/prod.txt
+    #   secretstorage
+distlib==0.3.6
     # via virtualenv
 docopt==0.6.2
     # via coveralls
 docutils==0.16
     # via
     #   -c requirements/prod.txt
+    #   myst-parser
     #   readme-renderer
     #   sphinx
 factory-boy==3.2.1
     # via -r requirements/dev.in
-faker==9.8.0
+faker==15.0.0
     # via
     #   -c requirements/prod.txt
     #   factory-boy
-filelock==3.3.2
+filelock==3.8.0
     # via
     #   tox
     #   virtualenv
 flake8==3.9.2
     # via -r requirements/dev.in
-furo==2021.10.9
+furo==2022.9.29
     # via -r requirements/dev.in
-identify==2.3.5
+identify==2.5.8
     # via pre-commit
-idna==3.3
+idna==3.4
     # via
     #   -c requirements/prod.txt
     #   requests
     #   yarl
-imagesize==1.3.0
+imagesize==1.4.1
     # via sphinx
-importlib-metadata==4.2.0
+importlib-metadata==5.0.0
     # via
     #   -c requirements/prod.txt
     #   keyring
+    #   sphinx
     #   twine
-importlib-resources==5.4.0
+importlib-resources==5.10.0
     # via jsonschema
 iniconfig==1.1.1
     # via pytest
 isort==5.10.1
     # via -r requirements/dev.in
-jinja2==2.11.3
+jeepney==0.8.0
     # via
     #   -c requirements/prod.txt
+    #   keyring
+    #   secretstorage
+jinja2==3.1.2
+    # via
+    #   -c requirements/prod.txt
+    #   myst-parser
     #   sphinx
-jsonschema==4.2.1 ; python_version > "3.6"
+jsonschema==4.17.0
     # via -r requirements/dev.in
 keyring==23.0.1
     # via
     #   -c requirements/prod.txt
     #   twine
-markupsafe==2.0.1
+markdown-it-py==2.1.0
+    # via
+    #   mdit-py-plugins
+    #   myst-parser
+markupsafe==2.1.1
     # via
     #   -c requirements/prod.txt
     #   jinja2
 mccabe==0.6.1
     # via flake8
-multidict==5.2.0
+mdit-py-plugins==0.3.1
+    # via myst-parser
+mdurl==0.1.2
+    # via markdown-it-py
+multidict==6.0.2
     # via yarl
 mypy-extensions==0.4.3
     # via black
-nodeenv==1.6.0
+myst-parser==0.18.1
+    # via -r requirements/dev.in
+nodeenv==1.7.0
     # via pre-commit
-packaging==21.2
+packaging==21.3
     # via
-    #   bleach
     #   pytest
     #   sphinx
     #   tox
-pathspec==0.9.0
+pathspec==0.10.1
     # via black
-pkginfo==1.7.1
+pkginfo==1.8.3
     # via twine
-platformdirs==2.4.0
+pkgutil-resolve-name==1.3.10
+    # via jsonschema
+platformdirs==2.5.3
     # via
     #   black
     #   virtualenv
@@ -127,7 +153,7 @@ pluggy==1.0.0
     # via
     #   pytest
     #   tox
-pre-commit==2.15.0
+pre-commit==2.20.0
     # via -r requirements/dev.in
 py==1.11.0
     # via
@@ -135,22 +161,31 @@ py==1.11.0
     #   tox
 pycodestyle==2.7.0
     # via flake8
-pyflakes==2.3.1
-    # via flake8
-pygments==2.10.0
+pycparser==2.21
     # via
     #   -c requirements/prod.txt
+    #   cffi
+pyflakes==2.3.1
+    # via flake8
+pygments==2.13.0
+    # via
+    #   -c requirements/prod.txt
+    #   furo
     #   readme-renderer
+    #   rich
     #   sphinx
-pyparsing==2.4.7
+pyparsing==3.0.9
     # via packaging
-pyrsistent==0.18.0
+pyrsistent==0.19.2
     # via jsonschema
-pytest==6.2.5
+pytest==7.0.1
     # via
     #   -r requirements/dev.in
+    #   pytest-cov
     #   pytest-random-order
     #   pytest-vcr
+pytest-cov==4.0.0
+    # via -r requirements/dev.in
 pytest-random-order==1.0.4
     # via -r requirements/dev.in
 pytest-vcr==1.0.2
@@ -159,20 +194,19 @@ python-dateutil==2.8.2
     # via
     #   -c requirements/prod.txt
     #   faker
-pytz==2021.3
+pytz==2022.6
     # via
     #   -c requirements/prod.txt
     #   babel
 pyyaml==6.0
     # via
     #   -c requirements/prod.txt
+    #   myst-parser
     #   pre-commit
     #   vcrpy
-readme-renderer==30.0
+readme-renderer==37.3
     # via twine
-regex==2021.11.10
-    # via black
-requests==2.26.0
+requests==2.28.1
     # via
     #   -c requirements/prod.txt
     #   coveralls
@@ -180,29 +214,39 @@ requests==2.26.0
     #   responses
     #   sphinx
     #   twine
-requests-toolbelt==0.9.1
+requests-toolbelt==0.10.1
     # via twine
-responses==0.14.0
+responses==0.22.0
     # via -r requirements/dev.in
-rfc3986==1.5.0
+rfc3986==2.0.0
     # via twine
+rich==12.6.0
+    # via
+    #   -c requirements/prod.txt
+    #   twine
+secretstorage==3.3.3
+    # via
+    #   -c requirements/prod.txt
+    #   keyring
 six==1.16.0
     # via
     #   -c requirements/prod.txt
     #   bleach
     #   python-dateutil
-    #   responses
     #   tox
     #   vcrpy
-    #   virtualenv
-snowballstemmer==2.1.0
+snowballstemmer==2.2.0
     # via sphinx
-soupsieve==2.3
+soupsieve==2.3.2.post1
     # via beautifulsoup4
-sphinx==4.3.0
+sphinx==5.3.0
     # via
     #   -r requirements/dev.in
     #   furo
+    #   myst-parser
+    #   sphinx-basic-ng
+sphinx-basic-ng==1.0.0b1
+    # via furo
 sphinxcontrib-applehelp==1.0.2
     # via sphinx
 sphinxcontrib-devhelp==1.0.2
@@ -215,61 +259,59 @@ sphinxcontrib-qthelp==1.0.3
     # via sphinx
 sphinxcontrib-serializinghtml==1.1.5
     # via sphinx
-testfixtures==6.18.3
+testfixtures==7.0.3
     # via -r requirements/dev.in
-text-unidecode==1.3
-    # via
-    #   -c requirements/prod.txt
-    #   faker
 toml==0.10.2
     # via
     #   pre-commit
-    #   pytest
-    #   tox
-tomli==1.2.2
+    #   responses
+tomli==2.0.1
     # via
     #   black
     #   coverage
-tox==3.24.4
+    #   pytest
+    #   tox
+tox==3.27.0
     # via -r requirements/dev.in
-tqdm==4.62.3
-    # via twine
-twine==3.6.0
+twine==4.0.1
     # via -r requirements/dev.in
-typeguard==2.10.0
+typeguard==2.13.3
     # via -r requirements/dev.in
-typing-extensions==3.10.0.2
+types-toml==0.10.8
+    # via responses
+typing-extensions==4.4.0
     # via
     #   -c requirements/prod.txt
     #   black
-urllib3==1.26.7
+    #   myst-parser
+    #   rich
+urllib3==1.26.12
     # via
     #   -c requirements/prod.txt
     #   requests
     #   responses
-vcrpy==4.1.1
+    #   twine
+vcrpy==4.2.1
     # via
     #   -r requirements/dev.in
     #   pytest-vcr
-virtualenv==20.10.0
+virtualenv==20.16.6
     # via
     #   pre-commit
     #   tox
 webencodings==0.5.1
     # via bleach
-wheel==0.37.0
+wheel==0.38.4
     # via -r requirements/dev.in
-wrapt==1.13.3
-    # via
-    #   -c requirements/prod.txt
-    #   vcrpy
-yarl==1.7.2
+wrapt==1.14.1
     # via vcrpy
-zipp==3.6.0
+yarl==1.8.1
+    # via vcrpy
+zipp==3.10.0
     # via
     #   -c requirements/prod.txt
-    #   importlib-metadata
-    #   importlib-resources
+    #    importlib-metadata
+    #    importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

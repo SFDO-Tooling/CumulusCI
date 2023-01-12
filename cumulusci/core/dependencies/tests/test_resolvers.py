@@ -6,8 +6,10 @@ from github3.exceptions import NotFoundError
 
 from cumulusci.core.config import UniversalConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
+from cumulusci.core.config.tests.test_config import DummyRelease
 from cumulusci.core.dependencies.dependencies import (
     DynamicDependency,
+    GitHubDependencyPin,
     GitHubDynamicDependency,
     PackageNamespaceVersionDependency,
     PackageVersionIdDependency,
@@ -15,24 +17,27 @@ from cumulusci.core.dependencies.dependencies import (
     UnmanagedGitHubRefDependency,
 )
 from cumulusci.core.dependencies.resolvers import (
+    AbstractGitHubReleaseBranchResolver,
     DependencyResolutionStrategy,
     GitHubBetaReleaseTagResolver,
+    GitHubDefaultBranch2GPResolver,
+    GitHubExactMatch2GPResolver,
     GitHubReleaseBranchCommitStatusResolver,
-    GitHubReleaseBranchExactMatchCommitStatusResolver,
-    GitHubReleaseBranchResolver,
     GitHubReleaseTagResolver,
     GitHubTagResolver,
     GitHubUnmanagedHeadResolver,
     dependency_filter_ignore_deps,
+    get_release_id,
     get_resolver,
     get_resolver_stack,
     get_static_dependencies,
+    locate_commit_status_package_id,
 )
 from cumulusci.core.exceptions import CumulusCIException, DependencyResolutionError
 
 
 class ConcreteDynamicDependency(DynamicDependency):
-    ref: Optional[str]
+    ref: Optional[str] = None
     resolved: Optional[bool] = False
 
     @property
@@ -270,14 +275,17 @@ version_id: 04t000000000000"""
             ),
         )
 
-    def test_beta_release_tag(self, project_config):
+    @mock.patch("cumulusci.core.dependencies.resolvers.find_latest_release")
+    def test_beta_release_tag(self, get_latest, project_config):
+        get_latest.return_value = DummyRelease("beta/2.1_Beta_1", "2.1 Beta 1")
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/ReleasesRepo"
         )
         resolver = GitHubBetaReleaseTagResolver()
-
         assert resolver.can_resolve(dep, project_config)
-        assert resolver.resolve(dep, project_config) == (
+        resolved = resolver.resolve(dep, project_config)
+
+        assert resolved == (
             "tag_sha",
             PackageNamespaceVersionDependency(
                 namespace="ccitestdep",
@@ -321,7 +329,7 @@ class TestGitHubUnmanagedHeadResolver:
         assert resolver.resolve(dep, project_config) == ("commit_sha", None)
 
 
-class ConcreteGitHubReleaseBranchResolver(GitHubReleaseBranchResolver):
+class ConcreteGitHubReleaseBranchResolver(AbstractGitHubReleaseBranchResolver):
     def resolve(
         self, dep: GitHubDynamicDependency, context: BaseProjectConfig
     ) -> Tuple[Optional[str], Optional[StaticDependency]]:
@@ -360,7 +368,7 @@ class TestGitHubReleaseBranchResolver:
         pc.repo_info["branch"] = "feature/232__test"
         pc.project__git["prefix_feature"] = "feature/"
 
-        assert ConcreteGitHubReleaseBranchResolver().get_release_id(pc) == 232
+        assert get_release_id(pc) == 232
 
     def test_get_release_id__not_release_branch(self):
         pc = BaseProjectConfig(UniversalConfig())
@@ -370,7 +378,7 @@ class TestGitHubReleaseBranchResolver:
             repo_branch.return_value = None
 
             with pytest.raises(DependencyResolutionError) as e:
-                ConcreteGitHubReleaseBranchResolver().get_release_id(pc)
+                get_release_id(pc)
 
             assert "Cannot get current branch" in str(e)
 
@@ -383,13 +391,13 @@ class TestGitHubReleaseBranchResolver:
             pc.project__git["prefix_feature"] = "feature/"
 
             with pytest.raises(DependencyResolutionError) as e:
-                ConcreteGitHubReleaseBranchResolver().get_release_id(pc)
+                get_release_id(pc)
 
             assert "Cannot get current release identifier" in str(e)
 
     def test_locate_commit_status_package_id__not_found_with_parent(self, github):
         repo = github.repository("SFDO-Tooling", "TwoGPMissingRepo")
-        assert ConcreteGitHubReleaseBranchResolver().locate_commit_status_package_id(
+        assert locate_commit_status_package_id(
             repo, repo.branch("feature/232"), "Build Feature Test Package"
         ) == (None, None)
 
@@ -467,18 +475,17 @@ class TestGitHubReleaseBranchCommitStatusResolver:
         assert resolver.resolve(dep, project_config) == (None, None)
 
 
-class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
+class TestGitHubExactMatch2GPResolver:
     def test_exact_branch_resolver(self, project_config):
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
         )
 
         assert resolver.can_resolve(dep, project_config)
-
         assert resolver.resolve(dep, project_config) == (
             "feature/232__test_sha",
             PackageVersionIdDependency(
@@ -490,7 +497,7 @@ class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/NonexistentRepo"
         )
@@ -510,7 +517,7 @@ class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/232__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
         )
@@ -520,7 +527,7 @@ class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/290__test"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPRepo"
         )
@@ -531,7 +538,38 @@ class TestGitHubReleaseBranchExactMatchCommitStatusResolver:
         project_config.repo_branch = "feature/232"
         project_config.project__git__prefix_feature = "feature/"
 
-        resolver = GitHubReleaseBranchExactMatchCommitStatusResolver()
+        resolver = GitHubExactMatch2GPResolver()
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/TwoGPMissingRepo"
+        )
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (None, None)
+
+
+class TestGitHubDefaultBranch2GPResolver:
+    def test_default_branch_resolver(self, project_config):
+        project_config.repo_branch = "feature/299__test"
+        project_config.project__git__prefix_feature = "feature/"
+
+        resolver = GitHubDefaultBranch2GPResolver()
+        dep = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/TwoGPRepo"
+        )
+
+        assert resolver.can_resolve(dep, project_config)
+        assert resolver.resolve(dep, project_config) == (
+            "main_sha",
+            PackageVersionIdDependency(
+                version_id="04t000000000005", package_name="CumulusCI-2GP-Test"
+            ),
+        )
+
+    def test_commit_status_not_found(self, project_config):
+        project_config.repo_branch = "feature/299"
+        project_config.project__git__prefix_feature = "feature/"
+
+        resolver = GitHubDefaultBranch2GPResolver()
         dep = GitHubDynamicDependency(
             github="https://github.com/SFDO-Tooling/TwoGPMissingRepo"
         )
@@ -630,6 +668,113 @@ class TestStaticDependencyResolution:
                 namespace_inject="bar",
             ),
         ]
+
+    def test_get_static_dependencies__pins(self, project_config):
+        gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")
+
+        tag = mock.Mock()
+        tag.return_value.object.sha = "tag_sha"
+        tag.return_value.message = """
+package_type: 1GP
+
+version_id: 04t000000000000"""
+        project_config.get_repo_from_url(
+            "https://github.com/SFDO-Tooling/RootRepo"
+        ).tag = tag
+
+        project_config.get_repo_from_url(
+            "https://github.com/SFDO-Tooling/DependencyRepo"
+        ).tag = tag
+
+        # Add a pin for the direct dependency and a transitive dependency
+        pins = [
+            GitHubDependencyPin(
+                github="https://github.com/SFDO-Tooling/DependencyRepo",
+                tag="release/1.0",
+            ),
+            GitHubDependencyPin(
+                github="https://github.com/SFDO-Tooling/RootRepo", tag="release/1.5"
+            ),
+        ]
+
+        assert pins[1].can_pin(gh)
+
+        deps = get_static_dependencies(
+            project_config,
+            dependencies=[gh],
+            strategies=[DependencyResolutionStrategy.RELEASE_TAG],
+            pins=pins,
+        )
+
+        assert deps == [
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/DependencyRepo",
+                subfolder="unpackaged/pre/top",
+                unmanaged=True,
+                ref="tag_sha",
+            ),
+            PackageNamespaceVersionDependency(
+                namespace="foo",
+                version="1.0",  # from the pinned tag
+                package_name="DependencyRepo",
+                version_id="04t000000000000",
+            ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/DependencyRepo",
+                subfolder="unpackaged/post/top",
+                unmanaged=False,
+                ref="tag_sha",
+                namespace_inject="foo",
+            ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/pre/first",
+                unmanaged=True,
+                ref="tag_sha",
+            ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/pre/second",
+                unmanaged=True,
+                ref="tag_sha",
+            ),
+            PackageNamespaceVersionDependency(
+                namespace="bar",
+                version="1.5",  # From pinned tag
+                package_name="RootRepo",
+                version_id="04t000000000000",
+            ),
+            UnmanagedGitHubRefDependency(
+                github="https://github.com/SFDO-Tooling/RootRepo",
+                subfolder="unpackaged/post/first",
+                unmanaged=False,
+                ref="tag_sha",
+                namespace_inject="bar",
+            ),
+        ]
+
+    def test_get_static_dependencies__conflicting_pin(self, project_config):
+        gh = GitHubDynamicDependency(
+            github="https://github.com/SFDO-Tooling/RootRepo", tag="release/foo"
+        )
+
+        # Add a pin for the direct dependency that conflicts
+        pins = [
+            GitHubDependencyPin(
+                github="https://github.com/SFDO-Tooling/RootRepo", tag="release/1.5"
+            ),
+        ]
+
+        assert pins[0].can_pin(gh)
+        with pytest.raises(
+            DependencyResolutionError, match="dependency already has a tag specified"
+        ):
+            get_static_dependencies(
+                project_config,
+                dependencies=[gh],
+                strategies=[DependencyResolutionStrategy.RELEASE_TAG],
+                pins=pins,
+            )
 
     def test_get_static_dependencies__ignore_namespace(self, project_config):
         gh = GitHubDynamicDependency(github="https://github.com/SFDO-Tooling/RootRepo")

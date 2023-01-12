@@ -32,9 +32,15 @@ def pageobject(page_type, object_name=None):
         key = (page_type, object_name if object_name else "")
         PageObjects.registry[key] = cls
         cls._page_type = page_type
-        cls._object_name = object_name
         if getattr(cls, "_object_name", None) is None:
             cls._object_name = object_name
+        else:
+            # this page object uses an alias for the object (ie: the name
+            # and _object_name do not match). Let's add this object name
+            # into the registry so it can be called with either the alias
+            # or the actual object name
+            alias_key = (page_type, cls._object_name)
+            PageObjects.registry[alias_key] = cls
         return cls
 
     return wrapper

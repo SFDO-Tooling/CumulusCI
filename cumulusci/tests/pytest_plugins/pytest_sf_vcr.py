@@ -14,6 +14,8 @@ from pathlib import Path
 import pytest
 from vcr import cassette
 
+from .pytest_sf_vcr_serializer import CompressionVCRSerializer
+
 
 def simplify_body(request_or_response_body):
     decoded = request_or_response_body.decode("utf-8")
@@ -30,8 +32,8 @@ class RecordingMode(Enum):
 
 replacements = [
     (r"/v?\d\d.0/", r"/vxx.0/"),
-    # (r"/00D[\w\d]{12,15}", "/00D0xORGID00000000"),
-    # (r'"00D[\w\d]{12,15}"', '"00D0xORGID00000000"'),
+    (r"/00D[\w\d]{12,15}", "/00D0xORGID00000000"),
+    (r'"00D[\w\d]{12,15}"', '"00D0xORGID00000000"'),
     (r".com//", r".com/"),
     (r"ersion>\d\d.0<", r"ersion>vxx.0<"),
     (r"<sessionId>.*</sessionId>", r"<sessionId>**Elided**</sessionId>"),
@@ -194,9 +196,16 @@ def salesforce_matcher(r1, r2, should_explain=False):
     return True
 
 
-def salesforce_vcr(vcr):
+@pytest.fixture(scope="session")
+def salesforce_serializer(shared_vcr_cassettes):
+    return CompressionVCRSerializer(shared_vcr_cassettes)
+
+
+def salesforce_vcr(vcr, salesforce_serializer):
     vcr.register_matcher("Salesforce Matcher", salesforce_matcher)
     vcr.match_on = ["Salesforce Matcher"]
+    vcr.register_serializer("Compression Serializer", salesforce_serializer)
+    vcr.serializer = "Compression Serializer"
     return vcr
 
 
@@ -215,7 +224,7 @@ def __contains__(self, request):
     for index, response in self._responses(request):
         if self.play_counts[index] != 0:
             raise AssertionError(
-                "SALESFORCE VCR Error: Request matched but response had already been used ****"
+                f"SALESFORCE VCR Error: Request matched but response had already been used **** {request}"
             )
 
     for index, (stored_request, response) in enumerate(self.data):

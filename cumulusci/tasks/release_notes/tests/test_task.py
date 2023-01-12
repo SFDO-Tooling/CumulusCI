@@ -175,7 +175,7 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
             task.repo, "main", self.PARENT_BRANCH_NAME
         )
         assert 1 == actual_pull_request.number
-        assert "Body" == actual_pull_request.body
+        assert actual_pull_request.body == "Body"
 
     @mock.patch("cumulusci.tasks.release_notes.task.get_pull_requests_with_base_branch")
     def test_get_parent_pull_request__pull_request_not_found(
@@ -374,6 +374,19 @@ class TestParentPullRequestNotes(GithubApiTestMixin):
         self.project_config = project_config
         task = task_factory(self.PARENT_BRANCH_OPTIONS)
         pull_request = ShortPullRequest(self._get_expected_pull_request(1, 1), gh_api)
+
+        task._add_header(pull_request)
+        assert task.UNAGGREGATED_PR_HEADER in pull_request.body
+
+        task._add_header(pull_request)  # header shouldn't be added again
+        assert pull_request.body.count(task.UNAGGREGATED_PR_HEADER) == 1
+
+    def test_empty_body(self, task_factory, gh_api, project_config):
+        self.init_github()
+        self.project_config = project_config
+        task = task_factory(self.PARENT_BRANCH_OPTIONS)
+        pull_request = ShortPullRequest(self._get_expected_pull_request(1, 1), gh_api)
+        pull_request.body = None
 
         task._add_header(pull_request)
         assert task.UNAGGREGATED_PR_HEADER in pull_request.body

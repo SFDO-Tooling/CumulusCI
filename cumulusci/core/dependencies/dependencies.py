@@ -65,6 +65,44 @@ def _validate_github_parameters(values):
     return values
 
 
+class DependencyPin(HashableBaseModel, abc.ABC):
+    @abc.abstractmethod
+    def can_pin(self, d: "DynamicDependency") -> bool:
+        ...
+
+    @abc.abstractmethod
+    def pin(self, d: "DynamicDependency", context: BaseProjectConfig):
+        ...
+
+
+DependencyPin.update_forward_refs()
+
+
+class GitHubDependencyPin(DependencyPin):
+    """Model representing a request to pin a GitHub dependency to a specific tag"""
+
+    github: str
+    tag: str
+
+    def can_pin(self, d: "DynamicDependency") -> bool:
+        return isinstance(d, BaseGitHubDependency) and d.github == self.github
+
+    def pin(self, d: "BaseGitHubDependency", context: BaseProjectConfig):
+        from cumulusci.core.dependencies.resolvers import (  # Circular imports
+            GitHubTagResolver,
+        )
+
+        if d.tag and d.tag != self.tag:
+            raise DependencyResolutionError(
+                f"A pin is specified for {self.github}, but the dependency already has a tag specified."
+            )
+        d.tag = self.tag
+        d.ref, d.package_dependency = GitHubTagResolver().resolve(d, context)
+
+
+GitHubDependencyPin.update_forward_refs()
+
+
 class Dependency(HashableBaseModel, abc.ABC):
     """Abstract base class for models representing dependencies
 
@@ -107,7 +145,7 @@ class StaticDependency(Dependency, abc.ABC):
     are already both resolved and flattened)."""
 
     @abc.abstractmethod
-    def install(self, org_config: OrgConfig, retry_options: dict = None):
+    def install(self, org_config: OrgConfig, retry_options: Optional[dict] = None):
         pass
 
     @property
@@ -123,17 +161,28 @@ class DynamicDependency(Dependency, abc.ABC):
     """Abstract base class for dependencies with dynamic references, like GitHub.
     These dependencies must be resolved and flattened before they can be installed."""
 
-    package_dependency: Optional[StaticDependency]
-    password_env_name: Optional[str]
+    package_dependency: Optional[StaticDependency] = None
+    password_env_name: Optional[str] = None
 
     @property
     def is_flattened(self):
         return False
 
-    def resolve(self, context, strategies):
+    def resolve(
+        self,
+        context: BaseProjectConfig,
+        strategies: List,  # List[DependencyResolutionStrategy], but circular import
+        pins: Optional[List[DependencyPin]] = None,
+    ):
         """Resolve a DynamicDependency that is not pinned to a specific version into one that is."""
         # avoid import cycle
         from .resolvers import resolve_dependency
+
+        for pin in pins or []:
+            if pin.can_pin(self):
+                context.logger.info(f"Pinning dependency {self} to {pin}")
+                pin.pin(self, context)
+                return
 
         resolve_dependency(self, context, strategies)
 
@@ -141,13 +190,15 @@ class DynamicDependency(Dependency, abc.ABC):
 class BaseGitHubDependency(DynamicDependency, abc.ABC):
     """Base class for dynamic dependencies that reference a GitHub repo."""
 
-    github: Optional[AnyUrl]
+    pin_class = GitHubDependencyPin
 
-    repo_owner: Optional[str]  # Deprecated - use full URL
-    repo_name: Optional[str]  # Deprecated - use full URL
+    github: Optional[AnyUrl] = None
 
-    tag: Optional[str]
-    ref: Optional[str]
+    repo_owner: Optional[str] = None  # Deprecated - use full URL
+    repo_name: Optional[str] = None  # Deprecated - use full URL
+
+    tag: Optional[str] = None
+    ref: Optional[str] = None
 
     @property
     @abc.abstractmethod
@@ -182,8 +233,8 @@ class GitHubDynamicSubfolderDependency(BaseGitHubDependency):
     to be resolved to a specific ref. This is always an unmanaged dependency."""
 
     subfolder: str
-    namespace_inject: Optional[str]
-    namespace_strip: Optional[str]
+    namespace_inject: Optional[str] = None
+    namespace_strip: Optional[str] = None
 
     @property
     def is_unmanaged(self):
@@ -222,9 +273,9 @@ class GitHubDynamicDependency(BaseGitHubDependency):
     to be resolved to a specific ref and/or package version."""
 
     unmanaged: bool = False
-    namespace_inject: Optional[str]
-    namespace_strip: Optional[str]
-    password_env_name: Optional[str]
+    namespace_inject: Optional[str] = None
+    namespace_strip: Optional[str] = None
+    password_env_name: Optional[str] = None
 
     skip: List[str] = []
 
@@ -374,10 +425,10 @@ class PackageNamespaceVersionDependency(StaticDependency):
 
     namespace: str
     version: str
-    package_name: Optional[str]
-    version_id: Optional[str]
+    package_name: Optional[str] = None
+    version_id: Optional[str] = None
 
-    password_env_name: Optional[str]
+    password_env_name: Optional[str] = None
 
     @property
     def package(self):
@@ -387,7 +438,7 @@ class PackageNamespaceVersionDependency(StaticDependency):
         self,
         context: BaseProjectConfig,
         org: OrgConfig,
-        options: PackageInstallOptions = None,
+        options: Optional[PackageInstallOptions] = None,
         retry_options=None,
     ):
         if not options:
@@ -436,10 +487,10 @@ class PackageVersionIdDependency(StaticDependency):
     """Static dependency on a package identified by 04t version id."""
 
     version_id: str
-    package_name: Optional[str]
-    version_number: Optional[str]
+    package_name: Optional[str] = None
+    version_number: Optional[str] = None
 
-    password_env_name: Optional[str]
+    password_env_name: Optional[str] = None
 
     @property
     def package(self):
@@ -449,7 +500,7 @@ class PackageVersionIdDependency(StaticDependency):
         self,
         context: BaseProjectConfig,
         org: OrgConfig,
-        options: PackageInstallOptions = None,
+        options: Optional[PackageInstallOptions] = None,
         retry_options=None,
     ):
         if not options:
@@ -489,10 +540,10 @@ class PackageVersionIdDependency(StaticDependency):
 class UnmanagedDependency(StaticDependency, abc.ABC):
     """Abstract base class for static, unmanaged dependencies."""
 
-    unmanaged: Optional[bool]
-    subfolder: Optional[str]
-    namespace_inject: Optional[str]
-    namespace_strip: Optional[str]
+    unmanaged: Optional[bool] = None
+    subfolder: Optional[str] = None
+    namespace_inject: Optional[str] = None
+    namespace_strip: Optional[str] = None
 
     def _get_unmanaged(self, org: OrgConfig):
         if self.unmanaged is None:
@@ -508,9 +559,9 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
         pass
 
     def get_metadata_package_zip_builder(
-        self, context: BaseProjectConfig, org: OrgConfig
+        self, project_config: BaseProjectConfig, org: OrgConfig
     ) -> MetadataPackageZipBuilder:
-        zip_src = self._get_zip_src(context)
+        zip_src = self._get_zip_src(project_config)
         # Determine whether to inject namespace prefixes or not
         # If and only if we have no explicit configuration.
 
@@ -554,10 +605,11 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
                 stack.enter_context(temporary_dir(chdir=True))
                 zip_src.extractall()
                 real_path = stack.enter_context(
-                    convert_sfdx_source(self.subfolder, None, context.logger)
+                    convert_sfdx_source(self.subfolder, None, project_config.logger)
                 )
                 zip_src = None  # Don't use the zipfile if we converted source.
 
+            context = TaskContext(org, project_config, project_config.logger)
             # We now know what to send to MetadataPackageZipBuilder
             # Note that subfolder logic is applied either by subsetting the zip
             # (for MDAPI) or by the conversion (for SFDX format)
@@ -566,7 +618,7 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
                 zip_src,
                 path=real_path,
                 options=options,
-                logger=context.logger,
+                context=context,
             )
 
         return package_zip
@@ -585,11 +637,11 @@ class UnmanagedDependency(StaticDependency, abc.ABC):
 class UnmanagedGitHubRefDependency(UnmanagedDependency):
     """Static dependency on unmanaged metadata in a specific GitHub ref and subfolder."""
 
-    repo_owner: Optional[str]
-    repo_name: Optional[str]
+    repo_owner: Optional[str] = None
+    repo_name: Optional[str] = None
 
     # or
-    github: Optional[AnyUrl]
+    github: Optional[AnyUrl] = None
 
     # and
     ref: str
@@ -658,6 +710,39 @@ class UnmanagedZipURLDependency(UnmanagedDependency):
         return f"{self.zip_url} {subfolder}"
 
 
+def parse_pins(pins: Optional[List[dict]]) -> List[DependencyPin]:
+    """Convert a list of dependency pin specifications in the form of dicts
+    (as defined in `cumulusci.yml`) and parse each into a concrete DependencyPin subclass.
+
+    Throws DependencyParseError if a dict cannot be parsed."""
+    parsed_pins = []
+    for pin in pins or []:
+        parsed = parse_dependency_pin(pin)
+        if parsed is None:
+            raise DependencyParseError(f"Unable to parse dependency pin: {pin}")
+        parsed_pins.append(parsed)
+
+    return parsed_pins
+
+
+AVAILABLE_DEPENDENCY_PIN_CLASSES = [GitHubDependencyPin]
+
+
+def parse_dependency_pin(pin_dict: dict) -> Optional[DependencyPin]:
+    """Parse a single dependency pin specification in the form of a dict
+    into a concrete DependencyPin subclass.
+
+    Returns None if the given dict cannot be parsed."""
+
+    for dependency_pin_class in AVAILABLE_DEPENDENCY_PIN_CLASSES:
+        try:
+            pin = dependency_pin_class.parse_obj(pin_dict)
+            if pin:
+                return pin
+        except pydantic.ValidationError:
+            pass
+
+
 def parse_dependencies(deps: Optional[List[dict]]) -> List[Dependency]:
     """Convert a list of dependency specifications in the form of dicts
     (as defined in `cumulusci.yml`) and parse each into a concrete Dependency subclass.
@@ -670,6 +755,16 @@ def parse_dependencies(deps: Optional[List[dict]]) -> List[Dependency]:
             raise DependencyParseError(f"Unable to parse dependency: {dep}")
         parsed_deps.append(parsed)
     return parsed_deps
+
+
+AVAILABLE_DEPENDENCY_CLASSES = [
+    PackageVersionIdDependency,
+    PackageNamespaceVersionDependency,
+    UnmanagedGitHubRefDependency,
+    UnmanagedZipURLDependency,
+    GitHubDynamicDependency,
+    GitHubDynamicSubfolderDependency,
+]
 
 
 def parse_dependency(dep_dict: dict) -> Optional[Dependency]:
@@ -685,14 +780,7 @@ def parse_dependency(dep_dict: dict) -> Optional[Dependency]:
     # We also want PackageVersionIdDependency to match before
     # PackageNamespaceVersionDependency, which can also accept a `version_id`.
 
-    for dependency_class in [
-        PackageVersionIdDependency,
-        PackageNamespaceVersionDependency,
-        UnmanagedGitHubRefDependency,
-        UnmanagedZipURLDependency,
-        GitHubDynamicDependency,
-        GitHubDynamicSubfolderDependency,
-    ]:
+    for dependency_class in AVAILABLE_DEPENDENCY_CLASSES:
         try:
             dep = dependency_class.parse_obj(dep_dict)
             if dep:

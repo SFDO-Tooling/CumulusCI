@@ -13,7 +13,7 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.tasks.github.tests.util_github_api import GithubApiTestMixin
 from cumulusci.tasks.salesforce.promote_package_version import PromotePackageVersion
-from cumulusci.tests.util import create_project_config
+from cumulusci.tests.util import CURRENT_SF_API_VERSION, create_project_config
 
 
 @pytest.fixture
@@ -58,7 +58,9 @@ def task(project_config, devhub_config, org_config):
 
 
 class TestPromotePackageVersion(GithubApiTestMixin):
-    devhub_base_url = "https://devhub.my.salesforce.com/services/data/v52.0"
+    devhub_base_url = (
+        f"https://devhub.my.salesforce.com/services/data/v{CURRENT_SF_API_VERSION}"
+    )
 
     def _mock_target_package_api_calls(self):
         responses.add(  # query for main package's Package2Version info
@@ -245,7 +247,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
         )
         responses.add(  # query for ref to tag
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.113-Beta_1",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/beta/1.113-Beta_1",
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=200,
         )
@@ -288,7 +290,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
         )
         responses.add(  # query for ref to tag
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.113-Beta_1",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/beta/1.113-Beta_1",
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=200,
         )
@@ -334,7 +336,7 @@ class TestPromotePackageVersion(GithubApiTestMixin):
         )
         responses.add(  # query for ref to tag
             "GET",
-            "https://api.github.com/repos/TestOwner/TestRepo/git/refs/tags/beta/1.113-Beta_1",
+            "https://api.github.com/repos/TestOwner/TestRepo/git/ref/tags/beta/1.113-Beta_1",
             json=self._get_expected_tag_ref("tag_SHA", "tag_SHA"),
             status=200,
         )
@@ -394,8 +396,8 @@ class TestPromotePackageVersion(GithubApiTestMixin):
         ]
         with caplog.at_level(logging.INFO):
             task._process_two_gp_deps(dependencies)
-        assert "Total 2GP dependencies: 1" == caplog.records[1].message
-        assert "Unpromoted 2GP dependencies: 1" == caplog.records[2].message
+        assert caplog.records[1].message == "Total 2GP dependencies: 1"
+        assert caplog.records[2].message == "Unpromoted 2GP dependencies: 1"
         assert (
             "This package depends on other packages that have not yet been promoted."
             == caplog.records[4].message

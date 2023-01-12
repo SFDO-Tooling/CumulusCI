@@ -1,9 +1,16 @@
+"""
+Pydantic models for validating cumulusci.yml
+
+Note: If you change the model here, you should run `make schema`
+to update the JSON Schema version in cumulusci.jsonschema.json
+"""
+
 import enum
 from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from pydantic import Field, root_validator
+from pydantic import Field, root_validator, validator
 from pydantic.types import DirectoryPath
 from typing_extensions import Literal, TypedDict
 
@@ -102,12 +109,13 @@ class Git(CCIDictModel):
     push_prefix_production: str = None
     release_notes: ReleaseNotes = None
     two_gp_context: str = Field(None, alias="2gp_context")
+    unlocked_context: Optional[str] = None
 
 
 class Plan(CCIDictModel):  # MetaDeploy plans
     title: str = None
     description: str = None
-    tier: Literal["primary", "secondary", "additional"] = None
+    tier: Literal["primary", "secondary", "additional"] = "primary"
     slug: str = None
     is_listed: bool = True
     steps: Dict[str, Step] = None
@@ -115,6 +123,7 @@ class Plan(CCIDictModel):  # MetaDeploy plans
     error_message: str = None
     post_install_message: str = None
     preflight_message: str = None
+    allowed_org_providers: List[Literal["devhub", "user"]] = ["user"]
 
 
 class DependencyResolutions(CCIDictModel):
@@ -124,13 +133,15 @@ class DependencyResolutions(CCIDictModel):
 
 
 class Project(CCIDictModel):
-    name: str = None
-    package: Package = None
-    test: Test = None
-    git: Git = None
-    dependencies: List[Dict[str, str]] = None  # TODO
-    dependency_resolutions: DependencyResolutions = None
+    name: Optional[str] = None
+    package: Optional[Package] = None
+    test: Optional[Test] = None
+    git: Optional[Git] = None
+    dependencies: Optional[List[Dict[str, str]]] = None
+    dependency_resolutions: Optional[DependencyResolutions] = None
+    dependency_pins: Optional[List[Dict[str, str]]]
     source_format: Literal["sfdx", "mdapi"] = "mdapi"
+    custom: Optional[Dict] = None
 
 
 class ScratchOrg(CCIDictModel):
@@ -149,6 +160,8 @@ class ServiceAttribute(CCIDictModel):
     description: str = None
     required: bool = None
     default_factory: PythonClassPath = None
+    default: str = None
+    sensitive: bool = False
 
 
 class Service(CCIDictModel):
@@ -220,6 +233,16 @@ class CumulusCIRoot(CCIDictModel):
     sources: Dict[str, Union[LocalFolderSourceModel, GitHubSourceModel]] = {}
     cli: CumulusCLIConfig = None
 
+    @validator("plans")
+    def validate_plan_tiers(cls, plans):
+        existing_tiers = [plan.tier for plan in plans.values()]
+        has_duplicate_tiers = any(
+            existing_tiers.count(tier) > 1 for tier in ("primary", "secondary")
+        )
+        if has_duplicate_tiers:
+            raise ValueError("Only one plan can be defined as 'primary' or 'secondary'")
+        return plans
+
 
 class CumulusCIFile(CCIDictModel):
     __root__: Union[CumulusCIRoot, None]
@@ -265,7 +288,10 @@ def _log_yaml_errors(logger, errors: List[ErrorDict]):
         logger.warning("  %s\n    %s", loc, error["msg"])
     if not has_shown_yaml_error_message:
         logger.error(
-            "NOTE: These warnings may become errors in future versions of CumulusCI."
+            "NOTE: These warnings will become errors on Sept 30, 2022.\n\n"
+            "If you need to put non-standard data in your CumulusCI file "
+            "(for some form of project-specific setting), put it in "
+            "the `project: custom:` section of `cumulusci.yml` ."
         )
         logger.error(
             "If you think your YAML has no error, please report the bug to the CumulusCI team."

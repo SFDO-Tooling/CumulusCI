@@ -1,11 +1,10 @@
-import unittest
 from unittest.mock import Mock
 
 from cumulusci.tasks.preflight.recordtypes import CheckSObjectRecordTypes
 from cumulusci.tasks.salesforce.tests.util import create_task
 
 
-class TestRecordTypePreflights(unittest.TestCase):
+class TestRecordTypePreflights:
     def test_record_type_preflight(self):
         task = create_task(CheckSObjectRecordTypes, {})
         task.tooling = Mock()

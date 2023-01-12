@@ -68,7 +68,7 @@ def future_with_exception_handling(future, futures_to_requests):
         return HTTPRequestError(exception=e, request=futures_to_requests[future])
 
 
-def collate_results(result_iterable: T.Sequence) -> (T.Generator, T.Generator):
+def collate_results(result_iterable: T.Sequence) -> T.Tuple[T.Generator, T.Generator]:
     """Partition results into separate sequences of successes and errors."""
     return partition(lambda r: isinstance(r, HTTPRequestError), result_iterable)
 

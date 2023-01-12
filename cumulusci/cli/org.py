@@ -10,12 +10,18 @@ from rich.console import Console
 
 from cumulusci.cli.ui import CliTable, SimpleSalesforceUIHelpers
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig
+from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
 from cumulusci.core.exceptions import OrgNotFound
-from cumulusci.oauth.client import OAuth2Client, OAuth2ClientConfig
+from cumulusci.oauth.client import (
+    PROD_LOGIN_URL,
+    SANDBOX_LOGIN_URL,
+    OAuth2Client,
+    OAuth2ClientConfig,
+)
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
 from cumulusci.utils import parse_api_datetime
 
-from .runtime import pass_runtime
+from .runtime import CliRuntime, pass_runtime
 
 
 @click.group("org", help="Commands for connecting and interacting with Salesforce orgs")
@@ -109,27 +115,35 @@ def org_browser(runtime, org_name, path, url_only):
     org_config.save()
 
 
-def setup_client(runtime, login_url=None, sandbox=None) -> OAuth2Client:
-    """Provides an OAuth2Client for Connecting and Org"""
-    connected_app = runtime.keychain.get_service("connected_app")
-    base_uri = "https://{}.salesforce.com"
-    base_uri = login_url or base_uri.format("test" if sandbox else "login")
-    auth_uri = base_uri + "/services/oauth2/authorize"
-    token_uri = base_uri + "/services/oauth2/token"
+def setup_client(connected_app, login_url=None, sandbox=None) -> OAuth2Client:
+    """Provides an OAuth2Client for connecting an Org"""
+    if login_url:
+        base_uri = login_url
+    elif sandbox:
+        base_uri = SANDBOX_LOGIN_URL
+    elif connected_app.login_url:
+        base_uri = connected_app.login_url
+    else:
+        base_uri = PROD_LOGIN_URL
+    base_uri = base_uri.rstrip("/")
 
     sf_client_config = OAuth2ClientConfig(
         client_id=connected_app.client_id,
         client_secret=connected_app.client_secret,
         redirect_uri=connected_app.callback_url,
-        auth_uri=auth_uri,
-        token_uri=token_uri,
+        auth_uri=f"{base_uri}/services/oauth2/authorize",
+        token_uri=f"{base_uri}/services/oauth2/token",
         scope="web full refresh_token",
     )
     return OAuth2Client(sf_client_config)
 
 
 def connect_org_to_keychain(
-    client: OAuth2Client, runtime, global_org: bool, org_name: str
+    client: OAuth2Client,
+    runtime,
+    global_org: bool,
+    org_name: str,
+    connected_app: str,
 ) -> None:
     """Use the given client to authorize into an org, and save the
     new OrgConfig to the keychain."""
@@ -137,14 +151,9 @@ def connect_org_to_keychain(
 
     global_org = global_org or runtime.project_config is None
     org_config = OrgConfig(oauth_dict, org_name, runtime.keychain, global_org)
+    org_config.config["connected_app"] = connected_app
     org_config.load_userinfo()
-    org_config._load_orginfo()
-    if org_config.organization_sobject["TrialExpirationDate"] is None:
-        org_config.config["expires"] = "Persistent"
-    else:
-        org_config.config["expires"] = parse_api_datetime(
-            org_config.organization_sobject["TrialExpirationDate"]
-        ).date()
+    org_config.populate_expiration_date()
 
     org_config.save()
 
@@ -153,6 +162,12 @@ def connect_org_to_keychain(
     name="connect", help="Connects a new org's credentials using OAuth Web Flow"
 )
 @orgname_option_or_argument(required=True)
+@click.option(
+    "--connected-app",
+    "--connected_app",
+    "connected_app_name",
+    help="Name of the connected_app service to use.",
+)
 @click.option(
     "--sandbox", is_flag=True, help="If set, connects to a Salesforce sandbox org"
 )
@@ -171,7 +186,9 @@ def connect_org_to_keychain(
     is_flag=True,
 )
 @pass_runtime(require_project=False, require_keychain=True)
-def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
+def org_connect(
+    runtime, org_name, sandbox, login_url, default, global_org, connected_app_name=None
+):
     runtime.check_org_overwrite(org_name)
 
     if login_url and ".lightning." in login_url:
@@ -180,8 +197,15 @@ def org_connect(runtime, org_name, sandbox, login_url, default, global_org):
             "Use the my.salesforce.com version instead"
         )
 
-    sf_client = setup_client(runtime, login_url, sandbox)
-    connect_org_to_keychain(sf_client, runtime, global_org, org_name)
+    connected_app_name = (
+        connected_app_name or runtime.keychain.get_default_service_name("connected_app")
+    )
+    click.echo(f"Connecting org using the {connected_app_name} connected app...")
+    connected_app = runtime.keychain.get_service("connected_app", connected_app_name)
+    sf_client = setup_client(connected_app, login_url, sandbox)
+    connect_org_to_keychain(
+        sf_client, runtime, global_org, org_name, connected_app_name
+    )
 
     if default and runtime.project_config is not None:
         runtime.keychain.set_default_org(org_name)
@@ -211,32 +235,56 @@ def org_default(runtime, org_name, unset):
             click.echo("There is no default org")
 
 
-@org.command(name="import", help="Import a scratch org from Salesforce DX")
+@org.command(name="import", help="Import an org from Salesforce DX")
 @click.argument("username_or_alias")
 @orgname_option_or_argument(required=True)
 @pass_runtime(require_keychain=True)
-def org_import(runtime, username_or_alias, org_name):
-    org_config = {"username": username_or_alias}
-    scratch_org_config = ScratchOrgConfig(
-        org_config, org_name, runtime.keychain, global_org=False
+def org_import(runtime: CliRuntime, username_or_alias: str, org_name: str):
+    # Import the org from the SFDX keychain as an SfdxOrgConfig
+    # The `sfdx` key ensures we can reload using the right class.
+    org_config = SfdxOrgConfig(
+        {"username": username_or_alias, "sfdx": True},
+        org_name,
+        runtime.keychain,
+        global_org=False,
     )
-    scratch_org_config.config["created"] = True
 
-    info = scratch_org_config.sfdx_info
-    if not info.get("created_date"):
-        raise click.UsageError(
-            "cci org import only works for locally created "
-            "scratch orgs.\nUse `cci org connect` for other orgs."
-        )
-    scratch_org_config.config["days"] = calculate_org_days(info)
-    scratch_org_config.config["date_created"] = parse_api_datetime(info["created_date"])
+    # Determine if we received a locally-created scratch org
+    # or some other org (which we'll treat as persistent)
 
-    scratch_org_config.save()
-    click.echo(
-        "Imported scratch org: {org_id}, username: {username}".format(
-            **scratch_org_config.sfdx_info
+    info = org_config.sfdx_info
+    if info.get("created_date"):
+        # This is a locally-created scratch org.
+        # Re-import accordingly.
+        org_config = ScratchOrgConfig(
+            {"username": username_or_alias},
+            org_name,
+            runtime.keychain,
+            global_org=False,
         )
-    )
+        org_config._sfdx_info = info
+        # Set `created` so we don't try to rebuild it.
+        org_config.config["created"] = True
+
+        org_config.config["days"] = calculate_org_days(info)
+        org_config.config["date_created"] = parse_api_datetime(info["created_date"])
+
+        org_config.save()
+        click.echo(
+            "Imported scratch org: {org_id}, username: {username}".format(
+                **org_config.sfdx_info
+            )
+        )
+    else:
+        # This is either a persistent org or a scratch org imported into the
+        # sfdx keychain via OAuth login.
+        org_config.populate_expiration_date()
+        org_config.save()
+        click.echo(
+            "Imported org: {org_id}, username: {username}".format(
+                **org_config.sfdx_info
+            )
+        )
 
 
 def calculate_org_days(info):
@@ -273,6 +321,7 @@ def org_info(runtime, org_name, print_json):
         ui_key_set = {
             "config_file",
             "config_name",
+            "connected_app",
             "created",
             "date_created",
             "days",
@@ -288,6 +337,7 @@ def org_info(runtime, org_name, print_json):
             "scratch",
             "scratch_org_type",
             "set_password",
+            "serialization_format",  # only during the transition
             "sfdx_alias",
             "username",
         }
@@ -318,12 +368,22 @@ def org_info(runtime, org_name, print_json):
 )
 @pass_runtime(require_project=False, require_keychain=True)
 def org_list(runtime, json_flag, plain):
+    def _get_org_safe(org):
+        try:
+            return runtime.keychain.get_org(org)
+        except Exception as e:
+            click.echo(f"Cannot load org config for `{org}`: {e}")
+
     plain = plain or runtime.universal_config.cli__plain_output
-    org_configs = {
-        org: runtime.keychain.get_org(org) for org in runtime.keychain.list_orgs()
-    }
+    org_configs = ((org, _get_org_safe(org)) for org in runtime.keychain.list_orgs())
+    org_configs = {org: org_config for org, org_config in org_configs if org_config}
+
     json_data = {}
-    default_org_name, _ = runtime.keychain.get_default_org()
+    try:
+        default_org_name, _ = runtime.keychain.get_default_org()
+    except Exception:  # pragma: no cover
+        default_org_name = None
+
     for org, org_config in org_configs.items():
         is_org_default = org == default_org_name
         row_data = {"is_default": is_org_default, "name": org}
@@ -339,7 +399,12 @@ def org_list(runtime, json_flag, plain):
     console.print(scratch_table, justify="left")
     console.print(persistent_table, justify="left")
 
-    runtime.keychain.cleanup_org_cache_dirs()
+    try:
+        runtime.keychain.cleanup_org_cache_dirs()
+    except Exception:
+        click.echo(
+            "Cannot cleanup org cache dirs, perhaps due to org config files which cannot be decrypted."
+        )
 
 
 def _make_tables(json_data: dict):
@@ -401,7 +466,7 @@ def _format_scratch_org_data(org_config):
 @pass_runtime(require_project=True, require_keychain=True)
 def org_prune(runtime, include_active=False):
 
-    predefined_scratch_configs = getattr(runtime.project_config, "orgs__scratch", {})
+    predefined_scratch_configs = runtime.project_config.lookup("orgs__scratch", {})
 
     expired_orgs_removed = []
     active_orgs_removed = []
@@ -501,7 +566,7 @@ def org_remove(runtime, org_name, global_org):
 def org_scratch(runtime, config_name, org_name, default, devhub, days, no_password):
     runtime.check_org_overwrite(org_name)
 
-    scratch_configs = getattr(runtime.project_config, "orgs__scratch")
+    scratch_configs = runtime.project_config.lookup("orgs__scratch")
     if not scratch_configs:
         raise click.UsageError("No scratch org configs found in cumulusci.yml")
     scratch_config = scratch_configs.get(config_name)

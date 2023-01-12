@@ -13,9 +13,11 @@ import sarge
 
 from cumulusci import utils
 from cumulusci.core.config import FlowConfig, TaskConfig
+from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.core.flowrunner import FlowCoordinator
 from cumulusci.core.tasks import BaseTask
 from cumulusci.tests.util import create_project_config
+from cumulusci.utils.xml import elementtree_parse_file, lxml_parse_file
 
 
 class FunTestTask(BaseTask):
@@ -128,11 +130,39 @@ class TestUtils:
             logger.info.assert_called_once()
             assert os.listdir(d) == ["bar"]
 
-    @mock.patch("xml.etree.ElementTree.parse")
-    def test_elementtree_parse_file(self, mock_parse):
-        _marker = object()
-        mock_parse.return_value = _marker
-        assert utils.elementtree_parse_file("test_file") == _marker
+    def test_elementtree_parse_file(self, cumulusci_test_repo_root):
+        tree = elementtree_parse_file(
+            cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml"
+        )
+        assert tree.getroot().tag.startswith("{")
+
+    def test_elementtree_parse_file_pathstr(self, cumulusci_test_repo_root):
+        tree = elementtree_parse_file(
+            str(cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml")
+        )
+        assert tree.getroot().tag.startswith("{")
+
+    def test_lxml_parse_file(self, cumulusci_test_repo_root):
+        tree = lxml_parse_file(
+            cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml"
+        )
+        assert tree.getroot().tag.startswith("{")
+
+    def test_lxml_parse_stream(self, cumulusci_test_repo_root):
+        data = io.StringIO("<Foo/>")
+        tree = lxml_parse_file(data)
+        assert tree.getroot().tag == "Foo"
+
+    def test_lxml_parse_file_pathstr(self, cumulusci_test_repo_root):
+        tree = lxml_parse_file(
+            str(cumulusci_test_repo_root / "cumulusci/files/admin_profile.xml")
+        )
+        assert tree.getroot().tag.startswith("{")
+
+    def test_elementtree_parse_stream(self, cumulusci_test_repo_root):
+        data = io.StringIO("<Foo/>")
+        tree = elementtree_parse_file(data)
+        assert tree.getroot().tag == "Foo"
 
     @mock.patch("xml.etree.ElementTree.parse")
     def test_elementtree_parse_file_error(self, mock_parse):
@@ -195,7 +225,9 @@ class TestUtils:
         task_doc = utils.doc_task("scoop_icecream", task_config)
         assert (
             task_doc
-            == """**scoop_icecream**
+            == """.. _scoop-icecream:
+
+scoop_icecream
 ==========================================\n
 **Description:** Scoops icecream\n
 **Class:** cumulusci.tests.test_utils.FunTestTask\n
@@ -270,6 +302,7 @@ Options\n------------------------------------------\n\n
         flow_doc = utils.document_flow("test flow", "test description.", coordinator)
 
         expected_doc = (
+            ".. _test flow:\n\n"
             "test flow"
             "\n^^^^^^^^^\n"
             "\n**Description:** test description.\n"
@@ -277,7 +310,7 @@ Options\n------------------------------------------\n\n
             "\n.. code-block:: console\n"
         )
 
-        assert expected_doc == flow_doc
+        assert expected_doc == flow_doc, flow_doc
 
     def test_document_flow__additional_info(self):
         flow_steps = ["1) (Task) Extract"]
@@ -292,6 +325,7 @@ Options\n------------------------------------------\n\n
         )
 
         expected_doc = (
+            ".. _test flow:\n\n"
             "test flow"
             "\n^^^^^^^^^\n"
             "\n**Description:** test description.\n"
@@ -300,6 +334,9 @@ Options\n------------------------------------------\n\n
             "\n.. code-block:: console\n"
             "\n\t1) (Task) Extract"
         )
+        if expected_doc != flow_doc:
+            print(repr(expected_doc))
+            print(repr(flow_doc))
         assert expected_doc == flow_doc
 
     @responses.activate
@@ -353,12 +390,23 @@ Options\n------------------------------------------\n\n
 
         def assign_bytes(archive_type, zip_content, ref=None):
             zip_content.write(zipbytes)
+            return True
 
-        mock_archive = mock.Mock(return_value=True, side_effect=assign_bytes)
+        mock_archive = mock.Mock(side_effect=assign_bytes)
         mock_repo.archive = mock_archive
         zf = utils.download_extract_github(mock_github, "TestOwner", "TestRepo", "src")
         result = zf.read("test")
         assert b"test" in result
+
+    def test_download_extract_github__failure(self):
+        mock_repo = mock.Mock(default_branch="main")
+        mock_github = mock.Mock()
+        mock_github.repository.return_value = mock_repo
+
+        mock_repo.archive.return_value = False
+        with pytest.raises(CumulusCIException) as e:
+            utils.download_extract_github(mock_github, "TestOwner", "TestRepo", "src")
+            assert "Unable to download a zipball" in str(e)
 
     def test_process_text_in_directory__renamed_file(self):
         with utils.temporary_dir():
@@ -548,15 +596,15 @@ Options\n------------------------------------------\n\n
             pass
         assert 4 == logger.info.call_count
 
-    def test_util__sets_homebrew_upgrade_cmd(self):
+    def test_util__sets_homebrew_deprecation_msg(self):
         utils.CUMULUSCI_PATH = "/usr/local/Cellar/cumulusci/2.1.2"
         upgrade_cmd = utils.get_cci_upgrade_command()
-        assert utils.BREW_UPDATE_CMD == upgrade_cmd
+        assert utils.BREW_DEPRECATION_MSG == upgrade_cmd
 
-    def test_util__sets_linuxbrew_upgrade_cmd(self):
+    def test_util__sets_linuxbrew_deprecation_msg(self):
         utils.CUMULUSCI_PATH = "/home/linuxbrew/.linuxbrew/cumulusci/2.1.2"
         upgrade_cmd = utils.get_cci_upgrade_command()
-        assert utils.BREW_UPDATE_CMD == upgrade_cmd
+        assert utils.BREW_DEPRECATION_MSG == upgrade_cmd
 
     def test_util__sets_pip_upgrade_cmd(self):
         utils.CUMULUSCI_PATH = "/usr/local/pip-path/cumulusci/2.1.2"
@@ -571,9 +619,9 @@ Options\n------------------------------------------\n\n
         assert utils.PIPX_UPDATE_CMD == upgrade_cmd
 
     def test_convert_to_snake_case(self):
-        assert "one_two" == utils.convert_to_snake_case("OneTwo")
-        assert "one_two" == utils.convert_to_snake_case("ONETwo")
-        assert "one_two" == utils.convert_to_snake_case("One_Two")
+        assert utils.convert_to_snake_case("OneTwo") == "one_two"
+        assert utils.convert_to_snake_case("ONETwo") == "one_two"
+        assert utils.convert_to_snake_case("One_Two") == "one_two"
 
     @mock.patch("sarge.Command")
     def test_get_git_config(self, Command):
@@ -581,7 +629,7 @@ Options\n------------------------------------------\n\n
             stdout=io.BytesIO(b"test@example.com"), stderr=io.BytesIO(b""), returncode=0
         )
 
-        assert "test@example.com" == utils.get_git_config("user.email")
+        assert utils.get_git_config("user.email") == "test@example.com"
         assert (
             sarge.shell_format('git config --get "{0!s}"', "user.email")
             == Command.call_args[0][0]

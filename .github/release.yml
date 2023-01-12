@@ -1,0 +1,19 @@
+changelog:
+    exclude:
+        labels:
+            - ignore-for-release
+            - auto-pr
+            - dependencies
+        authors:
+            - app/github-actions
+    categories:
+        - title: Critical Changes 🛠
+          labels:
+              - critical-change
+        - title: Changes 🎉
+          labels:
+              - enhancement
+              - "*"
+        - title: Issues Fixed 🩴
+          labels:
+              - bug

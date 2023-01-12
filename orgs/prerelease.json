@@ -2,7 +2,7 @@
     "orgName": "CumulusCI - Dev Workspace",
     "edition": "Developer",
     "features": ["Communities"],
-    "release": "Preview",
+    "instance": "CS46",
     "settings": {
         "lightningExperienceSettings": {
             "enableS1DesktopEnabled": true

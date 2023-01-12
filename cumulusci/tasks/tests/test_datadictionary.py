@@ -1,10 +1,11 @@
 import io
-import unittest
 from collections import defaultdict
 from distutils.version import LooseVersion
 from unittest.mock import Mock, call, mock_open, patch
 
-from cumulusci.core.config import BaseConfig
+import pytest
+
+from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.dependencies import (
     GitHubDynamicDependency,
     parse_dependencies,
@@ -29,7 +30,7 @@ from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
 
-class test_GenerateDataDictionary(unittest.TestCase):
+class TestGenerateDataDictionary:
     def test_version_from_tag_name(self):
         task = create_task(GenerateDataDictionary, {})
 
@@ -65,7 +66,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
 
         assert (
             result
-            == "Object Label,Object API Name,Object Description,Version Introduced,Version Deleted\r\nTest,test__Test__c,Description,Test 1.1,Test 1.2\r\n"
+            == '"Object Label","Object API Name","Object Description","Version Introduced","Version Deleted"\r\n"Test","test__Test__c","Description","Test 1.1","Test 1.2"\r\n'
         )
 
     def test_write_field_results(self):
@@ -151,10 +152,15 @@ class test_GenerateDataDictionary(unittest.TestCase):
         result = f.read()
 
         assert result == (
-            "Object Label,Object API Name,Field Label,Field API Name,Type,Picklist Values,Help Text,Field Description,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
-            "Account,Account,Desc,test__Desc__c,Text,,,,Test 1.2,,,\r\n"
-            "Test Object,test__Test__c,Type,test__Type__c,Picklist,Foo; Bar; New Value,New Help,Description,Test 1.1,Test 1.2,Test 1.2,\r\n"
-            "Test Object,test__Test__c,Account,test__Account__c,Lookup to Account,,Help,Description,Test 1.1,,,Test 1.2\r\n"
+            '"Object Label","Object API Name","Field Label","Field API Name",'
+            '"Type","Picklist Values","Help Text","Field Description","Version Introduced",'
+            '"Version Picklist Values Last Changed","Version Help Text Last Changed",'
+            '"Version Deleted"\r\n"Account","Account","Desc","test__Desc__c","Text",'
+            '"","","","Test 1.2","","",""\r\n"Test Object","test__Test__c","Type",'
+            '"test__Type__c","Picklist","Foo; Bar; New Value","New Help","Description",'
+            '"Test 1.1","Test 1.2","Test 1.2",""\r\n"Test Object","test__Test__c",'
+            '"Account","test__Account__c","Lookup to Account","","Help","Description",'
+            '"Test 1.1","","","Test 1.2"\r\n'
         )
 
     def test_write_field_results__omit_sobjects(self):
@@ -235,9 +241,13 @@ class test_GenerateDataDictionary(unittest.TestCase):
         result = f.read()
 
         assert result == (
-            "Object Label,Object API Name,Field Label,Field API Name,Type,Picklist Values,Help Text,Field Description,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
-            "Test Object,test__Test__c,Type,test__Type__c,Picklist,Foo; Bar; New Value,New Help,Description,Test 1.1,Test 1.2,Test 1.2,\r\n"
-            "Test Object,test__Test__c,Account,test__Account__c,Lookup to Account,,Help,Description,Test 1.1,,,Test 1.2\r\n"
+            '"Object Label","Object API Name","Field Label","Field API Name","Type",'
+            '"Picklist Values","Help Text","Field Description","Version Introduced",'
+            '"Version Picklist Values Last Changed","Version Help Text Last Changed",'
+            '"Version Deleted"\r\n"Test Object","test__Test__c","Type","test__Type__c",'
+            '"Picklist","Foo; Bar; New Value","New Help","Description","Test 1.1","Test 1.2",'
+            '"Test 1.2",""\r\n"Test Object","test__Test__c","Account","test__Account__c",'
+            '"Lookup to Account","","Help","Description","Test 1.1","","","Test 1.2"\r\n'
         )
 
     def test_should_process_object(self):
@@ -1269,14 +1279,14 @@ class test_GenerateDataDictionary(unittest.TestCase):
         m.return_value.write.assert_has_calls(
             [
                 call(
-                    "Object Label,Object API Name,Object Description,Version Introduced,Version Deleted\r\n"
+                    '"Object Label","Object API Name","Object Description","Version Introduced","Version Deleted"\r\n'
                 ),
-                call("Test,test__Test__c,Description,Project 1.1,\r\n"),
+                call('"Test","test__Test__c","Description","Project 1.1",""\r\n'),
                 call(
-                    "Object Label,Object API Name,Field Label,Field API Name,Type,Picklist Values,Help Text,Field Description,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
+                    '"Object Label","Object API Name","Field Label","Field API Name","Type","Picklist Values","Help Text","Field Description","Version Introduced","Version Picklist Values Last Changed","Version Help Text Last Changed","Version Deleted"\r\n'
                 ),
                 call(
-                    "Test,test__Test__c,Type,test__Type__c,Text (255),,Type of field.,,Project 1.1,,,\r\n"
+                    '"Test","test__Test__c","Type","test__Type__c","Text (255)","","Type of field.","","Project 1.1","","",""\r\n'
                 ),
             ],
             any_order=True,
@@ -1358,17 +1368,17 @@ class test_GenerateDataDictionary(unittest.TestCase):
         m.return_value.write.assert_has_calls(
             [
                 call(
-                    "Object Label,Object API Name,Object Description,Version Introduced,Version Deleted\r\n"
+                    '"Object Label","Object API Name","Object Description","Version Introduced","Version Deleted"\r\n'
                 ),
-                call("Test,test__Test__c,Description,Project 1.1,\r\n"),
+                call('"Test","test__Test__c","Description","Project 1.1",""\r\n'),
                 call(
-                    "Object Label,Object API Name,Field Label,Field API Name,Type,Picklist Values,Help Text,Field Description,Version Introduced,Version Picklist Values Last Changed,Version Help Text Last Changed,Version Deleted\r\n"
-                ),
-                call(
-                    "Test,test__Test__c,Type,test__Type__c,Text (255),,Type of field.,,Project 1.1,,,\r\n"
+                    '"Object Label","Object API Name","Field Label","Field API Name","Type","Picklist Values","Help Text","Field Description","Version Introduced","Version Picklist Values Last Changed","Version Help Text Last Changed","Version Deleted"\r\n'
                 ),
                 call(
-                    "Test,test__Test__c,Description,test__Description__c,Text (255),,Description of field.,,Project Prerelease,,,\r\n"
+                    '"Test","test__Test__c","Type","test__Type__c","Text (255)","","Type of field.","","Project 1.1","","",""\r\n'
+                ),
+                call(
+                    '"Test","test__Test__c","Description","test__Description__c","Text (255)","","Description of field.","","Project Prerelease","","",""\r\n'
                 ),
             ],
             any_order=True,
@@ -1396,7 +1406,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config = create_project_config()
         project_config.project__name = "Project"
 
-        with self.assertRaises(DependencyParseError):
+        with pytest.raises(DependencyParseError):
             create_task(
                 GenerateDataDictionary,
                 {"additional_dependencies": [{"namespace": "foo"}]},
@@ -1407,7 +1417,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config = create_project_config()
         project_config.project__name = "Project"
 
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             create_task(
                 GenerateDataDictionary,
                 {"additional_dependencies": [{"namespace": "foo", "version": "1.0"}]},
@@ -1418,7 +1428,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         project_config = create_project_config()
         project_config.project__name = "Project"
 
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             create_task(
                 GenerateDataDictionary,
                 {
@@ -1470,7 +1480,7 @@ class test_GenerateDataDictionary(unittest.TestCase):
         ]
         project_config.get_repo_from_url = Mock(return_value=None)
 
-        with self.assertRaises(DependencyResolutionError):
+        with pytest.raises(DependencyResolutionError):
             task._get_repo_dependencies(
                 parse_dependencies(project_config.project__dependencies)
             )
@@ -1536,8 +1546,8 @@ project:
         get_static_dependencies.side_effect = fake_get_static_dependencies
 
         get_remote_project_config.side_effect = [
-            BaseConfig(cci_safe_load(cumulusci_yml_one)),
-            BaseConfig(cci_safe_load(cumulusci_yml_two)),
+            BaseProjectConfig(None, cci_safe_load(cumulusci_yml_one)),
+            BaseProjectConfig(None, cci_safe_load(cumulusci_yml_two)),
         ]
 
         results = task._get_repo_dependencies(

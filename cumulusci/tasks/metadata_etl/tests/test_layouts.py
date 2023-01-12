@@ -1,4 +1,4 @@
-import unittest
+import pytest
 
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.tasks.metadata_etl.layouts import (
@@ -563,7 +563,7 @@ MOCK_ADD_FIELDS_LAYOUT = """<?xml version="1.0" encoding="UTF-8"?>
 """
 
 
-class TestAddFieldsToPageLayout(unittest.TestCase):
+class TestAddFieldsToPageLayout:
     def test_add_fields_positioning(self):
         """Testing the positioning keywords [top|bottom|before|after]"""
         task = create_task(
@@ -806,13 +806,13 @@ class TestAddFieldsToPageLayout(unittest.TestCase):
         )
         tree = metadata_tree.fromstring(MOCK_ADD_FIELDS_LAYOUT.format().encode("utf-8"))
 
-        with self.assertRaises(TaskOptionsError):
+        with pytest.raises(TaskOptionsError):
             task._transform_entity(tree, "Layout")
 
     def test_add_fields_position_type_column(self):
         """Check positioning root validators column relative"""
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             create_task(
                 AddFieldsToPageLayout,
                 {
@@ -836,7 +836,7 @@ class TestAddFieldsToPageLayout(unittest.TestCase):
     def test_add_fields_position_type_field(self):
         """Check positioning root validators field relative"""
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             create_task(
                 AddFieldsToPageLayout,
                 {

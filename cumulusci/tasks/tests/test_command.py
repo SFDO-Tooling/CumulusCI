@@ -1,9 +1,10 @@
 """ Tests for the Command tasks """
 
-import unittest
+
 from io import BytesIO
 from unittest import mock
 
+import pytest
 from sarge import Capture
 
 from cumulusci.core.config import (
@@ -16,10 +17,10 @@ from cumulusci.core.tests.utils import MockLoggerMixin
 from cumulusci.tasks.command import Command, CommandException, SalesforceCommand
 
 
-class TestCommandTask(MockLoggerMixin, unittest.TestCase):
+class TestCommandTask(MockLoggerMixin):
     """Tests for the basic command task"""
 
-    def setUp(self):
+    def setup_method(self):
         self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
             self.universal_config, config={"noyaml": True}
@@ -46,44 +47,44 @@ class TestCommandTask(MockLoggerMixin, unittest.TestCase):
         try:
             task()
         except CommandException:
-            self.assertTrue(any("Return code" in s for s in self.task_log["error"]))
+            assert any("Return code" in s for s in self.task_log["error"])
 
-        self.assertTrue(any("total" in s for s in self.task_log["info"]))
+        assert any("total" in s for s in self.task_log["info"])
 
     def test_return_values_success(self):
         """Verify return_values is set when command succeeds"""
         self.task_config.config["options"] = {"command": "ls"}
         task = Command(self.project_config, self.task_config)
         task()
-        self.assertEqual(task.return_values, {"returncode": 0})
+        assert task.return_values == {"returncode": 0}
 
     def test_return_values_exception(self):
         """Verify return_values is set when command fails"""
         self.task_config.config["options"] = {"command": "exit 1"}
         task = Command(self.project_config, self.task_config)
-        with self.assertRaises(CommandException):
+        with pytest.raises(CommandException):
             task()
-        self.assertEqual(task.return_values, {"returncode": 1})
+        assert task.return_values == {"returncode": 1}
 
     def test_init__json_env(self):
         task_config = TaskConfig({"options": {"env": "{}", "command": "ls"}})
         task = Command(self.project_config, task_config)
-        self.assertEqual({}, task.options["env"])
+        assert {} == task.options["env"]
 
     def test_init__dict_env(self):
         task_config = TaskConfig({"options": {"env": {}, "command": "ls"}})
         task = Command(self.project_config, task_config)
-        self.assertEqual({}, task.options["env"])
+        assert {} == task.options["env"]
 
     def test_get_env__pass_env_false(self):
         task_config = TaskConfig({"options": {"pass_env": "False", "command": "ls"}})
         task = Command(self.project_config, task_config)
-        self.assertEqual({}, task._get_env())
+        assert {} == task._get_env()
 
     def test_handle_returncode(self):
         task_config = TaskConfig({"options": {"command": "ls"}})
         task = Command(self.project_config, task_config)
-        with self.assertRaises(CommandException):
+        with pytest.raises(CommandException):
             task._handle_returncode(1, BytesIO(b"err"))
 
     @mock.patch("cumulusci.tasks.command.sarge")
@@ -103,8 +104,8 @@ class TestCommandTask(MockLoggerMixin, unittest.TestCase):
         assert any("testing testing" in s for s in self.task_log["info"])
 
 
-class TestSalesforceCommand(unittest.TestCase):
-    def setUp(self):
+class TestSalesforceCommand:
+    def setup_method(self):
         self.universal_config = UniversalConfig()
         self.project_config = BaseProjectConfig(
             self.universal_config, config={"noyaml": True}
@@ -124,5 +125,5 @@ class TestSalesforceCommand(unittest.TestCase):
     def test_get_env(self):
         task = SalesforceCommand(self.project_config, self.task_config, self.org_config)
         env = task._get_env()
-        self.assertIn("SF_ACCESS_TOKEN", env)
-        self.assertIn("SF_INSTANCE_URL", env)
+        assert "SF_ACCESS_TOKEN" in env
+        assert "SF_INSTANCE_URL" in env

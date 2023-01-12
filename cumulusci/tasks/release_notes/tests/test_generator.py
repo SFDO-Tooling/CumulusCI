@@ -1,7 +1,6 @@
 # coding=utf-8
 import json
 import os
-import unittest
 from unittest import mock
 
 import pytest
@@ -51,30 +50,30 @@ class DummyParser(BaseChangeNotesParser):
         return "dummy parser output"
 
 
-class TestBaseReleaseNotesGenerator(unittest.TestCase):
+class TestBaseReleaseNotesGenerator:
     def test_render_no_parsers(self):
         release_notes = BaseReleaseNotesGenerator()
         content = release_notes.render()
-        self.assertEqual(content, "")
+        assert content == ""
 
     def test_render_dummy_parsers(self):
         release_notes = BaseReleaseNotesGenerator()
         release_notes.parsers.append(DummyParser("Dummy 1"))
         release_notes.parsers.append(DummyParser("Dummy 2"))
         expected = (
-            u"# Dummy 1\r\n\r\ndummy parser output\r\n\r\n"
-            + u"# Dummy 2\r\n\r\ndummy parser output"
+            "# Dummy 1\r\n\r\ndummy parser output\r\n\r\n"
+            + "# Dummy 2\r\n\r\ndummy parser output"
         )
-        self.assertEqual(release_notes.render(), expected)
+        assert release_notes.render() == expected
 
 
-class TestStaticReleaseNotesGenerator(unittest.TestCase):
+class TestStaticReleaseNotesGenerator:
     def test_init_parser(self):
         release_notes = StaticReleaseNotesGenerator([])
         assert len(release_notes.parsers) == 3
 
 
-class TestDirectoryReleaseNotesGenerator(unittest.TestCase):
+class TestDirectoryReleaseNotesGenerator:
     def test_init_parser(self):
         release_notes = DirectoryReleaseNotesGenerator("change_notes")
         assert len(release_notes.parsers) == 3
@@ -89,11 +88,11 @@ class TestDirectoryReleaseNotesGenerator(unittest.TestCase):
         print("-------------------------------------")
         print(content)
 
-        self.assertEqual(content, expected)
+        assert content == expected
 
 
-class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
-    def setUp(self):
+class TestGithubReleaseNotesGenerator(GithubApiTestMixin):
+    def setup_method(self):
         self.current_tag = "prod/1.4"
         self.last_tag = "prod/1.3"
         self.github_info = {
@@ -112,12 +111,12 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         generator = GithubReleaseNotesGenerator(
             self.gh, github_info, PARSER_CONFIG, self.current_tag, version_id="04t"
         )
-        self.assertEqual(generator.github_info, github_info)
-        self.assertEqual(generator.current_tag, self.current_tag)
-        self.assertEqual(generator.last_tag, None)
-        self.assertEqual(generator.change_notes.current_tag, self.current_tag)
-        self.assertEqual(generator.change_notes._last_tag, None)
-        self.assertEqual("04t", generator.version_id)
+        assert generator.github_info == github_info
+        assert generator.current_tag == self.current_tag
+        assert generator.last_tag is None
+        assert generator.change_notes.current_tag == self.current_tag
+        assert generator.change_notes._last_tag is None
+        assert generator.version_id == "04t"
 
     @responses.activate
     def test_init_with_last_tag(self):
@@ -126,11 +125,11 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         generator = GithubReleaseNotesGenerator(
             self.gh, github_info, PARSER_CONFIG, self.current_tag, self.last_tag
         )
-        self.assertEqual(generator.github_info, github_info)
-        self.assertEqual(generator.current_tag, self.current_tag)
-        self.assertEqual(generator.last_tag, self.last_tag)
-        self.assertEqual(generator.change_notes.current_tag, self.current_tag)
-        self.assertEqual(generator.change_notes._last_tag, self.last_tag)
+        assert generator.github_info == github_info
+        assert generator.current_tag == self.current_tag
+        assert generator.last_tag == self.last_tag
+        assert generator.change_notes.current_tag == self.current_tag
+        assert generator.change_notes._last_tag == self.last_tag
 
     @responses.activate
     def test_render_empty_pr_section(self):
@@ -143,15 +142,15 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         pr2 = repo.pull_request(2)
         generator.empty_change_notes.extend([pr1, pr2])
         content = render_empty_pr_section(generator.empty_change_notes)
-        self.assertEqual(3, len(content))
-        self.assertEqual("\n# Pull requests with no release notes", content[0])
-        self.assertEqual(
-            "\n* {} [[PR{}]({})]".format(pr1.title, pr1.number, pr1.html_url),
-            content[1],
+        assert 3 == len(content)
+        assert content[0] == "\n# Pull requests with no release notes"
+        assert (
+            "\n* {} [[PR{}]({})]".format(pr1.title, pr1.number, pr1.html_url)
+            == content[1]
         )
-        self.assertEqual(
-            "\n* {} [[PR{}]({})]".format(pr2.title, pr2.number, pr2.html_url),
-            content[2],
+        assert (
+            "\n* {} [[PR{}]({})]".format(pr2.title, pr2.number, pr2.html_url)
+            == content[2]
         )
 
     @responses.activate
@@ -169,16 +168,16 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         content = generator._update_release_content(release, "new content")
 
         split_content = content.split("\r\n")
-        self.assertEqual(4, len(split_content))
-        self.assertEqual("new content", split_content[0])
-        self.assertEqual("\n# Pull requests with no release notes", split_content[1])
-        self.assertEqual(
-            "\n* Pull Request #{0} [[PR{0}]({1})]".format(pr1.number, pr1.html_url),
-            split_content[2],
+        assert 4 == len(split_content)
+        assert split_content[0] == "new content"
+        assert split_content[1] == "\n# Pull requests with no release notes"
+        assert (
+            "\n* Pull Request #{0} [[PR{0}]({1})]".format(pr1.number, pr1.html_url)
+            == split_content[2]
         )
-        self.assertEqual(
-            "\n* Pull Request #{0} [[PR{0}]({1})]".format(pr2.number, pr2.html_url),
-            split_content[3],
+        assert (
+            "\n* Pull Request #{0} [[PR{0}]({1})]".format(pr2.number, pr2.html_url)
+            == split_content[3]
         )
 
     @responses.activate
@@ -198,9 +197,9 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         generator._parse_change_note(pr3)
 
         # PR1 is "non-empty" second two are "empty"
-        self.assertEqual(2, len(generator.empty_change_notes))
-        self.assertEqual(2, generator.empty_change_notes[0].number)
-        self.assertEqual(3, generator.empty_change_notes[1].number)
+        assert 2 == len(generator.empty_change_notes)
+        assert 2 == generator.empty_change_notes[0].number
+        assert 3 == generator.empty_change_notes[1].number
 
     def _create_generator(self):
         generator = GithubReleaseNotesGenerator(
@@ -209,8 +208,8 @@ class TestGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
         return generator
 
 
-class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTestMixin):
-    def setUp(self):
+class TestPublishingGithubReleaseNotesGenerator(GithubApiTestMixin):
+    def setup_method(self):
         self.init_github()
         self.github_info = {
             "github_owner": "TestOwner",
@@ -225,8 +224,8 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
     @responses.activate
     def test_publish_update_unicode(self):
         tag = "prod/1.4"
-        note = u"“Unicode quotes”"
-        expected_release_body = u"# Changes\r\n\r\n{}".format(note)
+        note = "“Unicode quotes”"
+        expected_release_body = "# Changes\r\n\r\n{}".format(note)
         # mock GitHub API responses
         self.mock_util.mock_get_repo()
         # create generator instance
@@ -236,8 +235,8 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         # render content
         content = generator.render()
         # verify
-        self.assertEqual(len(responses.calls._calls), 1)
-        self.assertEqual(content, expected_release_body)
+        assert len(responses.calls._calls) == 1
+        assert content == expected_release_body
 
     @responses.activate
     def test_publish_update_no_body(self):
@@ -252,8 +251,8 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         # render content
         content = generator.render()
         # verify
-        self.assertEqual(len(responses.calls._calls), 1)
-        self.assertEqual(content, expected_release_body)
+        assert len(responses.calls._calls) == 1
+        assert content == expected_release_body
 
     @responses.activate
     def test_publish_update_content_before(self):
@@ -271,8 +270,8 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         release = generator._get_release()
         content = generator._update_release_content(release, content)
         # verify
-        self.assertEqual(len(responses.calls._calls), 3)
-        self.assertEqual(content, expected_release_body)
+        assert len(responses.calls._calls) == 3
+        assert content == expected_release_body
 
     @responses.activate
     def test_publish_update_content_after(self):
@@ -290,8 +289,8 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         release = generator._get_release()
         content = generator._update_release_content(release, content)
         # verify
-        self.assertEqual(len(responses.calls._calls), 3)
-        self.assertEqual(content, expected_release_body)
+        assert len(responses.calls._calls) == 3
+        assert content == expected_release_body
 
     @responses.activate
     def test_publish_update_content_before_and_after(self):
@@ -309,8 +308,8 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         release = generator._get_release()
         content = generator._update_release_content(release, content)
         # verify
-        self.assertEqual(len(responses.calls._calls), 3)
-        self.assertEqual(content, expected_release_body)
+        assert len(responses.calls._calls) == 3
+        assert content == expected_release_body
 
     @responses.activate
     def test_publish_update_content_between(self):
@@ -334,8 +333,8 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         release = generator._get_release()
         content = generator._update_release_content(release, content)
         # verify
-        self.assertEqual(len(responses.calls._calls), 3)
-        self.assertEqual(content, expected_release_body)
+        assert len(responses.calls._calls) == 3
+        assert content == expected_release_body
 
     @responses.activate
     def test_publish_update_content_before_after_and_between(self):
@@ -363,8 +362,8 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         release = generator._get_release()
         content = generator._update_release_content(release, content)
         # verify
-        self.assertEqual(len(responses.calls._calls), 3)
-        self.assertEqual(content, expected_release_body)
+        assert len(responses.calls._calls) == 3
+        assert content == expected_release_body
 
     @responses.activate
     def test_publish_update_content_missing(self):
@@ -382,8 +381,8 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
         release = generator._get_release()
         content = generator._update_release_content(release, content)
         # verify
-        self.assertEqual(len(responses.calls._calls), 3)
-        self.assertEqual(content, expected_release_body)
+        assert len(responses.calls._calls) == 3
+        assert content == expected_release_body
 
     def _create_generator(self, current_tag, last_tag=None):
         generator = GithubReleaseNotesGenerator(
@@ -405,7 +404,7 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             return_value=mock.sentinel.content
         )
         result = generator()
-        self.assertIs(mock.sentinel.content, result)
+        assert mock.sentinel.content is result
         base_generator.assert_called_once()
         release.edit.assert_called_once()
 
@@ -418,7 +417,7 @@ class TestPublishingGithubReleaseNotesGenerator(unittest.TestCase, GithubApiTest
             url="{}/releases/tags/prod/1.0".format(self.mock_util.repo_url),
             status=404,
         )
-        with self.assertRaises(CumulusCIException):
+        with pytest.raises(CumulusCIException):
             generator()
 
 

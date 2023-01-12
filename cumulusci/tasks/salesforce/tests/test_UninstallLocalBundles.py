@@ -1,5 +1,4 @@
 import os
-import unittest
 from unittest import mock
 
 from cumulusci.tasks.salesforce import UninstallLocalBundles
@@ -8,7 +7,7 @@ from cumulusci.utils import temporary_dir
 from .util import create_task
 
 
-class TestUninstallLocalBundles(unittest.TestCase):
+class TestUninstallLocalBundles:
     def test_run_task(self):
         with temporary_dir() as path:
             os.mkdir("bundle")

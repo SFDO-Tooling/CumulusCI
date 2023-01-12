@@ -90,7 +90,7 @@ class EnsureRecordTypes(BaseSalesforceApiTask):
             str(self.options.get("record_type_description") or "")
         )[:255]
 
-        # We don't currently support standard objects
+        # We don't currently support custom objects
         if self.options["sobject"].endswith("__c"):
             raise TaskOptionsError("EnsureRecordTypes does not support custom objects")
 

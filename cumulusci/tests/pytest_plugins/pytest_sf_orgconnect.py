@@ -1,15 +1,17 @@
+import typing as T
 from contextlib import contextmanager
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
 import cumulusci
 from cumulusci.cli.org import org_remove, org_scratch, org_scratch_delete
 from cumulusci.cli.runtime import CliRuntime
-from cumulusci.core.config import TaskConfig
+from cumulusci.core.config import OrgConfig, TaskConfig
 from cumulusci.core.exceptions import OrgNotFound
 from cumulusci.salesforce_api.utils import get_simple_salesforce_connection
-from cumulusci.tests.util import unmock_env
+from cumulusci.tests.util import CURRENT_SF_API_VERSION, unmock_env
 
 
 def pytest_addoption(parser, pluginmanager):
@@ -27,6 +29,12 @@ def pytest_addoption(parser, pluginmanager):
         default=False,
         help="Replace VCR files.",
     )
+    parser.addoption(
+        "--opt-in",
+        action="store_true",
+        default=False,
+        help="disable custom_skip marks",
+    )
 
 
 def pytest_configure(config):
@@ -36,6 +44,7 @@ def pytest_configure(config):
         "large_vcr(): a network-based test that generates VCR cassettes too large for version control. Use --org to generate them locally.",
         "needs_org(): a test that needs an org (or at least access to the network) but should not attempt to store VCR cassettes",
         "org_shape(org_name, init_flow): a test that needs a particular org shape",
+        "opt_in(): a test that is 'off' by default (perhaps because it depends on some setup)",
     ]
 
     for marker in markers:
@@ -113,7 +122,10 @@ def org_config(request, current_org_shape, cli_org_config, fallback_org_config):
     # fast running test suites it might return a hardcoded
     # org and for integration test suites it might return
     # a specific default org or throw an exception.
-    return org_config
+    with mock.patch.object(
+        OrgConfig, "latest_api_version", CURRENT_SF_API_VERSION
+    ), mock.patch.object(OrgConfig, "refresh_oauth_token"):
+        yield org_config
 
 
 @pytest.fixture
@@ -136,7 +148,9 @@ def create_task(request, project_config, org_config):
 
         task_config = TaskConfig({"options": options})
 
-        return task_class(project_config, task_config, org_config)
+        t = task_class(project_config, task_config, org_config)
+        t._update_credentials = mock.Mock()
+        return t
 
     return create_task
 
@@ -150,6 +164,9 @@ def vcr_cassette_name_for_item(item):
 
 
 def classify_and_modify_test(item, marker_names):
+    if "opt_in" in marker_names and not item.config.getoption("--opt-in"):
+        pytest.skip("Skip by default turned on")
+
     if "slow" in marker_names:
         if not item.config.getoption("--run-slow-tests"):
             pytest.skip("slow: test requires --run-slow-tests")
@@ -183,10 +200,10 @@ def org_shapes():
         cleanup_org_shapes(org_shapes)
 
 
-def cleanup_org_shapes(org_shapes):
+def cleanup_org_shapes(org_shapes: dict):
     runtime = CliRuntime(load_keychain=True)
     errors = []
-    for org_name in org_shapes.keys():
+    for org_name in org_shapes:
         cleanup_org(runtime, org_name, errors)
 
     if errors:
@@ -244,39 +261,47 @@ def _change_org_shape(request, current_org_shape, org_shapes):
 
 @contextmanager
 def change_org_shape(
-    current_org_shape, config_name: str, flow_name: str, org_shapes: dict
+    current_org_shape, config_name: str, flow_name: T.Optional[str], org_shapes: dict
 ):
+
     # I don't love that we're using the user's real keychain
-    # but I get weird popups when I use an empty keychain.
+    # but otherwise we have no devhub connection
     with unmock_env():
         org_name = f"pytest__{config_name}__{flow_name}"
         org_config = org_shapes.get(org_name)
         if not org_config:
             org_config = _create_org(org_name, config_name, flow_name)
             org_shapes[org_name] = org_config
-    current_org_shape.org_config = org_config
-    yield org_config
+            org_config.sfdx_info  # generate and cache sfdx info
+    with mock.patch.object(current_org_shape, "org_config", org_config):
+        yield org_config
 
 
-def _create_org(org_name, config_name, flow_name):
+def _create_org(org_name: str, config_name: str, flow_name: str = None):
     runtime = CliRuntime(load_keychain=True)
     try:
         org, org_config = runtime.get_org(org_name)
     except OrgNotFound:
         org = None
     if org:
-        cleanup_org_shapes(org_name)
-    org_scratch.callback.__wrapped__(
-        runtime,
-        config_name,
-        org_name,
-        default=False,
-        devhub=None,
-        days=1,
-        no_password=False,
-    )
-    org, org_config = runtime.get_org(org_name)
+        cleanup_org_shapes([org_name])
+    try:
+        org_scratch.callback.__wrapped__(
+            runtime,
+            config_name,
+            org_name,
+            default=False,
+            devhub=None,
+            days=1,
+            no_password=False,
+        )
+        org, org_config = runtime.get_org(org_name)
 
-    coordinator = runtime.get_flow(flow_name)
-    coordinator.run(org_config)
+        if flow_name:
+            coordinator = runtime.get_flow(flow_name)
+            coordinator.run(org_config)
+    except Exception:
+        if runtime.get_org(org_name, fail_if_missing=False):
+            org_scratch_delete.callback.__wrapped__(runtime, org_name)
+        raise
     return org_config

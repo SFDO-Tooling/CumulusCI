@@ -50,6 +50,12 @@ class OrgNotFound(CumulusCIUsageError):
     pass
 
 
+class OrgCannotBeLoaded(CumulusCIUsageError):
+    """Raised when an org cannot be decrypted or unpickled"""
+
+    pass
+
+
 class ServiceNotConfigured(CumulusCIUsageError):
     """Raised when no service configuration could be found by a given name in the project keychain"""
 

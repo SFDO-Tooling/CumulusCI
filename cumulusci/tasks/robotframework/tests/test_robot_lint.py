@@ -2,7 +2,6 @@ import os.path
 import shutil
 import tempfile
 import textwrap
-import unittest
 from pathlib import Path
 
 import pytest
@@ -15,8 +14,8 @@ from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tests.util import create_project_config
 
 
-class TestRobotLint(MockLoggerMixin, unittest.TestCase):
-    def setUp(self):
+class TestRobotLint(MockLoggerMixin):
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.task_config = TaskConfig()
         self._task_log_handler.reset()
@@ -28,7 +27,7 @@ class TestRobotLint(MockLoggerMixin, unittest.TestCase):
         lint_defaults = str((here / "lint_defaults.txt").resolve())
         self.base_args = ["--argumentfile", lint_defaults]
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def make_test_file(self, data, suffix=".robot", name="test", dir=None):
@@ -108,7 +107,7 @@ class TestRobotLint(MockLoggerMixin, unittest.TestCase):
         """Verify we pass the default rules to rflint"""
 
         task = create_task(RobotLint, {"path": self.tmpdir})
-        self.assertEqual(task._get_args(), self.base_args)
+        assert task._get_args() == self.base_args
 
     def test_configure_option(self):
         """Verify that rule configuration options are passed to rflint"""
@@ -122,7 +121,7 @@ class TestRobotLint(MockLoggerMixin, unittest.TestCase):
             "--configure",
             "FileTooLong:123",
         ]
-        self.assertEqual(task._get_args(), expected)
+        assert task._get_args() == expected
 
     def test_error_option(self):
         """Verify that error option is propertly translated to rflint options"""
@@ -130,7 +129,7 @@ class TestRobotLint(MockLoggerMixin, unittest.TestCase):
             RobotLint, {"path": self.tmpdir, "error": "LineTooLong,FileTooLong"}
         )
         expected = self.base_args + ["--error", "LineTooLong", "--error", "FileTooLong"]
-        self.assertEqual(task._get_args(), expected)
+        assert task._get_args() == expected
 
     def test_ignore_option(self):
         """Verify that ignore option is propertly translated to rflint options"""
@@ -144,7 +143,7 @@ class TestRobotLint(MockLoggerMixin, unittest.TestCase):
             "--ignore",
             "TooFewTestSteps",
         ]
-        self.assertEqual(task._get_args(), expected)
+        assert task._get_args() == expected
 
     def test_warning_option(self):
         """Verify that warning option is propertly translated to rflint options"""
@@ -158,7 +157,7 @@ class TestRobotLint(MockLoggerMixin, unittest.TestCase):
             "--warning",
             "TrailingWhitespace",
         ]
-        self.assertEqual(task._get_args(), expected)
+        assert task._get_args() == expected
 
     def test_ignore_all(self):
         """Verify that -o ignore all works as expected
@@ -213,7 +212,7 @@ class TestRobotLint(MockLoggerMixin, unittest.TestCase):
         # path with one wildcard should find one file
         task = create_task(RobotLint, {"path": "{}/*.resource".format(self.tmpdir)})
         files = sorted(task._get_files())
-        self.assertEqual(files, [file1])
+        assert files == [file1]
 
         # two paths with wildcards should find all three files
         task = create_task(
@@ -221,7 +220,7 @@ class TestRobotLint(MockLoggerMixin, unittest.TestCase):
             {"path": "{dir}/*.resource, {dir}/*.robot".format(dir=self.tmpdir)},
         )
         files = sorted(task._get_files())
-        self.assertEqual(files, [file1, file2, file3])
+        assert files == [file1, file2, file3]
 
     def test_folder_for_path(self):
         """Verify that if the path is a folder, we process all files in the folder"""
@@ -231,7 +230,7 @@ class TestRobotLint(MockLoggerMixin, unittest.TestCase):
 
         task = create_task(RobotLint, {"path": self.tmpdir})
         files = sorted(task._get_files())
-        self.assertEqual(files, [file1, file2, file3])
+        assert files == [file1, file2, file3]
 
     def test_recursive_folder(self):
         """Verify that subdirectories are included when finding files"""
@@ -240,4 +239,4 @@ class TestRobotLint(MockLoggerMixin, unittest.TestCase):
 
         task = create_task(RobotLint, {"path": self.tmpdir})
         files = sorted(task._get_files())
-        self.assertEqual(files, [file1])
+        assert files == [file1]

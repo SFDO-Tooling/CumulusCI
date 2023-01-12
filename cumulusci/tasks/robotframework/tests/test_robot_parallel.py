@@ -3,7 +3,6 @@ Tests for the robot task, specifically for options related to running tests in p
 """
 
 import sys
-import unittest
 from pathlib import Path
 from unittest import mock
 
@@ -11,7 +10,7 @@ from cumulusci.tasks.robotframework import Robot
 from cumulusci.tasks.salesforce.tests.util import create_task
 
 
-class TestRobotParallel(unittest.TestCase):
+class TestRobotParallel:
     """Tests for the robot task when running tests with pabot"""
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")

@@ -1,9 +1,9 @@
+import csv
 import os.path
 import re
 import shutil
 import sys
 import tempfile
-import unittest
 from contextlib import contextmanager
 from pathlib import Path
 from unittest import mock
@@ -11,6 +11,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 import responses
+from robot.libdocpkg.robotbuilder import LibraryDocBuilder
 
 from cumulusci.core.config import BaseProjectConfig, TaskConfig, UniversalConfig
 from cumulusci.core.exceptions import RobotTestFailure, TaskOptionsError
@@ -24,12 +25,12 @@ from cumulusci.utils import temporary_dir, touch
 from cumulusci.utils.xml.robot_xml import log_perf_summary_from_xml
 
 
-class TestRobot(unittest.TestCase):
+class TestRobot:
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     def test_run_task_with_failure(self, robot_run):
         robot_run.return_value = 1
         task = create_task(Robot, {"suites": "tests", "pdb": True})
-        with self.assertRaises(RobotTestFailure):
+        with pytest.raises(RobotTestFailure):
             task()
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
@@ -47,9 +48,9 @@ class TestRobot(unittest.TestCase):
         for error_code in expected.keys():
             robot_run.return_value = error_code
             task = create_task(Robot, {"suites": "tests", "pdb": True})
-            with self.assertRaises(RobotTestFailure) as error:
+            with pytest.raises(RobotTestFailure) as e:
                 task()
-            self.assertEqual(str(error.exception), expected[error_code])
+            assert str(e.value) == expected[error_code]
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.patch_statusreporter")
     def test_pdb_arg(self, patch_statusreporter):
@@ -86,6 +87,16 @@ class TestRobot(unittest.TestCase):
         )
         for option in ("test", "include", "exclude", "vars", "suites", "skip"):
             assert isinstance(task.options[option], list)
+
+    def test_options_converted_to_dict(self):
+        task = create_task(
+            Robot,
+            {
+                "suites": "test",  # required, or the task will raise an exception
+                "options": "outputdir:/tmp/example,loglevel:DEBUG",
+            },
+        )
+        assert isinstance(task.options["options"], dict)
 
     def test_process_arg_requires_int(self):
         """Verify we throw a useful error for non-int "processes" option"""
@@ -216,9 +227,9 @@ class TestRobot(unittest.TestCase):
         listener_classes = [
             listener.__class__ for listener in task.options["options"]["listener"]
         ]
-        self.assertIn(
-            DebugListener, listener_classes, "DebugListener was not in task options"
-        )
+        assert (
+            DebugListener in listener_classes
+        ), "DebugListener was not in task options"
 
     def test_verbose_option(self):
         """Verify that setting verbose to True attaches the appropriate listener"""
@@ -232,9 +243,9 @@ class TestRobot(unittest.TestCase):
         listener_classes = [
             listener.__class__ for listener in task.options["options"]["listener"]
         ]
-        self.assertIn(
-            KeywordLogger, listener_classes, "KeywordLogger was not in task options"
-        )
+        assert (
+            KeywordLogger in listener_classes
+        ), "KeywordLogger was not in task options"
 
     def test_user_defined_listeners_option(self):
         """Verify that our listeners don't replace user-defined listeners"""
@@ -250,9 +261,9 @@ class TestRobot(unittest.TestCase):
         listener_classes = [
             listener.__class__ for listener in task.options["options"]["listener"]
         ]
-        self.assertIn("FakeListener.py", task.options["options"]["listener"])
-        self.assertIn(DebugListener, listener_classes)
-        self.assertIn(KeywordLogger, listener_classes)
+        assert "FakeListener.py" in task.options["options"]["listener"]
+        assert DebugListener in listener_classes
+        assert KeywordLogger in listener_classes
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     @mock.patch(
@@ -286,8 +297,8 @@ class TestRobot(unittest.TestCase):
         )
 
         mock_robot_run.return_value = 0
-        self.assertNotIn("dummy1", sys.path)
-        self.assertNotIn("dummy2", sys.path)
+        assert "dummy1" not in sys.path
+        assert "dummy2" not in sys.path
         task()
         project_config.get_namespace.assert_has_calls(
             [mock.call("test1"), mock.call("test2")]
@@ -295,10 +306,10 @@ class TestRobot(unittest.TestCase):
         mock_add_path.assert_has_calls(
             [mock.call("dummy1", end=True), mock.call("dummy2", end=True)]
         )
-        self.assertNotIn("dummy1", sys.path)
-        self.assertNotIn("dummy2", sys.path)
-        self.assertEquals(
-            Path(".").resolve(), Path(task.return_values["robot_outputdir"]).resolve()
+        assert "dummy1" not in sys.path
+        assert "dummy2" not in sys.path
+        assert (
+            Path(".").resolve() == Path(task.return_values["robot_outputdir"]).resolve()
         )
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
@@ -322,10 +333,10 @@ class TestRobot(unittest.TestCase):
             task = create_task(
                 Robot, {"suites": "tests"}, project_config=project_config
             )
-            self.assertNotIn(d, sys.path)
+            assert d not in sys.path
             task()
             mock_add_path.assert_called_once_with(d)
-            self.assertNotIn(d, sys.path)
+            assert d not in sys.path
 
     @mock.patch("cumulusci.tasks.robotframework.robotframework.robot_run")
     def test_sources_not_found(self, mock_robot_run):
@@ -361,7 +372,7 @@ def test_outputdir_return_value(mock_run, tmpdir):
     ).resolve()
 
 
-class TestRobotTestDoc(unittest.TestCase):
+class TestRobotTestDoc:
     @mock.patch("cumulusci.tasks.robotframework.robotframework.testdoc")
     def test_run_task(self, testdoc):
         task = create_task(RobotTestDoc, {"path": ".", "output": "out"})
@@ -369,15 +380,17 @@ class TestRobotTestDoc(unittest.TestCase):
         testdoc.assert_called_once_with(".", "out")
 
 
-class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
-    def setUp(self):
+class TestRobotLibDoc(MockLoggerMixin):
+    maxDiff = None
+
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.task_config = TaskConfig()
         self._task_log_handler.reset()
         self.task_log = self._task_log_handler.messages
         self.datadir = os.path.dirname(__file__)
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_output_directory_not_exist(self):
@@ -458,12 +471,122 @@ class TestRobotLibDoc(MockLoggerMixin, unittest.TestCase):
         assert "created {}".format(output) in self.task_log["info"]
         assert os.path.exists(output)
 
+    def test_csv(self):
+        path = ",".join(
+            (
+                os.path.join(self.datadir, "TestLibrary.py"),
+                os.path.join(self.datadir, "TestResource.robot"),
+                os.path.join(self.datadir, "TestPageObjects.py"),
+            )
+        )
+        output = Path(self.tmpdir) / "keywords.csv"
+        if output.exists():
+            os.remove(output)
+        task = create_task(RobotLibDoc, {"path": path, "output": output.as_posix()})
+        task()
+        assert os.path.exists(output)
+        with open(output, "r", newline="") as csvfile:
+            reader = csv.reader(csvfile)
+            actual_output = [row for row in reader]
 
-class TestRobotLibDocKeywordFile(unittest.TestCase):
-    def setUp(self):
+        # not only does this verify that the expected keywords are in
+        # the output, but that the base class keywords are *not*
+        datadir = os.path.join("cumulusci", "tasks", "robotframework", "tests", "")
+        expected_output = [
+            ["Name", "Source", "Line#", "po type", "po_object", "Documentation"],
+            [
+                "Keyword One",
+                f"{datadir}TestPageObjects.py",
+                "13",
+                "Listing",
+                "Something__c",
+                "",
+            ],
+            [
+                "Keyword One",
+                f"{datadir}TestPageObjects.py",
+                "24",
+                "Detail",
+                "Something__c",
+                "",
+            ],
+            [
+                "Keyword Three",
+                f"{datadir}TestPageObjects.py",
+                "30",
+                "Detail",
+                "Something__c",
+                "",
+            ],
+            [
+                "Keyword Two",
+                f"{datadir}TestPageObjects.py",
+                "16",
+                "Listing",
+                "Something__c",
+                "",
+            ],
+            [
+                "Keyword Two",
+                f"{datadir}TestPageObjects.py",
+                "27",
+                "Detail",
+                "Something__c",
+                "",
+            ],
+            [
+                "Library Keyword One",
+                f"{datadir}TestLibrary.py",
+                "13",
+                "",
+                "",
+                "Keyword documentation with *bold* and _italics_",
+            ],
+            [
+                "Library Keyword Two",
+                f"{datadir}TestLibrary.py",
+                "17",
+                "",
+                "",
+                "",
+            ],
+            [
+                "Resource keyword one",
+                f"{datadir}TestResource.robot",
+                "2",
+                "",
+                "",
+                "",
+            ],
+            [
+                "Resource keyword two",
+                f"{datadir}TestResource.robot",
+                "6",
+                "",
+                "",
+                "",
+            ],
+        ]
+
+        assert actual_output == expected_output
+
+    @mock.patch("cumulusci.tasks.robotframework.libdoc.view_file")
+    def test_preview_option(self, mock_view_file):
+        """Verify that the 'preview' option results in calling the view_file method"""
+        path = os.path.join(self.datadir, "TestLibrary.py")
+        output = os.path.join(self.tmpdir, "index.html")
+        task = create_task(
+            RobotLibDoc, {"path": path, "output": output, "preview": True}
+        )
+        task()
+        mock_view_file.assert_called_once_with(output)
+
+
+class TestRobotLibDocKeywordFile:
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_existing_file(self):
@@ -486,11 +609,40 @@ class TestRobotLibDocKeywordFile(unittest.TestCase):
         assert len(kwfile.keywords) == 1
         assert kwfile.keywords[("Detail", "Contact")] == "the documentation..."
 
+    def test_to_tuples(self):
+        """Test that to_tuples returns relative paths when possible
 
-class TestRobotLibDocOutput(unittest.TestCase):
+        The code attempts to convert absolute paths to relative paths,
+        but if it can't then the path remains unchainged. This test generates
+        results with one file that is relative to cwd and one that is not.
+        """
+
+        here = os.path.dirname(__file__)
+        path = Path(here) / "TestLibrary.py"
+        libdoc = LibraryDocBuilder().build(str(path))
+
+        # we'll set the first to a non-relative directory and leave
+        # the other one relative to here (assuming that `here` is
+        # relative to cwd)
+        absolute_path = str(Path("/bogus/whatever.py"))
+        libdoc.keywords[0].source = absolute_path
+
+        # The returned result is a set, so the order is indeterminate. That's
+        # why the following line sorts it.
+        kwfile = KeywordFile("Whatever")
+        kwfile.add_keywords(libdoc)
+        rows = sorted(kwfile.to_tuples())
+
+        # verify the absolute path remains absolute
+        assert rows[0][1] == absolute_path
+        # verify that the path to a file under cwd is relative
+        assert rows[1][1] == str(path.relative_to(os.getcwd()))
+
+
+class TestRobotLibDocOutput:
     """Tests for the generated robot keyword documentation"""
 
-    def setUp(self):
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.datadir = os.path.dirname(__file__)
         path = [
@@ -506,7 +658,7 @@ class TestRobotLibDocOutput(unittest.TestCase):
         docroot = ET.parse(output).getroot()
         self.html_body = docroot.find("body")
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_output_title(self):
@@ -520,7 +672,7 @@ class TestRobotLibDocOutput(unittest.TestCase):
     def test_formatted_documentation(self):
         """Verify that markup in the documentation is rendered as html"""
         doc_element = self.html_body.find(
-            ".//tr[@id='TestLibrary.py.Library Keyword One']//td[@class='kwdoc']"
+            ".//tr[@id='TestLibrary.py.Library-Keyword-One']//td[@class='kwdoc']"
         )
         doc_html = str(ET.tostring(doc_element, method="html").strip())
         # we could just do an assert on the full markup of the
@@ -555,10 +707,10 @@ class TestRobotLibDocOutput(unittest.TestCase):
         ]
 
 
-class TestLibdocPageObjects(unittest.TestCase):
+class TestLibdocPageObjects:
     """Tests for generating docs for page objects"""
 
-    def setUp(self):
+    def setup_method(self):
         self.tmpdir = tempfile.mkdtemp(dir=".")
         self.datadir = os.path.dirname(__file__)
         path = [os.path.join(self.datadir, "TestPageObjects.py")]
@@ -572,7 +724,7 @@ class TestLibdocPageObjects(unittest.TestCase):
         self.docroot = ET.parse(self.output).getroot()
         self.html_body = self.docroot.find("body")
 
-    def tearDown(self):
+    def teardown_method(self):
         shutil.rmtree(self.tmpdir)
 
     def test_file_title(self):
@@ -604,13 +756,13 @@ class TestLibdocPageObjects(unittest.TestCase):
         description = section.find("div[@class='description']")
         expected = '<div class="description" title="Description"><p>Description of SomethingDetailPage</p></div>'
         actual = ET.tostring(description).decode("utf-8").strip()
-        assert actual == expected
+        assert shrinkws(actual) == shrinkws(expected)
 
         section = self.html_body.find(".//div[@pageobject='Listing-Something__c']")
         description = section.find("div[@class='description']")
         expected = '<div class="description" title="Description"><p>Description of SomethingListingPage</p></div>'
         actual = ET.tostring(description).decode("utf-8").strip()
-        assert actual == expected
+        assert shrinkws(actual) == shrinkws(expected)
 
 
 class TestRobotPerformanceKeywords:
@@ -706,3 +858,7 @@ class TestRobotPerformanceKeywords:
             assert list(filter(None, elapsed_times)) == [
                 {"Elapsed Time": 11655.9, "Donuts": 42.3}
             ]
+
+
+def shrinkws(s):
+    return re.sub(r"\s+", " ", s).replace("> <", "><")
