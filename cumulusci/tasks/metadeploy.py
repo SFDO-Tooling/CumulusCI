@@ -103,6 +103,11 @@ class Publish(BaseMetaDeployTask):
             raise CumulusCIException(
                 f"No product found in MetaDeploy with repo URL {repo_url}"
             )
+        elif not product.get("slug"):  # pragma: no cover
+            raise CumulusCIException(
+                f"No slug found in MetaDeploy for product {product} from {repo_url}"
+            )
+
         if not self.dry_run:
             version = self._find_or_create_version(product)
             if self.labels_path and "slug" in product:
@@ -363,8 +368,9 @@ class Publish(BaseMetaDeployTask):
             self.logger.info(f"Updating labels in {labels_path}")
             labels_path.write_text(json.dumps(self.labels, indent=4))
 
-    def _publish_labels(self, slug):
+    def _publish_labels(self, slug: str):
         """Publish labels in all languages to MetaDeploy."""
+        assert isinstance(slug, str), f"Slug should be a string, not {slug}"
         for path in Path(self.labels_path).glob("*.json"):
             lang = path.stem.split("_")[-1].lower()
             if lang in ("en", "en-us"):

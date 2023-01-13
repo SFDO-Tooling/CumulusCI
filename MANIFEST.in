@@ -2,9 +2,9 @@
 include AUTHORS.rst
 
 include CONTRIBUTING.rst
-include HISTORY.rst
+include docs/history.md
 include LICENSE
-include README.rst
+include README.md
 include requirements/prod.txt
 include requirements/dev.txt
 

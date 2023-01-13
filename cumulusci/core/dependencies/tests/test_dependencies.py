@@ -634,7 +634,7 @@ class TestUnmanagedGitHubRefDependency:
                 "namespace_inject": None,
                 "namespace_strip": None,
             },
-            logger=mock.ANY,  # the logger
+            context=mock.ANY,
         )
         api_deploy_mock.assert_called_once_with(
             mock.ANY,  # The context object is checked below
@@ -722,7 +722,7 @@ class TestUnmanagedZipURLDependency:
                 "namespace_strip": None,
             },
             path=None,
-            logger=mock.ANY,  # the logger
+            context=mock.ANY,
         )
         api_deploy_mock.assert_called_once_with(
             mock.ANY,  # The context object is checked below
@@ -791,7 +791,7 @@ class TestUnmanagedZipURLDependency:
                 "namespace_inject": None,
                 "namespace_strip": None,
             },
-            logger=context.logger,
+            context=mock.ANY,
         )
 
     @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
@@ -825,7 +825,7 @@ class TestUnmanagedZipURLDependency:
                 "namespace_inject": None,
                 "namespace_strip": None,
             },
-            logger=context.logger,
+            context=mock.ANY,
         )
 
     @mock.patch("cumulusci.core.dependencies.dependencies.MetadataPackageZipBuilder")
@@ -858,7 +858,7 @@ class TestUnmanagedZipURLDependency:
                 "namespace_inject": None,
                 "namespace_strip": None,
             },
-            logger=context.logger,
+            context=mock.ANY,
         )
         sfdx_mock.assert_called_once_with(
             "force:source:convert",
