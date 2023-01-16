@@ -45,11 +45,13 @@ class TestLoadDatasets:
         org_config,
     ):
         with setup_test(org_config):
+            org_config.config["config_name"] = "dev"
             task = create_task(LoadSampleData, {"ignore_row_errors": True})
             task()
-            print(Dataset.mock_calls)
             # default dataset should be opened
-            Dataset.assert_any_call("default", mock.ANY, mock.ANY, org_config, mock.ANY)
+            Dataset.assert_any_call(
+                org_config.config_name, mock.ANY, mock.ANY, org_config, mock.ANY
+            )
             # and loaded
             Dataset().__enter__().load.assert_called_with(
                 {"ignore_row_errors": True}, task.logger
