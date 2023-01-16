@@ -3,6 +3,8 @@ import re
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
 from datetime import date, datetime
+from distutils.version import StrictVersion
+from typing import Optional
 from urllib.parse import urlparse
 
 import requests
@@ -47,14 +49,12 @@ class OrgConfig(BaseConfig):
     is_sandbox: bool
     namespace: str
     namespaced: bool
-    org_id: str
     org_type: str
     password: str
     scratch: bool
     scratch_org_type: str
     set_password: bool
     sfdx_alias: str
-    username: str
     userinfo: str
     id: str
     active: bool
@@ -63,8 +63,9 @@ class OrgConfig(BaseConfig):
     refresh_token: str
     client_secret: str
     connected_app: str
+    serialization_format: str
 
-    createable: bool = None
+    createable: Optional[bool] = None
 
     # make sure it can be mocked for tests
     OAuth2Client = OAuth2Client
@@ -254,7 +255,7 @@ class OrgConfig(BaseConfig):
     @property
     def organization_sobject(self):
         """Cached copy of Organization sObject. Does not perform API call."""
-        return self._org_sobject
+        return getattr(self, "_org_sobject", None)
 
     def _fetch_community_info(self):
         """Use the API to re-fetch information about communities"""
