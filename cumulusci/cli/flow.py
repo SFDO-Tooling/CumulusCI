@@ -137,6 +137,12 @@ def flow_info(runtime, flow_name):
     help="Pass task specific options for the task as '-o taskname__option value'.  You can specify more than one option by using -o more than once.",
 )
 @click.option(
+    "-op",
+    nargs=2,
+    multiple=True,
+    help="Pass project custom attributes as '-o project__custom__myattribute value'.  You can specify more than one attribute by using -op more than once.",
+)
+@click.option(
     "--no-prompt",
     is_flag=True,
     help="Disables all prompts.  Set for non-interactive mode use such as calling from scripts or CI systems",
@@ -159,6 +165,15 @@ def flow_run(runtime, flow_name, org, delete_org, debug, o, no_prompt):
             else:
                 raise click.UsageError(
                     "-o option for flows should contain __ to split task name from option name."
+                )
+    if op:
+        for key, value in o:
+            if "__" in key:
+                projectword, customword, project_custom_attribute = key.split("__")
+                runtime.project_config["custom"][project_custom_attribute] = value
+            else:
+                raise click.UsageError(
+                    "-op option for flows should contain __ to split project__custom__attribute parts."
                 )
 
     # Create the flow and handle initialization exceptions
