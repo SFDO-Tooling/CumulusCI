@@ -46,6 +46,11 @@ jobs:
                   cache-dependency-path: "requirements/*.txt"
             - name: Install Python dependencies
               run: pip install -r requirements_dev.txt
+            - name: Install build tools
+              run: pip install hatch
+            - name: Test source tarball and binary wheel
+              run: |
+                  hatch build
             - name: Install sfdx
               run: |
                   mkdir sfdx

@@ -73,7 +73,6 @@ slow_tests: vcr # remake VCR cassettes and run other integration tests
 	cci org scratch_delete pytest
 	pytest integration_tests/ --org pytest -rs
 
-
 docs: ## generate Sphinx HTML documentation
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
@@ -83,25 +82,23 @@ servedocs: docs ## compile the docs watching for changes
 	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
 
 release: clean ## package and upload a release
-	python setup.py sdist
-	python setup.py bdist_wheel
-	twine upload dist/*
+	hatch build
+	hatch publish
 
 dist: clean ## builds source and wheel package
-	python setup.py sdist
-	python setup.py bdist_wheel
+	hatch build
 	ls -l dist
 
 install: clean ## install the package to the active Python's site-packages
-	python setup.py install
+	python -m pip install .
 
 tag: clean
-	git tag -a -m 'version $$(python setup.py --version)' v$$(python setup.py --version)
+	git tag -a -m 'version $$(hatch version)' v$$(hatch version)
 	git push --follow-tags
 
 update-deps:
-	pip-compile --upgrade requirements/prod.in
-	pip-compile --upgrade requirements/dev.in
+	pip-compile --upgrade --resolver=backtracking --output-file=requirements/prod.txt pyproject.toml
+	pip-compile --upgrade --resolver=backtracking --output-file=requirements/dev.txt --all-extras pyproject.toml
 
 dev-install:
 	python -m pip install --upgrade pip pip-tools setuptools

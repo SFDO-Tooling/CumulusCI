@@ -17,6 +17,7 @@ from cumulusci.core.dependencies.dependencies import (
     UnmanagedGitHubRefDependency,
 )
 from cumulusci.core.dependencies.resolvers import get_static_dependencies
+from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.exceptions import (
     CumulusCIUsageError,
     DependencyLookupError,
@@ -184,6 +185,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
             api_version=self.api_version,
             base_url="tooling",
         )
+        self.context = TaskContext(self.org_config, self.project_config, self.logger)
 
     def _run_task(self):
         """Creates a new 2GP package version.
@@ -216,7 +218,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                 path=path,
                 name=self.package_config.package_name,
                 options=options,
-                logger=self.logger,
+                context=self.context,
             )
 
         ancestor_id = self._resolve_ancestor_id(self.options.get("ancestor_id"))
@@ -402,7 +404,9 @@ class CreatePackageVersion(BaseSalesforceApiTask):
                     scratch_org_def.get("objectSettings"),
                     self.api_version,
                 ) as path:
-                    settings_zip_builder = MetadataPackageZipBuilder(path=path)
+                    settings_zip_builder = MetadataPackageZipBuilder(
+                        path=path, context=self.context
+                    )
                     version_info.writestr(
                         "settings.zip", settings_zip_builder.as_bytes()
                     )
@@ -680,7 +684,7 @@ class CreatePackageVersion(BaseSalesforceApiTask):
         )
         with convert_sfdx_source(path, package_name, self.logger) as src_path:
             package_zip_builder = MetadataPackageZipBuilder(
-                path=src_path, name=package_name, logger=self.logger
+                path=src_path, name=package_name, context=self.context
             )
             package_config = PackageConfig(
                 package_name=package_name,

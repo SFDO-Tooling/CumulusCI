@@ -35,7 +35,7 @@ class TestBasePackageZipBuilder:
 
 
 class TestMetadataPackageZipBuilder:
-    def test_builder(self):
+    def test_builder(self, task_context):
         with temporary_dir() as path:
 
             # add package.xml
@@ -133,6 +133,7 @@ class TestMetadataPackageZipBuilder:
                     "namespace_inject": "ns",
                     "namespace_strip": "ns",
                 },
+                context=task_context,
             )
 
             # make sure result can be read as a zipfile
@@ -153,7 +154,7 @@ class TestMetadataPackageZipBuilder:
                 "objects/does-not-exist-in-schema/some.file",
             }
 
-    def test_add_files_to_package(self):
+    def test_add_files_to_package(self, task_context):
         with temporary_dir() as path:
             expected = []
 
@@ -250,15 +251,15 @@ class TestMetadataPackageZipBuilder:
                 expected.append("objects/does-not-exist-in-schema/some.file")
 
             # test
-            builder = MetadataPackageZipBuilder()
+            builder = MetadataPackageZipBuilder(context=task_context)
 
             expected_set = set(expected)
             builder._add_files_to_package(path)
             actual_set = set(builder.zf.namelist())
             assert expected_set == actual_set
 
-    def test_include_directory(self):
-        builder = MetadataPackageZipBuilder()
+    def test_include_directory(self, task_context):
+        builder = MetadataPackageZipBuilder(context=task_context)
 
         # include root directory
         assert builder._include_directory([]) is True
@@ -286,8 +287,8 @@ class TestMetadataPackageZipBuilder:
         assert builder._include_directory(["not-lwc", "sub-1"]) is True
         assert builder._include_directory(["not-lwc", "sub-1", "sub-2"]) is True
 
-    def test_include_file(self):
-        builder = MetadataPackageZipBuilder()
+    def test_include_file(self, task_context):
+        builder = MetadataPackageZipBuilder(context=task_context)
 
         lwc_component_directories = [
             ["lwc"],
@@ -316,7 +317,7 @@ class TestMetadataPackageZipBuilder:
             for d in non_lwc_component_directories:
                 assert builder._include_file(d, "file_name" + file_ending)
 
-    def test_removes_feature_parameters_from_unlocked_package(self):
+    def test_removes_feature_parameters_from_unlocked_package(self, task_context):
         with temporary_dir() as path:
             pathlib.Path(path, "package.xml").write_text(
                 """<?xml version="1.0" encoding="utf-8"?>
@@ -330,7 +331,7 @@ class TestMetadataPackageZipBuilder:
             featureParameters.mkdir()
             (featureParameters / "test.featureParameterInteger").touch()
             builder = MetadataPackageZipBuilder(
-                path=path, options={"package_type": "Unlocked"}
+                path=path, options={"package_type": "Unlocked"}, context=task_context
             )
             assert (
                 "featureParameters/test.featureParameterInteger"

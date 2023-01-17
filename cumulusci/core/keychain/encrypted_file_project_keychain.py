@@ -1,16 +1,10 @@
 import base64
 import json
 import os
-import pickle
 import sys
 import typing as T
 from pathlib import Path
 from shutil import rmtree
-
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.ciphers import Cipher
-from cryptography.hazmat.primitives.ciphers.algorithms import AES
-from cryptography.hazmat.primitives.ciphers.modes import CBC
 
 from cumulusci.core.config import OrgConfig, ScratchOrgConfig, ServiceConfig
 from cumulusci.core.config.sfdx_org_config import SfdxOrgConfig
@@ -25,8 +19,12 @@ from cumulusci.core.exceptions import (
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
-from cumulusci.core.keychain.serialization import load_decrypted_config_from_bytes
+from cumulusci.core.keychain.serialization import (
+    load_config_from_json_or_pickle,
+    serialize_config_to_json_or_pickle,
+)
 from cumulusci.core.utils import import_class, import_global
+from cumulusci.utils.encryption import _get_cipher, encrypt_and_b64
 from cumulusci.utils.yaml.cumulusci_yml import ScratchOrg
 
 DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
@@ -34,19 +32,10 @@ DEFAULT_SERVICES_FILENAME = "DEFAULT_SERVICES.json"
 # The file permissions that we want set on all
 # .org and .service files. Equivalent to -rw-------
 SERVICE_ORG_FILE_MODE = 0o600
-OS_FILE_FLAGS = os.O_WRONLY | os.O_CREAT
+OS_FILE_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
 if sys.platform.startswith("win"):
     # O_BINARY only available on Windows
     OS_FILE_FLAGS |= os.O_BINARY
-
-
-BS = 16
-backend = default_backend()
-
-
-def pad(s):
-    return s + (BS - len(s) % BS) * chr(BS - len(s) % BS).encode("ascii")
-
 
 scratch_org_class = os.environ.get("CUMULUSCI_SCRATCH_ORG_CLASS")
 if scratch_org_class:
@@ -103,21 +92,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
     #             Encryption              #
     #######################################
 
-    def _get_cipher(self, iv=None):
-        key = self.key
-        if not isinstance(key, bytes):
-            key = key.encode()
-        if iv is None:
-            iv = os.urandom(16)
-        cipher = Cipher(AES(key), CBC(iv), backend=backend)
-        return cipher, iv
-
-    def _encrypt_config(self, config):
-        pickled = pickle.dumps(config.config, protocol=2)
-        pickled = pad(pickled)
-        cipher, iv = self._get_cipher()
-        return base64.b64encode(iv + cipher.encryptor().update(pickled))
-
+    # TODO: Move this class into encryption.py
     def _decrypt_config(self, config_class, encrypted_config, extra=None, context=None):
         if self.key:
             if not encrypted_config:
@@ -128,9 +103,9 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
             encrypted_config = base64.b64decode(encrypted_config)
             try:
                 iv = encrypted_config[:16]
-                cipher, iv = self._get_cipher(iv)
+                cipher, iv = _get_cipher(self.key, iv=iv)
                 pickled = cipher.decryptor().update(encrypted_config[16:])
-                unpickled = load_decrypted_config_from_bytes(pickled)
+                unpickled = load_config_from_json_or_pickle(pickled)
             except ValueError as e:
                 message = "\n".join(
                     [
@@ -187,10 +162,10 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         """Depending on if a key is present return
         the bytes that we want to store on the keychain."""
         org_bytes = None
+        org_bytes = serialize_config_to_json_or_pickle(config.config, self.logger)
+
         if self.key:
-            org_bytes = self._encrypt_config(config)
-        else:
-            org_bytes = pickle.dumps(config.config)
+            org_bytes = encrypt_and_b64(org_bytes, self.key)
 
         assert org_bytes is not None, "org_bytes should have a value"
         return org_bytes
@@ -293,6 +268,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         org_name = org_config.name
 
         org_bytes = self._get_config_bytes(org_config)
+        assert isinstance(org_bytes, bytes)
 
         if global_org:
             org_config = GlobalOrg(org_bytes)
@@ -387,7 +363,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"org config ({name})",
             )
         else:
-            config = load_decrypted_config_from_bytes(config)
+            config = load_config_from_json_or_pickle(config)
             org = self._construct_config(OrgConfig, [config, name, self])
 
         return org
@@ -608,16 +584,18 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         # (like when were setting services after loading from an encrypted file)
         # then we don't need to do anything.
         if self.key and config_encrypted:
-            config = service_config
-        elif self.key and not config_encrypted:
-            config = self._encrypt_config(service_config)
+            serialized_config = service_config
         else:
-            config = pickle.dumps(service_config.config)
+            serialized_config = serialize_config_to_json_or_pickle(
+                service_config.config, self.logger
+            )
+            if self.key:
+                serialized_config = encrypt_and_b64(serialized_config, self.key)
 
-        self.services[service_type][alias] = config
+        self.services[service_type][alias] = serialized_config
 
         if save:
-            self._save_encrypted_service(service_type, alias, config)
+            self._save_encrypted_service(service_type, alias, serialized_config)
 
     def _save_encrypted_service(self, service_type, alias, encrypted):
         """Write out the encrypted service to disk."""
@@ -663,7 +641,7 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
                 context=f"service config ({service_type}:{alias})",
             )
         else:
-            config = load_decrypted_config_from_bytes(config)
+            config = load_config_from_json_or_pickle(config)
             org = self._construct_config(ConfigClass, [config, alias, self])
 
         return org

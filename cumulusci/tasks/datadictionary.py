@@ -1,6 +1,5 @@
 import csv
 from collections import defaultdict
-from distutils.version import LooseVersion
 from pathlib import PurePosixPath
 from typing import List, Optional, Union
 from unittest.mock import Mock
@@ -24,6 +23,7 @@ from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.tasks.github.base import BaseGithubTask
 from cumulusci.utils import download_extract_github_from_repo
+from cumulusci.utils.version_strings import LooseVersion
 from cumulusci.utils.xml import metadata_tree
 
 
