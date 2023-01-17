@@ -64,3 +64,5 @@ Community](https://success.salesforce.com/_ui/core/chatter/groups/GroupProfilePa
 _Please note:_ CumulusCI is distributed under an [open source
 license](https://github.com/SFDO-Tooling/CumulusCI/blob/main/LICENSE)
 and is not covered by the Salesforce Master Subscription Agreement.
+
+<!-- Changelog -->

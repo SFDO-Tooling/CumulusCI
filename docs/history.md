@@ -1,5 +1,7 @@
 # History
 
+<!-- latest-start -->
+
 ## 3.71.0 (2022-12-20)
 
 Critical Changes 🎉
@@ -11,6 +13,8 @@ Changes 🎉
 -   CumulusCI has two new tasks for working with sample data: `load_sample_data` and `capture_sample_data`. (#3455)
 -   CumulusCI now offers the ability to inject arbitrary IDs into a project's metadata components. See the [Find-and-Replace Id Injection](https://cumulusci.readthedocs.io/en/latest/deploy.html#find-and-replace-id-injection) source transform for more information. (#3460)
 -   CumulusCI now allows for injecting the current running user's username into a project's metadata components. See the [Find-and-Replace Id Injection](https://cumulusci.readthedocs.io/en/latest/deploy.html#find-and-replace-current-username-injection) source transform for more information. (#3460)
+
+<!-- latest-stop -->
 
 ## 3.70.0 (2022-11-29)
 

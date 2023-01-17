@@ -3,7 +3,6 @@ import re
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
 from datetime import date, datetime
-from distutils.version import StrictVersion
 from urllib.parse import urlparse
 
 import requests
@@ -21,6 +20,7 @@ from cumulusci.oauth.salesforce import SANDBOX_LOGIN_URL, jwt_session
 from cumulusci.utils import parse_api_datetime
 from cumulusci.utils.fileutils import open_fs_resource
 from cumulusci.utils.http.requests_utils import safe_json_from_response
+from cumulusci.utils.version_strings import StrictVersion
 
 SKIP_REFRESH = os.environ.get("CUMULUSCI_DISABLE_REFRESH")
 SANDBOX_MYDOMAIN_RE = re.compile(r"\.cs\d+\.my\.(.*)salesforce\.com")
