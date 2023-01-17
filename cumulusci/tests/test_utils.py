@@ -450,6 +450,7 @@ Options\n------------------------------------------\n\n
         result = zf.read("test")
         # assert contents were untouched
         assert contents == result
+        zf.close()
 
     def test_inject_namespace__managed(self):
         logger = mock.Mock()
@@ -523,6 +524,7 @@ Options\n------------------------------------------\n\n
         result = zf.read("classes/test-meta.xml")
         assert b"packageVersions" not in result
         assert "other/test-meta.xml" in zf.namelist()
+        zf.close()
 
     def test_zip_clean_metaxml__skips_binary(self):
         logger = mock.Mock()
@@ -533,6 +535,7 @@ Options\n------------------------------------------\n\n
 
         zf = utils.zip_clean_metaxml(zf, logger=logger)
         assert "classes/test-meta.xml" in zf.namelist()
+        zf.close()
 
     def test_zip_clean_metaxml__handles_nonascii(self):
         zf = zipfile.ZipFile(io.BytesIO(), "w")
@@ -540,6 +543,7 @@ Options\n------------------------------------------\n\n
 
         zf = utils.zip_clean_metaxml(zf)
         assert b"<root>\xc3\xb1</root>" == zf.read("classes/test-meta.xml")
+        zf.close()
 
     def test_doc_task_not_inherited(self):
         task_config = TaskConfig(

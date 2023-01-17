@@ -21,3 +21,4 @@ class TestRetrievePackaged:
             task.api_class = mock.Mock(return_value=mock.Mock(return_value=zf))
             task()
             assert os.path.exists(os.path.join(path, "testfile"))
+            zf.close()
