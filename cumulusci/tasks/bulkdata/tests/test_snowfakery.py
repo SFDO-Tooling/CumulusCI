@@ -783,7 +783,6 @@ class TestSnowfakery:
                 "recipe": Path(__file__).parent
                 / "snowfakery/simple_snowfakery.recipe.yml",
                 "run_until_recipe_repeated": 15,
-                "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
                 "loading_rules": Path(__file__).parent
                 / "snowfakery/simple_snowfakery_channels.load.yml",
             },
@@ -833,7 +832,6 @@ class TestSnowfakery:
                 "recipe": Path(__file__).parent
                 / "snowfakery/simple_snowfakery.recipe.yml",
                 "run_until_recipe_repeated": 15,
-                "recipe_options": {"xyzzy": "Nothing happens", "some_number": 42},
                 "bulk_mode": "Serial",
             },
         )

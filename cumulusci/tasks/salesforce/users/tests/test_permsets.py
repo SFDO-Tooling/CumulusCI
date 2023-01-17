@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 import responses
+from responses.matchers import json_params_matcher
 
 from cumulusci.core.exceptions import CumulusCIException
 from cumulusci.tasks.salesforce.tests.util import create_task
@@ -68,7 +69,7 @@ class TestCreatePermissionSet:
             status=200,
             json=[{"id": "0Pa000000000001", "success": True, "errors": []}],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
@@ -152,7 +153,7 @@ class TestCreatePermissionSet:
                 {"id": "0Pa000000000001", "success": True, "errors": []},
             ],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
@@ -383,7 +384,7 @@ class TestCreatePermissionSet:
                 },
             ],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
@@ -470,7 +471,7 @@ class TestCreatePermissionSetLicense:
             status=200,
             json=[{"id": "0Pa000000000001", "success": True, "errors": []}],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
@@ -543,7 +544,7 @@ class TestCreatePermissionSetLicense:
                 {"id": "0Pa000000000001", "success": True, "errors": []},
             ],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
@@ -627,7 +628,7 @@ class TestCreatePermissionSetLicense:
             status=200,
             json=[{"id": "0Pa000000000001", "success": True, "errors": []}],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
@@ -774,7 +775,7 @@ class TestCreatePermissionSetGroup:
             status=200,
             json=[{"id": "0Pa000000000001", "success": True, "errors": []}],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
@@ -847,7 +848,7 @@ class TestCreatePermissionSetGroup:
             status=200,
             json=[{"id": "0Pa000000000001", "success": True, "errors": []}],
             match=[
-                responses.json_params_matcher(
+                json_params_matcher(
                     {
                         "allOrNone": False,
                         "records": [
