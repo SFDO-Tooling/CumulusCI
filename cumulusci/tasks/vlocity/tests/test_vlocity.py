@@ -19,6 +19,17 @@ from cumulusci.tasks.vlocity.vlocity import (
     VlocityRetrieveTask,
 )
 
+ORG_TYPES = {
+    "develop": "https://inspiration-velocity-34802-dev-ed.develop.my.salesforce.com/",
+    "patch": "https://inspiration-velocity-34802-dev-ed.patch.my.salesforce.com/",
+    "trailblaze": "https://inspiration-velocity-34802-dev-ed.trailblaze.my.salesforce.com/",
+    "scratch": "https://inspiration-velocity-34802-dev-ed.scratch.my.salesforce.com/",
+    "demo": "https://inspiration-velocity-34802-dev-ed.demo.my.salesforce.com/",
+    "sandbox": "https://inspiration-velocity-34802-dev-ed.sandbox.my.salesforce.com/",
+    "free": "https://inspiration-velocity-34802-dev-ed.free.my.salesforce.com/",
+}
+
+
 username = "foo"
 org_name = "dev"
 access_token = "foo.bar.baz"
@@ -88,7 +99,11 @@ def test_vlocity_simple_job(
 
     task_config = TaskConfig(
         config={
-            "options": {"job_file": "vlocity.yaml", "org": org_name, "extra": extra}
+            "options": {
+                "job_file": "vlocity.yaml",
+                "org": org_name,
+                "extra": extra,
+            }
         }
     )
     task = task_class(project_config, task_config, org_config)
@@ -110,11 +125,45 @@ def test_vlocity_build_tool_missing(project_config):
             task._init_task()
 
 
-namespace = "cci"
+namespace = "omnistudio"
 test_cases = [
     (TaskConfig(config={}), OMNI_NAMESPACE),
     (TaskConfig(config={"options": {"namespace": namespace}}), namespace),
 ]
+
+
+@pytest.mark.parametrize("task_config,expected_namespace", test_cases)
+def test_deploy_omni_studio_site_settings_scratch(
+    project_config, task_config, expected_namespace
+):
+    for org_type, url in ORG_TYPES.items():
+        org_config = mock.Mock(
+            installed_packages=[],
+            instance_url=url,
+            instance_name="CS28",
+            scratch=True,
+        )
+
+        task = OmniStudioDeployRemoteSiteSettings(
+            project_config, task_config, org_config
+        )
+        rss_options = task._get_options()
+        records = rss_options.records
+
+        expected_site_names = set([VF_RSS_NAME, VF_LEGACY_RSS_NAME, LWC_RSS_NAME])
+        actual_site_names = set([r.full_name for r in records])
+        assert expected_site_names == actual_site_names
+
+        # when no 'namespace' option is specified, we default to the omni studio namespace
+        expected_urls = set(
+            [
+                f"https://inspiration-velocity-34802-dev-ed--{expected_namespace}.{org_config.instance_name}.visual.force.com/",
+                f"https://inspiration-velocity-34802-dev-ed.{org_type}.lightning.force.com/",
+                f"https://inspiration-velocity-34802-dev-ed--{expected_namespace}.{org_type}.vf.force.com/",
+            ]
+        )
+        actual_urls = set([r.url for r in records])
+        assert expected_urls == actual_urls
 
 
 @pytest.mark.parametrize("task_config,expected_namespace", test_cases)
@@ -177,7 +226,9 @@ class TestVlocityIntegration:
         task_config = project_config.get_task("omni:test_success")
         task_class = import_global(task_config.class_path)
         task = create_task(
-            task_class, task_config.options, project_config=task_config.project_config
+            task_class,
+            task_config.options,
+            project_config=task_config.project_config,
         )
         try:
             task()
@@ -190,7 +241,9 @@ class TestVlocityIntegration:
         task_config = project_config.get_task("omni:test_failure")
         task_class = import_global(task_config.class_path)
         task = create_task(
-            task_class, task_config.options, project_config=task_config.project_config
+            task_class,
+            task_config.options,
+            project_config=task_config.project_config,
         )
         with pytest.raises(CommandException):
             task()

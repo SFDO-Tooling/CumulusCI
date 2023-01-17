@@ -8,6 +8,7 @@ import zipfile
 from base64 import b64encode
 from xml.sax.saxutils import escape
 
+from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.source_transforms.transforms import (
     BundleStaticResourcesOptions,
     BundleStaticResourcesTransform,
@@ -86,6 +87,7 @@ class BasePackageZipBuilder(object):
 class MetadataPackageZipBuilder(BasePackageZipBuilder):
     """Build a package zip from a metadata folder in either Metadata API or Salesforce DX format."""
 
+    context: TaskContext = None
     transforms: T.List[SourceTransform] = []
 
     def __init__(
@@ -97,10 +99,11 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         logger=None,
         name=None,
         transforms: T.Optional[T.List[SourceTransform]] = None,
+        context: TaskContext,
     ):
         self.options = options or {}
         self.logger = logger or DEFAULT_LOGGER
-
+        self.context = context
         self.zf = zf
 
         if self.zf is None:
@@ -116,6 +119,7 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
     def from_zipfile(
         cls,
         zf: zipfile.ZipFile,
+        context: TaskContext,
         *,
         path=None,
         options=None,
@@ -124,7 +128,12 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
     ):
         """Start with an existing zipfile rather than a filesystem folder."""
         return cls(
-            zf=zf, path=path, options=options, logger=logger, transforms=transforms
+            zf=zf,
+            path=path,
+            options=options,
+            logger=logger,
+            transforms=transforms,
+            context=context,
         )
 
     def _add_files_to_package(self, path):
@@ -166,11 +175,6 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
         return True
 
     def _process(self):
-        # We have to close the existing zipfile and reopen it before processing;
-        # otherwise we hit a bug in Windows where ZipInfo objects have the wrong path separators.
-        fp = self.zf.fp
-        self.zf.close()
-        self.zf = zipfile.ZipFile(fp, "r")
 
         transforms = []
 
@@ -198,7 +202,12 @@ class MetadataPackageZipBuilder(BasePackageZipBuilder):
             transforms.append(RemoveFeatureParametersTransform())
 
         for t in transforms:
-            new_zipfile = t.process(self.zf, self.logger)
+            # We have to close the existing zipfile and reopen it before processing;
+            # otherwise we hit a bug in Windows where ZipInfo objects have the wrong path separators.
+            fp = self.zf.fp
+            self.zf.close()
+            self.zf = zipfile.ZipFile(fp, "r")
+            new_zipfile = t.process(self.zf, self.context)
             if new_zipfile != self.zf:
                 # Ensure that zipfiles are closed (in case they're filesystem resources)
                 try:

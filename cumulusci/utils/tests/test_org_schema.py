@@ -17,11 +17,15 @@ from cumulusci.salesforce_api.org_schema import (
     zip_database,
 )
 from cumulusci.salesforce_api.org_schema_models import Base, SObject
-from cumulusci.tasks.bulkdata.tests.integration_test_utils import ensure_accounts
+from cumulusci.tasks.bulkdata.tests.integration_test_utils import (
+    ensure_accounts,
+    ensure_records,
+)
 from cumulusci.tests.util import FakeUnreliableRequestHandler
 from cumulusci.utils.http.multi_request import HTTPRequestError
 
 ensure_accounts = ensure_accounts  # fixes 4 lint errors at once. Don't hate the player, hate the game.
+ensure_records = ensure_records
 
 
 class FakeSF:
@@ -424,14 +428,63 @@ class TestOrgSchema:
             assert "Apostasy" in caplog.text
             assert "more counting errors suppressed" in caplog.text
 
-    @pytest.mark.needs_org()
-    def test_schema_populated_real(self, sf, org_config, ensure_accounts):
-        with ensure_accounts(6):
-            with get_org_schema(
-                sf, org_config, include_counts=True, filters=[Filters.populated]
+    def test_old_schema_version(self, sf, org_config, caplog):
+        with mock_return_uncached_responses(self.cassette_data):
+            with patch(
+                "cumulusci.salesforce_api.org_schema.Schema.CurrentFormatVersion", 7
+            ), get_org_schema(
+                FakeSF(), org_config, include_counts=True, filters=[Filters.populated]
             ) as schema:
-                assert "Account" in schema
-                assert "Case" not in schema
+                assert schema.version == 7
+
+            class FakeSilentMigration(Exception):
+                called = False
+
+                def __init__(self, *args, **kwargs):
+                    self.__class__.called = True
+
+            with patch(
+                "cumulusci.salesforce_api.org_schema.SilentMigration",
+                FakeSilentMigration,
+            ), patch(
+                "cumulusci.salesforce_api.org_schema.Schema.CurrentFormatVersion", 8
+            ), get_org_schema(
+                FakeSF(), org_config, include_counts=True, filters=[Filters.populated]
+            ) as schema:
+                assert schema.version == 8
+                assert FakeSilentMigration.called
+
+    @pytest.mark.needs_org()
+    def test_schema_populated_real(self, sf, org_config, ensure_records):
+        starting_records = {
+            "Entitlement": [],  # Delete all entitlements so we can delete accounts
+            "Account": [{"Name": "XYZZY"}],
+            "Opportunity": [],  # 0 opportunities
+        }
+        with ensure_records(starting_records):
+            with get_org_schema(
+                sf,
+                org_config,
+                include_counts=True,
+                filters=[Filters.populated],
+                included_objects=["Account", "Contact", "Opportunity"],
+            ) as schema:
+                assert "Account" in schema, schema.keys()
+                assert "Case" not in schema, schema.keys()  # not in included_objects
+                assert (
+                    "Opportunity" not in schema
+                ), schema.keys()  # because not populated
+
+            # Create one case and ensure it is noticed.
+            with ensure_records({"Case": [{}]}):
+                with get_org_schema(
+                    sf, org_config, include_counts=True, filters=[Filters.populated]
+                ) as schema:
+                    assert "Account" in schema, schema.keys()
+                    assert "Case" in schema, schema.keys()
+                    assert (
+                        "Opportunity" not in schema
+                    ), schema.keys()  # because not populated
 
 
 @pytest.mark.needs_org()  # too hard to make these VCR-compatible due to data volume
