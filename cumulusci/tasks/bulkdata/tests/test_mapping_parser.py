@@ -115,15 +115,13 @@ class TestMappingParser:
     def test_default_table_to_sobject_name(self):
         base_path = Path(__file__).parent / "mapping_v3.yml"
         with open(base_path, "r") as f:
-            data = f.read()
-            ms = parse_from_yaml(StringIO(data))
+            ms = parse_from_yaml(f)
             assert ms["Insert Accounts"].table == "Account"
 
     def test_fields_list_to_dict(self):
         base_path = Path(__file__).parent / "mapping_v3.yml"
         with open(base_path, "r") as f:
-            data = f.read()
-            ms = parse_from_yaml(StringIO(data))
+            ms = parse_from_yaml(f)
             assert ms["Insert Accounts"].fields == {"Name": "Name"}
             assert ms["Insert Contacts"].fields == {
                 "FirstName": "FirstName",
@@ -134,15 +132,13 @@ class TestMappingParser:
     def test_fields_default_not_present(self):
         base_path = Path(__file__).parent / "mapping_v3.yml"
         with open(base_path, "r") as f:
-            data = f.read()
-            ms = parse_from_yaml(StringIO(data))
+            ms = parse_from_yaml(f)
             assert ms["Insert Junction Objects"].fields == {}
 
     def test_fields_default_null(self):
         base_path = Path(__file__).parent / "mapping_v3.yml"
         with open(base_path, "r") as f:
-            data = f.read()
-            ms = parse_from_yaml(StringIO(data))
+            ms = parse_from_yaml(f)
             assert ms["Insert Other Junction Objects"].fields == {}
 
     def test_load_from_bytes_stream(self):

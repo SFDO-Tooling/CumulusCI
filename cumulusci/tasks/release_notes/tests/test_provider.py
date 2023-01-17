@@ -72,7 +72,8 @@ class TestDirectoryChangeNotesProvider:
         dir_content = []
         for item in sorted(os.listdir(path)):
             item_path = "{}/{}".format(path, item)
-            dir_content.append(open(item_path, "r").read())
+            with open(item_path, "r") as f:
+                dir_content.append(f.read())
         return dir_content
 
     def test_empty_directory(self):

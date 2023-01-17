@@ -119,7 +119,8 @@ class TestGenerateFromDataTask:
                     },
                 )
                 task()
-            mapping = yaml.safe_load(open(temp_mapping))
+            with open(temp_mapping) as t:
+                mapping = yaml.safe_load(t)
             assert mapping["Insert Account"]["fields"]
 
     def test_use_mapping_file(self):
@@ -279,7 +280,8 @@ class TestGenerateFromDataTask:
                     },
                 )
                 task()
-            continuation_file = yaml.safe_load(open(temp_continuation_file))
+            with open(temp_continuation_file) as t:
+                continuation_file = yaml.safe_load(t)
             assert continuation_file  # internals of this file are not important to CumulusCI
 
     def _get_mapping_file(self, **options):

@@ -35,7 +35,8 @@ class DirectoryChangeNotesProvider(BaseChangeNotesProvider):
 
     def __call__(self):
         for item in sorted(os.listdir(self.directory)):
-            yield open("{}/{}".format(self.directory, item)).read()
+            with open("{}/{}".format(self.directory, item)) as f:
+                yield f.read()
 
 
 class GithubChangeNotesProvider(BaseChangeNotesProvider):

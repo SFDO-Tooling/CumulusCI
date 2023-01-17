@@ -160,6 +160,8 @@ class OAuth2Client(object):
             if self.client_config.redirect_uri.startswith("https:"):
                 Path("key.pem").unlink()
                 Path("localhost.pem").unlink()
+            self.httpd.shutdown()
+            self.httpd.socket.close()
 
         # timeout thread can stop polling and just finish
         timeout_thread.quit()

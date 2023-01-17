@@ -23,9 +23,7 @@ class TestUtils:
         for arg in (False, "False", "false", "0"):
             assert not utils.process_bool_arg(arg)
 
-        import warnings
-
-        with warnings.catch_warnings(record=True):
+        with pytest.warns():
             assert utils.process_bool_arg(None) is False
 
         with pytest.raises(TypeError):

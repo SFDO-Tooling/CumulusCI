@@ -77,8 +77,10 @@ def load_from_source(source: DataInput) -> ContextManager[Tuple[IO[Text], Text]]
     ):  # open file-like
         path = _get_path_from_stream(source)
         if not hasattr(source, "encoding"):  # not decoded yet
-            source = TextIOWrapper(source, "utf-8")
-        yield source, path
+            with TextIOWrapper(source, "utf-8") as source:
+                yield source, path
+        else:
+            yield source, path
     elif hasattr(source, "open"):  # pathlib.Path-like
         with source.open("rt", encoding="utf-8") as f:
             path = str(source)

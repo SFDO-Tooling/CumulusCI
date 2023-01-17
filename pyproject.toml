@@ -139,19 +139,20 @@ end-before = "\n\n<!-- latest-stop -->"
 exclude = '^/(\.|dist|pybuild|venv)'
 
 [tool.coverage.run]
-omit = ["*/tests/*", "cumulusci/files/*", ]
-source = ["cumulusci", ]
+omit = ["*/tests/*", "cumulusci/files/*"]
+source = ["cumulusci"]
 
 [tool.coverage.report]
-exclude_lines = ["pragma: no cover", "@abstract", "@abc.abstract" ]
+exclude_lines = ["pragma: no cover", "@abstract", "@abc.abstract"]
 
 [tool.pytest.ini_options]
 testpaths = "cumulusci"
-addopts =  "-p cumulusci.tests.pytest_plugins.pytest_typeguard -p cumulusci.tests.pytest_plugins.pytest_sf_vcr -p cumulusci.tests.pytest_plugins.pytest_sf_orgconnect"
+addopts = "-p cumulusci.tests.pytest_plugins.pytest_typeguard -p cumulusci.tests.pytest_plugins.pytest_sf_vcr -p cumulusci.tests.pytest_plugins.pytest_sf_orgconnect"
 markers = [
     "metadeploy: mark a test that interacts with the MetaDeploy REST API",
 ]
 filterwarnings = [
+    "error",
     "error:ClassMovedWarning",
     "ignore::DeprecationWarning:.*.rflint",
     "ignore::DeprecationWarning:.*.selenium",

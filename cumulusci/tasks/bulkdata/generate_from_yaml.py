@@ -1,6 +1,6 @@
 import os
 import shutil
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import Optional
 
@@ -155,7 +155,9 @@ class GenerateDataFromYaml(BaseGenerateDataTask):
         if old_continuation_file:
             # reopen to ensure file pointer is at starting point
             old_continuation_file = open(old_continuation_file, "r")
-        with self.open_new_continuation_file() as new_continuation_file:
+        else:
+            old_continuation_file = nullcontext(None)
+        with old_continuation_file as old_continuation_file, self.open_new_continuation_file() as new_continuation_file:
             generate_data(
                 yaml_file=self.yaml_file,
                 user_options=self.vars,
