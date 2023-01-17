@@ -787,7 +787,7 @@ class TestSnowfakery:
                 / "snowfakery/simple_snowfakery_channels.load.yml",
             },
         )
-        with mock.patch.object(
+        with pytest.warns(UserWarning), mock.patch.object(
             task.project_config, "keychain", DummyKeychain()
         ) as keychain:
 

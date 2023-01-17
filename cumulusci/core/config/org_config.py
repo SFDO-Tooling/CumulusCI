@@ -205,7 +205,15 @@ class OrgConfig(BaseConfig):
 
     @property
     def org_id(self):
-        return self.id.split("/")[-2]
+        try:
+            if org_id := self.config.get("org_id"):
+                return org_id
+            elif hasattr(self, "id") and self.id:
+                return self.id.split("/")[-2]
+            else:
+                return None
+        except Exception as e:  # pragma: no cover
+            assert e is None, e
 
     @property
     def username(self):
