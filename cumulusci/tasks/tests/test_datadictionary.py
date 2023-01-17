@@ -1,6 +1,5 @@
 import io
 from collections import defaultdict
-from distutils.version import LooseVersion
 from unittest.mock import Mock, call, mock_open, patch
 
 import pytest
@@ -26,6 +25,7 @@ from cumulusci.tasks.datadictionary import (
 from cumulusci.tasks.salesforce.tests.util import create_task
 from cumulusci.tests.util import create_project_config
 from cumulusci.utils import temporary_dir
+from cumulusci.utils.version_strings import LooseVersion
 from cumulusci.utils.xml import metadata_tree
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
