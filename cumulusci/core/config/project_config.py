@@ -4,7 +4,6 @@ import pathlib
 import re
 from configparser import ConfigParser
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 from io import StringIO
 from itertools import chain
 from pathlib import Path
@@ -15,6 +14,7 @@ from github3.repos.repo import Repository
 
 from cumulusci.core.config.base_config import BaseConfig
 from cumulusci.core.versions import PackageVersionNumber
+from cumulusci.utils.version_strings import LooseVersion
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
