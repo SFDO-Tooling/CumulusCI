@@ -27,8 +27,8 @@ class TestCumulusciYml:
             == "cumulusci/robotframework/tests"
         )
 
-    def test_cumulusci_cumulusci_yaml(self):
-        cciyml = parse_from_yaml("cumulusci/cumulusci.yml")
+    def test_cumulusci_cumulusci_yaml(self, cumulusci_test_repo_root):
+        cciyml = parse_from_yaml(cumulusci_test_repo_root / "cumulusci/cumulusci.yml")
         assert cciyml.tasks["connected_app"].options["overwrite"] is False
 
     def test_parse_cumulusci_yaml(self):
