@@ -61,8 +61,6 @@ jobs:
               run: pip install -r requirements_dev.txt
             - name: Run Pytest
               run: pytest --cov-report= --cov=cumulusci
-            - name: Run coveralls
-              run: coveralls
 
     robot_api:
         name: "Robot: No browser"
@@ -102,8 +100,6 @@ jobs:
               if: always()
               run: |
                   cci org scratch_delete dev
-            - name: Report coverage
-              run: coveralls
             - name: Store robot results
               if: failure()
               uses: actions/upload-artifact@v1
@@ -163,18 +159,9 @@ jobs:
               if: always()
               run: |
                   cci org scratch_delete ${{ matrix.org-shape }}
-            - name: Report coverage
-              run: coveralls
             - name: Store robot results
               if: failure()
               uses: actions/upload-artifact@v1
               with:
                   name: robot
                   path: robot/CumulusCI/results
-
-    coveralls_done:
-        name: Finalize coveralls
-        needs: [unit_tests, robot_api, robot_ui]
-        runs-on: sfdc-ubuntu-latest
-        steps:
-            - run: curl -k https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN -d "payload[build_num]=$GITHUB_SHA&payload[status]=done"
