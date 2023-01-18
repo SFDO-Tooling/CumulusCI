@@ -236,16 +236,16 @@ Command Syntax\n------------------------------------------\n
 ``$ cci task run scoop_icecream``\n\n
 Options\n------------------------------------------\n\n
 ``--flavor VANILLA``
-\t *Required*\n
-\t What flavor\n
+
+\t What flavor
+\n *Required*\n
 \t Type: string\n
-``--color COLOR``
-\t *Optional*\n
+``--color COLOR``\n
 \t What color\n
 \t Default: black\n
 ``--size SIZE``
-\t *Optional*\n
-\t How big"""
+\n\t How big
+\n *Optional*"""
         )
 
     def test_get_command_syntax(self, task_config):
@@ -285,15 +285,13 @@ Options\n------------------------------------------\n\n
     def test_create_task_options_doc(self, option_info):
         option_one_doc = utils.create_task_options_doc(option_info[:1])
         option_two_doc = utils.create_task_options_doc(option_info[1:])
-
         assert option_one_doc == [
-            "\t *Required*",
             "\n\t description",
             "\n\t Default: default",
             "\n\t Type: option_type",
         ]
 
-        assert option_two_doc == ["\t *Optional*", "\n\t Brief description here."]
+        assert option_two_doc == ["\n\t Brief description here.", "\n *Optional*"]
 
     def test_document_flow(self):
         project_config = create_project_config("TestOwner", "TestRepo")
