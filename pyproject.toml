@@ -6,15 +6,12 @@ build-backend = "hatchling.build"
 name = "cumulusci-test"
 dynamic = ["readme", "version"]
 description = "Build and release tools for Salesforce developers"
-license = {text = "BSD 3-Clause License"}
+license = { text = "BSD 3-Clause License" }
 requires-python = ">=3.8"
 authors = [
     { name = "Salesforce.org", email = "sfdo-mrbelvedere@salesforce.com" },
 ]
-keywords = [
-    "cumulusci",
-    "salesforce"
-]
+keywords = ["cumulusci", "salesforce"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -62,16 +59,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-docs = [
-    "myst-parser",
-    "Sphinx"
-]
-lint = [
-    "black",
-    "flake8<4",
-    "isort",
-    "pre-commit"
-]
+docs = ["myst-parser", "Sphinx"]
+lint = ["black", "flake8<4", "isort", "pre-commit"]
 test = [
     "coverage[toml]",
     "coveralls",
@@ -105,20 +94,18 @@ path = "cumulusci/__about__.py"
 include = [
     "/cumulusci",
     '/cumulusci/**/*.*', # y[a]ml, js[on], etc.
+
 ]
 
 [tool.hatch.build.targets.sdist]
 include = [
     "/cumulusci",
     "/requirements/*", # Needed by tox
+
 ]
 
 [tool.hatch.build.targets.wheel]
-exclude = [
-    "tests/",
-    "*.sql",
-    "*.zip"
-]
+exclude = ["tests/", "*.sql", "*.zip"]
 
 [tool.hatch.metadata.hooks.fancy-pypi-readme]
 content-type = "text/markdown"
@@ -134,7 +121,6 @@ end-before = "\n\n<!-- latest-stop -->"
 #######################
 # Tool configurations #
 #######################
-
 [tool.black]
 exclude = '^/(\.|dist|pybuild|venv)'
 
@@ -183,7 +169,6 @@ include = [
     'cumulusci/salesforce_api/org_schema_models.py',
     'cumulusci/tasks/marketing_cloud/__init__.py',
     'cumulusci/tasks/github/pull_request.py',
-    'cumulusci/robotframework/locators_56.py',
     'cumulusci/core/sfdx.py',
     'cumulusci/core/config/ScratchOrgConfig.py',
     'cumulusci/utils/waiting.py',
@@ -194,7 +179,6 @@ include = [
     'cumulusci/salesforce_api/__init__.py',
     'cumulusci/tasks/release_notes/__init__.py',
     'cumulusci/tasks/github/tag.py',
-    'cumulusci/core/keychain/serialization.py',
     'cumulusci/core/dependencies/utils.py',
     'cumulusci/tasks/github/util.py',
     'cumulusci/tasks/salesforce/SOQLQuery.py',
@@ -250,12 +234,10 @@ include = [
     'cumulusci/tasks/metadata/ee_src.py',
     'cumulusci/tasks/salesforce/GetInstalledPackages.py',
     'cumulusci/tasks/__init__.py',
-    'cumulusci/robotframework/locators_54.py',
     'cumulusci/tasks/salesforce/custom_settings.py',
     'cumulusci/core/dependencies/__init__.py',
     'cumulusci/utils/iterators.py',
     'cumulusci/core/config/OrgConfig.py',
-    'cumulusci/robotframework/locators_55.py',
     'cumulusci/robotframework/pageobjects/PageObjectLibrary.py',
     'cumulusci/tasks/push/__init__.py',
     'cumulusci/oauth/__init__.py',
@@ -289,9 +271,7 @@ strict = [
     'cumulusci/core/source_transforms/__init__.py',
     'cumulusci/oauth/__init__.py',
     'cumulusci/oauth/exceptions.py',
-    'cumulusci/robotframework/locators_54.py',
-    'cumulusci/robotframework/locators_55.py',
-    'cumulusci/robotframework/locators_56.py',
+    'cumulusci/robotframework/locators_*.py',
     'cumulusci/salesforce_api/__init__.py',
     'cumulusci/salesforce_api/filterable_objects.py',
     'cumulusci/salesforce_api/mc_soap_envelopes.py',
