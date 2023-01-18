@@ -6,15 +6,12 @@ build-backend = "hatchling.build"
 name = "cumulusci-test"
 dynamic = ["readme", "version"]
 description = "Build and release tools for Salesforce developers"
-license = {text = "BSD 3-Clause License"}
+license = { text = "BSD 3-Clause License" }
 requires-python = ">=3.8"
 authors = [
     { name = "Salesforce.org", email = "sfdo-mrbelvedere@salesforce.com" },
 ]
-keywords = [
-    "cumulusci",
-    "salesforce"
-]
+keywords = ["cumulusci", "salesforce"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -29,12 +26,12 @@ dependencies = [
     "click",
     "cryptography",
     "python-dateutil",
-    "docutils<0.17",
+    "docutils",
     "Faker",
     "fs",
     "github3.py",
     "jinja2",
-    "keyring<=23.0.1",
+    "keyring",
     "defusedxml",
     "lxml",
     "MarkupSafe",
@@ -50,28 +47,20 @@ dependencies = [
     "robotframework-lint",
     "robotframework-pabot",
     "robotframework-requests",
-    "robotframework-seleniumlibrary<6",
+    "robotframework-seleniumlibrary",
     "rst2ansi",
     "salesforce-bulk",
     "sarge",
     "selenium<4",
-    "simple-salesforce==1.11.4",
+    "simple-salesforce",
     "snowfakery",
     "SQLAlchemy",
     "xmltodict",
 ]
 
 [project.optional-dependencies]
-docs = [
-    "myst-parser",
-    "Sphinx"
-]
-lint = [
-    "black",
-    "flake8<4",
-    "isort",
-    "pre-commit"
-]
+docs = ["myst-parser", "Sphinx"]
+lint = ["black", "flake8<4", "isort", "pre-commit"]
 test = [
     "coverage[toml]",
     "coveralls",
@@ -105,20 +94,18 @@ path = "cumulusci/__about__.py"
 include = [
     "/cumulusci",
     '/cumulusci/**/*.*', # y[a]ml, js[on], etc.
+
 ]
 
 [tool.hatch.build.targets.sdist]
 include = [
     "/cumulusci",
     "/requirements/*", # Needed by tox
+
 ]
 
 [tool.hatch.build.targets.wheel]
-exclude = [
-    "tests/",
-    "*.sql",
-    "*.zip"
-]
+exclude = ["tests/", "*.sql", "*.zip"]
 
 [tool.hatch.metadata.hooks.fancy-pypi-readme]
 content-type = "text/markdown"
@@ -134,20 +121,19 @@ end-before = "\n\n<!-- latest-stop -->"
 #######################
 # Tool configurations #
 #######################
-
 [tool.black]
 exclude = '^/(\.|dist|pybuild|venv)'
 
 [tool.coverage.run]
-omit = ["*/tests/*", "cumulusci/files/*", ]
-source = ["cumulusci", ]
+omit = ["*/tests/*", "cumulusci/files/*"]
+source = ["cumulusci"]
 
 [tool.coverage.report]
-exclude_lines = ["pragma: no cover", "@abstract", "@abc.abstract" ]
+exclude_lines = ["pragma: no cover", "@abstract", "@abc.abstract"]
 
 [tool.pytest.ini_options]
 testpaths = "cumulusci"
-addopts =  "-p cumulusci.tests.pytest_plugins.pytest_typeguard -p cumulusci.tests.pytest_plugins.pytest_sf_vcr -p cumulusci.tests.pytest_plugins.pytest_sf_orgconnect"
+addopts = "-p cumulusci.tests.pytest_plugins.pytest_typeguard -p cumulusci.tests.pytest_plugins.pytest_sf_vcr -p cumulusci.tests.pytest_plugins.pytest_sf_orgconnect"
 markers = [
     "metadeploy: mark a test that interacts with the MetaDeploy REST API",
 ]
