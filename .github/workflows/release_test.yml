@@ -51,8 +51,12 @@ jobs:
             - name: Test source tarball and binary wheel
               run: |
                   hatch build
+            - name: Test install of wheel
+              run: |
                   pip install dist/cumulusci*.whl
                   pip uninstall cumulusci
+            - name: Test install of sdist
+              run: |
                   pip install dist/cumulusci*.tar.gz
                   pip uninstall cumulusci
             - name: Install sfdx
