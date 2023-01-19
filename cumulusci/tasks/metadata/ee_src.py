@@ -1,4 +1,6 @@
 import os
+
+# TODO: Replace this with shutils
 from distutils.dir_util import copy_tree, remove_tree
 
 from cumulusci.core.exceptions import TaskOptionsError

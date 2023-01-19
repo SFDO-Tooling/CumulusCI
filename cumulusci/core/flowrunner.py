@@ -54,7 +54,6 @@ Option values/overrides can be passed in at a number of levels, in increasing or
 import copy
 import logging
 from collections import defaultdict
-from distutils.version import LooseVersion
 from operator import attrgetter
 from typing import (
     TYPE_CHECKING,
@@ -76,6 +75,7 @@ from cumulusci.core.config.org_config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.exceptions import FlowConfigError, FlowInfiniteLoopError
 from cumulusci.core.utils import import_global
+from cumulusci.utils.version_strings import LooseVersion
 
 if TYPE_CHECKING:
     from cumulusci.core.tasks import BaseTask
