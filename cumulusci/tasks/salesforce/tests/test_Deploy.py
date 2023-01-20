@@ -32,6 +32,7 @@ class TestDeploy:
             api = task._get_api()
             zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(api.package_zip)), "r")
             assert "package.xml" in zf.namelist()
+            zf.close()
 
     def test_get_api__managed(self):
         with temporary_dir() as path:
@@ -43,6 +44,7 @@ class TestDeploy:
             api = task._get_api()
             zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(api.package_zip)), "r")
             assert "package.xml" in zf.namelist()
+            zf.close()
 
     def test_get_api__additional_options(self):
         with temporary_dir() as path:
@@ -76,6 +78,7 @@ class TestDeploy:
             api = task._get_api()
             zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(api.package_zip)), "r")
             assert "package.xml" in zf.namelist()
+            zf.close()
 
     def test_get_api__static_resources(self):
         with temporary_dir() as path:
@@ -115,6 +118,7 @@ class TestDeploy:
                 package_xml = zf.read("package.xml").decode()
                 assert "<name>StaticResource</name>" in package_xml
                 assert "<members>TestBundle</members>" in package_xml
+                zf.close()
 
     def test_get_api__missing_path(self):
         task = create_task(
