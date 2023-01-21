@@ -459,6 +459,7 @@ class TestCreatePackageVersion:
         assert task.return_values["dependencies"] == [
             {"version_id": "04t000000000009AAA"}
         ]
+        zf.close()
 
     @responses.activate
     def test_get_or_create_package__namespaced_existing(
