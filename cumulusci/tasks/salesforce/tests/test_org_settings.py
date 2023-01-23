@@ -26,10 +26,20 @@ class TestDeployOrgSettings:
                         "settings": {
                             "orgPreferenceSettings": {"s1DesktopEnabled": True},
                             "otherSettings": {
-                                "nested": {
+                                "nestedDict": {
                                     "boolValue": True,
                                     "stringValue": "string",
                                 },
+                                "nestedList": [
+                                    {
+                                        "boolValue": True,
+                                        "stringValue": "foo",
+                                    },
+                                    {
+                                        "boolValue": False,
+                                        "stringValue": "bar",
+                                    },
+                                ],
                             },
                         },
                     },
@@ -69,12 +79,66 @@ class TestDeployOrgSettings:
             readtext(zf, "settings/Other.settings")
             == """<?xml version="1.0" encoding="UTF-8"?>
 <OtherSettings xmlns="http://soap.sforce.com/2006/04/metadata">
-    <nested>
+    <nestedDict>
         <boolValue>true</boolValue>
         <stringValue>string</stringValue>
-    </nested>
+    </nestedDict>
+    <nestedList>
+        <boolValue>true</boolValue>
+        <stringValue>foo</stringValue>
+    </nestedList>
+    <nestedList>
+        <boolValue>false</boolValue>
+        <stringValue>bar</stringValue>
+    </nestedList>
 </OtherSettings>"""
         )
+        zf.close()
+
+    def test_run_task__json_only__with_org_settings(self):
+        with temporary_dir() as d:
+            with open("dev.json", "w") as f:
+                json.dump(
+                    {
+                        "settings": {
+                            "orgPreferenceSettings": {"s1DesktopEnabled": True},
+                            "otherSettings": {
+                                "nested": {
+                                    "boolValue": True,
+                                    "stringValue": "string",
+                                },
+                            },
+                        },
+                        "objectSettings": {"foo__c": {"sharingModel": "Private"}},
+                    },
+                    f,
+                )
+            path = os.path.join(d, "dev.json")
+            task_options = {"definition_file": path, "api_version": "48.0"}
+            task = create_task(DeployOrgSettings, task_options)
+            task.api_class = Mock()
+            task()
+
+        package_zip = task.api_class.call_args[0][1]
+        zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(package_zip)), "r")
+        # The context manager's output is tested separately, below.
+        assert (
+            readtext(zf, "package.xml")
+            == """<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>Foo__c</members>
+        <name>CustomObject</name>
+    </types>
+    <types>
+        <members>OrgPreference</members>
+        <members>Other</members>
+        <name>Settings</name>
+    </types>
+    <version>48.0</version>
+</Package>"""
+        )
+        zf.close()
 
     def test_run_task__settings_only(self):
         settings = {
@@ -125,6 +189,7 @@ class TestDeployOrgSettings:
     </nested>
 </OtherSettings>"""
         )
+        zf.close()
 
     def test_run_task__json_and_settings(self):
         with temporary_dir() as d:
@@ -189,6 +254,7 @@ class TestDeployOrgSettings:
     </nested>
 </OtherSettings>"""
         )
+        zf.close()
 
     def test_run_task__no_settings(self):
         with temporary_dir() as d:
@@ -208,7 +274,27 @@ class TestDeployOrgSettings:
                     {
                         "settings": {
                             "otherSettings": {
-                                "list": [],
+                                "none": None,
+                            },
+                        },
+                    },
+                    f,
+                )
+            path = os.path.join(d, "dev.json")
+            task_options = {"definition_file": path, "api_version": "48.0"}
+            task = create_task(DeployOrgSettings, task_options)
+            task.api_class = Mock()
+            with pytest.raises(TypeError):
+                task()
+
+    def test_run_task_bad_nested_list_settings_type(self):
+        with temporary_dir() as d:
+            with open("dev.json", "w") as f:
+                json.dump(
+                    {
+                        "settings": {
+                            "otherSettings": {
+                                "nestedList": ["foo"],
                             },
                         },
                     },

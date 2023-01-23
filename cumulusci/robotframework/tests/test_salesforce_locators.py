@@ -14,7 +14,7 @@ class TestLocators:
     )
     def test_locators_in_robot_context(self, get_latest_api_version):
         """Verify we can get locators for the current org api version"""
-        get_latest_api_version.return_value = 55.0
+        get_latest_api_version.return_value = 57.0
 
         # This instantiates the robot library, mimicking a robot library import.
         # We've mocked out the code that would otherwise throw an error since
@@ -22,7 +22,7 @@ class TestLocators:
         # return the latest version of the locators.
         sf = Salesforce()
 
-        expected = "cumulusci.robotframework.locators_55"
+        expected = "cumulusci.robotframework.locators_57"
         actual = sf.locators_module.__name__
         message = "expected to load '{}', actually loaded '{}'".format(expected, actual)
         assert expected == actual, message
@@ -49,25 +49,25 @@ class TestLocators:
         message = "expected to load '{}', actually loaded '{}'".format(expected, actual)
         assert expected == actual, message
 
-    def test_locators_55(self):
-        """Verify that locators_55 is a superset of the locators_54
+    def test_locators_57(self):
+        """Verify that locators_57 is a superset of the locators_56
 
         This test is far from perfect, but it should at least flag a
         catastrophic error in how locators for a version that augments
         the locators from previous versions.
 
-        Note: this test assumes that locators_55 doesn't delete any of the
+        Note: this test assumes that locators_56 doesn't delete any of the
         keys from 54.
 
         """
-        import cumulusci.robotframework.locators_54 as locators_54
-        import cumulusci.robotframework.locators_55 as locators_55
+        import cumulusci.robotframework.locators_56 as locators_56
+        import cumulusci.robotframework.locators_57 as locators_57
 
-        keys_54 = set(locators_54.lex_locators)
-        keys_55 = set(locators_55.lex_locators)
+        keys_56 = set(locators_56.lex_locators)
+        keys_57 = set(locators_57.lex_locators)
 
-        assert id(locators_54.lex_locators) != id(
-            locators_55.lex_locators
-        ), "locators_54.lex_locators and locators_55.lex_locators are the same object"
-        assert len(keys_54) > 0
-        assert keys_55.issubset(keys_54)
+        assert id(locators_56.lex_locators) != id(
+            locators_57.lex_locators
+        ), "locators_56.lex_locators and locators_57.lex_locators are the same object"
+        assert len(keys_56) > 0
+        assert keys_57.issubset(keys_56)

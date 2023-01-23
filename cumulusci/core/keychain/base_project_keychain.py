@@ -1,11 +1,8 @@
 import sarge
 
-from cumulusci.core.config import (
-    BaseConfig,
-    ConnectedAppOAuthConfig,
-    ScratchOrgConfig,
-    ServiceConfig,
-)
+from cumulusci.core.config import ConnectedAppOAuthConfig, ServiceConfig
+from cumulusci.core.config.base_config import BaseConfig
+from cumulusci.core.config.scratch_org_config import ScratchOrgConfig
 from cumulusci.core.exceptions import (
     CumulusCIException,
     CumulusCIUsageError,
@@ -60,6 +57,8 @@ class BaseProjectKeychain(BaseConfig):
     def create_scratch_org(self, org_name, config_name, days=None, set_password=True):
         """Adds/Updates a scratch org config to the keychain from a named config"""
         scratch_config = self.project_config.lookup(f"orgs__scratch__{config_name}")
+        if scratch_config is None:
+            raise OrgNotFound(f"No such org configured: `{config_name}`")
         if days is not None:
             # Allow override of scratch config's default days
             scratch_config["days"] = days
@@ -86,6 +85,7 @@ class BaseProjectKeychain(BaseConfig):
     def set_default_org(self, name):
         """set the default org for tasks and flows by name"""
         org = self.get_org(name)
+        assert org is not None
         self.unset_default_org()
         org.config["default"] = True
         org.save()
@@ -100,6 +100,7 @@ class BaseProjectKeychain(BaseConfig):
         """unset the default orgs for tasks"""
         for org in self.list_orgs():
             org_config = self.get_org(org)
+            assert org_config is not None
             if org_config.default:
                 del org_config.config["default"]
                 org_config.save()
@@ -114,6 +115,7 @@ class BaseProjectKeychain(BaseConfig):
         """retrieve the name and configuration of the default org"""
         for org in self.list_orgs():
             org_config = self.get_org(org)
+            assert org_config is not None
             if org_config.default:
                 return org, org_config
         return None, None
@@ -121,6 +123,7 @@ class BaseProjectKeychain(BaseConfig):
     def get_org(self, name: str):
         """retrieve an org configuration by name key"""
         org = self._get_org(name)
+        assert org
         if org.keychain:
             assert org.keychain is self
         else:
@@ -273,6 +276,12 @@ class BaseProjectKeychain(BaseConfig):
             for name in names:
                 services[s_type].append(name)
         return services
+
+    def get_services_for_type(self, service_type: str) -> list:
+        return [
+            self.get_service(service_type, alias)
+            for alias in self.list_services().get(service_type, [])
+        ]
 
     def rename_service(
         self, service_type: str, current_alias: str, new_alias: str

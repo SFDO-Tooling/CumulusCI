@@ -10,7 +10,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from pydantic import Field, root_validator
+from pydantic import Field, root_validator, validator
 from pydantic.types import DirectoryPath
 from typing_extensions import Literal, TypedDict
 
@@ -115,7 +115,7 @@ class Git(CCIDictModel):
 class Plan(CCIDictModel):  # MetaDeploy plans
     title: str = None
     description: str = None
-    tier: Literal["primary", "secondary", "additional"] = None
+    tier: Literal["primary", "secondary", "additional"] = "primary"
     slug: str = None
     is_listed: bool = True
     steps: Dict[str, Step] = None
@@ -133,13 +133,15 @@ class DependencyResolutions(CCIDictModel):
 
 
 class Project(CCIDictModel):
-    name: str = None
-    package: Package = None
-    test: Test = None
-    git: Git = None
-    dependencies: List[Dict[str, str]] = None  # TODO
-    dependency_resolutions: DependencyResolutions = None
+    name: Optional[str] = None
+    package: Optional[Package] = None
+    test: Optional[Test] = None
+    git: Optional[Git] = None
+    dependencies: Optional[List[Dict[str, str]]] = None
+    dependency_resolutions: Optional[DependencyResolutions] = None
+    dependency_pins: Optional[List[Dict[str, str]]]
     source_format: Literal["sfdx", "mdapi"] = "mdapi"
+    custom: Optional[Dict] = None
 
 
 class ScratchOrg(CCIDictModel):
@@ -159,6 +161,7 @@ class ServiceAttribute(CCIDictModel):
     required: bool = None
     default_factory: PythonClassPath = None
     default: str = None
+    sensitive: bool = False
 
 
 class Service(CCIDictModel):
@@ -230,6 +233,16 @@ class CumulusCIRoot(CCIDictModel):
     sources: Dict[str, Union[LocalFolderSourceModel, GitHubSourceModel]] = {}
     cli: CumulusCLIConfig = None
 
+    @validator("plans")
+    def validate_plan_tiers(cls, plans):
+        existing_tiers = [plan.tier for plan in plans.values()]
+        has_duplicate_tiers = any(
+            existing_tiers.count(tier) > 1 for tier in ("primary", "secondary")
+        )
+        if has_duplicate_tiers:
+            raise ValueError("Only one plan can be defined as 'primary' or 'secondary'")
+        return plans
+
 
 class CumulusCIFile(CCIDictModel):
     __root__: Union[CumulusCIRoot, None]
@@ -275,7 +288,10 @@ def _log_yaml_errors(logger, errors: List[ErrorDict]):
         logger.warning("  %s\n    %s", loc, error["msg"])
     if not has_shown_yaml_error_message:
         logger.error(
-            "NOTE: These warnings may become errors in future versions of CumulusCI."
+            "NOTE: These warnings will become errors on Sept 30, 2022.\n\n"
+            "If you need to put non-standard data in your CumulusCI file "
+            "(for some form of project-specific setting), put it in "
+            "the `project: custom:` section of `cumulusci.yml` ."
         )
         logger.error(
             "If you think your YAML has no error, please report the bug to the CumulusCI team."

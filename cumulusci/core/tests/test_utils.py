@@ -76,6 +76,17 @@ class TestUtils:
         assert utils.decode_to_unicode("\u2603") == "\u2603"
         assert utils.decode_to_unicode(None) is None
 
+    json_test_cases = [
+        ({1, 2, 3}, [1, 2, 3]),
+        ("abc", "abc"),
+        ([1, 2, 3], [1, 2, 3]),
+        (b"bytes", str(b"bytes")),
+    ]
+
+    @pytest.mark.parametrize("input, expected_return", json_test_cases)
+    def test_make_jsonable(self, input, expected_return):
+        assert utils.make_jsonable(input) == expected_return
+
 
 class TestDictMerger:
     """some stuff that didnt get covered by usual usage"""

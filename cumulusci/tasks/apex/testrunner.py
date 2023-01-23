@@ -162,7 +162,7 @@ class RunApexTests(BaseSalesforceApiTask):
         },
         "required_org_code_coverage_percent": {
             "description": "Require at least X percent code coverage across the org following the test run.",
-            "usage": "-o required_org_code_coverage_percent PERCENTAGE",
+            "usage": "--required_org_code_coverage_percent PERCENTAGE",
         },
         "required_per_class_code_coverage_percent": {
             "description": "Require at least X percent code coverage for every class in the org.",

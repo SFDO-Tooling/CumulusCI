@@ -221,6 +221,7 @@ def init_from_context(context: Dict[str, object], echo: bool = False):
         ),
         trim_blocks=True,
         lstrip_blocks=True,
+        autoescape=True,
     )
 
     # Render templates
@@ -359,7 +360,8 @@ def project_info(runtime):
 @pass_runtime(require_keychain=True)
 def project_dependencies(runtime, resolution_strategy):
     dependencies = get_static_dependencies(
-        runtime.project_config, resolution_strategy=resolution_strategy
+        runtime.project_config,
+        resolution_strategy=resolution_strategy,
     )
     for line in dependencies:
         click.echo(f"{line}")

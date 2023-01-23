@@ -95,29 +95,35 @@ def project_config(repo_root):
 
 
 @pytest.fixture
-def task(project_config, devhub_config, org_config):
-    task = CreatePackageVersion(
-        project_config,
-        TaskConfig(
-            {
-                "options": {
-                    "package_type": "Managed",
-                    "org_dependent": False,
-                    "package_name": "Test Package",
-                    "static_resource_path": "static-resources",
-                    "ancestor_id": "04t000000000000",
-                    "create_unlocked_dependency_packages": True,
-                }
-            }
-        ),
-        org_config,
-    )
-    with mock.patch(
-        "cumulusci.tasks.create_package_version.get_devhub_config",
-        return_value=devhub_config,
-    ):
-        task._init_task()
-    return task
+def get_task(project_config, devhub_config, org_config):
+    def _get_task(options=None):
+        opts = options or {
+            "package_type": "Managed",
+            "org_dependent": False,
+            "package_name": "Test Package",
+            "static_resource_path": "static-resources",
+            "ancestor_id": "04t000000000000",
+            "create_unlocked_dependency_packages": True,
+            "install_key": "foo",
+        }
+        task = CreatePackageVersion(
+            project_config,
+            TaskConfig({"options": opts}),
+            org_config,
+        )
+        with mock.patch(
+            "cumulusci.tasks.create_package_version.get_devhub_config",
+            return_value=devhub_config,
+        ):
+            task._init_task()
+        return task
+
+    return _get_task
+
+
+@pytest.fixture
+def task(get_task):
+    return get_task()
 
 
 @pytest.fixture
@@ -149,24 +155,43 @@ def mock_get_static_dependencies():
 class TestPackageConfig:
     def test_validate_org_dependent(self):
         with pytest.raises(ValidationError, match="Only unlocked packages"):
-            PackageConfig(package_type=PackageTypeEnum.managed, org_dependent=True)
+            PackageConfig(package_type=PackageTypeEnum.managed, org_dependent=True)  # type: ignore
 
     def test_validate_post_install_script(self):
         with pytest.raises(ValidationError, match="Only managed packages"):
             PackageConfig(
                 package_type=PackageTypeEnum.unlocked, post_install_script="Install"
-            )
+            )  # type: ignore
 
     def test_validate_uninstall_script(self):
         with pytest.raises(ValidationError, match="Only managed packages"):
             PackageConfig(
                 package_type=PackageTypeEnum.unlocked, uninstall_script="Uninstall"
-            )
+            )  # type: ignore
 
 
 class TestCreatePackageVersion:
     devhub_base_url = "https://devhub.my.salesforce.com/services/data/v52.0"
     scratch_base_url = "https://scratch.my.salesforce.com/services/data/v52.0"
+
+    def test_postinstall_script_logic(self, get_task):
+        task = get_task({"package_type": "Managed", "package_name": "Foo"})
+
+        # Values set in the fixture project_config above
+        assert task.package_config.post_install_script == "Install"
+        assert task.package_config.uninstall_script == "Uninstall"
+
+        task = get_task(
+            {
+                "package_type": "Unlocked",
+                "package_name": "Foo",
+                "post_install_script": None,
+                "uninstall_script": None,
+            }
+        )
+
+        assert task.package_config.post_install_script is None
+        assert task.package_config.uninstall_script is None
 
     @responses.activate
     def test_run_task(
@@ -434,6 +459,7 @@ class TestCreatePackageVersion:
         assert task.return_values["dependencies"] == [
             {"version_id": "04t000000000009AAA"}
         ]
+        zf.close()
 
     @responses.activate
     def test_get_or_create_package__namespaced_existing(

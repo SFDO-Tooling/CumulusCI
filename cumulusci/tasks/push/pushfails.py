@@ -106,7 +106,7 @@ class ReportPushFailures(BaseSalesforceApiTask):
         ignore_errors = self.options["ignore_errors"]
         file_name = self.options["result_file"]
         with open(file_name, "w", encoding="utf-8") as f:
-            w = csv.writer(f)
+            w = csv.writer(f, quoting=csv.QUOTE_ALL)
             w.writerow(self.headers)
             for result in job_records:
                 error = result["Error"]

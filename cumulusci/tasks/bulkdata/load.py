@@ -2,6 +2,7 @@ import tempfile
 import typing as T
 from collections import defaultdict
 from contextlib import contextmanager
+from pathlib import Path
 from unittest.mock import MagicMock
 
 from sqlalchemy import Column, MetaData, Table, Unicode, create_engine, func, inspect
@@ -84,6 +85,9 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         "set_recently_viewed": {
             "description": "By default, the first 1000 records inserted via the Bulk API will be set as recently viewed. If fewer than 1000 records are inserted, existing objects of the same type being inserted will also be set as recently viewed.",
         },
+        "org_shape_match_only": {
+            "description": "When True, all path options are ignored and only a dataset matching the org shape name will be loaded. Defaults to False."
+        },
     }
     row_warning_limit = 10
 
@@ -93,15 +97,7 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         self.options["ignore_row_errors"] = process_bool_arg(
             self.options.get("ignore_row_errors") or False
         )
-        if self.options.get("database_url"):
-            # prefer database_url if it's set
-            self.options["sql_path"] = None
-        elif self.options.get("sql_path"):
-            self.options["database_url"] = None
-        else:
-            raise TaskOptionsError(
-                "You must set either the database_url or sql_path option."
-            )
+        self._init_dataset()
         self.reset_oids = self.options.get("reset_oids", True)
         self.bulk_mode = (
             self.options.get("bulk_mode") and self.options.get("bulk_mode").title()
@@ -120,7 +116,86 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
             self.options.get("set_recently_viewed", True)
         )
 
+    def _init_dataset(self):
+        """Find the dataset paths to use with the following sequence:
+        1. If `org_shape_match_only` is True (defaults False),
+           unset any other path options that may have been supplied.
+        2. Prefer a supplied `database_url`.
+        3. If `sql_path` was supplied, but not `mapping`, use default `mapping` value.
+        4. If `mapping` was supplied, but not `sql_path`, use default `sql_path` value.
+        5. If no path options were supplied, look for a dataset matching the org shape.
+        6. If no matching dataset was found AND `org_shape_match_only` is False,
+           look for a dataset with the default `mapping` and `sql_path` values
+           (as previously defaulted in the standard library yml).
+        """
+        self.options["org_shape_match_only"] = process_bool_arg(
+            self.options.get("org_shape_match_only", False)
+        )
+        if self.options["org_shape_match_only"]:
+            self.options["mapping"] = None
+            self.options["sql_path"] = None
+            self.options["database_url"] = None
+            self.logger.warning(
+                "The `default_dataset_only` option has been deprecated. "
+                "Please switch to the `load_sample_data` task."
+            )
+
+        self.options.setdefault("database_url", None)
+        if self.options.get("database_url"):
+            # prefer database_url if it's set
+            self.options["sql_path"] = None
+        elif self.options.get("sql_path"):
+            self.options.setdefault("mapping", "datasets/mapping.yml")
+        elif self.options.get("mapping"):
+            self.options.setdefault("sql_path", "datasets/sample.sql")
+        elif found_dataset := (
+            self._find_matching_dataset() or self._find_default_dataset()
+        ):  # didn't get either database_url or sql_path
+            mapping_path, dataset_path = found_dataset
+            self.options["mapping"] = mapping_path
+            self.options["sql_path"] = dataset_path
+        else:
+            self.has_dataset = False
+            return
+        self.has_dataset = True
+
+    def _find_matching_dataset(self) -> T.Optional[T.Tuple[str, str]]:
+        org_shape = self.org_config.lookup("config_name") if self.org_config else None
+        if not org_shape:
+            return None  # persistent org
+        dataset_folder = f"datasets/{org_shape}"
+        if Path(dataset_folder).exists():
+            # check for dataset.sql and mapping.yml
+            mapping_path = f"{dataset_folder}/{org_shape}.mapping.yml"
+            dataset_path = f"{dataset_folder}/{org_shape}.dataset.sql"
+            if Path(mapping_path).exists() and Path(dataset_path).exists():
+                return (mapping_path, dataset_path)
+            else:
+                self.logger.warning(
+                    f"Found datasets/{org_shape} but it did not contain {org_shape}.mapping.yml and {org_shape}.dataset.yml."
+                )
+        return None
+
+    def _find_default_dataset(self) -> T.Optional[T.Tuple[str, str]]:
+        if self.options["org_shape_match_only"]:
+            return None
+        dataset_path = "datasets/sample.sql"
+        mapping_path = "datasets/mapping.yml"
+        if Path(dataset_path).exists() and Path(mapping_path).exists():
+            return (mapping_path, dataset_path)
+        return None
+
     def _run_task(self):
+        if not self.has_dataset:
+            if org_shape := self.org_config.lookup("config_name"):
+                self.logger.info(
+                    f"No data will be loaded because there was no dataset found matching your org shape name ('{org_shape}')."
+                )
+            else:
+                self.logger.info(
+                    "No data will be loaded because this is a persistent org and no dataset was specified."
+                )
+            return
         self._init_mapping()
         with self._init_db():
             self._expand_mapping()
@@ -157,16 +232,21 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
         if self.options["set_recently_viewed"]:
             try:
                 self.logger.info("Setting records to 'recently viewed'.")
-                self._set_viewed()
+                set_recently_viewed = self._set_viewed()
             except Exception as e:
                 self.logger.warning(f"Could not set recently viewed because {e}")
+                set_recently_viewed = [SetRecentlyViewedInfo("ALL", e)]
+        else:
+            set_recently_viewed = False
 
         self.return_values = {
             "step_results": {
                 step_name: result_info.simplify()
                 for step_name, result_info in results.items()
-            }
+            },
         }
+        if set_recently_viewed is not False:
+            self.return_values["set_recently_viewed"] = set_recently_viewed
 
     def _execute_step(
         self, mapping: MappingStep
@@ -683,10 +763,11 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 # Join maps together to get tuple (Contact ID, Contact SF ID) to insert into step's ID Table.
                 yield (contact_id, contact_sf_id)
 
-    def _set_viewed(self):
+    def _set_viewed(self) -> T.List["SetRecentlyViewedInfo"]:
         """Set items as recently viewed. Filter out custom objects without custom tabs."""
         object_names = set()
         custom_objects = set()
+        results = []
 
         # Separate standard and custom objects
         for mapping in self.mapping.values():
@@ -709,17 +790,22 @@ class LoadData(SqlAlchemyMixin, BaseSalesforceApiTask):
                 self.logger.warning(
                     f"Cannot get the list of custom tabs to set recently viewed status on them. Error: {e}"
                 )
-        with get_org_schema(self.sf, self.org_config) as org_schema:
+        with get_org_schema(
+            self.sf, self.org_config, included_objects=object_names, force_recache=True
+        ) as org_schema:
             for mapped_item in sorted(object_names):
                 if org_schema[mapped_item].mruEnabled:
                     try:
                         self.sf.query_all(
                             f"SELECT Id FROM {mapped_item} ORDER BY CreatedDate DESC LIMIT 1000 FOR VIEW"
                         )
+                        results.append(SetRecentlyViewedInfo(mapped_item, None))
                     except Exception as e:
                         self.logger.warning(
                             f"Cannot set recently viewed status for {mapped_item}. Error: {e}"
                         )
+                        results.append(SetRecentlyViewedInfo(mapped_item, e))
+        return results
 
 
 class StepResultInfo(T.NamedTuple):
@@ -735,3 +821,10 @@ class StepResultInfo(T.NamedTuple):
             "record_type": self.record_type,
             **self.result.simplify(),
         }
+
+
+class SetRecentlyViewedInfo(T.NamedTuple):
+    """Did the set recently succeed or fail?"""
+
+    sobject: str
+    error: T.Optional[Exception]

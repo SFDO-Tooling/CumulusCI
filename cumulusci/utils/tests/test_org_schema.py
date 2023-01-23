@@ -12,11 +12,20 @@ from sqlalchemy import create_engine
 
 from cumulusci.salesforce_api.org_schema import (
     BufferedSession,
+    Filters,
     get_org_schema,
     zip_database,
 )
-from cumulusci.salesforce_api.org_schema_models import Base
+from cumulusci.salesforce_api.org_schema_models import Base, SObject
+from cumulusci.tasks.bulkdata.tests.integration_test_utils import (
+    ensure_accounts,
+    ensure_records,
+)
 from cumulusci.tests.util import FakeUnreliableRequestHandler
+from cumulusci.utils.http.multi_request import HTTPRequestError
+
+ensure_accounts = ensure_accounts  # fixes 4 lint errors at once. Don't hate the player, hate the game.
+ensure_records = ensure_records
 
 
 class FakeSF:
@@ -28,12 +37,20 @@ class FakeSF:
     headers = {}
 
     def describe(self):
+        defaults = {"createable": True, "deletable": True, "layoutable": True}
+
+        def fake_obj_desc(name, **props):
+            return {**defaults, **props, "name": name}
+
         return {
             "encoding": "UTF-8",
             "maxBatchSize": 200,
             "sobjects": [
-                {"createable": False, "deletable": True, "name": "Account"},
-                {"createable": False, "deletable": True, "name": "Contact"},
+                fake_obj_desc("Account"),
+                fake_obj_desc("Contact"),
+                fake_obj_desc("PermissionSet", layoutable=False),
+                fake_obj_desc("Campaign"),
+                fake_obj_desc("Case"),
             ],
         }
 
@@ -50,13 +67,18 @@ def makeFakeCompositeParallelSalesforce(responses):
             pass
 
         def do_composite_requests(self, requests):
-            return responses(), []
+            refIds = set(req["referenceId"] for req in requests)
+            return (
+                response
+                for response in responses()
+                if response["referenceId"] in refIds
+            ), []
 
     return FakeCompositeParallelSalesforce
 
 
 def uncached_responses(responses):
-    """Pretend to load uncached responses from a VCR cassette"""
+    """Pretend to load uncached responses. Use a VCR cassette instead"""
 
     def parse_composite_response(interaction: dict):
         response_body = interaction["response"]["body"]["string"]
@@ -89,7 +111,7 @@ def mock_return_cached_responses():
     )
 
 
-class TestDescribeOrg:
+class TestOrgSchema:
     def setup_class(self):
         cassette = (
             Path(__file__).parent / "cassettes/ManualEdit_test_describe_to_sql.yaml"
@@ -98,7 +120,7 @@ class TestDescribeOrg:
             self.cassette_data = yaml.safe_load(f)
 
     def validate_schema_data(self, schema):
-        assert len(list(schema.sobjects)) == 4
+        assert len(list(schema.sobjects)) == 4, [obj.name for obj in schema.sobjects]
         assert schema["Account"].createable is True
         assert schema["Account"].fields["Id"].aggregatable is True
         assert schema["Account"].labelPlural == "Accounts"
@@ -148,14 +170,16 @@ class TestDescribeOrg:
         with mock_return_uncached_responses(self.cassette_data):
             with get_org_schema(FakeSF(), org_config) as schema:
                 schema.session.execute("insert into sobjects (name) values ('Foo')")
-                assert "Foo" in schema
+                assert "Foo" in [obj.name for obj in schema.session.query(SObject.name)]
                 schema.session._real_commit__()
                 dbpath = schema.engine.url.translate_connect_args()["database"]
                 zip_database(Path(dbpath), schema.path)
             with get_org_schema(FakeSF(), org_config) as schema:
-                assert "Foo" in schema
+                assert "Foo" in [obj.name for obj in schema.session.query(SObject.name)]
             with get_org_schema(FakeSF(), org_config, force_recache=True) as schema:
-                assert "Foo" not in schema
+                assert "Foo" not in [
+                    obj.name for obj in schema.session.query(SObject.name)
+                ]
 
     def test_dict_like(self, org_config):
         with mock_return_uncached_responses(self.cassette_data):
@@ -290,9 +314,180 @@ class TestDescribeOrg:
             with get_org_schema(sf, org_config):
                 pass
 
+    def test_minimal_schema(self, sf, org_config, vcr):
+        with vcr.use_cassette(
+            "ManualEditTestDescribeOrg.test_minimal_schema.yaml",
+            record_mode="none",
+        ), get_org_schema(
+            sf,
+            org_config,
+            included_objects=["Account", "Opportunity"],
+            force_recache=True,
+        ) as schema:
+            assert list(schema.keys()) == ["Account", "Opportunity"]
 
-@pytest.mark.vcr()  # too hard to make these VCR-compatible due to data volume
-@pytest.mark.slow()
+    def test_filter_by_name(self, sf, org_config):
+        with mock_return_uncached_responses(self.cassette_data):
+            with get_org_schema(
+                FakeSF(),
+                org_config,
+            ) as schema:
+                assert "Account" in schema
+                assert "PermissionSet" in schema
+            with get_org_schema(
+                FakeSF(), org_config, patterns_to_ignore=["%accou%"]
+            ) as schema:
+                assert "Account" not in schema
+                assert "PermissionSet" in schema
+
+    def test_reuse_query(self, sf, org_config):
+        with mock_return_uncached_responses(self.cassette_data):
+            with get_org_schema(
+                FakeSF(), org_config, filters=[Filters.extractable]
+            ) as schema:
+                assert len(tuple(schema.sobjects)) == len(tuple(schema.sobjects))
+
+    def test_filter_not_extractable_implicit(self, sf, org_config):
+        """Permission Sets are an example of an object considered "not extractable" """
+        with mock_return_uncached_responses(self.cassette_data):
+            with get_org_schema(
+                FakeSF(), org_config, filters=[Filters.extractable]
+            ) as schema:
+                assert "Account" in schema
+                assert "PermissionSet" not in schema
+
+    def test_filter_by_arbitrary_property(self, sf, org_config):
+        """Permission Sets are an example of an object considered "not extractable" """
+        with mock_return_uncached_responses(self.cassette_data):
+            with get_org_schema(
+                FakeSF(), org_config, filters=[Filters.layoutable]
+            ) as schema:
+                assert "Account" in schema
+                assert "PermissionSet" not in schema
+
+    def test_cached_schema_can_be_filtered(self, sf, org_config):
+        """Permission Sets are an example of an object considered "not extractable" """
+        with mock_return_uncached_responses(self.cassette_data):
+            with get_org_schema(FakeSF(), org_config) as schema:
+                assert "Account" in schema
+                assert "PermissionSet" in schema
+
+            with get_org_schema(
+                FakeSF(), org_config, filters=[Filters.layoutable]
+            ) as schema:
+                assert schema.from_cache
+                assert "Account" in schema
+                assert "PermissionSet" not in schema
+                # it should be still in there but hidden
+                assert schema.session.query(SObject).filter(
+                    SObject.name == "PermissionSet"
+                )
+
+            with get_org_schema(FakeSF(), org_config) as schema:
+                assert schema.from_cache
+                assert "Account" in schema
+                assert "PermissionSet" in schema
+
+    def test_error_populate_without_include_counts(self, sf, org_config):
+        with mock_return_uncached_responses(self.cassette_data):
+            with pytest.raises(AssertionError, match="include_counts"):
+                with get_org_schema(
+                    FakeSF(), org_config, filters=[Filters.populated]
+                ) as schema:
+                    assert "Account" in schema
+                    assert "PermissionSet" not in schema
+
+    def test_filter_by_populated(self, sf, org_config):
+        with mock_return_uncached_responses(self.cassette_data):
+            with patch(
+                "cumulusci.salesforce_api.org_schema.count_sobjects",
+                lambda *args: (
+                    {"Account": 10, "Contact": 5, "PermissionSet": 0},
+                    [],
+                    [],
+                ),
+            ), get_org_schema(
+                FakeSF(), org_config, include_counts=True, filters=[Filters.populated]
+            ) as schema:
+                assert "Account" in schema
+                assert "PermissionSet" not in schema
+
+    def test_error_while_counting(self, sf, org_config, caplog):
+        with mock_return_uncached_responses(self.cassette_data):
+            with patch(
+                "cumulusci.salesforce_api.org_schema.count_sobjects",
+                lambda *args: (
+                    {"Account": 10, "Contact": 5, "PermissionSet": 0},
+                    [],
+                    [HTTPRequestError("Error! Apostasy!", None)] * 15,
+                ),
+            ), get_org_schema(
+                FakeSF(), org_config, include_counts=True, filters=[Filters.populated]
+            ):
+                pass
+            assert "Apostasy" in caplog.text
+            assert "more counting errors suppressed" in caplog.text
+
+    def test_old_schema_version(self, sf, org_config, caplog):
+        with mock_return_uncached_responses(self.cassette_data):
+            with patch(
+                "cumulusci.salesforce_api.org_schema.Schema.CurrentFormatVersion", 7
+            ), get_org_schema(
+                FakeSF(), org_config, include_counts=True, filters=[Filters.populated]
+            ) as schema:
+                assert schema.version == 7
+
+            class FakeSilentMigration(Exception):
+                called = False
+
+                def __init__(self, *args, **kwargs):
+                    self.__class__.called = True
+
+            with patch(
+                "cumulusci.salesforce_api.org_schema.SilentMigration",
+                FakeSilentMigration,
+            ), patch(
+                "cumulusci.salesforce_api.org_schema.Schema.CurrentFormatVersion", 8
+            ), get_org_schema(
+                FakeSF(), org_config, include_counts=True, filters=[Filters.populated]
+            ) as schema:
+                assert schema.version == 8
+                assert FakeSilentMigration.called
+
+    @pytest.mark.needs_org()
+    def test_schema_populated_real(self, sf, org_config, ensure_records):
+        starting_records = {
+            "Entitlement": [],  # Delete all entitlements so we can delete accounts
+            "Account": [{"Name": "XYZZY"}],
+            "Opportunity": [],  # 0 opportunities
+        }
+        with ensure_records(starting_records):
+            with get_org_schema(
+                sf,
+                org_config,
+                include_counts=True,
+                filters=[Filters.populated],
+                included_objects=["Account", "Contact", "Opportunity"],
+            ) as schema:
+                assert "Account" in schema, schema.keys()
+                assert "Case" not in schema, schema.keys()  # not in included_objects
+                assert (
+                    "Opportunity" not in schema
+                ), schema.keys()  # because not populated
+
+            # Create one case and ensure it is noticed.
+            with ensure_records({"Case": [{}]}):
+                with get_org_schema(
+                    sf, org_config, include_counts=True, filters=[Filters.populated]
+                ) as schema:
+                    assert "Account" in schema, schema.keys()
+                    assert "Case" in schema, schema.keys()
+                    assert (
+                        "Opportunity" not in schema
+                    ), schema.keys()  # because not populated
+
+
+@pytest.mark.needs_org()  # too hard to make these VCR-compatible due to data volume
 class TestOrgSchemaIntegration:
     def validate_real_schema_data(self, schema):
         assert len(list(schema.sobjects)) > 800
@@ -311,6 +506,15 @@ class TestOrgSchemaIntegration:
         with get_org_schema(sf, org_config) as schema:
             self.validate_real_schema_data(schema)
             assert schema.from_cache
+
+    def test_minimal_schema(self, sf, org_config):
+        with get_org_schema(
+            sf,
+            org_config,
+            included_objects=["Account", "Opportunity"],
+            force_recache=True,
+        ) as schema:
+            assert list(schema.keys()) == ["Account", "Opportunity"]
 
 
 class TestBufferedSession:

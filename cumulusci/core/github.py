@@ -9,8 +9,13 @@ from typing import Callable, Optional, Union
 from urllib.parse import urlparse
 
 import github3
-from github3 import GitHub, login
-from github3.exceptions import AuthenticationFailed, ResponseError, TransportError
+from github3 import GitHub, GitHubEnterprise, login
+from github3.exceptions import (
+    AuthenticationFailed,
+    ConnectionError,
+    ResponseError,
+    TransportError,
+)
 from github3.git import Reference, Tag
 from github3.pulls import ShortPullRequest
 from github3.repos.commit import RepoCommit
@@ -28,6 +33,7 @@ from cumulusci.core.exceptions import (
     GithubApiError,
     GithubApiNotFoundError,
     GithubException,
+    ServiceNotConfigured,
 )
 from cumulusci.oauth.client import (
     OAuth2ClientConfig,
@@ -35,6 +41,7 @@ from cumulusci.oauth.client import (
     get_device_code,
     get_device_oauth_token,
 )
+from cumulusci.utils.git import parse_repo_url
 from cumulusci.utils.http.requests_utils import safe_json_from_response
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
 
@@ -48,11 +55,31 @@ SSO_WARNING = """Results may be incomplete. You have not granted your Personal A
 UNAUTHORIZED_WARNING = """
 Bad credentials. Verify that your personal access token is correct and that you are authorized to access this resource.
 """
+SELF_SIGNED_WARNING = """
+There was a problem verifying the SSL Certificate due to a certificate authority that isn't trusted or a self-signed certificate in the certificate chain. Try setting CUMULUSCI_SYSTEM_CERTS Environment Variable to 'True'. See https://cumulusci.readthedocs.io/en/stable/env-var-reference.html?#cumulusci-system-certs
+"""
+
+
+class GitHubRety(Retry):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def increment(self, *args, **kwargs):
+        # Check for connnection and fail on SSLerror
+        # SSLCertVerificationError
+        if "error" in kwargs:
+            error = kwargs["error"]
+            error_str = "CERTIFICATE_VERIFY_FAILED"
+            if error_str in str(error):
+                raise error
+        # finally call increment
+        return super().increment(*args, **kwargs)
+
 
 # Prepare request retry policy to be attached to github sessions.
 # 401 is a weird status code to retry, but sometimes it happens spuriously
 # and https://github.community/t5/GitHub-API-Development-and/Random-401-errors-after-using-freshly-generated-installation/m-p/22905 suggests retrying
-retries = Retry(status_forcelist=(401, 502, 503, 504), backoff_factor=0.3)
+retries = GitHubRety(status_forcelist=(401, 502, 503, 504), backoff_factor=0.3)
 adapter = HTTPAdapter(max_retries=retries)
 
 
@@ -70,11 +97,27 @@ def get_github_api(username=None, password=None):
 INSTALLATIONS = {}
 
 
-def get_github_api_for_repo(keychain, owner, repo, session=None):
-    gh = GitHub(
-        session=session
-        or GitHubSession(default_read_timeout=30, default_connect_timeout=30)
+def _determine_github_client(host: str, client_params: dict) -> GitHub:
+    # also covers "api.github.com"
+    is_github: bool = host in (None, "None") or "github.com" in host
+    client_cls: GitHub = GitHub if is_github else GitHubEnterprise  # type: ignore
+    params: dict = client_params
+    if not is_github:
+        params["url"] = "https://" + host  # type: ignore
+
+    return client_cls(**params)
+
+
+def get_github_api_for_repo(keychain, repo_url, session=None) -> GitHub:
+    owner, repo_name, host = parse_repo_url(repo_url)
+    gh: GitHub = _determine_github_client(
+        host,
+        {
+            "session": session
+            or GitHubSession(default_read_timeout=30, default_connect_timeout=30)
+        },
     )
+
     # Apply retry policy
     gh.session.mount("http://", adapter)
     gh.session.mount("https://", adapter)
@@ -83,33 +126,71 @@ def get_github_api_for_repo(keychain, owner, repo, session=None):
     APP_KEY = os.environ.get("GITHUB_APP_KEY", "").encode("utf-8")
     APP_ID = os.environ.get("GITHUB_APP_ID")
     if APP_ID and APP_KEY:
-        installation = INSTALLATIONS.get((owner, repo))
+        installation = INSTALLATIONS.get((owner, repo_name))
         if installation is None:
             gh.login_as_app(APP_KEY, APP_ID, expire_in=120)
             try:
-                installation = gh.app_installation_for_repository(owner, repo)
+                installation = gh.app_installation_for_repository(owner, repo_name)
             except github3.exceptions.NotFoundError:
                 raise GithubException(
-                    f"Could not access {owner}/{repo} using GitHub app. "
+                    f"Could not access {owner}/{repo_name} using GitHub app. "
                     "Does the app need to be installed for this repository?"
                 )
-            INSTALLATIONS[(owner, repo)] = installation
+            INSTALLATIONS[(owner, repo_name)] = installation
         gh.login_as_app_installation(APP_KEY, APP_ID, installation.id)
     elif GITHUB_TOKEN:
         gh.login(token=GITHUB_TOKEN)
     else:
-        github_config = keychain.get_service("github")
-        token = github_config.password or github_config.token
-        gh.login(github_config.username, token)
+        token = get_auth_from_service(host, keychain)
+        gh.login(token=token)
+
     return gh
 
 
-def validate_service(options: dict) -> dict:
+def get_auth_from_service(host, keychain) -> tuple:
+    """
+    Given a host extracted from a repo_url, returns the username and token for
+    the first service with a matching server_domain
+    """
+    if host is None or host == "None" or "github.com" in host:
+        service_config = keychain.get_service("github")
+    else:
+        services = keychain.get_services_for_type("github_enterprise")
+        service_by_host = {service.server_domain: service for service in services}
+
+        # Check when connecting to server, but not when creating new service as this would always catch
+        if list(service_by_host.keys()).count(host) == 0:
+            raise ServiceNotConfigured(
+                f"No Github Enterprise service configured for domain {host}."
+            )
+
+        service_config = service_by_host[host]
+
+    # Basic Auth no longer supported on github.com, so only returning token
+    # this requires GitHub Enterprise to use token auth and not Basic auth
+    # docs.github.com/en/rest/overview/other-authentication-methods#via-username-and-password
+    return service_config.token
+
+
+def validate_gh_enterprise(host: str, keychain) -> None:
+    services = keychain.get_services_for_type("github_enterprise")
+    if services:
+        hosts = [service.server_domain for service in services]
+        if hosts.count(host) > 1:
+            raise GithubException(
+                f"More than one Github Enterprise service configured for domain {host}."
+            )
+
+
+def validate_service(options: dict, keychain) -> dict:
     username = options["username"]
     token = options["token"]
-    # Don't make the user wait 4 minutes to fail
-    gh = GitHub(token=token)
+    # Github service doesn't have "server_domain",
+    server_domain = options.get("server_domain", None)
 
+    gh = _determine_github_client(server_domain, {"token": token})
+    if type(gh) == GitHubEnterprise:
+        validate_gh_enterprise(server_domain, keychain)
     try:
         authed_user = gh.me()
         auth_login = authed_user.login
@@ -132,7 +213,7 @@ def validate_service(options: dict) -> dict:
         repo_generator = gh.repositories()
         _ = next(repo_generator, None)
         repo_response = repo_generator.last_response
-        options["scopes"] = get_oauth_scopes(repo_response)
+        options["scopes"] = ", ".join(sorted(get_oauth_scopes(repo_response)))
 
         unauthorized_org_ids = get_sso_disabled_orgs(repo_response)
         unauthorized_orgs = {
@@ -245,14 +326,19 @@ def get_latest_prerelease(repo: Repository) -> Optional[Release]:
     ).substitute(dict(owner=repo.owner, name=repo.name))
 
     session: GitHubSession = repo.session
-    url: str = session.build_url("graphql")
+    # HACK: This is a kludgy workaround because GitHub Enterprise Server
+    # base_urls in github3.py end in `/api/v3`.
+    host = (
+        session.base_url[: -len("/v3")]
+        if session.base_url.endswith("/v3")
+        else session.base_url
+    )
+    url: str = f"{host}/graphql"
     response: Response = session.request("POST", url, json={"query": QUERY})
     response_dict: dict = response.json()
 
-    release_tags = response_dict["data"]["repository"]["releases"]["nodes"]
-    if release_tags:
-        release = repo.release_from_tag(release_tags[0]["tagName"])
-        return release
+    if release_tags := response_dict["data"]["repository"]["releases"]["nodes"]:
+        return repo.release_from_tag(release_tags[0]["tagName"])
 
 
 def find_previous_release(repo, prefix=None):
@@ -267,16 +353,6 @@ def find_previous_release(repo, prefix=None):
             most_recent = release
         else:
             return release
-
-
-def create_gist(github, description, files):
-    """Creates a gist with the given description and files.
-
-    github - an
-    description - str
-    files - A dict of files in the form of {filename:{'content': content},...}
-    """
-    return github.create_gist(description, files, public=False)
 
 
 VERSION_ID_RE = re.compile(r"version_id: (\S+)")
@@ -368,7 +444,9 @@ def get_version_id_from_tag(repo: Repository, tag_name: str) -> str:
     raise DependencyLookupError(f"Could not find version_id for tag {tag_name}")
 
 
-def format_github3_exception(exc: Union[ResponseError, TransportError]) -> str:
+def format_github3_exception(
+    exc: Union[ResponseError, TransportError, ConnectionError]
+) -> str:
     """Checks github3 exceptions for the most common GitHub authentication
     issues, returning a user-friendly message if found.
 
@@ -392,6 +470,12 @@ def format_github3_exception(exc: Union[ResponseError, TransportError]) -> str:
         scope_error_msg = check_github_scopes(exc)
         sso_error_msg = check_github_sso_auth(exc)
         user_warning = scope_error_msg + sso_error_msg
+
+    if isinstance(exc, ConnectionError):
+        if "self signed certificate" in str(exc.exception):
+            user_warning = SELF_SIGNED_WARNING
+        else:
+            return ""
 
     return user_warning
 
@@ -519,14 +603,27 @@ def catch_common_github_auth_errors(func: Callable) -> Callable:
     def inner(*args, **kwargs):
         try:
             return func(*args, **kwargs)
+        except (ConnectionError) as exc:
+            if error_msg := format_github3_exception(exc):
+                raise GithubApiError(error_msg) from exc
+            else:
+                raise
         except (ResponseError, TransportError) as exc:
-            error_msg = format_github3_exception(exc)
-            if error_msg:
-                raise GithubApiError(error_msg)
+            if error_msg := format_github3_exception(exc):
+                url = request_url_from_exc(exc)
+                error_msg = f"{url}\n{error_msg}".strip()
+                raise GithubApiError(error_msg) from exc
             else:
                 raise
 
     return inner
+
+
+def request_url_from_exc(exc: Union[ResponseError, TransportError]) -> str:
+    if isinstance(exc, TransportError):
+        return exc.exception.response.url
+    else:
+        return exc.response.url
 
 
 def get_oauth_device_flow_token():
@@ -555,3 +652,14 @@ def get_oauth_device_flow_token():
         )
 
     return access_token
+
+
+@catch_common_github_auth_errors
+def create_gist(github, description, files):
+    """Creates a gist with the given description and files.
+
+    github - an
+    description - str
+    files - A dict of files in the form of {filename:{'content': content},...}
+    """
+    return github.create_gist(description, files, public=False)

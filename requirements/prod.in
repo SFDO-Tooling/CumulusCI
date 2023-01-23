@@ -5,8 +5,9 @@ docutils<0.17
 Faker
 fs
 github3.py
-jinja2<3
+jinja2
 keyring<=23.0.1
+defusedxml
 lxml
 MarkupSafe
 psutil
@@ -18,7 +19,7 @@ requests
 requests-futures
 rich
 # check with Bryan about upgrading to v5
-robotframework<5
+robotframework
 robotframework-lint
 robotframework-pabot
 robotframework-requests

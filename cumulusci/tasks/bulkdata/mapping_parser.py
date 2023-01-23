@@ -66,6 +66,11 @@ class MappingLookup(CCIDictModel):
             + f"Tried {', '.join(guesses)}"
         )
 
+    class Config:
+        # name is an injected field (from the parent dict)
+        # so don't try to serialize it as part of the model
+        fields = {"name": {"exclude": True}}
+
 
 SHOULD_REPORT_RECORD_TYPE_DEPRECATION = True
 
@@ -106,7 +111,8 @@ class MappingStep(CCIDictModel):
     def case_normalize(cls, val):
         if isinstance(val, Enum):
             return val
-        return ENUM_VALUES.get(val.lower())
+        if val is not None:
+            return ENUM_VALUES.get(val.lower())
 
     @validator("update_key", pre=True)
     def split_update_key(cls, val):
@@ -224,7 +230,8 @@ class MappingStep(CCIDictModel):
     @validator("anchor_date")
     @classmethod
     def validate_anchor_date(cls, v):
-        return iso_to_date(v)
+        if v is not None:
+            return iso_to_date(v)
 
     @validator("record_type")
     @classmethod
@@ -238,9 +245,11 @@ class MappingStep(CCIDictModel):
     @validator("oid_as_pk")
     @classmethod
     def oid_as_pk_is_deprecated(cls, v):
-        raise ValueError(
-            "oid_as_pk is no longer supported. Include the Id field if desired."
-        )
+        if v:
+            raise ValueError(
+                "oid_as_pk is no longer supported. Include the Id field if desired."
+            )
+        return v
 
     @validator("fields_", pre=True)
     @classmethod
@@ -265,7 +274,7 @@ class MappingStep(CCIDictModel):
     @classmethod
     def fixup_lookup_names(cls, v):
         "Allow lookup objects to know the key they were attached to in the mapping file."
-        for name, lookup in v["lookups"].items():
+        for name, lookup in v.get("lookups", {}).items():
             lookup.name = name
         return v
 
@@ -388,20 +397,37 @@ class MappingStep(CCIDictModel):
 
             # Do we have the right permissions for this field, or do we need to drop it?
             is_after_lookup = hasattr(field_dict[f], "after")
-            if not self._check_field_permission(
+            relevant_operation = (
+                data_operation_type if not is_after_lookup else DataOperationType.UPDATE
+            )
+
+            error_in_f = False
+
+            if f not in describe:
+                logger.warning(
+                    f"Field {self.sf_object}.{f} does not exist or is not visible to the current user."
+                )
+                error_in_f = True
+            elif not self._check_field_permission(
                 describe,
                 f,
-                data_operation_type
-                if not is_after_lookup
-                else DataOperationType.UPDATE,
+                relevant_operation,
             ):
-                logger.warning(
-                    f"Field {self.sf_object}.{f} is not present or does not have the correct permissions."
+                relevant_permissions = self._get_required_permission_types(
+                    relevant_operation
                 )
+                logger.warning(
+                    f"Field {self.sf_object}.{f} does not have the correct permissions "
+                    + f"{relevant_permissions} for this operation."
+                )
+                error_in_f = True
+
+            if error_in_f:
                 if drop_missing:
                     del field_dict[f]
                 else:
                     ret = False
+
         return ret
 
     def _validate_sobject(
@@ -485,14 +511,15 @@ class MappingStep(CCIDictModel):
         # By this point, we know the attribute is valid.
         describe = self.describe_data(sf)
 
-        if not self._validate_field_dict(
+        fields_correct = self._validate_field_dict(
             describe, self.fields, inject, strip, drop_missing, operation
-        ):
-            return False
+        )
 
-        if not self._validate_field_dict(
+        lookups_correct = self._validate_field_dict(
             describe, self.lookups, inject, strip, drop_missing, operation
-        ):
+        )
+
+        if not (fields_correct and lookups_correct):
             return False
 
         # inject namespaces into the update_key
@@ -514,6 +541,16 @@ class MappingStep(CCIDictModel):
 
     def describe_data(self, sf: Salesforce):
         return describe_data(self.sf_object, sf)
+
+    def dict(self, by_alias=True, exclude_defaults=True, **kwargs):
+        out = super().dict(
+            by_alias=by_alias, exclude_defaults=exclude_defaults, **kwargs
+        )
+        if fields := out.get("fields"):
+            keys = list(fields.keys())
+            if keys == list(fields.values()):
+                out["fields"] = keys
+        return out
 
 
 class MappingSteps(CCIDictModel):
@@ -561,7 +598,7 @@ def validate_and_inject_mapping(
         raise BulkDataException(
             "One or more schema or permissions errors blocked the operation.\n"
             "If you would like to attempt the load regardless, you can specify "
-            "'-o drop_missing_schema True' on the command."
+            "'--drop_missing_schema True' on the command."
         )
 
     if drop_missing:

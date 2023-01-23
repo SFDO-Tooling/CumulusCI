@@ -1,0 +1,33 @@
+version: 1
+interactions:
+    - request:
+          method: POST
+          uri: https://orgname.my.salesforce.com/services/data/vxx.0/composite
+          body:
+              '{"compositeRequest": [{"referenceId": "refAccount", "method": "GET", "url":
+              "/services/data/vxx.0/query/?q=select count() from Account"}, {"referenceId":
+              "refXYZZY", "method": "GET", "url": "/services/data/vxx.0/query/?q=select count()
+              from XYZZY"}]}'
+          headers:
+              Request-Headers:
+                  - Elided
+      response:
+          status:
+              code: 200
+              message: OK
+          headers:
+              Content-Type:
+                  - application/json;charset=UTF-8
+              Others: Elided
+          body:
+              string:
+                  "{\n  \"compositeResponse\" : [ {\n    \"body\" : {\n      \"totalSize\"\
+                  \ : 17,\n      \"done\" : true,\n      \"records\" : [ ]\n    },\n    \"httpHeaders\"\
+                  \ : { },\n    \"httpStatusCode\" : 200,\n    \"referenceId\" : \"refAccount\"\
+                  \n  }, {\n    \"body\" : [ {\n      \"message\" : \"\\nselect count() from\
+                  \ XYZZY\\n                    ^\\nERROR at Row:1:Column:21\\nsObject type\
+                  \ 'XYZZY' is not supported. If you are attempting to use a custom object,\
+                  \ be sure to append the '__c' after the entity name. Please reference your\
+                  \ WSDL or the describe call for the appropriate names.\",\n      \"errorCode\"\
+                  \ : \"INVALID_TYPE\"\n    } ],\n    \"httpHeaders\" : { },\n    \"httpStatusCode\"\
+                  \ : 400,\n    \"referenceId\" : \"refXYZZY\"\n  } ]\n}"

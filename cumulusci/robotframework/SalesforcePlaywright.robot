@@ -30,7 +30,7 @@ ${DEFAULT BROWSER SIZE}  1280x1024
 ${BROWSER}               chrome
 
 *** Settings ***
-Library        Browser
+Library        Browser  jsextension=${CURDIR}/javascript/cci_init.js
 Library        Collections
 Library        OperatingSystem
 Library        String

@@ -1,3 +1,4 @@
+import json
 import os
 import shlex
 import subprocess
@@ -8,6 +9,7 @@ from robot import pythonpathsetter
 from robot import run as robot_run
 from robot.testdoc import testdoc
 
+import cumulusci.robotframework
 from cumulusci.core.exceptions import (
     NamespaceNotFoundError,
     RobotTestFailure,
@@ -201,6 +203,26 @@ class Robot(BaseSalesforceTask):
             prefix, _, path = path.rpartition(":")
             if prefix in source_paths:
                 self.options["suites"][i] = os.path.join(source_paths[prefix], path)
+
+        # this is necessary so that javascript-based keywords have access
+        # to at least some of the org info
+        cci_context = json.dumps(
+            {
+                "project_config": {
+                    "repo_name": self.project_config.repo_name,
+                    "repo_root": self.project_config.repo_root,
+                },
+                "org": {
+                    "name": self.org_config.name,
+                    "instance_url": self.org_config.instance_url,
+                    "org_id": self.org_config.org_id,
+                },
+            }
+        )
+        os.environ["CCI_CONTEXT"] = cci_context
+        os.environ["NODE_PATH"] = str(
+            Path(cumulusci.robotframework.__path__[0]) / "javascript"
+        )
 
         if self.options["processes"] > 1:
             # Since pabot runs multiple robot processes, and because

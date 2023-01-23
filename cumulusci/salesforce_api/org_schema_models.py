@@ -125,6 +125,12 @@ class SObject(OrgSchemaModelMixin, Base):
     urls = Column(MappingType)
     supportedScopes = Column(SequenceType)
     actionOverrides = Column(SequenceType)
+    count = Column(Integer)
+    last_modified_date = Column(String)
+
+    @property
+    def extractable(self):
+        return self.createable and self.queryable and self.retrieveable
 
 
 field_references = Table(
@@ -203,6 +209,15 @@ class Field(OrgSchemaModelMixin, Base):
     updateable = Column(Boolean)
     writeRequiresMasterRead = Column(Boolean)
     picklistValues = Column(types.PickleType)
+
+    @property
+    def requiredOnCreate(self):
+        defaulted = (
+            self.defaultValue is not None  # has a real default value
+            or self.nillable  # None is a valid default value
+            or self.defaultedOnCreate  # defaulted some other way
+        )
+        return self.createable and not defaulted
 
 
 class FileMetadata(Base):

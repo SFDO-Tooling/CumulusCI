@@ -232,7 +232,7 @@ class TestUpsert:
             relevant_debug_statement = look_for_operation_creation_debug_statement(
                 task.logger.debug.mock_calls
             )
-            assert relevant_debug_statement == str(
+            assert relevant_debug_statement == format(
                 DataApi.REST
             ), relevant_debug_statement
 
@@ -421,7 +421,7 @@ class TestUpsert:
             relevant_debug_statement = look_for_operation_creation_debug_statement(
                 task.logger.debug.mock_calls
             )
-            assert relevant_debug_statement == str(
+            assert relevant_debug_statement in format(
                 DataApi.BULK
             ), relevant_debug_statement
 

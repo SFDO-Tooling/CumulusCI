@@ -57,7 +57,7 @@ class SqlAlchemyMixin:
         with tempfile.TemporaryDirectory() as t:
             tempdb = Path(t) / "temp_db.db"
 
-            self.logger.info(f"Using temporary database {tempdb}")
+            self.logger.debug(f"Using temporary database {tempdb}")
             database_url = f"sqlite:///{tempdb}"
             yield database_url
 

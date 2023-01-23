@@ -7,6 +7,7 @@ flake8<4
 furo
 isort
 jsonschema
+myst-parser
 pre-commit
 pytest<7.1 # https://github.com/pytest-dev/pytest/issues/9765
 pytest-cov
@@ -20,3 +21,4 @@ twine
 typeguard
 vcrpy
 wheel
+
