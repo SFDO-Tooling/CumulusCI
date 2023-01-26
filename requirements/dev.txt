@@ -189,8 +189,6 @@ pygments==2.13.0
     #   furo
     #   rich
     #   sphinx
-pyparsing==3.0.9
-    # via packaging
 pyright==1.1.283
     # via -r requirements/dev.in
 pyjwt[crypto]==2.6.0
