@@ -19,3 +19,4 @@ class TestCreatePackage:
         zf = zipfile.ZipFile(io.BytesIO(base64.b64decode(package_zip)), "r")
         package_xml = zf.read("package.xml")
         assert b"<fullName>TestPackage</fullName>" in package_xml
+        zf.close()

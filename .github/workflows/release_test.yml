@@ -47,11 +47,10 @@ jobs:
             - name: Install Python dependencies
               run: pip install -r requirements_dev.txt
             - name: Install build tools
-              run: pip install wheel
+              run: pip install hatch
             - name: Test source tarball and binary wheel
               run: |
-                  python setup.py sdist bdist_wheel
-                  twine check dist/*
+                  hatch build
             - name: Install sfdx
               run: |
                   mkdir sfdx

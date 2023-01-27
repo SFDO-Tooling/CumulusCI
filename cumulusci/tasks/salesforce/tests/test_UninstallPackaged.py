@@ -37,6 +37,7 @@ class TestUninstallPackaged:
 </Package>"""
             == result
         )
+        zf.close()
 
     @responses.activate
     def test_error_handling(self):
