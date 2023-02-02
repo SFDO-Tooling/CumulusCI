@@ -5,7 +5,7 @@ on:
         branches:
             - main
         paths:
-            - cumulusci/__about__.py.FIXME
+            - cumulusci/__about__.py
 
 concurrency: publishing
 
