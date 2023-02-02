@@ -31,7 +31,6 @@ jobs:
               env:
                   HATCH_INDEX_USER: "__token__"
                   HATCH_INDEX_AUTH: ${{ secrets.PYPI_TOKEN }}
-                  HATCH_INDEX_REPO: "https://test.pypi.org/legacy/"
             - name: Create release
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
