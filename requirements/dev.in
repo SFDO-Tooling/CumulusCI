@@ -1,7 +1,6 @@
 -c prod.txt
 black
 coverage[toml]
-coveralls
 factory-boy
 flake8<4
 furo
