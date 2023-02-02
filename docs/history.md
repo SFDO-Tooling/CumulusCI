@@ -2,6 +2,26 @@
 
 <!-- latest-start -->
 
+## v3.72.0 (2023-02-02)
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Changes 🎉
+* Ensure that products have a slug before publishing translations by [@prescod](https://github.com/prescod) in [#3483](https://github.com/SFDO-Tooling/CumulusCI/pull/3483)
+* Fix two small test issues by [@prescod](https://github.com/prescod) in [#3482](https://github.com/SFDO-Tooling/CumulusCI/pull/3482)
+* End-to-end release automation by [@jstvz](https://github.com/jstvz) in [#3476](https://github.com/SFDO-Tooling/CumulusCI/pull/3476)
+* Improve documentation of tasks w.r.t required/option/defauled fields. by [@prescod](https://github.com/prescod) in [#3447](https://github.com/SFDO-Tooling/CumulusCI/pull/3447)
+* Add a better error message for scratch orgs that cannot be recreated because they were removed from YAML after being created in the past by [@prescod](https://github.com/prescod) in [#3469](https://github.com/SFDO-Tooling/CumulusCI/pull/3469)
+* Remove deprecated Playwright keywords by [@jstvz](https://github.com/jstvz) in [#3503](https://github.com/SFDO-Tooling/CumulusCI/pull/3503)
+* Stricter check on what counts as a dataset by [@prescod](https://github.com/prescod) in [#3502](https://github.com/SFDO-Tooling/CumulusCI/pull/3502)
+* Pin dependencies during release by [@prescod](https://github.com/prescod) in [#3508](https://github.com/SFDO-Tooling/CumulusCI/pull/3508)
+
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.71.0...v3.72.0
+
+
+<!-- latest-stop -->
+
 ## 3.71.0 (2022-12-20)
 
 Critical Changes 🎉
@@ -13,8 +33,6 @@ Changes 🎉
 -   CumulusCI has two new tasks for working with sample data: `load_sample_data` and `capture_sample_data`. (#3455)
 -   CumulusCI now offers the ability to inject arbitrary IDs into a project's metadata components. See the [Find-and-Replace Id Injection](https://cumulusci.readthedocs.io/en/latest/deploy.html#find-and-replace-id-injection) source transform for more information. (#3460)
 -   CumulusCI now allows for injecting the current running user's username into a project's metadata components. See the [Find-and-Replace Id Injection](https://cumulusci.readthedocs.io/en/latest/deploy.html#find-and-replace-current-username-injection) source transform for more information. (#3460)
-
-<!-- latest-stop -->
 
 ## 3.70.0 (2022-11-29)
 
