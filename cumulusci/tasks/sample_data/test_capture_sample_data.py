@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest import mock
 
 import pytest
@@ -69,8 +70,8 @@ class TestCaptureDatasets:
         create_task,
         org_config,
     ):
-        with setup_test(org_config):
-            extraction_definition = Path("test_extract_definition")
+        with setup_test(org_config), TemporaryDirectory() as t:
+            extraction_definition = Path(t) / "test_extract_definition"
             with open(extraction_definition, "w") as f:
                 f.write("")  # Doesn't matter. We won't parse it
 

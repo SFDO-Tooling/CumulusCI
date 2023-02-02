@@ -1,11 +1,13 @@
-name: Release cumulusci
+name: Publish and release CumulusCI
 
 on:
     push:
         branches:
             - main
         paths:
-            - cumulusci/version.txt
+            - cumulusci/__about__.py
+
+concurrency: publishing
 
 jobs:
     publish-to-pypi:
@@ -17,20 +19,24 @@ jobs:
               uses: actions/setup-python@v4
               with:
                   python-version: 3.8
+                  cache: pip
             - name: Install build tools
-              run: python -m pip install twine wheel
+              run: python -m pip install hatch
             - name: Build source tarball and binary wheel
-              run: python setup.py sdist bdist_wheel
+              run: hatch build -c
             - name: Upload to PyPI
-              run: twine upload dist/*
+              run: hatch publish
               env:
-                  TWINE_USERNAME: __token__
-                  TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-            - name: Create tag
+                  HATCH_INDEX_USER: "__token__"
+                  HATCH_INDEX_AUTH: ${{ secrets.PYPI_TOKEN }}
+            - name: Create release
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  curl -s -X POST https://api.github.com/repos/$GITHUB_REPOSITORY/git/refs -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d @- << EOF
-                  {"ref": "refs/tags/v$(python setup.py --version)", "sha": "$GITHUB_SHA"}
-                  EOF
-
-# to do:
-# - add release notes in github
+                  VERSION="$(hatch version)"
+                  awk '/<!-- latest-start -->/,/<!-- latest-stop -->/' docs/history.md > changelog.md
+                  gh release create "v$VERSION" \
+                    dist/*.whl \
+                    dist/*.tar.gz \
+                    --notes-file changelog.md \
+                    --title $VERSION
