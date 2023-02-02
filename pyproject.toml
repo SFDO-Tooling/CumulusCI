@@ -3,7 +3,7 @@ requires = ["hatchling", "hatch-fancy-pypi-readme"]
 build-backend = "hatchling.build"
 
 [project]
-name = "cumulusci-test"
+name = "cumulusci"
 dynamic = ["readme", "version"]
 description = "Build and release tools for Salesforce developers"
 license = {text = "BSD 3-Clause License"}

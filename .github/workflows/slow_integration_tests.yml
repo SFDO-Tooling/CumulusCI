@@ -98,8 +98,6 @@ jobs:
               if: always()
               run: |
                   cci org scratch_delete ${{ matrix.org-shape }}
-            - name: Report coverage
-              run: coveralls
             - name: Store robot results
               if: failure()
               uses: actions/upload-artifact@v1
