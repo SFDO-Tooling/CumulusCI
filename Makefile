@@ -98,6 +98,7 @@ tag: clean
 	git push --follow-tags
 
 update-deps:
+	echo Use the _Update Python Dependencies_ Github action for real releases
 	pip-compile --upgrade --resolver=backtracking --output-file=requirements/prod.txt pyproject.toml
 	pip-compile --upgrade --resolver=backtracking --output-file=requirements/dev.txt --all-extras pyproject.toml
 
