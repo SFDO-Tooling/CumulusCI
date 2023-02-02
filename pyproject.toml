@@ -74,7 +74,6 @@ lint = [
 ]
 test = [
     "coverage[toml]",
-    "coveralls>3.3.0",
     "factory-boy",
     "furo",
     "jsonschema",
