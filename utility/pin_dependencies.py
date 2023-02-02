@@ -1,13 +1,13 @@
 import re
 from pathlib import Path
 
-import toml
+import tomli
 import tomli_w
 
 
 def main(toml_filename: Path, requirements_txt: Path):
-    with open(toml_filename) as f:
-        data = toml.load(f)
+    with open(toml_filename, "rb") as f:
+        data = tomli.load(f)
 
     with open(requirements_txt) as f:
         requirements = re.findall(r".*==.*", f.read())
