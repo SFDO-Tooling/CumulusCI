@@ -153,6 +153,7 @@ class TestMetadataPackageZipBuilder:
                 "objects/CustomObject__c",
                 "objects/does-not-exist-in-schema/some.file",
             }
+            zf.close()
 
     def test_add_files_to_package(self, task_context):
         with temporary_dir() as path:

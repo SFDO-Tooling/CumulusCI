@@ -236,16 +236,16 @@ Command Syntax\n------------------------------------------\n
 ``$ cci task run scoop_icecream``\n\n
 Options\n------------------------------------------\n\n
 ``--flavor VANILLA``
-\t *Required*\n
-\t What flavor\n
+
+\t What flavor
+\n *Required*\n
 \t Type: string\n
-``--color COLOR``
-\t *Optional*\n
+``--color COLOR``\n
 \t What color\n
 \t Default: black\n
 ``--size SIZE``
-\t *Optional*\n
-\t How big"""
+\n\t How big
+\n *Optional*"""
         )
 
     def test_get_command_syntax(self, task_config):
@@ -285,15 +285,13 @@ Options\n------------------------------------------\n\n
     def test_create_task_options_doc(self, option_info):
         option_one_doc = utils.create_task_options_doc(option_info[:1])
         option_two_doc = utils.create_task_options_doc(option_info[1:])
-
         assert option_one_doc == [
-            "\t *Required*",
             "\n\t description",
             "\n\t Default: default",
             "\n\t Type: option_type",
         ]
 
-        assert option_two_doc == ["\t *Optional*", "\n\t Brief description here."]
+        assert option_two_doc == ["\n\t Brief description here.", "\n *Optional*"]
 
     def test_document_flow(self):
         project_config = create_project_config("TestOwner", "TestRepo")
@@ -450,6 +448,7 @@ Options\n------------------------------------------\n\n
         result = zf.read("test")
         # assert contents were untouched
         assert contents == result
+        zf.close()
 
     def test_inject_namespace__managed(self):
         logger = mock.Mock()
@@ -523,6 +522,7 @@ Options\n------------------------------------------\n\n
         result = zf.read("classes/test-meta.xml")
         assert b"packageVersions" not in result
         assert "other/test-meta.xml" in zf.namelist()
+        zf.close()
 
     def test_zip_clean_metaxml__skips_binary(self):
         logger = mock.Mock()
@@ -533,6 +533,7 @@ Options\n------------------------------------------\n\n
 
         zf = utils.zip_clean_metaxml(zf, logger=logger)
         assert "classes/test-meta.xml" in zf.namelist()
+        zf.close()
 
     def test_zip_clean_metaxml__handles_nonascii(self):
         zf = zipfile.ZipFile(io.BytesIO(), "w")
@@ -540,6 +541,7 @@ Options\n------------------------------------------\n\n
 
         zf = utils.zip_clean_metaxml(zf)
         assert b"<root>\xc3\xb1</root>" == zf.read("classes/test-meta.xml")
+        zf.close()
 
     def test_doc_task_not_inherited(self):
         task_config = TaskConfig(

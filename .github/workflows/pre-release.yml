@@ -1,0 +1,67 @@
+name: Draft release pull request
+
+on:
+    workflow_dispatch:
+        inputs:
+            version:
+                description: "Select version bump"
+                default: "minor"
+                type: choice
+                options:
+                    - major
+                    - minor
+                    - patch
+                    - alpha
+                    - beta
+                    - preview
+                    - dev
+
+jobs:
+    generate-changelog:
+        name: Create a PR to update version and release notes
+        runs-on: sfdc-ubuntu-latest
+        steps:
+            - uses: actions/checkout@main
+            - name: Set up Python 3.8
+              uses: actions/setup-python@v4
+              with:
+                  python-version: 3.8
+                  cache: pip
+            - name: Install build tool
+              run: python -m pip install hatch
+            - name: Bump version
+              run: hatch version $VERSION
+              env:
+                  VERSION: ${{ inputs.version }}
+            - name: Generate release notes
+              id: changelog
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  PREVIOUS_VERSION=$(gh release view --json tagName --jq .tagName)
+                  NEXT_VERSION="v$(hatch version)"
+                  echo "## $NEXT_VERSION ($(date -I))" > changelog.md
+                  gh api \
+                    --method POST \
+                    -H "Accept: application/vnd.github.v3+json" \
+                    /repos/SFDO-Tooling/CumulusCI/releases/generate-notes \
+                    -f previous_tag_name=$PREVIOUS_VERSION \
+                    -f target_commitish='main' \
+                    -f tag_name=$NEXT_VERSION \
+                    --jq '.body' |
+                    sed -e 's_\(https.*\/\)\([0-9]*\)$_[#\2](\1\2)_' \
+                        -e 's_by @\(.*\) in_by [@\1](https://github.com/\1) in_' >> changelog.md
+                  python utility/update-history.py
+            - name: Commit changes
+              run: |
+                  git config user.name github-actions
+                  git config user.email github-actions@github.com
+                  git switch -c "release-$(hatch version)"
+                  git add docs/history.md cumulusci/__about__.py
+                  git commit -m "Update changelog (automated)"
+                  git push origin "release-$(hatch version)"
+            - name: Commit changes and open PR
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  gh pr create --title "Release v$(hatch version)" --fill --label 'auto-pr'
