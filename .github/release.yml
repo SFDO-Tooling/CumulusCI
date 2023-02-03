@@ -7,9 +7,6 @@ changelog:
         authors:
             - app/github-actions
     categories:
-        - title: Issues Fixed 🩴
-          labels:
-              - bug
         - title: Critical Changes 🛠
           labels:
               - critical-change
@@ -17,3 +14,9 @@ changelog:
           labels:
               - enhancement
               - "*"
+          exclude:
+              labels:
+                  - bug
+        - title: Issues Fixed 🩴
+          labels:
+              - bug
