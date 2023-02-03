@@ -30,12 +30,12 @@ def _mapping_decl_for_extract_decl(
 
 
 def create_extract_mapping_file_from_declarations(
-    decls: T.List[ExtractDeclaration], schema: Schema
+    decls: T.List[ExtractDeclaration], schema: Schema, opt_in_only: T.Sequence[str]
 ):
     """Create a mapping file sufficient for driving an extract process
     from an extract declarations file."""
     assert decls is not None
-    simplified_decls = flatten_declarations(decls, schema)
+    simplified_decls = flatten_declarations(decls, schema, opt_in_only)
     simplified_decls = classify_and_filter_lookups(simplified_decls, schema)
     mappings = [_mapping_decl_for_extract_decl(decl) for decl in simplified_decls]
     return dict(pair for pair in mappings if pair)

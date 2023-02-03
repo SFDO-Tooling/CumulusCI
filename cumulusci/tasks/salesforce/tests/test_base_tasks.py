@@ -87,6 +87,7 @@ class TestBaseRetrieveMetadata:
             zf = zipfile.ZipFile(io.BytesIO(), "w")
             result = task._process_namespace(zf)
             assert isinstance(result, zipfile.ZipFile)
+            zf.close()
 
 
 class TestBaseUninstallMetadata:

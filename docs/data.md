@@ -8,6 +8,90 @@ persistent orgs, storing those snapshots within the repository, and
 automating the load of datasets into orgs. Data operations are executed
 via the Bulk and REST APIs.
 
+CumulusCI has both high level tasks for working with Sample Datasets
+and low-level tasks for generic Extract, Transform and Load of
+any data.
+
+## Sample Data
+
+Note: Sample Data features are still under active
+development and may change based on user feedback.
+
+CumulusCI has easy to use tasks for working with the primary
+sample datasets used for projects. There is a 'default' dataset
+which would be used in scratch org configuration flows, as well
+as other datasets specific to the needs of specific scratch org configurations.
+
+For example, the 'dev' dataset is for 'dev' orgs, and it is used
+instead of the default dataset if it exists.
+
+You can create a dataset by extracting data from an existing org
+or by authoring a [Snowfakery recipe](Generate-Fake-Data).
+Extracting from an existing org is easy for use-cases where the
+data already exists or can be readily created in an org. Snowfakery
+is better for cases where either a) you would like to dynamically
+generate data, or b) you would rather edit static data in a text
+editor.
+
+A Snowfakery dataset can consist of a single file with a name like
+`datasets/<datasetname>/<datasetname>.recipe.yml` . For example,
+`datasets/default/default.recipe.yml` or
+`datasets/qa/qa.recipe.yml`. The rest of what you need to know
+about Snowfakery is in the section [Generate Fake Data](Generate-Fake-Data).
+
+### Extracting and Loading Sample Datasets
+
+In the simplest case, you can extract all data from an org
+using the task `capture_sample_data` like this:
+
+```s
+$ cci task run capture_sample_data --org orgname
+```
+
+That will extract the data from the Salesforce
+org named `orgname` into the dataset named `default`.
+
+You can then load it into any target org (e.g.
+`org2`) like this:
+
+```s
+$ cci task run load_sample_data --org org2
+```
+
+A main benefit of sample datasets is that they are always
+loaded automatically into scratch orgs by the scratch org
+setup flows like `dev_org` and `qa_org`.
+
+The exact subset of data captured depends on heuristics
+that may change over time, so do not depend on this task
+in a highly automated situation. It is designed to be
+used interactively, and you can control its behavior
+with an [Extract Declaration](data/extract_declarations.md) file.
+
+### Multiple Sample Datasets
+
+If you want different datasets for different scratch org types
+(e.g. QA orgs verus Dev orgs) then you can change the data
+loaded by those types by making datasets specific to each one.
+This data will load instead of the default dataset.
+
+```s
+$ cci task run capture_sample_data --dataset dev --org org1
+```
+
+```s
+$ cci task run capture_sample_data --dataset qa --org org2
+```
+
+This would create two datasets in `datasets/dev` and `datasets/qa`
+which would be loaded instead of `datasets/default`. You can
+create as many datasets as you want.
+
+You can download just a subset of the objects or fields in an org with
+an [Extract Declaration](data/extract_declarations.md) file.
+
+## Low level datasets
+
 A dataset consists of:
 
 -   a _definition file_, written in YAML, which specifies the sObjects
@@ -21,9 +105,9 @@ Datasets are stored in the `datasets/` folder within a repository by
 default. Projects created with a recent version of CumulusCI ship with
 this directory in place.
 
-If `load_dataset` is called without any path options, it will automatically use a dataset that matches the org shape, if one exists. For example, a `dev` org will automatically use a dataset that exists at `datasets/dev/`. Within that folder, two files must exist, also matching the org shape name: `dev.mapping.yml` and `dev.dataset.sql`, in this example. If the directory or files do not exist and no paths options were specified, the task will look for `datasets/mapping.yml` and `datasets/dataset.sql` by default. When the `org_shape_match_only` option is `True`, this overrides any path options and default files and looks _only_ for a dataset directory that matches the org shape name. The `org_shape_match_only` option defaults to `False`.
+If `load_dataset` is called without any path options, it will automatically use a dataset that matches the org shape, if one exists. For example, a `dev` org will automatically use a dataset that exists at `datasets/dev/`. Within that folder, two files must exist, also matching the org shape name: `dev.mapping.yml` and `dev.dataset.sql`, in this example. If the directory or files do not exist and no paths options were specified, the task will look for `datasets/mapping.yml` and `datasets/dataset.sql` by default. When the `default_dataset_only` option is `True`, this overrides any path options and default files and looks _only_ for a dataset directory that matches the org shape name. The `default_dataset_only` option defaults to `False`.
 
-In addition, `load_dataset` is included in `config_dev`, `config_qa`, and `config_managed`, so it is automatically called when running most org setup flows. In this context, it runs with `org_shape_match_only` set to `True`, to avoid double loading for backwards compatibility with customer flows that are already customized to call `load_dataset`.
+In addition, `load_dataset` is included in `config_dev`, `config_qa`, and `config_managed`, so it is automatically called when running most org setup flows. In this context, it runs with `default_dataset_only` set to `True`, to avoid double loading for backwards compatibility with customer flows that are already customized to call `load_dataset`.
 
 ## The Lifecycle of a Dataset
 

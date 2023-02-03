@@ -1,4 +1,5 @@
 import logging
+from logging import getLogger
 from unittest import mock
 
 import pytest
@@ -128,7 +129,6 @@ def test_install_package_by_namespace_version(zip_builder, api_deploy):
         ),
     )
 
-    task = TaskContext(org_config=org, project_config=pc, logger=mock.ANY)
     zip_builder.assert_called_once_with(
         namespace="foo",
         version="1.0",
@@ -136,7 +136,12 @@ def test_install_package_by_namespace_version(zip_builder, api_deploy):
         password="foobar",
         securityType="PUSH",
     )
-    api_deploy.assert_called_once_with(task, mock.ANY, purge_on_delete=False)
+    context = TaskContext(
+        org_config=org,
+        project_config=pc,
+        logger=getLogger("cumulusci.salesforce_api.package_install"),
+    )
+    api_deploy.assert_called_once_with(context, mock.ANY, purge_on_delete=False)
     api_deploy.return_value.assert_called_once()
 
 
@@ -158,11 +163,15 @@ def test_install_package_by_namespace_version__retry(zip_builder, api_deploy):
         PackageInstallOptions(),
     )
 
-    task = TaskContext(org_config=org, project_config=pc, logger=mock.ANY)
+    context = TaskContext(
+        org_config=org,
+        project_config=pc,
+        logger=getLogger("cumulusci.salesforce_api.package_install"),
+    )
     api_deploy.assert_has_calls(
         [
-            mock.call(task, mock.ANY, purge_on_delete=False),
-            mock.call(task, mock.ANY, purge_on_delete=False),
+            mock.call(context, mock.ANY, purge_on_delete=False),
+            mock.call(context, mock.ANY, purge_on_delete=False),
         ],
         any_order=True,
     )
