@@ -55,11 +55,12 @@ jobs:
               run: |
                   pip install dist/cumulusci*.whl
                   pip show cumulusci
-                  pip uninstall cumulusci
+                  pip uninstall -y cumulusci
             - name: Test install of sdist
               run: |
                   pip install dist/cumulusci*.tar.gz
                   pip show cumulusci
+                  pip uninstall -y cumulusci
             - name: Install sfdx
               run: |
                   mkdir sfdx
