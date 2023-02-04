@@ -110,6 +110,8 @@ include = [
 include = [
     "/cumulusci",
     "/requirements/*", # Needed by tox
+    "README.md", # needed by hatch-fancy-pypi-readme
+    "docs/history.md" # ditto
 ]
 
 [tool.hatch.build.targets.wheel]
