@@ -320,7 +320,7 @@ class TestCustomObjectParser:
 class TestRecordTypeParser:
     def test_check_delete_excludes(self):
         parser = RecordTypeParser(
-            "RecordType", None, "object", True, "./sf:recordTypes"
+            "RecordType", None, "object", True, item_xpath="./sf:recordTypes"
         )
         assert parser.check_delete_excludes("asdf")
 
@@ -328,7 +328,7 @@ class TestRecordTypeParser:
 class TestBusinessProcessParser:
     def test_check_delete_excludes(self):
         parser = BusinessProcessParser(
-            "BusinessProcess", None, "object", True, "./sf:businessProcesses"
+            "BusinessProcess", None, "object", True, item_xpath="./sf:businessProcesses"
         )
         assert parser.check_delete_excludes("asdf")
 
@@ -353,6 +353,39 @@ class TestUpdatePackageXml:
                 {
                     "project": {
                         "package": {"name": "Test Package", "api_version": "36.0"}
+                    }
+                },
+            )
+            task_config = TaskConfig(
+                {"options": {"path": src_path, "output": output_path, "managed": True}}
+            )
+            org_config = OrgConfig({}, "test")
+            task = UpdatePackageXml(project_config, task_config, org_config)
+            task()
+            with open(output_path, "r") as f:
+                result = f.read()
+            assert expected == result
+
+
+class TestUpdatePackageXmlInstallUninstallClass:
+    def test_run_task(self):
+        src_path = os.path.join(
+            __location__, "package_metadata", "namespaced_report_folder"
+        )
+        with open(os.path.join(src_path, "package_install_uninstall.xml"), "r") as f:
+            expected = f.read()
+        with temporary_dir() as path:
+            output_path = os.path.join(path, "package.xml")
+            project_config = BaseProjectConfig(
+                UniversalConfig(),
+                {
+                    "project": {
+                        "package": {
+                            "name": "Test Package",
+                            "api_version": "36.0",
+                            "install_class": "MyPostInstallClass",
+                            "uninstall_class": "MyPostUninstallClass",
+                        }
                     }
                 },
             )

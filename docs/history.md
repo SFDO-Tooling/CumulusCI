@@ -1,5 +1,154 @@
 # History
 
+<!-- latest-start -->
+
+## v3.72.0 (2023-02-03)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Improve documentation of tasks w.r.t required/option/defauled fields. by [@prescod](https://github.com/prescod) in [#3447](https://github.com/SFDO-Tooling/CumulusCI/pull/3447)
+
+### Issues Fixed 🩴
+
+-   Ensure that products have a slug before publishing translations by [@prescod](https://github.com/prescod) in [#3483](https://github.com/SFDO-Tooling/CumulusCI/pull/3483)
+-   Remove deprecated Playwright keywords by [@jstvz](https://github.com/jstvz) in [#3503](https://github.com/SFDO-Tooling/CumulusCI/pull/3503)
+-   Stricter check on what counts as a dataset by [@prescod](https://github.com/prescod) in [#3502](https://github.com/SFDO-Tooling/CumulusCI/pull/3502)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.71.0...v3.72.0
+
+<!-- latest-stop -->
+
+## 3.71.0 (2022-12-20)
+
+Critical Changes 🎉
+
+-   A few weeks ago we soft-launched a `load_data` feature that matched the dataset loaded to the `org_shape`. If you had discovered and used the `load_data` option called `org_shape_match_only`, you should switch to the new task because eventually we will remove the option and only use the new `load_sample_data` task. (#3455)
+
+Changes 🎉
+
+-   CumulusCI has two new tasks for working with sample data: `load_sample_data` and `capture_sample_data`. (#3455)
+-   CumulusCI now offers the ability to inject arbitrary IDs into a project's metadata components. See the [Find-and-Replace Id Injection](https://cumulusci.readthedocs.io/en/latest/deploy.html#find-and-replace-id-injection) source transform for more information. (#3460)
+-   CumulusCI now allows for injecting the current running user's username into a project's metadata components. See the [Find-and-Replace Id Injection](https://cumulusci.readthedocs.io/en/latest/deploy.html#find-and-replace-current-username-injection) source transform for more information. (#3460)
+
+## 3.70.0 (2022-11-29)
+
+-   The `retrieve_changes` and `list_changes` tasks now properly exclude metadata types that `SFDX` is unable to process. These include: `AuraDefinition`, `ExperienceResource`, and `LightningComponentResource` by @jstvz in https://github.com/SFDO-Tooling/CumulusCI/pull/3443
+-   The `deploy_remote_site_settings` task has been updated to load the correct Remote Site Settings records for OmniStudio by @jofsky in https://github.com/SFDO-Tooling/CumulusCI/pull/3444
+
+## 3.69.0 (2022-11-14)
+
+Changes 🎉
+
+-   Added support for debugging and breakpoints in Playwright-based
+    Robot Framework by @boakley in
+    https://github.com/SFDO-Tooling/CumulusCI/pull/3408
+-   Added option for deploy task to remove selected components from the
+    bundle by @jkasturi-sf in
+    https://github.com/SFDO-Tooling/CumulusCI/pull/3421
+-   Added documentation for using OmniStudio in Cumulus flows by
+    @bethbrains in https://github.com/SFDO-Tooling/CumulusCI/pull/3427
+-   Update creation of OmniStudio Remote Site Settings for new
+    Salesforce domain patterns (e.g. .\*scratch.my.salesforce,
+    \*.demo.my.salesforce, etc.) by @jofsky in
+    https://github.com/SFDO-Tooling/CumulusCI/pull/3424
+-   Added --debug flag to the deploy_marketing_cloud_package task by
+    @TheBitShepherd in
+    https://github.com/SFDO-Tooling/CumulusCI/pull/3430
+
+## 3.68.1 (2022-11-01)
+
+-   Revert a change in parsing config files which was incompatible with some configs
+
+## 3.68.0 (2022-10-31)
+
+Critical Changes 🎉
+
+-   Upgraded Robot Framework from version 4.1.3 to version 6. As with most Robot Framework updates, there are a host of new features and a few deprecated features and backwards incompatibilities. For a complete list consult the [Robot Framework release notes](https://github.com/robotframework/robotframework/releases) in https://github.com/SFDO-Tooling/CumulusCI/pull/3417
+
+Changes 🎉
+
+-   Add support for InstallKey, sourceOrg, release keys on 2GP version create by @davidmreed in https://github.com/SFDO-Tooling/CumulusCI/pull/3403
+-   We now support the `Territory2`, `Territory2Model`, `Territory2Type`, and `Territory2Rule` MetaData types. by @TheBitShepherd in https://github.com/SFDO-Tooling/CumulusCI/pull/3406
+-   Add `push_upgrade_org` flow to test in simulated push upgrade environment by @davidmreed in https://github.com/SFDO-Tooling/CumulusCI/pull/3286
+-   Fixed bug preventing the `deploy_omni_studio_site_settings` task from deploying to scratch orgs with the new `.scratch.` domain names by @jofsky in https://github.com/SFDO-Tooling/CumulusCI/pull/3411
+-   All new keychain details are serialized using JSON, not pickle by @bethbrains in https://github.com/SFDO-Tooling/CumulusCI/pull/3390
+-   Snowfakery (upgraded to 3.4) can now generate Event or Meeting Schedules similar to Calendar Apps
+-   Snowfakery now has a Salesforce.ContentFile feature for generating Content Versions
+
+Issues Fixed 🩴
+
+-   Bumped key_size from 2048 to 4096 on advice from a security audit by @boakley in https://github.com/SFDO-Tooling/CumulusCI/pull/3389
+-   Fixed an issue where unknown deploy statuses could cause polling to hang in the deploy_marketing_cloud_package task by @TheBitShepherd in https://github.com/SFDO-Tooling/CumulusCI/pull/3394
+-   Fixed an injection vulnerability related to unquoted csv writers by @TheBitShepherd in https://github.com/SFDO-Tooling/CumulusCI/pull/3404
+
+## 3.67.1 (2022-10-14)
+
+Issues Fixed
+
+-   We added some javascript files that were missing from the 3.67.0 release
+
+## 3.67.0 (2022-10-13)
+
+Critical Changes
+
+-   CumulusCI now supports GitHub Enterprise. (#3256)
+-   CumulusCI will no longer be supporting installations via `brew`. See our docs for the officially supported install method via pipx.(#3382)
+
+Changes
+
+-   When using Playwright instead of Selenium, we now have limited support for writing keywords in JavaScript. For more information, see the topic "Writing keywords in JavaScript" in the documentation under "Playwright Technology Preview". (#3378)
+-   Auto-load dataset matching org shape name(#3384)
+-   Updated the dependency resolvers used for commit-status builds (2GP and Unlocked Package parallel testing) to allow resolution to "fall back" from release branches like `feature/240` to the repository's main branch.(#3386)
+-   There is a new Playwright-based keyword `Wait until salesforce is ready`. This keyword is automatically called by the Open Test Browser keyword in the SalesforcePlaywright library. In addition to waiting for the page to be rendered, it will auto attempt to detect a classic page on initial render, and automatically switch to a lightning page if one is detected.(#3387)
+-   CumulusCI now supports the `CustomIndex` metadata type.(#3391)
+-   CumulusCI now supports performing source transformations during the `deploy` task, including find-and-replace of user-defined tokens. (#3383)
+-   Includes [Snowfakery 3.3](https://github.com/SFDO-Tooling/Snowfakery/releases/tag/v3.3.0) with new datetime features and find_record optimization.
+
+Issues Fixed
+
+-   Fixed a bug when using blank dates in upserts and updates.(#3361)
+-   Fixed an issue where committing changes to a repository above a certain size caused timeouts to occur. (#3379)
+-   CumulusCI now uses the `defusedxml` library to more securely parse xml.(#3375)
+
+## 3.66.0 (2022-09-29)
+
+Changes 🎉
+
+-   New Metadata ETL task `set_object_settings` to enable and disable settings on standard and custom objects (thanks \@jlantz) (#3364)
+-   For Robot tests on the Firefox profile, we now accept all cookies to prevent lightning pages from failing to render due to cross-domain cookies. (#3366)
+-   Improved the method that playwright-based tests use to wait for the browser to initialize (#3366)
+-   The following Robot Framework keywords now automatically generate screenshots on failure: `Click related list button`, `Click related item popup link`, `Close modal`, `Current app should be`, `Field value should be`, `Get field value`, `Populate field`, `Populate lookup field`, and `Wait until modal is closed`. (#3370)
+-   CumulusCI now supports the following Metadata type: `AIApplicationConfig` (#3368)
+-   CumulusCI now supports the following types from [Net Zero Cloud\'s Tooling API](https://developer.salesforce.com/docs/atlas.en-us.netzero_cloud_dev_guide.meta/netzero_cloud_dev_guide/netzero_cloud_tooling_api_parent.htm): `BldgEnrgyIntensityCnfg`, `StnryAssetEnvSrcCnfg`, `VehicleAssetEmssnSrcCnfg`. (#3372)
+
+Issues Fixed 🩴
+
+-   A failure when calling `capture page screenshot` no longer causes a Robot test to fail (#3366)
+-   Fixed an issue where the `cci --version` command failed to output the current version (#3367)
+-   A bug that prevented keywords decorated with `@capture_screenshot_on_failure` from returning a value has been fixed. (#3370)
+-   Fixed a bug where requests were not being logged while running tasks or flows with the `--debug` flag. (#3371)
+
+## 3.65.0 (2022-09-16)
+
+Changes 🎉
+
+-   Improve logging and add error handling for Vlocity tasks by \@prescod in (#3357)
+
+## 3.64.0 (2022-08-18)
+
+Changes 🎉
+
+-   Support for upcoming Salesforce 240 Release in Robot by \@boakley (#3321)
+
+Issues Fixed 🩴
+
+-   Fix crash with unusual Unicode characters in metadata on Windows running `update_package_xml` by \@prescod (#3323)
+-   Fix Scratch org creation in latest sfdx by \@prescod (#3334)
+
 ## 3.63.0 (2022-08-04)
 
 Changes 🎉

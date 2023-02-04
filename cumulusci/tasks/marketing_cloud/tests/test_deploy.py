@@ -14,6 +14,7 @@ from cumulusci.core.config.marketing_cloud_service_config import (
 from cumulusci.core.exceptions import DeploymentException
 from cumulusci.tasks.marketing_cloud.deploy import (
     MCPM_ENDPOINT,
+    UNKNOWN_STATUS_MESSAGE,
     MarketingCloudDeployTask,
 )
 from cumulusci.tasks.marketing_cloud.mc_constants import MC_API_VERSION
@@ -174,6 +175,28 @@ class TestMarketingCloudDeployTask:
         task.logger = mock.Mock()
         with pytest.raises(DeploymentException):
             task._run_task()
+
+    def test_run_task__unknown_deploy_status(self, task, mocked_responses, caplog):
+        unknown_status = "FOOBAR"
+        mocked_responses.add(
+            "POST",
+            f"{MCPM_ENDPOINT.format(STACK_KEY)}/deployments",
+            json={"id": "JOBID"},
+        )
+        mocked_responses.add(
+            "GET",
+            f"{MCPM_ENDPOINT.format(STACK_KEY)}/deployments/JOBID",
+            json={
+                "status": unknown_status,
+                "entities": {},
+            },
+        )
+        caplog.clear()
+        with pytest.raises(DeploymentException):
+            task._run_task()
+
+        logged_messages = [log.message for log in caplog.records]
+        assert UNKNOWN_STATUS_MESSAGE.format(unknown_status) in logged_messages
 
     def test_zipfile_not_valid(self, task):
         task.options["package_zip_file"] = "not-a-valid-file.zip"

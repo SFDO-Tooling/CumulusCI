@@ -166,7 +166,7 @@ class UpdateData(BaseSalesforceApiTask):
         with TemporaryDirectory() as t:
             csvfile = Path(t) / "input.csv"
             with csvfile.open("w") as f:
-                writer = csv.writer(f)
+                writer = csv.writer(f, quoting=csv.QUOTE_ALL)
                 snowfakery_fieldnames = ["Oid"] + fields[1:]
                 writer.writerow(snowfakery_fieldnames)
                 writer.writerows(qs.get_results())

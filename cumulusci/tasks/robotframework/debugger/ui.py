@@ -7,9 +7,20 @@ import sys
 import textwrap
 
 from robot.libraries.BuiltIn import BuiltIn
-from selenium.common.exceptions import InvalidSelectorException
 
 from cumulusci.cli.ui import CliTable
+
+# this is code we use to inject a style into the DOM
+initialize_highlight_js = """
+    if (!window.rdbInitialized) {
+        console.log("initializing rdb...");
+        window.rdbInitialized = true;
+        var new_style = document.createElement('style');
+        new_style.type = 'text/css';
+        new_style.innerHTML = '.rdbHighlight {box-shadow: 0px 1px 4px 2px inset #FFFF00}';
+        document.getElementsByTagName('head')[0].appendChild(new_style);
+    };
+"""
 
 
 class DebuggerCli(cmd.Cmd, object):
@@ -39,8 +50,18 @@ class DebuggerCli(cmd.Cmd, object):
         self.do_s = self.do_step
 
     @property
-    def selenium(self):
-        return self.builtin.get_library_instance("SeleniumLibrary")
+    def webbrowser(self):
+        # This is a property because we can't initialize it until we
+        # need it. We'll reinitialize it every time it's used. It's
+        # fast enough, and this way it should work even if the user
+        # is testing a suite with some playwright and some selenium
+        # tests
+        libraries = self.builtin.get_library_instance(all=True)
+        if "SeleniumLibrary" in libraries:
+            return SeleniumProxy(libraries["SeleniumLibrary"])
+        elif "Browser" in libraries:
+            return BrowserProxy(libraries["Browser"])
+        return None
 
     def default(self, line):
         """Ignore lines that begin with #"""
@@ -63,23 +84,16 @@ class DebuggerCli(cmd.Cmd, object):
         return True
 
     def do_locate_elements(self, locator):
-        """Find and highlight all elements that match the given selenium locator
+        """Find and highlight all elements that match the given locator
 
         Example:
 
-            rdb> locate_elements //button[@title='Learn More']
+            rdb> locate_elements  //button[@title='Learn More']
         """
         try:
-            elements = self.selenium.get_webelements(locator)
-            print("Found {} matches".format(len(elements)), file=self.stdout)
-            for element in elements:
-                self._highlight_element(element)
-
-        except InvalidSelectorException:
-            print("invalid locator '{}'".format(locator), file=self.stdout)
-
+            self.webbrowser.highlight_elements(locator)
         except Exception as e:
-            print(str(e), file=self.stdout)
+            print(f"Unable to highlight elements: {e}")
 
     def do_pdb(self, arg=None):
         """Start pdb
@@ -97,9 +111,10 @@ class DebuggerCli(cmd.Cmd, object):
 
     def do_reset_elements(self, arg=None):
         """Remove all highlighting added by `locate_elements`"""
-        elements = self.selenium.get_webelements("//*[@data-original-style]")
-        for element in elements:
-            self._restore_element_style(element)
+        try:
+            self.webbrowser.restore_element_style()
+        except Exception as e:
+            print(f"Unable to reset element styles: {e}")
 
     def do_shell(self, arg):
         """
@@ -181,55 +196,64 @@ class DebuggerCli(cmd.Cmd, object):
             print("{}: {}-> {}".format(i, indent, x.longname), file=self.stdout)
         print("", file=self.stdout)
 
-    def _highlight_element(self, element):
-        """Highlight a Selenium Webdriver element
 
-        This works by replacing the `style` attribute of the element with
-        a custom style. The original style is saved in a custom attribute
-        named `data-original-style`, which is used by _restore_element_style.
+class SeleniumProxy:
+    """Proxy for performing debug operations in a Selenium browser"""
 
-        If the element already has a data-original-style attribute it will
-        not be overwritten.
-        """
+    def __init__(self, library_instance):
+        self.selenium = library_instance
 
-        element_style = """
-            box-shadow: 0px 1px 4px 2px inset #FFFF00;
-        """
-        original_style = element.get_attribute("style")
-        new_style = original_style + element_style
-        self.selenium.driver.execute_script(
-            """
-            if (!arguments[0].hasAttribute("data-original-style")) {
-                console.log('adding data-original-style...');
-                /* only save the original style if we haven't already done so */
-                arguments[0].setAttribute('data-original-style', arguments[0].getAttribute('style'));
-            };
-            arguments[0].setAttribute('style', arguments[1]);
+    def highlight_elements(self, locator):
+        """Highlights Selenium Webdriver elements that match a locator"""
+        self.selenium.driver.execute_script(initialize_highlight_js)
 
-        """,
-            element,
-            new_style,
-        )
-
-    def _restore_element_style(self, element):
-        """Restore the element style from the data-original-style attribute
-
-        This is to undo the effects of _highlight_element
-        """
-        js = """
-        if (arguments[0].hasAttribute('data-original-style')) {
-            var original_style = arguments[0].getAttribute('data-original-style');
-            arguments[0].setAttribute('style', original_style);
-            arguments[0].removeAttribute('data-original-style');
-            return true;
-        } else {
-            return false;
-        }
-        """
-
-        result = self.selenium.driver.execute_script(js, element)
-        if result is False:
-            self.builtin.log(
-                "unable to restore style; original style not found", "DEBUG"
+        elements = self.selenium.get_webelements(locator)
+        for element in elements:
+            self.selenium.driver.execute_script(
+                "arguments[0].classList.add('rdbHighlight');", element
             )
-        return result
+        print(f"{len(elements)} elements found")
+
+    def restore_element_style(self):
+        """Remove the style added by `highlight_elements`"""
+        for element in self.selenium.get_webelements("css:.rdbHighlight"):
+            self.selenium.driver.execute_script(
+                "arguments[0].classList.remove('rdbHighlight')", element
+            )
+
+
+class BrowserProxy:
+    """Proxy for performing debug operations in a Playwright browser"""
+
+    def __init__(self, library_instance):
+        self.browser = library_instance
+
+    def highlight_elements(self, selector):
+        """Highlight one or more elements by applying a custom css class"""
+        init_script = f"() => {{{initialize_highlight_js}}};"
+        self.browser.evaluate_javascript(None, init_script)
+
+        elements = self.browser.get_elements(selector)
+        if elements:
+            self.browser.evaluate_javascript(
+                selector,
+                """(elements) => {
+                    for (element of elements) {
+                        element.classList.add('rdbHighlight')
+                    }
+                }""",
+                all_elements=True,
+            )
+        print(f"{len(elements)} elements found")
+
+    def restore_element_style(self):
+        """Remove the style added by `highlight_elements`"""
+        self.browser.evaluate_javascript(
+            ".rdbHighlight",
+            """(elements) => {
+                for (element of elements) {
+                    element.classList.remove('rdbHighlight')
+                }
+            }""",
+            all_elements=True,
+        )

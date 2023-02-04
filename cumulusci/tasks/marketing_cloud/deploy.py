@@ -6,6 +6,7 @@ from pathlib import Path
 
 import requests
 
+from cumulusci.core.debug import get_debug_mode
 from cumulusci.core.exceptions import DeploymentException
 from cumulusci.core.utils import process_list_of_pairs_dict_arg
 from cumulusci.utils import temporary_dir
@@ -24,8 +25,11 @@ PAYLOAD_NAMESPACE_VALUES = {
     "timestamp": True,
 }
 
-DEPLOY_FINISHED_STATUS = "DONE"
-DEPLOY_ERROR_STATUS = "FATAL_ERROR"
+IN_PROGRESS_STATUS = "IN_PROGRESS"
+FINISHED_STATUSES = ("DONE",)
+ERROR_STATUSES = ("FATAL_ERROR", "ERROR")
+
+UNKNOWN_STATUS_MESSAGE = "Received unknown deploy status: {}"
 
 
 class MarketingCloudDeployTask(BaseMarketingCloudTask):
@@ -50,6 +54,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
     }
 
     def _init_options(self, kwargs):
+        self.debug_mode = get_debug_mode()
         super()._init_options(kwargs)
         custom_inputs = self.options.get("custom_inputs")
         self.custom_inputs = (
@@ -84,10 +89,10 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
             json=payload,
             headers=self.headers,
         )
-        result = safe_json_from_response(response)
+        response_data = safe_json_from_response(response)
 
-        self.job_id = result["id"]
-        self.logger.info(f"Started job {self.job_id}")
+        self.job_id = response_data["id"]
+        self.logger.info(f"Started deploy job with Id: {self.job_id}")
         self._poll()
 
     def _poll_action(self):
@@ -98,14 +103,29 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         response = requests.get(
             f"{self.endpoint}/deployments/{self.job_id}", headers=self.headers
         )
-        result = safe_json_from_response(response)
-        self.logger.info(f"Waiting [{result['status']}]...")
-        if result["status"] == DEPLOY_FINISHED_STATUS:
+        response_data = safe_json_from_response(response)
+        deploy_status = response_data["status"]
+        self.logger.info(f"Deployment status is: {deploy_status}")
+
+        if deploy_status != IN_PROGRESS_STATUS:
+            self._process_completed_deploy(response_data)
+
+    def _process_completed_deploy(self, response_data: dict):
+        deploy_status = response_data["status"]
+        assert (
+            deploy_status != IN_PROGRESS_STATUS
+        ), "Deploy should be in a completed state before processing."
+
+        if deploy_status in FINISHED_STATUSES:
             self.poll_complete = True
-            self._validate_response(result)
-        elif result["status"] == DEPLOY_ERROR_STATUS:
+            self._validate_response(response_data)
+        elif deploy_status in ERROR_STATUSES:
             self.poll_complete = True
-            self._report_fatal_error(result)
+            self._report_error(response_data)
+        else:
+            self.logger.error(UNKNOWN_STATUS_MESSAGE.format(deploy_status))
+            self.poll_complete = True
+            self._report_error(response_data)
 
     def _construct_payload(self, dir_path, custom_inputs=None):
         dir_path = Path(dir_path)
@@ -132,6 +152,9 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
         if custom_inputs:
             payload = self._add_custom_inputs_to_payload(custom_inputs, payload)
+
+        if self.debug_mode:  # pragma: nocover
+            self.logger.debug(f"Payload:\n{payload}")
 
         return payload
 
@@ -171,10 +194,11 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
 
         self.logger.info("Deployment completed successfully.")
 
-    def _report_fatal_error(self, result: dict):
+    def _report_error(self, response_data: dict):
+        deploy_status = response_data["status"]
         self.logger.error(
-            f"> {DEPLOY_ERROR_STATUS} received. Dumping response from Marketing Cloud:\n{result}"
+            f"Received status of: {deploy_status}. Received the following data from Marketing Cloud:\n{response_data}^"
         )
         raise DeploymentException(
-            f"Marketing Cloud deploy finished with status of: {DEPLOY_ERROR_STATUS}"
+            f"Marketing Cloud deploy finished with status of: {deploy_status}"
         )

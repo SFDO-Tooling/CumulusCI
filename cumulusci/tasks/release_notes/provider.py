@@ -1,11 +1,11 @@
 import os
 import time
 from datetime import datetime
-from distutils.version import LooseVersion
 
 import pytz
 
 from cumulusci.core.github import get_tag_by_name
+from cumulusci.utils.version_strings import LooseVersion
 
 
 class BaseChangeNotesProvider(object):

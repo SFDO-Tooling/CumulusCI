@@ -120,7 +120,8 @@ tasks specific to your project when running `cci task list`.
 Congratulations! You created a new custom task in CumulusCI.
 
 If you've built a custom task in Python, you can make it available to
-the project by adding the task under the `tasks` section of the
+the project by adding the task to a `tasks` subdirectory in the repo
+and under the `tasks` section of the
 `cumulusci.yml` file. (Let's assume that your task's class is named
 `MyNewTaskClassName` and exists in the file `tasks/task_file.py`.)
 
@@ -614,6 +615,18 @@ information in the standard library alongside any customizations defined
 in your cumulusci.yml file.
 
 ## Advanced Configurations
+
+### Customizing Metadata Deployment
+
+CumulusCI's `deploy` task offers deep flexibility to customize your deployment process. Review [](deploy) for an in-depth guide.
+
+```{toctree}
+---
+maxdepth: 1
+---
+
+deploy
+```
 
 ### Reference Task Return Values
 

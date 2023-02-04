@@ -104,6 +104,7 @@ def get_task(project_config, devhub_config, org_config):
             "static_resource_path": "static-resources",
             "ancestor_id": "04t000000000000",
             "create_unlocked_dependency_packages": True,
+            "install_key": "foo",
         }
         task = CreatePackageVersion(
             project_config,
@@ -154,19 +155,19 @@ def mock_get_static_dependencies():
 class TestPackageConfig:
     def test_validate_org_dependent(self):
         with pytest.raises(ValidationError, match="Only unlocked packages"):
-            PackageConfig(package_type=PackageTypeEnum.managed, org_dependent=True)
+            PackageConfig(package_type=PackageTypeEnum.managed, org_dependent=True)  # type: ignore
 
     def test_validate_post_install_script(self):
         with pytest.raises(ValidationError, match="Only managed packages"):
             PackageConfig(
                 package_type=PackageTypeEnum.unlocked, post_install_script="Install"
-            )
+            )  # type: ignore
 
     def test_validate_uninstall_script(self):
         with pytest.raises(ValidationError, match="Only managed packages"):
             PackageConfig(
                 package_type=PackageTypeEnum.unlocked, uninstall_script="Uninstall"
-            )
+            )  # type: ignore
 
 
 class TestCreatePackageVersion:
@@ -458,6 +459,7 @@ class TestCreatePackageVersion:
         assert task.return_values["dependencies"] == [
             {"version_id": "04t000000000009AAA"}
         ]
+        zf.close()
 
     @responses.activate
     def test_get_or_create_package__namespaced_existing(

@@ -1,4 +1,5 @@
 from difflib import get_close_matches
+from typing import Any, Dict, List
 
 from cumulusci.core.config import BaseConfig, FlowConfig, TaskConfig
 from cumulusci.core.exceptions import (
@@ -8,10 +9,9 @@ from cumulusci.core.exceptions import (
 )
 
 
-def list_infos(infos):
+def list_infos(infos: dict) -> List[Dict[str, str]]:
     rv = []
-    for info_name in infos:
-        info = infos[info_name]
+    for info_name, info in infos.items():
         if not info:
             info = {}
         rv.append(
@@ -21,6 +21,7 @@ def list_infos(infos):
                 "group": info.get("group"),
             }
         )
+
     return rv
 
 
@@ -30,11 +31,11 @@ class BaseTaskFlowConfig(BaseConfig):
     tasks: dict
     flows: dict
 
-    def list_tasks(self):
+    def list_tasks(self) -> List[Dict[str, str]]:
         """Returns a list of task info dictionaries with keys 'name' and 'description'"""
         return list_infos(self.tasks)
 
-    def get_task(self, name):
+    def get_task(self, name: str) -> TaskConfig:
         """Returns a TaskConfig"""
         config = self.lookup(f"tasks__{name}")
         if not config and name not in self.tasks:
@@ -57,11 +58,11 @@ class BaseTaskFlowConfig(BaseConfig):
 
         return TaskConfig(config)
 
-    def list_flows(self):
+    def list_flows(self) -> List[Dict[str, str]]:
         """Returns a list of flow info dictionaries with keys 'name' and 'description'"""
         return list_infos(self.flows)
 
-    def get_flow(self, name):
+    def get_flow(self, name: str) -> FlowConfig:
         """Returns a FlowConfig"""
         config = self.lookup(f"flows__{name}")
         if not config:
@@ -70,7 +71,7 @@ class BaseTaskFlowConfig(BaseConfig):
             raise FlowNotFoundError(error_msg + suggestion)
         return FlowConfig(config)
 
-    def get_suggested_name(self, name, steps):
+    def get_suggested_name(self, name: str, steps: Dict[str, Any]) -> str:
         """
         Given a name that cannot be resolved and a list of tasks/flow dicts, returns the nearest match.
         """

@@ -6,22 +6,26 @@ import sys
 import types
 from configparser import ConfigParser
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 from io import StringIO
 from itertools import chain
 from pathlib import Path
-from typing import Union
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Union
+
+from github3 import GitHub
+from github3.repos.repo import Repository
 
 from cumulusci.core.config.base_config import BaseConfig
 from cumulusci.core.debug import get_debug_mode
 from cumulusci.core.versions import PackageVersionNumber
+from cumulusci.utils.version_strings import LooseVersion
 
 API_VERSION_RE = re.compile(r"^\d\d+\.0$")
 
 import github3
 from pydantic import ValidationError
 
-from cumulusci.core.config import BaseTaskFlowConfig
+from cumulusci.core.config import FlowConfig, TaskConfig
+from cumulusci.core.config.base_task_flow_config import BaseTaskFlowConfig
 from cumulusci.core.exceptions import (
     ConfigError,
     GithubException,
@@ -37,8 +41,8 @@ from cumulusci.core.github import (
 )
 from cumulusci.core.source import GitHubSource, LocalFolderSource, NullSource
 from cumulusci.core.utils import merge_config
-from cumulusci.utils.fileutils import open_fs_resource
-from cumulusci.utils.git import current_branch, git_path, split_repo_url
+from cumulusci.utils.fileutils import FSResource, open_fs_resource
+from cumulusci.utils.git import current_branch, git_path, parse_repo_url, split_repo_url
 from cumulusci.utils.yaml.cumulusci_yml import (
     GitHubSourceModel,
     LocalFolderSourceModel,
@@ -51,6 +55,9 @@ sys.modules.setdefault(
 import tasks
 
 tasks.__path__ = []
+if TYPE_CHECKING:
+    from cumulusci.core.config.universal_config import UniversalConfig
+    from cumulusci.core.keychain.base_project_keychain import BaseProjectKeychain
 
 
 class ProjectConfigPropertiesMixin(BaseConfig):
@@ -73,9 +80,26 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     """Base class for a project's configuration which extends the global config"""
 
     config_filename = "cumulusci.yml"
+    universal_config_obj: "UniversalConfig"
+    keychain: Optional["BaseProjectKeychain"]
+    _repo_info: Dict[str, Any]
+    config_project: dict
+    config_project_local: dict
+    config_additional_yaml: dict
+    additional_yaml: Optional[str]
+    source: Union[NullSource, GitHubSource, LocalFolderSource]
+    _cache_dir: Optional[Path]
+    included_sources: Dict[
+        Union[GitHubSourceModel, LocalFolderSourceModel], "BaseProjectConfig"
+    ]
 
     def __init__(
-        self, universal_config_obj, config=None, cache_dir=None, *args, **kwargs
+        self,
+        universal_config_obj: "UniversalConfig",
+        config: Optional[dict] = None,
+        cache_dir: Optional[Path] = None,
+        *args,
+        **kwargs,
     ):
         self.universal_config_obj = universal_config_obj
         self.keychain = None
@@ -93,6 +117,8 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
         # optionally pass in a kwarg named 'additional_yaml' that will
         # be added to the YAML merge stack.
+        # Called from MetaCI in metaci/cumulusci/config.py
+        # https://github.com/SFDO-Tooling/MetaCI/blob/36a0f4654/metaci/cumulusci/config.py#L8-L11
         self.additional_yaml = None
         if "additional_yaml" in kwargs:
             self.additional_yaml = kwargs.pop("additional_yaml")
@@ -104,10 +130,10 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         # Store requested cache directory, which may be our parent's if we are a subproject
         self._cache_dir = cache_dir
 
-        super(BaseProjectConfig, self).__init__(config=config)
+        super().__init__(config=config)
 
     @property
-    def config_project_local_path(self):
+    def config_project_local_path(self) -> Optional[str]:
         path = Path(self.project_local_dir) / self.config_filename
         if path.is_file():
             return str(path)
@@ -183,20 +209,20 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             raise ConfigError(message)
 
     @property
-    def config_global(self):
+    def config_global(self) -> dict:
         return self.universal_config_obj.config_global
 
     @property
-    def config_universal(self):
+    def config_universal(self) -> dict:
         return self.universal_config_obj.config_universal
 
     @property
-    def repo_info(self):
+    def repo_info(self) -> Dict[str, Any]:
         if self._repo_info is not None:
             return self._repo_info
 
         # Detect if we are running in a CI environment and get repo info
-        # from env vars for the enviornment instead of .git files
+        # from env vars for the environment instead of .git files
         info = {"ci": None}
 
         # Make sure that the CUMULUSCI_AUTO_DETECT environment variable is
@@ -228,7 +254,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         self._repo_info = info
         return self._repo_info
 
-    def _apply_repo_env_var_overrides(self, info):
+    def _apply_repo_env_var_overrides(self, info: Dict[str, Any]):
         """Apply CUMULUSCI_REPO_* environment variables last so they can
         override and fill in missing values from the CI environment"""
         self._override_repo_env_var("CUMULUSCI_REPO_BRANCH", "branch", info)
@@ -241,19 +267,24 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                 self.logger.info(
                     "CUMULUSCI_REPO_URL found, using its value as the repo url, owner, and name"
                 )
+
             url_info = {}
             url_info["owner"], url_info["name"] = split_repo_url(repo_url)
             url_info["url"] = repo_url
             info.update(url_info)
 
-    def _override_repo_env_var(self, repo_env_var, local_var, info):
-        repo_env_var = os.environ.get(repo_env_var)
-        if repo_env_var:
-            if repo_env_var != info.get(local_var):
-                self.logger.info("{} found, using its value for configuration.")
-            info[local_var] = repo_env_var
+    def _override_repo_env_var(
+        self, repo_env_var: str, local_var: str, info: Dict[str, Any]
+    ):
+        env_value: Optional[str] = os.environ.get(repo_env_var)
+        if env_value:
+            if env_value != info.get(local_var):
+                self.logger.info(
+                    f"{repo_env_var} found, using its value for configuration."
+                )
+            info[local_var] = env_value
 
-    def _validate_required_git_info(self, info):
+    def _validate_required_git_info(self, info: Dict[str, Any]):
         """Ensures that we have the required git info or throw a ConfigError"""
         validate = {
             # <key>: <env var to manually override>
@@ -272,7 +303,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                     message += f" with the {env_var} environment variable."
                 raise ConfigError(message)
 
-    def _log_detected_overrides_as_warning(self, info):
+    def _log_detected_overrides_as_warning(self, info: Dict[str, Any]):
         self.logger.info("")
         self.logger.warning("Using environment variables to override repo info:")
         keys = list(info.keys())
@@ -281,7 +312,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             self.logger.warning(f"  {key}: {info[key]}")
         self.logger.info("")
 
-    def git_config_remote_origin_url(self):
+    def git_config_remote_origin_url(self) -> Optional[str]:
         """Returns the url under the [remote origin]
         section of the .git/config file. Returns None
         if .git/config file not present or no matching
@@ -295,7 +326,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         return url
 
     @property
-    def repo_root(self):
+    def repo_root(self) -> Optional[str]:
         path = self.repo_info.get("root")
         if path:
             return path
@@ -307,7 +338,21 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                 return str(path)
 
     @property
-    def repo_name(self):
+    def server_domain(self) -> Optional[str]:
+        domain = self.repo_info.get("domain")
+
+        if domain:
+            return domain
+
+        if not self.repo_root:
+            return
+
+        url_line = self.git_config_remote_origin_url()
+        if url_line:
+            return parse_repo_url(url_line)[2]
+
+    @property
+    def repo_name(self) -> Optional[str]:
         name = self.repo_info.get("name")
         if name:
             return name
@@ -320,7 +365,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             return split_repo_url(url_line)[1]
 
     @property
-    def repo_url(self):
+    def repo_url(self) -> Optional[str]:
         url = self.repo_info.get("url")
         if url:
             return url
@@ -332,7 +377,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         return url
 
     @property
-    def repo_owner(self):
+    def repo_owner(self) -> Optional[str]:
         owner = self.repo_info.get("owner")
         if owner:
             return owner
@@ -341,11 +386,12 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             return
 
         url_line = self.git_config_remote_origin_url()
+
         if url_line:
             return split_repo_url(url_line)[0]
 
     @property
-    def repo_branch(self):
+    def repo_branch(self) -> Optional[str]:
         branch = self.repo_info.get("branch")
         if branch:
             return branch
@@ -356,7 +402,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         return current_branch(self.repo_root)
 
     @property
-    def repo_commit(self):
+    def repo_commit(self) -> Optional[str]:
         commit = self.repo_info.get("commit")
         if commit:
             return commit
@@ -390,13 +436,11 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                         ):
                             return parts[0]
 
-    def get_github_api(self, owner=None, repo=None):
-        return get_github_api_for_repo(
-            self.keychain, owner or self.repo_owner, repo or self.repo_name
-        )
+    def get_github_api(self, url: Optional[str] = None) -> GitHub:
+        return get_github_api_for_repo(self.keychain, url or self.repo_url)
 
-    def get_repo(self):
-        repo = self.get_github_api(self.repo_owner, self.repo_name).repository(
+    def get_repo(self) -> Repository:
+        repo = self.get_github_api(self.repo_url).repository(
             self.repo_owner, self.repo_name
         )
         if repo is None:
@@ -406,7 +450,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         return repo
 
     # TODO: These methods are duplicative with `find_latest_release()`
-    def get_latest_tag(self, beta=False):
+    def get_latest_tag(self, beta: bool = False) -> str:
         """Query Github Releases to find the latest production or beta tag"""
         repo = self.get_repo()
         if not beta:
@@ -421,7 +465,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         else:
             return self._get_latest_tag_for_prefix(repo, self.project__git__prefix_beta)
 
-    def _get_latest_tag_for_prefix(self, repo, prefix):
+    def _get_latest_tag_for_prefix(self, repo: Repository, prefix: str) -> str:
         for release in repo.releases():
             if not release.tag_name.startswith(prefix):
                 continue
@@ -430,14 +474,14 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             f"No release found for {self.repo_url} with tag prefix {prefix}"
         )
 
-    def get_latest_version(self, beta=False):
+    def get_latest_version(self, beta: bool = False) -> Optional[LooseVersion]:
         """Query Github Releases to find the latest production or beta release"""
         tag = self.get_latest_tag(beta)
         version = self.get_version_for_tag(tag)
         if version is not None:
             return LooseVersion(version)
 
-    def get_previous_version(self):
+    def get_previous_version(self) -> Optional[LooseVersion]:
         """Query GitHub releases to find the previous production release"""
         repo = self.get_repo()
         release = find_previous_release(repo, self.project__git__prefix_release)
@@ -445,7 +489,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             return LooseVersion(self.get_version_for_tag(release.tag_name))
 
     @property
-    def config_project_path(self):
+    def config_project_path(self) -> Optional[str]:
         if not self.repo_root:
             return
         path = Path(self.repo_root) / self.config_filename
@@ -453,7 +497,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             return str(path)
 
     @property
-    def project_local_dir(self):
+    def project_local_dir(self) -> str:
         """location of the user local directory for the project
         e.g., ~/.cumulusci/NPSP-Extension-Test/"""
 
@@ -470,7 +514,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         return path
 
     @property
-    def default_package_path(self):
+    def default_package_path(self) -> Path:
         if self.project__source_format == "sfdx":
             relpath = "force-app"
             for pkg in self.sfdx_project_config.get("packageDirectories", []):
@@ -481,7 +525,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         return Path(self.repo_root, relpath).resolve()
 
     @property
-    def sfdx_project_config(self):
+    def sfdx_project_config(self) -> Dict[str, Any]:
         with open(
             Path(self.repo_root) / "sfdx-project.json", "r", encoding="utf-8"
         ) as f:
@@ -492,14 +536,19 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
     def allow_remote_code(self) -> bool:
         return self.source.allow_remote_code
 
-    def get_tag_for_version(self, prefix, version):
+    def get_tag_for_version(self, prefix: str, version: str) -> str:
         """Given a prefix and version, returns the appropriate tag name to use."""
         try:
             return PackageVersionNumber.parse(version).format_tag(prefix)
         except ValueError:
             return f"{prefix}{version}"
 
-    def get_version_for_tag(self, tag, prefix_beta=None, prefix_release=None):
+    def get_version_for_tag(
+        self,
+        tag: str,
+        prefix_beta: Optional[str] = None,
+        prefix_release: Optional[str] = None,
+    ) -> Optional[str]:
         try:
             return PackageVersionNumber.parse_tag(
                 tag,
@@ -509,7 +558,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         except ValueError:
             pass
 
-    def set_keychain(self, keychain):
+    def set_keychain(self, keychain: "BaseProjectKeychain"):
         self.keychain = keychain
 
     def _check_keychain(self):
@@ -520,11 +569,11 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             )
 
     @catch_common_github_auth_errors
-    def get_repo_from_url(self, url):
+    def get_repo_from_url(self, url: str) -> Optional[Repository]:
         owner, name = split_repo_url(url)
-        return self.get_github_api(owner, name).repository(owner, name)
+        return self.get_github_api(url).repository(owner, name)
 
-    def get_task(self, name):
+    def get_task(self, name: str) -> TaskConfig:
         """Get a TaskConfig by task name
 
         If the name has a colon, look for it in a different project config.
@@ -539,7 +588,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             task_config.project_config = self
         return task_config
 
-    def get_flow(self, name):
+    def get_flow(self, name) -> FlowConfig:
         """Get a FlowConfig by flow name
 
         If the name has a colon, look for it in a different project config.
@@ -556,7 +605,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             flow_config.project_config = self
         return flow_config
 
-    def get_namespace(self, ns: str):
+    def get_namespace(self, ns: str) -> "BaseProjectConfig":
         """Look up another project config by its name in the `sources` config.
 
         Also makes sure the project has been fetched, if it's from an external source.
@@ -569,7 +618,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
 
     def include_source(
         self, spec: Union[GitHubSourceModel, LocalFolderSourceModel, dict]
-    ):
+    ) -> "BaseProjectConfig":
         """Make sure a project has been fetched from its source.
 
         This either fetches the project code and constructs its project config,
@@ -628,7 +677,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
                 f"After importing {self.source.spec}:  tasks.__path__ {tasks.__path__}"
             )
 
-    def construct_subproject_config(self, **kwargs):
+    def construct_subproject_config(self, **kwargs) -> "BaseProjectConfig":
         """Construct another project config for an external source"""
         return self.__class__(
             self.universal_config_obj,
@@ -637,12 +686,12 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             **kwargs,
         )
 
-    def relpath(self, path):
+    def relpath(self, path: str) -> str:
         """Convert path to be relative to the project repo root."""
         return os.path.relpath(os.path.join(self.repo_root, path))
 
     @property
-    def cache_dir(self):
+    def cache_dir(self) -> Path:
         "A project cache which is on the local filesystem. Prefer open_cache where possible."
         if self._cache_dir:
             return self._cache_dir
@@ -654,7 +703,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
         return cache_dir
 
     @contextmanager
-    def open_cache(self, cache_name):
+    def open_cache(self, cache_name: str) -> Iterable[FSResource]:
         "A context managed PyFilesystem-based cache which could theoretically be on any filesystem."
         with open_fs_resource(self.cache_dir / cache_name) as cache_dir:
             cache_dir.mkdir(exist_ok=True, parents=True)

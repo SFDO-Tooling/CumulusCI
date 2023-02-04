@@ -221,6 +221,7 @@ def init_from_context(context: Dict[str, object], echo: bool = False):
         ),
         trim_blocks=True,
         lstrip_blocks=True,
+        autoescape=True,
     )
 
     # Render templates

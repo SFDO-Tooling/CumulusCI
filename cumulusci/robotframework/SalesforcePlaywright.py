@@ -1,10 +1,16 @@
 import re
+import time
 
 from Browser import SupportedBrowsers
+from Browser.utils.data_types import KeyAction, PageLoadStates
+from robot.utils import timestr_to_secs
 
 from cumulusci.robotframework.base_library import BaseLibrary
 from cumulusci.robotframework.faker_mixin import FakerMixin
-from cumulusci.robotframework.utils import WAIT_FOR_AURA_SCRIPT
+from cumulusci.robotframework.utils import (
+    WAIT_FOR_AURA_SCRIPT,
+    capture_screenshot_on_error,
+)
 
 
 class SalesforcePlaywright(FakerMixin, BaseLibrary):
@@ -25,12 +31,12 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         This expects the url to contain an id that matches [a-zA-Z0-9]{15,18}
         """
         OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
-        url = self.browser.execute_javascript("window.location.href")
+        url = self.browser.evaluate_javascript(None, "window.location.href")
         for part in url.split("/"):
             oid_match = re.match(OID_REGEX, part)
             if oid_match is not None:
-                return oid_match.group(2)
-        raise AssertionError("Could not parse record id from url: {}".format(url))
+                return oid_match[2]
+        raise AssertionError(f"Could not parse record id from url: {url}")
 
     def go_to_record_home(self, obj_id):
         """Navigates to the Home view of a Salesforce Object
@@ -39,7 +45,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         div can be found on the page.
         """
         url = self.cumulusci.org.lightning_base_url
-        url = "{}/lightning/r/{}/view".format(url, obj_id)
+        url = f"{url}/lightning/r/{obj_id}/view"
         self.browser.go_to(url)
         self.wait_until_loading_is_complete("div.slds-page-header_record-home")
 
@@ -51,7 +57,9 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         self.browser.close_browser("ALL")
         self.salesforce_api.delete_session_records()
 
-    def open_test_browser(self, size=None, useralias=None, record_video=None):
+    def open_test_browser(
+        self, size=None, useralias=None, wait=True, record_video=None
+    ):
         """Open a new Playwright browser, context, and page to the default org.
 
         The return value is a tuple of the browser id, context id, and page details
@@ -68,6 +76,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         This keyword automatically calls the browser keyword `Wait until network is idle`.
         """
 
+        wait = self.builtin.convert_to_boolean(wait)
         default_size = self.builtin.get_variable_value(
             "${DEFAULT BROWSER SIZE}", "1280x1024"
         )
@@ -88,10 +97,6 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
             else self.cumulusci.login_url()
         )
 
-        # browser's (or robot's?) automatic type conversion doesn't
-        # seem to work when calling the function directly, so we have
-        # to pass the enum rather than string representation of the
-        # browser. _sigh_
         if record_video:
             # ugh. the "dir" value must be non-empty, and will be treated as
             # a folder name under the browser/video folder. using "../video"
@@ -104,13 +109,15 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         context_id = self.browser.new_context(
             viewport={"width": width, "height": height}, recordVideo=record_video
         )
+        self.browser.set_browser_timeout("15 seconds")
         page_details = self.browser.new_page(login_url)
 
-        self.browser.wait_until_network_is_idle()
-
+        if wait:
+            self.wait_until_salesforce_is_ready(login_url)
         return browser_id, context_id, page_details
 
-    def wait_until_loading_is_complete(self, locator=None):
+    @capture_screenshot_on_error
+    def wait_until_loading_is_complete(self, locator=None, timeout="15 seconds"):
         """Wait for a lightning page to load.
 
         By default this keyword will wait for any element with the
@@ -118,8 +125,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         be provided.
 
         In addition to waiting for the element, it will also wait for
-        any pending aura events, and it also calls the Browser keyword
-        `Wait until network is idle`.
+        any pending aura events to finish.
 
         """
         locator = (
@@ -127,14 +133,88 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
             if locator is None
             else locator
         )
-        try:
-            self.browser.get_element(locator)
-            self.browser.execute_javascript(function=WAIT_FOR_AURA_SCRIPT)
-            self.browser.wait_until_network_is_idle()
+        self.browser.get_elements(locator)
 
-        except Exception:
+        self.browser.evaluate_javascript(None, WAIT_FOR_AURA_SCRIPT)
+        # An old knowledge article recommends waiting a second. I don't
+        # like it, but it seems to help. We should do a wait instead,
+        # but I can't figure out what to wait on.
+        time.sleep(1)
+
+    @capture_screenshot_on_error
+    def wait_until_salesforce_is_ready(
+        self, login_url, locator=None, timeout="30 seconds"
+    ):
+        """Attempt to wait until we land on a lightning page
+
+        In addition to waiting for a lightning page, this keyword will
+        also attempt to wait until there are no more pending ajax
+        requests.
+
+        The timeout parameter is taken as a rough guideline. This
+        keyword will actually wait for half of the timeout before
+        starting checks for edge cases.
+
+        """
+
+        timeout_seconds = timestr_to_secs(timeout)
+        start_time = time.time()
+
+        locator = locator or "div.slds-template__container"
+        expected_url = rf"/{self.cumulusci.org.lightning_base_url}\/lightning\/.*/"
+
+        while True:
             try:
-                self.browser.take_screenshot()
-            except Exception as e:
-                self.builtin.warn("unable to capture screenshot: {}".format(str(e)))
-            raise
+                # only wait for half of the timeout before doing some additional
+                # checks. This seems to work better than one long timeout.
+                self.browser.wait_for_navigation(
+                    expected_url, timeout_seconds // 2, PageLoadStates.networkidle
+                )
+                self.wait_until_loading_is_complete(locator)
+                # No errors? We're golden.
+                break
+
+            except Exception as exc:
+                # dang. Maybe we landed somewhere unexpected?
+                if self._check_for_classic():
+                    continue
+
+                if time.time() - start_time > timeout_seconds:
+                    self.browser.take_screenshot()
+                    raise Exception("Timed out waiting for a lightning page") from exc
+
+            # If at first you don't succeed, ...
+            self.browser.go_to(login_url)
+
+    def _check_for_classic(self):
+        """Switch to lightning if we land on a classic page
+
+        This seems to happen randomly, causing tests to fail
+        catastrophically. The idea is to detect such a case and
+        auto-click the "switch to lightning" link
+
+        """
+        try:
+            self.browser.get_element("a.switch-to-lightning")
+            self.builtin.log(
+                "It appears we are on a classic page; attempting to switch to lightning",
+                "WARN",
+            )
+            # just in case there's a modal present we'll try simulating
+            # the escape key. Then, click on the switch-to-lightning link
+            self.browser.keyboard_key(KeyAction.press, "Escape")
+            self.builtin.sleep("1 second")
+            self.browser.click("a.switch-to-lightning")
+            return True
+
+        except (AssertionError):
+            return False
+
+    def breakpoint(self):
+        """Serves as a breakpoint for the robot debugger
+
+        Note: this keyword is a no-op unless the ``robot_debug`` option for
+        the task has been set to ``true``. Unless the option has been
+        set, this keyword will have no effect on a running test.
+        """
+        return None

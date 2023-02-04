@@ -552,12 +552,23 @@ tasks:
         class_path: cumulusci.tasks.metadata_etl.SetDuplicateRuleStatus
         options:
             namespace_inject: $project_config.project__package__namespace
+    set_object_settings:
+        description: Enable and disable object level settings on standard and custom objects
+        class_path: cumulusci.tasks.metadata_etl.SetObjectSettings
+        group: Metadata Transformations
     set_organization_wide_defaults:
         group: Metadata Transformations
         description: Sets the Organization-Wide Defaults for specific sObjects, and waits for sharing recalculation to complete.
         class_path: cumulusci.tasks.metadata_etl.SetOrgWideDefaults
         options:
             namespace_inject: $project_config.project__package__namespace
+    strip_unwanted_components:
+        description: Removes components from src folder which are not mentioned in given package.xml file
+        class_path: cumulusci.tasks.metadata.package.RemoveUnwantedComponents
+        options:
+            path: src
+            package_xml: src/package.xml
+        group: Salesforce Metadata
     uninstall_managed:
         description: Uninstalls the managed version of the package
         class_path: cumulusci.tasks.salesforce.UninstallPackage
@@ -658,12 +669,17 @@ tasks:
             sql_path: "datasets/sample.sql"
         group: "Data Operations"
     load_dataset:
-        description: Load a sample dataset using the bulk API.
-        class_path: cumulusci.tasks.bulkdata.LoadData
-        options:
-            mapping: "datasets/mapping.yml"
-            sql_path: "datasets/sample.sql"
+        description: Load a SQL dataset using the bulk API.
+        class_path: cumulusci.tasks.bulkdata.load.LoadData
         group: "Data Operations"
+    load_sample_data:
+        description: Load a saved sample dataset  (experimental)
+        class_path: cumulusci.tasks.sample_data.load_sample_data.LoadSampleData
+        group: "Sample Data"
+    capture_sample_data:
+        description: Load a saved sample dataset (experimental)
+        class_path: cumulusci.tasks.sample_data.capture_sample_data.CaptureSampleData
+        group: "Sample Data"
     load_custom_settings:
         description: Load Custom Settings specified in a YAML file to the target org
         class_path: cumulusci.tasks.salesforce.LoadCustomSettings
@@ -794,6 +810,8 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
+            90:
+                task: load_sample_data
     config_managed:
         group: Post-Install Configuration
         description: Configure an org for use after the managed package has been installed.
@@ -802,6 +820,8 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
+            90:
+                task: load_sample_data
     config_packaging:
         group: Post-Install Configuration
         description: Configure packaging org for upload after package metadata is deployed
@@ -816,6 +836,8 @@ flows:
                 task: deploy_post
             2:
                 task: update_admin_profile
+            90:
+                task: load_sample_data
     config_regression:
         group: Post-Install Configuration
         description: Configure an org for QA regression after the package is installed
@@ -1089,6 +1111,23 @@ flows:
                 task: install_managed
             3:
                 task: install_managed_beta
+    push_upgrade_org:
+        steps:
+            1:
+                flow: dependencies
+            2:
+                task: install_managed
+            3:
+                task: update_dependencies
+                options:
+                    security_type: NONE
+                    resolution_strategy: include_beta
+            4:
+                task: install_managed_beta
+                options:
+                    security_type: NONE
+            5:
+                flow: config_qa
     release_2gp_beta:
         group: Release Operations
         description: Upload and release a beta 2gp managed package version
@@ -1335,6 +1374,23 @@ services:
                 default_factory: cumulusci.core.github.get_oauth_device_flow_token
                 sensitive: True
         validator: cumulusci.core.github.validate_service
+    github_enterprise:
+        description: Configure connection for GitHub Enterprise Server
+        attributes:
+            username:
+                description: The GitHub Enterprise username to use for tasks.
+                required: True
+            email:
+                description: The email address to used by GitHub tasks when an operation requires an email address.
+                required: True
+            server_domain:
+                description: "GitHub Enterprise domain (Example: git.ent.domain.com)."
+                required: True
+            token:
+                description: Personal Access Token
+                required: True
+                sensitive: True
+        validator: cumulusci.core.github.validate_service
     marketing_cloud:
         description: Configure a connection to a Marketing Cloud instance
         class_path: cumulusci.core.config.marketing_cloud_service_config.MarketingCloudServiceConfig
@@ -1432,11 +1488,13 @@ project:
                 - unlocked_exact_branch
                 - unlocked_release_branch
                 - unlocked_previous_release_branch
+                - unlocked_default_branch
             commit_status:
                 - tag
                 - commit_status_exact_branch
                 - commit_status_release_branch
                 - commit_status_previous_release_branch
+                - commit_status_default_branch
                 - latest_beta
                 - latest_release
                 - unmanaged

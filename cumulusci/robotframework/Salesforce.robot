@@ -134,17 +134,25 @@ Open Test Browser Firefox
     [Documentation]  Opens a Firefox browser window and navigates to the org
     ...  This keyword isn't normally called directly by a test. It is used
     ...  by the `Open Test Browser` keyword.
+    ...
+    ...  The firefox profile is set to accept all cookies.
 
     [Arguments]     ${login_url}  ${alias}=${NONE}
     Open Browser  ${login_url}  firefox  alias=${alias}
+    #    http://kb.mozillazine.org/Network.cookie.cookieBehavior
+    ...  ff_profile_dir=set_preference("network.cookie.cookieBehavior", 0)
 
 Open Test Browser Headless Firefox
     [Documentation]  Opens the firefox browser in headless mode
     ...  This keyword isn't normally called directly by a test. It is used
     ...  by the `Open Test Browser` keyword.
+    ...
+    ...  The firefox profile is set to accept all cookies.
 
     [Arguments]     ${login_url}  ${alias}=${NONE}
     Open Browser  ${login_url}  headlessfirefox  alias=${alias}
+    #    http://kb.mozillazine.org/Network.cookie.cookieBehavior
+    ...  ff_profile_dir=set_preference("network.cookie.cookieBehavior", 0)
 
 Get Chrome Options
     [Documentation]

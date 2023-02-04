@@ -240,6 +240,24 @@ $ cci service connect github mygithub --username $GITHUB_USERNAME --token $GITHU
 
 Services are stored in the global CumulusCI keychain by default.
 
+### GitHub Enterprise Server Support
+
+_GitHub Enterprise Server Support is an experimental feature that may change._
+
+As of CumulusCI version 3.66, a new GitHub service type is available named `github_enterprise` to allow connections to a GitHub Enterprise Server (GES). The `github_enterprise` service works like the `github` service but includes a `server_domain` field that must be supplied with the GES server domain.
+
+In some cases, you may receive an error connecting to a GitHub Enterprise Server that states "a self-signed certificate is in the chain". This may happen when you need to validate server TLS certificates using the system’s certificate authorities, instead of the set of CA certs that is bundled with requests. You may need to set a ENV variable `CUMULUSCI_SYSTEM_CERTS` to "True". See [](cumulusci-system-certs).
+
+Here's an example command to configure a `github_enterprise` service:
+
+```console
+$ cci service connect github_enterprise enterprise --token <access token> --username <username> --email <email> --server_domain <repo url>
+```
+
+#### Limitations of _GitHub Enterprise Server Support_
+
+The GitHub Enterprise Server service only allows one `github_enterprise` service to be configured per server domain. This means the access token you are using must have permission to access all required resources at a given repository location.
+
 (work-on-an-existing-cumulusci-project)=
 
 ## Work On an Existing CumulusCI Project
