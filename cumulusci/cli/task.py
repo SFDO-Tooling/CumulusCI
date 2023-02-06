@@ -82,7 +82,6 @@ def task_doc(runtime, project=False, write=False):
         if name not in selected_tasks:
             continue
         task_config = TaskConfig(task_config_dict)
-        task_config.project_config = runtime.project_config
         doc = doc_task(name, task_config)
         result += [doc, ""]
     result = "\n".join(result)

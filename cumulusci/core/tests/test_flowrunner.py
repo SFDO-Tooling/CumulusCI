@@ -12,6 +12,7 @@ from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.exceptions import (
     FlowConfigError,
     FlowInfiniteLoopError,
+    TaskImportError,
     TaskNotFoundError,
 )
 from cumulusci.core.flowrunner import (
@@ -765,7 +766,7 @@ def include_fake_project(self: BaseProjectConfig, _spec) -> BaseProjectConfig:
     return project
 
 
-# This grossness is inherite from `test_cci.py`...needs to be
+# This grossness is inherited from `test_cci.py`...needs to be
 # fixed centrally!
 @mock.patch(
     "cumulusci.cli.runtime.CliRuntime.get_org",
@@ -787,10 +788,10 @@ def test_cross_project_tasks(get_tempfile_logger):
                 "cci",
                 "task",
                 "run",
-                "local_fake_2:example_task",
+                "local_fake:example_task",
             ]
         )
-    assert "Called _run_task 2 !" in str(out.mock_calls)
+    assert "Called _run_task" in str(out.mock_calls)
 
 
 class TestCrossRepoFlow:
@@ -800,5 +801,36 @@ class TestCrossRepoFlow:
         with mock.patch.object(coordinator, "logger"):
             coordinator.run(org_config)
             out = str(coordinator.logger.mock_calls)
-        assert "Called _run_task" in out
-        assert "Called _run_task 2 !!!" in out
+        assert "Called _run_task" in out, out
+        assert "Called _run_task 2" in out, out
+
+    @pytest.mark.slow()
+    def test_cross_project_other_task(self, runtime):
+        def assert_task(task_name, class_name):
+            task_config = runtime.project_config.get_task(task_name)
+            task_class = task_config.get_class()
+            assert task_class.__name__ == class_name, (task_class.__name__, class_name)
+
+        assert_task("local_fake:example_task", "ExampleTask")
+
+        assert_task("local_fake:example_task_from_subdirectory", "ExampleTask2")
+
+        assert_task("local_fake:task_from_child_project", "ExampleTask3")
+
+        with pytest.raises(TaskNotFoundError, match="bad_classpath"):
+            assert_task("local_fake:bad_classpath", "FAILED")
+
+        with pytest.raises(TaskImportError, match="tasks.untrusted_parent"):
+            task_config = runtime.project_config.get_task(
+                "disallowed_repo:example_task"
+            )
+            task_config.get_class()
+
+        with pytest.raises(TaskImportError, match="tasks.untrusted_child"):
+            task_config = runtime.project_config.get_task(
+                "disallowed_repo:untrusted_child_task"
+            )
+            task_config.get_class()
+
+
+# TODO: Test each scenario

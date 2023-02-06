@@ -12,6 +12,10 @@ tasks:
         description: An example project-level task that does nothing
         class_path: tasks.untrusted_parent.ExampleTask
 
+    untrusted_child_task:
+        description: An example project-level task that does nothing
+        class_path: tasks.untrusted_child.ExampleTask
+
 flows:
     untrusted:
         steps:
