@@ -135,7 +135,7 @@ class TaskOptionsError(CumulusCIUsageError):
 
 
 class TaskImportError(CumulusCIException):
-    """Raise when a task's classcan't be loaded"""
+    """Raise when a task's class can't be loaded"""
 
     pass
 
