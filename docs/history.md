@@ -3,15 +3,14 @@
 <!-- latest-start -->
 
 ## v3.72.1 (2023-02-07)
+
 <!-- Release notes generated using configuration in .github/release.yml at main -->
 
 ## What's Changed
-### Changes 🎉
-* ADR: Record Architecture Decisions by [@jstvz](https://github.com/jstvz) in [#3519](https://github.com/SFDO-Tooling/CumulusCI/pull/3519)
 
+### Issues Fixed 🩴
 
-**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.72.0...v3.72.1
-
+-   Fixed an issue preventing installation of CumulusCI's sdist in [#3520](https://github.com/SFDO-Tooling/CumulusCI/pull/3520)
 
 <!-- latest-stop -->
 
