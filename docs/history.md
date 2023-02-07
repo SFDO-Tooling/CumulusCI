@@ -2,6 +2,19 @@
 
 <!-- latest-start -->
 
+## v3.72.1 (2023-02-07)
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Changes 🎉
+* ADR: Record Architecture Decisions by [@jstvz](https://github.com/jstvz) in [#3519](https://github.com/SFDO-Tooling/CumulusCI/pull/3519)
+
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.72.0...v3.72.1
+
+
+<!-- latest-stop -->
+
 ## v3.72.0 (2023-02-03)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -19,8 +32,6 @@
 -   Stricter check on what counts as a dataset by [@prescod](https://github.com/prescod) in [#3502](https://github.com/SFDO-Tooling/CumulusCI/pull/3502)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.71.0...v3.72.0
-
-<!-- latest-stop -->
 
 ## 3.71.0 (2022-12-20)
 
