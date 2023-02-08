@@ -2,6 +2,18 @@
 
 <!-- latest-start -->
 
+## v3.72.1 (2023-02-07)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Issues Fixed 🩴
+
+-   Fixed an issue preventing installation of CumulusCI's sdist in [#3520](https://github.com/SFDO-Tooling/CumulusCI/pull/3520)
+
+<!-- latest-stop -->
+
 ## v3.72.0 (2023-02-03)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -19,8 +31,6 @@
 -   Stricter check on what counts as a dataset by [@prescod](https://github.com/prescod) in [#3502](https://github.com/SFDO-Tooling/CumulusCI/pull/3502)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.71.0...v3.72.0
-
-<!-- latest-stop -->
 
 ## 3.71.0 (2022-12-20)
 
