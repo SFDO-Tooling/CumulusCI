@@ -3,7 +3,7 @@ requires = ["hatchling", "hatch-fancy-pypi-readme"]
 build-backend = "hatchling.build"
 
 [project]
-name = "cumulusci-test"
+name = "cumulusci"
 dynamic = ["readme", "version"]
 description = "Build and release tools for Salesforce developers"
 license = {text = "BSD 3-Clause License"}
@@ -74,7 +74,6 @@ lint = [
 ]
 test = [
     "coverage[toml]",
-    "coveralls",
     "factory-boy",
     "furo",
     "jsonschema",
@@ -111,6 +110,8 @@ include = [
 include = [
     "/cumulusci",
     "/requirements/*", # Needed by tox
+    "README.md", # needed by hatch-fancy-pypi-readme
+    "docs/history.md" # ditto
 ]
 
 [tool.hatch.build.targets.wheel]
