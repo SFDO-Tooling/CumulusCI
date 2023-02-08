@@ -141,7 +141,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
                 info_json = json.load(f)
                 model_version = info_json["modelVersion"]
                 self.logger.debug(
-                    f"Setting Marketing Cloud Package Manager modelVerion to: {model_version}"
+                    f"Setting Marketing Cloud Package Manager modelVersion to: {model_version}"
                 )
                 payload["modelVersion"] = info_json["modelVersion"]
 
