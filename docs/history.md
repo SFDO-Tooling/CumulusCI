@@ -2,6 +2,19 @@
 
 <!-- latest-start -->
 
+## v3.72.1.dev0 (2023-02-08)
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Changes 🎉
+* Include `modelVersion` in MCPM Payload by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3523](https://github.com/SFDO-Tooling/CumulusCI/pull/3523)
+
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.72.1...v3.72.1.dev0
+
+
+<!-- latest-stop -->
+
 ## v3.72.1 (2023-02-07)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -11,8 +24,6 @@
 ### Issues Fixed 🩴
 
 -   Fixed an issue preventing installation of CumulusCI's sdist in [#3520](https://github.com/SFDO-Tooling/CumulusCI/pull/3520)
-
-<!-- latest-stop -->
 
 ## v3.72.0 (2023-02-03)
 
