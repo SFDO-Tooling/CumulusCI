@@ -61,6 +61,7 @@ class Step(CCIDictModel):
 
 class Task(CCIDictModel):
     class_path: str = None
+    extends: str = None
     description: str = None
     group: str = None
     # additionalProperties here works around an
@@ -68,6 +69,14 @@ class Task(CCIDictModel):
     options: Dict[str, Any] = VSCodeFriendlyDict
     ui_options: Dict[str, Any] = VSCodeFriendlyDict
     name: str = None  # get rid of this???
+
+    @root_validator
+    def validate(cls, values: dict):
+        assert not (
+            "extends" in values and "class_path" in values
+        ), "Please do not include both `class_path` and `extends` for the same task"
+
+        return values
 
 
 class Flow(CCIDictModel):
@@ -313,7 +322,7 @@ def cci_safe_load(
     logger = logger or default_logger
 
     with load_from_source(source) as (data_stream, filename):
-        data = load_yaml_data(data_stream, filename)
+        data: dict = load_yaml_data(data_stream, filename)
         context = context or filename
 
         try:

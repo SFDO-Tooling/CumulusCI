@@ -33,7 +33,7 @@ def universal_config():
 
 
 def test_init():
-    config = utils.merge_config(
+    config = utils.merge_cumulus_config(
         {
             "universal_config": {"hello": "world"},
             "user_config": {"hello": "christian"},
@@ -44,7 +44,7 @@ def test_init():
 
 def test_merge_failure():
     with pytest.raises(ConfigMergeError) as e:
-        utils.merge_config(
+        utils.merge_cumulus_config(
             {
                 "universal_config": {"hello": "world", "test": {"sample": 1}},
                 "user_config": {"hello": "christian", "test": [1, 2]},

@@ -37,7 +37,7 @@ from cumulusci.core.github import (
     get_github_api_for_repo,
 )
 from cumulusci.core.source import GitHubSource, LocalFolderSource, NullSource
-from cumulusci.core.utils import merge_config
+from cumulusci.core.utils import merge_cumulus_config
 from cumulusci.utils.fileutils import FSResource, open_fs_resource
 from cumulusci.utils.git import current_branch, git_path, parse_repo_url, split_repo_url
 from cumulusci.utils.yaml.cumulusci_yml import (
@@ -174,7 +174,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
 
-        self.config = merge_config(
+        self.config = merge_cumulus_config(
             {
                 "universal_config": self.config_universal,
                 "global_config": self.config_global,
