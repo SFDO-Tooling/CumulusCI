@@ -136,25 +136,37 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         payload["config"] = PAYLOAD_CONFIG_VALUES
         payload["name"] = self.options.get("name", str(uuid.uuid4()))
 
-        with open(dir_path / "references.json", "r") as f:
-            payload["references"] = json.load(f)
+        try:
+            with open(dir_path / "info.json", "r") as f:
+                info_json = json.load(f)
+                model_version = info_json["modelVersion"]
+                self.logger.debug(
+                    f"Setting Marketing Cloud Package Manager modelVersion to: {model_version}"
+                )
+                payload["modelVersion"] = info_json["modelVersion"]
 
-        with open(dir_path / "input.json", "r") as f:
-            payload["input"] = json.load(f)
+            with open(dir_path / "references.json", "r") as f:
+                payload["references"] = json.load(f)
 
-        entities_dir = Path(f"{dir_path}/entities")
-        for item in entities_dir.glob("**/*.json"):
-            if item.is_file():
-                entity_name = item.parent.name
-                entity_id = item.stem
-                with open(item, "r") as f:
-                    payload["entities"][entity_name][entity_id] = json.load(f)
+            with open(dir_path / "input.json", "r") as f:
+                payload["input"] = json.load(f)
+
+            entities_dir = Path(f"{dir_path}/entities")
+            for item in entities_dir.glob("**/*.json"):
+                if item.is_file():
+                    entity_name = item.parent.name
+                    entity_id = item.stem
+                    with open(item, "r") as f:
+                        payload["entities"][entity_name][entity_id] = json.load(f)
+        except FileNotFoundError as e:
+            msg = f"Expected file not found in provided package zip file: {e.filename.split('/')[-1]}"
+            raise DeploymentException(msg)
 
         if custom_inputs:
             payload = self._add_custom_inputs_to_payload(custom_inputs, payload)
 
         if self.debug_mode:  # pragma: nocover
-            self.logger.debug(f"Payload:\n{payload}")
+            self.logger.debug(f"Payload:\n{json.dumps(payload)}")
 
         return payload
 

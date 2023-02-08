@@ -22,11 +22,13 @@ from cumulusci.utils import temporary_dir
 
 TEST_TSSD = "asdf-qwerty"
 STACK_KEY = "S4"
+TEST_ZIPFILE = "test-mc-pkg.zip"
+PAYLOAD_FILE = "expected-payload.json"
 
 
 @pytest.fixture
 def task(project_config):
-    test_zip_file = Path(__file__).parent.absolute() / "test-mc-pkg.zip"
+    test_zip_file = Path(__file__).parent.absolute() / TEST_ZIPFILE
     task = MarketingCloudDeployTask(
         project_config,
         TaskConfig(
@@ -51,7 +53,7 @@ def task(project_config):
 
 @pytest.fixture
 def task_without_custom_inputs(project_config):
-    test_zip_file = Path(__file__).parent.absolute() / "test-mc-pkg.zip"
+    test_zip_file = Path(__file__).parent.absolute() / TEST_ZIPFILE
     task = MarketingCloudDeployTask(
         project_config,
         TaskConfig(
@@ -216,13 +218,27 @@ class TestMarketingCloudDeployTask:
                 zf.extractall(temp_dir)
                 actual_payload = task._construct_payload(Path(temp_dir))
 
-        expected_payload_file = (
-            Path(__file__).parent.absolute() / "expected-payload.json"
-        )
+        expected_payload_file = Path(__file__).parent.absolute() / PAYLOAD_FILE
         with open(expected_payload_file, "r") as f:
             expected_payload = json.load(f)
 
         assert expected_payload == actual_payload
+
+    @mock.patch("cumulusci.tasks.marketing_cloud.deploy.uuid")
+    def test_construct_payload__file_not_found(self, uuid, task):
+        """Ensure we state clearly state where expect files to be"""
+        uuid.uuid4.return_value = "cci-deploy"
+        pkg_zip_file = Path(task.options["package_zip_file"])
+        with temporary_dir() as temp_dir:
+            with zipfile.ZipFile(pkg_zip_file) as zf:
+                zf.extractall(temp_dir)
+
+                expected_payload_file = Path(temp_dir + "/info.json")
+                assert expected_payload_file.is_file()
+                Path.unlink(expected_payload_file)
+
+                with pytest.raises(DeploymentException):
+                    task._construct_payload(Path(temp_dir))
 
     def test_add_custom_inputs_to_payload__deployment_exception(self, task):
         custom_inputs = {"foo": "bar"}
