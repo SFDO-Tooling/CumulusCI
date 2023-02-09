@@ -12,7 +12,7 @@ To do this, add YAML like this to your project's `cumulusci.yml`:
 tasks:
     retrieve_config_dev:
         description: Retrieves the current changes in the scratch org into unpackaged/config/dev
-        class_path: cumulusci.tasks.salesforce.sourcetracking.RetrieveChanges
+        extends: retrieve_changes
         options:
             path: unpackaged/config/dev
             namespace_tokenize: $project_config.project__package__namespace
@@ -33,7 +33,7 @@ with the latest managed beta release, use the `install_beta` flow.
 ```yaml
 run_custom_command:
     description: Greets the user
-    class_path: cumulusci.tasks.command.Command
+    extends: command
     options:
         command: "echo 'Hello there!'"
 ```
@@ -45,13 +45,13 @@ this with `cci` on a terminal:
 
     $ cci task run dx -o command 'force:api:limits:display'
 
-Or you can utilize the same `class_path` as the `dx` task and make a
+Or you can extend the `dx` task and make a
 custom task that can be executed by itself or as a step in a flow.
 
 ```yaml
 dx_limits:
     description: Display
-    class_path: cumulusci.tasks.sfdx.SFDXBaseTask
+    extends: dx
     group: dx
     options:
         command: sfdx force:limits:api:display
@@ -73,7 +73,7 @@ contained in `unmanaged/config/reports`.
 ```yaml
 deploy_reports:
     description: Deploy Reports
-    class_path: cumulusci.tasks.salesforce.Deploy
+    extends: deploy
     options:
         path: unmanaged/config/reports
 ```
@@ -89,13 +89,15 @@ The following shows an example task named `project_default_settings`
 which runs the public static method `initializeProjectDefaults()`
 located in file `scripts.initialize.cls`:
 
-    project_default_settings:
-        description: Configure the default project settings
-        class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
-        group: projectName
-        options:
-            path: scripts/initialize.cls
-            apex: initializeProjectDefaults();
+```yaml
+project_default_settings:
+    description: Configure the default project settings
+    extends: execute_anon
+    group: projectName
+    options:
+        path: scripts/initialize.cls
+        apex: initializeProjectDefaults();
+```
 
 ## Flow Recipes
 

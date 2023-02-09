@@ -72,10 +72,10 @@ class Task(CCIDictModel):
 
     @root_validator
     def validate_exclusive_keys(cls, values: dict):
-        print(values)
+        extends, class_path = values.get("extends"), values.get("class_path")
         assert not (
-            values.get("extends") and values.get("class_path")
-        ), "Please do not include both `class_path` and `extends` for the same task"
+            extends and class_path
+        ), f"Please do not include both `class_path` and `extends` for the same task: class_path: {values['class_path']}, extends: {values['extends']}"
 
         return values
 

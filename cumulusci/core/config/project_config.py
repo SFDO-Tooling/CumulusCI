@@ -44,7 +44,7 @@ from cumulusci.utils.yaml.cumulusci_yml import (
     LocalFolderSourceModel,
     cci_safe_load,
 )
-from cumulusci.utils.yaml.merge_cumulus_yaml import merge_cumulus_config
+from cumulusci.utils.yaml.merge_cumulusci_yaml import merge_cumulus_config
 
 if TYPE_CHECKING:
     from cumulusci.core.config.universal_config import UniversalConfig
@@ -174,6 +174,7 @@ class BaseProjectConfig(BaseTaskFlowConfig, ProjectConfigPropertiesMixin):
             if additional_yaml_config:
                 self.config_additional_yaml.update(additional_yaml_config)
 
+        # TODO: pass more context in here for better error messages
         self.config = merge_cumulus_config(
             {
                 "universal_config": self.config_universal,

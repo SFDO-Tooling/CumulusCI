@@ -4,7 +4,7 @@ import pytest
 
 from cumulusci.core import utils
 from cumulusci.core.exceptions import ConfigMergeError, CumulusCIException
-from cumulusci.utils.yaml.merge_cumulus_yaml import merge_cumulus_config
+from cumulusci.utils.yaml.merge_cumulusci_yaml import merge_cumulus_config
 
 
 @pytest.fixture

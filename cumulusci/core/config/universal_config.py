@@ -7,7 +7,7 @@ from cumulusci.core.config.project_config import (
     ProjectConfigPropertiesMixin,
 )
 from cumulusci.utils.yaml.cumulusci_yml import cci_safe_load
-from cumulusci.utils.yaml.merge_cumulus_yaml import merge_cumulus_config
+from cumulusci.utils.yaml.merge_cumulusci_yaml import merge_cumulus_config
 
 __location__ = os.path.dirname(os.path.realpath(__file__))
 

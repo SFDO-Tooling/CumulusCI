@@ -35,7 +35,7 @@ def merge_task_extension(
         return
 
     if base_task_name == taskname:
-        if taskname in tasks:
+        if task.get("class_path"):
             error = f"{taskname} does not need to extend itself. You can override a task definition without the extends keyword."
         else:
             error = f"{taskname} cannot extend {taskname} because no previous definition exists, and tasks need not use the extend keyword to override task definitions."
