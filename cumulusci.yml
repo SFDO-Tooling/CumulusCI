@@ -33,7 +33,6 @@ tasks:
                 - RequireTestDocumentation
     robot_libdoc:
         description: Generates html documentation for the Salesorce and CumulusCI libraries and resource files
-        extends: robot_libdoc
         options:
             title: CumulusCI Robot Framework Keywords
             output: docs/robot/Keywords.html
