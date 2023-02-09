@@ -1,3 +1,0 @@
- * tests in general
- * tests of various error cases
- * move the code to cumulusci_yml
