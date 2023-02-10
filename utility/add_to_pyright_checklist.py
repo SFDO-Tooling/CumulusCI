@@ -58,7 +58,6 @@ def main(staged_files: List[str]) -> bool:
 
 if __name__ == "__main__":
     staged_files = sys.argv[1:]
-    print(staged_files)
     success = main(staged_files)
     return_code = 0 if success else 1
     sys.exit(return_code)

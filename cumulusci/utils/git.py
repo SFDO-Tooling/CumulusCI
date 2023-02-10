@@ -18,6 +18,7 @@ def git_path(repo_root: str, tail: Any = None) -> Optional[pathlib.Path]:
 def current_branch(repo_root: str) -> Optional[str]:
     if repo_root:
         head_path = git_path(repo_root, "HEAD")
+        assert head_path
         if head_path.exists():
             branch_ref = head_path.read_text().strip()
             if branch_ref.startswith("ref: "):
@@ -46,7 +47,9 @@ def get_feature_branch_name(branch_name: str, prefix: str) -> Optional[str]:
 
 def get_release_identifier(branch_name: str, prefix: str) -> Optional[str]:
     if is_release_branch_or_child(branch_name, prefix):
-        return get_feature_branch_name(branch_name, prefix).split("__")[0]
+        feature_branch_name = get_feature_branch_name(branch_name, prefix)
+        assert isinstance(feature_branch_name, str)
+        return feature_branch_name.split("__")[0]
 
 
 def construct_release_branch_name(prefix: str, release_identifier: str) -> str:

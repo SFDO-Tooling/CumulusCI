@@ -252,6 +252,7 @@ include = [
     'cumulusci/utils/classutils.py',
     'cumulusci/utils/collections.py',
     'cumulusci/utils/deprecation.py',
+    'cumulusci/utils/git.py',
     'cumulusci/utils/http/requests_utils.py',
     'cumulusci/utils/iterators.py',
     'cumulusci/utils/parallel/task_worker_queues/parallel_worker.py',
@@ -297,5 +298,6 @@ strict = [
     'cumulusci/tasks/release_notes/exceptions.py',
     'cumulusci/tasks/salesforce/BaseSalesforceTask.py',
     'cumulusci/tasks/vlocity/exceptions.py',
+    'cumulusci/utils/git.py',
     'cumulusci/utils/soql.py'
 ]
