@@ -36,3 +36,11 @@ repos:
             pass_filenames: false
             additional_dependencies:
                 - pyright
+          - id: add_to_pyright_checklist
+            name: add_to_pyright_checklist
+            entry: python utility/add_to_pyright_checklist.py
+            language: python
+            types: [python]
+            pass_filenames: true
+            additional_dependencies:
+                - tomli==2.0.1
