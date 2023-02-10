@@ -21,7 +21,11 @@ from cumulusci.utils.yaml.model_parser import CCIModel
 logger = logging.getLogger(__name__)
 
 
-class SecurityType(str, Enum):
+class StrEnum(str, Enum):
+    __str__ = str.__str__  # type: ignore
+
+
+class SecurityType(StrEnum):
     """Enum used to specify the component permissioning mode for a package install.
 
     The values specified by the Tooling API are confusing, and PUSH is not documented.
@@ -32,33 +36,25 @@ class SecurityType(str, Enum):
     ADMIN = "NONE"  # System Administrator only
     PUSH = "PUSH"  # No profiles
 
-    __str__ = str.__str__
 
-
-class NameConflictResolution(str, Enum):
+class NameConflictResolution(StrEnum):
     """Enum used to specify how name conflicts will be resolved when installing an Unlocked Package."""
 
     BLOCK = "Block"
     RENAME = "RenameMetadata"
 
-    __str__ = str.__str__
-
 
 # Unlocked Packages only. Default appears to be all but is not documented.
-class ApexCompileType(str, Enum):
+class ApexCompileType(StrEnum):
     ALL = "all"
     PACKAGE = "package"
 
-    __str__ = str.__str__
-
 
 # Unlocked Packages only. Default is mixed.
-class UpgradeType(str, Enum):
+class UpgradeType(StrEnum):
     DELETE_ONLY = "delete-only"
     DEPRECATE_ONLY = "deprecate-only"
     MIXED = "mixed"
-
-    __str__ = str.__str__
 
 
 class PackageInstallOptions(CCIModel):
