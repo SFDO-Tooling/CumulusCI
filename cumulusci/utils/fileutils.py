@@ -4,7 +4,7 @@ import webbrowser
 from contextlib import contextmanager
 from io import StringIO, TextIOWrapper
 from pathlib import Path
-from typing import IO, ContextManager, Text, Tuple, Union
+from typing import IO, Generator, Text, Tuple, Union
 
 import requests
 from fs import base, copy, open_fs
@@ -26,7 +26,7 @@ def _get_path_from_stream(stream):
 
 
 @contextmanager
-def load_from_source(source: DataInput) -> ContextManager[Tuple[IO[Text], Text]]:
+def load_from_source(source: DataInput) -> Generator[Tuple[IO[Text], Text], None, None]:
     """Normalize potential data sources into uniform tuple
 
     Take as input a file-like, path-like, or URL-like

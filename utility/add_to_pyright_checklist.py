@@ -11,14 +11,14 @@ def remove_bad_files(json_data: dict, filenames: Set[str]) -> None:
     for item in json_data["generalDiagnostics"]:
         file = item["file"]
         if file in filenames:  # filenames show up multiple times
-            print(file, "has type errors. Ignoring them for now.")
+            print(file, "has type errors. Ignoring them for now.", item["message"])
             filenames.remove(file)
 
 
 def filter_out_bad_files(files: Set[str]) -> List[str]:
     files = set(str(Path(file).absolute()) for file in files)
     result = subprocess.run(
-        ["pyright", "--warnings", "--outputjson", *sorted(files)],
+        ["pyright", "--outputjson", *sorted(files)],
         capture_output=True,
         text=True,
     )
@@ -58,6 +58,7 @@ def main(staged_files: List[str]) -> bool:
 
 if __name__ == "__main__":
     staged_files = sys.argv[1:]
+    print(staged_files)
     success = main(staged_files)
     return_code = 0 if success else 1
     sys.exit(return_code)

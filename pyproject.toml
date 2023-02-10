@@ -259,6 +259,7 @@ include = [
     'cumulusci/utils/waiting.py',
     'cumulusci/utils/xml/robot_xml.py',
     'cumulusci/utils/xml/salesforce_encoding.py',
+    'cumulusci/utils/yaml/safer_loader.py',
     'cumulusci/utils/ziputils.py',
     'utility/add_to_pyright_checklist.py',
 ]

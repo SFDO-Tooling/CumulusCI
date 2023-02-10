@@ -41,7 +41,8 @@ def _replace_nbsp(origdata, filename):
 
 
 def load_yaml_data(
-    source: T.Union[str, T.IO[T.Text], Path, FSResource], context: str = None
+    source: T.Union[str, T.IO[T.Text], Path, FSResource],
+    context: T.Optional[str] = None,
 ):
     """Load a file, convert NBSP->space and parse it in YAML.
 
@@ -59,6 +60,7 @@ def load_yaml_data(
         try:
             rc = yaml.safe_load(StringIO(data))
         except MarkedYAMLError as e:
+            assert e.problem_mark
             line_num = e.problem_mark.line + 1
             column_num = e.problem_mark.column
             message = (
