@@ -189,6 +189,8 @@ pygments==2.14.0
     #   furo
     #   rich
     #   sphinx
+pyright==1.1.283
+    # via -r requirements/dev.in
 pyjwt[crypto]==2.6.0
     # via
     #   cumulusci (pyproject.toml)
