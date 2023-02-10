@@ -2,6 +2,22 @@
 
 <!-- latest-start -->
 
+## v3.72.1.dev2 (2023-02-10)
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Changes 🎉
+* Include `modelVersion` in MCPM Payload by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3523](https://github.com/SFDO-Tooling/CumulusCI/pull/3523)
+* Fix MCPM deploy again by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3526](https://github.com/SFDO-Tooling/CumulusCI/pull/3526)
+* Mask invalid oauth token by [@jstvz](https://github.com/jstvz) in [#3529](https://github.com/SFDO-Tooling/CumulusCI/pull/3529)
+* Include nearly everything in the wheel by [@jstvz](https://github.com/jstvz) in [#3531](https://github.com/SFDO-Tooling/CumulusCI/pull/3531)
+
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.72.1...v3.72.1.dev2
+
+
+<!-- latest-stop -->
+
 ## v3.72.1.dev1 (2023-02-08)
 
 <!-- Release notes generated using configuration in .github/release.yml at main -->
@@ -14,8 +30,6 @@
 -   Fix MCPM deploy again by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3526](https://github.com/SFDO-Tooling/CumulusCI/pull/3526)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.72.1...v3.72.1.dev1
-
-<!-- latest-stop -->
 
 ## v3.72.1.dev0 (2023-02-08)
 
