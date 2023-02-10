@@ -139,7 +139,7 @@ class MarketingCloudDeployTask(BaseMarketingCloudTask):
         try:
             with open(dir_path / "info.json", "r") as f:
                 info_json = json.load(f)
-                model_version = info_json.get("modelVersion", 1)
+                model_version = info_json.get("modelVersion", "1")
 
                 self.logger.debug(
                     f"Setting Marketing Cloud Package Manager modelVersion to: {model_version}"
