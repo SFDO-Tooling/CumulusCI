@@ -1,5 +1,9 @@
+# Pin dependencies in build system. Do not commit the output
+# of this program.
+
 import re
 from pathlib import Path
+from typing import List
 
 import tomli
 import tomli_w
@@ -18,7 +22,7 @@ def main(toml_filename: Path, requirements_txt: Path):
         tomli_w.dump(data, f)
 
 
-def pin_dependencies(data: dict, requirements: str):
+def pin_dependencies(data: dict, requirements: List[str]):
     data["project"]["dependencies"] = requirements
 
 
