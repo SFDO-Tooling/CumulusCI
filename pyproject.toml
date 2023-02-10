@@ -160,6 +160,7 @@ reportMissingImports = "warning"
 exclude = ["**/test_*", "**/tests/**"]
 # Add files to this list as you make them compatible.
 include = [
+    'cumulusci/__about__.py',
     'cumulusci/__init__.py',
     'cumulusci/__main__.py',
     'cumulusci/cli/__init__.py',
@@ -248,6 +249,7 @@ include = [
     'cumulusci/tasks/salesforce/__init__.py',
     'cumulusci/tasks/salesforce/custom_settings.py',
     'cumulusci/tasks/salesforce/license_preflights.py',
+    'cumulusci/tasks/sample_data/load_sample_data.py',
     'cumulusci/tasks/vlocity/exceptions.py',
     'cumulusci/utils/classutils.py',
     'cumulusci/utils/collections.py',
@@ -262,6 +264,7 @@ include = [
     'cumulusci/utils/xml/salesforce_encoding.py',
     'cumulusci/utils/yaml/safer_loader.py',
     'cumulusci/utils/ziputils.py',
+    'cumulusci/tests/pytest_plugins/pytest_sf_vcr.py',
     'utility/add_to_pyright_checklist.py',
 ]
 # Do not add to this list. Instead use
