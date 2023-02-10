@@ -42,9 +42,6 @@ jobs:
             matrix:
                 os: [macos-latest, sfdc-ubuntu-latest, sfdc-windows-latest]
                 python-version: ["3.8", "3.9", "3.10", "3.11"]
-                exclude: # FIXME: Remove when lxml publishes a 311-windows wheel
-                    - os: sfdc-windows-latest
-                      python-version: "3.11"
         steps:
             - uses: actions/checkout@v2
             - name: Set up Python
