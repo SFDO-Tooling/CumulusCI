@@ -116,7 +116,6 @@ include = [
 
 [tool.hatch.build.targets.wheel]
 exclude = [
-    "tests/",
     "*.sql",
     "*.zip"
 ]
