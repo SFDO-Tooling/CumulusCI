@@ -116,9 +116,6 @@ include = [
 
 [tool.hatch.build.targets.wheel]
 exclude = [
-    "tests/",
-    "!/cumulusci/tests", # Snowfakery uses our pytest plugins
-    "!/cumulusci/tasks/bulkdata/tests",
     "*.sql",
     "*.zip"
 ]
