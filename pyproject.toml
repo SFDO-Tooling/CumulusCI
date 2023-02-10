@@ -106,7 +106,10 @@ include = [
 ]
 
 [tool.hatch.build.targets.wheel]
-exclude = ["*.sql", "*.zip"]
+exclude = [
+    "*.sql",
+    "*.zip"
+]
 
 [tool.hatch.metadata.hooks.fancy-pypi-readme]
 content-type = "text/markdown"
