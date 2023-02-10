@@ -14,6 +14,7 @@ from datetime import datetime
 import requests
 import sarge
 
+from cumulusci.core.exceptions import CumulusCIException
 from .xml import (  # noqa
     elementtree_parse_file,
     remove_xml_element,
@@ -149,7 +150,14 @@ def download_extract_github_from_repo(github_repo, subfolder=None, ref=None):
     if not ref:
         ref = github_repo.default_branch
     zip_content = io.BytesIO()
-    github_repo.archive("zipball", zip_content, ref=ref)
+    if not github_repo.archive("zipball", zip_content, ref=ref):
+        raise CumulusCIException(
+            f"Unable to download an archive of the Git ref {ref} from "
+            f"{github_repo.full_name}. This can mean that the ref has "
+            "not been pushed to the server, that CumulusCI's credential "
+            "does not have permission to access it, or that your access "
+            "is restricted by an IP address allow list."
+        )
     zip_file = zipfile.ZipFile(zip_content)
     path = sorted(zip_file.namelist())[0]
     if subfolder:
@@ -432,11 +440,6 @@ def create_task_options_doc(task_options):
         if usage_str:
             doc.append(f"\n``{usage_str}``")
 
-        if option.get("required"):
-            doc.append("\t *Required*")
-        else:
-            doc.append("\t *Optional*")
-
         description = option.get("description")
         if description:
             doc.append(f"\n\t {description}")
@@ -444,6 +447,10 @@ def create_task_options_doc(task_options):
         default = option.get("default")
         if default:
             doc.append(f"\n\t Default: {default}")
+        elif option.get("required"):
+            doc.append("\n *Required*")
+        else:
+            doc.append("\n *Optional*")
 
         option_type = option.get("option_type")
         if option_type:

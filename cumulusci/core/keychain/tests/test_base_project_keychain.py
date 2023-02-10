@@ -41,8 +41,10 @@ def keychain(project_config, key):
 
 
 class TestBaseProjectKeychain:
+    @pytest.mark.parametrize("key", ["0123456789123456", None])
     def test_set_non_existant_service(self, project_config, key):
         keychain = BaseProjectKeychain(project_config, key)
+        keychain.key = key
         with pytest.raises(ServiceNotValid):
             keychain.set_service("doesnotexist", "alias", ServiceConfig({"name": ""}))
 
@@ -143,11 +145,13 @@ class TestBaseProjectKeychain:
         assert org.config == scratch_org_config.config
         assert org.__class__ == ScratchOrgConfig
 
+    @pytest.mark.parametrize("key", ["0123456789123456", None])
     def test_create_scratch_org(self, key):
         project_config = BaseProjectConfig(
             UniversalConfig, {"orgs": {"scratch": {"dev": {}}}}
         )
         keychain = BaseProjectKeychain(project_config, key)
+        keychain.key = key
         keychain.create_scratch_org("test", "dev", days=3)
         org_config = keychain.get_org("test").config
         assert org_config["days"] == 3
@@ -155,20 +159,24 @@ class TestBaseProjectKeychain:
     def test_load_scratch_orgs(self, keychain):
         assert list(keychain.orgs) == []
 
+    @pytest.mark.parametrize("key", ["0123456789123456", None])
     def test_get_org__existing_scratch_org(self, project_config, key):
         project_config.config["orgs"] = {}
         project_config.config["orgs"]["scratch"] = {}
         project_config.config["orgs"]["scratch"]["test_scratch_auto"] = {}
         keychain = BaseProjectKeychain(project_config, key)
+        keychain.key = key
         keychain._load_scratch_orgs()
         assert list(keychain.orgs) == ["test_scratch_auto"]
 
+    @pytest.mark.parametrize("key", ["0123456789123456", None])
     def test_get_org__existing_org(self, project_config, key):
         project_config.config["orgs"] = {}
         project_config.config["orgs"]["scratch"] = {}
         project_config.config["orgs"]["scratch"]["test"] = {}
 
         keychain = BaseProjectKeychain(project_config, key)
+        keychain.key = key
         keychain.set_org(OrgConfig({}, "test"))
 
         assert list(keychain.orgs) == ["test"]
@@ -282,3 +290,9 @@ class TestBaseProjectKeychain:
         keychain.remove_org("test")
         assert "test" not in keychain.orgs
         keychain.cleanup_org_cache_dirs.assert_called_once()
+
+    def test_org_definition__missing(self, project_config, key):
+        """What if a scratch org was created with a YAML definition which was deleted more recently?"""
+        keychain = BaseProjectKeychain(project_config, key)
+        with pytest.raises(OrgNotFound, match="No such org"):
+            keychain.create_scratch_org("no_such_org", "no_such_org")

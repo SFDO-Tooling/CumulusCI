@@ -1,13 +1,11 @@
 -c prod.txt
 black
 coverage[toml]
-coveralls
 factory-boy
 flake8<4
 furo
 isort
 jsonschema
-myst
 myst-parser
 pre-commit
 pytest<7.1 # https://github.com/pytest-dev/pytest/issues/9765

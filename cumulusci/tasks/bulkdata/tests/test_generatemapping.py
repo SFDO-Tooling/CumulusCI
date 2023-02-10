@@ -28,7 +28,7 @@ def _temp_schema_for_tests(describe_data: list):
         try:
             date = "Thu, 09 Feb 2021 21:35:07 GMT"
             describe_data_with_dates = [(dct, date) for dct in describe_data]
-            schema._populate_cache_from_describe(describe_data_with_dates, date)
+            schema._populate_cache_from_describe(describe_data_with_dates)
             yield schema
         finally:
             schema.close()

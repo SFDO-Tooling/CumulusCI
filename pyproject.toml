@@ -1,3 +1,140 @@
+[build-system]
+requires = ["hatchling", "hatch-fancy-pypi-readme"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cumulusci"
+dynamic = ["readme", "version"]
+description = "Build and release tools for Salesforce developers"
+license = {text = "BSD 3-Clause License"}
+requires-python = ">=3.8"
+authors = [
+    { name = "Salesforce.org", email = "sfdo-mrbelvedere@salesforce.com" },
+]
+keywords = [
+    "cumulusci",
+    "salesforce"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
+dependencies = [
+    "click",
+    "cryptography",
+    "python-dateutil",
+    "docutils<0.17",
+    "Faker",
+    "fs",
+    "github3.py",
+    "jinja2",
+    "keyring<=23.0.1",
+    "defusedxml",
+    "lxml",
+    "MarkupSafe",
+    "psutil",
+    "pydantic",
+    "PyJWT",
+    "pytz",
+    "pyyaml",
+    "requests",
+    "requests-futures",
+    "rich",
+    "robotframework",
+    "robotframework-lint",
+    "robotframework-pabot",
+    "robotframework-requests",
+    "robotframework-seleniumlibrary<6",
+    "rst2ansi",
+    "salesforce-bulk",
+    "sarge",
+    "selenium<4",
+    "simple-salesforce==1.11.4",
+    "snowfakery",
+    "SQLAlchemy",
+    "xmltodict",
+]
+
+[project.optional-dependencies]
+docs = [
+    "myst-parser",
+    "Sphinx"
+]
+lint = [
+    "black",
+    "flake8<4",
+    "isort",
+    "pre-commit"
+]
+test = [
+    "coverage[toml]",
+    "factory-boy",
+    "furo",
+    "jsonschema",
+    "pytest<7.1 ", # https://github.com/pytest-dev/pytest/issues/9765
+    "pytest-cov",
+    "pytest-random-order",
+    "pytest-vcr",
+    "responses",
+    "testfixtures",
+    "tox",
+    "typeguard",
+    "vcrpy"
+]
+
+[project.scripts]
+cci = "cumulusci.cli.cci:main"
+snowfakery = "snowfakery.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/SFDO-Tooling/CumulusCI"
+Changelog = "https://cumulusci.readthedocs.io/en/stable/history.html"
+"Bug Tracker" = "https://github.com/SFDO-Tooling/CumulusCI/issues"
+
+[tool.hatch.version]
+path = "cumulusci/__about__.py"
+
+[tool.hatch.build]
+include = [
+    "/cumulusci",
+    '/cumulusci/**/*.*', # y[a]ml, js[on], etc.
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/cumulusci",
+    "/requirements/*", # Needed by tox
+    "README.md", # needed by hatch-fancy-pypi-readme
+    "docs/history.md" # ditto
+]
+
+[tool.hatch.build.targets.wheel]
+exclude = [
+    "*.sql",
+    "*.zip"
+]
+
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "docs/history.md"
+start-after = "<!-- latest-start -->\n\n"
+end-before = "\n\n<!-- latest-stop -->"
+
+#######################
+# Tool configurations #
+#######################
+
 [tool.black]
 exclude = '^/(\.|dist|pybuild|venv)'
 

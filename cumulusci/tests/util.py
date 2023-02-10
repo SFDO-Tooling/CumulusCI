@@ -253,7 +253,7 @@ def mock_salesforce_client(task, *, is_person_accounts_enabled=False):
         task.sf = salesforce_client
 
     with mock.patch(
-        "cumulusci.core.config.OrgConfig.is_person_accounts_enabled",
+        "cumulusci.core.config.org_config.OrgConfig.is_person_accounts_enabled",
         lambda: is_person_accounts_enabled,
     ), mock.patch.object(task, "_init_task", _init_task):
         yield

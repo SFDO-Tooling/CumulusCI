@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from pydantic import ValidationError
 
+from cumulusci.core.dependencies.utils import TaskContext
 from cumulusci.core.exceptions import TaskOptionsError
 from cumulusci.core.sfdx import convert_sfdx_source
 from cumulusci.core.source_transforms.transforms import (
@@ -145,10 +146,11 @@ class Deploy(BaseSalesforceMetadataApiTask):
         }
         package_zip = None
         with convert_sfdx_source(path, None, self.logger) as src_path:
+            context = TaskContext(self.org_config, self.project_config, self.logger)
             package_zip = MetadataPackageZipBuilder(
                 path=src_path,
+                context=context,
                 options=options,
-                logger=self.logger,
                 transforms=self.transforms,
             )
 

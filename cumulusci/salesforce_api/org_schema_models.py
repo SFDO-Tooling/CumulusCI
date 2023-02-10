@@ -126,6 +126,7 @@ class SObject(OrgSchemaModelMixin, Base):
     supportedScopes = Column(SequenceType)
     actionOverrides = Column(SequenceType)
     count = Column(Integer)
+    last_modified_date = Column(String)
 
     @property
     def extractable(self):
@@ -211,7 +212,12 @@ class Field(OrgSchemaModelMixin, Base):
 
     @property
     def requiredOnCreate(self):
-        return not (self.nillable or self.defaultedOnCreate)
+        defaulted = (
+            self.defaultValue is not None  # has a real default value
+            or self.nillable  # None is a valid default value
+            or self.defaultedOnCreate  # defaulted some other way
+        )
+        return self.createable and not defaulted
 
 
 class FileMetadata(Base):
