@@ -36,9 +36,11 @@ jobs:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   VERSION="$(hatch version)"
+                  PRERELEASE=$(python -c "import cumulusci,packaging.version; print(f\"{'--prerelease' if packaging.version.parse(cumulusci.__version__).is_prerelease else ''}\")")
                   awk '/<!-- latest-start -->/,/<!-- latest-stop -->/' docs/history.md > changelog.md
                   gh release create "v$VERSION" \
                     dist/*.whl \
                     dist/*.tar.gz \
                     --notes-file changelog.md \
-                    --title $VERSION
+                    --title $VERSION \
+                    $PRERELEASE
