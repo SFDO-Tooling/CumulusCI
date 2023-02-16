@@ -3,18 +3,12 @@
 <!-- latest-start -->
 
 ## v3.73.0 (2023-02-16)
-<!-- Release notes generated using configuration in .github/release.yml at main -->
 
-
-
-**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.72.1.dev2...v3.73.0
-
+No changes since v3.72.1.dev2 . Please see the changes below.
 
 <!-- latest-stop -->
 
 ## v3.72.1.dev2 (2023-02-10)
-
-<!-- Release notes generated using configuration in .github/release.yml at main -->
 
 ## What's Changed
 
@@ -29,8 +23,6 @@
 
 ## v3.72.1.dev1 (2023-02-08)
 
-<!-- Release notes generated using configuration in .github/release.yml at main -->
-
 ## What's Changed
 
 ### Changes 🎉
@@ -42,8 +34,6 @@
 
 ## v3.72.1.dev0 (2023-02-08)
 
-<!-- Release notes generated using configuration in .github/release.yml at main -->
-
 ## What's Changed
 
 ### Changes 🎉
@@ -54,8 +44,6 @@
 
 ## v3.72.1 (2023-02-07)
 
-<!-- Release notes generated using configuration in .github/release.yml at main -->
-
 ## What's Changed
 
 ### Issues Fixed 🩴
@@ -63,8 +51,6 @@
 -   Fixed an issue preventing installation of CumulusCI's sdist in [#3520](https://github.com/SFDO-Tooling/CumulusCI/pull/3520)
 
 ## v3.72.0 (2023-02-03)
-
-<!-- Release notes generated using configuration in .github/release.yml at main -->
 
 ## What's Changed
 
