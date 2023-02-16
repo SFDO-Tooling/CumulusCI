@@ -4,7 +4,7 @@
 
 ## v3.73.0 (2023-02-16)
 
-No changes since v3.72.1.dev2 . Please see the changes below.
+No changes (other than dependency updates) since v3.72.1.dev2 . Please see the changes below.
 
 <!-- latest-stop -->
 
