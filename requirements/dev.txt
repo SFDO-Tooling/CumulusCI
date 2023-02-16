@@ -64,7 +64,7 @@ docutils==0.16
     #   sphinx
 factory-boy==3.2.1
     # via cumulusci (pyproject.toml)
-faker==16.6.1
+faker==17.0.0
     # via
     #   cumulusci (pyproject.toml)
     #   factory-boy
@@ -178,7 +178,7 @@ pycodestyle==2.7.0
     # via flake8
 pycparser==2.21
     # via cffi
-pydantic==1.10.4
+pydantic==1.10.5
     # via
     #   cumulusci (pyproject.toml)
     #   snowfakery
@@ -290,7 +290,7 @@ six==1.16.0
     #   vcrpy
 snowballstemmer==2.2.0
     # via sphinx
-snowfakery==3.4.1
+snowfakery==3.5.0
     # via cumulusci (pyproject.toml)
 soupsieve==2.4
     # via beautifulsoup4
@@ -335,7 +335,7 @@ typeguard==2.13.3
     # via cumulusci (pyproject.toml)
 types-toml==0.10.8.4
     # via responses
-typing-extensions==4.4.0
+typing-extensions==4.5.0
     # via
     #   black
     #   myst-parser
