@@ -16,6 +16,7 @@ from cumulusci.core.exceptions import (
     OrgCannotBeLoaded,
     OrgNotFound,
     ServiceNotConfigured,
+    ServiceNotValid,
 )
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.core.keychain.base_project_keychain import DEFAULT_CONNECTED_APP_NAME
@@ -689,14 +690,21 @@ class EncryptedFileProjectKeychain(BaseProjectKeychain):
         services_dir = Path(f"{self.global_config_dir}/services")
         for item in services_dir.glob("**/*"):
             if item.suffix == ".service":
-                with open(item) as f:
-                    config = f.read()
-                name = item.name.replace(".service", "")
-                service_type = item.parent.name
+                try:
+                    self._load_service_file(item)
+                except Exception as e:
+                    raise ServiceNotValid(
+                        f"{str(item)} cannot be loaded because {e} "
+                    ) from e
 
-                self.set_service(
-                    service_type, name, config, save=False, config_encrypted=True
-                )
+    def _load_service_file(self, item):
+        with open(item) as f:
+            config = f.read()
+        name = item.name.replace(".service", "")
+        service_type = item.parent.name
+
+        # TODO: the types are a mess
+        self.set_service(service_type, name, config, save=False, config_encrypted=True)
 
     def _load_default_services(self) -> None:
         """Init self._default_services on the keychain so that
