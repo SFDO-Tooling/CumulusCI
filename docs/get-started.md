@@ -37,6 +37,10 @@ After `pipx` installs, install CumulusCI:
 $ pipx install cumulusci
 ```
 
+```{note}
+Upgrading Homebrew's Python version can result in a `bad interpreter` error. To resolve this, run `pipx reinstall cumulusci`.
+```
+
 When finished, [verify your installation](verify-your-installation).
 
 ### On Linux
