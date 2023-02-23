@@ -315,7 +315,7 @@ class FindReplaceEnvSpec(FindReplaceBaseSpec):
             )
 
 
-class FindReplaceIdAPI(str, StrEnum):
+class FindReplaceIdAPI(StrEnum):
     REST = "rest"
     TOOLING = "tooling"
 
