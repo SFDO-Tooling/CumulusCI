@@ -1,6 +1,5 @@
 import functools
 import logging
-from enum import Enum
 from typing import Optional, cast
 
 from simple_salesforce.api import SFType
@@ -9,6 +8,7 @@ from simple_salesforce.exceptions import SalesforceMalformedRequest
 from cumulusci.core.config import OrgConfig
 from cumulusci.core.config.project_config import BaseProjectConfig
 from cumulusci.core.dependencies.utils import TaskContext
+from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import PackageInstallError, TaskOptionsError
 from cumulusci.core.utils import process_bool_arg
 from cumulusci.salesforce_api.exceptions import MetadataApiError
@@ -19,10 +19,6 @@ from cumulusci.utils.waiting import poll, retry
 from cumulusci.utils.yaml.model_parser import CCIModel
 
 logger = logging.getLogger(__name__)
-
-
-class StrEnum(str, Enum):
-    __str__ = str.__str__  # type: ignore
 
 
 class SecurityType(StrEnum):
