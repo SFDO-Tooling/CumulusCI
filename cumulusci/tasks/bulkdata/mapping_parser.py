@@ -11,6 +11,7 @@ from requests.structures import CaseInsensitiveDict as RequestsCaseInsensitiveDi
 from simple_salesforce import Salesforce
 from typing_extensions import Literal
 
+from cumulusci.core.enums import StrEnum
 from cumulusci.core.exceptions import BulkDataException
 from cumulusci.tasks.bulkdata.dates import iso_to_date
 from cumulusci.tasks.bulkdata.step import DataApi, DataOperationType
@@ -75,7 +76,7 @@ class MappingLookup(CCIDictModel):
 SHOULD_REPORT_RECORD_TYPE_DEPRECATION = True
 
 
-class BulkMode(Enum):
+class BulkMode(StrEnum):
     serial = Serial = "Serial"
     parallel = Parallel = "Parallel"
 
