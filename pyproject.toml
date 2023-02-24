@@ -231,6 +231,7 @@ include = [
     'cumulusci/tasks/metadata_etl/permissions.py',
     'cumulusci/tasks/metadata_etl/remote_site_settings.py',
     'cumulusci/tasks/metadata_etl/value_sets.py',
+    'cumulusci/tasks/metadeploy.py',
     'cumulusci/tasks/preflight/__init__.py',
     'cumulusci/tasks/push/__init__.py',
     'cumulusci/tasks/release_notes/__init__.py',
