@@ -2,6 +2,70 @@
 
 <!-- latest-start -->
 
+## v3.73.0 (2023-02-16)
+
+No changes (other than dependency updates) since v3.72.1.dev2 . Please see the changes below.
+
+<!-- latest-stop -->
+
+## v3.72.1.dev2 (2023-02-10)
+
+## What's Changed
+
+### Changes 🎉
+
+-   Include `modelVersion` in MCPM Payload by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3523](https://github.com/SFDO-Tooling/CumulusCI/pull/3523)
+-   Fix MCPM deploy again by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3526](https://github.com/SFDO-Tooling/CumulusCI/pull/3526)
+-   Mask invalid oauth token by [@jstvz](https://github.com/jstvz) in [#3529](https://github.com/SFDO-Tooling/CumulusCI/pull/3529)
+-   Include nearly everything in the wheel by [@jstvz](https://github.com/jstvz) in [#3531](https://github.com/SFDO-Tooling/CumulusCI/pull/3531)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.72.1...v3.72.1.dev2
+
+## v3.72.1.dev1 (2023-02-08)
+
+## What's Changed
+
+### Changes 🎉
+
+-   Include `modelVersion` in MCPM Payload by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3523](https://github.com/SFDO-Tooling/CumulusCI/pull/3523)
+-   Fix MCPM deploy again by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3526](https://github.com/SFDO-Tooling/CumulusCI/pull/3526)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.72.1...v3.72.1.dev1
+
+## v3.72.1.dev0 (2023-02-08)
+
+## What's Changed
+
+### Changes 🎉
+
+-   Change `deploy_marketing_cloud_package` task to include `modelVersion` in MCPM Payload by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3523](https://github.com/SFDO-Tooling/CumulusCI/pull/3523)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.72.1...v3.72.1.dev0
+
+## v3.72.1 (2023-02-07)
+
+## What's Changed
+
+### Issues Fixed 🩴
+
+-   Fixed an issue preventing installation of CumulusCI's sdist in [#3520](https://github.com/SFDO-Tooling/CumulusCI/pull/3520)
+
+## v3.72.0 (2023-02-03)
+
+## What's Changed
+
+### Changes 🎉
+
+-   Improve documentation of tasks w.r.t required/option/defauled fields. by [@prescod](https://github.com/prescod) in [#3447](https://github.com/SFDO-Tooling/CumulusCI/pull/3447)
+
+### Issues Fixed 🩴
+
+-   Ensure that products have a slug before publishing translations by [@prescod](https://github.com/prescod) in [#3483](https://github.com/SFDO-Tooling/CumulusCI/pull/3483)
+-   Remove deprecated Playwright keywords by [@jstvz](https://github.com/jstvz) in [#3503](https://github.com/SFDO-Tooling/CumulusCI/pull/3503)
+-   Stricter check on what counts as a dataset by [@prescod](https://github.com/prescod) in [#3502](https://github.com/SFDO-Tooling/CumulusCI/pull/3502)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.71.0...v3.72.0
+
 ## 3.71.0 (2022-12-20)
 
 Critical Changes 🎉
@@ -13,8 +77,6 @@ Changes 🎉
 -   CumulusCI has two new tasks for working with sample data: `load_sample_data` and `capture_sample_data`. (#3455)
 -   CumulusCI now offers the ability to inject arbitrary IDs into a project's metadata components. See the [Find-and-Replace Id Injection](https://cumulusci.readthedocs.io/en/latest/deploy.html#find-and-replace-id-injection) source transform for more information. (#3460)
 -   CumulusCI now allows for injecting the current running user's username into a project's metadata components. See the [Find-and-Replace Id Injection](https://cumulusci.readthedocs.io/en/latest/deploy.html#find-and-replace-current-username-injection) source transform for more information. (#3460)
-
-<!-- latest-stop -->
 
 ## 3.70.0 (2022-11-29)
 

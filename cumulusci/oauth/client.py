@@ -354,7 +354,7 @@ def get_device_oauth_token(
     from the auth server.
     @returns a dict including the access token.
     {
-        "access_token": "gho_16C7e42F292c6912E7710c838347Ae178B4a",
+        "access_token": "gho_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
         "token_type": "bearer",
         "scope": "user"
     }

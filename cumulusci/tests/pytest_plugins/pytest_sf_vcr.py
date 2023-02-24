@@ -7,12 +7,13 @@ Records transactions if there is an org specified and does not if there is not.
 """
 
 import re
-from enum import Enum
 from functools import partial
 from pathlib import Path
 
 import pytest
 from vcr import cassette
+
+from cumulusci.core.enums import StrEnum
 
 from .pytest_sf_vcr_serializer import CompressionVCRSerializer
 
@@ -24,7 +25,7 @@ def simplify_body(request_or_response_body):
     return decoded.encode()
 
 
-class RecordingMode(Enum):
+class RecordingMode(StrEnum):
     RECORD = "Recording"
     READ = "Reading"
     DISABLE = "Disabled"

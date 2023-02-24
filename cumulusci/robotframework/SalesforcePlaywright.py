@@ -31,12 +31,12 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         This expects the url to contain an id that matches [a-zA-Z0-9]{15,18}
         """
         OID_REGEX = r"^(%2F)?([a-zA-Z0-9]{15,18})$"
-        url = self.browser.execute_javascript("window.location.href")
+        url = self.browser.evaluate_javascript(None, "window.location.href")
         for part in url.split("/"):
             oid_match = re.match(OID_REGEX, part)
             if oid_match is not None:
-                return oid_match.group(2)
-        raise AssertionError("Could not parse record id from url: {}".format(url))
+                return oid_match[2]
+        raise AssertionError(f"Could not parse record id from url: {url}")
 
     def go_to_record_home(self, obj_id):
         """Navigates to the Home view of a Salesforce Object
@@ -45,7 +45,7 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
         div can be found on the page.
         """
         url = self.cumulusci.org.lightning_base_url
-        url = "{}/lightning/r/{}/view".format(url, obj_id)
+        url = f"{url}/lightning/r/{obj_id}/view"
         self.browser.go_to(url)
         self.wait_until_loading_is_complete("div.slds-page-header_record-home")
 
@@ -134,7 +134,8 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
             else locator
         )
         self.browser.get_elements(locator)
-        self.browser.execute_javascript(function=WAIT_FOR_AURA_SCRIPT)
+
+        self.browser.evaluate_javascript(None, WAIT_FOR_AURA_SCRIPT)
         # An old knowledge article recommends waiting a second. I don't
         # like it, but it seems to help. We should do a wait instead,
         # but I can't figure out what to wait on.
@@ -173,14 +174,14 @@ class SalesforcePlaywright(FakerMixin, BaseLibrary):
                 # No errors? We're golden.
                 break
 
-            except Exception:
+            except Exception as exc:
                 # dang. Maybe we landed somewhere unexpected?
                 if self._check_for_classic():
                     continue
 
                 if time.time() - start_time > timeout_seconds:
                     self.browser.take_screenshot()
-                    raise Exception("Timed out waiting for a lightning page")
+                    raise Exception("Timed out waiting for a lightning page") from exc
 
             # If at first you don't succeed, ...
             self.browser.go_to(login_url)

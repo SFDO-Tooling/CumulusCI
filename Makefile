@@ -82,6 +82,7 @@ servedocs: docs ## compile the docs watching for changes
 	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
 
 release: clean ## package and upload a release
+	python utility/pin_dependencies.py
 	hatch build
 	hatch publish
 
@@ -97,6 +98,7 @@ tag: clean
 	git push --follow-tags
 
 update-deps:
+	echo Use the _Update Python Dependencies_ Github action for real releases
 	pip-compile --upgrade --resolver=backtracking --output-file=requirements/prod.txt pyproject.toml
 	pip-compile --upgrade --resolver=backtracking --output-file=requirements/dev.txt --all-extras pyproject.toml
 

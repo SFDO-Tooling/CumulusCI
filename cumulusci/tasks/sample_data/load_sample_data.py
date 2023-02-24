@@ -42,7 +42,7 @@ class LoadSampleData(BaseSalesforceApiTask):
             self.org_config,
             schema,
         ) as dataset:
-            self.return_values = dataset.load(self.options, self.logger)
+            self.return_values = dataset.load(self.options, self.logger) or {}
         return self.return_values
 
     def _find_dataset(self) -> Optional[str]:
@@ -61,7 +61,9 @@ class LoadSampleData(BaseSalesforceApiTask):
         config_name = self.org_config.lookup("config_name")
         if config_name:
             config_dsf = dataset_for_name(config_name)
-            if config_dsf.exists():
+            if config_dsf.exists() and (
+                config_dsf.data_file.exists() or config_dsf.snowfakery_recipe.exists()
+            ):
                 return config_name
             else:
                 checked_folders.append(config_dsf.path)
