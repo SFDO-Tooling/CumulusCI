@@ -1,7 +1,7 @@
 import json
 import os
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 
 import click
 from rich.console import Console
@@ -288,7 +288,7 @@ def service_update(
     runtime: CliRuntime,
     service_type: str,
     service_name: str,
-    attributes: dict[str, str],
+    attributes: Dict[str, str],
 ):
     """Allow users to update attribute values of a particular service."""
     console = Console()
