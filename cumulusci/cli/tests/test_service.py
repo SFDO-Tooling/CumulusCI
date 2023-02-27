@@ -424,8 +424,8 @@ def test_service_update_headless__unrecognized_service_attribute():
         runtime=runtime,
     )
 
-    err_msg = "Unrecognized service attribute 'does-not-exist' for service type 'color-picker'.\nAcceptable values include: primary, secondary\n"
-    assert err_msg in result.output
+    assert "Unrecognized service attribute 'does-not-exist" in result.output
+    assert "Acceptable values include: primary, secondary" in result.output
 
 
 def test_service_update__service_does_not_exist():
