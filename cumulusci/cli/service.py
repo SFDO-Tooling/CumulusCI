@@ -275,31 +275,62 @@ def service_connect():
 @service.command(name="update")
 @click.argument("service_type")
 @click.argument("service_name")
+@click.option(
+    "--attribute",
+    "-a",
+    "attributes",
+    type=(str, str),
+    multiple=True,
+    help="Provide values to update the service with directly. Using `--attribute foo var` will set the 'foo' attribute to a value of 'bar' on the specified service",
+)
 @pass_runtime(require_project=False, require_keychain=True)
-def service_update(runtime: CliRuntime, service_type: str, service_name: str):
+def service_update(
+    runtime: CliRuntime,
+    service_type: str,
+    service_name: str,
+    attributes: dict[str, str],
+):
     """Allow users to update attribute values of a particular service."""
     console = Console()
+    service_update_success = (
+        f"\nThe {service_type} service {service_name} has been updated successfully!"
+    )
     # This will throw a ServiceNotConfigured error if the type or name is not present.
     service_config = runtime.keychain.get_service(service_type, service_name)
     service_attributes = get_service_attributes(runtime, service_type)
 
     attributes_were_updated = False
-    for attr in service_attributes:
-        attr_name = service_config.config[attr]
-        console.print(f"\n\n{attr} is currently: {attr_name}")
+    # attributes can be provided directly for operability in headless environments
+    if attributes:
+        for attr in attributes:
+            attr_name, attr_value = attr
+            if attr_name in service_config.config:
+                service_config.config[attr_name] = attr_value
+                attributes_were_updated = True
+            else:
+                available_attributes = ", ".join(service_attributes)
+                console.print(
+                    f"Unrecognized service attribute '{attr_name}' for service type '{service_type}'. Acceptable values include: {available_attributes}"
+                )
+                return
+    else:
+        # if no attributes are provided, then users can update interactively
+        for attr in service_attributes:
+            attr_name = service_config.config[attr]
+            console.print(f"\n\n{attr} is currently: {attr_name}")
 
-        user_input = console.input("Enter a new value or press <ENTER> to continue: ")
-        if user_input != "":
-            attributes_were_updated = True
-            service_config.config[attr] = user_input
+            user_input = console.input(
+                "Enter a new value or press <ENTER> to continue: "
+            )
+            if user_input != "":
+                attributes_were_updated = True
+                service_config.config[attr] = user_input
 
     if attributes_were_updated:
         runtime.keychain.set_service(service_type, service_name, service_config)
-        console.print(
-            f"\nThe {service_type} service {service_name} has been updated successfully!"
-        )
+        console.print(service_update_success)
     else:
-        console.print("\nNothing to update. Exiting.")
+        console.print("\nNo updates made. Exiting.")
 
 
 @service.command(name="info")

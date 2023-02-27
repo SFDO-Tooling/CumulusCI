@@ -334,6 +334,100 @@ def test_service_update__success():
     assert original_color not in result.output
 
 
+def test_service_update_headless__success():
+    # Create a new color-picker service type
+    runtime = CliRuntime(
+        config={
+            "services": {
+                "color-picker": {
+                    "attributes": {
+                        "primary": {"required": False},
+                        "secondary": {"required": False},
+                    }
+                }
+            }
+        }
+    )
+    # Setup an existing service of type color-picker
+    original_primary = "Turquoise"
+    original_secondary = "Burgundy"
+    runtime.keychain.set_service(
+        "color-picker",
+        "foo",
+        ServiceConfig({"primary": original_primary, "secondary": original_secondary}),
+    )
+    # Update the existing service
+    new_primary = "Maroon"
+    new_secondary = "Purple"
+    result = run_cli_command(
+        "service",
+        "update",
+        "color-picker",
+        "foo",
+        "--attribute",
+        "primary",
+        new_primary,
+        "-a",
+        "secondary",
+        new_secondary,
+        runtime=runtime,
+    )
+
+    assert "updated successfully!" in result.output
+
+    # ensure info was written to disk
+    result = run_cli_command(
+        "service",
+        "info",
+        "color-picker",
+        "foo",
+        runtime=runtime,
+    )
+    assert new_primary in result.output
+    assert new_secondary in result.output
+    assert original_primary not in result.output
+    assert original_secondary not in result.output
+
+
+def test_service_update_headless__unrecognized_service_attribute():
+    # Create a new color-picker service type
+    runtime = CliRuntime(
+        config={
+            "services": {
+                "color-picker": {
+                    "attributes": {
+                        "primary": {"required": False},
+                        "secondary": {"required": False},
+                    }
+                }
+            }
+        }
+    )
+    # Setup an existing service of type color-picker
+    original_primary = "Turquoise"
+    original_secondary = "Burgundy"
+    runtime.keychain.set_service(
+        "color-picker",
+        "foo",
+        ServiceConfig({"primary": original_primary, "secondary": original_secondary}),
+    )
+    # Update the service
+    new_primary = "Maroon"
+    result = run_cli_command(
+        "service",
+        "update",
+        "color-picker",
+        "foo",
+        "--attribute",
+        "does-not-exist",
+        new_primary,
+        runtime=runtime,
+    )
+
+    err_msg = "Unrecognized service attribute 'does-not-exist' for service type 'color-picker'.\nAcceptable values include: primary, secondary\n"
+    assert err_msg in result.output
+
+
 def test_service_update__service_does_not_exist():
     # Create a new color-picker service type
     runtime = CliRuntime(
@@ -378,7 +472,8 @@ def test_service_update__nothing_updated():
         input="\n",
         runtime=runtime,
     )
-    assert "Nothing to update. Exiting." in result.output
+    print(f">>> {result.output=}")
+    assert "No updates made. Exiting." in result.output
 
 
 def test_service_connect__connected_app():
