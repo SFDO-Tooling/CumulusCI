@@ -383,7 +383,7 @@ def get_service_data(service_config, sensitive_attributes) -> list:
 
 
 def get_service_attributes(
-    runtime: CliRuntime, service_type: str, sensitive: bool = False
+    runtime: CliRuntime, service_type: str, only_sensitive_attributes: bool = False
 ) -> list:
     """Returns the attributes for the given service type as they are defined in the
     standard lib (universal cumulusci.yml file)."""
@@ -397,14 +397,14 @@ def get_service_attributes(
     except KeyError:
         return []
 
-    if sensitive:
+    if only_sensitive_attributes:
         return [k for k, v in service_type_attributes.items() if v.get("sensitive")]
     else:
         return [k for k, v in service_type_attributes.items()]
 
 
 def get_sensitive_service_attributes(runtime: CliRuntime, service_type: str) -> list:
-    return get_service_attributes(runtime, service_type, sensitive=True)
+    return get_service_attributes(runtime, service_type, only_sensitive_attributes=True)
 
 
 @service.command(
