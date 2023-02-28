@@ -71,6 +71,9 @@ tasks:
                 Here is some body content.
 ```
 
+Note that you may use Markdown, provided you indent the content as shown and
+utilize the `|` indicator, which marks a YAML block.
+
 Then, turn off the `github_release_notes` task, where you don't want it to run:
 
 ```yaml
