@@ -10,10 +10,13 @@
 
 ### Changes 🎉
 
--   Add Homebrew python upgrade error workaround to docs by [@jstvz](https://github.com/jstvz) in [#3548](https://github.com/SFDO-Tooling/CumulusCI/pull/3548)
 -   Allow use of static release notes on GitHub by [@davidmreed](https://github.com/davidmreed) in [#3550](https://github.com/SFDO-Tooling/CumulusCI/pull/3550)
 -   `cci service update` by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3481](https://github.com/SFDO-Tooling/CumulusCI/pull/3481)
 -   Add TimelineObjectDefinition metadata type by [@jstvz](https://github.com/jstvz) in [#3551](https://github.com/SFDO-Tooling/CumulusCI/pull/3551)
+
+### Issues Fixed 🩴
+
+-   Fix an issue with `capture_sample_data` and record type capturing. by [@prescod](https://github.com/prescod) in [#3552](https://github.com/SFDO-Tooling/CumulusCI/pull/3552)
 
 **Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.73.0...v3.74.0
 
