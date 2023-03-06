@@ -34,6 +34,7 @@ NOT_EXTRACTABLE = NOT_COUNTABLE + (
     "PermissionSetLicenseAssign",
     "PermissionSetTabSetting",
     "Profile",
+    "RecordType",
     "User",
     "UserAppInfo",
     "UserAppMenuCustomization",
