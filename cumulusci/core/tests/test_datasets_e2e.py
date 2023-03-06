@@ -103,6 +103,9 @@ class TestDatasetsE2E:
     def demo_dataset(
         self, dataset, timer, sf, delete_data_from_org, run_code_without_recording
     ):
+        # Need record types for the RecordTypeId field to be in the org
+        create_record_type_for_account(sf, run_code_without_recording)
+
         def count(sobject):
             return sf.query(f"select count(Id) from {sobject}")["records"][0]["expr0"]
 
@@ -155,7 +158,13 @@ class TestDatasetsE2E:
         timer.checkpoint("Verified")
 
     def test_datasets_extract_standard_objects(
-        self, sf, project_config, org_config, delete_data_from_org, ensure_accounts
+        self,
+        sf,
+        project_config,
+        org_config,
+        delete_data_from_org,
+        ensure_accounts,
+        run_code_without_recording,
     ):
         timer = Timer()
         timer.checkpoint("Started")
@@ -165,6 +174,9 @@ class TestDatasetsE2E:
             describe_for("Contact"),
             describe_for("Opportunity"),
         )
+        # Need record types for the RecordTypeId field to be in the org
+        create_record_type_for_account(sf, run_code_without_recording)
+
         with patch.object(type(org_config), "is_person_accounts_enabled", False), patch(
             "cumulusci.core.datasets.get_org_schema",
             lambda _sf, org_config, **kwargs: _fake_get_org_schema(
@@ -282,3 +294,21 @@ class TestLoadDatasets:
             "fxoyoxz", project_config, sf, org_config, schema=None
         ) as dataset, pytest.raises(BulkDataException, match="fxoyoxz"):
             dataset.load()
+
+
+# Need record types for the RecordTypeId field to be in the org
+def create_record_type_for_account(sf, run_code_without_recording):
+    def create_record_type_for_account_real():
+        account_record_types = sf.query(
+            "select Count(Id) from RecordType where SObjectType='Account'"
+        )
+        if account_record_types["records"][0]["expr0"] == 0:
+            sf.RecordType.create(
+                {
+                    "DeveloperName": "PytestAccountRecordType",
+                    "Name": "PytestAccountRecordType",
+                    "SObjectType": "Account",
+                }
+            )
+
+    run_code_without_recording(create_record_type_for_account_real)

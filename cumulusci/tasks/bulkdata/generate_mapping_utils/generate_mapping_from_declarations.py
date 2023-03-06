@@ -33,13 +33,13 @@ def create_load_mapping_file_from_extract_declarations(
         fields = tuple(chain(decl.fields, decl.lookups.keys()))
         return MappingStep(
             sf_object=decl.sf_object,
-            fields=zip(fields, fields),
+            fields=dict(zip(fields, fields)),
             # lookups=lookups,      # lookups can be re-created later, for simplicity
         )
 
     mapping_steps = [_mapping_step(decl) for decl in simplified_decls_w_lookups]
 
-    mappings = generate_load_mapping_file(mapping_steps, intertable_dependencies, None)
+    mappings = generate_load_mapping_file(mapping_steps, intertable_dependencies, [])
     return mappings
 
 
@@ -60,7 +60,8 @@ def classify_and_filter_lookups(
     decls: T.Sequence[SimplifiedExtractDeclaration], schema: Schema
 ) -> T.Sequence[SimplifiedExtractDeclarationWithLookups]:
     """Move lookups into their own field, if they reference a table we're including"""
-    referenceable_tables = [decl.sf_object for decl in decls]
+    referenceable_tables = [decl.sf_object for decl in decls if decl.sf_object]
+    # the if statement above is just to shut up the type checker
     return [_add_lookups_to_decl(decl, schema, referenceable_tables) for decl in decls]
 
 
@@ -87,10 +88,16 @@ def _add_lookups_to_decl(
 
 def _fields_and_lookups_for_decl(decl, sobject_schema_info, referenceable_tables):
     """Split fields versus lookups for a declaration"""
-    simple_fields, lookups = partition(
-        lambda field_name: sobject_schema_info.fields[field_name].referenceTo,
-        decl.fields,
-    )
+
+    def is_lookup(field_name):
+        # Record types are not treated as lookup.
+        if field_name == "RecordTypeId":
+            return False
+        schema_info_for_field = sobject_schema_info.fields[field_name]
+        target = schema_info_for_field.referenceTo
+        return target
+
+    simple_fields, lookups = partition(is_lookup, decl.fields)
 
     def target_table(field_info):
         if len(field_info.referenceTo) == 1:
