@@ -75,7 +75,7 @@ class TestUpsert:
         # load the data and double-check that it loaded as expected
         with mock.patch.object(task.logger, "info"):
             task()
-            assert "UPSERT" in str(task.logger.info.mock_calls)
+            assert "upsert" in str(task.logger.info.mock_calls)
 
         # check that the right steps were executed
         result = task.return_values
