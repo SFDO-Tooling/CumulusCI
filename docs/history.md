@@ -2,11 +2,29 @@
 
 <!-- latest-start -->
 
+## v3.74.0 (2023-03-06)
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+
+### Changes 🎉
+
+-   Allow use of static release notes on GitHub by [@davidmreed](https://github.com/davidmreed) in [#3550](https://github.com/SFDO-Tooling/CumulusCI/pull/3550)
+-   `cci service update` by [@TheBitShepherd](https://github.com/TheBitShepherd) in [#3481](https://github.com/SFDO-Tooling/CumulusCI/pull/3481)
+-   Add TimelineObjectDefinition metadata type by [@jstvz](https://github.com/jstvz) in [#3551](https://github.com/SFDO-Tooling/CumulusCI/pull/3551)
+
+### Issues Fixed 🩴
+
+-   Fix an issue with `capture_sample_data` and record type capturing. by [@prescod](https://github.com/prescod) in [#3552](https://github.com/SFDO-Tooling/CumulusCI/pull/3552)
+
+**Full Changelog**: https://github.com/SFDO-Tooling/CumulusCI/compare/v3.73.0...v3.74.0
+
+<!-- latest-stop -->
+
 ## v3.73.0 (2023-02-16)
 
 No changes (other than dependency updates) since v3.72.1.dev2 . Please see the changes below.
-
-<!-- latest-stop -->
 
 ## v3.72.1.dev2 (2023-02-10)
 
