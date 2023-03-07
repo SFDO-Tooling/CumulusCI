@@ -26,6 +26,7 @@ def _calculate_dependencies_for_declarations(
     """
     dependencies = {}
     for decl in decls:
+        assert isinstance(decl.sf_object, str)
         new_dependencies = _collect_dependencies_for_sobject(
             decl.sf_object, decl.fields, schema, only_required_fields=False
         )
@@ -38,7 +39,7 @@ def _collect_dependencies_for_sobject(
     fields: T.List[str],
     schema: Schema,
     only_required_fields: bool,
-):
+) -> T.Dict[str, T.List[SObjDependency]]:
     """Ensure that required lookups are fulfilled for a single SObject
 
     Do this by adding its referent tables (in full) to the extract.
@@ -50,7 +51,7 @@ def _collect_dependencies_for_sobject(
         if not field_info.createable:  # pragma: no cover
             continue
         references = field_info.referenceTo
-        if len(references) == 1:
+        if len(references) == 1 and not references[0] == "RecordType":
             target = references[0]
 
             target_disallowed = target in NOT_EXTRACTABLE
