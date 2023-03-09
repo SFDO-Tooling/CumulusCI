@@ -14,6 +14,7 @@ class BaseSalesforceApiTask(BaseSalesforceTask):
         self.sf = self._init_api()
         self.bulk = self._init_bulk()
         self.tooling = self._init_api("tooling")
+        self.mdapi = self._init_api().mdapi
         self._init_class()
 
     def _init_api(self, base_url=None):
