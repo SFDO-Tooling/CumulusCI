@@ -25,9 +25,9 @@ class DxConvertFrom(SFDXBaseTask):
         self.options["command"] = f"force:source:convert -d {self.options['src_dir']}"
 
         if self.options["resolve_sfdx_package_dirs"]:
-            package_directories = self._resolve_sfdx_package_dirs()
-            if package_directories:
-                self.options["command"] += f" --sourcepath {package_directories}"
+            path_string = self._resolve_sfdx_package_dirs()
+            if path_string:
+                self.options["command"] += f" --sourcepath {path_string}"
 
     def _run_task(self):
         src_dir = Path(self.options["src_dir"])
@@ -36,7 +36,7 @@ class DxConvertFrom(SFDXBaseTask):
         super()._run_task()
 
     def _resolve_sfdx_package_dirs(self):
-        return ",".join(
+        path_string = ",./".join(
             [
                 node["path"]
                 for node in self.project_config.sfdx_project_config.get(
@@ -44,3 +44,6 @@ class DxConvertFrom(SFDXBaseTask):
                 )
             ]
         )
+        if path_string:
+            return f"./{path_string}"
+        return ""

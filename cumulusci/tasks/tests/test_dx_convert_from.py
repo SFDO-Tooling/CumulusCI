@@ -16,8 +16,9 @@ from cumulusci.utils import temporary_dir
 def sfdx_project_config():
     dx_project_config = {
         "packageDirectories": [
-            {"default": True, "path": "main/default"},
+            {"default": True, "path": "force-app"},
             {"path": "libs/helper"},
+            {"path": "libs/mdapiservice"},
         ]
     }
     with mock.patch.object(
@@ -69,7 +70,7 @@ def test_dx_convert_from(sarge, sarge_process, dx_convert_task):
 
         assert not src_dir.exists()
         sarge.Command.assert_called_once_with(
-            "sfdx force:source:convert -d src --sourcepath main/default,libs/helper",
+            "sfdx force:source:convert -d src --sourcepath ./force-app,./libs/helper,./libs/mdapiservice",
             cwd=".",
             env=ANY,
             shell=True,
