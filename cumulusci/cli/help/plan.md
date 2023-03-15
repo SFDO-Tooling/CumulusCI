@@ -143,6 +143,18 @@ require explicit configuration, here achieved by numbering the steps.
 You can verify your steps match up by checking the output of the
 `cci plan info` command.
 
+**ui_options**
+
+- `name` is the name displayed for the step in MetaDeploy
+- `is_required` True or False to determin if the user can skip the step during run
+- `is_recommended` True or False to determin if the step is checked by default
+- `kind` Controls the Type column on a plan for what icon and label is used. Is one of:
+    - `metadata`: Metadata
+    - `onetime`: One Time Apex
+    - `managed`: Package
+    - `data`: Data
+    - `other`: Other (no icon)
+
 # Preflight Checks
 
 Preflight checks allow the installer to inspect the state of the org
