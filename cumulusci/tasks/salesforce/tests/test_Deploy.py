@@ -196,6 +196,39 @@ class TestDeploy:
 
             assert "transform spec is not valid" in str(e)
 
+    def test_init_options__output_default(self):
+        d = create_task(
+            Deploy,
+            {
+                "path": "src",              
+            },
+        )
+
+        assert d.options["junit_output"] == "test_results.xml"
+        assert d.options["json_output"] == "test_results.json"
+
+    def test_init_options__JUNIT_output(self):
+        d = create_task(
+            Deploy,
+            {
+                "path": "src",
+                "junit_output": "TEST.xml",                
+            },
+        )
+
+        assert d.options["junit_output"] == "TEST.xml"
+
+    def test_init_options__JSON_output(self):
+        d = create_task(
+            Deploy,
+            {
+                "path": "src",
+                "json_output": "TEST.json",                
+            },
+        )
+
+        assert d.options["json_output"] == "TEST.json" 
+
     def test_freeze_sets_kind(self):
         task = create_task(
             Deploy,

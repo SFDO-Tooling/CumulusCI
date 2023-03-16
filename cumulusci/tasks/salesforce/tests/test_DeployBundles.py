@@ -58,6 +58,8 @@ class TestDeployBundles:
                                     "github": "https://github.com/TestOwner/TestRepo",
                                     "subfolder": "unpackaged/test",
                                     "namespace_inject": None,
+                                    'junit_output': 'test_results.xml', 
+                                    'json_output': 'test_results.json',
                                 }
                             ]
                         },

@@ -55,6 +55,12 @@ class Deploy(BaseSalesforceMetadataApiTask):
         "transforms": {
             "description": "Apply source transforms before deploying. See the CumulusCI documentation for details on how to specify transforms."
         },
+        "junit_output": {
+            "description": "XML test result output filename. Defaults to test_results.xml."
+        },
+        "json_output": {
+            "description": "JSON test result output filename. Defaults to test_results.json."
+        },
     }
 
     namespaces = {"sf": "http://soap.sforce.com/2006/04/metadata"}
@@ -63,6 +69,12 @@ class Deploy(BaseSalesforceMetadataApiTask):
 
     def _init_options(self, kwargs):
         super(Deploy, self)._init_options(kwargs)
+
+        # Set default values if nothing is passed
+        if self.options.get("junit_output") is None:        
+            self.options["junit_output"] = "test_results.xml"
+        if self.options.get("json_output") is None:        
+            self.options["json_output"] = "test_results.json"
 
         self.check_only = process_bool_arg(self.options.get("check_only", False))
         self.test_level = self.options.get("test_level")
@@ -109,10 +121,14 @@ class Deploy(BaseSalesforceMetadataApiTask):
         else:
             self.logger.warning("Deployment package is empty; skipping deployment.")
             return
+        
+        options = {"junit_output": self.options["junit_output"],
+                   "json_output": self.options["json_output"]}
 
         return self.api_class(
             self,
             package_zip,
+            options,
             purge_on_delete=False,
             check_only=self.check_only,
             test_level=self.test_level,
