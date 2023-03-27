@@ -89,6 +89,8 @@ class ScratchOrgConfig(SfdxOrgConfig):
         except json.decoder.JSONDecodeError:
             raise_error()
 
+        assert result
+
         if (
             not (res := result.get("result"))
             or ("username" not in res)
